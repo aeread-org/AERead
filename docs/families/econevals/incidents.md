@@ -513,3 +513,41 @@ Publishing a panel from here requires a decision that is not the runner's:
 measure a route that honours a reasoning control, or declare episode-level
 typed missingness with a retry budget in advance. The second is defensible; it
 is not defensible chosen now, by me, with the failing cases already known.
+
+## v9 attempts 021-022 — the control I declared discarded is the control that works
+
+Three consecutive attempts (019, 021, 022) failed `procurement.basic.0`, a case
+that had never failed before. The three share one thing: they are the only
+configurations that sent no `reasoning` block at all, because attempt_016's
+write-up concluded the route discards reasoning controls and that declaring one
+would state a condition that did not hold.
+
+That conclusion was wrong, and measuring it takes one table:
+
+| `procurement.basic.0` | calls | median reasoning | finish |
+|---|---|---|---|
+| with `reasoning.max_tokens: 1500` (v5) | 100 | **31 chars** | 100 × `stop` |
+| no reasoning block (v9 att021) | 7 | 11,703 chars | 7 × `length` |
+| no reasoning block (v9 att022) | 21 | 12,174 chars | 18 × `length` |
+
+Same case, same route, same 4,000-token ceiling. With the block the model
+reasons in tens of characters and never truncates; without it, in tens of
+thousands and mostly does.
+
+**How the error was made.** The claim "this route discards `reasoning.max_tokens`"
+came from one observation: a `scheduling.basic.1` failure where the 1,500
+declaration was present on every call and reasoning still ran past 10,000
+characters. That observation is real and still stands. The mistake was
+generalising it from the one case that overruns to the route as a whole. The
+control is a suppressor, not a hard cap: easy observations obey it by a factor
+of several hundred, a hard one can overrun it. Reading a soft control off its
+single failure and concluding it does nothing is how a working treatment gets
+removed.
+
+The cost of that error was three panel attempts and a public claim on #107 and
+#134 that had to be retracted. It also explains the two-path anomaly reported
+on #134 without needing two paths: calls differ in how much reasoning the
+observation provokes, not in which budget reached the wire.
+
+v10 restores the declaration. The residual `scheduling.basic.1` overrun is
+unchanged and remains the family's real constraint.

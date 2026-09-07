@@ -147,15 +147,27 @@ period. Never invent tool results.
 # the control that failed. 1,500 of 4,000 leaves 2,500 for the action itself,
 # against a longest observed well-formed action burst under 400.
 REASONING_DECLARATION: dict[str, object] = {
-    # No reasoning control is declared, because this route honours none of
-    # them. `effort: "minimal"` was sent and ignored (attempt_013, confirmed in
-    # the sealed request). `reasoning.max_tokens: 1500` was sent and ignored
-    # too (attempt_016: every call carried it and reasoning still ran past
-    # 10,000 characters). Declaring a control the provider discards would put
-    # a condition into published evidence that did not hold.
-    "condition_id": "reasoning_provider_default_v1",
+    # `reasoning.max_tokens: 1500` is declared because it works, and the
+    # measurement is unambiguous. On `procurement.basic.0`, with the block
+    # sent, the model produced a MEDIAN of 31 characters of reasoning and 100
+    # of 100 calls finished `stop`. With no block sent -- same case, same
+    # ceiling, same route -- the median is about 12,000 characters and the
+    # case fails. Three consecutive attempts failed that case with the block
+    # absent; no attempt has ever failed it with the block present.
+    #
+    # It is a suppressor, not a hard cap, and the distinction matters. The
+    # same 1,500 declaration is present on every call of a
+    # `scheduling.basic.1` failure whose reasoning still ran past 10,000
+    # characters. Easy observations obey it by a wide margin; a hard one can
+    # still overrun. That is why an earlier write-up here concluded the
+    # control was "discarded" -- it was read off the one case that overruns,
+    # and generalised to a route that mostly obeys it.
+    #
+    # An effort cannot be declared alongside it: OpenRouter 400s on the pair
+    # (#133).
+    "condition_id": "reasoning_capped_1500_v1",
     "effort": None,
-    "token_budget": None,
+    "token_budget": 1500,
     "rationale_visibility": "hidden",
 }
 

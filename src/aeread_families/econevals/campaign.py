@@ -76,7 +76,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
-# v9: the final declaration -- no reasoning control (this route honours none),
+# v10: the reasoning cap is declared again, because measuring it properly
+# showed it works. See REASONING_DECLARATION for the numbers: 31 characters of
+# reasoning median with the block, ~12,000 without, on the same case and route.
+#
+# v9: no reasoning control,
 # a 4,000-token output ceiling (the cheapest of four values all of which fail
 # at the same rate), $0.20 per trajectory and $1.30 total.
 #
@@ -123,7 +127,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v9"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v10"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
