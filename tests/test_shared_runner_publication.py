@@ -309,3 +309,34 @@ def test_add_publication_artifact_updates_the_kernel_manifest_and_reseals(tmp_pa
     (root / "publication_manifest.json").write_bytes(canonical_json_bytes({**manifest, "schema_version": "other/9.9"}) + b"\n")
     with pytest.raises(ValueError, match="schema"):
         add_publication_artifact(root, "trajectories/more.jsonl", b"{}\n")
+
+
+def test_publish_trajectories_verb_is_registered_and_refuses_an_unpublished_receipt(tmp_path):
+    from aeread.cli import VERBS
+    from aeread.shared_runner.run.publish_trajectories import (
+        GRAIN,
+        publish_trajectory_grain,
+    )
+
+    assert VERBS["publish-trajectories"][0] == "aeread.shared_runner.run.publish_trajectories"
+
+    execution, receipt = _housing_execution(tmp_path / "run")
+    attempt_dir = execution.evidence.root
+    bundle = tmp_path / "bundle"
+    (bundle / "reports").mkdir(parents=True)
+    (bundle / "publication_manifest.json").write_bytes(
+        canonical_json_bytes(
+            {"schema_version": "aeread.publication_manifest/0.1", "artifacts": {}, "manifest_sha256": ""}
+        )
+    )
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipts": []}))
+    with pytest.raises(ValueError, match="not published"):
+        publish_trajectory_grain(bundle, [attempt_dir])
+    assert not (bundle / GRAIN).exists()
+
+    (bundle / "reports" / "summary.json").write_text(
+        json.dumps({"receipts": [receipt.receipt_sha256]})
+    )
+    count, manifest = publish_trajectory_grain(bundle, [attempt_dir])
+    assert count > 0
+    assert manifest["artifacts"][GRAIN] == hashlib.sha256((bundle / GRAIN).read_bytes()).hexdigest()

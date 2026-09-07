@@ -75,9 +75,13 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
 
 
 def test_cli_verb_modules_use_the_organized_package_paths() -> None:
+    kernel_verbs = {
+        "export-tables": "aeread.shared_runner.analysis.research",
+        "publish-trajectories": "aeread.shared_runner.run.publish_trajectories",
+    }
     for verb, (module_name, _description) in cli.VERBS.items():
-        if verb == "export-tables":
-            assert module_name == "aeread.shared_runner.analysis.research"
+        if verb in kernel_verbs:
+            assert module_name == kernel_verbs[verb]
         else:
             assert module_name.startswith("aeread.exchange_v1.")
         import_module(module_name)
