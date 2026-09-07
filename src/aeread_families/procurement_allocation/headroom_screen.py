@@ -39,6 +39,9 @@ SCREEN_BASELINES: tuple[str, ...] = (
 #: and saturated tests are claims about a rate.
 MINIMUM_SCREEN_SEEDS = 3
 
+#: Continuous-metric verdict: the control scores identically at every seed, so
+#: the world cannot express a difference however large its scores are.
+DEGENERATE = "reject: degenerate"
 TRIVIAL = "reject: trivial"
 FLOORED = "reject: floored"
 SATURATED = "reject: saturated"
@@ -74,7 +77,48 @@ def classify_world(
     return ADMIT
 
 
-def within_world_variance(control_outcomes: Sequence[bool]) -> float:
+def classify_world_continuous(
+    control_scores: Sequence[float],
+    baseline_scores: Mapping[str, float | None],
+    *,
+    lower_is_better: bool = True,
+) -> str:
+    """Admission verdict for a world scored on a continuous metric.
+
+    `classify_world` decides on a binary success, which for this family is a
+    threshold on a continuous quantity, and a threshold discards exactly the
+    information a panel needs. Measured on the noisy candidate panel, award
+    feasibility was 100% at every seed of every world with zero variance, while
+    regret to the full-information bound ranged from $8.04 to $64.82 and varied
+    within four of six worlds. The same rows were uninformative read one way and
+    informative read the other.
+
+    So the grounds are restated for a continuous score. A world is *degenerate*
+    when the control scores identically at every seed, which subsumes both
+    floored and saturated: there is no dispersion for a treatment to move. It is
+    *trivial* when a deterministic public-observation policy already matches the
+    control's best score, since verification then buys nothing.
+    """
+    if not control_scores or len(control_scores) < MINIMUM_SCREEN_SEEDS:
+        return UNMEASURED
+    if not baseline_scores or all(
+        score is None for score in baseline_scores.values()
+    ):
+        return UNMEASURED
+    if len(set(control_scores)) == 1:
+        return DEGENERATE
+    measured = [score for score in baseline_scores.values() if score is not None]
+    best_control = min(control_scores) if lower_is_better else max(control_scores)
+    best_baseline = min(measured) if lower_is_better else max(measured)
+    beaten = (
+        best_baseline <= best_control if lower_is_better else best_baseline >= best_control
+    )
+    if beaten:
+        return TRIVIAL
+    return ADMIT
+
+
+def within_world_variance(control_outcomes: Sequence[float]) -> float:
     """Sample variance of a world's control outcomes.
 
     Reported rather than thresholded. Zero is a finding: it means the seeds are
@@ -84,8 +128,9 @@ def within_world_variance(control_outcomes: Sequence[bool]) -> float:
     count = len(control_outcomes)
     if count < 2:
         return 0.0
-    mean = sum(bool(o) for o in control_outcomes) / count
-    return sum((bool(o) - mean) ** 2 for o in control_outcomes) / (count - 1)
+    values = [float(outcome) for outcome in control_outcomes]
+    mean = sum(values) / count
+    return sum((value - mean) ** 2 for value in values) / (count - 1)
 
 
 def replay_baseline(payload: Mapping[str, Any], policy_id: str) -> bool | None:
@@ -138,6 +183,7 @@ def screen_baselines(
 
 __all__ = [
     "ADMIT",
+    "DEGENERATE",
     "FLOORED",
     "MINIMUM_SCREEN_SEEDS",
     "SATURATED",
@@ -145,6 +191,7 @@ __all__ = [
     "TRIVIAL",
     "UNMEASURED",
     "classify_world",
+    "classify_world_continuous",
     "replay_baseline",
     "screen_baselines",
     "within_world_variance",

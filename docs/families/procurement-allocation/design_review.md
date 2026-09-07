@@ -599,6 +599,55 @@ constrain that panel:
   beating deferring. Defect 17 constrains the noisy panel too, and the panel must
   be built with that in mind rather than by degrading an existing one.
 
+## 21. The binary metric was the constraint, not the worlds
+
+The noisy panel was built, generated six legal worlds, and was rejected 6 of 6
+by the Gate 1 screen as **trivial**: a deterministic public-observation policy
+won every world. That is the opposite failure to the previous panel, and the two
+together locate the real constraint.
+
+Reaching legality at lower yields required generous economics, and generous
+economics mean a mediocre supplier still clears the service threshold. Tight
+economics make the trap matter and make the world illegal or floored. There is
+no setting of the worlds that escapes this, because `feasible_award` is a
+threshold on the service level: either the threshold is reachable whatever the
+buyer picks, or it is unreachable without picking perfectly.
+
+The same 23 rows say the constraint is the threshold and not the worlds:
+
+| metric | dispersion within a world |
+|---|---|
+| `feasible_award` | zero in every world, at every seed, across three runs |
+| `regret_to_upper_bound_usd` | non-zero in four of six worlds |
+
+| world | regret min | regret max | within-world stdev |
+|---|---:|---:|---:|
+| noisy_trap_cheapest | 8.04 | 8.04 | 0.000 |
+| noisy_all_middling | 18.87 | 19.22 | 0.175 |
+| noisy_trap_midpriced | 19.82 | 20.07 | 0.144 |
+| noisy_trap_priciest | 18.87 | 20.85 | 0.991 |
+| noisy_trap_and_decoys | 18.32 | 29.32 | 5.443 |
+| noisy_two_traps | 64.82 | 64.82 | 0.000 |
+
+Across the panel regret runs from $8.04 to $64.82, with 10 distinct margins over
+23 rows. Read as a binary the panel is uninformative; read on its own scored
+quantity it discriminates. Defect 18 is therefore a property of the metric rather
+than of the environment, and it is resolved by scoring on regret with sampling
+noise present.
+
+The screen inherited the same mistake, since it classified on a binary rate.
+`classify_world_continuous` restates the grounds for a continuous score. A world
+is **degenerate** when the control scores identically at every seed, which
+subsumes floored and saturated because in both cases there is no dispersion to
+move. It is **trivial** when a deterministic policy already matches the control's
+best score. Both grounds are mutation-verified.
+
+**What remains unproven.** Dispersion is necessary for a treatment effect and is
+not the same as one. No treatment has been compared on this panel, and the panel
+is still a scratch artifact rather than a committed generator, deliberately: it
+should be promoted only once it passes admission under the continuous rule. The
+next measurement is that admission, then a two-arm comparison scored on regret.
+
 ## Status of the fixes
 
 | defect | state |
@@ -620,9 +669,10 @@ constrain that panel:
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 21 the binary metric was the constraint | **evidenced** — the noisy panel is uninformative on `feasible_award` and discriminating on regret over the same 23 rows; `classify_world_continuous` added and mutation-verified, admission not yet re-run |
 | 20 sampling noise landed opt-in | mechanism only; a case without the declared block keeps perfect verification, so nothing sealed moves |
 | 19 environment change re-dates every sealed campaign identity | open; ten frozen digests across seven tests moved for changes unrelated to any of those campaigns, and the sealed bundles still self-verify |
-| 18 no seed variance within a world | **mechanism removed, effect unproven** — noisy draws vary with the declared seed, but no panel has yet been run to show non-zero within-world variance |
+| 18 no seed variance within a world | **resolved by the metric** — with noise declared, regret varies within four of six worlds; the zero variance was `feasible_award` thresholding it away (defect 21) |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work, and defects 17
 and 18 reorder it. Defect 17 is now the most urgent, because it explains why 14

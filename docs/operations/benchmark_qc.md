@@ -172,7 +172,18 @@ Establish this by measurement, not by inspecting world definitions:
    world, and reported a fabricated unanimous admission. A screen is evidence and
    is owed the scepticism owed to a run; a unanimous verdict is a reason to check
    the instrument.
-6. A holdout must additionally preserve the difficulty of the panel it holds out
+6. **Screen on the quantity the family actually scores.** If the reported metric
+   is continuous, admission is decided on dispersion in that metric, not on a
+   binary derived from it. A threshold discards exactly the information the panel
+   needs, and it does so silently: procurement's noisy panel was 100% feasible at
+   every seed of every world with zero variance, and the same 23 rows carried
+   regret from $8.04 to $64.82 varying within four of six worlds. Read one way it
+   was uninformative, read the other it discriminated. For a continuous score the
+   grounds become *degenerate*, meaning the control scores identically at every
+   seed, which subsumes floored and saturated, and *trivial*, meaning a
+   deterministic policy already matches the control's best.
+
+7. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
 
 If a family cannot produce worlds that pass all three grounds, the finding is

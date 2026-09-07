@@ -105,3 +105,67 @@ def test_screen_baselines_covers_every_declared_policy() -> None:
     outcomes = screen_baselines(payload)
     assert set(outcomes) == set(SCREEN_BASELINES)
     assert all(isinstance(value, bool) for value in outcomes.values())
+
+
+# --- continuous scoring ------------------------------------------------------
+#
+# Defect 21: award feasibility is a threshold on regret, and thresholding
+# discarded the only dispersion the noisy panel had. These cover the continuous
+# rule that replaces it.
+
+from aeread_families.procurement_allocation.headroom_screen import (  # noqa: E402
+    DEGENERATE,
+    classify_world_continuous,
+)
+
+LOSE_ALL_SCORES = {policy: 90.0 for policy in SCREEN_BASELINES}
+
+
+def test_identical_control_scores_are_degenerate() -> None:
+    """Zero dispersion subsumes floored and saturated: nothing can be moved."""
+    assert (
+        classify_world_continuous([12.0, 12.0, 12.0], LOSE_ALL_SCORES) == DEGENERATE
+    )
+
+
+def test_a_baseline_matching_the_control_best_is_trivial() -> None:
+    """Verification buys nothing if a public-observation policy already ties it."""
+    scores = dict(LOSE_ALL_SCORES) | {SCREEN_BASELINES[0]: 8.0}
+    assert classify_world_continuous([8.0, 19.0, 20.0], scores) == TRIVIAL
+
+
+def test_dispersed_control_beating_every_baseline_is_admitted() -> None:
+    assert classify_world_continuous([8.0, 19.0, 20.0], LOSE_ALL_SCORES) == ADMIT
+
+
+def test_continuous_screen_needs_several_seeds() -> None:
+    assert classify_world_continuous([8.0], LOSE_ALL_SCORES) == UNMEASURED
+
+
+def test_continuous_screen_rejects_when_no_baseline_scored() -> None:
+    unmeasured = {policy: None for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([8.0, 19.0, 20.0], unmeasured) == UNMEASURED
+
+
+def test_higher_is_better_metrics_are_supported() -> None:
+    """Margin rather than regret: the same rule with the comparison flipped."""
+    baselines = {policy: 10.0 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([50.0, 60.0], baselines, lower_is_better=False)
+        == UNMEASURED
+    )
+    assert (
+        classify_world_continuous([50.0, 60.0, 70.0], baselines, lower_is_better=False)
+        == ADMIT
+    )
+    beating = {policy: 99.0 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([50.0, 60.0, 70.0], beating, lower_is_better=False)
+        == TRIVIAL
+    )
+
+
+def test_variance_is_computed_on_real_numbers_not_just_booleans() -> None:
+    """The screen reports dispersion for continuous scores too."""
+    assert within_world_variance([8.04, 8.04, 8.04]) == 0.0
+    assert within_world_variance([18.32, 29.32, 18.87, 20.85]) > 0.0
