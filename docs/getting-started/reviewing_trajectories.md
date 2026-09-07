@@ -16,7 +16,7 @@ It lives under `evidence/<campaign_id>/` and always has the same shape:
 | Path | What it holds |
 |---|---|
 | `README.md` | Campaign intent, what was excluded, and whether the run supports any ranking claim |
-| `trajectories/sanitized.jsonl` | One record per episode: parsed model output, typed failure, metrics, route and usage facts |
+| `trajectories/sanitized.jsonl` | The trajectory grain. Its shape is declared per row: kernel rows carry `schema_version: aeread.sanitized_trajectory_row/0.1` and are one record per logical action (§5, the target for every new publication); older family rows have no `schema_version` and are one record per episode (parsed model output, typed failure, metrics, route and usage facts). Housing bundles predate both and publish `attempted.json`/`selected.json` instead |
 | `receipts/projections.jsonl` | One record per `EvaluationReceipt`: scores by leaf, inclusion status, replay level |
 | `tables/benchmark_results.csv`, `tables/model_features.csv`, `tables/profiles.csv` | Canonical fact tables the paper reads from |
 | `tables/fact_manifest.json` | SHA-256 of every table and the contract that produced them |
@@ -158,10 +158,10 @@ To add the grain to a published kernel-standard bundle
 (`aeread.publication_manifest/0.1`), run
 
 ```bash
-python tools/publish_sanitized_trajectories.py evidence/<campaign_id> runs/<family>/<campaign_id>/**/<attempt_dir>...
+aeread publish-trajectories evidence/<campaign_id> runs/<family>/<campaign_id>/**/<attempt_dir>...
 ```
 
-Every receipt must already be published by the bundle (the script refuses
+Every receipt must already be published by the bundle (the verb refuses
 otherwise), the file is written once, and `publication_manifest.json` is
 re-sealed with the new artifact digest via `add_publication_artifact`. This is
 a QC §4 mechanical correction: the earlier manifest stays in history and no
