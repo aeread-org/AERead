@@ -158,8 +158,8 @@ CANARY_RETRY_BASE_SECONDS = 15.0
 # issue #130; our own request is flat at ~1.1KB, verified with a stub over
 # 100 periods). The ceiling is raised to fit the measurement rather than the
 # estimate, and the panel ceiling with it.
-MAX_TRAJECTORY_COST_USD = 0.60
-HARD_TOTAL_COST_CEILING_USD = 4.00
+MAX_TRAJECTORY_COST_USD = 0.20
+HARD_TOTAL_COST_CEILING_USD = 1.30
 
 
 def _digest(value: Any) -> str:

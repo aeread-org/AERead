@@ -648,29 +648,26 @@ def _profile(
                 # occasional deep-reasoning turn -- so the budget is modest
                 # and truncation is handled by a bounded length retry
                 # instead (#131).
-                # 24,000, sized from what succeeding calls actually
-                # needed rather than from a guess in either direction.
+                # 4,000, and the ceiling is no longer being treated as
+                # a lever. Four values have now been run live -- 4,000, 6,000,
+                # 12,000 and 24,000 -- and the failure survives all of them.
                 #
-                # Every call in attempt_019 that produced a usable action
-                # consumed 4,521, 6,165, 6,309 or 7,070 output tokens, with
-                # 19,805-31,773 characters of reasoning behind it. A 4,000
-                # ceiling is below all four, so a harness-driven call whose
-                # reasoning runs long cannot succeed -- it burns the budget
-                # and returns empty by construction.
+                # 24,000 was sized from the calls that succeeded, which needed
+                # 4,521-7,070 tokens. That reasoning was sound about the
+                # successes and wrong about the failures, because the failures
+                # scale with the ceiling too: at 24,000, ten of twenty-four
+                # calls filled the entire budget and returned empty. The run
+                # reached period 5 of 100 in an hour at $0.147, which
+                # extrapolates past both the per-trajectory cap and any
+                # tolerable wall time, and was stopped.
                 #
-                # Two earlier readings of this were wrong and are worth
-                # naming, because each one argued against the fix. "Headroom
-                # does not help" came from failures at 2,400/6,000/12,000, but
-                # 12,000 is still under the observed tail. "Reasoning expands
-                # to fill whatever it is given" is contradicted by calls at a
-                # declared 32,000 that used 6,165 tokens and stopped: it is
-                # long and variable, not unbounded.
-                #
-                # Cost is billed per token emitted, so this does not scale
-                # spend with the ceiling. It should reduce it: the current
-                # failure mode burns 4,000 discarded tokens and then retries,
-                # repeatedly, where one 7,000-token call would have finished.
-                "max_output_tokens": 24000,
+                # So the v1 note was right and my two attempts to overturn it
+                # were not: a large share of calls expand into whatever budget
+                # they are given. Raising the ceiling buys a few more
+                # successes and makes every failure proportionally more
+                # expensive. 4,000 is kept because it is the cheapest way to
+                # fail, not because it works.
+                "max_output_tokens": 4000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.

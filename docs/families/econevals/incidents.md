@@ -468,3 +468,48 @@ route that honours a reasoning control, or keep this route and treat a
 no-action episode as typed missingness with a declared episode-level retry
 budget. The second changes what the panel measures and needs to be declared
 before it is run, not after seeing which cases it rescues.
+
+## attempt_020 — the ceiling is not a lever, established across four values
+
+v8 raised the output ceiling to 24,000, sized from the calls in attempt_019
+that produced usable actions: they needed 4,521-7,070 tokens, so 4,000 sat
+below all of them. That reasoning was correct about the successes and wrong
+about the failures, because the failures scale with the ceiling as well. At
+24,000, ten of twenty-four calls filled the entire budget and returned empty.
+The run reached period 5 of 100 in an hour at $0.1467 -- roughly $3 and twenty
+hours per case -- and was stopped rather than left to hit the cap on its own.
+
+The ceiling has now been run live at 4,000, 6,000, 12,000 and 24,000. The
+failure survives all four. Raising it buys a few more successes and makes every
+failure proportionally more expensive in both money and time. The declaration
+returns to 4,000 and the cost ceilings to $0.20/$1.30, because 4,000 is the
+cheapest way to fail, not because it works.
+
+**The record on this point, in order, since I got it wrong twice.** The v1 note
+said the model "expands to fill what it is given". I set that aside once on the
+grounds that those observations were clamped (#134), and again on the grounds
+that a declared 32,000 call had stopped at 6,165 tokens. The first was a real
+mechanism that did not license the inference; the second was a true observation
+about the calls that succeed, generalised to the ones that fail. Both times the
+original claim was better supported than the argument against it, and both
+times the way to find out was a live run that cost money.
+
+**Terminal state for this family on this route.** Six cases, three levers, four
+ceiling values, and no configuration in which the panel reliably completes.
+`reasoning.effort` is discarded by the route. `reasoning.max_tokens` is
+discarded. The output ceiling changes the price of failure, not its rate. What
+remains is a property of GLM 5.3 Flash on Parasail fp8: for a fraction of these
+observations it emits no parseable action, and the fraction is a draw rather
+than a fixed set of cases.
+
+The best evidence the family has produced is
+`econevals_..._reasoning_capped_v4/attempt_015`: 6/6 cases, 100 periods each,
+$0.4376, `scheduling.basic.1` at the exact optimum. It is unpublished because
+its plan named a reasoning condition it did not run and its canary admitted a
+configuration the panel never used -- both since fixed, neither fixable
+retroactively for that bundle.
+
+Publishing a panel from here requires a decision that is not the runner's:
+measure a route that honours a reasoning control, or declare episode-level
+typed missingness with a retry budget in advance. The second is defensible; it
+is not defensible chosen now, by me, with the failing cases already known.
