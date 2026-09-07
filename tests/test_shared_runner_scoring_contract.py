@@ -71,6 +71,9 @@ from typing import Any, Callable, Mapping, Sequence
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread_families.negarena import environment as negarena_environment_module
+from aeread_families.negarena import measurement as negarena_measurement
+from aeread_families.negarena.cases import BLUE as NEGARENA_BLUE, RED as NEGARENA_RED
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
