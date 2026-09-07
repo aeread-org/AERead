@@ -62,6 +62,7 @@ are in `evidence/housing_failure_register/`.
 | T-5 | The pacing ledger returned null for the new client because one `isinstance` check inside the run artifact was not widened alongside the others. | fixed |
 | T-6 | A mutation sweep over the newly added guards found 8 of 14 were not actually tested; the missingness-ceiling test reimplemented the rule inside the test file and asserted against its own copy. | fixed — all 18 guards now caught; sweep kept at `tools/housing_guard_mutation_check.py` |
 | T-7 | A text splice while staging two campaign specs over-captured its block boundary and duplicated the confirmatory spec twice, silently raising its attempt count. Contract validation caught it. | fixed |
+| T-9 | Cells execute in fixed batches, so a batch finishes only when its slowest member does. Observed in the confirmatory run: seven of eight cells completed within a nine-minute window and the batch then waited over thirty minutes on one cell that needed 60 calls and 13 retries. With 90 batches the wasted tail time is substantial. A sliding window that starts a new cell whenever any slot frees would remove it, at the cost of a more complex cost-reserve check. Not changed mid-run: `max_concurrent_cells` is a frozen control. | open |
 | T-8 | The completion-to-start cooldown held the provider lock for the entire call, so no two calls to a route ever overlapped and, with both models on one provider, the whole campaign serialised. Projected 89 hours for pilot plus confirmatory. | fixed — bounded-concurrency pacing and batched cells |
 
 ### judgment
