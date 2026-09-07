@@ -410,6 +410,18 @@ async def execute_campaign(*, run_root: Path) -> None:
             max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
         )
         execution_root = run_root / "executions" / case_id
+        if execution_root.exists():
+            # A case with no complete checkpoint but existing evidence died
+            # mid-execution -- a killed process, an interrupted operator. Its
+            # event log is partial, and the evidence store rightly refuses to
+            # append to one. The partial log is still evidence of what was
+            # attempted and what it cost, so it is moved aside rather than
+            # deleted, and this case restarts on a clean root.
+            superseded = run_root / "executions" / (
+                f"{case_id}.superseded_"
+                f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+            )
+            execution_root.rename(superseded)
         try:
             execution = await execute_plan_cell(
                 plan=setup.plan,
