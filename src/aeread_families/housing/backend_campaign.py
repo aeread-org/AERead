@@ -1099,6 +1099,144 @@ CAMPAIGN_SPECS = {
             "stop_immediately_on_route_drift_or_replay_failure"
         ),
     },
+    "housing_confirmatory_parasail_v2": {
+        "maximum_operational_failure_fraction": 0.05,
+        "replicates": 2,
+        "claim_status": "confirmatory_model_comparison",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": "confirmatory_parasail_low_v2",
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "replicates": 2,
+        "max_action_attempts": 30,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "confirmatory_panel": True,
+        "variance_pilot_reference": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v26",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v26/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "6bace0d9c20448c7e03826b528bc790fb0dc84652baaa6ba5557edf07c7de071"
+            ),
+        },
+        "execution_stage": "confirmatory_execution",
+        "execution_config_ids": [
+            "holdout_mild_unseen",
+            "holdout_moderate_unseen",
+            "holdout_severe_unseen",
+        ],
+        "execution_cost_ceiling_usd": 8.0,
+        "prior_partial_execution": {
+            "campaign_id": "housing_confirmatory_parasail_v1",
+            "attempted_trajectories": 280,
+            "completed_trajectories": 280,
+            "stop_reason": "campaign_cost_reserve_reached",
+            "outcomes_inspected_before_this_freeze": False,
+        },
+        "per_trajectory_cost_reserve_usd": 0.06,
+        # 114691332 is excluded: its severe holdout configuration has a zero
+        # upper bound, so that world carries no normalized score. The
+        # exclusion is forced by the generator and is re-derived at load.
+        "world_seeds": [
+            369623215,
+            1207545696,
+            1737316725,
+            935421243,
+            1307871977,
+            144531421,
+            744028935,
+            1419988216,
+            8919439,
+            1640977697,
+            1628619353,
+            1502627411,
+            1746020508,
+            2115856512,
+            449124770,
+            1907374266,
+            805162878,
+            657531977,
+            978077348,
+            1255654432,
+            210011375,
+            84125567,
+            1263145380,
+            1078198037,
+            545292283,
+            1291027571,
+            1268106556,
+            27562482,
+            2085097730,
+            1665492486,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "paired_world_level_t_interval",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_decision": 13,
+            "ranking_allowed": True,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_confirmatory_freeze; "
+            "confirmatory_freeze_must_be_sealed_before_execution; "
+            "stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
     "housing_model_sensitivity_openrouter_parasail_v22": {
         "route_status_policy": "allow_degraded_with_recorded_status",
         "endpoint_snapshot_policy": "identity_only",
@@ -2497,6 +2635,15 @@ def confirmatory_freeze_artifact(
             "gate_id": "confirmatory_freeze",
             "claim_status": contract["claim_status"],
             "frozen_before_any_holdout_outcome": True,
+            # A prior identity may have executed part of this holdout and
+            # stopped. That is only compatible with a fresh freeze if its
+            # outcomes were never inspected, so the claim is stated here
+            # rather than left implicit.
+            **(
+                {"prior_partial_execution": spec["prior_partial_execution"]}
+                if "prior_partial_execution" in spec
+                else {}
+            ),
             "holdout": {
                 "sweep_contract_path": panel["sweep_contract_path"],
                 "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
