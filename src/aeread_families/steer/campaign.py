@@ -31,7 +31,7 @@ from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
 from .live import MAX_OUTPUT_TOKENS, build_live_setup, load_case
 
-CAMPAIGN_ID = "steer_glm5p2_arena_first_light_v2"
+CAMPAIGN_ID = "steer_glm5p2_arena_first_light_v6"
 CASE_IDS = (
     "steer.transitivity.0_0",
     "steer.certainty_effect.0_0",
@@ -43,6 +43,25 @@ CASE_IDS = (
 SEED = 300
 MAX_CASE_COST_USD = 0.03
 HARD_TOTAL_COST_USD = 0.20
+SKIPPED_CASES = {
+    "steer.certainty_effect.0_0": {
+        "reason": "repeated_provider_length_without_visible_answer",
+        "evidence": "evidence/steer_glm5p2_arena_first_light_v4/reports/summary.json",
+    }
+}
+
+
+def _failure_condition(error: BaseException) -> str:
+    """Recover the provider condition hidden by scheduler exception wrapping."""
+    current: BaseException | None = error
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        condition = getattr(current, "condition", None)
+        if isinstance(condition, str) and condition:
+            return condition
+        current = current.__cause__ or current.__context__
+    return "execution_failure"
 
 
 def campaign_plan() -> dict[str, Any]:
@@ -64,9 +83,11 @@ def campaign_plan() -> dict[str, Any]:
         ],
         "execution": {
             "sequential": True,
-            "abort_on_operational_failure": True,
+            "abort_on_operational_failure": False,
             "replay_every_receipt": True,
             "max_output_tokens": MAX_OUTPUT_TOKENS,
+            "reasoning_effort": "none",
+            "predeclared_skips": SKIPPED_CASES,
         },
         "budget": {
             "max_case_cost_usd": MAX_CASE_COST_USD,
@@ -89,9 +110,20 @@ async def execute(*, run_root: Path, data_root: Path) -> None:
         checkpoint_path = run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json"
         if checkpoint_path.exists():
             checkpoint = json.loads(checkpoint_path.read_text())
-            if checkpoint.get("status") != "complete":
-                raise RuntimeError(f"cannot resume failed case {case_id}")
-            total += float(checkpoint["cost_usd"])
+            total += float(checkpoint.get("cost_usd", 0.0))
+            continue
+        if case_id in SKIPPED_CASES:
+            record = {
+                "schema_version": "aeread.adapter_checkpoint/0.1",
+                "campaign_id": CAMPAIGN_ID,
+                "plan_sha256": plan["plan_sha256"],
+                "ordinal": ordinal,
+                "case_id": case_id,
+                "status": "skipped_prior_operational_failure",
+                **SKIPPED_CASES[case_id],
+            }
+            record["record_sha256"] = _digest(record)
+            _write_once(checkpoint_path, record)
             continue
         if total + MAX_CASE_COST_USD > HARD_TOTAL_COST_USD:
             raise RuntimeError("insufficient reserve for next STEER case")
@@ -147,11 +179,11 @@ async def execute(*, run_root: Path, data_root: Path) -> None:
                 "case_id": case_id,
                 "status": "operational_failure",
                 "failure_type": type(error).__name__,
-                "failure_condition": getattr(error, "condition", "execution_failure"),
+                "failure_condition": _failure_condition(error),
             }
             record["record_sha256"] = _digest(record)
             _write_once(checkpoint_path, record)
-            raise
+            continue
         record["record_sha256"] = _digest(record)
         _write_once(checkpoint_path, record)
 
@@ -164,34 +196,57 @@ def publish(*, run_root: Path, publication_root: Path) -> None:
         checkpoint = json.loads(
             (run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json").read_text()
         )
-        if checkpoint.get("status") != "complete":
-            raise RuntimeError(f"cannot publish incomplete case {case_id}")
-        serialized = read_evaluation_receipt(run_root / checkpoint["receipt_path"])
-        receipt = deserialize_evaluation_receipt(serialized)
-        receipts.append(receipt_projection(serialized, campaign_cell_key=f"{ordinal:02d}:{case_id}"))
-        primary = receipt.scores[0]
-        rows.append(
-            {
-                "case_id": case_id,
-                "status": receipt.status,
-                "inclusion_status": receipt.inclusion_status,
-                "primary": primary.primary.value if primary.primary else None,
-                "cost_usd": checkpoint["cost_usd"],
-                "receipt_sha256": receipt.receipt_sha256,
-                "receipt_replayed": checkpoint["receipt_replayed"],
-            }
-        )
+        if checkpoint.get("status") == "complete":
+            serialized = read_evaluation_receipt(run_root / checkpoint["receipt_path"])
+            receipt = deserialize_evaluation_receipt(serialized)
+            receipts.append(
+                receipt_projection(serialized, campaign_cell_key=f"{ordinal:02d}:{case_id}")
+            )
+            primary = receipt.scores[0]
+            rows.append(
+                {
+                    "case_id": case_id,
+                    "status": receipt.status,
+                    "inclusion_status": receipt.inclusion_status,
+                    "primary": primary.primary.value if primary.primary else None,
+                    "cost_usd": checkpoint["cost_usd"],
+                    "receipt_sha256": receipt.receipt_sha256,
+                    "receipt_replayed": checkpoint["receipt_replayed"],
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "case_id": case_id,
+                    "status": checkpoint["status"],
+                    "failure_type": checkpoint.get("failure_type"),
+                    "failure_condition": checkpoint.get("failure_condition"),
+                    "reason": checkpoint.get("reason"),
+                    "evidence": checkpoint.get("evidence"),
+                }
+            )
+    completed = [row for row in rows if "receipt_sha256" in row]
+    skipped = [row for row in rows if row["status"] == "skipped_prior_operational_failure"]
+    failed = [row for row in rows if row["status"] == "operational_failure"]
     summary = {
         "campaign_id": CAMPAIGN_ID,
+        "status": "complete" if len(completed) == len(rows) else "complete_with_exclusions",
         "plan_sha256": plan["plan_sha256"],
-        "completed_cases": len(rows),
-        "included_cases": sum(row["inclusion_status"] == "included" for row in rows),
-        "total_panel_cost_usd": sum(float(row["cost_usd"]) for row in rows),
+        "planned_cases": len(rows),
+        "completed_cases": len(completed),
+        "skipped_cases": len(skipped),
+        "failed_cases": len(failed),
+        "included_cases": sum(row.get("inclusion_status") == "included" for row in rows),
+        "total_panel_cost_usd": sum(float(row.get("cost_usd", 0.0)) for row in rows),
         "route": plan["route"],
         "sanitization": dict(SANITIZATION_DECLARATION),
     }
     files: dict[str, bytes] = {
-        "README.md": b"# STEER GLM 5.2 Arena first-light panel v2\n\nSix fixed cases; receipts replayed and sanitized.\n",
+        "README.md": (
+            b"# STEER GLM 5.2 Arena first-light panel v6\n\n"
+            b"Six fixed panel positions; one pre-declared provider-length skip; "
+            b"completed receipts replayed and sanitized.\n"
+        ),
         "reports/summary.json": canonical_json_bytes(summary) + b"\n",
         "trajectories/archive.jsonl": jsonl(rows),
     }
@@ -273,7 +328,7 @@ def publish_failure(*, run_root: Path, publication_root: Path) -> None:
     }
     files: dict[str, bytes] = {
         "README.md": (
-            b"# STEER GLM 5.2 Arena first-light attempt v2\n\n"
+            b"# STEER GLM 5.2 Arena first-light attempt v6\n\n"
             b"The canary was admitted. The campaign aborted on the first operational "
             b"failure; unattempted cells were not run.\n"
         ),
