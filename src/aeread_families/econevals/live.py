@@ -609,9 +609,20 @@ def _profile(
                 # cannot either (#131). Less reasoning is the remaining
                 # mechanism. Applied to every case and every track, not to
                 # the one case that failed.
-                "condition_id": "reasoning_minimal_v1",
+                # The effort hint is not enough on its own. Attempt_013 sent
+                # `reasoning_effort: "minimal"` -- confirmed in the sealed
+                # request, not assumed -- and the model still spent all 4,000
+                # output tokens on reasoning and returned output_text="" with
+                # finish_reason="length". An effort is a hint the provider may
+                # honour; `reasoning.max_tokens` is a cap it must. Declaring
+                # both leaves the hint in place and puts a ceiling behind it,
+                # so the model must stop thinking with budget left to answer.
+                # 1,500 of 4,000 leaves 2,500 for the action itself, and the
+                # longest well-formed action burst observed in this family so
+                # far is under 400.
+                "condition_id": "reasoning_capped_1500_v1",
                 "effort": "minimal",
-                "token_budget": None,
+                "token_budget": 1500,
                 "rationale_visibility": "hidden",
             },
             "sampling": {

@@ -71,7 +71,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # and feeds each tool result back -- and it is why v1 scored gate = 0.0 on
 # five of six cases. v2 runs the loop, which makes it a different experiment
 # rather than a re-run, so it publishes alongside v1 instead of over it.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_tool_loop_v2"
+# v3, not a rerun of v2: the reasoning condition is a frozen control, and a
+# changed frozen control takes a new campaign identity rather than a new
+# attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
+# scored cases stand as v2's; they are not pooled with these.
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v3"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",

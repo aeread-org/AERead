@@ -269,3 +269,56 @@ merits and applied to every family.
 
 Until then this family reports three scored cases out of six and says why.
 
+
+## attempt_013 — the effort hint was delivered and ignored
+
+`reasoning_effort` was lowered from `low` to `minimal` on the reasoning that
+the model was spending its whole output budget thinking and returning nothing,
+and that headroom demonstrably did not help (identical failure at 2,400, 6,000
+and 12,000 tokens). The run reached `scheduling.basic.1` and failed there
+again, `SchedulerContractError: response_not_object`.
+
+**The hint was delivered.** The sealed `provider_call_started` payload carries
+`request.reasoning_effort = "minimal"`. This was checked rather than assumed,
+because the alternative explanation -- that the parameter never reached the
+wire -- would have pointed at a different defect entirely. The response is
+`finish_reason: "length"`, `output_tokens: 4000`, `output_text: ""`, with the
+full budget sitting in the `reasoning` field. The model reasoned to the cap
+under an explicit instruction not to.
+
+What it was reasoning about is worth recording, because it is not pathological:
+the case asks the agent to infer a stable matching from blocking pairs given no
+preference lists, and the sealed reasoning is a competent attempt at exactly
+that. This is a hard instance, not a confused model. It thinks until the budget
+is gone because nothing tells it to stop.
+
+**The isolated probe did not predict this.** All three effort settings answered
+a period-0 observation cleanly in 51-177 tokens. The runaway needs the
+mid-episode state -- four prior attempts in the observation -- that the probe
+did not have. A probe that omits the accumulated history does not test the
+failing condition, and this one was reported as inconclusive at the time rather
+than as support.
+
+Disposition: hypothesis disproven, `reasoning_effort` alone is not a remedy.
+The next mechanism is `reasoning.max_tokens`, which the kernel already wires
+from `profile.reasoning.token_budget` and which this family had left `None`.
+An effort is a hint; a cap is a cap.
+
+## judgment — attempt_013 changed a frozen control without changing identity
+
+Recorded against myself. `CLAUDE.md` says a changed frozen control requires a
+new campaign identity, never a rerun in place. The reasoning condition is a
+frozen control, and attempt_013 changed it from `reasoning_low_v1` to
+`reasoning_minimal_v1` while keeping `campaign_id =
+econevals_glm53_flash_parasail_tool_loop_v2`, which is a rerun in place.
+
+Nothing from v2 was published, so no published bundle mixes the two
+conditions, and the attempt roots are separate directories -- the damage is
+contained. It is logged anyway, because the rule exists to stop exactly the
+reasoning that produced this ("it is only a knob, and the run is not published
+yet"), and a contained violation that goes unrecorded is how the uncontained
+one becomes defensible.
+
+Corrected forward, not backward: the token-budget run takes a new identity,
+`econevals_glm53_flash_parasail_reasoning_capped_v3`. v2's three scored cases
+remain v2's and are not pooled with v3's.
