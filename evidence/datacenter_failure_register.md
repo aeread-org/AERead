@@ -1,6 +1,6 @@
 # Data-center family failure register
 
-699 incidents across 736 cells in 13 runs of `datacenter_development_v2_world_panel_v1`.
+792 incidents across 832 cells in 14 runs of `datacenter_development_v2_world_panel_v1`.
 
 Attribution answers the question worth asking later: whose fault was it? Anything a model can trigger is the model's, never the provider's.
 
@@ -8,9 +8,9 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 |---|---:|---:|
 | budget | 21 | 23 |
 | environment | 12 | 10 |
-| model | 346 | 363 |
-| negotiation | 240 | 240 |
-| provider | 80 | 63 |
+| model | 387 | 404 |
+| negotiation | 267 | 267 |
+| provider | 105 | 88 |
 
 19 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
 
@@ -18,7 +18,7 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 
 | Run | Cells | Incidents | Superseded |
 |---|---:|---:|---|
-| `datacenter_development_v2_world_panel_v1` | 96 | 92 | no |
+| `datacenter_development_v2_world_panel_v1` | 96 | 93 | no |
 | `datacenter_development_v2_world_panel_v1_aborted_deepinfra_venice_20260903` | 3 | 3 | yes |
 | `datacenter_development_v2_world_panel_v1_aborted_mistral_20260903` | 3 | 3 | yes |
 | `datacenter_development_v2_world_panel_v1_aborted_reka_mistral_20260903` | 7 | 7 | yes |
@@ -31,6 +31,7 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | `datacenter_development_v2_world_panel_v1_run6_preplanning_20260906` | 96 | 79 | yes |
 | `datacenter_development_v2_world_panel_v1_run7_action_budget_bug_20260906` | 33 | 32 | yes |
 | `datacenter_development_v2_world_panel_v1_run8_cost_cap_too_tight_20260906` | 34 | 34 | yes |
+| `datacenter_development_v2_world_panel_v1_run9_planning_only_20260907` | 96 | 92 | yes |
 
 ## Defects
 

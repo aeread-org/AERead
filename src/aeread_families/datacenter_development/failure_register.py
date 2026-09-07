@@ -49,6 +49,7 @@ ATTRIBUTION_BY_CONDITION = {
     "provider_rejected": "provider",
     "provider_contract": "provider",
     "empty_response": "provider",
+    "timeout": "provider",
     "child_provider_outcome_unknown": "provider",
     "cost_budget_exceeded": "budget",
     "family_execution_failure": "environment",
