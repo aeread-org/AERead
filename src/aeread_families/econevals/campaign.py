@@ -75,7 +75,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v3"
+# v4: v3 declared effort and token_budget together, which OpenRouter rejects
+# with a 400 (#133). v3 therefore produced no measurement at all -- one
+# operational-failure checkpoint at $0.00, billed nothing -- and is retired
+# rather than reused, so a campaign identity never names two declarations.
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v4"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",

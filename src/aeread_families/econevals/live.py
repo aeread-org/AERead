@@ -615,13 +615,16 @@ def _profile(
                 # output tokens on reasoning and returned output_text="" with
                 # finish_reason="length". An effort is a hint the provider may
                 # honour; `reasoning.max_tokens` is a cap it must. Declaring
-                # both leaves the hint in place and puts a ceiling behind it,
-                # so the model must stop thinking with budget left to answer.
+                # both is not allowed: OpenRouter returns 400 "Only one of
+                # \"reasoning.effort\" and \"reasoning.max_tokens\" can be
+                # specified" (seen mid-campaign, see #133). So the cap replaces
+                # the hint rather than backing it up -- which is the right way
+                # round anyway, since the hint is what just failed to work.
                 # 1,500 of 4,000 leaves 2,500 for the action itself, and the
                 # longest well-formed action burst observed in this family so
                 # far is under 400.
                 "condition_id": "reasoning_capped_1500_v1",
-                "effort": "minimal",
+                "effort": None,
                 "token_budget": 1500,
                 "rationale_visibility": "hidden",
             },

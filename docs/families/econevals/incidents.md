@@ -322,3 +322,20 @@ one becomes defensible.
 Corrected forward, not backward: the token-budget run takes a new identity,
 `econevals_glm53_flash_parasail_reasoning_capped_v3`. v2's three scored cases
 remain v2's and are not pooled with v3's.
+
+## attempt_014 — the cap and the hint cannot both be declared
+
+Declaring `reasoning.effort` and `reasoning.token_budget` together produced an
+OpenRouter 400 on the first provider call: *"Only one of "reasoning.effort" and
+"reasoning.max_tokens" can be specified"*. The kernel permits the combination
+-- its reasoning-block builder documents "an effort, a token budget, or both"
+-- so this was accepted at authoring time, sealed into a campaign plan,
+admitted, and only rejected when a request was actually sent. Filed as #133.
+
+Cost $0.00: the rejection precedes billing. The expensive part was not the
+money but the sealing -- one operational-failure checkpoint closed the run root
+and the `_reasoning_capped_v3` identity had to be retired rather than reused,
+because an identity must not name two declarations. v4 declares the cap alone.
+
+That is the right shape anyway. The hint is the control that was just shown not
+to work; there is nothing to preserve by keeping it alongside the cap.
