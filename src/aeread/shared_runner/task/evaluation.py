@@ -213,10 +213,8 @@ def _check_seat_context_seat_set(
     plan_sha256 identity check every caller performs first (``PlanCell.
     profile_by_seat`` is itself part of what makes ``plan_sha256``) --
     ``audit_family_receipt`` additionally already re-derives and compares
-    the full digest mapping generically. For ``replay_family_receipt``,
-    though, this is the ONLY guard against a durable evidence directory
-    whose on-disk receipt was corrupted directly (bypassing the write-once
-    API) to a self-consistent but wrong ``agent_profile_sha256_by_seat`` --
+    the full digest mapping generically. For ``replay_family_receipt``, this
+    gives a precise seat-set diagnostic before its full digest mapping check --
     see docs/kernel_r12_seat_context.md and the mutation test that proved
     this by disabling this exact check.
     """
@@ -1056,6 +1054,10 @@ def replay_family_receipt(
         raise ValueError("receipt cell/case identity does not match the family plan")
     seat_context = _seat_context_for_cell(setup.plan, cell)
     _check_seat_context_seat_set(seat_context, receipt.agent_profile_sha256_by_seat)
+    if canonical_json_bytes(receipt.agent_profile_sha256_by_seat) != canonical_json_bytes(
+        _agent_profile_digests(setup.plan, cell)
+    ):
+        raise ValueError("receipt agent profile digests do not match the plan")
     evidence_path = RunLayout(
         Path(evidence_root), receipt.run_plan_id
     ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)

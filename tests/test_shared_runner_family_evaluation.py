@@ -350,6 +350,53 @@ def test_replay_rejects_a_receipt_whose_agent_profile_seats_disagree_with_the_pl
         replay_housing_receipt(setup=setup, receipt=tampered, evidence_root=tmp_path)
 
 
+def test_replay_rejects_a_receipt_whose_agent_profile_digest_disagrees_with_the_plan(
+    tmp_path,
+) -> None:
+    """Replay checks each recorded profile digest, not only the seat keys."""
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+    seat = next(iter(receipt.agent_profile_sha256_by_seat))
+    wrong_digest = "0" * 64
+    if receipt.agent_profile_sha256_by_seat[seat] == wrong_digest:
+        wrong_digest = "1" * 64
+    tampered = seal_evaluation_receipt(
+        dataclasses.replace(
+            receipt,
+            receipt_sha256=None,
+            agent_profile_sha256_by_seat={
+                **receipt.agent_profile_sha256_by_seat,
+                seat: wrong_digest,
+            },
+        )
+    )
+
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(ValueError, match="agent profile digests do not match the plan"):
+        replay_housing_receipt(setup=setup, receipt=tampered, evidence_root=tmp_path)
+
+
 def test_audit_rejects_a_receipt_whose_agent_profile_seats_disagree_with_the_plan(
     tmp_path,
 ) -> None:
