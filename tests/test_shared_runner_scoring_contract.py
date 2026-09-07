@@ -606,6 +606,46 @@ class _OverBroadTrajectoryScorer:
         )
 
 
+_EMPTY_OUTCOME_LEAF_ID = "empty_outcome_field_count"
+
+
+class _EmptyOutcomePlugin(_ReferencePlugin):
+    """A terminal-only family whose legitimate outcome is an empty object."""
+
+    def outcome(
+        self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        del family_case, terminal
+        return {}
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_EmptyOutcomeScorer":
+        del family_case
+        return _EmptyOutcomeScorer()
+
+
+class _EmptyOutcomeScorer:
+    """Scores only the terminal outcome shape and never reads the trajectory."""
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        leaf = _reference_leaf(leaf_id=_EMPTY_OUTCOME_LEAF_ID, input_scope="terminal_state")
+        score = ScoreEnvelope(
+            status="ok",
+            leaf=leaf,
+            primary=MetricValue(float(len(scoring_input.outcome)), "count"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=_EMPTY_OUTCOME_LEAF_ID,
+            scores=(score,),
+            admission_leaf_ids=(_EMPTY_OUTCOME_LEAF_ID,),
+        )
+
+
 class _ScriptedChoiceProvider:
     """Serves one scripted label per call, in order, then fails closed."""
 
@@ -1280,8 +1320,10 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 # ``trajectory_outcome_paths`` (schemas.py) names exactly the outcome fields
 # responsible, so the paired-history check below operates on the PROJECTION
 # (outcome minus those paths) instead of the whole outcome. A family that
-# declares no paths projects to its own whole outcome, so this is a strict
-# generalization: govsim and every terminal-only family are unaffected.
+# declares no paths projects to its own whole outcome and skips the
+# declaration-only vacuity guard, so even an empty outcome receives exactly
+# the pre-R9 whole-outcome comparison: govsim and every terminal-only family
+# are unaffected.
 #
 # Two duties come with the declaration:
 #   R9(b) the sensitivity witness -- each ``trajectory``-scoped leaf must be
@@ -1312,7 +1354,7 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 
 
 def _json_pointer_get(document: Any, pointer: str) -> Any:
-    """Navigate one RFC 6901 JSON pointer into a mapping/sequence document."""
+    """Navigate one RFC 6901 JSON pointer through JSON objects only."""
     node = document
     for raw_segment in pointer.split("/")[1:]:
         segment = raw_segment.replace("~1", "/").replace("~0", "~")
@@ -1320,8 +1362,6 @@ def _json_pointer_get(document: Any, pointer: str) -> Any:
             if segment not in node:
                 raise KeyError(f"{pointer!r} does not exist in this document")
             node = node[segment]
-        elif isinstance(node, (list, tuple)):
-            node = node[int(segment)]
         else:
             raise KeyError(f"{pointer!r} does not exist in this document")
     return node
@@ -1344,8 +1384,10 @@ def _drop_json_pointer(document: Any, segments: tuple[str, ...]) -> Any:
 def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mapping[str, Any]:
     """``outcome`` with every declared ``trajectory_outcome_path`` removed (R9).
 
-    A family declaring no paths projects to itself -- the paired-history
-    check below is then byte-for-byte the pre-R9 whole-outcome comparison.
+    A family declaring no paths projects to itself. The caller applies the
+    non-vacuity guard only when a path is actually declared, so the
+    paired-history check is then byte-for-byte the pre-R9 whole-outcome
+    comparison, including when the legitimate whole outcome is ``{}``.
 
     kernel_r9r10_review.md finding 1, second-pass review R2(b), accepted
     residual: this function and the guards built on it (non-empty
@@ -1471,7 +1513,13 @@ def _assert_trajectory_outcome_paths_are_consistent(
         return
     final_state = _final_replayed_state(scoring_input.phase_instances)
     for pointer in paths:
-        outcome_value = _json_pointer_get(scoring_input.outcome, pointer)
+        try:
+            outcome_value = _json_pointer_get(scoring_input.outcome, pointer)
+        except KeyError as error:
+            raise AssertionError(
+                f"outcome{pointer} does not exist in the outcome -- every declared "
+                "trajectory_outcome_path must be present in every fixture outcome"
+            ) from error
         # kernel_r9r10_review.md finding 1 (guard b): a declared path that
         # navigates to an object subtree, not a per-step record sequence,
         # may hide terminal facts behind the projection (``project_outcome``
@@ -1932,9 +1980,10 @@ def _assert_family_obeys_the_scoring_contract(
     (left_input, left_scores, _left_case), (right_input, right_scores, _right_case) = produced_by_case[:2]
     # Ruling R9: the paired-history precondition compares the PROJECTION
     # (outcome minus every declared trajectory_outcome_path), not the
-    # whole outcome. A family declaring no paths projects to itself, so
-    # this is byte-for-byte the pre-R9 check for govsim and every
-    # terminal-only family.
+    # whole outcome. A family declaring no paths projects to itself and
+    # skips the declaration-only non-vacuity guard below, so this is
+    # byte-for-byte the pre-R9 check (including for a legitimate empty
+    # outcome) for govsim and every terminal-only family.
     left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
     right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
     # kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
@@ -1943,12 +1992,17 @@ def _assert_family_obeys_the_scoring_contract(
     # would make the equality check below pass vacuously -- {} == {} --
     # without ever comparing terminal state. Each fixture's own
     # projection is checked individually, before they are compared.
-    _assert_projection_is_not_vacuous(
-        left_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
-    )
-    _assert_projection_is_not_vacuous(
-        right_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
-    )
+    if trajectory_outcome_paths:
+        _assert_projection_is_not_vacuous(
+            left_projection,
+            family_id=key[0],
+            trajectory_outcome_paths=trajectory_outcome_paths,
+        )
+        _assert_projection_is_not_vacuous(
+            right_projection,
+            family_id=key[0],
+            trajectory_outcome_paths=trajectory_outcome_paths,
+        )
     assert canonical_json_bytes(left_projection) == canonical_json_bytes(
         right_projection
     ), (
@@ -2214,6 +2268,46 @@ def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
 
     with pytest.raises(AssertionError, match="paired-history precondition is unmet"):
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
+
+
+def test_r9_no_paths_accepts_an_empty_outcome_through_the_protocol_path(
+    tmp_path: Path,
+) -> None:
+    """No declaration means the pre-R9 whole-outcome check, including `{}`."""
+    setups_and_executions = [
+        asyncio.run(
+            _run_reference_episode(
+                labels,
+                evidence_root=tmp_path / f"empty_outcome_{index}",
+                plugin_factory=_EmptyOutcomePlugin,
+            )
+        )
+        for index, labels in enumerate((("x", "y"), ("y", "x")))
+    ]
+    first_setup = setups_and_executions[0][0]
+    case = first_setup.plan.cases[0]
+    family = first_setup.plan.families[0]
+    plugin = first_setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    manifest = _with_declared_leaf_policy(family, **_leaf_policy_for(_EMPTY_OUTCOME_LEAF_ID))
+    registry = PluginRegistry()
+    registry.register_trusted(manifest, plugin)
+    registration = registry.resolve_registration(
+        manifest.family.id, manifest.family.version, manifest.family.plugin_id
+    )
+    fixtures = tuple(
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+        for _setup, execution in setups_and_executions
+    )
+
+    result = _assert_family_obeys_the_scoring_contract(
+        (manifest.family.id, manifest.family.version), registration, fixtures
+    )
+
+    assert [scoring_input.outcome for scoring_input, _scores, _case in result.produced_by_case] == [
+        {},
+        {},
+    ]
 
 
 def test_projection_is_not_vacuous_rejects_a_projection_erased_to_an_empty_mapping() -> None:
@@ -2605,6 +2699,31 @@ def test_r10_rejects_a_declared_path_the_final_state_does_not_have() -> None:
         AssertionError, match="does not exist in the final replayed state"
     ):
         _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/public_history",))
+
+
+def test_r10_rejects_a_declared_path_the_outcome_does_not_have() -> None:
+    """A missing outcome path is a named R10 contract failure, not `KeyError`."""
+    phase_instances = (_phase_instance_ending_in_state({"history": ["x", "y"]}),)
+    scoring_input = FamilyScoringInput(
+        outcome={"x_count": 1},
+        phase_instances=phase_instances,
+        evidence_refs=(),
+    )
+    with pytest.raises(AssertionError, match="outcome/history does not exist in the outcome"):
+        _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/history",))
+
+
+def test_r10_rejects_a_declared_path_that_traverses_an_array() -> None:
+    """`+1` is an object key, never permission to index an intermediate list."""
+    document = {"history": [["a"], ["b"]]}
+    phase_instances = (_phase_instance_ending_in_state(document),)
+    scoring_input = FamilyScoringInput(
+        outcome=document,
+        phase_instances=phase_instances,
+        evidence_refs=(),
+    )
+    with pytest.raises(AssertionError, match=r"outcome/history/\+1 does not exist in the outcome"):
+        _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/history/+1",))
 
 
 def test_r10_is_a_no_op_when_no_paths_are_declared() -> None:

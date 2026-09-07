@@ -104,12 +104,15 @@ error-message correction, not a behavior change.
 
 **FIXED.** Two guards added:
 
-- **Guard (a)**: `_assert_projection_is_not_vacuous` asserts each fixture's
-  projected outcome is a non-empty mapping, called on both fixtures at the
-  point in the protocol path where the paired-history projection is
-  computed, before the equality comparison. Message names the declared
-  `trajectory_outcome_paths` and states the paired-history check (ruling R7)
-  would be vacuous.
+- **Guard (a)**: when a family declares `trajectory_outcome_paths`,
+  `_assert_projection_is_not_vacuous` asserts each fixture's projected
+  outcome is a non-empty mapping, called on both fixtures at the point in
+  the protocol path where the paired-history projection is computed, before
+  the equality comparison. A family declaring no paths skips this
+  declaration-only guard and retains the pre-R9 whole-outcome comparison,
+  including when that whole outcome is legitimately `{}`. The failure
+  message names the declared paths and states why ruling R7 would otherwise
+  be vacuous.
 - **Guard (b)**: inside `_assert_trajectory_outcome_paths_are_consistent`,
   each declared path's outcome value must be a `list`/`tuple` (a per-step
   record sequence), asserted immediately after the path is navigated and
@@ -665,3 +668,80 @@ Commit: this section, "docs: record the fourth-pass R9/R10 review".
 ```
 
 129 passed, 0 failed.
+
+## Fifth pass — current-head kernel-lane review follow-up
+
+A kernel-lane review at `78614540` identified three defects in the R9/R10
+protocol enforcement. Each was reproduced against that exact head before
+the implementation changed, then covered by a regression test.
+
+### K1 — a missing declared path in the outcome leaked `KeyError`
+
+**Finding.** `_assert_trajectory_outcome_paths_are_consistent` translated a
+missing path on the final-replayed-state side into a named R10 assertion,
+but read the outcome side outside that error boundary. A malformed fixture
+therefore failed with an opaque `KeyError` before the contract could explain
+which declaration was invalid.
+
+**Disposition — fixed.** The outcome-side read now translates the helper's
+`KeyError` into an `AssertionError` naming the pointer, the outcome, and the
+requirement that every declared path exist in every fixture outcome. The
+final-state-side message remains distinct because that failure means the
+family copied or renamed trajectory data at a path the replayed state does
+not expose.
+
+**Test.** `test_r10_rejects_a_declared_path_the_outcome_does_not_have`.
+Before the fix it failed with raw `KeyError: "'/history' does not exist in
+this document"`; after the fix it passes alongside the pre-existing
+`test_r10_rejects_a_declared_path_the_final_state_does_not_have`.
+
+### K2 — the object-only pointer reader silently traversed arrays
+
+**Finding.** The manifest schema deliberately permits only object-field
+navigation, but `_json_pointer_get` still had a list/tuple branch using
+`int(segment)`. A pointer segment such as `+1` is not an RFC 6901 array-index
+segment and therefore passes the schema's object-field rule, yet Python's
+`int` accepted it and silently selected list element 1.
+
+**Disposition — fixed.** `_json_pointer_get` now traverses `Mapping` nodes
+only, matching `_drop_json_pointer` and the schema contract. Encountering an
+intermediate sequence follows the same missing-path error boundary as every
+other non-object node; the final value may still be a sequence, which is the
+required shape for an embedded trajectory.
+
+**Test.** `test_r10_rejects_a_declared_path_that_traverses_an_array`. Before
+the fix `/history/+1` completed without raising; after the fix it is a named
+outcome-side R10 failure, while the positive embedding-family protocol test
+still passes.
+
+### K3 — the declaration-only vacuity guard also rejected no-path families
+
+**Finding.** `_assert_projection_is_not_vacuous` ran even when
+`trajectory_outcome_paths == ()`. A terminal-only family whose legitimate
+whole outcome was `{}` therefore failed with a message blaming an empty path
+declaration it never made, although ruling R9 promises no-path families the
+pre-R9 whole-outcome comparison.
+
+**Disposition — fixed.** Both per-fixture vacuity checks now run only when
+the manifest actually declares at least one trajectory outcome path. With
+no declaration, `project_outcome` remains the identity and the existing
+paired-history equality still compares the complete outcome, including a
+legitimate empty mapping. The guard continues to reject both projections
+independently whenever a declared path erases the outcome.
+
+**Test.** `test_r9_no_paths_accepts_an_empty_outcome_through_the_protocol_path`
+uses two real executions with different trajectories, sealed evidence,
+replay-derived scoring inputs, an empty outcome, and one terminal-scoped
+leaf. Before the fix it failed at the vacuity guard; after the fix it passes
+through `_assert_family_obeys_the_scoring_contract`. Both over-broad-path
+negative controls remain green.
+
+### Fifth-pass targeted verification
+
+```
+../../.venv/bin/python -m pytest \
+  tests/test_shared_runner_scoring_contract.py \
+  tests/test_shared_runner_schemas.py -q
+```
+
+122 passed, 0 failed.
