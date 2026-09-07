@@ -56,6 +56,7 @@ from .live import (
     PROMPT,
     PROVIDER,
     QUANTIZATION,
+    REASONING_DECLARATION,
     REVISION,
     ROUTE_PROVIDER,
     build_live_setup,
@@ -75,11 +76,19 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
+# v5: v4's plan restated the reasoning condition as a literal instead of
+# deriving it, so the plan advertised effort "low" for a panel that ran with no
+# effort and a 1,500-token cap, and the admission canary proved the route under
+# "low" as well. The panel's six measurements were real, but a route admitted
+# under one reasoning condition does not attest a panel run under another, and
+# a bundle must not state a frozen control it did not use. v4 is retired
+# unpublished; the condition is now derived from one declaration.
+#
 # v4: v3 declared effort and token_budget together, which OpenRouter rejects
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v4"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v5"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
@@ -174,7 +183,12 @@ def build_campaign_plan() -> dict[str, Any]:
             "route_provider": ROUTE_PROVIDER,
             "quantization": QUANTIZATION,
             "fallbacks": "disabled",
-            "reasoning_effort": "low",
+            # Derived, never restated. A literal here advertised
+            # reasoning_effort "low" into published evidence for a panel that
+            # ran with no effort and a 1,500-token cap.
+            "reasoning_condition_id": REASONING_DECLARATION["condition_id"],
+            "reasoning_effort": REASONING_DECLARATION["effort"],
+            "reasoning_token_budget": REASONING_DECLARATION["token_budget"],
             "route_attestation": "openrouter_provider_order_pinned",
             "provider_cost_status": "response_reported",
             "provider_seed_status": "requested",
@@ -270,8 +284,11 @@ async def _probe_canary(
         temperature=0.0,
         top_p=None,
         max_output_tokens=MAX_CANARY_OUTPUT_TOKENS,
-        reasoning_effort="low",
-        reasoning_token_budget=None,
+        # The canary must prove the route under the panel's own reasoning
+        # condition. Admitting on "low" and then running the panel capped
+        # means the admission attests a configuration that never executed.
+        reasoning_effort=REASONING_DECLARATION["effort"],
+        reasoning_token_budget=REASONING_DECLARATION["token_budget"],
         timeout_seconds=180.0,
         request_sha256="",
         max_cost_usd=MAX_CANARY_COST_USD,
@@ -654,12 +671,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--publish-to", type=Path, default=None)
     args = parser.parse_args(argv)
+    # Publish is checked BEFORE the plan-digest branch. It used to come after,
+    # so `--publish-to` without `--execute` -- which is exactly how a
+    # publish-only invocation is spelled -- printed a plan digest, published
+    # nothing, and returned 0. A publisher that reports success without
+    # publishing is worse than one that fails: the run driver treated exit 0
+    # as "bundle written" and a completed 6/6 panel went unpublished with
+    # nothing in the log to say so.
+    if args.publish_to is not None:
+        publish_campaign(run_root=args.run_root, publication_root=args.publish_to)
+        return 0
     if not args.execute:
         plan = build_campaign_plan()
         print(json.dumps({"plan_sha256": plan["plan_sha256"], "campaign_id": CAMPAIGN_ID}))
         return 0
-    if args.publish_to is not None:
-        publish_campaign(run_root=args.run_root, publication_root=args.publish_to)
         return 0
     asyncio.run(execute_campaign(run_root=args.run_root))
     return 0

@@ -339,3 +339,46 @@ because an identity must not name two declarations. v4 declares the cap alone.
 
 That is the right shape anyway. The hint is the control that was just shown not
 to work; there is nothing to preserve by keeping it alongside the cap.
+
+## attempt_015 — the cap worked, and the bundle it produced could not be published
+
+The reasoning cap did what the effort hint could not. `scheduling.basic.1`, the
+case that had failed every prior attempt, ran all 100 periods and reached the
+exact optimum: 0 blocking pairs against v* = 0, gate 1.0. Across the case, 100
+of 101 provider calls finished `stop` and one finished `length` (and retried),
+against 12 of 16 truncating empty under the uncapped condition. All six cases
+were included, 100 periods each, $0.4376 of a $1.30 ceiling.
+
+Three defects surfaced in getting that result out, and the panel was re-run
+because of the third.
+
+**The publisher reported success without publishing.** `main` checked
+`--execute` before `--publish-to`, so a publish-only invocation -- which is
+exactly how the driver spells it -- printed a plan digest and returned 0
+having written nothing. `publish exit=0` in the run log meant nothing at all.
+A completed 6/6 panel sat unpublished with no error anywhere to say so. The
+publish branch now precedes the plan-digest branch.
+
+**The driver published to the previous campaign's directory.** The `--publish-to`
+path still named `tool_loop_v2` after the identity moved on. Caught only
+because the first defect meant nothing was written; had the publisher worked,
+v4 results would have landed in v2's bundle.
+
+**The plan restated the reasoning condition instead of deriving it, and the two
+statements disagreed.** `campaign.py` carried a literal `reasoning_effort:
+"low"` in its route block and in its admission canary, while `live.py` declared
+the condition the panel actually ran. So the published plan advertised effort
+"low" for a panel that ran with no effort and a 1,500-token cap, and -- the
+substantive half -- the canary proved the route under "low" with no cap before
+the panel executed under something else. A route admitted under one reasoning
+condition does not attest a panel run under another.
+
+The six measurements were real and the receipts are sound. The bundle still
+could not stand, because published evidence that names a frozen control it did
+not use is not evidence of what it claims. v4 was retired unpublished and the
+condition hoisted into a single `REASONING_DECLARATION` that the harness, the
+plan and the canary all read. v5 re-runs it, ~$0.44.
+
+Worth naming the pattern, since it has now cost two campaign identities: every
+one of these is a control that was written down twice. #133 is the same shape
+one level up -- the kernel permits a pair of controls no provider accepts.

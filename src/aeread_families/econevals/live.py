@@ -127,6 +127,32 @@ period. Never invent tool results.
 """
 
 
+# The single declaration of the reasoning condition. It is a module constant
+# rather than a literal inside ``build_live_setup`` because the campaign plan's
+# route block and the admission canary both have to state the same condition,
+# and when they were written out separately they drifted: the plan advertised
+# ``reasoning_effort: "low"`` into published evidence while the panel executed
+# with no effort and a 1,500-token cap, and the canary proved the route under
+# "low" before the panel ran under something else. A route admitted under one
+# reasoning condition does not attest a panel run under another.
+#
+# "minimal" was tried first and is not enough on its own. Attempt_013 sent
+# ``reasoning_effort: "minimal"`` -- confirmed present in the sealed request,
+# not assumed -- and the model still spent all 4,000 output tokens on reasoning
+# and returned ``output_text=""`` with ``finish_reason="length"``. An effort is
+# a hint the provider may honour; ``reasoning.max_tokens`` is a cap it must.
+# Both cannot be declared together: OpenRouter returns 400 "Only one of
+# \"reasoning.effort\" and \"reasoning.max_tokens\" can be specified" (#133),
+# so the cap replaces the hint -- the right way round anyway, since the hint is
+# the control that failed. 1,500 of 4,000 leaves 2,500 for the action itself,
+# against a longest observed well-formed action burst under 400.
+REASONING_DECLARATION: dict[str, object] = {
+    "condition_id": "reasoning_capped_1500_v1",
+    "effort": None,
+    "token_budget": 1500,
+    "rationale_visibility": "hidden",
+}
+
 def route_metadata() -> dict[str, str]:
     """The exact sealed route the OpenRouter adapter requires -- these five
     fields and no others, or it refuses the call as a provider_contract
@@ -600,34 +626,7 @@ def _profile(
             },
             "tools": list(tools),
             "memory": {"mode": "disabled"},
-            "reasoning": {
-                # "minimal", not "low". The failure this addresses is the
-                # model spending its whole output budget on reasoning and
-                # emitting nothing -- observed at 2,400, 6,000 and 12,000
-                # tokens, so headroom does not fix it, and a harness cannot
-                # raise its own budget so the kernel's length escalation
-                # cannot either (#131). Less reasoning is the remaining
-                # mechanism. Applied to every case and every track, not to
-                # the one case that failed.
-                # The effort hint is not enough on its own. Attempt_013 sent
-                # `reasoning_effort: "minimal"` -- confirmed in the sealed
-                # request, not assumed -- and the model still spent all 4,000
-                # output tokens on reasoning and returned output_text="" with
-                # finish_reason="length". An effort is a hint the provider may
-                # honour; `reasoning.max_tokens` is a cap it must. Declaring
-                # both is not allowed: OpenRouter returns 400 "Only one of
-                # \"reasoning.effort\" and \"reasoning.max_tokens\" can be
-                # specified" (seen mid-campaign, see #133). So the cap replaces
-                # the hint rather than backing it up -- which is the right way
-                # round anyway, since the hint is what just failed to work.
-                # 1,500 of 4,000 leaves 2,500 for the action itself, and the
-                # longest well-formed action burst observed in this family so
-                # far is under 400.
-                "condition_id": "reasoning_capped_1500_v1",
-                "effort": None,
-                "token_budget": 1500,
-                "rationale_visibility": "hidden",
-            },
+            "reasoning": dict(REASONING_DECLARATION),
             "sampling": {
                 "temperature": 0.0,
                 # This budget covers REASONING plus the answer, not the
