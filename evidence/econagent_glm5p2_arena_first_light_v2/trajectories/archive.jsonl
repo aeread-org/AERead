@@ -1,0 +1,6 @@
+{"case_id":"econagent.pilot.tiny4x6.seed0","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.0034594000000000005,"seed":300,"status":"operational_failure"}
+{"case_id":"econagent.pilot.small10x12.seed0","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.00664498,"seed":300,"status":"operational_failure"}
+{"case_id":"econagent.pilot.small10x12.seed1","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.0065439999999999995,"seed":300,"status":"operational_failure"}
+{"case_id":"econagent.pilot.tiny4x6.seed0","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.00135458,"seed":301,"status":"operational_failure"}
+{"case_id":"econagent.pilot.small10x12.seed0","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.0026457800000000004,"seed":301,"status":"operational_failure"}
+{"case_id":"econagent.pilot.small10x12.seed1","failure_condition":"execution_failure","failure_type":"ValueError","observed_successful_turn_cost_usd":0.0027002,"seed":301,"status":"operational_failure"}
