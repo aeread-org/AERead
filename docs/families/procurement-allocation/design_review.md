@@ -551,6 +551,54 @@ of assertion, and are now labelled as such in place: they pin what current sourc
 produces, and they will move again for the same reason until the plan schema
 separates its two parameter classes.
 
+## 20. Sampling noise, and what it does not yet prove
+
+Defects 17 and 18 both reduce to one property: a sample returns ground truth, so
+one draw settles a supplier. There is nothing to accumulate, no reason to take a
+second draw, and therefore no stopping decision. The outcome is then a
+deterministic function of the world and the action budget, which is why every
+cell of the budget sweep was 0/3 or 3/3.
+
+`interaction.sample_noise` changes that, and is opt-in:
+
+```json
+"sample_noise": {"model": "binomial", "seed": 20260906}
+```
+
+A case that omits the block keeps perfect verification, so no sealed panel moves
+and no published digest is re-dated. This is deliberate: defect 19 is what
+happens when an environment change reaches cases it was not about.
+
+With the block declared, each `request_sample` inspects a fresh batch of
+`sample_size` units and observes a binomial draw of defects at the supplier's
+true defect rate. Draws accumulate per supplier, so the record carries cumulative
+inspected units, cumulative defects, a draw count, and a running
+`observed_yield_rate`. It no longer carries `verified_yield_rate`. The buyer
+holds an estimate, and a second draw tightens it.
+
+Two properties make the noise admissible as evidence rather than merely present.
+The draw is counter-based on the declared seed, the supplier, the draw index and
+the unit, so it is a pure function of the contract and a receipt replays offline
+with no RNG carried through state. And **the award is scored on the supplier's
+true yield, never on the buyer's estimate**, so a lucky draw cannot make a bad
+supplier profitable. Sampling more buys a truer number, not a flattering one.
+
+**What this does not establish.** No panel has been built on it and none has been
+screened. The measurement that would matter is a budget sweep on a noisy panel
+showing cells that are neither 0/3 nor 3/3, which is exactly the within-world
+interior defects 17 and 18 say is missing today. Until that exists, the honest
+status is that the mechanism blocking the interior has been removed and the
+interior has not been demonstrated. Two calibration facts are already known and
+constrain that panel:
+
+- Batch size drives the noise. At the corpus's usual `sample_size` of 100 and
+  yields near 0.99 a single draw nearly resolves a supplier, so a panel wanting a
+  stopping problem must declare small batches.
+- The legality rule bites hard. Lowering every yield in an existing world below
+  0.95 makes the world illegal, because its full-information optimum stops
+  beating deferring. Defect 17 constrains the noisy panel too, and the panel must
+  be built with that in mind rather than by degrading an existing one.
+
 ## Status of the fixes
 
 | defect | state |
@@ -571,9 +619,10 @@ separates its two parameter classes.
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
-| 17 validity and difficulty are the same knob | open, and it subsumes 14 and 16; a budget sweep found every world at 0/3 or 3/3, so the panel-level 50% at budget 6 is a mixture and not headroom |
+| 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 20 sampling noise landed opt-in | mechanism only; a case without the declared block keeps perfect verification, so nothing sealed moves |
 | 19 environment change re-dates every sealed campaign identity | open; ten frozen digests across seven tests moved for changes unrelated to any of those campaigns, and the sealed bundles still self-verify |
-| 18 no seed variance within a world | open; margin, regret and action count are identical at every seed across two independent runs, so seeds are repeats and not replicates |
+| 18 no seed variance within a world | **mechanism removed, effect unproven** — noisy draws vary with the declared seed, but no panel has yet been run to show non-zero within-world variance |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work, and defects 17
 and 18 reorder it. Defect 17 is now the most urgent, because it explains why 14

@@ -155,9 +155,21 @@ def _expected_capacity(
         return 0.0
     return (
         int(offer["capacity"])
-        * float(sample["verified_yield_rate"])
+        * _evidenced_yield(sample)
         * float(offer["on_time_probability"])
     )
+
+
+def _evidenced_yield(sample: Mapping[str, Any]) -> float:
+    """The best yield estimate a buyer actually holds for a sampled supplier.
+
+    Under perfect verification the evidence record carries the true rate. Under
+    declared sampling noise it carries only a running estimate, and a policy that
+    reached for the true rate there would be reading a number no buyer can see.
+    """
+    if "verified_yield_rate" in sample:
+        return float(sample["verified_yield_rate"])
+    return float(sample["observed_yield_rate"])
 
 
 def _valid_quantity(offer: Mapping[str, Any], needed_raw_units: float) -> int:
@@ -239,7 +251,7 @@ def choose_public_policy_action(
         accumulated = 0.0
         for offer, sample in qualified[component]:
             efficiency = (
-                float(sample["verified_yield_rate"])
+                _evidenced_yield(sample)
                 * float(offer["on_time_probability"])
                 if observation["elapsed_days"] + int(offer["lead_time_days"])
                 <= objective["deadline_days"]
