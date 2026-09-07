@@ -123,3 +123,48 @@ If you are preparing trajectories for someone else to review, ship:
 
 A bundle with only successful trajectories and a prose assurance that replay
 passed is not ready for review.
+
+## 5. The kernel trajectory grain (`trajectories/sanitized.jsonl`)
+
+Families used to decide individually whether a bundle carried the per-action
+trace at all (most procurement bundles carried none; commercial-state and tau3
+each shaped their own). The kernel now provides one family-neutral projection
+so the trace is published the same way everywhere and can be added to a bundle
+that already exists.
+
+`aeread.shared_runner.run.publication.sanitized_trajectory_rows(evidence, receipt)`
+projects one sealed evidence store onto one row per logical action, in event
+order (`schema_version: aeread.sanitized_trajectory_row/0.1`). A row carries:
+
+- identity and ordering: `source_receipt_sha256`, `run_plan_sha256`,
+  `cell_id`, `case_id`, `episode_attempt_id`, `step_index`,
+  `logical_action_id`, `phase_id`, `seat_id`, `role`, `profile_id`;
+- `action`: the parsed, structured action the environment received (this is
+  model-authored content, but it is the typed action, not the provider text);
+- `parse` (`ok`, `error_code`), `legality` (`legal`, `reason`), `outcome`
+  (`status`, `valid`, `failure_code`);
+- `attempts[]`: each retry with its `provider_calls[]` — requested and resolved
+  model, `pricing_id`, `request_sha256`, token counts, `cost_usd`, finish
+  reason, or the typed failure condition — and the canonical response's
+  `empty`/`truncated` flags;
+- `tools[]`: tool dispatch and invocation dispositions by id.
+
+It never carries observations, prompts, messages, provider output text, raw
+responses, or environment state; `sanitized_trajectory_jsonl` refuses the
+payload if a prohibited token slips through. The function rejects a receipt
+that does not belong to the store it is given.
+
+To add the grain to a published kernel-standard bundle
+(`aeread.publication_manifest/0.1`), run
+
+```bash
+python tools/publish_sanitized_trajectories.py evidence/<campaign_id> runs/<family>/<campaign_id>/**/<attempt_dir>...
+```
+
+Every receipt must already be published by the bundle (the script refuses
+otherwise), the file is written once, and `publication_manifest.json` is
+re-sealed with the new artifact digest via `add_publication_artifact`. This is
+a QC §4 mechanical correction: the earlier manifest stays in history and no
+reported number changes. Worked example:
+`evidence/procurement_allocation_glm_morph_case_variance_v2/trajectories/sanitized.jsonl`
+(116 rows over 18 receipts).

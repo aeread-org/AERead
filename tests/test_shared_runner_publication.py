@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -166,3 +167,145 @@ def test_receipt_projection_requires_every_whitelisted_field() -> None:
     del receipt["primary_leaf_id"]
     with pytest.raises(KeyError):
         receipt_projection(receipt, campaign_cell_key="k")
+
+
+# --- sanitized trajectory grain ---
+
+
+def _housing_execution(tmp_path):
+    import asyncio
+
+    from aeread.shared_runner.task.execution import execute_plan_cell
+    from aeread_families.housing.runner import (
+        HousingScriptedLandlordProvider,
+        HousingScriptedTenantProvider,
+        build_housing_smoke,
+        finalize_housing_execution,
+    )
+
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+    return execution, receipt
+
+
+FORBIDDEN_KEYS = {
+    "observation", "input_text", "instructions", "messages", "output_text",
+    "raw_response", "text", "state", "prompt", "reasoning",
+}
+
+
+def _walk(value, path=""):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield f"{path}/{key}", key
+            yield from _walk(item, f"{path}/{key}")
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            yield from _walk(item, f"{path}[{index}]")
+
+
+def test_sanitized_trajectory_rows_cover_every_logical_action_and_leak_nothing(tmp_path) -> None:
+    from aeread.shared_runner.run.publication import (
+        TRAJECTORY_ROW_SCHEMA_VERSION,
+        sanitized_trajectory_jsonl,
+        sanitized_trajectory_rows,
+    )
+
+    execution, receipt = _housing_execution(tmp_path)
+    events = execution.evidence.read_events()
+    logical_actions = [e for e in events if e.event_type == "logical_action_started"]
+    rows = sanitized_trajectory_rows(execution.evidence, receipt)
+
+    assert len(rows) == len(logical_actions) > 0
+    assert [row["step_index"] for row in rows] == list(range(len(rows)))
+    for row, started in zip(rows, logical_actions):
+        assert row["schema_version"] == TRAJECTORY_ROW_SCHEMA_VERSION
+        assert row["source_receipt_sha256"] == receipt.receipt_sha256
+        assert row["run_plan_sha256"] == receipt.run_plan_sha256
+        assert row["cell_id"] == receipt.cell_id
+        assert row["episode_attempt_id"] == receipt.episode_attempt_id
+        assert row["logical_action_id"] == started.logical_action_id
+        assert row["seat_id"] and row["phase_id"] and row["profile_id"]
+        assert row["attempts"], "every logical action has at least one attempt"
+        attempt = row["attempts"][-1]
+        assert attempt["provider_calls"], "an attempt records its provider calls"
+        call = attempt["provider_calls"][0]
+        assert {"provider_call_id", "resolved_model", "finish_reason", "input_tokens", "output_tokens", "cost_usd"} <= set(call)
+        assert row["parse"]["ok"] in (True, False)
+        assert "legal" in row["legality"]
+        assert row["outcome"]["status"] in {"succeeded", "failed", "outcome_unknown"}
+    leaked = sorted({key for _, key in _walk(list(rows)) if key in FORBIDDEN_KEYS})
+    assert leaked == [], leaked
+
+    payload = sanitized_trajectory_jsonl(rows)
+    assert payload.count(b"\n") == len(rows)
+    assert b'"raw_response"' not in payload and b'"output_text"' not in payload
+
+
+def test_sanitized_trajectory_rows_reject_a_receipt_from_another_episode(tmp_path) -> None:
+    from aeread.shared_runner.run.publication import sanitized_trajectory_rows
+
+    execution, receipt = _housing_execution(tmp_path)
+    # A durable receipt read from JSON is a plain mapping; alter its identity there,
+    # since a typed EvaluationReceipt re-validates itself against its seal.
+    other = json.loads(canonical_json_bytes(receipt))
+    other["episode_attempt_id"] = "episode_attempt_elsewhere"
+    with pytest.raises(ValueError, match="does not belong"):
+        sanitized_trajectory_rows(execution.evidence, other)
+
+
+def test_add_publication_artifact_updates_the_kernel_manifest_and_reseals(tmp_path) -> None:
+    from aeread.shared_runner.run.publication import add_publication_artifact
+
+    root = tmp_path / "bundle"
+    root.mkdir()
+    (root / "reports").mkdir()
+    (root / "reports" / "summary.json").write_bytes(b'{"ok": true}\n')
+    summary_sha = hashlib.sha256(b'{"ok": true}\n').hexdigest()
+    core = {
+        "schema_version": "aeread.publication_manifest/0.1",
+        "campaign_id": "camp_v1",
+        "publication_id": "camp_v1",
+        "artifacts": {"reports/summary.json": summary_sha},
+        "privacy_boundary": {"included": "x", "excluded": "y"},
+        "source_bindings": {"plan_sha256": "a" * 64},
+    }
+    manifest = {**core, "manifest_sha256": hashlib.sha256(canonical_json_bytes(core)).hexdigest()}
+    (root / "publication_manifest.json").write_bytes(canonical_json_bytes(manifest) + b"\n")
+
+    updated = add_publication_artifact(root, "trajectories/sanitized.jsonl", b'{"step_index": 0}\n')
+    assert (root / "trajectories" / "sanitized.jsonl").read_bytes() == b'{"step_index": 0}\n'
+    assert updated["artifacts"]["trajectories/sanitized.jsonl"] == hashlib.sha256(b'{"step_index": 0}\n').hexdigest()
+    assert updated["artifacts"]["reports/summary.json"] == summary_sha
+    recomputed = hashlib.sha256(canonical_json_bytes({k: v for k, v in updated.items() if k != "manifest_sha256"})).hexdigest()
+    assert updated["manifest_sha256"] == recomputed != manifest["manifest_sha256"]
+    on_disk = json.loads((root / "publication_manifest.json").read_text())
+    assert on_disk == updated
+
+    again = add_publication_artifact(root, "trajectories/sanitized.jsonl", b'{"step_index": 0}\n')
+    assert again == updated
+    with pytest.raises(ValueError, match="refusing to overwrite"):
+        add_publication_artifact(root, "trajectories/sanitized.jsonl", b'{"step_index": 1}\n')
+
+    (root / "publication_manifest.json").write_bytes(canonical_json_bytes({**manifest, "schema_version": "other/9.9"}) + b"\n")
+    with pytest.raises(ValueError, match="schema"):
+        add_publication_artifact(root, "trajectories/more.jsonl", b"{}\n")
