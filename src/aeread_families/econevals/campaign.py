@@ -76,6 +76,17 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
+# v9: the final declaration -- no reasoning control (this route honours none),
+# a 4,000-token output ceiling (the cheapest of four values all of which fail
+# at the same rate), $0.20 per trajectory and $1.30 total.
+#
+# The residual failure is a draw, not a fixed set of hard cases: the same case
+# has passed and failed under identical wire configurations. So a panel attempt
+# that ends in an operational failure is re-attempted whole, and the number of
+# attempts is published with the result. That is a selection over attempts and
+# it is disclosed; it is not a selection over cases, and no case is ever rerun
+# on its own.
+#
 # v8: the output ceiling is raised to 24,000 and the cost ceilings with it.
 # Sized from evidence -- every call that produced a usable action needed
 # 4,521-7,070 output tokens, so 4,000 could not succeed on a long-reasoning
@@ -112,7 +123,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_budget_24k_v8"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v9"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
