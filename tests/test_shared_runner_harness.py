@@ -2012,3 +2012,55 @@ def test_model_port_terminalizes_a_failed_later_round(tmp_path) -> None:
     kinds = [event.event_type for event in evidence.read_events()]
     assert kinds == ["provider_call_succeeded", "provider_call_started", "provider_call_failed"]
     assert len(port.rounds) == 1 and port.cost_usd_total == pytest.approx(port.rounds[0].cost_usd)
+
+
+def test_port_driven_provider_call_events_carry_the_attempt_and_action_labels(tmp_path) -> None:
+    """Every provider_call_* event names the attempt and logical action it belongs to.
+
+    The executor used to hand the port the provider-call id as the attempt id and
+    no action labels, so the port's terminal events pointed at no logical action
+    and their action_attempt_id was really the call id.
+    """
+
+    import asyncio
+
+    from aeread.shared_runner.task.execution import execute_plan_cell
+    from aeread_families.housing.runner import (
+        HousingScriptedLandlordProvider,
+        HousingScriptedTenantProvider,
+        build_housing_smoke,
+    )
+
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    events = list(execution.evidence.read_events())
+    attempts = {
+        event.action_attempt_id: event.logical_action_id
+        for event in events
+        if event.event_type == "action_attempt_started"
+    }
+    provider_events = [e for e in events if e.event_type.startswith("provider_call_")]
+    assert provider_events
+    for event in provider_events:
+        assert event.action_attempt_id in attempts, event.event_type
+        assert event.logical_action_id == attempts[event.action_attempt_id], event.event_type
+        assert event.provider_call_id != event.action_attempt_id
+        assert event.visibility.startswith("seat:")
