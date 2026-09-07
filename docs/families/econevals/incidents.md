@@ -228,3 +228,44 @@ frozen. What is already established and does not need re-running:
 - It is also genuinely variable: the same case came back excluded in
   attempt 006. One sample per case, unseeded route.
 
+## Terminal state 2026-09-07: one case the model cannot complete
+
+Attempt 012 ran detached (outside the harness's task table, which is what
+had been killing earlier attempts) and scored **three of six cases**:
+
+| case | inclusion | cost |
+|---|---|---|
+| `procurement.basic.0` | included | $0.0984 |
+| `procurement.basic.1` | included | $0.1048 |
+| `scheduling.basic.0` | included | $0.0943 |
+| `scheduling.basic.1` | **operational failure** | $0.0635 |
+
+`scheduling.basic.1` fails reproducibly, and not for an infrastructure
+reason. In that case GLM 5.3 Flash spends its entire output budget on
+reasoning and emits nothing: 16 provider calls, **12** with
+`finish_reason: "length"` and empty text, every one capped at exactly the
+declared 4,000 tokens. The same behaviour appeared at 6,000 and at 12,000 --
+the model expands to fill whatever it is given -- and the kernel's length
+escalation cannot help, because a harness may lower its budget but never
+raise it (#131).
+
+So the pipeline has no recovery, and the panel cannot complete under the
+frozen plan, which aborts on the first operational failure.
+
+### The change I am not making
+
+There is an obvious way to finish: reclassify "the model never produced a
+parseable action" from an **operational failure** to an **invalid
+measurement**. It is even arguably correct -- it is the same distinction
+already drawn for an excluded receipt, that a verifier rejecting the model
+is not a broken pipeline -- and a model that cannot act has failed the task
+rather than broken the harness.
+
+It is not being made here, because it would be a change to the campaign
+contract adopted *after* seeing which case it would rescue, by the person
+whose run it rescues. That is the shape of post-outcome tuning even when the
+reasoning is sound. It belongs to whoever owns the contract, decided on its
+merits and applied to every family.
+
+Until then this family reports three scored cases out of six and says why.
+
