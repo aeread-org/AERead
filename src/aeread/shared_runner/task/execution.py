@@ -853,6 +853,12 @@ class ProviderResult:
 # route-identity error retryable.
 POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
 
+# How far a length retry may grow the output budget, as a multiple of what
+# the profile declared. Doubling is the right tactic and unbounded doubling
+# is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
+# produced before this cap existed.
+_LENGTH_RETRY_MAX_GROWTH = 8
+
 
 @dataclass(frozen=True, slots=True)
 class CanonicalResponse:
@@ -2749,7 +2755,27 @@ class MinimalChatExecutor:
                     canonical_response=canonical,
                 )
                 attempts.append(attempt)
-                next_limit = max_output_tokens * 2 if retry_condition == "length" else max_output_tokens
+                # Bounded doubling. A truncated answer probably needs more
+                # room, but unbounded growth walks past the model's own
+                # context window: a 2,400-token budget over ten attempts
+                # became 1,228,800 and the provider refused the request
+                # outright, turning a recoverable truncation into a dead
+                # case. The ceiling is the provider's advertised context
+                # window when it declares one, else a fixed multiple of what
+                # the profile asked for -- either way the growth stops
+                # somewhere the request can still be sent.
+                next_limit = max_output_tokens
+                if retry_condition == "length":
+                    declared = profile.sampling.max_output_tokens
+                    ceiling = declared * _LENGTH_RETRY_MAX_GROWTH
+                    context_window = getattr(
+                        self._provider_capabilities.get(profile.model.provider),
+                        "max_context_tokens",
+                        None,
+                    ) if hasattr(self, "_provider_capabilities") else None
+                    if isinstance(context_window, int) and context_window > 0:
+                        ceiling = min(ceiling, context_window // 2)
+                    next_limit = min(max_output_tokens * 2, ceiling)
                 self.evidence.append_event(
                     "action_attempt_failed",
                     {

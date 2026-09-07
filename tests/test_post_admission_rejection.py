@@ -64,3 +64,28 @@ def test_other_conditions_keep_their_own_typing(condition: str) -> None:
 def test_the_condition_is_opt_in_by_name() -> None:
     """A family must list it to get the retry; it is not retryable by default."""
     assert POST_ADMISSION_REJECTION != "provider_rejected"
+
+
+# ---------------------------------------------------------------------------
+# Length-retry growth is bounded (issue #131).
+# ---------------------------------------------------------------------------
+
+
+def test_length_retry_growth_is_capped_at_a_multiple_of_the_declared_budget() -> None:
+    """Doubling is right; unbounded doubling is not.
+
+    A 2,400-token budget under a ten-attempt policy reached 1,228,800 --
+    larger than the model's whole context window -- and the provider refused
+    the request, turning a recoverable truncation into a failed case.
+    """
+    from aeread.shared_runner.task.execution import _LENGTH_RETRY_MAX_GROWTH
+
+    declared = 2400
+    ceiling = declared * _LENGTH_RETRY_MAX_GROWTH
+    budget = declared
+    for _ in range(10):
+        budget = min(budget * 2, ceiling)
+    assert budget == ceiling
+    assert budget <= 1_048_576, "must stay inside a 1M context window"
+    # And it still grows: a cap is not a freeze.
+    assert min(declared * 2, ceiling) == 4800
