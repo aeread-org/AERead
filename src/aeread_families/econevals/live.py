@@ -92,7 +92,14 @@ RETRYABLE_CONDITIONS = (
     "rate_limit",
     "provider_5xx",
     "timeout",
-    "length",
+    # "length" is deliberately NOT here. The executor doubles
+    # max_output_tokens on every length retry and nothing caps it
+    # (execution.py: `next_limit = max_output_tokens * 2`), so with ten
+    # attempts a 2,400-token budget becomes 1,228,800 and the request is
+    # refused for exceeding the model's context window -- which is exactly
+    # how attempt 004 died. This harness already handles truncation itself,
+    # with a corrective round that tells the model it was cut off, so the
+    # kernel-side doubling buys nothing here. See issue #131.
     "empty_response",
     # A rejection that arrives after this route has already answered cannot
     # mean the route does not exist. Parasail returned a spurious 404 twice
