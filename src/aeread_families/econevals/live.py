@@ -648,21 +648,29 @@ def _profile(
                 # occasional deep-reasoning turn -- so the budget is modest
                 # and truncation is handled by a bounded length retry
                 # instead (#131).
-                # Back to 4,000, and not because 12,000 was untested --
-                # it was tested and it is worse. At 4,000 the model's
-                # reasoning ran to ~10,000 characters and filled the budget;
-                # at 12,000 it ran to ~36,000 and filled that. It expands to
-                # occupy whatever it is given, so headroom buys nothing and
-                # costs proportionally: attempt_018 spent $0.41 to fail one
-                # case that attempt_016 failed for $0.06.
+                # 24,000, sized from what succeeding calls actually
+                # needed rather than from a guess in either direction.
                 #
-                # This is the family's standing constraint, not a bug to fix
-                # here. On this pinned route the model honours no reasoning
-                # control (#133 covers declaring them; attempt_013 and
-                # attempt_016 show both are discarded), and the kernel's
-                # length escalation is clamped away before it reaches the wire
-                # (#134). There is no lever left inside this configuration.
-                "max_output_tokens": 4000,
+                # Every call in attempt_019 that produced a usable action
+                # consumed 4,521, 6,165, 6,309 or 7,070 output tokens, with
+                # 19,805-31,773 characters of reasoning behind it. A 4,000
+                # ceiling is below all four, so a harness-driven call whose
+                # reasoning runs long cannot succeed -- it burns the budget
+                # and returns empty by construction.
+                #
+                # Two earlier readings of this were wrong and are worth
+                # naming, because each one argued against the fix. "Headroom
+                # does not help" came from failures at 2,400/6,000/12,000, but
+                # 12,000 is still under the observed tail. "Reasoning expands
+                # to fill whatever it is given" is contradicted by calls at a
+                # declared 32,000 that used 6,165 tokens and stopped: it is
+                # long and variable, not unbounded.
+                #
+                # Cost is billed per token emitted, so this does not scale
+                # spend with the ceiling. It should reduce it: the current
+                # failure mode burns 4,000 discarded tokens and then retries,
+                # repeatedly, where one 7,000-token call would have finished.
+                "max_output_tokens": 24000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.

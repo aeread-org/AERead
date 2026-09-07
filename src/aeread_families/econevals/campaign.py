@@ -76,6 +76,13 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
+# v8: the output ceiling is raised to 24,000 and the cost ceilings with it.
+# Sized from evidence -- every call that produced a usable action needed
+# 4,521-7,070 output tokens, so 4,000 could not succeed on a long-reasoning
+# call. The cost ceilings are raised in the same declaration rather than
+# discovered mid-run: $0.60 per trajectory and $4.00 total. Both are declared
+# before the run, and if the run exceeds them it stops, as before.
+#
 # v7: v6 ran at a 12,000 output budget and that made things worse -- reasoning
 # expands to fill whatever it is given -- so the budget is back at 4,000. That
 # is a changed frozen control, hence a new identity rather than another
@@ -105,7 +112,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_provider_default_v7"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_budget_24k_v8"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
@@ -151,8 +158,8 @@ CANARY_RETRY_BASE_SECONDS = 15.0
 # issue #130; our own request is flat at ~1.1KB, verified with a stub over
 # 100 periods). The ceiling is raised to fit the measurement rather than the
 # estimate, and the panel ceiling with it.
-MAX_TRAJECTORY_COST_USD = 0.20
-HARD_TOTAL_COST_CEILING_USD = 1.30
+MAX_TRAJECTORY_COST_USD = 0.60
+HARD_TOTAL_COST_CEILING_USD = 4.00
 
 
 def _digest(value: Any) -> str:
