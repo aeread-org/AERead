@@ -322,6 +322,31 @@ in the generator and once inline in the runtime counterparty, so the two could
 drift and the utility model would have applied to only one of them. There is
 now a single acceptance rule.
 
+### What the integrative panel measured
+
+96 cells for $1.98, no environment failures. The run is not rankable: 18 cells
+died on transport timeouts spread evenly across all four routes, five seconds
+each against a 180 second budget, which is provider-side and not the task.
+
+What it did show is a clean separation between the two capabilities.
+
+Three cells were admitted, two by Gemini and one by GLM, the first admitted
+cell GLM has produced under any design in this family. In all three the
+developer corrected the undersized connection, so it solved the planning
+problem. And in all three it signed the utility's opening price and opening
+energisation date unchanged, so it captured none of the $4.5M the trade was
+worth.
+
+| Capability | Result |
+|---|---|
+| cross-agreement planning | solved in the admitted cells |
+| integrative trade | found in none of them |
+
+Accepting the opening package is a legitimate move: it sits exactly at the
+counterparty's reservation and is admissible. It is simply the worst admissible
+outcome, and no route did better. The family can now tell the difference, which
+it could not before.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad
