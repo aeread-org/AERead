@@ -959,3 +959,144 @@ def test_measurement_declaration_post_init_enforces_every_r8_invariant_in_isolat
     three_leaf_measurement = FamilyManifest.from_dict(three_leaf_data).measurement
     with pytest.raises(AuthoringValidationError, match="must be included in admission_leaf_ids"):
         dataclasses.replace(three_leaf_measurement, admission_leaf_ids=("tenant_secondary_leaf",))
+
+
+def test_measurement_declaration_without_trajectory_paths_defaults_to_empty() -> None:
+    family = FamilyManifest.from_dict(family_data())
+    assert family.measurement.trajectory_outcome_paths == ()
+
+
+def test_measurement_declaration_without_trajectory_paths_is_digest_neutral() -> None:
+    """Ruling R9 (kernel_scoring_contract_spec.md, round 3), same story as R1:
+    ``trajectory_outcome_paths`` is added after leaf-policy fields were already
+    sealed into published digests, so an unset value must be ABSENT from
+    canonical JSON exactly like ``leaves``/``primary_leaf_id``/
+    ``admission_leaf_ids`` -- see
+    ``test_measurement_declaration_without_leaves_is_digest_neutral`` for the
+    same guard on the earlier fields.
+    """
+    family = FamilyManifest.from_dict(_family_data_with_leaves())
+    leaf_policy_only_bytes = canonical_json_bytes(family.measurement)
+
+    with_paths = FamilyManifest.from_dict(
+        _family_data_with_leaves(trajectory_outcome_paths=["/history"])
+    )
+    assert canonical_json_bytes(with_paths.measurement) != leaf_policy_only_bytes
+
+    without_paths = FamilyManifest.from_dict(
+        _family_data_with_leaves(trajectory_outcome_paths=[])
+    )
+    assert canonical_json_bytes(without_paths.measurement) == leaf_policy_only_bytes
+
+
+def test_measurement_declaration_accepts_a_trajectory_outcome_path() -> None:
+    family = FamilyManifest.from_dict(
+        _family_data_with_leaves(trajectory_outcome_paths=["/history"])
+    )
+    assert family.measurement.trajectory_outcome_paths == ("/history",)
+
+
+def test_measurement_declaration_rejects_a_malformed_trajectory_outcome_path() -> None:
+    for malformed in ("history", "/", "//history", "/history/"):
+        with pytest.raises(AuthoringValidationError, match="JSON pointer"):
+            FamilyManifest.from_dict(
+                _family_data_with_leaves(trajectory_outcome_paths=[malformed])
+            )
+    # An empty string fails the underlying non-empty-string check first --
+    # still rejected, just with a different (still accurate) message.
+    with pytest.raises(AuthoringValidationError, match="non-empty string"):
+        FamilyManifest.from_dict(_family_data_with_leaves(trajectory_outcome_paths=[""]))
+
+
+def test_measurement_declaration_rejects_duplicate_trajectory_outcome_paths() -> None:
+    with pytest.raises(AuthoringValidationError, match="duplicate"):
+        FamilyManifest.from_dict(
+            _family_data_with_leaves(
+                trajectory_outcome_paths=["/history", "/history"]
+            )
+        )
+
+
+def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclasses_replace() -> None:
+    """Same bypass concern as R8's leaf-policy invariants (finding 4): a
+    ``dataclasses.replace`` on an already-validated manifest must not smuggle
+    a malformed ``trajectory_outcome_paths`` value past every check.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+
+    with pytest.raises(AuthoringValidationError, match="JSON pointer"):
+        dataclasses.replace(measurement, trajectory_outcome_paths=("not_a_pointer",))
+
+    with pytest.raises(AuthoringValidationError, match="duplicate"):
+        dataclasses.replace(
+            measurement, trajectory_outcome_paths=("/history", "/history")
+        )
+
+    # A manifest with no declared leaf policy at all may still declare
+    # trajectory_outcome_paths (format validation does not require leaves).
+    no_policy = FamilyManifest.from_dict(family_data())
+    with pytest.raises(AuthoringValidationError, match="JSON pointer"):
+        dataclasses.replace(no_policy.measurement, trajectory_outcome_paths=("bad",))
+
+
+def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path() -> None:
+    """kernel_r9r10_review.md finding 4: ``_JSON_POINTER_RE`` alone accepts an
+    RFC 6901 array-index segment (e.g. "/history/0"), but the
+    scoring-contract protocol test's projection helper can only navigate
+    JSON objects and raises on a list -- a manifest accepted here could
+    never complete the protocol. Rejected at the schema instead.
+    """
+    for indexed in ("/history/0", "/0", "/history/12/label"):
+        with pytest.raises(AuthoringValidationError, match="object field"):
+            FamilyManifest.from_dict(
+                _family_data_with_leaves(trajectory_outcome_paths=[indexed])
+            )
+
+
+def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path_from_dataclasses_replace() -> None:
+    """Same bypass concern as the other ``trajectory_outcome_paths`` guards:
+    a ``dataclasses.replace`` must not smuggle an array-index segment past
+    this check either."""
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    with pytest.raises(AuthoringValidationError, match="object field"):
+        dataclasses.replace(manifest.measurement, trajectory_outcome_paths=("/history/0",))
+
+
+def test_measurement_declaration_rejects_overlapping_trajectory_outcome_paths() -> None:
+    """kernel_r9r10_review.md finding 4: one declared path being a strict
+    prefix of another is redundant overlap -- projecting the shorter path
+    away already drops everything the longer path would have named."""
+    with pytest.raises(AuthoringValidationError, match="overlapping"):
+        FamilyManifest.from_dict(
+            _family_data_with_leaves(
+                trajectory_outcome_paths=["/history", "/history/participant_x"]
+            )
+        )
+
+
+def test_measurement_declaration_rejects_overlapping_trajectory_outcome_paths_from_dataclasses_replace() -> None:
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    with pytest.raises(AuthoringValidationError, match="overlapping"):
+        dataclasses.replace(
+            manifest.measurement,
+            trajectory_outcome_paths=("/history", "/history/participant_x"),
+        )
+
+
+def test_measurement_declaration_accepts_a_nested_object_field_trajectory_outcome_path() -> None:
+    """Mutation check: a valid nested OBJECT field path -- unlike the
+    array-index and overlapping-prefix cases above -- must still be
+    accepted; this guard restricts pointer SHAPE, not nesting depth."""
+    family = FamilyManifest.from_dict(
+        _family_data_with_leaves(trajectory_outcome_paths=["/payload/history"])
+    )
+    assert family.measurement.trajectory_outcome_paths == ("/payload/history",)
