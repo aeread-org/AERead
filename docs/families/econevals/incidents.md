@@ -551,3 +551,40 @@ observation provokes, not in which budget reached the wire.
 
 v10 restores the declaration. The residual `scheduling.basic.1` overrun is
 unchanged and remains the family's real constraint.
+
+## v10 attempt_022 — published, 6/6
+
+`evidence/econevals_glm53_flash_parasail_panel_v10/`, plan
+`193b8e10167d0e28`, publication `d3504e43e85f31af`. Six planned, six completed,
+six included, zero excluded, zero operational failures, canary admitted.
+$0.4276 against a $1.30 ceiling.
+
+| case | objective | v* | gate |
+|---|---|---|---|
+| procurement.basic.0 | 17.988 | 81.312 | 1.0 |
+| procurement.basic.1 | 4.217 | 20.289 | 1.0 |
+| scheduling.basic.0 | 0.000 | 0.000 | 1.0 |
+| scheduling.basic.1 | 0.000 | 0.000 | 1.0 |
+| pricing.basic.0 | 35.088 | 41.661 | 1.0 |
+| pricing.basic.1 | 13.009 | 26.421 | 1.0 |
+
+Both scheduling cases reach the exact optimum: zero blocking pairs against
+v* = 0. Every gate passes, so all six are genuine submissions rather than
+admissions by default -- which is what separates this from `first_light_v1`,
+where `gate = 0.0` measured blind submission.
+
+The declared reasoning condition matches the wire: all 111 provider calls on
+`scheduling.basic.1` carried `effort=None, token_budget=1500`, and 100 of 107
+completions finished `stop`. That check exists because the v4 bundle failed it
+-- its plan named a condition it did not run -- and it is worth running on any
+bundle before publishing it.
+
+**Attempt disclosure.** This is panel attempt 022, the second attempt under
+v10. Attempt 021 failed at `procurement.basic.0` on an upstream Parasail 429
+after exhausting ten retries; it reached period 82 of 100 with 82 of 82 calls
+finishing `stop`, so the failure was congestion, not the model. Both attempt
+roots are kept in the run tree.
+
+The selection here is over attempts, not cases: the panel is re-attempted whole
+and no case is ever rerun on its own. Ten campaign identities preceded this one
+and every failure is recorded above.
