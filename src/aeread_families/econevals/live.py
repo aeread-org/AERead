@@ -608,10 +608,15 @@ def _profile(
             },
             "sampling": {
                 "temperature": 0.0,
-                # A procurement period names six read-only tools and then
-                # submits a full purchase plan; 900 truncated that mid-JSON
-                # on the first live attempt (decode failed at char 910).
-                "max_output_tokens": 2400,
+                # This budget covers REASONING plus the answer, not the
+                # answer alone. GLM 5.3 Flash at low effort spent all 2,400
+                # on reasoning and returned output_text="" with
+                # finish_reason="length", ten attempts running, which reached
+                # the environment as a null action (response_not_object) and
+                # failed the case. 900 truncated a burst mid-JSON before
+                # that. 6,000 leaves room for the thinking and a full
+                # purchase plan.
+                "max_output_tokens": 6000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.
