@@ -601,8 +601,16 @@ def _profile(
             "tools": list(tools),
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_low_v1",
-                "effort": "low",
+                # "minimal", not "low". The failure this addresses is the
+                # model spending its whole output budget on reasoning and
+                # emitting nothing -- observed at 2,400, 6,000 and 12,000
+                # tokens, so headroom does not fix it, and a harness cannot
+                # raise its own budget so the kernel's length escalation
+                # cannot either (#131). Less reasoning is the remaining
+                # mechanism. Applied to every case and every track, not to
+                # the one case that failed.
+                "condition_id": "reasoning_minimal_v1",
+                "effort": "minimal",
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
