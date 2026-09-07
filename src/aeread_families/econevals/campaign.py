@@ -114,7 +114,14 @@ PANEL_STRATA = (
 SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.01
-MAX_CANARY_OUTPUT_TOKENS = 256
+# The canary must be able to answer under the same conditions as the panel.
+# At 256 it could only answer while a reasoning control kept the model brief;
+# once v6 stopped declaring one -- because this route honours none -- the
+# canary reasoned past its own budget and returned unparseable output, and a
+# route that works was rejected as if it did not. A canary tuned tighter than
+# the run it admits tests the canary, not the route. Billing is per token
+# emitted, so the wider ceiling costs nothing on a call that answers briefly.
+MAX_CANARY_OUTPUT_TOKENS = 12000
 # A transient condition on an UNSCORED, zero-cost probe must not seal the
 # attempt root: the probe produces no measurement, so re-probing changes
 # nothing about what is measured. Every probe is still recorded write-once
