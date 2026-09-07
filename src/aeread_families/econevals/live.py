@@ -648,25 +648,21 @@ def _profile(
                 # occasional deep-reasoning turn -- so the budget is modest
                 # and truncation is handled by a bounded length retry
                 # instead (#131).
-                # 12,000, and this is the control that actually governs.
-                # `harness.py` clamps every request to
-                # `profile.sampling.max_output_tokens` -- "a harness may only
-                # lower max_output_tokens, never raise it" -- so this number,
-                # not the kernel's length-retry escalation, is the real
-                # ceiling. Attempt_016 escalated an attempt to 32,000 and the
-                # completions still stopped at exactly 4,000, ten times
-                # running, while a direct probe on the same route returned
-                # 8,000 tokens happily. The escalation was recorded and
-                # clamped.
+                # Back to 4,000, and not because 12,000 was untested --
+                # it was tested and it is worse. At 4,000 the model's
+                # reasoning ran to ~10,000 characters and filled the budget;
+                # at 12,000 it ran to ~36,000 and filled that. It expands to
+                # occupy whatever it is given, so headroom buys nothing and
+                # costs proportionally: attempt_018 spent $0.41 to fail one
+                # case that attempt_016 failed for $0.06.
                 #
-                # 4,000 was too small because reasoning length on this family
-                # is heavy-tailed, not because it is long on average: replaying
-                # one failing observation gave 949, 1,275, 1,296, 1,639, 2,935
-                # and 8,254 reasoning characters across identical calls. Most
-                # fit in 4,000 tokens; the tail does not, and a call whose
-                # reasoning fills the budget returns empty. 12,000 puts the
-                # observed tail well inside the budget.
-                "max_output_tokens": 12000,
+                # This is the family's standing constraint, not a bug to fix
+                # here. On this pinned route the model honours no reasoning
+                # control (#133 covers declaring them; attempt_013 and
+                # attempt_016 show both are discarded), and the kernel's
+                # length escalation is clamped away before it reaches the wire
+                # (#134). There is no lever left inside this configuration.
+                "max_output_tokens": 4000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.

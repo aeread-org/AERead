@@ -424,3 +424,47 @@ that" was based on failures at 2,400, 6,000 and 12,000 that were themselves
 clamped, so headroom was never actually tested. And attempt_013's write-up
 called the reasoning cap "the remaining mechanism", which assumed the provider
 honours it; it does not.
+
+## attempt_018 — headroom was finally tested, and the original note was right
+
+v6 raised the output budget 4,000 -> 12,000 on the reasoning that the earlier
+"headroom does not fix it" observations had all been clamped and so never
+actually tested. They were clamped. The conclusion was still correct.
+
+At 12,000, `procurement.basic.0` -- the case that had passed every previous
+attempt, under every configuration -- failed. Twenty-six of thirty-two calls
+returned empty at `finish_reason: length`, each having filled the entire
+12,000, with reasoning running to 34,000-55,000 characters. At 4,000 the same
+model reasons to roughly 10,000 characters. It expands to occupy whatever it is
+given.
+
+So headroom buys nothing and costs in proportion: attempt_018 spent $0.4144 to
+fail a case that attempt_016 failed for $0.0558. The budget is back at 4,000.
+
+**Correction, and this one is mine.** The attempt_016 write-up above says the
+earlier headroom failures "were themselves clamped, so headroom was never
+actually tested", and treated that as reason to expect the raise to work. The
+clamping was real (#134) but the inference was not: the original v1 note --
+"it expands to fill what it is given" -- had already described the behaviour
+correctly from direct observation, and I discounted a correct empirical claim
+because I had found a mechanism that could have explained it away. Finding a
+plausible alternative cause is not the same as disproving the stated one.
+
+**Where this leaves the family.** On this pinned route there is no remaining
+lever. `reasoning.effort` is discarded (attempt_013, verified in the sealed
+request). `reasoning.max_tokens` is discarded (attempt_016, likewise). The
+kernel's length escalation is clamped to the profile ceiling before it reaches
+the wire (#134), so `length` retries only re-roll sampling. And the profile
+ceiling itself is not a lever, because reasoning grows to meet it.
+
+What remains is a property of the route, not of the harness: GLM 5.3 Flash on
+Parasail fp8 emits no action for a fraction of these observations, and that
+fraction is a draw rather than a fixed set of cases -- `scheduling.basic.1`
+passed under v4 and failed under v5 on an identical wire configuration, and
+`procurement.basic.0` passed everywhere until it did not.
+
+Two honest ways forward, and the choice is not the runner's to make: measure a
+route that honours a reasoning control, or keep this route and treat a
+no-action episode as typed missingness with a declared episode-level retry
+budget. The second changes what the panel measures and needs to be declared
+before it is run, not after seeing which cases it rescues.
