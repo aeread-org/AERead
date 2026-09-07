@@ -1088,9 +1088,15 @@ class AttemptExecutor(MinimalChatExecutor):
             pricing=self._pricing[profile.model.model],
             profile=profile,
             instructions=self._prompt_text[profile.profile_id],
-            action_attempt_id=request.provider_call_id,
+            # The port labels every round's events with these; handing it the
+            # provider-call id as the attempt id (and no action labels) left
+            # provider_call_* outcome events pointing at no logical action.
+            action_attempt_id=action_attempt_id,
             emit_events=False,
             sealed_request=request,
+            phase_instance_id=decision.phase_instance_id,
+            logical_action_id=decision.logical_action_id,
+            visibility=f"seat:{decision.seat_id}",
         )
         self._ports[action_attempt_id] = port
         tools_port: Any = None
