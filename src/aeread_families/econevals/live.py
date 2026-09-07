@@ -147,9 +147,15 @@ period. Never invent tool results.
 # the control that failed. 1,500 of 4,000 leaves 2,500 for the action itself,
 # against a longest observed well-formed action burst under 400.
 REASONING_DECLARATION: dict[str, object] = {
-    "condition_id": "reasoning_capped_1500_v1",
+    # No reasoning control is declared, because this route honours none of
+    # them. `effort: "minimal"` was sent and ignored (attempt_013, confirmed in
+    # the sealed request). `reasoning.max_tokens: 1500` was sent and ignored
+    # too (attempt_016: every call carried it and reasoning still ran past
+    # 10,000 characters). Declaring a control the provider discards would put
+    # a condition into published evidence that did not hold.
+    "condition_id": "reasoning_provider_default_v1",
     "effort": None,
-    "token_budget": 1500,
+    "token_budget": None,
     "rationale_visibility": "hidden",
 }
 
@@ -642,7 +648,25 @@ def _profile(
                 # occasional deep-reasoning turn -- so the budget is modest
                 # and truncation is handled by a bounded length retry
                 # instead (#131).
-                "max_output_tokens": 4000,
+                # 12,000, and this is the control that actually governs.
+                # `harness.py` clamps every request to
+                # `profile.sampling.max_output_tokens` -- "a harness may only
+                # lower max_output_tokens, never raise it" -- so this number,
+                # not the kernel's length-retry escalation, is the real
+                # ceiling. Attempt_016 escalated an attempt to 32,000 and the
+                # completions still stopped at exactly 4,000, ten times
+                # running, while a direct probe on the same route returned
+                # 8,000 tokens happily. The escalation was recorded and
+                # clamped.
+                #
+                # 4,000 was too small because reasoning length on this family
+                # is heavy-tailed, not because it is long on average: replaying
+                # one failing observation gave 949, 1,275, 1,296, 1,639, 2,935
+                # and 8,254 reasoning characters across identical calls. Most
+                # fit in 4,000 tokens; the tail does not, and a call whose
+                # reasoning fills the budget returns empty. 12,000 puts the
+                # observed tail well inside the budget.
+                "max_output_tokens": 12000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.

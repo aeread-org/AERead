@@ -76,6 +76,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
+# v6: the reasoning controls were never the lever. This route honours neither
+# `reasoning.effort` nor `reasoning.max_tokens`, and the budget that governs is
+# `profile.sampling.max_output_tokens`, which the harness clamps every request
+# to. Raised 4,000 -> 12,000; no reasoning control declared.
+#
 # v5: v4's plan restated the reasoning condition as a literal instead of
 # deriving it, so the plan advertised effort "low" for a panel that ran with no
 # effort and a 1,500-token cap, and the admission canary proved the route under
@@ -88,7 +93,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_reasoning_capped_v5"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_output_budget_v6"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",

@@ -382,3 +382,45 @@ plan and the canary all read. v5 re-runs it, ~$0.44.
 Worth naming the pattern, since it has now cost two campaign identities: every
 one of these is a control that was written down twice. #133 is the same shape
 one level up -- the kernel permits a pair of controls no provider accepts.
+
+## attempt_016 — the cap was ignored too, and the real ceiling was somewhere else
+
+v5 re-ran the same six cases under a single derived reasoning declaration.
+`scheduling.basic.1` failed again, `response_not_object`, after passing under
+v4 with an identical wire configuration. The fix was not a fix; v4 was a
+sample from a distribution.
+
+`reasoning_token_budget = 1500` was present on every call -- checked in the
+sealed requests -- and reasoning still ran past 10,000 characters. So this
+route honours neither `reasoning.effort` (attempt_013) nor
+`reasoning.max_tokens` (attempt_016). Both were declared, both were sent, both
+were discarded. The reasoning declaration now states no control at all, since
+declaring one the provider ignores puts a condition in published evidence that
+did not hold.
+
+**What was actually binding.** Ten calls stopped at exactly 4,000 output tokens
+while the sealed requests said 8,000, 16,000 and 32,000. `harness.py` clamps
+every request to `profile.sampling.max_output_tokens` -- a harness may lower
+its budget, never raise it -- so the kernel's length escalation was recorded
+and then discarded. A direct probe on the same route returns 8,000 tokens for
+an 8,000 request, so the provider was never the limit. Filed as #134: the
+receipt states a budget that was not sent, which is why three attempts went
+looking for the problem in the model.
+
+**Why 4,000 was too small, which is not what it looked like.** Replaying one
+failing observation gave reasoning lengths of 949, 1,275, 1,296, 1,639, 2,935
+and 8,254 characters across identical calls. The distribution is heavy-tailed,
+not long. Most calls fit; the tail does not, and a call whose reasoning fills
+the budget returns empty. That is also why the isolated probes kept coming back
+clean and were reported as inconclusive rather than as evidence of a fix -- a
+handful of draws from a distribution whose tail is the failure will usually
+miss it.
+
+v6 raises the output budget to 12,000 and declares no reasoning control.
+
+**Correction to the record.** Two things stated earlier in this file are wrong
+and are left standing above rather than edited away. "Headroom does not fix
+that" was based on failures at 2,400, 6,000 and 12,000 that were themselves
+clamped, so headroom was never actually tested. And attempt_013's write-up
+called the reasoning cap "the remaining mechanism", which assumed the provider
+honours it; it does not.
