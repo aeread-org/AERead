@@ -18,7 +18,7 @@ MODEL = "glm-5p2"
 REVISION = "glm-5p2"
 BASE_URL = "https://api.preview.arena.ai/v1"
 ROUTE_PROVIDER = "Arena"
-CANARY_MAX_OUTPUT_TOKENS = 64
+CANARY_MAX_OUTPUT_TOKENS = 512
 CANARY_MAX_COST_USD = 0.01
 
 
@@ -75,7 +75,7 @@ async def run_adapter_canary(
         temperature=0.0,
         top_p=None,
         max_output_tokens=CANARY_MAX_OUTPUT_TOKENS,
-        reasoning_effort="low",
+        reasoning_effort="none",
         reasoning_token_budget=None,
         timeout_seconds=180.0,
         request_sha256="",
@@ -142,4 +142,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
