@@ -2105,6 +2105,26 @@ def test_identity_snapshot_survives_a_derank_but_catches_a_repricing(
         campaign._endpoint_snapshot_sha256(healthy, policy="whatever")
 
 
+def _unpinned(contract: dict, monkeypatch: pytest.MonkeyPatch) -> dict:
+    """Let a runner test execute under the current implementation.
+
+    Executed campaigns are pinned to the implementation they ran under, and
+    run_live refuses to execute a pinned campaign on a different runtime.
+    These tests exercise batching rather than a campaign identity, so the
+    historical pin is dropped for the duration.
+    """
+
+    import aeread_families.housing.model_sensitivity as sensitivity
+
+    pins = {
+        key: value
+        for key, value in sensitivity._HISTORICAL_IMPLEMENTATION_DIGESTS.items()
+        if key != contract["campaign_id"]
+    }
+    monkeypatch.setattr(sensitivity, "_HISTORICAL_IMPLEMENTATION_DIGESTS", pins)
+    return contract
+
+
 class _ScriptedHousingClient:
     """A provider that always returns a schema-valid, legal Housing action."""
 
@@ -2143,11 +2163,13 @@ class _ScriptedHousingClient:
 
 
 def test_concurrent_cell_batches_produce_the_same_rows_as_serial(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from aeread_families.housing.model_sensitivity import run_live
 
-    contract = json.loads(json.dumps(load_contract(V20_CONTRACT_PATH)))
+    contract = _unpinned(
+        json.loads(json.dumps(load_contract(V20_CONTRACT_PATH))), monkeypatch
+    )
     routes = route_table(contract)
 
     def execute(max_concurrent: int, root: Path) -> dict:
@@ -2191,11 +2213,13 @@ def test_concurrent_cell_batches_produce_the_same_rows_as_serial(
 
 
 def test_batch_cost_reserve_scales_with_batch_size_and_stops_the_run(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from aeread_families.housing.model_sensitivity import run_live
 
-    base = json.loads(json.dumps(load_contract(V20_CONTRACT_PATH)))
+    base = _unpinned(
+        json.loads(json.dumps(load_contract(V20_CONTRACT_PATH))), monkeypatch
+    )
     routes = route_table(base)
 
     def execute(max_concurrent: int, ceiling: float, root: Path) -> dict:
