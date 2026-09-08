@@ -106,7 +106,9 @@ def _validated_case():
 
 
 def _score_by_id(outcome, family_case):
-    score_set = ObjectiveAwareDataCenterScorer(family_case)(
+    # The recorded-outcome entry point; the kernel-facing __call__ takes a
+    # FamilyScoringInput (#144).
+    score_set = ObjectiveAwareDataCenterScorer(family_case).score_recorded_outcome(
         outcome,
         evidence_refs=("event_00000001",),
     )

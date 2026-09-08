@@ -172,6 +172,23 @@ class ObjectiveAwareDataCenterScorer:
         )
 
     def __call__(
+        self, scoring_input: Any, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """The kernel's once-per-episode scoring hook (#144).
+
+        The finalizer passes a ``FamilyScoringInput``; this scorer took the
+        recorded-outcome mapping directly, so the validator saw a dataclass,
+        reported "outcome must be an object", and every live cell was
+        excluded as an invalid measurement. ``scoring_input.outcome`` is
+        ``plugin.outcome(family_case, terminal)`` over the verified
+        re-execution -- the same mapping this scorer already scored.
+        """
+        return self.score_recorded_outcome(
+            scoring_input.outcome,
+            evidence_refs=evidence_refs or tuple(scoring_input.evidence_refs),
+        )
+
+    def score_recorded_outcome(
         self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...]
     ) -> FamilyScoreSet:
         outside = int(
