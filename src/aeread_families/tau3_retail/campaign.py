@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -49,7 +50,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v16"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v17"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
@@ -76,11 +77,22 @@ MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.005
 MAX_CANARY_OUTPUT_TOKENS = 256
 MAX_TRAJECTORY_COST_USD = 0.09
-HARD_TOTAL_COST_CEILING_USD = 0.46
+HARD_TOTAL_COST_CEILING_USD = 1.00
+
+_COMBINED_CAP_REACHED = re.compile(
+    r"combined cost budget exceeded for execution cell: ([0-9]+(?:\.[0-9]+)?) > "
+    r"[0-9]+(?:\.[0-9]+)?$"
+)
 
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def _combined_cap_cost(error: BaseException) -> float | None:
+    """Return the actual sealed charge when the executor stops at its combined cap."""
+    match = _COMBINED_CAP_REACHED.search(str(error))
+    return float(match.group(1)) if match else None
 
 
 def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -151,6 +163,7 @@ def build_campaign_plan() -> dict[str, Any]:
         "execution": {
             "max_parallel_cells": MAX_PARALLEL_CELLS,
             "abort_on_operational_failure": True,
+            "continue_on_combined_cost_cap": True,
             "resume_only_failure_free_checkpoints": True,
             "publish_only": True,
             "scored_case_count": len(PANEL_CASE_IDS),
@@ -287,14 +300,14 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
             checkpoint_payload = {
                 key: item for key, item in checkpoint.items() if key != "record_sha256"
             }
-            if (
-                checkpoint.get("status") != "complete"
-                or checkpoint.get("plan_sha256") != plan["plan_sha256"]
-                or recorded != _digest(checkpoint_payload)
+            if checkpoint.get("plan_sha256") != plan["plan_sha256"] or recorded != _digest(
+                checkpoint_payload
             ):
                 raise RuntimeError("campaign cannot resume from a failed checkpoint")
-            total_cost += float(checkpoint["cost_usd"])
-            continue
+            if checkpoint.get("status") in {"complete", "cap_reached"}:
+                total_cost += float(checkpoint["cost_usd"])
+                continue
+            raise RuntimeError("campaign cannot resume from an operational-failure checkpoint")
         if total_cost + MAX_TRAJECTORY_COST_USD > HARD_TOTAL_COST_CEILING_USD:
             raise RuntimeError("insufficient campaign budget reserve for the next case")
         setup = build_live_setup(
@@ -359,6 +372,26 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
             checkpoint["record_sha256"] = _digest(checkpoint)
             _write_once_json(checkpoint_path, checkpoint)
         except Exception as error:
+            cap_cost = _combined_cap_cost(error)
+            if cap_cost is not None:
+                checkpoint = {
+                    "schema_version": "aeread.tau3_retail_checkpoint/0.1",
+                    "campaign_id": CAMPAIGN_ID,
+                    "plan_sha256": plan["plan_sha256"],
+                    "ordinal": ordinal,
+                    "case_id": case_id,
+                    "status": "cap_reached",
+                    "failure_type": type(error).__name__,
+                    "failure_condition": "combined_cost_budget_exceeded",
+                    "cost_usd": cap_cost,
+                    "included": False,
+                }
+                checkpoint["record_sha256"] = _digest(checkpoint)
+                _write_once_json(checkpoint_path, checkpoint)
+                total_cost += cap_cost
+                if total_cost > HARD_TOTAL_COST_CEILING_USD:
+                    raise RuntimeError("campaign exceeded its hard total cost ceiling") from error
+                continue
             failure = {
                 "schema_version": "aeread.tau3_retail_checkpoint/0.1",
                 "campaign_id": CAMPAIGN_ID,
@@ -392,6 +425,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         raise RuntimeError("cannot publish a campaign with a rejected canary")
     receipt_rows: list[dict[str, Any]] = []
     trajectory_rows: list[dict[str, Any]] = []
+    cap_reached_rows: list[dict[str, Any]] = []
     for ordinal, case_id in enumerate(PANEL_CASE_IDS):
         checkpoint = json.loads(
             (run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json").read_text(
@@ -402,11 +436,22 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         checkpoint_payload = {
             key: item for key, item in checkpoint.items() if key != "record_sha256"
         }
-        if (
-            checkpoint.get("status") != "complete"
-            or checkpoint.get("plan_sha256") != plan["plan_sha256"]
-            or recorded != _digest(checkpoint_payload)
+        if checkpoint.get("plan_sha256") != plan["plan_sha256"] or recorded != _digest(
+            checkpoint_payload
         ):
+            raise RuntimeError(f"cannot publish incomplete case {case_id}")
+        if checkpoint.get("status") == "cap_reached":
+            cap_reached_rows.append(
+                {
+                    "case_id": case_id,
+                    "stratum": PANEL_STRATA[ordinal],
+                    "status": "cap_reached",
+                    "failure_condition": checkpoint["failure_condition"],
+                    "cost_usd": checkpoint["cost_usd"],
+                }
+            )
+            continue
+        if checkpoint.get("status") != "complete":
             raise RuntimeError(f"cannot publish incomplete case {case_id}")
         serialized = read_evaluation_receipt(run_root / checkpoint["receipt_path"])
         receipt = deserialize_evaluation_receipt(serialized)
@@ -430,7 +475,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
             }
         )
     total_cost = float(canary["cost_usd"]) + sum(
-        float(row["cost_usd"]) for row in trajectory_rows
+        float(row["cost_usd"]) for row in trajectory_rows + cap_reached_rows
     )
     summary = {
         "campaign_id": CAMPAIGN_ID,
@@ -439,6 +484,8 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "canary_cost_usd": canary["cost_usd"],
         "planned_cases": len(PANEL_CASE_IDS),
         "completed_cases": len(trajectory_rows),
+        "cap_reached_cases": len(cap_reached_rows),
+        "cap_reached": cap_reached_rows,
         "operational_failures": 0,
         "total_cost_usd": total_cost,
         "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
@@ -451,8 +498,9 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "README.md": (
             f"# tau3 retail pipeline proof\n\n"
             f"This bundle records one unscored route canary and a frozen five-case "
-            f"panel spanning the five predeclared tau3 retail pilot strata. All cases "
-            f"ran sequentially through the shared runner and replayed their receipts.\n"
+            f"panel spanning the five predeclared tau3 retail pilot strata. Completed "
+            f"cases replayed their receipts; cap-reached cases are explicitly excluded "
+            f"in the summary.\n"
         ).encode("utf-8"),
         "reports/summary.json": canonical_json_bytes(summary) + b"\n",
         "trajectories/archive.jsonl": jsonl(trajectory_rows),
