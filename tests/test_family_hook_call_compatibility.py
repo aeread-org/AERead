@@ -81,7 +81,6 @@ SCORERS = _scorer_builders()
 # joins the list. Remove an entry when its issue lands; do not add one without
 # an issue.
 KNOWN_UNMIGRATED_SCORERS = {
-    "govsim": "#76",
     # Found by this test, filed from it:
     "aucarena": "#119",
     "consent_ir": "#120",
