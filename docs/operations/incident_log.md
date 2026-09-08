@@ -83,10 +83,19 @@ document; this file is the index and the disposition.
 | housing | `evidence/housing_failure_register/` | 56 typed failures over 10 campaigns (45 `rate_limit`, 9 `timeout`, 1 `transport`, 1 `execution_error`; 48 trajectory, 8 profile-admission) | the Housing section below (34 rows); narrative in `docs/families/housing/qc.md` |
 | datacenter | `evidence/datacenter_failure_register.{json,md}` -- **to be moved** to the layout above | 541 incidents over 573 cells in 10 runs; attribution after correction: model 298, negotiation 170, provider 47, budget 16, environment 10; 17 rows reclassified | its own register `.md` |
 | procurement allocation | not yet built -- **owed** | 39 of 222 provider calls failed across the confirmatory work (17.6%) | `docs/families/procurement-allocation/design_review.md`, and the D/O/T/J sections below |
-| econevals | not yet built -- **owed** | 13 attempt roots, 12 failed; $0.125 spent, of which $0.0925 bought a complete but unpublishable panel | `docs/families/econevals/incidents.md` |
+| econevals | `evidence/econevals_failure_register/` | 19 typed failures over 13 attempt roots (10 `rate_limit`, 3 `malformed_structured_output`, 2 `provider_rejected`, 2 `provider_contract`, 2 `invalid_measurement`); 176 retried provider-call failures beneath them; attribution provider 12, model 5, environment 2 | `docs/families/econevals/incidents.md` |
 
-Two registers exist in the required shape, two are owed. The gap is recorded
-rather than quietly closed.
+Three registers exist in the required shape; procurement still owes one, and
+the data-center register needs moving to the standard layout. The gap is
+recorded rather than quietly closed.
+
+A note the econevals register makes concrete: a checkpoint records
+`execution_failure` whenever the exception carries no `condition`, which is
+true of every `SchedulerContractError`, so a register built from checkpoints
+alone cannot tell a 429 from a 404 from a contract error. The typed
+conditions must be recovered from the sealed event ledger. Any family
+building a Tier 1 register should do the same rather than trusting the
+checkpoint's label.
 
 
 ---
@@ -271,12 +280,12 @@ uses.
 | 09-06 | 001, 002 | canary rejected: route seal shape, then a transient 429 that sealed the root | $0 |
 | 09-06 | 003-006 | four contract errors, each dying on the first action: undeclared seed, invented tool name, truncation at 900 tokens, an unretried 429 | $0.00015 |
 | 09-06 | 007 | 100 periods, receipt excluded on a malformed submission; campaign wrongly aborted on a measurement verdict | $0.00004 |
-| 09-06 | 008 | case 00 scored `included`, then a spurious Parasail **404** | $0.0105 |
-| 09-06 | 009 | two procurement cases scored, then an empty turn exhausted the harness's corrective rounds | $0.0216 |
+| 09-06 | 008 | case 00 scored `included`, then a spurious Parasail **404** | $0.0255 |
+| 09-06 | 009 | two procurement cases scored, then an empty turn exhausted the harness's corrective rounds | $0.0228 |
 | 09-06 | 010 | ten attempts against a 429 burst exhausted in two minutes: backoff is opt-in and none was declared | $0.00004 |
 | 09-06 | 011 | **6/6 cases `ok/included`**, 100 periods each -- unpublishable, see E-D-02 | $0.0925 |
 | 09-06 | 012 | spurious Parasail **404** again, on the first action | $0.00003 |
-| 09-06 | 013 | two procurement cases scored, then a sustained 429 exhausted ten attempts **with** backoff (~3 min of spread) | $0.0215 |
+| 09-06 | 013 | two procurement cases scored, then a sustained 429 exhausted ten attempts **with** backoff (~3 min of spread) | $0.0689 |
 
 Disposition: a route-availability block, not a campaign defect. Attempt 011
 ran the identical panel to completion, so the frozen plan is re-run in a
@@ -292,6 +301,23 @@ making 600 sequential calls.
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | E-J-01 | sized the panel's retry policy by copying tau3's profile instead of multiplying out this family's call count | a 429 killing a run at case 00 | one attempt | attempts raised to 10 with declared backoff, and the arithmetic written into the profile |
+| E-J-03 | reported per-attempt costs from checkpoints that omit a failed case's spend, understating what the failures consumed by 44% | the operator asked whether a 429 costs anything | an understated incident ledger, corrected the same day | failure checkpoints now recover sealed spend; ledger figures restated |
+
+**E-J-03 is not econevals-only.** A survey of every family's failure path:
+
+| family | failed-case spend recorded? |
+|---|---|
+| housing | yes -- `cost_usd` plus a `billing_status` field on the failure row |
+| procurement allocation | yes -- `_sealed_failure_telemetry` recovers incurred usage from the sealed event ledger and flags `telemetry_complete` |
+| econevals | **was no**, fixed here |
+| tau3 retail (PR #97) | **no** -- the failure checkpoint records `failure_type` and `failure_condition` only, so a case killed after successful turns reports no spend |
+
+econevals inherited the omission by copying tau3's checkpoint shape, which
+is the same way it inherited tau3's retry and backoff policies (E-J-01).
+Procurement's `_sealed_failure_telemetry` is the better pattern of the two
+implementations -- it reads the event ledger rather than walking artifacts,
+and it says when telemetry is incomplete rather than silently summing what
+it found. Raised for tau3's owner rather than changed here.
 | E-J-02 | planned to truncate periods through the agent budget to fit the cost ceiling | a dry run showing it raises `SchedulerContractError` rather than terminating cleanly | none, caught pre-spend | cases run at their own pinned `max_steps`; it would have manufactured failed receipts |
 
 ## Standing lessons, added
