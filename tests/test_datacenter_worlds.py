@@ -141,7 +141,8 @@ def test_two_worlds_from_different_strata_replay_exactly(tmp_path, file_name: st
     replayed = replay_stack_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path)
     outcome = execution.episode_result.outcome
 
-    assert execution.episode_result.logical_action_count == 18
+    # Eighteen agreement actions plus the developer's sequencing decision.
+    assert execution.episode_result.logical_action_count == 19
     assert receipt.inclusion_status == "included"
     assert outcome["project_completed"] is True
     assert outcome["project_constraints_satisfied"] is True
@@ -330,6 +331,9 @@ def test_every_transition_lands_on_a_declared_next_phase() -> None:
     by_id = {phase.phase_id: phase for phase in plugin.phases(case)}
 
     state = plugin.initial_state(case, None)
+    # The developer has declared an order and settled land; the amendment is
+    # not last, so declining it must hand on to whatever it chose next.
+    state["order"] = ["land", "land_amendment", "power", "epc", "service", "loan"]
     state["executed"]["land"] = {
         "offer_id": "offer_x",
         "terms": dict(case["scripted_developer"]["land_terms"]),

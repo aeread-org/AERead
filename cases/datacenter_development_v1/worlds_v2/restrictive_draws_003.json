@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
-  "content_sha256": "eefea5dc0d1ee5d76acff20eb61baf856aae5f28a4441a117487b002aba74bba",
+  "content_sha256": "82eb9fbada90d146932a169bea55f338d31a9b2de06cf6af1af2ea70e590e427",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -20,6 +20,7 @@
       "total_project_npv_cents": 70052798964
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

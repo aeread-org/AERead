@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
-  "content_sha256": "a4718febbe332545edd5f4d14c83bae925f0e72949865b08b4639155afba9f4d",
+  "content_sha256": "e18c3781643c6f4bc8d0898a7a820ba6fb9ce33f9572eda9d71a047a45823d19",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -20,6 +20,7 @@
       "total_project_npv_cents": 68715556329
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-  "content_sha256": "7a9db58c279c82ef9d19578d1df2a62c566c9a64c10b888edcc61ba2652f6674",
+  "content_sha256": "6dc785ef50ba5f5528ec9e450eedf8fe4f39ee4b09a7028a383825222ba15167",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -20,6 +20,7 @@
       "total_project_npv_cents": 65017218929
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

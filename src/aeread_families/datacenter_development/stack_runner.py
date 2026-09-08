@@ -54,6 +54,7 @@ from aeread.shared_runner.schemas import (
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
     OPTIONAL_AGREEMENT_KEYS,
+    SEQUENCE_PHASE_ID,
     TERM_PARSER_BY_TYPE,
     terms_acceptable,
     COUNTERPART_BY_KEY,
@@ -78,12 +79,29 @@ CASE_PATH_BY_SCOPE = {
     / "full_stack_amendment_001.json",
 }
 RUNTIME_ID = "aeread_families.datacenter_development.stack_runner"
+# Learn the lender's bankability thresholds before signing the lease that has
+# to satisfy them, then size the supply agreements to the lease.
+DISCOVERY_FIRST_ORDER = (
+    "land",
+    "loan",
+    "service",
+    "power",
+    "epc",
+    "land_amendment",
+)
 DEVELOPER_PROMPT = """Negotiate the complete data-center agreement stack. Return
 exactly one JSON action for the current phase. In an offer phase, return decision,
 message, and every structured term. In a commit phase, copy accepted_offer_id exactly
 into offer_id and either sign or walk. Never invent an offer ID. Only complete
 structured terms and signatures over accepted offer IDs are binding. Respect explicit
 amendment precedence.
+
+You first declare the order in which you will negotiate the agreements, as a
+permutation of every agreement named in the observation. An amendment must come
+after the agreement it amends. The order matters: what a counterparty will
+accept is private and is revealed only by negotiating with it, and an executed
+agreement cannot be reopened, so a commitment made before you know what it must
+support may strand the project.
 
 All months are 1-based calendar indices within the project horizon; month 0 does not
 exist. Amounts are integer cents and rates are integer basis points.
@@ -136,6 +154,20 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
     scope_version = str(case.payload["scope_version"])
     sequence = SCOPE_CONFIG[scope_version]["sequence"]
     schemas: dict[str, Any] = {}
+    if case.payload["negotiation"].get("developer_chooses_order", False):
+        schemas["datacenter_sequence_plan_v1"] = {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "type": "array",
+                    "items": {"enum": list(sequence)},
+                    "minItems": len(sequence),
+                    "maxItems": len(sequence),
+                }
+            },
+            "required": ["order"],
+            "additionalProperties": False,
+        }
     for key in sequence:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
@@ -1084,6 +1116,13 @@ class StackScriptedDeveloperProvider:
         payload = json.loads(request.input_text)
         phase = payload["phase_id"]
         observation = payload["observation"]
+        if phase == SEQUENCE_PHASE_ID:
+            # The scripted developer discovers before it commits: it settles the
+            # tenant's requirement first, then sizes the supply agreements to it.
+            declared = observation["agreements_to_negotiate"]
+            preferred = [key for key in DISCOVERY_FIRST_ORDER if key in declared]
+            preferred += [key for key in declared if key not in preferred]
+            return _scripted_result(request, {"order": preferred})
         key = observation["agreement_key"]
         if phase.endswith("_offer"):
             terms = observation.get("pending_counter_terms") or self._scripted[f"{key}_terms"]

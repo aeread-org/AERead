@@ -347,6 +347,35 @@ counterparty's reservation and is admissible. It is simply the worst admissible
 outcome, and no route did better. The family can now tell the difference, which
 it could not before.
 
+### Designing the ordering half
+
+The order was imposed. The developer now declares, before it negotiates
+anything, the order it will work through, as a permutation of the agreements,
+with the single rule that an amendment follows the agreement it amends. Every
+agreement is a legal opening move and every commit may be followed by any
+agreement still outstanding.
+
+Ordering only pays if negotiating one thing reveals something about another,
+and the worlds already contained exactly that: **the lender's bankability
+thresholds**. They decide whether a lease can be financed at all, they differ
+between worlds so they cannot be memorised, they appear in the lender's own
+counter, and they appear in no developer observation before that counter
+arrives. A developer that negotiates the loan before the lease turns a guess
+into a known constraint. The scripted plan does precisely that, and completes
+all 24 worlds.
+
+An earlier attempt made the *tenant's* requirement private and variable
+instead. It was abandoned on evidence: the site is built for full capacity
+whatever the tenant takes, so a partial lease is not a different decision, only
+a worse world, and every generated variant failed verification. The note is
+left here because the negative result is the useful part.
+
+**The blast radius was the surprise.** Five sibling families reuse this stack
+plugin, and adding a phase to it broke all of them. Sequencing is therefore
+opt-in per case, through `negotiation.developer_chooses_order`, and those
+families keep the fixed sequence they were built against. A shared environment
+is a shared contract, and the tests said so within a minute of the change.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

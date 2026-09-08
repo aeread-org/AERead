@@ -539,3 +539,87 @@ def test_the_concession_costs_the_developer_less_than_it_buys() -> None:
     assert free_of_charge >= 12, (
         f"only {free_of_charge} of 24 worlds make the concession outright free"
     )
+
+
+# ------------------------------------------------------------------ ordering
+
+
+def test_the_developer_chooses_the_order_and_the_graph_allows_any_of_them() -> None:
+    from aeread_families.datacenter_development.stack_environment import (
+        ORDER_PREREQUISITES,
+        SEQUENCE_PHASE_ID,
+        DataCenterStackPlugin,
+    )
+
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(_payload("covenant_cliff_001.json"))
+    phases = {phase.phase_id: phase for phase in plugin.phases(case)}
+    sequencing = phases[SEQUENCE_PHASE_ID]
+
+    # Every agreement is a possible opening move, and every commit can be
+    # followed by any agreement still outstanding.
+    offers = {f"{key}_developer_offer" for key in SEQUENCE}
+    assert set(sequencing.next_phases) == offers
+    for key in SEQUENCE:
+        assert set(phases[f"{key}_developer_commit"].next_phases) == offers
+
+    state = plugin.initial_state(case, None)
+    legal = plugin.legal(
+        case, state, "developer", sequencing, {"order": list(reversed(SEQUENCE))}
+    )
+    # Reversed puts the amendment before the agreement it amends.
+    assert not legal.legal and legal.reason == "order_violates_a_prerequisite"
+
+    partial = plugin.legal(
+        case, state, "developer", sequencing, {"order": list(SEQUENCE)[:3]}
+    )
+    assert not partial.legal and partial.reason == "order_is_not_a_permutation"
+
+    assert plugin.legal(
+        case,
+        state,
+        "developer",
+        sequencing,
+        {"order": ["land", "loan", "service", "power", "epc", "land_amendment"]},
+    ).legal
+    assert ORDER_PREREQUISITES["land_amendment"] == "land"
+
+
+def test_the_lender_thresholds_are_private_varied_and_discoverable() -> None:
+    """Ordering pays only if negotiating first reveals something real.
+
+    The lender's bankability thresholds decide whether a lease can be financed.
+    They differ between worlds, so they cannot be memorised; they appear in the
+    lender's own counter, so negotiating the loan first turns a guess into a
+    known constraint; and they appear in no developer observation before that.
+    """
+    from aeread_families.datacenter_development.stack_environment import (
+        SEQUENCE_PHASE_ID,
+        DataCenterStackPlugin,
+    )
+
+    thresholds = set()
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        counter = payload["policies"]["loan"]["counter_terms"]
+        thresholds.add(
+            (
+                counter["minimum_take_or_pay_bps"],
+                counter["minimum_customer_credit_support_cents"],
+            )
+        )
+        # Discoverable: the lender's counter carries them.
+        assert counter["minimum_take_or_pay_bps"] > 0, world["file"]
+
+        # Private: absent from what the developer sees before negotiating.
+        plugin = DataCenterStackPlugin("v2")
+        case = plugin.validate_payload(payload)
+        state = plugin.initial_state(case, None)
+        sequencing = next(
+            p for p in plugin.phases(case) if p.phase_id == SEQUENCE_PHASE_ID
+        )
+        seen = json.dumps(plugin.observe(case, state, "developer", sequencing))
+        assert "minimum_take_or_pay_bps" not in seen, world["file"]
+        assert str(counter["minimum_customer_credit_support_cents"]) not in seen
+
+    assert len(thresholds) > 1, "thresholds must vary or they can be memorised"

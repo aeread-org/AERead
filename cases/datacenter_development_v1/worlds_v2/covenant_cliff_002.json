@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-  "content_sha256": "2d0a2fe3d8e325f6b3091387135f793b882b2504424ea3a1289f38786cc82995",
+  "content_sha256": "64c272296e6e4056984887fa971a3795b2fb0ebb83f525bcf18e577c0948d747",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -20,6 +20,7 @@
       "total_project_npv_cents": 44381757012
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

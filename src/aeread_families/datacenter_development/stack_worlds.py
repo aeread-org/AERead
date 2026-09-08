@@ -50,6 +50,10 @@ MAX_ROUNDS = 3
 # reopened, accepting its smaller, cheaper package is an irreversible planning
 # error that only surfaces when the tenant asks for full capacity.
 UNDERSIZED_CAPACITY_BPS = 8_000
+
+
+def _undersized_capacity() -> int:
+    return _round_div(CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000)
 STRATA = (
     "revenue_without_bankability",
     "delayed_revenue",
@@ -172,6 +176,11 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
     land_price = rng.choice((4_000_000_000, 5_000_000_000, 7_000_000_000))
     # Sunk predevelopment cost if the developer walks: $8M to $15M.
     sunk_cents = rng.choice((800_000_000, 1_100_000_000, 1_500_000_000))
+    # The site is built for full capacity and the tenant takes all of it. A
+    # smaller tenant was tried and rejected: the capex is fixed by the build, so
+    # a partial lease is simply a worse world rather than a different decision.
+    # The information that makes sequencing pay is the lender's, below.
+    tenant_requirement = CAPACITY_KW
     energization_month = 22
     completion_month = 24
     commencement_month = 25
@@ -179,7 +188,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
     def ramp(first_month: int) -> list[int]:
         return [0 if month < first_month else CAPACITY_KW for month in range(1, HORIZON + 1)]
 
-    monthly_noi = CAPACITY_KW * (capacity_price - 4_000)
+    monthly_noi = tenant_requirement * (capacity_price - 4_000)
     facts = {
         "horizon_months": HORIZON,
         "construction_cost_cents_by_month": [0] * HORIZON,
@@ -229,7 +238,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "conditions_precedent": ["zoning_approval"],
         },
         "power": {
-            "contracted_capacity_kw": CAPACITY_KW,
+            "contracted_capacity_kw": tenant_requirement,
             "energization_month": energization_month,
             # $20M of interconnection and network upgrades.
             "interconnection_cost_cents": 2_000_000_000,
@@ -245,7 +254,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
         "epc": {
             "notice_to_proceed_month": 3,
             "guaranteed_completion_month": completion_month,
-            "guaranteed_capacity_kw": CAPACITY_KW,
+            "guaranteed_capacity_kw": tenant_requirement,
             "contract_price_cents": epc_price,
             "payment_schedule": [
                 {"month": 4, "amount_cents": quarter},
@@ -261,9 +270,11 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "conditions_precedent": ["site_control"],
         },
         "service": {
-            "committed_capacity_kw": CAPACITY_KW,
+            "committed_capacity_kw": tenant_requirement,
             "service_commencement_month": commencement_month,
-            "ramp_schedule": [{"month": commencement_month, "capacity_kw": CAPACITY_KW}],
+            "ramp_schedule": [
+                {"month": commencement_month, "capacity_kw": tenant_requirement}
+            ],
             "monthly_capacity_charge_cents_per_kw": capacity_price,
             "energy_pass_through_cents_per_kwh": 7,
             "take_or_pay_bps": 10_000,
@@ -276,7 +287,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "delay_damages_cents_per_month": 50_000_000,
             "delay_damages_cap_cents": 200_000_000,
             # Six months of rent as credit support.
-            "credit_support_cents": CAPACITY_KW * capacity_price * 6,
+            "credit_support_cents": tenant_requirement * capacity_price * 6,
             "conditions_precedent": ["power_ready", "construction_complete"],
         },
         "loan": {
@@ -288,9 +299,9 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "origination_fee_bps": 100,
             "interest_reserve_cents": 0,
             "draw_start_month": 3,
-            "minimum_contracted_capacity_kw": CAPACITY_KW,
+            "minimum_contracted_capacity_kw": tenant_requirement,
             "minimum_take_or_pay_bps": 9_000,
-            "minimum_customer_credit_support_cents": CAPACITY_KW * 18_500 * 6,
+            "minimum_customer_credit_support_cents": tenant_requirement * 18_500 * 6,
             "minimum_dscr_bps": 12_500,
             "maximum_loan_to_cost_bps": 6_500,
             "maximum_loan_to_value_bps": 6_000,
@@ -308,7 +319,9 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
         "facts": facts,
         "terms": terms,
         "sunk_cents": sunk_cents,
+        "tenant_requirement_kw": tenant_requirement,
         "knobs": {
+            "tenant_requirement_kw": tenant_requirement,
             "epc_price_cents": epc_price,
             "capacity_price_cents_per_kw": capacity_price,
             "demand_charge_cents_per_kw": demand_charge,
@@ -404,11 +417,10 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
             # Two-sided bands: the utility will not supply below its own cost,
             # and will not underwrite unbounded delay liability.
             "minimums": {
-                # The utility's own floor is below what the project needs, so a
-                # developer that simply adopts its counter strands the lease.
-                "contracted_capacity_kw": _round_div(
-                    CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000
-                ),
+                # The utility will quote the smaller connection whatever the
+                # tenant turns out to need. Whether that is a bargain or a
+                # stranded project is private information held by the customer.
+                "contracted_capacity_kw": _undersized_capacity(),
                 "interconnection_cost_cents": _floor(
                     power["interconnection_cost_cents"]
                 ),
@@ -442,9 +454,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 # Locally rational for the utility and visibly cheaper: a
                 # smaller connection carries proportionally lower demand
                 # charges. Jointly infeasible with the tenant's requirement.
-                "contracted_capacity_kw": _round_div(
-                    CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000
-                ),
+                "contracted_capacity_kw": _undersized_capacity(),
             },
         },
         "epc": {
@@ -929,7 +939,10 @@ def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
         "scope_version": SCOPE_VERSION,
         "scenario_id": f"datacenter_v2_world_{slug}",
         "project_facts": copy.deepcopy(world["facts"]),
-        "negotiation": {"max_rounds": {key: MAX_ROUNDS for key in SEQUENCE}},
+        "negotiation": {
+            "max_rounds": {key: MAX_ROUNDS for key in SEQUENCE},
+            "developer_chooses_order": True,
+        },
         "policies": copy.deepcopy(world["policies"]),
         "scripted_developer": scripted,
         "outside_option": dict(world["outside_option"]),

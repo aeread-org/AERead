@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
-  "content_sha256": "b47f263cb52be17226dcc0532d58512f56e99ad47c7bfdffb3ef177038a93052",
+  "content_sha256": "e19f4eea2b81d1fe1e55c1a07c6b1261ffed8221ce7cb0181897f8370aa7a0c9",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -28,6 +28,7 @@
       }
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

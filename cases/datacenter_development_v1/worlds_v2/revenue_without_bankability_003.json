@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
-  "content_sha256": "c0514278676630fdf79bf67075826ca4b7f4496abdeebe4e9f92886ff19a368a",
+  "content_sha256": "c1349c9f5f1be6a2388b09937162002a185439838cdc059f678eaca12a931936",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -20,6 +20,7 @@
       "total_project_npv_cents": 70957426817
     },
     "negotiation": {
+      "developer_chooses_order": true,
       "max_rounds": {
         "epc": 3,
         "land": 3,

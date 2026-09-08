@@ -117,7 +117,8 @@ def test_world_panel_provider_free_gate_replays_every_world(tmp_path) -> None:
     assert summary["world_count"] == 24
     assert len(summary["strata_replayed"]) == 6
     assert all(row["replay_verified"] for row in summary["worlds"])
-    assert all(row["logical_action_count"] == 18 for row in summary["worlds"])
+    # Eighteen agreement actions plus the developer's sequencing decision.
+    assert all(row["logical_action_count"] == 19 for row in summary["worlds"])
 
 
 def _row(design_cell: dict, *, status: str = "completed", reason: str = "agreement_stack_executed",

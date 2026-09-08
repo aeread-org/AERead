@@ -78,6 +78,19 @@ sys.set_int_max_str_digits(100_000)
 # cents (ten trillion dollars).
 MAXIMUM_TERM_MAGNITUDE = 10**15
 OPTIONAL_AGREEMENT_KEYS = frozenset({"land_amendment"})
+SEQUENCE_PHASE_ID = "developer_sequence_plan"
+# An amendment can only follow the agreement it amends.
+ORDER_PREREQUISITES = {"land_amendment": "land"}
+
+
+def chooses_order(family_case: Mapping[str, Any]) -> bool:
+    """Whether this case lets the developer pick the negotiation order.
+
+    Opt-in per case. The sibling families that reuse this stack keep the fixed
+    sequence they were built against.
+    """
+
+    return bool(family_case["negotiation"].get("developer_chooses_order", False))
 AGREEMENT_TYPE_BY_KEY = {
     **{key: key for key in ("land", "power", "epc", "service", "loan")},
     "land_amendment": "land",
@@ -408,7 +421,12 @@ class DataCenterStackPlugin:
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
             raise ValueError("scenario_id must be non-empty")
         ProjectFacts.from_dict(data["project_facts"])
-        negotiation = _exact(data["negotiation"], {"max_rounds"}, "negotiation")
+        negotiation_fields = {"max_rounds"}
+        if "developer_chooses_order" in data["negotiation"]:
+            if not isinstance(data["negotiation"]["developer_chooses_order"], bool):
+                raise ValueError("negotiation.developer_chooses_order must be a boolean")
+            negotiation_fields.add("developer_chooses_order")
+        negotiation = _exact(data["negotiation"], negotiation_fields, "negotiation")
         rounds = _exact(
             negotiation["max_rounds"], set(self.sequence), "negotiation.max_rounds"
         )
@@ -472,7 +490,7 @@ class DataCenterStackPlugin:
         return data
 
     def initial_state(self, family_case, run) -> dict[str, Any]:
-        del family_case, run
+        del run
         return {
             "finished": False,
             "termination_reason": None,
@@ -483,16 +501,40 @@ class DataCenterStackPlugin:
             "pending_counter_terms": {key: None for key in self.sequence},
             "executed": {},
             "public_history": [],
+            "order": [] if chooses_order(family_case) else list(self.sequence),
             "declined": [],
             "temporal_violations": [],
         }
 
     def phases(self, family_case) -> tuple[PhaseSpec, ...]:
+        # The developer declares the order it will negotiate in, so every
+        # agreement's offer phase is a possible successor of the plan and of
+        # every commit. The order itself is state, not graph structure.
+        chosen = chooses_order(family_case)
+        every_offer = tuple(_phase_id(key, "offer") for key in self.sequence)
         phases: list[PhaseSpec] = []
+        if chosen:
+            phases.append(
+                PhaseSpec(
+                    SEQUENCE_PHASE_ID,
+                    "developer",
+                    "single",
+                    {"developer": "datacenter_stack_developer_v1"},
+                    {"developer": "datacenter_sequence_plan_v1"},
+                    1,
+                    "family_defined",
+                    every_offer,
+                )
+            )
         for index, key in enumerate(self.sequence):
+            next_key = (
+                self.sequence[index + 1] if index + 1 < len(self.sequence) else None
+            )
+            onward = every_offer if chosen else (
+                () if next_key is None else (_phase_id(next_key, "offer"),)
+            )
             counterpart = COUNTERPART_BY_KEY[key]
             maximum = family_case["negotiation"]["max_rounds"][key]
-            next_key = self.sequence[index + 1] if index + 1 < len(self.sequence) else None
             phases.extend(
                 (
                     PhaseSpec(
@@ -504,13 +546,9 @@ class DataCenterStackPlugin:
                         maximum,
                         "family_defined",
                         # Declining an optional agreement skips its response and
-                        # commit phases, so that jump must be declared here.
+                        # commit phases, so those jumps must be declared here.
                         (_phase_id(key, "response"),)
-                        + (
-                            ()
-                            if key not in OPTIONAL_AGREEMENT_KEYS or next_key is None
-                            else (_phase_id(next_key, "offer"),)
-                        ),
+                        + (() if key not in OPTIONAL_AGREEMENT_KEYS else onward),
                     ),
                     PhaseSpec(
                         _phase_id(key, "response"),
@@ -530,13 +568,15 @@ class DataCenterStackPlugin:
                         {"developer": f"datacenter_{key}_commit_v1"},
                         1,
                         "family_defined",
-                        (() if next_key is None else (_phase_id(next_key, "offer"),)),
+                        onward,
                     ),
                 )
             )
         return tuple(phases)
 
     def _phase_key(self, phase_id: str) -> str:
+        if phase_id == SEQUENCE_PHASE_ID:
+            raise ValueError("the sequencing phase belongs to no single agreement")
         return next(
             key
             for key in sorted(self.sequence, key=len, reverse=True)
@@ -545,6 +585,8 @@ class DataCenterStackPlugin:
 
     def eligible_actors(self, family_case, state, phase) -> tuple[str, ...]:
         del family_case, state
+        if phase.phase_id == SEQUENCE_PHASE_ID:
+            return ("developer",)
         key = self._phase_key(phase.phase_id)
         return (
             (COUNTERPART_BY_KEY[key],)
@@ -570,6 +612,23 @@ class DataCenterStackPlugin:
         return next(_plain(item) for item in state["offers"] if item["offer_id"] == offer_id)
 
     def observe(self, family_case, state, seat, phase) -> dict[str, Any]:
+        if phase.phase_id == SEQUENCE_PHASE_ID:
+            return {
+                "scope_version": self.scope_version,
+                "scenario_id": family_case["scenario_id"],
+                "phase_id": phase.phase_id,
+                "project_facts": self._public_facts(family_case),
+                "agreements_to_negotiate": list(self.sequence),
+                "order_prerequisites": {
+                    key: value
+                    for key, value in ORDER_PREREQUISITES.items()
+                    if key in self.sequence
+                },
+                "optional_agreements": sorted(
+                    key for key in self.sequence if key in OPTIONAL_AGREEMENT_KEYS
+                ),
+                "max_rounds": _plain(family_case["negotiation"]["max_rounds"]),
+            }
         key = self._phase_key(phase.phase_id)
         observation = {
             "scope_version": self.scope_version,
@@ -616,6 +675,17 @@ class DataCenterStackPlugin:
             return ParseResult.failure("malformed_action")
         if _exceeds_magnitude(value):
             return ParseResult.failure("malformed_datacenter_stack_action")
+        if phase.phase_id == SEQUENCE_PHASE_ID:
+            try:
+                _exact(value, {"order"}, "sequence_action")
+                order = value["order"]
+                if not isinstance(order, list) or not all(
+                    isinstance(item, str) for item in order
+                ):
+                    raise ValueError("order must be an array of agreement keys")
+                return ParseResult.success({"decision": "sequence", "order": list(order)})
+            except (ValueError, TypeError):
+                return ParseResult.failure("malformed_datacenter_stack_action")
         key = self._phase_key(phase.phase_id)
         try:
             if phase.phase_id.endswith("_offer"):
@@ -651,6 +721,15 @@ class DataCenterStackPlugin:
 
     def legal(self, family_case, state, seat, phase, action) -> LegalityResult:
         del seat
+        if phase.phase_id == SEQUENCE_PHASE_ID:
+            order = list(action["order"])
+            if sorted(order) != sorted(self.sequence):
+                return LegalityResult.illegal("order_is_not_a_permutation")
+            position = {key: index for index, key in enumerate(order)}
+            for later, earlier in ORDER_PREREQUISITES.items():
+                if later in position and position[later] < position[earlier]:
+                    return LegalityResult.illegal("order_violates_a_prerequisite")
+            return LegalityResult.legal_action()
         key = self._phase_key(phase.phase_id)
         if action["decision"] == "walk":
             return LegalityResult.legal_action()
@@ -686,10 +765,48 @@ class DataCenterStackPlugin:
             return LegalityResult.legal_action()
         return LegalityResult.illegal("unknown_phase")
 
+    def _next_offer_phase(self, state: Mapping[str, Any]) -> str | None:
+        """The next agreement in the developer's declared order, if any remain."""
+
+        for key in state["order"]:
+            if key in state["executed"] or key in state["declined"]:
+                continue
+            return _phase_id(key, "offer")
+        return None
+
     def step(self, family_case, state, phase, actions) -> TransitionResult:
         next_state = _plain(state)
-        key = self._phase_key(phase.phase_id)
         seat = self.eligible_actors(family_case, state, phase)[0]
+        if phase.phase_id == SEQUENCE_PHASE_ID:
+            envelope = actions[seat]
+            if not envelope.valid:
+                code = (
+                    envelope.parse.error_code
+                    if not envelope.parse.ok
+                    else envelope.legality.reason
+                )
+                next_state["finished"] = True
+                next_state["termination_reason"] = "invalid_action"
+                next_state["temporal_violations"].append(str(code))
+                return TransitionResult(
+                    next_state, None, {"valid": False, "failure_code": code}
+                )
+            next_state["order"] = list(envelope.action["order"])
+            next_state["public_history"].append(
+                {
+                    "phase_id": phase.phase_id,
+                    "seat_id": seat,
+                    "agreement_key": None,
+                    "decision": "sequence",
+                    "order": list(next_state["order"]),
+                }
+            )
+            return TransitionResult(
+                next_state,
+                self._next_offer_phase(next_state),
+                {"valid": True, "order": list(next_state["order"])},
+            )
+        key = self._phase_key(phase.phase_id)
         envelope = actions[seat]
         if not envelope.valid:
             code = envelope.parse.error_code if not envelope.parse.ok else envelope.legality.reason
@@ -701,12 +818,12 @@ class DataCenterStackPlugin:
         if action["decision"] == "decline":
             next_state["declined"].append(key)
             next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "decline", "offer_id": None})
-            index = self.sequence.index(key)
-            if index + 1 == len(self.sequence):
+            following = self._next_offer_phase(next_state)
+            if following is None:
                 next_state["finished"] = True
                 next_state["termination_reason"] = "agreement_stack_executed"
                 return TransitionResult(next_state, None, {"valid": True, "decision": "decline"})
-            return TransitionResult(next_state, _phase_id(self.sequence[index + 1], "offer"), {"valid": True, "decision": "decline"})
+            return TransitionResult(next_state, following, {"valid": True, "decision": "decline"})
         if action["decision"] in {"walk", "reject"}:
             next_state["finished"] = True
             next_state["termination_reason"] = f"{seat}_{action['decision']}"
@@ -770,13 +887,12 @@ class DataCenterStackPlugin:
             )
         next_state["executed"][key] = _plain(executed)
         next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "sign", "offer_id": offer.offer_id})
-        index = self.sequence.index(key)
-        if index + 1 == len(self.sequence):
+        following = self._next_offer_phase(next_state)
+        if following is None:
             next_state["finished"] = True
             next_state["termination_reason"] = "agreement_stack_executed"
             return TransitionResult(next_state, None, {"valid": True, "executed_offer_id": offer.offer_id})
-        next_key = self.sequence[index + 1]
-        return TransitionResult(next_state, _phase_id(next_key, "offer"), {"valid": True, "executed_offer_id": offer.offer_id})
+        return TransitionResult(next_state, following, {"valid": True, "executed_offer_id": offer.offer_id})
 
     def terminal(self, family_case, state) -> dict[str, Any] | None:
         del family_case
@@ -801,6 +917,7 @@ class DataCenterStackPlugin:
             "project_constraints_satisfied": False,
             "amendment_precedence_valid": True,
             "declined_agreements": _plain(terminal.get("declined", [])),
+            "negotiation_order": _plain(terminal.get("order", [])),
             "developer_equity_npv_cents": family_case["outside_option"]["developer_equity_npv_cents"],
             "lender_npv_cents": family_case["outside_option"]["lender_npv_cents"],
             "customer_npv_cents": family_case["outside_option"]["customer_npv_cents"],
