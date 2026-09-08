@@ -1,0 +1,59 @@
+[
+  {
+    "arms": [
+      "control_v4",
+      "gate_cash"
+    ],
+    "case_ids": {
+      "control_v4": "procurement_allocation_v1.confirmatory_v1_labeled.decoy_variant_and_trap.control_v4",
+      "gate_cash": "procurement_allocation_v1.confirmatory_v1_labeled.decoy_variant_and_trap.gate_cash"
+    },
+    "schema_version": "aeread.procurement_common_supplier_world/0.1",
+    "shared_blocks": [
+      "objective",
+      "interaction",
+      "policy",
+      "suppliers"
+    ],
+    "supplier_count": 6,
+    "supplier_population_sha256": "40714ac32281b97064448e8e3c33e97997afb4a991411986abaf15de5914bd1c"
+  },
+  {
+    "arms": [
+      "control_v4",
+      "gate_cash"
+    ],
+    "case_ids": {
+      "control_v4": "procurement_allocation_v1.confirmatory_v1_labeled.trap_is_cheapest.control_v4",
+      "gate_cash": "procurement_allocation_v1.confirmatory_v1_labeled.trap_is_cheapest.gate_cash"
+    },
+    "schema_version": "aeread.procurement_common_supplier_world/0.1",
+    "shared_blocks": [
+      "objective",
+      "interaction",
+      "policy",
+      "suppliers"
+    ],
+    "supplier_count": 6,
+    "supplier_population_sha256": "f5731cc1794e6b91b8067a4c155652dc1f6481bc559f61068bd47844cc36bdae"
+  },
+  {
+    "arms": [
+      "control_v4",
+      "gate_cash"
+    ],
+    "case_ids": {
+      "control_v4": "procurement_allocation_v1.confirmatory_v1_labeled.trap_is_midpriced.control_v4",
+      "gate_cash": "procurement_allocation_v1.confirmatory_v1_labeled.trap_is_midpriced.gate_cash"
+    },
+    "schema_version": "aeread.procurement_common_supplier_world/0.1",
+    "shared_blocks": [
+      "objective",
+      "interaction",
+      "policy",
+      "suppliers"
+    ],
+    "supplier_count": 6,
+    "supplier_population_sha256": "601dd6b351edb1cb393dd372a91099c861b701b4c60e6d4f3583c2948350b538"
+  }
+]
