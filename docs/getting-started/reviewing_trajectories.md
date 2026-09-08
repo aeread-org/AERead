@@ -156,6 +156,18 @@ responses, or environment state; `sanitized_trajectory_jsonl` refuses the
 payload if a prohibited token slips through. The function rejects a receipt
 that does not belong to the store it is given.
 
+The manifest layout every bundle shares is written by
+`aeread seal-manifest`: `schema_version`, `publication_id`, `campaign_id`,
+`artifacts` (path → sha256 of every published file), `privacy_boundary`
+(`included`/`excluded`), the sanitization declaration, `source_bindings`, any
+family fields, and `manifest_sha256` over the rest. `aeread seal-manifest
+evidence/<campaign_id>` rebuilds an existing manifest into that layout from
+the files on disk (older list-shaped `artifacts` rows are accepted), carrying
+every provenance field over and refusing any file whose bytes differ from
+the recorded digest. `--new` writes a first manifest for a bundle without
+one. Families should call `seal_publication_manifest` rather than assemble
+manifests by hand.
+
 To add the grain to a published kernel-standard bundle
 (`aeread.publication_manifest/0.1`), run
 
