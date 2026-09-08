@@ -7,7 +7,7 @@ Four rungs, each one command deeper. Rungs 1–2 are fully offline.
 ```bash
 git clone https://github.com/aeread-org/AERead && cd AERead
 pip install -e ".[dev]"          # Python 3.10+
-pytest -q                        # ~3 min, no API keys, all offline
+pytest -q -n auto                # ~17 min on 8 cores, no API keys, all offline
 ```
 
 ## 1. Run a case offline (no keys, seconds)
