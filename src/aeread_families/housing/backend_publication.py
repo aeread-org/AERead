@@ -846,6 +846,8 @@ def publish_campaign(
     ]
     world_count = len(contract["execution"]["world_seeds"])
     prerequisite_gate = _verified_prerequisite_gate(contract)
+    confirmatory = live.get("confirmatory_analysis")
+    is_confirmatory = isinstance(confirmatory, Mapping)
     limitations = [
         (
             "Action summaries project sealed parsed actions; raw responses and "
@@ -952,7 +954,13 @@ def publish_campaign(
         )
     combined_cost = admission["observed_cost_usd"] + live["total_cost_usd"]
     variance = live.get("variance_pilot_analysis")
-    full_trajectory_gate_passed = world_count == 1 or prerequisite_gate is not None
+    # A confirmatory campaign's prerequisite is its sealed freeze and the
+    # variance pilot that freeze binds, not a one-world full-trajectory gate.
+    # Judging it by the gate rule marked a correctly pre-registered comparison
+    # non-conformant.
+    full_trajectory_gate_passed = (
+        world_count == 1 or prerequisite_gate is not None or is_confirmatory
+    )
     paired_worlds_complete = bool(
         isinstance(variance, Mapping)
         and variance.get("status") == "estimable"
@@ -961,11 +969,15 @@ def publish_campaign(
     confirmatory_freeze_ready = bool(
         paired_worlds_complete and variance.get("within_declared_maximum") is True
     )
+    if is_confirmatory:
+        # For the comparison itself these describe the run that was frozen,
+        # not a pilot that still needs one.
+        paired_worlds_complete = bool(confirmatory["decision_supported"])
+        confirmatory_freeze_ready = True
     trajectory_relative_path = (
         f"evidence/{campaign_id}/trajectories/attempted.json"
     )
-    confirmatory = live.get("confirmatory_analysis")
-    is_confirmatory = isinstance(confirmatory, Mapping)
+
     freeze = None
     if is_confirmatory:
         freeze = verify_confirmatory_freeze(
@@ -1190,11 +1202,17 @@ def publish_campaign(
             ),
             "next_gate": (
                 (
+                    "The confirmatory comparison is complete against the sealed "
+                    "freeze. Report the paired interval and the predeclared "
+                    "slices; do not extend or re-run this holdout."
+                )
+                if is_confirmatory
+                else (
                     "Freeze the confirmatory campaign with "
                     f"{variance['recommended_confirmatory_worlds']} worlds and the "
                     "sealed holdout; do not infer a winner from this pilot."
                 )
-                if confirmatory_freeze_ready
+                if confirmatory_freeze_ready and isinstance(variance, Mapping)
                 else (
                     "The full-trajectory gate passed on the selected routes; freeze "
                     "a new campaign identity for a multi-world variance pilot that "

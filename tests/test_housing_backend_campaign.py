@@ -2463,6 +2463,59 @@ def test_failure_register_is_reproducible_and_traces_to_committed_evidence(
     assert len(trajectory) - len(with_glm) <= 1
 
 
+def test_published_confirmatory_comparison_is_digest_bound_and_frozen() -> None:
+    root = (
+        CONFIRMATORY_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_confirmatory_parasail_v2"
+    )
+    qualification = json.loads((root / "reports" / "qualification.json").read_bytes())
+    freeze = json.loads((root / "reports" / "confirmatory_freeze.json").read_bytes())
+
+    assert qualification["artifact_sha256"] == (
+        "e315f354a6239e82324f60ccdfbf311a9c84b0509d37af08cfac94a61caa65e3"
+    )
+    # The published comparison must name the freeze it was registered under.
+    assert qualification["confirmatory_freeze"]["artifact_sha256"] == (
+        freeze["artifact_sha256"]
+    )
+    assert freeze["frozen_before_any_holdout_outcome"] is True
+    assert freeze["prior_partial_execution"][
+        "outcomes_inspected_before_this_freeze"
+    ] is False
+
+    live = qualification["gate_status"][-1]
+    assert live["attempted_trajectories"] == 720
+    assert live["completed_trajectories"] == 717
+    assert live["operational_failures"] == 3
+
+    analysis = qualification["confirmatory_analysis"]
+    primary = analysis["primary"]
+    assert primary["paired_world_count"] == 27
+    assert primary["degrees_of_freedom"] == 26
+    assert primary["lower"] < 0.0 < primary["upper"]
+    assert primary["excludes_zero"] is False
+    assert analysis["effect_at_least_minimum"] is False
+    # Ranking is permitted because delivery met the declared minimum, and the
+    # interval is what decides the claim, not the permission.
+    assert analysis["decision_supported"] is True
+    assert qualification["acceptance"]["leaderboard_eligible"] is True
+    assert qualification["acceptance"]["protocol_conformant"] is True
+    assert set(analysis["condition_means"]) == {
+        "glm_53_flash__vs__glm_53_flash",
+        "glm_53_flash__vs__deepseek_v4_flash",
+        "deepseek_v4_flash__vs__glm_53_flash",
+        "deepseek_v4_flash__vs__deepseek_v4_flash",
+    }
+    for slice_name in ("cross_play_slice", "self_play_slice"):
+        assert analysis[slice_name]["interval"]["paired_world_count"] > 0
+
+    published = b"".join(path.read_bytes() for path in root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]

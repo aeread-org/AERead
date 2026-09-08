@@ -1421,3 +1421,55 @@ holds the design defects, operational stops, tooling faults and judgment
 errors that no artifact can derive. Sections 20 to 31 are the narrative of
 those rows, not a substitute for them.
 
+## 32. The confirmatory comparison
+
+`housing_confirmatory_parasail_v2` executed all 720 frozen cells against the
+sealed holdout: 30 worlds, three previously unseen configurations, four
+subject-opponent conditions, two replicates. 717 completed with verified
+routes, complete billing and exact score replay for `$6.9008007123`. Three
+cells are typed operational missingness, one each of a per-seat budget
+exhaustion, a transport failure and a route rejection, no two alike and none
+recurring. Twenty-seven of thirty worlds produced a complete subject pair,
+against the thirteen the analysis requires.
+
+### The result
+
+The primary estimand is the paired world-level GLM-minus-DeepSeek contrast,
+equally weighted across configurations and opponents within a world. It is
+the estimand the variance pilot measured, which is what makes the world count
+valid.
+
+| Quantity | Value |
+|---|---|
+| Paired worlds | 27 |
+| Mean contrast | `0.00459` |
+| Standard deviation | `0.05225` |
+| Standard error | `0.01006` |
+| 95 percent interval | `-0.01608` to `0.02526` |
+| Minimum meaningful effect | `0.05` |
+
+The interval contains zero and lies entirely inside the declared minimum
+meaningful effect in both directions. On this family, at this panel size, GLM
+5.3 Flash and DeepSeek V4 Flash are not distinguishable, and the data are
+precise enough to say that the difference is smaller than the effect the
+design was built to detect. That is a null result with content rather than an
+absence of evidence: the confidence interval excludes any difference as large
+as `0.05` in either direction.
+
+The predeclared slices agree and neither excludes zero. Cross-play gives
+`0.0361` with an interval of `-0.0221` to `0.0943`; self-play gives `-0.0253`
+with `-0.0853` to `0.0347`. Per-condition means fall between `0.809` and
+`0.853`, and each model's worst opponent is GLM.
+
+Ranking was permitted by the freeze and by delivery, so the null is a finding
+rather than a withheld verdict. The distinction matters: the analysis was
+free to declare a winner and the interval did not support one.
+
+### What the result does not license
+
+The holdout is now executed and must not be re-used. A further comparison
+needs a new sealed panel. The finding is bounded to this family, these two
+models, these routes, and this panel: it says nothing about either model
+outside evidence-grounded Housing allocation, and nothing about differences
+smaller than the declared effect, which this design was not built to resolve.
+

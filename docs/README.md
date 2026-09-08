@@ -71,6 +71,8 @@ not intended as a second reading order.
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
+- [AERead environment paper draft](research/aeread_environment_paper_draft.md)
+- [Environment-paper structure review](research/environment_paper_structure_review.md)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

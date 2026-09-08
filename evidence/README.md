@@ -77,6 +77,13 @@ Current campaign directories include:
 - `housing_operational_feasibility_2026-09-06/`: the serial wall-time
   projection the campaign SOP requires before a variance pilot, which stopped
   the first attempt at this pilot.
+- `housing_confirmatory_parasail_v1/` and `housing_confirmatory_parasail_v2/`:
+  the confirmatory comparison against the sealed holdout. v1 holds only its
+  freeze; it stopped at 280 of 720 cells on an undersized ceiling. v2 is the
+  completed comparison, 717 of 720 cells, 27 paired worlds, mean contrast
+  0.0046 with a 95 percent interval of -0.016 to 0.025 against a declared
+  minimum meaningful effect of 0.05. Each bundle names the freeze it was
+  registered under.
 - `housing_failure_register/`: every typed Housing failure across all
   campaigns in one canonical table, derived only from published evidence so
   each row traces to a committed artifact by digest. Regenerate it with
