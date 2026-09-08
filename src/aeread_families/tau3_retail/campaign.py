@@ -49,7 +49,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v15"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v16"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
@@ -75,8 +75,8 @@ SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.005
 MAX_CANARY_OUTPUT_TOKENS = 256
-MAX_TRAJECTORY_COST_USD = 0.075
-HARD_TOTAL_COST_CEILING_USD = 0.40
+MAX_TRAJECTORY_COST_USD = 0.09
+HARD_TOTAL_COST_CEILING_USD = 0.46
 
 
 def _digest(value: Any) -> str:
