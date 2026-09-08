@@ -524,3 +524,93 @@ def test_a_multi_round_attempt_is_bounded_by_the_accumulated_profile_cost(tmp_pa
     with pytest.raises(EvidenceIntegrityError, match="cost budget exceeded"):
         asyncio.run(executor(decision))
     assert executor.total_cost_usd == pytest.approx(2 * per_round)
+
+
+def test_a_404_in_round_two_is_retried_on_the_strength_of_round_one(tmp_path) -> None:
+    """The multi-round reproduction from the #125 review, run in reverse.
+
+    Round 1 (a tool call) succeeds; round 2 returns 404. Route proof used to
+    be recorded only when the whole attempt returned, so this 404 escaped
+    untyped and unretried. Now the settled first round is the proof: the 404
+    is sealed as provider_rejected_after_route_proven and the attempt is
+    retried. Drives the real AttemptExecutor and NativeToolChatHarness; the
+    tool is read-only so the retried attempt can dispatch it again.
+    """
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import (
+        POST_ADMISSION_REJECTION,
+        EvidenceStore,
+        ProviderFailure,
+    )
+    from aeread.shared_runner.model_call.harness import (
+        AttemptExecutor,
+        NativeToolCall,
+        NativeToolChatHarness,
+    )
+    from tests.test_shared_runner_execution import _decision, _profile
+    from tests.test_shared_runner_harness import (
+        FAKE_PRICING,
+        ScriptedProvider,
+        _result,
+        _tool_runtime,
+    )
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT as EXEC_PROMPT
+
+    decision = _decision()
+    evidence = EvidenceStore(
+        tmp_path / "round_two_404",
+        run_plan_id="runplan_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_fixture",
+    )
+    runtime, _balance_db = _tool_runtime(tmp_path, evidence)
+    base = _profile(max_action_attempts=2, retryable_conditions=(POST_ADMISSION_REJECTION,))
+    profile = dataclasses.replace(
+        base,
+        harness=dataclasses.replace(
+            base.harness,
+            id="native_tool_chat",
+            config={**dict(base.harness.config), "max_rounds": 4},
+        ),
+        tools=("get_balance",),
+    )
+    ask_for_balance = _result(
+        text="",
+        finish_reason="tool_calls",
+        tool_calls=(NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),),
+    )
+    provider = ScriptedProvider(
+        [
+            ask_for_balance,                                       # attempt 1, round 1: answers
+            ProviderFailure("provider_rejected", "404 not found",  # attempt 1, round 2: 404
+                            retryable=False, status_code=404),
+            ask_for_balance,                                       # attempt 2, round 1
+            _result(text='{"offer":7}', finish_reason="stop"),    # attempt 2, round 2
+        ]
+    )
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: EXEC_PROMPT},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NativeToolChatHarness()},
+        tool_runtimes={profile.profile_id: runtime},
+    )
+    response = asyncio.run(executor(decision))
+    assert response.text == '{"offer":7}'
+    assert len(provider.requests) == 4, "round-two 404 was retried as a fresh attempt"
+    assert executor._route_key(profile) in executor._routes_proven
+
+    execution = executor.execution_for(decision.logical_action_id)
+    assert [attempt.status for attempt in execution.attempts] == ["failed", "succeeded"]
+    first = execution.attempts[0]
+    assert [call.status for call in first.provider_calls] == ["succeeded", "failed"], (
+        "the settled round-one call is attributed to the failed attempt"
+    )
+    assert first.provider_calls[-1].failure_condition == POST_ADMISSION_REJECTION
+    assert execution.attempts[1].retry_reason == POST_ADMISSION_REJECTION
+    executor.finalize_logical_action(decision.logical_action_id, valid=True, failure_code=None)
+    evidence.audit_reconciliation()
