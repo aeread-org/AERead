@@ -49,7 +49,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v9"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v12"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
@@ -316,7 +316,6 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 pricing=setup.pricing,
                 harnesses=setup.harnesses,
                 tool_runtime_factories=setup.tool_runtime_factories,
-                combined_cost_ceiling_usd=MAX_TRAJECTORY_COST_USD,
             )
             receipt = finalize_family_execution(setup=setup, execution=execution)
             if receipt.status != "ok" or receipt.inclusion_status != "included":

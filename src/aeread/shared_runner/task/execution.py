@@ -3905,6 +3905,21 @@ async def execute_plan_cell(
     from ..run.layout import RunLayout
 
     verify_run_plan(plan)
+    overrides = plan.run_spec.budget_overrides
+    sealed_cost_ceiling = None if overrides is None else overrides.max_cost_usd
+    if sealed_cost_ceiling is not None:
+        if combined_cost_ceiling_usd is None:
+            combined_cost_ceiling_usd = sealed_cost_ceiling
+        elif not math.isclose(
+            combined_cost_ceiling_usd,
+            sealed_cost_ceiling,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise EvidenceIntegrityError(
+                "runtime combined cost ceiling differs from the sealed RunSpec: "
+                f"{combined_cost_ceiling_usd} != {sealed_cost_ceiling}"
+            )
     layout = RunLayout(Path(evidence_root), plan.run_plan_id)
     plan_path = layout.plan_path
     expected_plan_bytes = canonical_json_bytes(plan)

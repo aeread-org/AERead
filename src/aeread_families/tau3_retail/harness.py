@@ -125,7 +125,7 @@ class ScriptedTau3RetailHarness:
 
 class Tau3RetailJsonHarness:
     id = "tau3_retail_json"
-    version = "1.0"
+    version = "1.1"
     requires = HarnessRequirements(
         provider=frozenset({"structured_output"}),
         tools="declared",
@@ -137,9 +137,16 @@ class Tau3RetailJsonHarness:
         spawns_subagents=False,
     )
 
-    def __init__(self, *, bridge: Tau2Bridge, session: RetailToolSession) -> None:
+    def __init__(
+        self,
+        *,
+        bridge: Tau2Bridge,
+        session: RetailToolSession,
+        prose_prefixed_json_recovery: bool = False,
+    ) -> None:
         self.bridge = bridge
         self.session = session
+        self.prose_prefixed_json_recovery = prose_prefixed_json_recovery
 
     async def open_episode(self, episode: Any) -> None:
         return None
@@ -210,11 +217,36 @@ class Tau3RetailJsonHarness:
             )
         return value
 
+    def _decode_turn(self, text: str, ctx: AttemptContext) -> Mapping[str, Any]:
+        try:
+            return self._decode(text)
+        except ProviderFailure as strict_failure:
+            if not self.prose_prefixed_json_recovery:
+                raise
+            object_start = text.find("{")
+            prefix = text[:object_start] if object_start >= 0 else ""
+            if object_start <= 0 or not prefix.strip() or prefix.lstrip().startswith("```"):
+                raise strict_failure
+            try:
+                value, object_end = json.JSONDecoder().raw_decode(text, object_start)
+            except json.JSONDecodeError:
+                raise strict_failure
+            if text[object_end:].strip() or not isinstance(value, Mapping):
+                raise strict_failure
+            ctx.note(
+                "tau3_retail_response_normalized",
+                {
+                    "policy": "prose_prefixed_json_recovery_v1",
+                    "prefix_length": len(prefix),
+                },
+            )
+            return value
+
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
         messages = (self.request_message(request),)
         if request.phase_id == "user_turn":
             turn = await ctx.model.complete(messages=messages, response_mode="json_dialect")
-            value = self._decode(turn.text or "")
+            value = self._decode_turn(turn.text or "", ctx)
             if value.get("kind") != "reply" or not isinstance(value.get("text"), str):
                 raise ProviderFailure(
                     "malformed_structured_output",
@@ -251,7 +283,7 @@ class Tau3RetailJsonHarness:
                 response_mode="json_dialect",
             )
             rounds_used += 1
-            value = self._decode(turn.text or "")
+            value = self._decode_turn(turn.text or "", ctx)
             if value.get("kind") == "reply":
                 text = value.get("text")
                 if not isinstance(text, str) or not text.strip():
