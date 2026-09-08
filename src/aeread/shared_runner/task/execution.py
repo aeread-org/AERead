@@ -847,6 +847,19 @@ class ProviderResult:
     visible_output_tokens: int | None = None
 
 
+# A provider rejection that arrived after the same pinned route had already
+# answered successfully in this run. Typed separately from "provider_rejected"
+# so a family can retry the provably-transient case without making a genuine
+# route-identity error retryable.
+POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
+
+# How far a length retry may grow the output budget, as a multiple of what
+# the profile declared. Doubling is the right tactic and unbounded doubling
+# is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
+# produced before this cap existed.
+_LENGTH_RETRY_MAX_GROWTH = 8
+
+
 @dataclass(frozen=True, slots=True)
 class CanonicalResponse:
     text: str
@@ -2178,6 +2191,15 @@ class MinimalChatExecutor:
         self._profiles: dict[str, AgentProfile] = {}
         self._prompt_text: dict[str, str] = {}
         self._executions: dict[str, LogicalActionExecution] = {}
+        # Profiles whose pinned route has already answered successfully in
+        # this run. A 4xx that arrives after a success cannot mean "this
+        # route does not exist"; see _is_post_admission_rejection.
+        # Keyed by route, not profile id: the thing proven to answer is a
+        # (provider, base URL, model) triple -- two profiles on one route
+        # share the proof, one profile on two routes does not. base_url
+        # stands in for credential scope; ModelSpec carries nothing finer.
+        # Scope is this executor, i.e. one cell, and no wider.
+        self._routes_proven: set[tuple[str, str | None, str]] = set()
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
         self._request_seed_by_profile = dict(request_seed_by_profile or {})
@@ -2521,7 +2543,7 @@ class MinimalChatExecutor:
                 )
             except asyncio.TimeoutError as error:
                 failure = ProviderFailure("timeout", str(error), retryable=True)
-                should_retry = self._record_provider_failure(
+                should_retry, condition = self._record_provider_failure(
                     decision,
                     profile,
                     request,
@@ -2538,15 +2560,15 @@ class MinimalChatExecutor:
                         decision=decision,
                         request=request,
                         profile=profile,
-                        condition=failure.condition,
+                        condition=condition,
                         ordinal=ordinal,
                         retry_after_seconds=failure.retry_after_seconds,
                     )
-                    retry_reason = failure.condition
+                    retry_reason = condition
                     continue
                 raise failure from error
             except ProviderFailure as failure:
-                should_retry = self._record_provider_failure(
+                should_retry, condition = self._record_provider_failure(
                     decision,
                     profile,
                     request,
@@ -2563,11 +2585,18 @@ class MinimalChatExecutor:
                         decision=decision,
                         request=request,
                         profile=profile,
-                        condition=failure.condition,
+                        condition=condition,
                         ordinal=ordinal,
                         retry_after_seconds=failure.retry_after_seconds,
                     )
-                    retry_reason = failure.condition
+                    retry_reason = condition
+                    # Arena converts a truncated structured response straight
+                    # into ProviderFailure("length"); that path used to retry
+                    # at the same limit (review finding 4).
+                    if condition == "length":
+                        max_output_tokens = self._grow_length_budget(
+                            profile, max_output_tokens
+                        )
                     continue
                 raise
             except asyncio.CancelledError:
@@ -2666,6 +2695,9 @@ class MinimalChatExecutor:
                     provider_call_id=request.provider_call_id,
                     visibility=f"seat:{decision.seat_id}",
                 )
+            # Both branches above represent a route that has now answered, so the
+            # proof is recorded on the common path rather than in either arm.
+            self._routes_proven.add(self._route_key(profile))
             profile_cost = self._charge(profile, cost)
             if (
                 profile.budgets.max_cost_usd is not None
@@ -2735,7 +2767,20 @@ class MinimalChatExecutor:
                     canonical_response=canonical,
                 )
                 attempts.append(attempt)
-                next_limit = max_output_tokens * 2 if retry_condition == "length" else max_output_tokens
+                # Bounded doubling. A truncated answer probably needs more
+                # room, but unbounded growth walks past the model's own
+                # context window: a 2,400-token budget over ten attempts
+                # became 1,228,800 and the provider refused the request
+                # outright, turning a recoverable truncation into a dead
+                # case. The ceiling is the provider's advertised context
+                # window when it declares one, else a fixed multiple of what
+                # the profile asked for -- either way the growth stops
+                # somewhere the request can still be sent.
+                next_limit = (
+                    self._grow_length_budget(profile, max_output_tokens)
+                    if retry_condition == "length"
+                    else max_output_tokens
+                )
                 self.evidence.append_event(
                     "action_attempt_failed",
                     {
@@ -2905,6 +2950,54 @@ class MinimalChatExecutor:
             logical_action_id=decision.logical_action_id,
         )
 
+
+    # Route health versus route identity, at the retry seam. A 404 normally
+    # means the model id or endpoint is wrong, and must fail fast: retrying it
+    # ten times turns an instant, obvious error into a slow, confusing one.
+    # But once this profile's pinned route has answered successfully, "the
+    # route does not exist" is no longer a possible reading of a later 4xx --
+    # the same bytes worked minutes earlier -- so it is a provider fault and
+    # can be retried like any other. Parasail returned exactly this twice
+    # during the econevals first light, each time killing a panel mid-run
+    # while OpenRouter's own metadata listed the endpoint as available.
+    #
+    # The distinction is typed, not permissive: a family still has to list
+    # POST_ADMISSION_REJECTION in retryable_conditions to get the retry, and a
+    # FIRST-call 404 keeps the old non-retryable behaviour whatever it lists.
+    @staticmethod
+    def _route_key(profile: AgentProfile) -> tuple[str, str | None, str]:
+        return (profile.model.provider, profile.model.base_url, profile.model.model)
+
+    def _is_post_admission_rejection(
+        self, profile: AgentProfile, failure: ProviderFailure
+    ) -> bool:
+        # 404 only. provider_rejected also holds 400/401/403 and
+        # invalid-request/model/configuration, and none of those become
+        # transient because the route answered earlier: a 401 after a
+        # success is a revoked credential, and retrying it is more 401s
+        # (review finding 2). The observed transient was a Parasail 404
+        # while OpenRouter listed the endpoint as available.
+        return (
+            failure.condition == "provider_rejected"
+            and failure.status_code == 404
+            and self._route_key(profile) in self._routes_proven
+        )
+
+    def _grow_length_budget(self, profile: AgentProfile, max_output_tokens: int) -> int:
+        """Bounded doubling for a truncated answer.
+
+        Unbounded growth walks past the model's own context window: a
+        2,400-token budget over ten attempts became 1,228,800 and the
+        provider refused the request outright (#131). The ceiling is a fixed
+        multiple of what the profile declared. A provider context-window cap
+        used to sit here behind ``hasattr(self, "_provider_capabilities")``;
+        nothing ever set that attribute, so the branch was dead and is gone.
+        One helper, so the ProviderResult path and the Arena exception path
+        cannot disagree about how a length retry grows (review finding 4).
+        """
+        ceiling = profile.sampling.max_output_tokens * _LENGTH_RETRY_MAX_GROWTH
+        return min(max_output_tokens * 2, ceiling)
+
     def _record_provider_failure(
         self,
         decision: DecisionRequest,
@@ -2918,7 +3011,23 @@ class MinimalChatExecutor:
         *,
         prior_rounds: tuple[ProviderCallRecord, ...] = (),
         pending: PendingRound | None = None,
-    ) -> bool:
+    ) -> tuple[bool, str]:
+        # A round that already answered inside this attempt proves the route
+        # as surely as a completed attempt does. Without this, round 1
+        # succeeding and round 2 returning 404 escaped before any proof was
+        # recorded, and the 404 was never retried (review finding 1).
+        if prior_rounds:
+            self._routes_proven.add(self._route_key(profile))
+        # One canonical effective condition, computed before anything is
+        # written, so the provider record, both events, the retry decision,
+        # the backoff and the finalizer all carry the same name. It used to
+        # be computed after the writes, so nothing durable ever said
+        # provider_rejected_after_route_proven (review finding 3).
+        condition = failure.condition
+        retryable = failure.retryable
+        if self._is_post_admission_rejection(profile, failure):
+            condition = POST_ADMISSION_REJECTION
+            retryable = True
         outcome_unknown = failure.condition in {"timeout", "transport"}
         # A harness-driven attempt fails inside whichever round it reached;
         # attribute the failure to that call, not to the sealed round-0 request
@@ -2937,7 +3046,7 @@ class MinimalChatExecutor:
             cached_input_tokens=0,
             output_tokens=0,
             cost_usd=0.0,
-            failure_condition=failure.condition,
+            failure_condition=condition,
         )
         if pending is None or not pending.terminalized:
             self.evidence.append_event(
@@ -2947,7 +3056,7 @@ class MinimalChatExecutor:
                     else "provider_call_failed"
                 ),
                 {
-                    "failure_condition": failure.condition,
+                    "failure_condition": condition,
                     "message": str(failure),
                     "retryable": failure.retryable,
                     "status_code": failure.status_code,
@@ -2972,27 +3081,27 @@ class MinimalChatExecutor:
         attempts.append(attempt)
         self.evidence.append_event(
             "action_attempt_failed",
-            {"failure_condition": failure.condition},
+            {"failure_condition": condition},
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
         )
         should_retry = (
-            failure.retryable
-            and failure.condition in profile.retry_policy.retryable_conditions
+            retryable
+            and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
         )
         if not should_retry:
-            self._finish_logical_failure(decision, attempts, failure.condition)
+            self._finish_logical_failure(decision, attempts, condition)
         else:
             self._executions[decision.logical_action_id] = LogicalActionExecution(
                 logical_action_id=decision.logical_action_id,
                 profile_id=profile.profile_id,
                 status="retrying",
                 attempts=tuple(attempts),
-                failure_code=failure.condition,
+                failure_code=condition,
             )
-        return should_retry
+        return should_retry, condition
 
     def _settle_prior_rounds(
         self, profile: AgentProfile, action_attempt_id: str
