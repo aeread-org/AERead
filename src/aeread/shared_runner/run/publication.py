@@ -361,7 +361,140 @@ def add_publication_artifact(
     updated_artifacts = dict(sorted({**artifacts, relative_path: digest}.items()))
     core = {key: value for key, value in manifest.items() if key != "manifest_sha256"}
     core["artifacts"] = updated_artifacts
-    updated = {**core, "manifest_sha256": hashlib.sha256(canonical_json_bytes(core)).hexdigest()}
+    updated = _sealed_manifest(core)
+    if updated != dict(manifest):
+        _replace_file(manifest_path, canonical_json_bytes(updated) + b"\n")
+    return updated
+
+
+MANIFEST_FILENAME = "publication_manifest.json"
+_MANIFEST_SEAL_FIELDS = ("manifest_sha256", "publication_sha256")
+
+
+def _sealed_manifest(core: Mapping[str, Any]) -> dict[str, Any]:
+    body = {key: value for key, value in core.items() if key not in _MANIFEST_SEAL_FIELDS}
+    return {**body, "manifest_sha256": hashlib.sha256(canonical_json_bytes(body)).hexdigest()}
+
+
+def bundle_artifact_digests(bundle_root: Path | str) -> dict[str, str]:
+    """Digest every published file under a bundle, keyed by path relative to the root.
+
+    The manifest itself, hidden files, and temporary files are not artifacts.
+    """
+
+    root = Path(bundle_root)
+    digests: dict[str, str] = {}
+    for path in sorted(root.rglob("*")):
+        rel = path.relative_to(root).as_posix()
+        if not path.is_file() or path.is_symlink():
+            continue
+        if rel == MANIFEST_FILENAME or any(part.startswith(".") for part in path.relative_to(root).parts):
+            continue
+        if path.suffix == ".tmp":
+            continue
+        digests[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return digests
+
+
+def seal_publication_manifest(
+    bundle_root: Path | str,
+    *,
+    publication_id: str,
+    privacy_boundary: Mapping[str, str],
+    campaign_id: str | None = None,
+    source_bindings: Mapping[str, Any] | None = None,
+    **fields: Any,
+) -> dict[str, Any]:
+    """Write a fresh kernel-standard manifest over every file in the bundle.
+
+    The one manifest layout every bundle should share: ``schema_version``,
+    ``publication_id``, ``campaign_id``, ``artifacts`` (path → sha256 of
+    every published file), ``privacy_boundary`` (what is included and what
+    is excluded), the sanitization declaration, ``source_bindings`` (what
+    the bundle was produced from), any extra family fields, and
+    ``manifest_sha256`` over the rest. Refuses to overwrite an existing
+    manifest; use :func:`rebuild_publication_manifest` for that.
+    """
+
+    root = Path(bundle_root)
+    manifest_path = root / MANIFEST_FILENAME
+    if manifest_path.exists():
+        raise ValueError(f"manifest already exists, rebuild it instead: {manifest_path}")
+    if set(privacy_boundary) != {"included", "excluded"}:
+        raise ValueError("privacy_boundary must state exactly 'included' and 'excluded'")
+    reserved = set(_MANIFEST_SEAL_FIELDS) | {"schema_version", "artifacts", "sanitization"}
+    if reserved & set(fields):
+        raise ValueError(f"reserved manifest fields: {sorted(reserved & set(fields))}")
+    core = {
+        "schema_version": KERNEL_MANIFEST_SCHEMA_VERSION,
+        "publication_id": publication_id,
+        "campaign_id": campaign_id,
+        "artifacts": bundle_artifact_digests(root),
+        "privacy_boundary": dict(privacy_boundary),
+        "sanitization": dict(SANITIZATION_DECLARATION),
+        "source_bindings": dict(source_bindings or {}),
+        **fields,
+    }
+    manifest = _sealed_manifest(core)
+    atomic_publish(manifest_path, canonical_json_bytes(manifest) + b"\n")
+    return manifest
+
+
+def rebuild_publication_manifest(
+    bundle_root: Path | str, *, privacy_boundary: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """Re-seal an existing manifest in the kernel layout from the files on disk.
+
+    Every field except the artifact table and the seal is carried over, so
+    provenance written by the family survives. The artifact table is
+    recomputed from the bundle and compared with what the old manifest
+    claimed, whichever layout it used (the path → sha256 map, or a list of
+    ``{path, sha256}`` rows): a file whose digest disagrees with its recorded
+    one is refused, because a rebuild must never absorb a changed report.
+    New files are added, and a recorded path that no longer exists is refused.
+
+    A manifest written without a ``privacy_boundary`` can be given one here;
+    a boundary that is already declared is never silently replaced.
+    """
+
+    if privacy_boundary is not None and set(privacy_boundary) != {"included", "excluded"}:
+        raise ValueError("privacy_boundary must state exactly 'included' and 'excluded'")
+    root = Path(bundle_root)
+    manifest_path = root / MANIFEST_FILENAME
+    manifest = json.loads(manifest_path.read_bytes())
+    if not isinstance(manifest, Mapping) or manifest.get("schema_version") != KERNEL_MANIFEST_SCHEMA_VERSION:
+        raise ValueError(
+            f"unsupported publication manifest schema: {manifest.get('schema_version') if isinstance(manifest, Mapping) else None!r}"
+        )
+    recorded_raw = manifest.get("artifacts")
+    recorded: dict[str, str] = {}
+    if isinstance(recorded_raw, Mapping):
+        recorded = {str(path): str(digest) for path, digest in recorded_raw.items()}
+    elif isinstance(recorded_raw, Sequence) and not isinstance(recorded_raw, (str, bytes)):
+        for row in recorded_raw:
+            if not isinstance(row, Mapping) or "path" not in row or "sha256" not in row:
+                raise ValueError("artifact rows must carry 'path' and 'sha256'")
+            recorded[str(row["path"])] = str(row["sha256"])
+    else:
+        raise ValueError("publication manifest artifacts must be a map or a list of rows")
+
+    actual = bundle_artifact_digests(root)
+    missing = sorted(set(recorded) - set(actual))
+    if missing:
+        raise ValueError(f"recorded artifacts missing from the bundle: {missing}")
+    changed = sorted(path for path, digest in recorded.items() if actual[path] != digest)
+    if changed:
+        raise ValueError(f"artifact bytes differ from the recorded digest, refusing to rebuild: {changed}")
+
+    core = {key: value for key, value in manifest.items() if key not in _MANIFEST_SEAL_FIELDS and key != "artifacts"}
+    core.setdefault("sanitization", dict(SANITIZATION_DECLARATION))
+    if privacy_boundary is not None:
+        declared = core.get("privacy_boundary")
+        if declared is not None and dict(declared) != dict(privacy_boundary):
+            raise ValueError("manifest already declares a different privacy_boundary")
+        core["privacy_boundary"] = dict(privacy_boundary)
+    core["artifacts"] = actual
+    updated = _sealed_manifest(core)
     if updated != dict(manifest):
         _replace_file(manifest_path, canonical_json_bytes(updated) + b"\n")
     return updated
@@ -369,14 +502,18 @@ def add_publication_artifact(
 
 __all__ = [
     "KERNEL_MANIFEST_SCHEMA_VERSION",
+    "MANIFEST_FILENAME",
     "PROHIBITED_PUBLIC_TEXT",
     "SANITIZATION_DECLARATION",
     "TRAJECTORY_ROW_SCHEMA_VERSION",
     "add_publication_artifact",
     "assert_public_payload",
     "atomic_publish",
+    "bundle_artifact_digests",
     "jsonl",
+    "rebuild_publication_manifest",
     "receipt_projection",
     "sanitized_trajectory_jsonl",
     "sanitized_trajectory_rows",
+    "seal_publication_manifest",
 ]

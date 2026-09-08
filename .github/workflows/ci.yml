@@ -19,7 +19,7 @@ jobs:
       - name: Install
         run: pip install -e '.[dev]'
       - name: Tests (provider-free)
-        run: pytest tests/ -q
+        run: pytest tests/ -q -n auto
 
   # Bridge-gated upstream-fidelity certification for the agenticpay.bilateral
   # adapter. Kept separate from the `test` job above (which never provisions any

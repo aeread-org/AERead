@@ -212,7 +212,30 @@ def _amazonbarg_upstream_available() -> bool:
     return marker.is_file()
 
 
+_DURABLE_WRITES_ENV_VAR = "AEREAD_TEST_DURABLE_WRITES"
+
+
+def _disable_fsync_for_tests() -> None:
+    """Make every durable write in the kernel a plain write for the test run.
+
+    The evidence store, receipts, publication and plan writers fsync each
+    file and its directory so a sealed run survives a crash. Under pytest
+    everything lands in a temporary directory that is deleted afterwards,
+    and the campaign simulations write tens of thousands of events, so the
+    syncs were most of the suite's wall time. Nothing being tested depends
+    on the bytes reaching the platter; set AEREAD_TEST_DURABLE_WRITES=1 to
+    keep the real calls.
+    """
+
+    if _truthy(_DURABLE_WRITES_ENV_VAR):
+        return
+    os.fsync = lambda fd: None  # type: ignore[assignment]
+    if hasattr(os, "fdatasync"):
+        os.fdatasync = lambda fd: None  # type: ignore[assignment]
+
+
 def pytest_configure(config):
+    _disable_fsync_for_tests()
     config.addinivalue_line(
         "markers",
         f"{_AMAZONBARG_NO_UPSTREAM_MARKER}: "
