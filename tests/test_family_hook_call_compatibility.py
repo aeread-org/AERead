@@ -175,6 +175,18 @@ KNOWN_UNRESOLVABLE_IN_PLAIN_ENV: dict[tuple[str, str], str] = {
     ("datacenter_development_v1", "2.0.0"): "versioned plugin registered by datacenter campaign code",
     ("kernel_contract_reference_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
     ("kernel_contract_sequential_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
+    # Added the day the ratchet landed: #147 enrolled these keys as trusted
+    # after #125's last CI run and before its merge, so main went red on a
+    # test neither PR had seen fail. Listing them is the honest state --
+    # they are registered by datacenter campaign code, not a package hook --
+    # and the two-way ratchet will demand their removal the day they resolve.
+    ("datacenter_counteroffer_action_schema_v1", "1.0.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_counteroffer_adoption_v1", "1.0.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_counteroffer_adoption_v1", "1.1.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_counteroffer_adoption_v1", "1.2.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_counteroffer_affordance_v1", "1.0.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_counteroffer_salience_v1", "1.0.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
+    ("datacenter_development_v1", "2.1.0"): "datacenter sub-family or version registered by campaign code, not a package hook; trusted via #147, packages arrive with #63 (#144)",
 }
 
 
