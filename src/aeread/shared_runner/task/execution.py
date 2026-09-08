@@ -1816,10 +1816,12 @@ class ArenaChatClient:
             )
         try:
             structured_output = self._parse_structured_output(content, request.output_schema)
+            output_text = content
         except ProviderFailure:
             structured_output = self._plain_text_reply(content, request.output_schema)
             if structured_output is None:
                 raise
+            output_text = canonical_json_bytes(structured_output).decode("utf-8")
         usage = raw_response.get("usage")
         usage = usage if isinstance(usage, Mapping) else {}
 
@@ -1857,7 +1859,7 @@ class ArenaChatClient:
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
             resolved_model=str(raw_response.get("model") or request.model),
-            output_text=content,
+            output_text=output_text,
             finish_reason=str(choice.get("finish_reason") or "unknown"),
             input_tokens=token_count("prompt_tokens"),
             cached_input_tokens=cached_input_tokens,
