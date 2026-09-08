@@ -1,0 +1,44 @@
+{
+  "artifact_sha256": "a148b3a6cc9e79012a129bfa35a468c43266141e1f3bbedfa456ab79b94d0da2",
+  "campaign_id": "datacenter_development_terms_probe_2026-09-03",
+  "files": {
+    "README.md": {
+      "bytes": 1134,
+      "row_count": null,
+      "sha256": "9f6ec10dde4245bfa55e45244cb929b80279fe8a67da06287d8eef6ab4382450"
+    },
+    "receipts/projections.jsonl": {
+      "bytes": 1932,
+      "row_count": 2,
+      "sha256": "ed01b22e6f573a17decd71a6f7c85c71f5f5e3aa13f2a5c9021361d3e19efed1"
+    },
+    "reports/summary.json": {
+      "bytes": 2977,
+      "row_count": null,
+      "sha256": "453d06bfce883f70860b84580c6486418d4eb5376a8689290932716f16a4eca9"
+    },
+    "trajectories/sanitized.jsonl": {
+      "bytes": 3059,
+      "row_count": 2,
+      "sha256": "4dde7a77690b4afec16b68e175e4ca61bb8c513f235ab308c8aba7189fae146c"
+    }
+  },
+  "invalidated_preflight_receipt_sha256s": [
+    "335253b423901bcc0e8f328f20ae03d13ca911387b263ffa1c85e6ee1c88ad1a",
+    "8490d67aaa197e0d9d69cef28f2565a05002314d0a1cb41700591c994e4f0bd1"
+  ],
+  "projection_semantics": "sanitized diagnostic projection; sealed local receipts remain authoritative",
+  "sanitization": {
+    "complete_receipts_included": false,
+    "failure_messages_included": false,
+    "full_prompts_included": false,
+    "model_reasoning_included": false,
+    "raw_provider_responses_included": false
+  },
+  "schema_version": "aeread.datacenter_terms_publication/0.1",
+  "source_kind": "sealed_local_evaluation_receipts",
+  "source_receipt_sha256s": [
+    "7222efcf18956c35cf035cc70e2e612b993a7b77ad81f81301cc449b1ecbbe2e",
+    "127ad9e02682661e03a66be4d86154d07c4c4abe5c5f5e8ccd96b67a08d3da48"
+  ]
+}

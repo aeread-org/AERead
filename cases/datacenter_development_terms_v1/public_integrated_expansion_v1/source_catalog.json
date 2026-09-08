@@ -1,0 +1,80 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "public_primary_source_catalog",
+  "lineage_scope": "sec_accession_document_and_clause_locator",
+  "rights_status": "public_sec_filing_facts_paraphrased_no_source_artifacts",
+  "original_artifacts_included": false,
+  "public_reproducibility": true,
+  "upstream_byte_hash_status": "not_collected_public_web_review_no_upstream_hash",
+  "retrieval_date": "2026-09-03",
+  "independence_assumption": "each project case uses a different issuer and project filing cluster",
+  "sources": {
+    "galaxy_helios_2025_10k": {
+      "kind": "annual_report_project_lease_power_revenue_and_financing_disclosure",
+      "role": "phased critical IT delivery, approved versus contracted power, deferred lease billings, loan draws, and stabilization covenants",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_galaxy_helios_2026",
+      "accession": "000185939226000016",
+      "document": "glxy-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1859392/000185939226000016/glxy-20251231.htm",
+      "locators": [
+        "Business - Data Centers and Helios leases",
+        "Management discussion - Data Centers revenue",
+        "Note 15 - Leases - deferred lease revenue",
+        "Note 19 - Notes payable - Helios credit agreement",
+        "Risk factors - Project Financing Documents covenants"
+      ],
+      "upstream_sha256": null
+    },
+    "terawulf_lake_mariner_2025_10k": {
+      "kind": "annual_report_ground_lease_customer_lease_and_prepaid_rent_disclosure",
+      "role": "leasehold land, power access, operating versus expansion capacity, customer commencement, and prepaid rent deferral",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_terawulf_lake_mariner_2026",
+      "accession": "000108330126000031",
+      "document": "wulf-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1083301/000108330126000031/wulf-20251231.htm",
+      "locators": [
+        "Item 2 - Lake Mariner Data Campus",
+        "Note 8 - Leases - New Ground Lease and restructuring",
+        "Note 8 - Lessor Accounting - Core42 HPC Leases"
+      ],
+      "upstream_sha256": null
+    },
+    "bitdeer_2025_20f": {
+      "kind": "annual_report_data_center_conversion_and_material_contract_disclosure",
+      "role": "Tydal conversion status, phased target, design-build engagement, and commercial evolution",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_bitdeer_tydal_2026",
+      "accession": "000121390026049770",
+      "document": "ea0282628-20f_bitdeer.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1899123/000121390026049770/ea0282628-20f_bitdeer.htm",
+      "locators": [
+        "Item 4 - Norway Datacenters",
+        "Item 5 - Tydal Data Center Contract for Design and Construction"
+      ],
+      "upstream_sha256": null
+    },
+    "bitdeer_tydal_epc_exhibit": {
+      "kind": "filed_material_design_and_construction_agreement",
+      "role": "open-book cost-plus terms, governance, cost controls, equipment risk, schedule, invoicing, audit, security, and insurance",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_bitdeer_tydal_2026",
+      "accession": "000121390026049770",
+      "document": "ea028262801ex4-43.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1899123/000121390026049770/ea028262801ex4-43.htm",
+      "locators": [
+        "Clauses 1.1-1.3 - scope, estimate, completion, and implementation model",
+        "Clauses 3.2-3.5 - design, execution, management, and equipment",
+        "Clause 5 - deadlines",
+        "Clauses 7.1-7.6 - cost-plus, accounts, audit, invoicing, and suspension",
+        "Clauses 8-12 - ownership, security, insurance, handover, and settlement"
+      ],
+      "upstream_sha256": null
+    }
+  }
+}

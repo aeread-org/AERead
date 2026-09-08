@@ -1,0 +1,16 @@
+campaign_id,pair_key,case_slug,source_cluster_id,inference_seed,pair_reportable,mistral_score,qwen_score,qwen_minus_mistral
+datacenter_development_terms_public_v1,credit-facility-availability-and-rounding__seed_314001,credit-facility-availability-and-rounding,sec_enovum_credit_facility_2025,314001,True,0.6683333333333333,0.8083333333333332,0.1399999999999999
+datacenter_development_terms_public_v1,credit-facility-availability-and-rounding__seed_314002,credit-facility-availability-and-rounding,sec_enovum_credit_facility_2025,314002,True,0.6683333333333333,0.8083333333333332,0.1399999999999999
+datacenter_development_terms_public_v1,credit-facility-availability-and-rounding__seed_314003,credit-facility-availability-and-rounding,sec_enovum_credit_facility_2025,314003,True,0.6683333333333333,0.675,0.00666666666666671
+datacenter_development_terms_public_v1,ground-lease-commencement-boundary__seed_314001,ground-lease-commencement-boundary,sec_fermi_ground_lease_2025,314001,True,0.76,0.76,0.0
+datacenter_development_terms_public_v1,ground-lease-commencement-boundary__seed_314002,ground-lease-commencement-boundary,sec_fermi_ground_lease_2025,314002,True,0.76,0.76,0.0
+datacenter_development_terms_public_v1,ground-lease-commencement-boundary__seed_314003,ground-lease-commencement-boundary,sec_fermi_ground_lease_2025,314003,True,0.76,0.76,0.0
+datacenter_development_terms_public_v1,large-load-study-to-service-gates__seed_314001,large-load-study-to-service-gates,sec_aes_ohio_datacenter_tariff_2026,314001,True,0.6933333333333334,0.8,0.10666666666666669
+datacenter_development_terms_public_v1,large-load-study-to-service-gates__seed_314002,large-load-study-to-service-gates,sec_aes_ohio_datacenter_tariff_2026,314002,True,0.6933333333333334,0.8,0.10666666666666669
+datacenter_development_terms_public_v1,large-load-study-to-service-gates__seed_314003,large-load-study-to-service-gates,sec_aes_ohio_datacenter_tariff_2026,314003,False,,,
+datacenter_development_terms_public_v1,linked-land-power-construction-underwriting__seed_314001,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,314001,False,,,
+datacenter_development_terms_public_v1,linked-land-power-construction-underwriting__seed_314002,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,314002,False,,,
+datacenter_development_terms_public_v1,linked-land-power-construction-underwriting__seed_314003,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,314003,True,0.9,0.0,-0.9
+datacenter_development_terms_public_v1,phased-colocation-financing-and-rfs__seed_314001,phased-colocation-financing-and-rfs,sec_digi_cerebras_msa_2026,314001,True,0.6433333333333333,0.8,0.15666666666666673
+datacenter_development_terms_public_v1,phased-colocation-financing-and-rfs__seed_314002,phased-colocation-financing-and-rfs,sec_digi_cerebras_msa_2026,314002,True,0.6433333333333333,0.0,-0.6433333333333333
+datacenter_development_terms_public_v1,phased-colocation-financing-and-rfs__seed_314003,phased-colocation-financing-and-rfs,sec_digi_cerebras_msa_2026,314003,True,0.6433333333333333,0.8,0.15666666666666673

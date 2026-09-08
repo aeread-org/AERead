@@ -1,0 +1,10 @@
+campaign_id,pair_key,case_slug,source_cluster_id,inference_seed,pair_reportable,mistral_score,qwen_score,qwen_minus_mistral,hard_gate_transition
+datacenter_development_terms_public_integrated_v4,black-pearl-phased-rent-debt-and-overrun__seed_321001,black-pearl-phased-rent-debt-and-overrun,sec_cipher_black_pearl_2026,321001,False,,,,
+datacenter_development_terms_public_integrated_v4,black-pearl-phased-rent-debt-and-overrun__seed_321002,black-pearl-phased-rent-debt-and-overrun,sec_cipher_black_pearl_2026,321002,False,,,,
+datacenter_development_terms_public_integrated_v4,black-pearl-phased-rent-debt-and-overrun__seed_321003,black-pearl-phased-rent-debt-and-overrun,sec_cipher_black_pearl_2026,321003,False,,,,
+datacenter_development_terms_public_integrated_v4,horizon-tranche-acceptance-financing-guarantees__seed_321001,horizon-tranche-acceptance-financing-guarantees,sec_iren_horizon_microsoft_2026,321001,False,,,,
+datacenter_development_terms_public_integrated_v4,horizon-tranche-acceptance-financing-guarantees__seed_321002,horizon-tranche-acceptance-financing-guarantees,sec_iren_horizon_microsoft_2026,321002,False,,,,
+datacenter_development_terms_public_integrated_v4,horizon-tranche-acceptance-financing-guarantees__seed_321003,horizon-tranche-acceptance-financing-guarantees,sec_iren_horizon_microsoft_2026,321003,False,,,,
+datacenter_development_terms_public_integrated_v4,polaris-forge-contract-to-cashflow-boundary__seed_321001,polaris-forge-contract-to-cashflow-boundary,sec_apld_polaris_forge_2026,321001,False,,,,
+datacenter_development_terms_public_integrated_v4,polaris-forge-contract-to-cashflow-boundary__seed_321002,polaris-forge-contract-to-cashflow-boundary,sec_apld_polaris_forge_2026,321002,False,,,,
+datacenter_development_terms_public_integrated_v4,polaris-forge-contract-to-cashflow-boundary__seed_321003,polaris-forge-contract-to-cashflow-boundary,sec_apld_polaris_forge_2026,321003,False,,,,

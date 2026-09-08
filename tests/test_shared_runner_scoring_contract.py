@@ -1701,6 +1701,19 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("datacenter_development_v1", "1.0.0"),
         ("datacenter_development_v1", "1.1.0"),
         ("datacenter_development_v1", "2.0.0"),
+        # #63 enrols the datacenter sub-families and a 2.1.0 of the base
+        # family as trusted. Their scorers now take FamilyScoringInput
+        # (#144), but none has a scoring-contract fixture yet; that is the
+        # follow-up #144 tracks, and until it lands they are named here so
+        # ruling R6 sees them rather than silently skipping them.
+        ("datacenter_development_v1", "2.1.0"),
+        ("datacenter_development_terms_v1", "1.0.0"),
+        ("datacenter_counteroffer_action_schema_v1", "1.0.0"),
+        ("datacenter_counteroffer_adoption_v1", "1.0.0"),
+        ("datacenter_counteroffer_adoption_v1", "1.1.0"),
+        ("datacenter_counteroffer_adoption_v1", "1.2.0"),
+        ("datacenter_counteroffer_affordance_v1", "1.0.0"),
+        ("datacenter_counteroffer_salience_v1", "1.0.0"),
         ("single_offer_v1", "1.0.0"),
         ("tau3.retail", "0.1.0"),
         ("kernel_contract_sequential_v1", "1.0.0"),

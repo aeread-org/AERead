@@ -1,0 +1,158 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_mechanism_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_mechanism_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_mechanism_v1",
+  "pack_sha256": "2a7df6bdfba457f7b838feb0113498d3fe88db032b25fb0c4d47e37e1ab98d2b",
+  "claim_status": "within_source_clause_decomposition_and_affirm_only_wording_diagnostic",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T12:34:48Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints",
+      "https://openrouter.ai/api/v1/models/openai/gpt-oss-120b/endpoints"
+    ],
+    "selection_rule": "reuse the exact three pinned model-provider-quantization routes from the public variance panel and GPT-OSS add-on after refreshing endpoint status, structured-output parameters, and price caps; one concurrent call per provider; no fallback"
+  },
+  "cases": {
+    "assignment-consent-m01": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.assignment-consent-m01",
+      "expected_case_sha256": "5b45951fa37e04ed2ef39a674b1daa8eb3ccb978ab086ec697dbb31a1f1de95a",
+      "mechanism_id": "assignment_consent",
+      "wording_condition": "baseline",
+      "world_seed": 450001
+    },
+    "assignment-consent-m02": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.assignment-consent-m02",
+      "expected_case_sha256": "4f767a4babc560af4c5f97c445c3cec2ce2121221d1df90310a9372a87231f1f",
+      "mechanism_id": "assignment_consent",
+      "wording_condition": "affirm_only",
+      "world_seed": 450001
+    },
+    "gmp-change-order-m01": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.gmp-change-order-m01",
+      "expected_case_sha256": "db61b66faac3e4b21c782ec1dbf541a4a36c5cf4f970fb3a735448c98c76a7aa",
+      "mechanism_id": "gmp_change_order",
+      "wording_condition": "baseline",
+      "world_seed": 450003
+    },
+    "gmp-change-order-m02": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.gmp-change-order-m02",
+      "expected_case_sha256": "ff9646e463ef74d614d65910b2e428cde8b181d575ab35530a436a28c4ca2d07",
+      "mechanism_id": "gmp_change_order",
+      "wording_condition": "affirm_only",
+      "world_seed": 450003
+    },
+    "land-power-cotermination-m01": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.land-power-cotermination-m01",
+      "expected_case_sha256": "bc2a7751b3a04e52cdec6805ae8e248b71dcd73ff536738f042b7b34793a7b77",
+      "mechanism_id": "land_power_cotermination",
+      "wording_condition": "baseline",
+      "world_seed": 450002
+    },
+    "land-power-cotermination-m02": {
+      "case_id": "datacenter_development_terms_v1.public_mechanism_v1.land-power-cotermination-m02",
+      "expected_case_sha256": "5158ce6078b3910299396c2db6b4cd288db96e700d3d23a45e63b493f2913879",
+      "mechanism_id": "land_power_cotermination",
+      "wording_condition": "affirm_only",
+      "world_seed": 450002
+    }
+  },
+  "inference_seeds": [
+    315001,
+    315002,
+    315003
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_mechanism_mistral32_deepinfra_v1",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_mechanism_v1"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_novita": {
+      "profile_id": "datacenter_terms_mechanism_qwen3_235b_novita_v1",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Novita",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.09,
+        "cached_input_per_million": 0.09,
+        "output_per_million": 0.58,
+        "pricing_id": "openrouter_2026-09-03_qwen3_novita_terms_mechanism_v1"
+      },
+      "max_prompt_price_per_million": "0.09",
+      "max_completion_price_per_million": "0.58"
+    },
+    "gptoss120b_coreweave": {
+      "profile_id": "datacenter_terms_mechanism_gptoss120b_coreweave_v1",
+      "requested_model": "openai/gpt-oss-120b",
+      "canonical_model": "openai/gpt-oss-120b",
+      "provider": "CoreWeave",
+      "quantization": "fp4",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.03,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.17,
+        "pricing_id": "openrouter_2026-09-03_gptoss120b_coreweave_terms_mechanism_v1"
+      },
+      "max_prompt_price_per_million": "0.03",
+      "max_completion_price_per_million": "0.17"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 900,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 1.08,
+    "concurrency": 3,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 6,
+    "mechanism_count": 3,
+    "wording_condition_count": 2,
+    "independent_cluster_count": 1,
+    "resampling_unit": "single_public_filing_cluster",
+    "paired_by": [
+      "mechanism_id",
+      "model_id",
+      "inference_seed"
+    ],
+    "contrast": "affirm_only_minus_baseline",
+    "missingness": "report_separately_and_require_both_wording_conditions",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

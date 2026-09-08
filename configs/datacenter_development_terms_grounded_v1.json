@@ -1,0 +1,122 @@
+{
+  "schema_version": "aeread.datacenter_terms_grounded_campaign_contract/0.1",
+  "campaign_id": "datacenter_development_terms_grounded_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_grounded_v1",
+  "pack_sha256": "a0165e1e47f913a32d99e49f94dced9d3fe43a69a6753940e7c3c53254f2950c",
+  "claim_status": "source_grounded_case_variance_diagnostic_one_conservative_archive_cluster",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T08:55:21Z",
+    "selection_rule": "reuse the two exact Apache-2.0 OpenRouter routes verified in the immediately preceding data-center campaign; one named provider per route; no fallback"
+  },
+  "cases": {
+    "colo-quote-normalization": {
+      "case_id": "datacenter_development_terms_v1.grounded_v1.colo-quote-normalization",
+      "expected_case_sha256": "1310c9927546d8ae9257f81883c02007d84f7dd52c6236f628dd2c4c8e1274be",
+      "source_cluster_id": "sanitized_archive_datacenter_01"
+    },
+    "contract-execution-cutoffs": {
+      "case_id": "datacenter_development_terms_v1.grounded_v1.contract-execution-cutoffs",
+      "expected_case_sha256": "a0e96a8ef08a5ecef42ac7b88c1861d2903126732bbaf8074e554f00f99dad7a",
+      "source_cluster_id": "sanitized_archive_datacenter_01"
+    },
+    "deployment-location-power-reconciliation": {
+      "case_id": "datacenter_development_terms_v1.grounded_v1.deployment-location-power-reconciliation",
+      "expected_case_sha256": "27e86166ac75b06190a75eeb848f4ddb4225a20d899a95e4a9a8cb7790ca1fc8",
+      "source_cluster_id": "sanitized_archive_datacenter_01"
+    },
+    "build-quote-model-audit": {
+      "case_id": "datacenter_development_terms_v1.grounded_v1.build-quote-model-audit",
+      "expected_case_sha256": "5e3e9324d0c0c3a09427bf9ca31cc8db5af6fc36a086e3d17277363a8030093c",
+      "source_cluster_id": "sanitized_archive_datacenter_01"
+    }
+  },
+  "inference_seeds": [
+    313001,
+    313002,
+    313003
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_grounded_mistral32_deepinfra_v1",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_grounded_v1"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_novita": {
+      "profile_id": "datacenter_terms_grounded_qwen3_235b_novita_v1",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Novita",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.09,
+        "cached_input_per_million": 0.09,
+        "output_per_million": 0.58,
+        "pricing_id": "openrouter_2026-09-03_qwen3_novita_terms_grounded_v1"
+      },
+      "max_prompt_price_per_million": "0.09",
+      "max_completion_price_per_million": "0.58"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 1400,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.48,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 4,
+    "independent_cluster_count": 1,
+    "resampling_unit": "conservative_source_archive_cluster",
+    "paired_by": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "missingness": "report_separately_and_require_both_models_for_pair",
+    "components": [
+      "score",
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage",
+      "hard_gate_pass",
+      "elapsed_seconds",
+      "input_tokens",
+      "cached_input_tokens",
+      "output_tokens",
+      "reported_cost_usd"
+    ],
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

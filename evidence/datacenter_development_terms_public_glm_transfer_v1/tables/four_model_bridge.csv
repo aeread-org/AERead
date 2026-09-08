@@ -1,0 +1,4 @@
+campaign_id,pair_key,case_slug,source_cluster_id,inference_seed,bridge_reportable,mistral_score,qwen_score,gptoss_score,glm_score,mistral_hard_gate_pass,qwen_hard_gate_pass,gptoss_hard_gate_pass,glm_hard_gate_pass
+datacenter_development_terms_public_glm_transfer_v1,baseline__seed_316001,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,316001,True,0.9,0.0,0.0,0.9666666666666668,True,False,False,True
+datacenter_development_terms_public_glm_transfer_v1,baseline__seed_316002,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,316002,False,,,,,,,,
+datacenter_development_terms_public_glm_transfer_v1,baseline__seed_316003,linked-land-power-construction-underwriting,sec_core_denton_project_terms_2026,316003,False,,,,,,,,

@@ -1,0 +1,82 @@
+{
+  "schema_version": "aeread.datacenter_terms_reliability_contract/0.1",
+  "campaign_id": "datacenter_development_terms_reliability_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "case_slug": "full-stack-cutoff-001",
+  "expected_case_sha256": "8c34c0273509db1423e9b5563e74f6c6a4b5b299bf81c611950042b1340f948f",
+  "claim_status": "single_synthetic_project_reliability_only",
+  "inference_seeds": [31101, 31102, 31103, 31104, 31105],
+  "models": {
+    "glm53_reka": {
+      "profile_id": "datacenter_terms_glm53_reka_reliability_v1",
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "Reka",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "MIT",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.5,
+        "pricing_id": "openrouter_2026-09-02_glm53_flash_reka"
+      },
+      "max_prompt_price_per_million": "0.15",
+      "max_completion_price_per_million": "0.5"
+    },
+    "mistral_small": {
+      "profile_id": "datacenter_terms_mistral_small_reliability_v1",
+      "requested_model": "mistralai/mistral-small-2603",
+      "canonical_model": "mistralai/mistral-small-2603",
+      "provider": "Mistral",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.015,
+        "output_per_million": 0.6,
+        "pricing_id": "openrouter_2026-09-02_mistral_small4_mistral"
+      },
+      "max_prompt_price_per_million": "0.15",
+      "max_completion_price_per_million": "0.6"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "max_output_tokens": 1400,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.25,
+    "concurrency": 4,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "independent_cluster_count": 1,
+    "resampling_unit": "synthetic_project",
+    "paired_by": ["case_slug", "inference_seed"],
+    "missingness": "report_separately",
+    "components": [
+      "score",
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage",
+      "hard_gate_pass",
+      "elapsed_seconds",
+      "input_tokens",
+      "cached_input_tokens",
+      "output_tokens",
+      "reported_cost_usd"
+    ],
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false
+  }
+}

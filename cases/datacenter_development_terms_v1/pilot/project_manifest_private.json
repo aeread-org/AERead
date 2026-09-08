@@ -1,0 +1,67 @@
+{
+  "schema_version": "aeread.datacenter_project_manifest/0.1",
+  "manifest_id": "datacenter_development_terms_v1_design_v1",
+  "scope": "design_coverage_not_observed_sample",
+  "project_slot_count": 8,
+  "runnable_project_count": 1,
+  "source_required_project_count": 7,
+  "independence_claim_status": "not_established",
+  "projects": [
+    {
+      "project_id": "full-stack-cutoff-001",
+      "status": "runnable_synthetic",
+      "archetype": "greenfield campus with mixed execution states",
+      "required_source_classes": ["land_option", "power_service_agreement", "epc_proposal", "loan_term_sheet", "service_redline"],
+      "intended_failure_modes": ["verbal_written_confusion", "execution_state_confusion", "conditional_capital_overstatement", "critical_path_overstatement"]
+    },
+    {
+      "project_id": "land-control-transition-002",
+      "status": "source_required",
+      "archetype": "option-to-purchase transition with zoning conditions",
+      "required_source_classes": ["land_option", "purchase_agreement", "zoning_record"],
+      "intended_failure_modes": ["expired_option_reliance", "condition_precedent_omission"]
+    },
+    {
+      "project_id": "utility-study-to-esa-003",
+      "status": "source_required",
+      "archetype": "utility study, interconnection agreement, and energization schedule",
+      "required_source_classes": ["utility_study", "interconnection_agreement", "energization_schedule"],
+      "intended_failure_modes": ["study_as_commitment", "target_date_as_guarantee"]
+    },
+    {
+      "project_id": "epc-change-order-004",
+      "status": "source_required",
+      "archetype": "executed EPC contract with disputed change order",
+      "required_source_classes": ["epc_contract", "notice_to_proceed", "change_order", "schedule_update"],
+      "intended_failure_modes": ["unsigned_change_order_as_binding", "schedule_precedence_error"]
+    },
+    {
+      "project_id": "construction-loan-draw-005",
+      "status": "source_required",
+      "archetype": "committed construction facility with draw conditions",
+      "required_source_classes": ["credit_agreement", "borrowing_base", "draw_request", "condition_certificate"],
+      "intended_failure_modes": ["commitment_as_cash", "unsatisfied_draw_conditions"]
+    },
+    {
+      "project_id": "powered-shell-lease-006",
+      "status": "source_required",
+      "archetype": "powered-shell lease with landlord and tenant work split",
+      "required_source_classes": ["lease", "work_letter", "delivery_condition_schedule"],
+      "intended_failure_modes": ["scope_allocation_error", "delivery_acceptance_confusion"]
+    },
+    {
+      "project_id": "take-or-pay-service-007",
+      "status": "source_required",
+      "archetype": "capacity service agreement with ramp and termination rights",
+      "required_source_classes": ["service_agreement", "order_form", "sla", "credit_support"],
+      "intended_failure_modes": ["headline_rate_as_cashflow", "termination_right_omission"]
+    },
+    {
+      "project_id": "distressed-amendment-stack-008",
+      "status": "source_required",
+      "archetype": "cross-document delay amendment affecting land, power, debt, and customer dates",
+      "required_source_classes": ["land_amendment", "utility_amendment", "loan_waiver", "customer_amendment"],
+      "intended_failure_modes": ["partial_amendment_propagation", "stale_term_reliance", "future_cashflow_misalignment"]
+    }
+  ]
+}

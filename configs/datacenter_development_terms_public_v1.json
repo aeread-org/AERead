@@ -1,0 +1,127 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_campaign_contract/0.1",
+  "campaign_id": "datacenter_development_terms_public_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_v1",
+  "pack_sha256": "8422cf9687535369b5a4dd32ca42fccba580735cffe991a0d7dc107c75ef8128",
+  "claim_status": "public_source_cross_project_variance_exploratory_five_filing_clusters",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T08:55:21Z",
+    "selection_rule": "reuse the two exact Apache-2.0 OpenRouter routes that completed every cell in the preceding grounded data-center panel; one named provider per route; no fallback"
+  },
+  "cases": {
+    "ground-lease-commencement-boundary": {
+      "case_id": "datacenter_development_terms_v1.public_v1.ground-lease-commencement-boundary",
+      "expected_case_sha256": "706dbe7524059102ac27c9cd860145a10938ba2a56aeba0c11b7dd1bd8ee9a73",
+      "source_cluster_id": "sec_fermi_ground_lease_2025"
+    },
+    "phased-colocation-financing-and-rfs": {
+      "case_id": "datacenter_development_terms_v1.public_v1.phased-colocation-financing-and-rfs",
+      "expected_case_sha256": "8ed31d3a101a36a3ca2493114ad91243ec940155f27a6eaa61408577210a2238",
+      "source_cluster_id": "sec_digi_cerebras_msa_2026"
+    },
+    "large-load-study-to-service-gates": {
+      "case_id": "datacenter_development_terms_v1.public_v1.large-load-study-to-service-gates",
+      "expected_case_sha256": "22b2e3225c849b3f0194f40cc59952f08d5b41b392ce99ba93e6579905b867de",
+      "source_cluster_id": "sec_aes_ohio_datacenter_tariff_2026"
+    },
+    "credit-facility-availability-and-rounding": {
+      "case_id": "datacenter_development_terms_v1.public_v1.credit-facility-availability-and-rounding",
+      "expected_case_sha256": "82ccd94e0bc6cedf9de540f12343cab1ccad5263e0b38e58ead6dbf1bad38c54",
+      "source_cluster_id": "sec_enovum_credit_facility_2025"
+    },
+    "linked-land-power-construction-underwriting": {
+      "case_id": "datacenter_development_terms_v1.public_v1.linked-land-power-construction-underwriting",
+      "expected_case_sha256": "7fdc0e690dc69396941baa011a39a0b9523018519cd717030d0c4d5e2438bbd0",
+      "source_cluster_id": "sec_core_denton_project_terms_2026"
+    }
+  },
+  "inference_seeds": [
+    314001,
+    314002,
+    314003
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_public_mistral32_deepinfra_v1",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_public_v1"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_novita": {
+      "profile_id": "datacenter_terms_public_qwen3_235b_novita_v1",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Novita",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.09,
+        "cached_input_per_million": 0.09,
+        "output_per_million": 0.58,
+        "pricing_id": "openrouter_2026-09-03_qwen3_novita_terms_public_v1"
+      },
+      "max_prompt_price_per_million": "0.09",
+      "max_completion_price_per_million": "0.58"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 1400,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.6,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 5,
+    "independent_cluster_count": 5,
+    "resampling_unit": "public_filing_cluster",
+    "paired_by": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "missingness": "report_separately_and_require_both_models_for_pair",
+    "components": [
+      "score",
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage",
+      "hard_gate_pass",
+      "elapsed_seconds",
+      "input_tokens",
+      "cached_input_tokens",
+      "output_tokens",
+      "reported_cost_usd"
+    ],
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_integrated_v7_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_integrated_v7",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+  "pack_sha256": "7caf40e4b7a67105ca15d5836e316c52facb9c3865015b1964ab15808c6c42a7",
+  "claim_status": "answerability_corrected_indicator_map_three_project_two_route_paired_diagnostic_exploratory",
+  "predecessor": {
+    "campaign_id": "datacenter_development_terms_public_integrated_v6",
+    "contract_sha256": "b1fde1f6634a6edbe2e6fb80ebfa94333b7a6695057f04045d51baf0f0cd88b4",
+    "design_sha256": "89a965f3bb605275f945662142b4a0b6bbe444c80452ca86f8a467ff04a524fa",
+    "live_summary_sha256": "01fd74830930c7c7200da89b5b0a2feb6d26527e0e58faae6567b4302f613297",
+    "public_evidence_sha256": "c5aa4a7355ae98e55656a25bdc1068a2f1d8ac99134d880c3c0afd97d819fb3f",
+    "status": "operationally_incomplete_tydal_amount_answerability_invalidated",
+    "comparison_scope": "audit_lineage_only_not_analysis_data"
+  },
+  "answerability_correction": {
+    "base_pack_id": "datacenter_development_terms_public_integrated_expansion_v2",
+    "base_pack_sha256": "ffde8e79e9bb4a6baca981f0ae0d979507368469d976421a910dc4d35f980acb",
+    "corrected_pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+    "corrected_pack_sha256": "7caf40e4b7a67105ca15d5836e316c52facb9c3865015b1964ab15808c6c42a7",
+    "case_slug": "tydal-open-book-epc-governance-and-risk",
+    "evidence_id": "e05",
+    "oracle_field": "amounts.invoice_payment_day",
+    "visible_value_restored": 22.0,
+    "full_panel_replacement": true
+  },
+  "indicator_schema_qualification": {
+    "qualification_id": "mistral32_deepinfra_indicator_map_polaris_seed_322000",
+    "provider": "DeepInfra",
+    "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+    "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+    "case_sha256": "c95b2d3df234ee30d3df10be2033f4efab8069bd4e41019bfc377d74265fad99",
+    "run_plan_sha256": "8546e885b4a3d83074a53cfae29b32c2d0b127a624803ef24167cfc0b3fcd9b8",
+    "receipt_sha256": "982f7a4add0e995ae81d5ce7d3960f12e09380f104ba99e77a508b72165c4f88",
+    "inference_seed": 322000,
+    "status": "completed",
+    "route_verified": true,
+    "replay_verified": true,
+    "reported_cost_usd": 0.000248094,
+    "scope": "full_case_schema_route_compatibility_not_campaign_analysis"
+  },
+  "alternate_route_qualification": {
+    "qualification_id": "mistral32_parasail_indicator_map_tydal_seed_422100",
+    "provider": "Parasail",
+    "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+    "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+    "case_sha256": "4da4f11c913e01bf726b3309309ee1797222416d2e85c4fd504f1a35c07662be",
+    "run_plan_sha256": "10720cdef7b0e1621fcde168929420e06e847ae724f6bef738b092d2c1a16a02",
+    "receipt_sha256": "39a19368181a26dbe66c455448d79f105c2218d5e78ea8f605a0883af37991ca",
+    "inference_seed": 422100,
+    "status": "provider_rejected_pre_inference",
+    "failure_class": "environment_failure",
+    "failure_condition": "provider_rejected",
+    "reported_cost_usd": 0.0,
+    "decision": "exclude_parasail_from_campaign"
+  },
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T20:00:55Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints"
+    ],
+    "selection_rule": "use_only_full_case_qualified_provider_routes_supporting_seed_response_format_structured_outputs_complete_boolean_objects_and_price_caps_no_fallback",
+    "selected_endpoints": {
+      "mistral32_deepinfra": {
+        "provider": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      },
+      "qwen3_235b_google": {
+        "provider": "Google",
+        "tag": "google-vertex/us-south1",
+        "quantization": "unknown",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      }
+    }
+  },
+  "cases": {
+    "helios-phased-capacity-revenue-and-draws": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v3.helios-phased-capacity-revenue-and-draws",
+      "expected_case_sha256": "bd3c6369b744448e1bfa1a790c5e01f4139c4688715e88d4167a7cf8426e0c96",
+      "source_cluster_id": "sec_galaxy_helios_2026",
+      "world_seed": 552001
+    },
+    "lake-mariner-lease-commencement-prepaid-rent-and-land": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v3.lake-mariner-lease-commencement-prepaid-rent-and-land",
+      "expected_case_sha256": "0a75a4706b65bfb56496942e72d57ec0883c93f49c1601df02f92a81e319ea0c",
+      "source_cluster_id": "sec_terawulf_lake_mariner_2026",
+      "world_seed": 552002
+    },
+    "tydal-open-book-epc-governance-and-risk": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v3.tydal-open-book-epc-governance-and-risk",
+      "expected_case_sha256": "4da4f11c913e01bf726b3309309ee1797222416d2e85c4fd504f1a35c07662be",
+      "source_cluster_id": "sec_bitdeer_tydal_2026",
+      "world_seed": 552003
+    }
+  },
+  "inference_seeds": [
+    422101
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_integrated_v7_mistral32_deepinfra",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_integrated_v7"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_google": {
+      "profile_id": "datacenter_terms_integrated_v7_qwen3_235b_google",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Google",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.22,
+        "cached_input_per_million": 0.22,
+        "output_per_million": 0.88,
+        "pricing_id": "openrouter_2026-09-03_qwen3_google_terms_integrated_v7"
+      },
+      "max_prompt_price_per_million": "0.22",
+      "max_completion_price_per_million": "0.88"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_indicator_map_v1",
+    "schema_mode": "complete_indicator_maps_v1",
+    "indicator_maps": true,
+    "max_output_tokens": 1200,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.025,
+    "campaign_max_cost_usd": 0.15,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 3,
+    "independent_cluster_count": 3,
+    "resampling_unit": "public_filing_project_cluster",
+    "replicate_policy": "one_fresh_predeclared_paired_seed_full_panel_answerability_corrected_replacement",
+    "paired_by": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "primary_contrast": "qwen3_235b_google_minus_mistral32_deepinfra",
+    "primary_endpoints": [
+      "hard_gate_pass",
+      "score",
+      "forbidden_selection_count"
+    ],
+    "missingness": "report_separately_and_require_both_routes_for_pair_no_selective_retry",
+    "replacement_scope": "full_panel_not_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

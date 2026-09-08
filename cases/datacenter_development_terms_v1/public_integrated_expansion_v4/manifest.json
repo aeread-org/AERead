@@ -1,0 +1,46 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v4",
+  "base_pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+  "base_pack_sha256": "7caf40e4b7a67105ca15d5836e316c52facb9c3865015b1964ab15808c6c42a7",
+  "case_count": 3,
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "derived_split": "public_integrated_expansion_v4",
+  "transformation_id": "append_explicit_numeric_unit_contract_v1",
+  "unit_instruction": "Numeric-unit rule: return monetary amounts in base currency units, not in millions or billions (for example, $90 million is 90000000 and NOK 4.5 billion is 4500000000). For every other numeric field, use the unit named by its key, including MW, percent, days, months, years, acres, DSCR, and counts.",
+  "currency_base_unit_fields": {
+    "helios-phased-capacity-revenue-and-draws": [
+      "advance_lease_billings",
+      "recognized_data_center_lease_revenue",
+      "facility_maximum",
+      "facility_drawn"
+    ],
+    "lake-mariner-lease-commencement-prepaid-rent-and-land": [
+      "prepaid_rent_received",
+      "current_deferred_rent",
+      "noncurrent_deferred_rent",
+      "remaining_deferred_rent"
+    ],
+    "tydal-open-book-epc-governance-and-risk": [
+      "estimated_total_refurbishment_nok"
+    ]
+  },
+  "preserved_fields": [
+    "title",
+    "task_family_id",
+    "independence_cluster_id",
+    "tier",
+    "cutoff",
+    "authority",
+    "observations",
+    "response_vocabulary",
+    "oracle",
+    "world_seed"
+  ],
+  "inference_status": "answerability_and_units_corrected_indicator_map_three_additional_project_cluster_diagnostic",
+  "authority_modes_exercised": [
+    "report"
+  ]
+}
