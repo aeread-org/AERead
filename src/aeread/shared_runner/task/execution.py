@@ -4027,12 +4027,19 @@ async def execute_plan_cell(
         request_seed_by_profile=request_seed_by_profile,
         combined_cost_ceiling_usd=combined_cost_ceiling_usd,
     )
-    result = await run_episode(
-        cell=cell,
-        case=case,
-        plugin=plugin,
-        response_source=executor,
-    )
+    try:
+        result = await run_episode(
+            cell=cell,
+            case=case,
+            plugin=plugin,
+            response_source=executor,
+        )
+    except Exception as error:
+        # Campaign drivers still need the provider-accounted spend when an
+        # episode cannot return a CellExecution (for example, malformed model
+        # output after one or more successful billed harness rounds).
+        setattr(error, "aeread_total_cost_usd", executor.total_cost_usd)
+        raise
     evidence.audit_reconciliation()
     return CellExecution(
         run_plan_id=plan.run_plan_id,

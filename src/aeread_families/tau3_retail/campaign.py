@@ -29,6 +29,7 @@ from aeread.shared_runner.task.evaluation import (
 )
 from aeread.shared_runner.task.execution import (
     ArenaChatClient,
+    ProviderFailure,
     ProviderRequest,
     execute_plan_cell,
 )
@@ -50,7 +51,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v17"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v18"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
@@ -59,18 +60,18 @@ PRIVACY_BOUNDARY = {
 
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
-    "tau3.retail.base.14",
-    "tau3.retail.base.10",
-    "tau3.retail.base.73",
-    "tau3.retail.base.108",
-    "tau3.retail.base.83",
+    "tau3.retail.base.11",
+    "tau3.retail.base.82",
+    "tau3.retail.base.5",
+    "tau3.retail.base.48",
+    "tau3.retail.base.84",
 )
 PANEL_STRATA = (
-    "multi_order_return_state_transition",
-    "payment_method_refusal_escalation",
-    "single_order_exclusion_return",
-    "return_with_refund_disclosure",
-    "unavailable_payment_method_fallback",
+    "cross_payment_refund_fallback",
+    "expensive_item_return_escalation",
+    "contingent_exchange_or_return",
+    "return_with_eligibility_inquiry",
+    "confirmation_driven_return_change",
 )
 SEED = 300
 MAX_PARALLEL_CELLS = 1
@@ -93,6 +94,24 @@ def _combined_cap_cost(error: BaseException) -> float | None:
     """Return the actual sealed charge when the executor stops at its combined cap."""
     match = _COMBINED_CAP_REACHED.search(str(error))
     return float(match.group(1)) if match else None
+
+
+def _accounted_failure_cost(error: BaseException) -> float:
+    value = getattr(error, "aeread_total_cost_usd", 0.0)
+    return (
+        float(value)
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+        else 0.0
+    )
+
+
+def _provider_failure_condition(error: BaseException) -> str | None:
+    current: BaseException | None = error
+    while current is not None:
+        if isinstance(current, ProviderFailure):
+            return current.condition
+        current = current.__cause__
+    return None
 
 
 def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -164,6 +183,7 @@ def build_campaign_plan() -> dict[str, Any]:
             "max_parallel_cells": MAX_PARALLEL_CELLS,
             "abort_on_operational_failure": True,
             "continue_on_combined_cost_cap": True,
+            "continue_on_malformed_response": True,
             "resume_only_failure_free_checkpoints": True,
             "publish_only": True,
             "scored_case_count": len(PANEL_CASE_IDS),
@@ -304,7 +324,11 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 checkpoint_payload
             ):
                 raise RuntimeError("campaign cannot resume from a failed checkpoint")
-            if checkpoint.get("status") in {"complete", "cap_reached"}:
+            if checkpoint.get("status") in {
+                "complete",
+                "cap_reached",
+                "malformed_response",
+            }:
                 total_cost += float(checkpoint["cost_usd"])
                 continue
             raise RuntimeError("campaign cannot resume from an operational-failure checkpoint")
@@ -392,6 +416,26 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 if total_cost > HARD_TOTAL_COST_CEILING_USD:
                     raise RuntimeError("campaign exceeded its hard total cost ceiling") from error
                 continue
+            if _provider_failure_condition(error) == "malformed_structured_output":
+                malformed_cost = _accounted_failure_cost(error)
+                checkpoint = {
+                    "schema_version": "aeread.tau3_retail_checkpoint/0.1",
+                    "campaign_id": CAMPAIGN_ID,
+                    "plan_sha256": plan["plan_sha256"],
+                    "ordinal": ordinal,
+                    "case_id": case_id,
+                    "status": "malformed_response",
+                    "failure_type": type(error).__name__,
+                    "failure_condition": "malformed_structured_output",
+                    "cost_usd": malformed_cost,
+                    "included": False,
+                }
+                checkpoint["record_sha256"] = _digest(checkpoint)
+                _write_once_json(checkpoint_path, checkpoint)
+                total_cost += malformed_cost
+                if total_cost > HARD_TOTAL_COST_CEILING_USD:
+                    raise RuntimeError("campaign exceeded its hard total cost ceiling") from error
+                continue
             failure = {
                 "schema_version": "aeread.tau3_retail_checkpoint/0.1",
                 "campaign_id": CAMPAIGN_ID,
@@ -425,7 +469,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         raise RuntimeError("cannot publish a campaign with a rejected canary")
     receipt_rows: list[dict[str, Any]] = []
     trajectory_rows: list[dict[str, Any]] = []
-    cap_reached_rows: list[dict[str, Any]] = []
+    excluded_rows: list[dict[str, Any]] = []
     for ordinal, case_id in enumerate(PANEL_CASE_IDS):
         checkpoint = json.loads(
             (run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json").read_text(
@@ -440,12 +484,12 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
             checkpoint_payload
         ):
             raise RuntimeError(f"cannot publish incomplete case {case_id}")
-        if checkpoint.get("status") == "cap_reached":
-            cap_reached_rows.append(
+        if checkpoint.get("status") in {"cap_reached", "malformed_response"}:
+            excluded_rows.append(
                 {
                     "case_id": case_id,
                     "stratum": PANEL_STRATA[ordinal],
-                    "status": "cap_reached",
+                    "status": checkpoint["status"],
                     "failure_condition": checkpoint["failure_condition"],
                     "cost_usd": checkpoint["cost_usd"],
                 }
@@ -475,7 +519,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
             }
         )
     total_cost = float(canary["cost_usd"]) + sum(
-        float(row["cost_usd"]) for row in trajectory_rows + cap_reached_rows
+        float(row["cost_usd"]) for row in trajectory_rows + excluded_rows
     )
     summary = {
         "campaign_id": CAMPAIGN_ID,
@@ -484,8 +528,11 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "canary_cost_usd": canary["cost_usd"],
         "planned_cases": len(PANEL_CASE_IDS),
         "completed_cases": len(trajectory_rows),
-        "cap_reached_cases": len(cap_reached_rows),
-        "cap_reached": cap_reached_rows,
+        "cap_reached_cases": sum(row["status"] == "cap_reached" for row in excluded_rows),
+        "malformed_response_cases": sum(
+            row["status"] == "malformed_response" for row in excluded_rows
+        ),
+        "excluded_cases": excluded_rows,
         "operational_failures": 0,
         "total_cost_usd": total_cost,
         "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
