@@ -65,6 +65,45 @@ short form:
   `/Users/chenyusu/AERead` (that checkout is live); work in a scratch
   worktree with a `cd "$wt" || exit` guard.
 
+## Before you start on a family, look for someone already on it
+
+`--author @me` points at your own work, which is the one place a collision
+cannot be. Before opening a branch on a family or adapter, also run:
+
+```
+gh pr list --state open --search "<family>"
+gh issue list --search "<family>"
+```
+
+Then say you are taking it — one line on the issue is the whole protocol.
+And **assign an issue to yourself when you file it** if you mean to do it:
+an unassigned issue is an open invitation and will be read as one.
+
+This is not hypothetical. Two of us migrated the same three family scorers in
+parallel (#141). In two of the three cases the other person's PR had been open
+for **five and eighteen hours** when the second branch was started; the third
+pair was opened five minutes apart, where nobody could have known. The issues
+that described the work -- #74, #75, #76 -- were filed by one of us and left
+unassigned.
+
+## A clean merge is not evidence
+
+When two branches touch the same family's `measurement.py`, `environment.py`
+or scorer, the second to land re-runs that family's tests **against the merged
+file**, not against its own branch.
+
+Each branch in #141 passed its own suite (30 tests and 24). The automatic
+merge, with no conflict anywhere in `measurement.py`, produced a scorer that
+fails 6: both sides had added a `__call__` to the same class at different
+points in the file, git merged two non-overlapping insertions, and Python
+silently kept the later one. The govsim pair edited the same lines, conflicted
+loudly, and was safe. The difference between "caught" and "silently wrong" was
+where in the file each person happened to put the method.
+
+`tests/test_no_duplicate_class_members.py` fails on that shape now. It cannot
+catch two definitions a person merged by hand into one wrong one, so the rule
+stands on its own.
+
 ## Merging is a step that can fail
 
 A green branch proves the branch. It does not prove what `main` becomes
