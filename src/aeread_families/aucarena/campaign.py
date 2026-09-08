@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.adapter_campaign import (
+from aeread.shared_runner.run.adapter_campaign import (
     MODEL,
     PROVIDER,
     REVISION,

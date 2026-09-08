@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from aeread.shared_runner.adapter_campaign import BASE_URL, MODEL, PROVIDER, REVISION
+from aeread.shared_runner.run.adapter_campaign import BASE_URL, MODEL, PROVIDER, REVISION
 from aeread.shared_runner.model_call.harness import (
     CanonicalMessage,
     FailureCondition,

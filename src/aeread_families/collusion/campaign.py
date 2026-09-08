@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse, asyncio, hashlib, json
 from pathlib import Path
 from typing import Any
-from aeread.shared_runner.adapter_campaign import MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, _digest, _write_once
+from aeread.shared_runner.run.adapter_campaign import MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, _digest, _write_once
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
 from aeread.shared_runner.run.publication import SANITIZATION_DECLARATION, assert_public_payload, atomic_publish, jsonl, receipt_projection
 from aeread.shared_runner.run.resolver import canonical_json_bytes

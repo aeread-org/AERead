@@ -4,7 +4,7 @@ import hashlib,json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from aeread.shared_runner.adapter_campaign import BASE_URL,MODEL,PROVIDER,REVISION
+from aeread.shared_runner.run.adapter_campaign import BASE_URL,MODEL,PROVIDER,REVISION
 from aeread.shared_runner.model_call.harness import CanonicalMessage,FailureCondition,HarnessOutput,default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry,HarnessRequirements,PluginRegistry,ProviderCapabilities
 from aeread.shared_runner.run.resolver import ImplementationPin,canonical_json_bytes,resolve_run_plan
