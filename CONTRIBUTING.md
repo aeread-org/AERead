@@ -8,7 +8,7 @@ Four contribution channels: **cases** (§1), **agents/results** (§2),
 ```bash
 git clone https://github.com/aeread-org/AERead && cd AERead
 pip install -e ".[dev]"     # Python 3.10+
-pytest -q                   # offline, deterministic, no API keys (~3 min)
+pytest -q -n auto           # offline, deterministic, no API keys (~17 min on 8 cores; ~35 min serial)
 ```
 
 New to the project? Read [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md) (5 minutes,
@@ -125,7 +125,8 @@ version:
 
 ```bash
 pip install -e '.[dev]'
-pytest tests/ -q        # provider-free; no API keys needed
+pytest tests/ -q -n auto  # provider-free; no API keys needed. fsync is a no-op under pytest;
+                          # set AEREAD_TEST_DURABLE_WRITES=1 to keep real durable writes
 ```
 
 - Python ≥ 3.10, no new runtime dependencies without discussion.
