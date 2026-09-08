@@ -16,7 +16,7 @@ It lives under `evidence/<campaign_id>/` and always has the same shape:
 | Path | What it holds |
 |---|---|
 | `README.md` | Campaign intent, what was excluded, and whether the run supports any ranking claim |
-| `trajectories/sanitized.jsonl` | One record per episode: parsed model output, typed failure, metrics, route and usage facts |
+| `trajectories/sanitized.jsonl` | The trajectory grain. Its shape is declared per row: kernel rows carry `schema_version: aeread.sanitized_trajectory_row/0.1` and are one record per logical action (§5, the target for every new publication); older family rows have no `schema_version` and are one record per episode (parsed model output, typed failure, metrics, route and usage facts). Housing bundles predate both and publish `attempted.json`/`selected.json` instead |
 | `receipts/projections.jsonl` | One record per `EvaluationReceipt`: scores by leaf, inclusion status, replay level |
 | `tables/benchmark_results.csv`, `tables/model_features.csv`, `tables/profiles.csv` | Canonical fact tables the paper reads from |
 | `tables/fact_manifest.json` | SHA-256 of every table and the contract that produced them |
@@ -123,3 +123,61 @@ If you are preparing trajectories for someone else to review, ship:
 
 A bundle with only successful trajectories and a prose assurance that replay
 passed is not ready for review.
+
+## 5. The kernel trajectory grain (`trajectories/sanitized.jsonl`)
+
+Families used to decide individually whether a bundle carried the per-action
+trace at all (most procurement bundles carried none; commercial-state and tau3
+each shaped their own). The kernel now provides one family-neutral projection
+so the trace is published the same way everywhere and can be added to a bundle
+that already exists.
+
+`aeread.shared_runner.run.publication.sanitized_trajectory_rows(evidence, receipt)`
+projects one sealed evidence store onto one row per logical action, in event
+order (`schema_version: aeread.sanitized_trajectory_row/0.1`). A row carries:
+
+- identity and ordering: `source_receipt_sha256`, `run_plan_sha256`,
+  `cell_id`, `case_id`, `episode_attempt_id`, `step_index`,
+  `logical_action_id`, `phase_id`, `seat_id`, `role`, `profile_id`;
+- `action`: the parsed, structured action the environment received (this is
+  model-authored content, but it is the typed action, not the provider text);
+- `parse` (`ok`, `error_code`), `legality` (`legal`, `reason`), `outcome`
+  (`status`, `valid`, `failure_code`); `status` is one of `succeeded`,
+  `failed`, `outcome_unknown`, or `agent_action_failure` (an invalid action
+  the environment answered with its default transition);
+- `attempts[]`: each retry with its `provider_calls[]` — requested and resolved
+  model, `pricing_id`, `request_sha256`, token counts, `cost_usd`, finish
+  reason, or the typed failure condition — and the canonical response's
+  `empty`/`truncated` flags;
+- `tools[]`: tool dispatch and invocation dispositions by id.
+
+It never carries observations, prompts, messages, provider output text, raw
+responses, or environment state; `sanitized_trajectory_jsonl` refuses the
+payload if a prohibited token slips through. The function rejects a receipt
+that does not belong to the store it is given.
+
+To add the grain to a published kernel-standard bundle
+(`aeread.publication_manifest/0.1`), run
+
+```bash
+aeread publish-trajectories evidence/<campaign_id> runs/<family>/<campaign_id>/**/<attempt_dir>...
+```
+
+Every receipt must already be published by the bundle (the verb refuses
+otherwise), the file is written once, and `publication_manifest.json` is
+re-sealed with the new artifact digest via `add_publication_artifact`. This is
+a QC §4 mechanical correction: the earlier manifest stays in history and no
+reported number changes.
+
+**Only leaf bundles can take the grain in place.** Later campaigns freeze
+their parent bundle's `publication_manifest.json` digest as a control
+(`PARENT_EVIDENCE_FILE_SHA256` in the campaign module), and a changed frozen
+control requires a new campaign identity, so a pinned parent's manifest must
+not be re-sealed. Before republishing, grep `src/` and `tests/` for the
+bundle's current `manifest_sha256` and the sha256 of its manifest file; if
+either is pinned, publish the rows in a derived bundle instead, one file per
+parent, with `source_bindings.parent_publications` recording each parent's
+digests. `evidence/procurement_allocation_trajectory_grains_v1/` is the worked
+example for seven pinned procurement parents. Worked example:
+`evidence/procurement_allocation_glm_morph_case_variance_v2/trajectories/sanitized.jsonl`
+(116 rows over 18 receipts).

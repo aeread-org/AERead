@@ -39,8 +39,8 @@ PROMPT_SHA = "b" * 64
 
 class _ScriptedStubHarness:
     """A minimal `scripted/1.0` stand-in: no real implementation exists yet,
-    only the pin bookkeeping in `_inputs()` references it, so admission only
-    needs `id`/`version`/`requires` to resolve it."""
+    only the pin bookkeeping in `_inputs()` references it. Registration
+    enforces protocol completeness, so the hooks exist but must never run."""
 
     id = "scripted"
     version = "1.0"
@@ -54,6 +54,18 @@ class _ScriptedStubHarness:
         blocking=False,
         spawns_subagents=False,
     )
+
+    async def open_episode(self, episode):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    async def act(self, request, ctx):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    async def close_episode(self, episode):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    def classify_failure(self, exc):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
 
 
 def _capabilities(

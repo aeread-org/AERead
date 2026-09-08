@@ -39,7 +39,10 @@ from aeread.shared_runner import (
     write_evaluation_receipt,
     write_run_plan,
 )
-from aeread.shared_runner.analysis.research import main as export_tables_main
+from aeread.shared_runner.analysis.research import (
+    deserialize_evaluation_receipt,
+    main as export_tables_main,
+)
 from aeread_families.single_offer.runner import build_single_offer_smoke
 
 
@@ -109,7 +112,12 @@ def _score(plan, *, passed: bool = True) -> ScoreEnvelope:
     )
 
 
-def _receipt(plan, *, attempt_id: str = "attempt_000") -> EvaluationReceipt:
+def _receipt(
+    plan,
+    *,
+    attempt_id: str = "attempt_000",
+    deferred_leaf_ids: tuple[str, ...] = (),
+) -> EvaluationReceipt:
     cell = plan.cells[0]
     score = _score(plan)
     episode_id = episode_id_for_cell(cell)
@@ -163,6 +171,7 @@ def _receipt(plan, *, attempt_id: str = "attempt_000") -> EvaluationReceipt:
             scores=(score,),
             failure=None,
             replay_level="state_and_score",
+            deferred_leaf_ids=deferred_leaf_ids,
         )
     )
 
@@ -194,6 +203,27 @@ def test_research_ledger_preserves_complete_plan_grid_and_receipt_attempts() -> 
     assert tuple(tables) == ("campaigns", "cells", "attempts")
     assert tables["campaigns"][0]["coverage"] == 1.0
     assert tables["cells"][0]["status"] == "included"
+
+
+def test_deserialize_evaluation_receipt_round_trips_deferred_leaf_ids() -> None:
+    """A receipt's ``deferred_leaf_ids`` (kernel_contract_impl_review.md
+    finding 12) must survive research.py's own serialize/deserialize round
+    trip, not just kernel-level ``write_evaluation_receipt``/
+    ``read_evaluation_receipt``: ``_deserialize_receipt`` reconstructs an
+    ``EvaluationReceipt`` field-by-field from a plain mapping, and a field
+    added to the dataclass without also being read back here would silently
+    default to ``()`` and fail ``verify_evaluation_receipt`` the moment any
+    receipt actually has a non-empty value."""
+
+    plan = _plan()
+    receipt = _receipt(plan, deferred_leaf_ids=("some_other_deferred_leaf_v1",))
+    assert receipt.deferred_leaf_ids == ("some_other_deferred_leaf_v1",)
+
+    serialized = json.loads(canonical_json_bytes(receipt))
+    rebuilt = deserialize_evaluation_receipt(serialized)
+
+    assert rebuilt == receipt
+    assert rebuilt.deferred_leaf_ids == ("some_other_deferred_leaf_v1",)
 
 
 def test_research_ledger_rejects_multiple_included_attempts_for_one_cell() -> None:

@@ -1,0 +1,11 @@
+# Kernel lane. A change to any of these paths needs one approving review from
+# someone other than the author before it can merge (enforced by the
+# `kernel-review` status check in .github/workflows/pr-lanes.yml). Listing two
+# owners means either can review the other's kernel PRs.
+/src/aeread/shared_runner/   @LEE-CHENYU @zeyusuntt
+/src/aeread/cli.py           @LEE-CHENYU @zeyusuntt
+/conftest.py                 @LEE-CHENYU @zeyusuntt
+/tests/conftest.py           @LEE-CHENYU @zeyusuntt
+
+# Repository policy: workflows, owners, templates.
+/.github/                    @LEE-CHENYU

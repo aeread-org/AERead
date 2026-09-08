@@ -1,7 +1,7 @@
 """D15 scoring bridge for arena run dirs — the seam `submit._score_run` imports.
 
 Scores one V1 arena run directory under the carve-out contract v2
-(docs/design/2026-07-08_carveout_oracle_unsaturated.md), consistent with
+(docs/design/2026-07-08_carveout_oracle_unsaturated.md; historical, not on main, see `git log --all -- docs/design`), consistent with
 `aeread.exchange_v1.aer_scorer` (the case-oracle scorer for bundle/procurement actions):
 
     score = W_real / denominator        (RAW — negatives preserved, may exceed 1)

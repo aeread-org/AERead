@@ -665,3 +665,51 @@ the explicit zero-attempt
 [`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/trajectories/attempted.json),
 and the reusable admission
 [`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/tables/fact_manifest.json).
+
+## 19. V12 preregistered paced full-trajectory gate
+
+[`housing_model_sensitivity_openrouter_deepinfra_v12`](../../../configs/housing_model_sensitivity_openrouter_deepinfra_v12.json)
+is a new campaign identity created in response to V11's admission-rate-limit
+result. It does not retry or amend V11. V12 keeps the same selected
+configuration, development world, four subject-opponent conditions, DeepInfra
+and Parasail routes, schemas, prompts, sampling, retry ownership, and cost
+ceilings.
+
+The sole execution treatment added by V12 is a frozen provider-call scheduler.
+Each route receives a 15-second minimum start-to-start interval, including a
+15-second first-call delay. One scheduler instance is shared across profile
+admission and the full-trajectory stage, so passing admission under a gentle
+cadence cannot be followed by an unpaced trajectory burst. The scheduler
+delegates exactly one call for each shared-runner request and owns no retry
+policy. Its implementation file is digest-pinned in the campaign contract, and
+each admission probe and trajectory records observed provider-call and pacing
+wait counts.
+
+V12 remains a one-world promotion gate. It may establish only whether every
+frozen model pairing completes one replay-verified trajectory under the paced
+execution condition. It cannot support a winner, model ranking, variance
+estimate, or confirmatory claim. If any admission probe fails, all four
+trajectories remain blocked; if any trajectory fails, the missing cell remains
+typed missingness and is not selectively rerun.
+
+The executed gate attempted all 18 admission probes. Parasail/DeepSeek passed
+9 of 9 and DeepInfra/GLM passed 8 of 9. The first DeepInfra call passed after
+147.14 seconds including the 15-second initial wait. Because the frozen policy
+measured starts rather than completions, the next DeepInfra call received zero
+additional wait and returned HTTP 429; the following call waited 14.68 seconds
+and passed. The other 15 probes passed. Provider-reported billing was
+`$0.001947033`; billing is incomplete because the failed call exposed no cost.
+
+This result rejects the V12 pacing treatment for promotion. It also exposes a
+separate admission-control defect: the 147.14-second row exceeded the declared
+120-second call timeout because profile admission invokes the provider adapter
+without the shared runner's timeout wrapper. All four trajectories were
+therefore blocked with zero trajectory provider calls. Do not amend or retry
+V12. A new campaign must freeze a completion-to-next-start cooldown and enforce
+the same wall-time timeout semantics in admission and trajectory execution.
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/reports/qualification.json),
+the zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
+and the pacing-aware canonical
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).

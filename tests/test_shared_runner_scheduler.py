@@ -192,6 +192,17 @@ def test_simultaneous_phase_freezes_private_observations_and_steps_once() -> Non
     assert len(result.phase_instances[0].transitions) == 1
 
 
+def test_episode_result_carries_the_world_seed_for_score_time_replay() -> None:
+    """A scorer that must independently reproduce seeded randomness needs a
+    kernel-guaranteed route to the seed; the per-family workaround of stashing
+    it inside state is not a contract."""
+
+    requests: list = []
+    result = asyncio.run(_offers(requests))
+
+    assert result.world_seed == 41001
+
+
 def test_simultaneous_peer_observation_is_independent_of_other_peer_action() -> None:
     first_requests: list = []
     second_requests: list = []
@@ -387,4 +398,201 @@ def test_phase_budget_stops_an_endless_declared_cycle() -> None:
                 cell=_cell(), case=_case(), plugin=EndlessPlugin(), response_source=respond
             )
         )
+
+
+class ClosingPlugin(SimultaneousFixturePlugin):
+    def __init__(self) -> None:
+        super().__init__()
+        self.close_calls: list = []
+
+    def close(self, case, state):
+        self.close_calls.append((case, state))
+
+
+def test_optional_close_hook_runs_once_after_terminal_with_the_final_state() -> None:
+    plugin = ClosingPlugin()
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    result = asyncio.run(
+        run_episode(
+            cell=_cell(), case=_case(), plugin=plugin, response_source=respond
+        )
+    )
+
+    assert len(plugin.close_calls) == 1
+    closed_case, closed_state = plugin.close_calls[0]
+    assert closed_case == plugin.validate_payload(_case().payload)
+    assert closed_state == result.final_state
+    assert result.terminal == {"reason": "settled"}
+
+
+def test_close_hook_failure_is_a_typed_scheduler_error() -> None:
+    class BrokenClosePlugin(ClosingPlugin):
+        def close(self, case, state):
+            raise RuntimeError("daemon refused to die")
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="family close failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=BrokenClosePlugin(),
+                response_source=respond,
+            )
+        )
+
+
+def test_close_hook_runs_when_preflight_fails_after_the_case_validates() -> None:
+    """validate_payload is where a family would spawn its long-lived process;
+    a later preflight failure must still reach teardown, or the hook leaks
+    exactly the resource it exists to release."""
+
+    closed: list = []
+
+    class PreflightFailurePlugin(ClosingPlugin):
+        def phases(self, case):
+            raise RuntimeError("phase graph could not be built")
+
+        def close(self, case, state):
+            closed.append((case, state))
+
+    async def respond(_request):
+        raise AssertionError("no action may be requested")
+
+    with pytest.raises(SchedulerContractError, match="family preflight failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=PreflightFailurePlugin(),
+                response_source=respond,
+            )
+        )
+
+    assert len(closed) == 1
+    closed_case, closed_state = closed[0]
+    assert closed_case == PreflightFailurePlugin().validate_payload(_case().payload)
+    assert closed_state is None, "no state exists yet when phases() fails"
+
+
+def test_close_is_skipped_when_the_family_case_itself_never_validated() -> None:
+    """Nothing to tear down that the kernel could name: the plugin never
+    received a validated case, so no per-episode resource is keyed to one."""
+
+    closed: list = []
+
+    class ValidationFailurePlugin(ClosingPlugin):
+        def validate_payload(self, payload):
+            raise RuntimeError("payload rejected")
+
+        def close(self, case, state):
+            closed.append((case, state))
+
+    async def respond(_request):
+        raise AssertionError("no action may be requested")
+
+    with pytest.raises(SchedulerContractError, match="family preflight failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=ValidationFailurePlugin(),
+                response_source=respond,
+            )
+        )
+    assert closed == []
+
+
+def test_a_close_attribute_with_the_wrong_arity_is_a_named_contract_error() -> None:
+    """A plugin inheriting an unrelated zero-argument close() must fail with a
+    message that names the collision, not an opaque TypeError."""
+
+    class UnrelatedClosePlugin(SimultaneousFixturePlugin):
+        def close(self):
+            return None
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="close\\(family_case, state\\)"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=UnrelatedClosePlugin(),
+                response_source=respond,
+            )
+        )
+
+
+def test_close_hook_runs_on_episode_failure_and_never_masks_it() -> None:
+    close_attempts: list = []
+
+    class ClosingEndlessPlugin(EndlessPlugin):
+        def close(self, case, state):
+            close_attempts.append(state)
+            raise RuntimeError("teardown also failed")
+
+    async def respond(_request):
+        return {"increment": 1}
+
+    with pytest.raises(SchedulerContractError, match="phase logical-action budget"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=ClosingEndlessPlugin(),
+                response_source=respond,
+            )
+        )
+    assert len(close_attempts) == 1, "teardown must be attempted on failure"
+
+
+class RecurringPairPlugin(SimultaneousFixturePlugin):
+    """Both seats act each instance and the phase cycles back to itself."""
+
+    def phases(self, case):
+        return (
+            replace(
+                super().phases(case)[0],
+                max_logical_actions=5,
+                next_phases=("submit",),
+            ),
+        )
+
+    def step(self, case, state, phase, actions):
+        return TransitionResult(state=state, next_phase_id="submit")
+
+    def terminal(self, case, state):
+        return None
+
+
+def test_phase_budget_sums_across_recurring_instances_never_resets_per_round() -> None:
+    """max_logical_actions is a whole-episode cap per phase_id: two actions per
+    instance against a cap of five must trip on the sixth action (third
+    instance), even though every single instance stays under the cap. A
+    per-instance reset would instead run on to the case budget and fail with a
+    different error."""
+
+    requests: list = []
+
+    async def respond(request):
+        requests.append(request)
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="phase logical-action budget"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=RecurringPairPlugin(),
+                response_source=respond,
+            )
+        )
+    assert len(requests) == 5, "the sixth action must be refused before dispatch"
 

@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_18",
+  "content_sha256": "f75eefba3ae17c034760a0122858798b1ab163598c639e05a38f41cf90849d4f",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 23.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_18",
+      "cost": 8.99,
+      "description": "Experience a new dimension of creativity with the Pixobitz Studio! This DIY studio has everything you need to make your own 3D and 2D pixel art creations that stick together with water. The Pixobitz Studio features 500 Bitz (cube-shaped water fuse beads) in 10 colors, 14 accessories, over 100 water transfer decos, four easy-to-use tools, two trays and three template cards. Following the templates in this bead kit, make 12 amazing end results, including cool avatars, adorable animals, photo holders, a boombox, skateboard and more, or design your own unique creations. Creating with Pixobitz is as easy as stack, spray, and style! Slide a template under a tray and use the tools to help you build. Lay out your Bitz on the tray – the cube design makes them easy to stack, preventing them from rolling away. Mist each layer, then style your creation! Choose from different water deco eyes, facial expressions, outfits, letters, icons and more, and accessories including ears, hair buns, keychains and more. With so many Bitz, water decos and accessories, there are endless ways to create! For best results, wait 20 minutes after each layer and 45 minutes for your Pixobitz bead art to fully set before play. Use your creations in imaginative pretend play or display them as creative kids room decor! For easy organization and storage, the Pixobitz Studio closes into a carrying case and fits everything inside – take it with you on-the-go! The Pixobitz Studio and the Clear and Metallic Bead Packs (each sold separately) are fun kids crafts, perfect toys for girls and boys who like arts and crafts projects, DIY kits and toy building sets. They’re great birthday gifts for kids, Christmas gifts or gifts for any occasion. Unleash your creativity with the Pixobitz Studio!",
+      "index_in_file": 17,
+      "interest": "mutual",
+      "price": 29.99,
+      "title": "Pixobitz Studio with 500 Water Fuse Beads, Decos and Accessories, Makes 3D Creations with No Heat, Arts and Crafts Kids Toys for Ages for 6 and up"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09NPR3WCW",
+      "amazon_title": "Pixobitz Studio with 500 Water Fuse Beads, Decos and Accessories, Makes 3D Creations with No Heat, Arts and Crafts Kids Toys for Ages for 6 and up",
+      "average_price": "$15.58",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$8.99",
+      "current_price_date": "Nov 12, 2023",
+      "description": "Experience a new dimension of creativity with the Pixobitz Studio! This DIY studio has everything you need to make your own 3D and 2D pixel art creations that stick together with water. The Pixobitz Studio features 500 Bitz (cube-shaped water fuse beads) in 10 colors, 14 accessories, over 100 water transfer decos, four easy-to-use tools, two trays and three template cards. Following the templates in this bead kit, make 12 amazing end results, including cool avatars, adorable animals, photo holders, a boombox, skateboard and more, or design your own unique creations. Creating with Pixobitz is as easy as stack, spray, and style! Slide a template under a tray and use the tools to help you build. Lay out your Bitz on the tray – the cube design makes them easy to stack, preventing them from rolling away. Mist each layer, then style your creation! Choose from different water deco eyes, facial expressions, outfits, letters, icons and more, and accessories including ears, hair buns, keychains and more. With so many Bitz, water decos and accessories, there are endless ways to create! For best results, wait 20 minutes after each layer and 45 minutes for your Pixobitz bead art to fully set before play. Use your creations in imaginative pretend play or display them as creative kids room decor! For easy organization and storage, the Pixobitz Studio closes into a carrying case and fits everything inside – take it with you on-the-go! The Pixobitz Studio and the Clear and Metallic Bead Packs (each sold separately) are fun kids crafts, perfect toys for girls and boys who like arts and crafts projects, DIY kits and toy building sets. They’re great birthday gifts for kids, Christmas gifts or gifts for any occasion. Unleash your creativity with the Pixobitz Studio!",
+      "features": "NO HEAT NEEDED: The mess-free Bitz (cube-shaped beads) stick with water! Stack on the tray, spray each layer and style with unique Pixobitz accessories and water transfer decos!\nENDLESS WAYS TO CREATE: With 14 accessories like keychains and photo clips and over 100 decos like facial expressions, outfits, letters and more, style your way! Follow the templates or make your own creations!\nALL-IN-ONE WATER FUSE BEADS CRAFT KIT: Make 3D and 2D creations like avatars, a boombox and more with 500 Bitz in 10 colors, 4 tools, 3 templates (for 12 designs), 14 accessories and over 100 water decos!\nEASY STORAGE: The Pixobitz Studio toy fits everything inside and becomes a carrying case. Store the water fuse beads kit with your crafts and art supplies or take it on-the-go! Pixobitz crafts for kids are great gifts!\nFUN ARTS & CRAFTS TOYS FOR 6 YEAR OLD GIRLS AND BOYS: Discover endless ways to create with Pixobitz! Perfect toys for creative kids who enjoy DIY, self-expression, craft kits, building toys and more.\nIncludes: 1 Pixobitz Studio, 500 Bitz (Cube-Shaped Water Fuse Beads) in 10 Colors, 14 Accessories, 1 Water Transfer Deco Sheet, 4 Tools, 2 Trays, 3 Templates, 1 Instruction Guide\nCovered by the Spin Master Care Commitment. See below for full details",
+      "highest_price": "$29.99",
+      "highest_price_date": "Jul 08, 2022",
+      "img": "https://m.media-amazon.com/images/I/81gXU+PgWBL._AC_SY300_SX300_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09NPR3WCW?active=price_amazon&context=popular",
+      "list_price": "$29.99",
+      "lowest_price": "$8.99",
+      "lowest_price_date": "Nov 12, 2023",
+      "title": "Pixobitz Studio with 500 Water Fuse Beads, Decos and Accessories, Makes 3D Creations with No Heat, Arts and Crafts Kids Toys for Ages for 6 and up"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_18",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 918
+}

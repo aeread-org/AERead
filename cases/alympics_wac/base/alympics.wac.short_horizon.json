@@ -1,0 +1,116 @@
+{
+  "case_id": "alympics.wac.short_horizon",
+  "content_sha256": "45487bec8996a496efd17f8072fffe1b9291d19b6114fc396af5b032ac79fb97",
+  "episode": {
+    "max_logical_actions": 25,
+    "termination": [
+      "rounds_exhausted",
+      "all_seats_eliminated",
+      "malformed_action"
+    ]
+  },
+  "family_id": "alympics.wac",
+  "family_version": "0.1.0",
+  "payload": {
+    "grid_cell": {
+      "policy_assignment": {
+        "alex": "proportional",
+        "bob": "proportional",
+        "cindy": "proportional",
+        "david": "proportional",
+        "eric": "proportional"
+      },
+      "rounds": 5,
+      "supply_regime": {
+        "kind": "uniform",
+        "lower": 15,
+        "upper": 25
+      },
+      "supply_schedule_seed": 2
+    },
+    "personas": {
+      "alex": {
+        "daily_salary": 70,
+        "requirement": 8,
+        "upstream_name": "Alex"
+      },
+      "bob": {
+        "daily_salary": 75,
+        "requirement": 9,
+        "upstream_name": "Bob"
+      },
+      "cindy": {
+        "daily_salary": 100,
+        "requirement": 10,
+        "upstream_name": "Cindy"
+      },
+      "david": {
+        "daily_salary": 120,
+        "requirement": 11,
+        "upstream_name": "David"
+      },
+      "eric": {
+        "daily_salary": 120,
+        "requirement": 12,
+        "upstream_name": "Eric"
+      }
+    },
+    "seat_order": [
+      "alex",
+      "bob",
+      "cindy",
+      "david",
+      "eric"
+    ],
+    "starting_state": {
+      "balance": 0,
+      "hp": 8,
+      "maximum_health": 10,
+      "no_drink": 1
+    },
+    "supply_schedule": [
+      23,
+      23,
+      21,
+      17,
+      23
+    ],
+    "upstream_pin": {
+      "commit": "caed7c8c3b8f9de9ac8be1ba54407a51087affc5",
+      "license": "MIT",
+      "repo": "microsoft/Alympics"
+    }
+  },
+  "provenance": {
+    "generator_id": "alympics_wac_importer",
+    "generator_version": "0.1.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "alex",
+      "role": "player"
+    },
+    {
+      "id": "bob",
+      "role": "player"
+    },
+    {
+      "id": "cindy",
+      "role": "player"
+    },
+    {
+      "id": "david",
+      "role": "player"
+    },
+    {
+      "id": "eric",
+      "role": "player"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": null,
+  "visibility_policy": "alympics_wac_seat_private_bids_v1",
+  "world_seed": 2
+}

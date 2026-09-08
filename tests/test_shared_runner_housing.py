@@ -14,6 +14,7 @@ from aeread.shared_runner import (
     canonical_json_bytes,
     verify_evaluation_receipt,
 )
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.execution import _paired_cell_request_seed, execute_plan_cell
 from aeread_families.housing.runner import (
     HOUSING_COMMIT_OUTPUT_SCHEMA,
@@ -201,7 +202,11 @@ def test_housing_scorer_emits_typed_welfare_references_and_private_capture(
     plugin = setup.registry.resolve_manifest(setup.plan.families[0])
     family_case = plugin.validate_payload(case.payload)
     score = plugin.build_scorer(family_case)(
-        execution.episode_result.outcome,
+        FamilyScoringInput(
+            outcome=execution.episode_result.outcome,
+            phase_instances=execution.episode_result.phase_instances,
+            evidence_refs=(),
+        ),
         evidence_refs=("artifact_outcome",),
     )
 
@@ -247,7 +252,9 @@ def test_housing_feasible_floor_is_not_a_floor_on_realized_agent_welfare() -> No
         "bound_semantics": "full_information_allocation_relaxation",
     }
 
-    score = plugin.build_scorer(family_case)(outcome)
+    score = plugin.build_scorer(family_case)(
+        FamilyScoringInput(outcome=outcome, phase_instances=(), evidence_refs=())
+    )
 
     assert score.status == "ok"
     assert score.primary == MetricValue(-2.0, "utility_points")
@@ -273,7 +280,9 @@ def test_housing_scorer_fails_closed_when_the_declared_upper_bound_is_violated()
         "bound_semantics": "full_information_allocation_relaxation",
     }
 
-    score = plugin.build_scorer(family_case)(outcome)
+    score = plugin.build_scorer(family_case)(
+        FamilyScoringInput(outcome=outcome, phase_instances=(), evidence_refs=())
+    )
 
     assert score.status == "invalid_measurement"
     assert score.primary is None
@@ -299,9 +308,17 @@ def test_housing_score_replay_is_canonical_for_identical_outcomes() -> None:
     }
     scorer = plugin.build_scorer(family_case)
 
-    first = scorer(outcome, evidence_refs=("artifact_outcome",))
+    first = scorer(
+        FamilyScoringInput(outcome=outcome, phase_instances=(), evidence_refs=()),
+        evidence_refs=("artifact_outcome",),
+    )
     second = scorer(
-        dict(reversed(list(outcome.items()))), evidence_refs=("artifact_outcome",)
+        FamilyScoringInput(
+            outcome=dict(reversed(list(outcome.items()))),
+            phase_instances=(),
+            evidence_refs=(),
+        ),
+        evidence_refs=("artifact_outcome",),
     )
 
     assert canonical_json_bytes(first) == canonical_json_bytes(second)

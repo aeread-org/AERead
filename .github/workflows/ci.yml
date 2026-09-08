@@ -20,3 +20,45 @@ jobs:
         run: pip install -e '.[dev]'
       - name: Tests (provider-free)
         run: pytest tests/ -q
+
+  # Bridge-gated upstream-fidelity certification for the agenticpay.bilateral
+  # adapter. Kept separate from the `test` job above (which never provisions any
+  # family's bridge) so a bridge/provisioning failure here never blocks the
+  # provider-free suite that every other family's PR relies on. Without this job,
+  # `AEREAD_AGENTICPAY_BRIDGE_REQUIRED` is never set anywhere in CI, and
+  # conftest.py's skip-to-failure hook (off by default) never fires -- a plain
+  # `pytest tests/ -q` run can go green while every agenticpay upstream-fidelity
+  # assertion silently skipped (second-review Codex finding 6; see
+  # docs/agenticpay_codex_triage.md and tests/test_agenticpay_bilateral_ci_bridge_
+  # requirement.py, which asserts this job stays wired).
+  agenticpay-fidelity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned upstream AgenticPay
+        uses: actions/checkout@v4
+        with:
+          repository: SafeRL-Lab/AgenticPay
+          ref: 1ff4e1a2686eac6a07ff559df6d50329c6fd9f69
+          path: upstream-agenticpay
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install AERead
+        run: pip install -e '.[dev]'
+      - name: Provision the agenticpay bridge interpreter
+        env:
+          AEREAD_AGENTICPAY_UPSTREAM_ROOT: ${{ github.workspace }}/upstream-agenticpay
+        run: tools/agenticpay_bridge/provision.sh "${{ github.workspace }}/agenticpay-bridge-venv"
+      - name: Fidelity tests (bridge required -- must not silently skip)
+        env:
+          AEREAD_AGENTICPAY_UPSTREAM_ROOT: ${{ github.workspace }}/upstream-agenticpay
+          AEREAD_AGENTICPAY_BRIDGE_PYTHON: ${{ github.workspace }}/agenticpay-bridge-venv/bin/python
+          AEREAD_AGENTICPAY_BRIDGE_REQUIRED: "1"
+        run: >
+          pytest
+          tests/test_agenticpay_bilateral_cases.py
+          tests/test_agenticpay_bilateral_environment.py
+          tests/test_agenticpay_bilateral_measurement.py
+          tests/test_agenticpay_bilateral_replay.py
+          -q

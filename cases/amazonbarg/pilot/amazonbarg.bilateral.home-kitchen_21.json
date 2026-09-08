@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_21",
+  "content_sha256": "c75891a22b57b73b362abebb7e02570aea4fe343c83ea97307b34819c0bdec1b",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 16.6,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_21",
+      "cost": 9.98,
+      "description": "The Yankee Candle® Studio Collection is intentionally designed to fit seamlessly into your home. Each of these simply sophisticated, colored glass candles offers high-quality Yankee Candle fragrances made with essential oils. They can help create welcoming ambiance that makes everyday moments special for you and your loved ones.",
+      "index_in_file": 20,
+      "interest": "mutual",
+      "price": 20.75,
+      "title": "Yankee Candle Studio Medium Candle, Lemon Lavender, 10 oz, Home Décor"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0BLX8D4J3",
+      "amazon_title": "Yankee Candle Studio Medium Candle, Lemon Lavender, 10 oz, Home Décor",
+      "average_price": "$12.11",
+      "badge": "Best Price",
+      "category": "home-kitchen",
+      "current_price": "$9.98",
+      "current_price_date": "Nov 13, 2023",
+      "description": "The Yankee Candle® Studio Collection is intentionally designed to fit seamlessly into your home. Each of these simply sophisticated, colored glass candles offers high-quality Yankee Candle fragrances made with essential oils. They can help create welcoming ambiance that makes everyday moments special for you and your loved ones.",
+      "features": "Available in a variety of favorite Yankee Candle fragrances, made with essential oils\nSimple & uniquely-shaped colored glass jar\nPremium soy-wax blend\nWick made with natural fibers\nBurn time: 40-65 hours\nSuitable for many gifting occasions - this candle is a perfect gift for women/mom/girlfriend/sister/teacher/grandma! It can also add variety to your holiday/Christmas gifting as a stocking stuffer, secret Santa or white elephant gift.",
+      "highest_price": "$20.75",
+      "highest_price_date": "Nov 13, 2023",
+      "img": "https://m.media-amazon.com/images/I/613gIqWT3lL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0BLX8D4J3?active=price_amazon&context=popular",
+      "list_price": "$16.00",
+      "lowest_price": "$9.98",
+      "lowest_price_date": "Aug 18, 2023",
+      "title": "Yankee Candle Studio Medium Candle, Lemon Lavender, 10 oz, Home Décor"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_21",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 349
+}

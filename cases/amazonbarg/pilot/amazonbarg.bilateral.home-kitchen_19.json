@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_19",
+  "content_sha256": "939f73b46fdce39bb9832d0d9c6f7caf7507873958e8d0abcdb9f5f54a7e3dd7",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 66.392,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_19",
+      "cost": 25.5,
+      "description": "The MCS 11x14 inch Foundry Gallery Wall Frame is a modern and sophisticated display for photos and artwork. The frame is crafted of aluminum, and features a contemporary black finish with linear brushing that gives this frame a luxurious look. The front of the frame features shatter resistant glass which helps prevent breakage. Easily add your photo or artwork using the easy to use turn buttons. Hanging is a breeze, with the attached saw tooth hangers for vertical or horizontal wall hanging. The frame features a white mat that perfectly showcases an 8x10 inch photograph. The mat can be removed to feature an 11x14 inch photograph. Pair this frame with other sizes or finishes in this collection for that show stopping gallery wall you've been dreaming of.",
+      "index_in_file": 18,
+      "interest": "mutual",
+      "price": 82.99,
+      "title": "MCS Master & Co. Foundry Metal Gallery Wall Frame, Black, 11 x 14 in matted to 5 x 7 in"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B08LW1KZQW",
+      "amazon_title": "MCS Master & Co. Foundry Metal Gallery Wall Frame, Black, 11 x 14 in matted to 5 x 7 in",
+      "average_price": "$46.96",
+      "badge": "Best Price",
+      "category": "home-kitchen",
+      "current_price": "$44.59",
+      "current_price_date": "Nov 16, 2023",
+      "description": "The MCS 11x14 inch Foundry Gallery Wall Frame is a modern and sophisticated display for photos and artwork. The frame is crafted of aluminum, and features a contemporary black finish with linear brushing that gives this frame a luxurious look. The front of the frame features shatter resistant glass which helps prevent breakage. Easily add your photo or artwork using the easy to use turn buttons. Hanging is a breeze, with the attached saw tooth hangers for vertical or horizontal wall hanging. The frame features a white mat that perfectly showcases an 8x10 inch photograph. The mat can be removed to feature an 11x14 inch photograph. Pair this frame with other sizes or finishes in this collection for that show stopping gallery wall you've been dreaming of.",
+      "features": "MODERN DESIGN: The Metal frame features a .375\" wide profile and a sophisticated black finish with linear brushing, creating a sleek and contemporary display for your favorite photos or artwork\nDIMENSIONS: This frame measures 11.375x14.375 inches and includes an acid free white mat to feature a 5x7 inch photograph or art print; If mat is removed frame will feature an 11x14 inch photograph or art print\nQUALITY CONSTRUCTION: Each frame is constructed of aluminum metal and a shatter resistant tempered glass front to prevent breakage\nEASY TO USE: Easy to use turn buttons make adding your photograph a breeze; Pre-attached saw tooth hangers are included for simple vertical or horizontal wall hanging\nWALL DECOR: With a passion for design, trend and functionality, MCS delivers best-in-class products that help make your house a home; Create a contemporary and sophisticated gallery wall using The Foundry Gallery Frame Collection",
+      "highest_price": "$82.99",
+      "highest_price_date": "Nov 04, 2023",
+      "img": "https://m.media-amazon.com/images/I/71QR7pEMhcL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B08LW1KZQW?active=price_amazon&context=popular",
+      "list_price": "$29.99",
+      "lowest_price": "$25.50",
+      "lowest_price_date": "Nov 13, 2023",
+      "title": "MCS Master & Co. Foundry Metal Gallery Wall Frame, Black, 11 x 14 in matted to 5 x 7 in"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_19",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 347
+}

@@ -1,0 +1,97 @@
+{
+  "case_id": "aucarena.pilot.valid_but_poor_01",
+  "content_sha256": "a673d4f65425e1d0346e394ac345959c010883869a4edb3a732bede418d76b93",
+  "episode": {
+    "max_logical_actions": 200,
+    "termination": [
+      "auction_complete"
+    ]
+  },
+  "family_id": "aucarena",
+  "family_version": "0.1.0",
+  "payload": {
+    "enable_discount": false,
+    "item_ids": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "item_pool_sha256": "7418dba88c65ffd82797b6a2cbfab854cc1ebfabf87b5f40019834b84f21cf9b",
+    "items": [
+      {
+        "desc": "A widget for all your needs",
+        "id": 1,
+        "name": "Widget A",
+        "price": 1000,
+        "true_value": 2000
+      },
+      {
+        "desc": "A gadget with all the latest features",
+        "id": 2,
+        "name": "Gadget B",
+        "price": 1000,
+        "true_value": 2000
+      },
+      {
+        "desc": "A little thing that is sure to impress",
+        "id": 3,
+        "name": "Thingamajig C",
+        "price": 1000,
+        "true_value": 2000
+      },
+      {
+        "desc": "A durable doodad that will last for years",
+        "id": 4,
+        "name": "Doodad D",
+        "price": 1000,
+        "true_value": 2000
+      }
+    ],
+    "min_markup_pct": 0.1,
+    "roster": [
+      {
+        "budget": 3200,
+        "max_bid_cnt": 4,
+        "model_name": "scripted",
+        "seat_id": "agent"
+      },
+      {
+        "budget": 2000,
+        "max_bid_cnt": 0,
+        "model_name": "rule",
+        "seat_id": "field_low"
+      },
+      {
+        "budget": 9000,
+        "max_bid_cnt": 4,
+        "model_name": "rule",
+        "seat_id": "field_high"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "aucarena_importer",
+    "generator_version": "0.1.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "agent",
+      "role": "bidder"
+    },
+    {
+      "id": "field_low",
+      "role": "bidder"
+    },
+    {
+      "id": "field_high",
+      "role": "bidder"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": null,
+  "visibility_policy": "aucarena_full_observation_v1",
+  "world_seed": 1002
+}

@@ -276,6 +276,7 @@ def planned_model_qualification(
         ),
         "primary_outcomes": [
             "feasible",
+            "feasible_award",
             "completed_kits",
             "contribution_margin_usd",
             "regret_to_upper_bound_usd",
@@ -343,6 +344,7 @@ _PUBLISHABLE_ROW_FIELDS = (
     "decision",
     "termination_reason",
     "feasible",
+    "feasible_award",
     "completed_kits",
     "contribution_margin_usd",
     "upper_bound_usd",
@@ -1029,6 +1031,7 @@ async def _run_cell(
             "decision": outcome["decision"],
             "termination_reason": outcome["termination_reason"],
             "feasible": bool(outcome["feasible"]),
+            "feasible_award": bool(outcome.get("feasible_award", False)),
             "completed_kits": int(outcome["completed_kits"]),
             "contribution_margin_usd": float(outcome["contribution_margin_usd"]),
             "upper_bound_usd": float(outcome["upper_bound_usd"]),

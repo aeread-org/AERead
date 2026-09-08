@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
     from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from .tools import ToolRuntime
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -885,6 +886,38 @@ class ProviderCallRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class ModelRound:
+    """One completed provider call inside a multi-round attempt.
+
+    A harness may call the model several times for one action attempt (ask,
+    dispatch tools, ask again). Every round is billed, so every round is
+    ledgered here and settled into the attempt's cost and provider-call
+    records; the final round's text is the attempt's canonical response.
+    """
+
+    round: int
+    provider_call_id: str
+    request: ProviderRequest
+    result: ProviderResult
+    cost_usd: float
+
+
+@dataclass(frozen=True, slots=True)
+class PendingRound:
+    """The provider call an attempt was inside when it failed or was interrupted.
+
+    ``terminalized`` is true when the port already wrote this call's terminal
+    event, so the executor must attribute the failure to it without emitting a
+    second terminal event.
+    """
+
+    round: int
+    provider_call_id: str
+    request: ProviderRequest
+    terminalized: bool
+
+
+@dataclass(frozen=True, slots=True)
 class ActionAttemptRecord:
     action_attempt_id: str
     logical_action_id: str
@@ -1645,6 +1678,218 @@ class OpenRouterChatClient:
         return canonical_model
 
 
+class ArenaChatClient:
+    """Arena OpenAI-compatible Chat Completions adapter."""
+
+    def __init__(
+        self,
+        *,
+        sdk_client: Any | None = None,
+        base_url: str = "https://api.preview.arena.ai/v1",
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        if sdk_client is None:
+            try:
+                from openai import AsyncOpenAI
+            except ImportError as error:  # pragma: no cover - dependency error
+                raise EvidenceIntegrityError(
+                    "ArenaChatClient requires the openai package"
+                ) from error
+            api_key = os.environ.get("ARENA_API_KEY")
+            if not api_key:
+                raise EvidenceIntegrityError(
+                    "ARENA_API_KEY must be set before constructing the live Arena client"
+                )
+            sdk_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=self._base_url,
+                max_retries=0,
+            )
+        chat = getattr(sdk_client, "chat", None)
+        if chat is None or not hasattr(chat, "completions"):
+            raise EvidenceIntegrityError(
+                "installed OpenAI SDK does not expose Chat Completions"
+            )
+        self._client = sdk_client
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter does not support native chat messages",
+                retryable=False,
+            )
+        if request.provider != "arena":
+            raise ProviderFailure(
+                "provider_contract",
+                f"Arena adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        requested_base_url = (request.base_url or "").rstrip("/")
+        if requested_base_url != self._base_url:
+            raise ProviderFailure(
+                "provider_contract",
+                f"request base URL {requested_base_url!r} does not match client base URL "
+                f"{self._base_url!r}",
+                retryable=False,
+            )
+        if not isinstance(request.output_schema, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter requires an output schema",
+                retryable=False,
+            )
+        schema_text = canonical_json_bytes(request.output_schema).decode("utf-8")
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        f"{request.instructions}\nReturn only JSON matching this schema: "
+                        f"{schema_text}"
+                    ),
+                },
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "max_tokens": request.max_output_tokens,
+            "stream": False,
+        }
+        if request.top_p is not None:
+            kwargs["top_p"] = request.top_p
+        if request.reasoning_effort not in (None, "none"):
+            kwargs["reasoning_effort"] = request.reasoning_effort
+        try:
+            response = await self._client.chat.completions.create(**kwargs)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            raise OpenAIResponsesClient._classify_error(error) from error
+        try:
+            raw_response = response.model_dump(mode="json")
+        except Exception as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena response could not be serialized",
+                retryable=False,
+            ) from error
+        if not isinstance(raw_response, Mapping):
+            raise ProviderFailure(
+                "provider_contract", "Arena response must be an object", retryable=False
+            )
+        choices = raw_response.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena response must contain exactly one choice",
+                retryable=False,
+            )
+        choice = choices[0]
+        message = choice.get("message") if isinstance(choice, Mapping) else None
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str) or not content.strip():
+            finish_reason = choice.get("finish_reason") if isinstance(choice, Mapping) else None
+            raise ProviderFailure(
+                "length" if finish_reason == "length" else "empty_response",
+                "Arena returned no visible answer content",
+                retryable=True,
+            )
+        try:
+            structured_output = self._parse_structured_output(content, request.output_schema)
+        except ProviderFailure as error:
+            if choice.get("finish_reason") == "length":
+                raise ProviderFailure(
+                    "length",
+                    "Arena truncated the structured response at the output-token limit",
+                    retryable=True,
+                ) from error
+            raise
+        usage = raw_response.get("usage")
+        usage = usage if isinstance(usage, Mapping) else {}
+
+        def token_count(field: str) -> int:
+            value = usage.get(field, 0)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                return value
+            return 0
+
+        details = usage.get("prompt_tokens_details")
+        cached_input_tokens = 0
+        if isinstance(details, Mapping):
+            cached = details.get("cached_tokens", 0)
+            if isinstance(cached, int) and not isinstance(cached, bool) and cached >= 0:
+                cached_input_tokens = cached
+        reported_cost = usage.get("cost")
+        cost_usd = (
+            float(reported_cost)
+            if isinstance(reported_cost, (int, float))
+            and not isinstance(reported_cost, bool)
+            and reported_cost >= 0
+            else None
+        )
+        completion_details = usage.get("completion_tokens_details")
+        reasoning_tokens = None
+        if isinstance(completion_details, Mapping):
+            reported_reasoning_tokens = completion_details.get("reasoning_tokens")
+            if (
+                isinstance(reported_reasoning_tokens, int)
+                and not isinstance(reported_reasoning_tokens, bool)
+                and reported_reasoning_tokens >= 0
+            ):
+                reasoning_tokens = reported_reasoning_tokens
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=str(raw_response.get("model") or request.model),
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=token_count("prompt_tokens"),
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=token_count("completion_tokens"),
+            cost_usd=cost_usd,
+            raw_response=raw_response,
+            reasoning_tokens=reasoning_tokens,
+        )
+
+    @staticmethod
+    def _parse_structured_output(
+        content: str, output_schema: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        required = output_schema.get("required", ())
+        required_fields = (
+            {field for field in required if isinstance(field, str)}
+            if isinstance(required, (list, tuple))
+            else set()
+        )
+
+        def matches(value: Any) -> bool:
+            return isinstance(value, Mapping) and required_fields <= set(value)
+
+        stripped = content.strip()
+        try:
+            value = json.loads(stripped)
+        except json.JSONDecodeError:
+            value = None
+        if matches(value):
+            return value
+        decoder = json.JSONDecoder()
+        for index, character in enumerate(stripped):
+            if character != "{":
+                continue
+            try:
+                value, _end = decoder.raw_decode(stripped[index:])
+            except json.JSONDecodeError:
+                continue
+            if matches(value):
+                return value
+        raise ProviderFailure(
+            "provider_contract",
+            "Arena response contains no JSON action matching the schema",
+            retryable=False,
+        )
+
+
 CommandRunner = Callable[
     [tuple[str, ...], bytes], Awaitable[tuple[int, bytes, bytes]]
 ]
@@ -2041,6 +2286,51 @@ class MinimalChatExecutor:
             provider.complete(request), timeout=profile.budgets.timeout_seconds
         )
 
+    def _attempt_rounds(self, action_attempt_id: str) -> tuple[ModelRound, ...]:
+        """Every completed provider call a harness made for this attempt.
+
+        Empty for the direct single-call path, whose one call the attempt
+        lifecycle records itself. A harness-driven executor returns its port's
+        ledger so all rounds are charged and recorded, not only the last.
+        """
+
+        del action_attempt_id
+        return ()
+
+    def _attempt_pending_round(self, action_attempt_id: str) -> PendingRound | None:
+        """The provider call in flight when a harness-driven attempt failed."""
+
+        del action_attempt_id
+        return None
+
+    def _round_records(
+        self, rounds: Sequence[ModelRound], action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        return tuple(
+            ProviderCallRecord(
+                provider_call_id=entry.provider_call_id,
+                action_attempt_id=action_attempt_id,
+                status="succeeded",
+                request_sha256=entry.request.request_sha256,
+                requested_model=entry.result.requested_model,
+                resolved_model=entry.result.resolved_model,
+                response_id=entry.result.response_id,
+                finish_reason=entry.result.finish_reason,
+                input_tokens=entry.result.input_tokens,
+                cached_input_tokens=entry.result.cached_input_tokens,
+                output_tokens=entry.result.output_tokens,
+                cost_usd=entry.cost_usd,
+                failure_condition=None,
+            )
+            for entry in rounds
+        )
+
+    def _charge(self, profile: AgentProfile, cost: float) -> float:
+        profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0) + cost
+        self._cost_by_profile[profile.profile_id] = profile_cost
+        self.total_cost_usd += cost
+        return profile_cost
+
     def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
         """The opaque action a harness produced for this attempt, if any.
 
@@ -2240,6 +2530,8 @@ class MinimalChatExecutor:
                     retry_reason,
                     attempts,
                     failure,
+                    prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
+                    pending=self._attempt_pending_round(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2263,6 +2555,8 @@ class MinimalChatExecutor:
                     retry_reason,
                     attempts,
                     failure,
+                    prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
+                    pending=self._attempt_pending_round(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2277,13 +2571,21 @@ class MinimalChatExecutor:
                     continue
                 raise
             except asyncio.CancelledError:
+                self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
-                    decision, request.provider_call_id, action_attempt_id, attempts
+                    decision,
+                    self._interrupted_provider_call_id(request, action_attempt_id),
+                    action_attempt_id,
+                    attempts,
                 )
                 raise
             except BaseException:
+                self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
-                    decision, request.provider_call_id, action_attempt_id, attempts
+                    decision,
+                    self._interrupted_provider_call_id(request, action_attempt_id),
+                    action_attempt_id,
+                    attempts,
                 )
                 raise
 
@@ -2305,47 +2607,66 @@ class MinimalChatExecutor:
                 )
                 raise failure
             pricing = self._pricing[profile.model.model]
-            cost = (
-                result.cost_usd
-                if result.cost_usd is not None
-                else pricing.cost(
-                    input_tokens=result.input_tokens,
-                    cached_input_tokens=result.cached_input_tokens,
-                    output_tokens=result.output_tokens,
+            rounds = self._attempt_rounds(action_attempt_id)
+            if rounds:
+                # A harness-driven attempt: the port billed and terminalized
+                # every round in evidence as it happened. Settle all of them
+                # here so the attempt's cost, tokens, and provider-call records
+                # cover what was actually spent, not only the final reply.
+                provider_records = self._round_records(rounds, action_attempt_id)
+                cost = sum(entry.cost_usd for entry in rounds)
+                input_tokens = sum(entry.result.input_tokens for entry in rounds)
+                cached_input_tokens = sum(
+                    entry.result.cached_input_tokens for entry in rounds
                 )
-            )
-            profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0) + cost
-            self._cost_by_profile[profile.profile_id] = profile_cost
-            self.total_cost_usd += cost
-            provider_record = ProviderCallRecord(
-                provider_call_id=request.provider_call_id,
-                action_attempt_id=action_attempt_id,
-                status="succeeded",
-                request_sha256=request.request_sha256,
-                requested_model=result.requested_model,
-                resolved_model=result.resolved_model,
-                response_id=result.response_id,
-                finish_reason=result.finish_reason,
-                input_tokens=result.input_tokens,
-                cached_input_tokens=result.cached_input_tokens,
-                output_tokens=result.output_tokens,
-                cost_usd=cost,
-                failure_condition=None,
-            )
-            self.evidence.append_event(
-                "provider_call_succeeded",
-                {
-                    "provider_result": result,
-                    "request_sha256": request.request_sha256,
-                    "pricing_id": pricing.pricing_id,
-                    "cost_usd": cost,
-                },
-                phase_instance_id=decision.phase_instance_id,
-                logical_action_id=decision.logical_action_id,
-                action_attempt_id=action_attempt_id,
-                provider_call_id=request.provider_call_id,
-                visibility=f"seat:{decision.seat_id}",
-            )
+                output_tokens = sum(entry.result.output_tokens for entry in rounds)
+                provider_call_ids = tuple(entry.provider_call_id for entry in rounds)
+            else:
+                cost = (
+                    result.cost_usd
+                    if result.cost_usd is not None
+                    else pricing.cost(
+                        input_tokens=result.input_tokens,
+                        cached_input_tokens=result.cached_input_tokens,
+                        output_tokens=result.output_tokens,
+                    )
+                )
+                provider_records = (
+                    ProviderCallRecord(
+                        provider_call_id=request.provider_call_id,
+                        action_attempt_id=action_attempt_id,
+                        status="succeeded",
+                        request_sha256=request.request_sha256,
+                        requested_model=result.requested_model,
+                        resolved_model=result.resolved_model,
+                        response_id=result.response_id,
+                        finish_reason=result.finish_reason,
+                        input_tokens=result.input_tokens,
+                        cached_input_tokens=result.cached_input_tokens,
+                        output_tokens=result.output_tokens,
+                        cost_usd=cost,
+                        failure_condition=None,
+                    ),
+                )
+                input_tokens = result.input_tokens
+                cached_input_tokens = result.cached_input_tokens
+                output_tokens = result.output_tokens
+                provider_call_ids = (request.provider_call_id,)
+                self.evidence.append_event(
+                    "provider_call_succeeded",
+                    {
+                        "provider_result": result,
+                        "request_sha256": request.request_sha256,
+                        "pricing_id": pricing.pricing_id,
+                        "cost_usd": cost,
+                    },
+                    phase_instance_id=decision.phase_instance_id,
+                    logical_action_id=decision.logical_action_id,
+                    action_attempt_id=action_attempt_id,
+                    provider_call_id=request.provider_call_id,
+                    visibility=f"seat:{decision.seat_id}",
+                )
+            profile_cost = self._charge(profile, cost)
             if (
                 profile.budgets.max_cost_usd is not None
                 and profile_cost > profile.budgets.max_cost_usd
@@ -2357,7 +2678,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=None,
                 )
@@ -2381,13 +2702,13 @@ class MinimalChatExecutor:
                 finish_reason=result.finish_reason,
                 empty=not bool(result.output_text.strip()),
                 truncated=result.finish_reason in {"length", "max_output_tokens"},
-                provider_call_ids=(request.provider_call_id,),
+                provider_call_ids=provider_call_ids,
                 tool_invocation_ids=self._harness_tool_invocation_ids(
                     action_attempt_id
                 ),
-                input_tokens=result.input_tokens,
-                cached_input_tokens=result.cached_input_tokens,
-                output_tokens=result.output_tokens,
+                input_tokens=input_tokens,
+                cached_input_tokens=cached_input_tokens,
+                output_tokens=output_tokens,
                 cost_usd=cost,
                 action=self._harness_action(action_attempt_id),
             )
@@ -2409,7 +2730,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=canonical,
                 )
@@ -2438,7 +2759,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=canonical,
                 )
@@ -2465,8 +2786,8 @@ class MinimalChatExecutor:
                 retry_reason=retry_reason,
                 session_mode=profile.retry_policy.session_mode,
                 status="succeeded",
-                provider_calls=(provider_record,),
-                tool_invocations=(),
+                provider_calls=provider_records,
+                tool_invocations=canonical.tool_invocation_ids,
                 canonical_response=canonical,
             )
             attempts.append(attempt)
@@ -2594,14 +2915,21 @@ class MinimalChatExecutor:
         retry_reason: str | None,
         attempts: list[ActionAttemptRecord],
         failure: ProviderFailure,
+        *,
+        prior_rounds: tuple[ProviderCallRecord, ...] = (),
+        pending: PendingRound | None = None,
     ) -> bool:
         outcome_unknown = failure.condition in {"timeout", "transport"}
+        # A harness-driven attempt fails inside whichever round it reached;
+        # attribute the failure to that call, not to the sealed round-0 request
+        # that may already have succeeded.
+        failed_request = pending.request if pending is not None else request
         provider_record = ProviderCallRecord(
-            provider_call_id=request.provider_call_id,
+            provider_call_id=failed_request.provider_call_id,
             action_attempt_id=action_attempt_id,
             status="outcome_unknown" if outcome_unknown else "failed",
-            request_sha256=request.request_sha256,
-            requested_model=request.model,
+            request_sha256=failed_request.request_sha256,
+            requested_model=failed_request.model,
             resolved_model=None,
             response_id=None,
             finish_reason=None,
@@ -2611,24 +2939,25 @@ class MinimalChatExecutor:
             cost_usd=0.0,
             failure_condition=failure.condition,
         )
-        self.evidence.append_event(
-            (
-                "provider_call_outcome_unknown"
-                if outcome_unknown
-                else "provider_call_failed"
-            ),
-            {
-                "failure_condition": failure.condition,
-                "message": str(failure),
-                "retryable": failure.retryable,
-                "status_code": failure.status_code,
-                "cost_usd": "unknown" if outcome_unknown else 0.0,
-            },
-            phase_instance_id=decision.phase_instance_id,
-            logical_action_id=decision.logical_action_id,
-            action_attempt_id=action_attempt_id,
-            provider_call_id=request.provider_call_id,
-        )
+        if pending is None or not pending.terminalized:
+            self.evidence.append_event(
+                (
+                    "provider_call_outcome_unknown"
+                    if outcome_unknown
+                    else "provider_call_failed"
+                ),
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": failure.retryable,
+                    "status_code": failure.status_code,
+                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                },
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+                action_attempt_id=action_attempt_id,
+                provider_call_id=failed_request.provider_call_id,
+            )
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -2636,7 +2965,7 @@ class MinimalChatExecutor:
             retry_reason=retry_reason,
             session_mode=profile.retry_policy.session_mode,
             status="failed",
-            provider_calls=(provider_record,),
+            provider_calls=prior_rounds + (provider_record,),
             tool_invocations=(),
             canonical_response=None,
         )
@@ -2665,21 +2994,54 @@ class MinimalChatExecutor:
             )
         return should_retry
 
+    def _settle_prior_rounds(
+        self, profile: AgentProfile, action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        """Charge and record the rounds that succeeded before an attempt failed.
+
+        Those calls were billed whatever happened afterwards; dropping them
+        would under-report spend exactly when a run is going wrong.
+        """
+
+        rounds = self._attempt_rounds(action_attempt_id)
+        if not rounds:
+            return ()
+        self._charge(profile, sum(entry.cost_usd for entry in rounds))
+        return self._round_records(rounds, action_attempt_id)
+
+    def _interrupted_provider_call_id(
+        self, request: ProviderRequest, action_attempt_id: str
+    ) -> str | None:
+        """Which provider call, if any, an interruption caught in flight.
+
+        Round 0 for the direct path. For a harness-driven attempt, the pending
+        round; ``None`` when no call was open, so a call that already
+        terminalized is not given a second, contradictory terminal event.
+        """
+
+        pending = self._attempt_pending_round(action_attempt_id)
+        if pending is not None:
+            return None if pending.terminalized else pending.provider_call_id
+        if self._attempt_rounds(action_attempt_id):
+            return None
+        return request.provider_call_id
+
     def _record_unknown(
         self,
         decision: DecisionRequest,
-        provider_call_id: str,
+        provider_call_id: str | None,
         action_attempt_id: str,
         attempts: list[ActionAttemptRecord],
     ) -> None:
-        self.evidence.append_event(
-            "provider_call_outcome_unknown",
-            {"failure_condition": "interrupted_during_provider_call"},
-            phase_instance_id=decision.phase_instance_id,
-            logical_action_id=decision.logical_action_id,
-            action_attempt_id=action_attempt_id,
-            provider_call_id=provider_call_id,
-        )
+        if provider_call_id is not None:
+            self.evidence.append_event(
+                "provider_call_outcome_unknown",
+                {"failure_condition": "interrupted_during_provider_call"},
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+                action_attempt_id=action_attempt_id,
+                provider_call_id=provider_call_id,
+            )
         self.evidence.append_event(
             "action_attempt_outcome_unknown",
             {"failure_condition": "child_provider_outcome_unknown"},
@@ -2880,7 +3242,6 @@ class ToolExecutor:
 
     def __init__(self, evidence: EvidenceStore) -> None:
         self.evidence = evidence
-        self._ordinal = 0
 
     async def _snapshot_state(
         self, state_reader: Callable[[], Any]
@@ -2984,19 +3345,26 @@ class ToolExecutor:
             # BaseException, not Exception: asyncio.CancelledError is a direct
             # BaseException subclass, and cancellation is exactly when a
             # mutating call is most likely to have posted unobserved.
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "bookkeeping_failed",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "bookkeeping_failed",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Even with both bookkeeping layers down (snapshot AND event
+                # write), the caller must see the tool's own failure; the
+                # durable started event already leaves the invocation
+                # unterminated for audit.
+                raise original_error
             # Implicit exception chaining sets original_error.__context__ to
             # bookkeeping_error here, since bookkeeping_error is the exception
             # currently being handled.
@@ -3040,8 +3408,20 @@ class ToolExecutor:
             )
         before = await self._observed_after(state_reader)
         if tool_invocation_id is None:
-            ordinal = self._ordinal
-            self._ordinal += 1
+            # The minting ordinal is read from the durable evidence chain at
+            # mint time, never from executor-local state: a fresh chain yields
+            # the same 0,1,2… sequence as before, while a resumed executor,
+            # a second live executor over the same store, or legacy traffic
+            # interleaved with explicit-id (KernelToolPort) invocations all
+            # continue the one durable sequence — two physically distinct
+            # invocations can never share a minted id, the invariant
+            # KernelToolPort gets from
+            # (attempt_id, source_provider_call_id, source_call_index).
+            ordinal = sum(
+                1
+                for event in self.evidence.read_events()
+                if event.event_type == "tool_invocation_started"
+            )
             tool_invocation_id = _stable_id(
                 "tool_invocation",
                 {
@@ -3082,45 +3462,53 @@ class ToolExecutor:
                 before=before,
                 original_error=error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_failed",
-                {
-                    "failure_condition": error.condition,
-                    "message": str(error),
-                    "retryable": error.retryable,
-                    "effect": effect,
-                    "outcome_known": True,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_after_sha256": None if after is None else after[1].sha256,
-                    "state_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
-            error.record = self._record(
-                tool_invocation_id=tool_invocation_id,
-                action_attempt_id=action_attempt_id,
-                tool_id=tool_id,
-                tool_version=tool_version,
-                tool_schema_sha256=tool_schema_sha256,
-                input_sha256=input_sha256,
-                idempotency_supported=idempotency_supported,
-                effect=effect,
-                status="failed",
-                result_sha256=None,
-                failure_condition=error.condition,
-                before=before,
-                after=after,
-                state_changed=state_changed,
-                state_diff_ref=state_diff_ref,
-                outcome_known=True,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_failed",
+                    {
+                        "failure_condition": error.condition,
+                        "message": str(error),
+                        "retryable": error.retryable,
+                        "effect": effect,
+                        "outcome_known": True,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_after_sha256": None if after is None else after[1].sha256,
+                        "state_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+                error.record = self._record(
+                    tool_invocation_id=tool_invocation_id,
+                    action_attempt_id=action_attempt_id,
+                    tool_id=tool_id,
+                    tool_version=tool_version,
+                    tool_schema_sha256=tool_schema_sha256,
+                    input_sha256=input_sha256,
+                    idempotency_supported=idempotency_supported,
+                    effect=effect,
+                    status="failed",
+                    result_sha256=None,
+                    failure_condition=error.condition,
+                    before=before,
+                    after=after,
+                    state_changed=state_changed,
+                    state_diff_ref=state_diff_ref,
+                    outcome_known=True,
+                )
+            except BaseException:
+                # A bookkeeping failure here must not replace the tool's own
+                # failure: retry dispatch keys on error.condition.  The durable
+                # tool_invocation_started event already marks this invocation
+                # unterminated for audit; re-raise the original with the
+                # bookkeeping error chained as its __context__.
+                raise error
             raise
         except asyncio.CancelledError as cancelled_error:
             after = await self._observed_after_or_mark_unknown(
@@ -3131,27 +3519,33 @@ class ToolExecutor:
                 before=before,
                 original_error=cancelled_error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "interrupted_during_tool",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_observed_after_sha256": (
-                        None if after is None else after[1].sha256
-                    ),
-                    "state_observed_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "interrupted_during_tool",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_observed_after_sha256": (
+                            None if after is None else after[1].sha256
+                        ),
+                        "state_observed_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Cancellation must surface as cancellation even when the
+                # bookkeeping write fails; chain the bookkeeping error as
+                # __context__ instead of replacing the cancellation.
+                raise cancelled_error
             raise
         except BaseException as unexpected_error:
             after = await self._observed_after_or_mark_unknown(
@@ -3162,27 +3556,33 @@ class ToolExecutor:
                 before=before,
                 original_error=unexpected_error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "unexpected_tool_interruption",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_observed_after_sha256": (
-                        None if after is None else after[1].sha256
-                    ),
-                    "state_observed_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "unexpected_tool_interruption",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_observed_after_sha256": (
+                            None if after is None else after[1].sha256
+                        ),
+                        "state_observed_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Same contract as the handlers above: the implementation's own
+                # error is the finding; a bookkeeping failure rides along as
+                # __context__, it never replaces it.
+                raise unexpected_error
             raise
         result_ref = self.evidence.put_artifact(result)
         after = await self._observed_after(state_reader)
@@ -3229,6 +3629,26 @@ class ToolExecutor:
                 outcome_known=True,
             )
             raise failure
+        if effect == "mutating" and state_changed is False and not idempotency_supported:
+            # A non-idempotent mutating tool that succeeds while the reader
+            # observes no state change is the blind-reader signature (a real
+            # debit once recorded state_changed=False through a constant
+            # stub).  The kernel cannot check the reader against ground
+            # truth, so it leaves a typed, durable trace for QC to gate on
+            # instead of letting the run stay silently plausible.
+            self.evidence.append_event(
+                "tool_invocation_mutation_unobserved",
+                {
+                    "condition": "mutation_unobserved",
+                    "tool_id": tool_id,
+                    "effect": effect,
+                    "idempotency_supported": idempotency_supported,
+                    "state_before_sha256": before[1].sha256,
+                    "state_after_sha256": after[1].sha256,
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
         self.evidence.append_event(
             "tool_invocation_succeeded",
             {
@@ -3293,6 +3713,9 @@ async def execute_plan_cell(
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
     harnesses: Mapping[str, "Harness"] | None = None,
+    tool_runtime_factories: Mapping[
+        str, Callable[[EvidenceStore], "ToolRuntime"]
+    ] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     from ..run.layout import RunLayout
@@ -3396,6 +3819,10 @@ async def execute_plan_cell(
         providers=providers,
         pricing=pricing,
         harnesses=default_harnesses() if harnesses is None else harnesses,
+        tool_runtimes={
+            profile_id: factory(evidence)
+            for profile_id, factory in (tool_runtime_factories or {}).items()
+        },
         request_seed_by_profile=request_seed_by_profile,
     )
     result = await run_episode(
@@ -3430,6 +3857,7 @@ __all__ = [
     "Event",
     "LogicalActionExecution",
     "MinimalChatExecutor",
+    "ArenaChatClient",
     "OpenAIResponsesClient",
     "OpenRouterChatClient",
     "ProviderCallRecord",

@@ -385,6 +385,44 @@ def test_tool_port_rejects_an_undeclared_tool_before_tool_runtime_ever_sees_it(t
     assert "tool_invocation_started" not in event_types
 
 
+def test_tool_port_rejects_a_dispatch_outside_the_granted_set(tmp_path) -> None:
+    """The family runtime may declare more tools than one profile is granted;
+    admissibility must be enforced at the port, not left to the family."""
+
+    evidence = _evidence(tmp_path)
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+    port = KernelToolPort(
+        runtime=runtime,
+        attempt_id="attempt_fixture",
+        action_attempt_id="action_attempt_fixture",
+        granted_tools=frozenset({"get_balance"}),
+    )
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            port.invoke(
+                tool_id="refund_order",
+                arguments={"amount_usd": 5},
+                source_provider_call_id="provider_call_pc_0",
+                source_call_index=0,
+            )
+        )
+    assert captured.value.condition == "tool_not_granted"
+    event_types = [event.event_type for event in evidence.read_events()]
+    assert event_types == ["tool_dispatch_intended", "tool_dispatch_rejected"]
+    assert "tool_invocation_started" not in event_types
+
+    envelope = asyncio.run(
+        port.invoke(
+            tool_id="get_balance",
+            arguments={},
+            source_provider_call_id="provider_call_pc_0",
+            source_call_index=1,
+        )
+    )
+    assert envelope.invocation_record.status == "succeeded"
+
+
 def test_tool_port_rejects_a_dispatch_past_its_invocation_budget(tmp_path) -> None:
     evidence = _evidence(tmp_path)
     runtime, _ = _tool_runtime(tmp_path, evidence)
@@ -1866,3 +1904,163 @@ def test_a_tool_using_profile_is_accepted_by_a_tool_capable_harness(tmp_path) ->
             pricing={base.model.model: FAKE_PRICING},
             harnesses={"minimal_chat/1.0": MinimalChatHarness()},
         )
+
+
+# --- KernelModelPort: every round is ledgered and reaches evidence ---
+
+
+def _sealed_request(profile: AgentProfile) -> ProviderRequest:
+    return ProviderRequest(
+        provider_call_id="provider_call_round0",
+        provider=profile.model.provider,
+        base_url=profile.model.base_url,
+        model=profile.model.model,
+        revision=profile.model.revision,
+        instructions=SYSTEM_PROMPT,
+        input_text='{"messages":[]}',
+        temperature=None,
+        top_p=None,
+        max_output_tokens=profile.sampling.max_output_tokens,
+        reasoning_effort=None,
+        timeout_seconds=30.0,
+        request_sha256="",
+        max_cost_usd=profile.budgets.max_cost_usd,
+    ).with_computed_hash()
+
+
+def test_model_port_ledgers_every_round_and_terminalizes_the_rounds_it_opens(tmp_path) -> None:
+    """The executor seals and opens round 0; the port owns every later round.
+
+    Before this, a multi-round turn kept only ``last_result``: rounds 1..N-1
+    were never costed and never reached evidence, so a tool-calling assistant
+    turn billed N calls and reported one.
+    """
+
+    evidence = _evidence(tmp_path)
+    profile = _profile()
+    sealed = _sealed_request(profile)
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+                ),
+            ),
+            _result(text="done", finish_reason="stop"),
+        ]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+        emit_events=False,
+        sealed_request=sealed,
+    )
+    messages = (CanonicalMessage(role="user", content="hi"),)
+    first = asyncio.run(port.complete(messages=messages, response_mode="native_tools"))
+    second = asyncio.run(port.complete(messages=messages, response_mode="text"))
+
+    per_round = FAKE_PRICING.cost(input_tokens=20, cached_input_tokens=0, output_tokens=5)
+    assert [entry.round for entry in port.rounds] == [0, 1]
+    assert port.rounds[0].request is sealed
+    assert port.rounds[0].provider_call_id == first.provider_call_id == sealed.provider_call_id
+    assert port.rounds[1].provider_call_id == second.provider_call_id != sealed.provider_call_id
+    assert [entry.cost_usd for entry in port.rounds] == [per_round, per_round]
+    assert port.cost_usd_total == pytest.approx(2 * per_round)
+    assert port.rounds[0].result.tool_calls and port.rounds[1].result.output_text == "done"
+    assert port.last_result is port.rounds[1].result
+
+    events = [(event.event_type, event.provider_call_id) for event in evidence.read_events()]
+    assert events == [
+        ("provider_call_succeeded", sealed.provider_call_id),
+        ("provider_call_started", second.provider_call_id),
+        ("provider_call_succeeded", second.provider_call_id),
+    ]
+
+
+def test_model_port_terminalizes_a_failed_later_round(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    profile = _profile()
+    provider = ScriptedProvider(
+        [
+            _result(text="", finish_reason="tool_calls", tool_calls=(
+                NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+            )),
+            ProviderFailure("rate_limit", "429", retryable=True),
+        ]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+        emit_events=False,
+        sealed_request=_sealed_request(profile),
+    )
+    messages = (CanonicalMessage(role="user", content="hi"),)
+    asyncio.run(port.complete(messages=messages, response_mode="native_tools"))
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(port.complete(messages=messages, response_mode="text"))
+    assert captured.value.condition == "rate_limit"
+    kinds = [event.event_type for event in evidence.read_events()]
+    assert kinds == ["provider_call_succeeded", "provider_call_started", "provider_call_failed"]
+    assert len(port.rounds) == 1 and port.cost_usd_total == pytest.approx(port.rounds[0].cost_usd)
+
+
+def test_port_driven_provider_call_events_carry_the_attempt_and_action_labels(tmp_path) -> None:
+    """Every provider_call_* event names the attempt and logical action it belongs to.
+
+    The executor used to hand the port the provider-call id as the attempt id and
+    no action labels, so the port's terminal events pointed at no logical action
+    and their action_attempt_id was really the call id.
+    """
+
+    import asyncio
+
+    from aeread.shared_runner.task.execution import execute_plan_cell
+    from aeread_families.housing.runner import (
+        HousingScriptedLandlordProvider,
+        HousingScriptedTenantProvider,
+        build_housing_smoke,
+    )
+
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    events = list(execution.evidence.read_events())
+    attempts = {
+        event.action_attempt_id: event.logical_action_id
+        for event in events
+        if event.event_type == "action_attempt_started"
+    }
+    provider_events = [e for e in events if e.event_type.startswith("provider_call_")]
+    assert provider_events
+    for event in provider_events:
+        assert event.action_attempt_id in attempts, event.event_type
+        assert event.logical_action_id == attempts[event.action_attempt_id], event.event_type
+        assert event.provider_call_id != event.action_attempt_id
+        assert event.visibility.startswith("seat:")

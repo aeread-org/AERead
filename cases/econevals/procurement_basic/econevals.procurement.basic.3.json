@@ -1,0 +1,243 @@
+{
+  "case_id": "econevals.procurement.basic.3",
+  "content_sha256": "47a0244fe225d3e61f103ef5d75a7caa33dfca7e44c466be5296a28653cb439c",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "max_periods",
+      "error"
+    ]
+  },
+  "family_id": "econevals",
+  "family_version": "0.1.0",
+  "payload": {
+    "difficulty": "Basic",
+    "generated_instance": {
+      "agg_type": "prod",
+      "budget": 57.69,
+      "group_weights": [
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333
+      ],
+      "item_groups": [
+        [
+          "A1",
+          "A2",
+          "A3",
+          "A4"
+        ],
+        [
+          "B1",
+          "B2",
+          "B3",
+          "B4"
+        ],
+        [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      ],
+      "item_to_effectiveness": {
+        "A1": 3,
+        "A2": 1,
+        "A3": 2,
+        "A4": 1,
+        "B1": 1,
+        "B2": 1,
+        "B3": 2,
+        "B4": 2,
+        "C1": 3,
+        "C2": 2,
+        "C3": 2,
+        "C4": 3
+      },
+      "menu": {
+        "Offer_1": {
+          "contents": {
+            "B4": 3
+          },
+          "fixed_cost": 3.71,
+          "type": "two_part_tariff",
+          "variable_cost": 6.74
+        },
+        "Offer_10": {
+          "contents": {
+            "C2": 2
+          },
+          "fixed_cost": 3.89,
+          "type": "two_part_tariff",
+          "variable_cost": 2.9
+        },
+        "Offer_11": {
+          "contents": {
+            "A2": 1
+          },
+          "cost": 3.46,
+          "min_quantity": 4,
+          "type": "bulk_discount"
+        },
+        "Offer_12": {
+          "contents": {
+            "C1": 2
+          },
+          "cost": 3.21,
+          "min_quantity": 6,
+          "type": "bulk_discount"
+        },
+        "Offer_2": {
+          "contents": {
+            "A1": 1,
+            "B1": 1
+          },
+          "cost": 16.33,
+          "min_quantity": 9,
+          "type": "bulk_discount"
+        },
+        "Offer_3": {
+          "contents": {
+            "A3": 1
+          },
+          "cost": 5.38,
+          "type": "basic"
+        },
+        "Offer_4": {
+          "contents": {
+            "A2": 1,
+            "B1": 1,
+            "B2": 1
+          },
+          "cost": 14.14,
+          "type": "basic"
+        },
+        "Offer_5": {
+          "contents": {
+            "A1": 2
+          },
+          "cost": 13.36,
+          "type": "basic"
+        },
+        "Offer_6": {
+          "contents": {
+            "B3": 2
+          },
+          "fixed_cost": 14.75,
+          "type": "two_part_tariff",
+          "variable_cost": 10.03
+        },
+        "Offer_7": {
+          "contents": {
+            "A4": 2
+          },
+          "cost": 12.34,
+          "min_quantity": 2,
+          "type": "bulk_discount"
+        },
+        "Offer_8": {
+          "contents": {
+            "C4": 2
+          },
+          "cost": 18.59,
+          "type": "basic"
+        },
+        "Offer_9": {
+          "contents": {
+            "C3": 1
+          },
+          "cost": 6.27,
+          "min_quantity": 5,
+          "type": "bulk_discount"
+        }
+      },
+      "start_alloc": {
+        "Offer_3": 1,
+        "Offer_4": 1,
+        "Offer_9": 6
+      }
+    },
+    "gold_optimum": {
+      "invalid_reason": "",
+      "is_feasible": true,
+      "opt_alloc": {
+        "Offer_1": 3,
+        "Offer_10": 0,
+        "Offer_11": 0,
+        "Offer_12": 6,
+        "Offer_2": 0,
+        "Offer_3": 0,
+        "Offer_4": 0,
+        "Offer_5": 1,
+        "Offer_6": 0,
+        "Offer_7": 0,
+        "Offer_8": 0,
+        "Offer_9": 0
+      },
+      "opt_cost": 56.55,
+      "opt_utility": 15.724448365253377,
+      "opt_value": 2.75521672186011
+    },
+    "pins": {
+      "difficulty": "Basic",
+      "max_llm_queries_per_period": 40,
+      "max_steps": 100,
+      "module_sha256": {
+        "experiments/pricing/generate_instance.py": "45d7743df9a6570c380054f0a12767b295b848004930de3bc9665f3572ce35fe",
+        "experiments/pricing/pricing_market_logic_multiproduct.py": "b2bac943c421d084258bd931d25f22591360c91097a51ab7e716857cb07f1723",
+        "experiments/procurement/generate_instance.py": "75507abd848762751b08d16cfc4ec1fdc5f1d76d51cb995fd438fab0c9e97aee",
+        "experiments/procurement/opt_solver.py": "e2710eadb1ea8ab77125e1d5276516aef67a5424e98bb56673d4fd82babab892",
+        "experiments/scheduling/generate_preferences.py": "a932725fb1c4c9172bab3dd0321a59604e269b04770a96ebdd92e5f631041b56",
+        "experiments/scheduling/stable_matching_environment.py": "6e44d8150941bdff8903dc49ac29994e50c0b4687836c6ca35d562ab23e1b128",
+        "utils/helper_functions.py": "25487b34700c435c2ff35e76104f9647122b43a088f025857e6dc09c744d0506"
+      },
+      "pricing_params": {
+        "group_idx_cutoff_proportion": 0.25,
+        "group_idx_p": 0.2,
+        "mu": 1.0,
+        "noise_param": 0.0,
+        "num_attempts": 100,
+        "num_products": 1,
+        "sigma": 0.5,
+        "start_multiplier": 100.0
+      },
+      "procurement_params": {
+        "agg_type": "prod",
+        "max_effectiveness": 3,
+        "min_effectiveness": 1,
+        "num_alternatives_per_input": 4,
+        "num_entries": 12,
+        "num_inputs": 3,
+        "num_items_per_entry_p": 0.8,
+        "offer_qty_in_sample_bundle_p": 0.5,
+        "quantity_per_item_p": 0.5
+      },
+      "scheduling_params": {
+        "blocking_pair_selection_method": "random_cache",
+        "num_blocking_pairs": 1,
+        "num_workers": 10
+      },
+      "upstream_commit": "e1f2a40fec96f0d27f5414873c4310f2b5c51935",
+      "upstream_license": "MIT",
+      "upstream_repo": "econ-evals-paper"
+    },
+    "seed": 3,
+    "track": "procurement"
+  },
+  "provenance": {
+    "generator_id": "econevals_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "agent",
+      "role": "assistant"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "procurement_basic",
+  "upstream_task_id": null,
+  "visibility_policy": "econevals_full_observability_v1",
+  "world_seed": 3
+}

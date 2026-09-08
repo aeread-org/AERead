@@ -210,6 +210,7 @@ def procurement_action_output_schema() -> dict[str, Any]:
                     "request_sample",
                     "counter_offer",
                     "submit_award",
+                    "check_award",
                     "defer",
                 ],
             },

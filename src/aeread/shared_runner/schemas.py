@@ -18,8 +18,23 @@ class AuthoringValidationError(ValueError):
 
 
 _ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
+_FOREIGN_ID_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$")
 _SEMVER_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+# Ruling R9 (kernel_scoring_contract_spec.md, round 3): a JSON pointer (RFC
+# 6901) naming one outcome field. Requires at least one non-empty segment --
+# "" (the whole document), "/", and a trailing "//" are all rejected -- so
+# ``trajectory_outcome_paths`` always names a specific field, never the root.
+# kernel_r9r10_review.md finding 4: every segment must additionally name an
+# OBJECT field. An RFC 6901 array-index segment (all ASCII digits, e.g.
+# "/history/0") satisfies this regex but can never complete the
+# scoring-contract protocol test's projection: that projection navigates
+# JSON objects only, and raises on a list. ``_json_pointer_tuple`` below
+# rejects any segment that is all ASCII digits, and rejects one declared
+# path being a strict prefix of another declared path (e.g. "/history"
+# together with "/history/x") as redundant overlap.
+_JSON_POINTER_RE = re.compile(r"^(?:/[^/]+)+$")
+_ARRAY_INDEX_SEGMENT_RE = re.compile(r"^[0-9]+$")
 
 
 def _as_mapping(value: Any, path: str) -> Mapping[str, Any]:
@@ -122,6 +137,79 @@ def _number(
 
 def _optional_string(value: Any, path: str) -> str | None:
     return None if value is None else _string(value, path)
+
+
+def _optional_identifier(value: Any, path: str) -> str | None:
+    return None if value is None else _identifier(value, path)
+
+
+def _foreign_identifier(value: Any, path: str) -> str:
+    """Validate an identifier minted by an external benchmark, kept verbatim.
+
+    Deliberately weaker than :func:`_identifier`: this field records an
+    upstream id exactly as upstream wrote it, so case and underscores must
+    survive — lowercasing it would destroy the traceability the field exists
+    for. What it rules out is the row-id hazard class: a colon once collapsed
+    rLLM's GRPO grouping into a single group, and whitespace, separators, and
+    quoting characters break the same downstream parsing.
+    """
+    text = _string(value, path)
+    if _FOREIGN_ID_RE.fullmatch(text) is None:
+        raise AuthoringValidationError(
+            f"{path} is not a portable upstream identifier: {text!r} "
+            "(allowed: letters, digits, '_', '.', '-'; no colons or whitespace)"
+        )
+    return text
+
+
+def _optional_foreign_identifier(value: Any, path: str) -> str | None:
+    return None if value is None else _foreign_identifier(value, path)
+
+
+def _json_pointer(value: Any, path: str) -> str:
+    result = _string(value, path)
+    if not _JSON_POINTER_RE.fullmatch(result):
+        raise AuthoringValidationError(
+            f"{path} must be a JSON pointer with at least one non-empty segment "
+            f"(e.g. '/history'): got {result!r}"
+        )
+    return result
+
+
+def _json_pointer_tuple(value: Any, path: str) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise AuthoringValidationError(f"{path} must be an array")
+    result = tuple(
+        _json_pointer(item, f"{path}[{index}]") for index, item in enumerate(value)
+    )
+    if len(result) != len(set(result)):
+        raise AuthoringValidationError(f"{path} contains duplicate values")
+    # kernel_r9r10_review.md finding 4: every segment must name an object
+    # field, never an RFC 6901 array-index segment -- the scoring-contract
+    # protocol test's projection helper can only navigate JSON objects, so a
+    # pointer this far accepted by ``_JSON_POINTER_RE`` alone could still
+    # never complete the protocol.
+    for index, pointer in enumerate(result):
+        segments = pointer.split("/")[1:]
+        index_segments = [
+            segment for segment in segments if _ARRAY_INDEX_SEGMENT_RE.fullmatch(segment)
+        ]
+        if index_segments:
+            raise AuthoringValidationError(
+                f"{path}[{index}] must name an object field, not an array index "
+                f"(RFC 6901 index segment(s) {index_segments!r}): got {pointer!r}"
+            )
+    # A declared path that is a strict prefix of another declared path is
+    # redundant overlap -- projecting the shorter path away already drops
+    # everything the longer path would have named.
+    for left in result:
+        for right in result:
+            if left != right and right.startswith(f"{left}/"):
+                raise AuthoringValidationError(
+                    f"{path} contains overlapping pointers: {left!r} is a prefix "
+                    f"of {right!r}"
+                )
+    return result
 
 
 def _optional_integer(
@@ -246,8 +334,120 @@ class RoleSpec:
         )
 
 
+_LEAF_SCOPES = {"finalize_time", "deferred"}
+
+
+@dataclass(frozen=True, slots=True)
+class LeafPolicyDeclaration:
+    """One declared measurement leaf's identity and finalize-time scope.
+
+    A ``deferred`` leaf requires an artifact that may not exist yet at
+    finalization (a judge verdict, an external rater protocol); it is
+    declared here but excluded from the finalize-time returned set rather
+    than mislabelled ``invalid_measurement``. A leaf may not be marked
+    ``deferred`` merely because computing it is inconvenient --
+    ``deferred_artifact`` must name what it waits on.
+    """
+
+    leaf_id: str
+    scope: str
+    deferred_artifact: str | None
+
+    def __post_init__(self) -> None:
+        # kernel_contract_impl_review.md finding 4: these invariants were
+        # previously enforced only in ``from_dict``, so a
+        # ``dataclasses.replace`` on an already-validated declaration could
+        # smuggle an inconsistent leaf policy past parsing entirely. A
+        # ``__post_init__`` runs on every construction path, including
+        # ``dataclasses.replace``, so there is no bypass.
+        if not is_exportable_id(self.leaf_id):
+            raise AuthoringValidationError(
+                f"leaf policy leaf_id is not a valid identifier: {self.leaf_id!r}"
+            )
+        if self.scope not in _LEAF_SCOPES:
+            raise AuthoringValidationError(
+                f"leaf policy scope must be one of {sorted(_LEAF_SCOPES)}, "
+                f"got {self.scope!r}"
+            )
+        if self.scope == "deferred" and self.deferred_artifact is None:
+            raise AuthoringValidationError(
+                "a deferred leaf requires deferred_artifact"
+            )
+        if self.scope != "deferred" and self.deferred_artifact is not None:
+            raise AuthoringValidationError(
+                "deferred_artifact is only valid for a deferred leaf"
+            )
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str) -> "LeafPolicyDeclaration":
+        data = _fields(
+            value,
+            required={"leaf_id", "scope"},
+            optional={"deferred_artifact"},
+            path=path,
+        )
+        scope = _enum(data["scope"], f"{path}.scope", _LEAF_SCOPES)
+        deferred_artifact = _optional_string(
+            data.get("deferred_artifact"), f"{path}.deferred_artifact"
+        )
+        if scope == "deferred" and deferred_artifact is None:
+            raise AuthoringValidationError(
+                f"{path}.deferred_artifact is required for a deferred leaf"
+            )
+        if scope != "deferred" and deferred_artifact is not None:
+            raise AuthoringValidationError(
+                f"{path}.deferred_artifact is only valid for a deferred leaf"
+            )
+        return cls(
+            leaf_id=_identifier(data["leaf_id"], f"{path}.leaf_id"),
+            scope=scope,
+            deferred_artifact=deferred_artifact,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class FinalizeTimeLeafPolicy:
+    """The scorer's finalize-time contract, read from the manifest (section 3).
+
+    ``leaf_ids`` and ``admission_leaf_ids`` are in the manifest's one true
+    order -- primary first, then lexical ``leaf_id`` -- so they compare
+    directly against a ``FamilyScoreSet`` the family's scorer produced:
+    ``FamilyScoreSet.__post_init__`` canonicalizes its own ``scores`` and
+    ``admission_leaf_ids`` the same way. Ordering never encodes policy; this
+    is purely so the two sides of the protocol test's equality assertions
+    line up without either side re-sorting the other.
+    """
+
+    leaf_ids: tuple[str, ...]
+    primary_leaf_id: str
+    admission_leaf_ids: tuple[str, ...]
+
+
+def _canonical_leaf_order(leaf_ids: Any, primary_leaf_id: str) -> tuple[str, ...]:
+    return tuple(
+        sorted(leaf_ids, key=lambda leaf_id: (leaf_id != primary_leaf_id, leaf_id))
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class MeasurementDeclaration:
+    # Ruling R1 (kernel_scoring_contract_spec.md): these three fields were added
+    # after Housing V8/V11 evidence was published and sealed. An unset field must
+    # be ABSENT from canonical JSON, not merely null/empty, or every manifest that
+    # predates leaf policy would silently reproduce a different plan_sha256 and
+    # cascade into a different artifact_sha256 on already-published evidence.
+    # ``_CANONICAL_OMIT_IF_DEFAULT`` tells ``run.resolver._canonical_value`` to
+    # drop these keys entirely when they hold their declared default, so a
+    # manifest that does not use leaf policy hashes exactly as it did before this
+    # schema addition. See ``test_measurement_declaration_without_leaves_is_digest_neutral``.
+    # ``trajectory_outcome_paths`` (ruling R9, round 3) is the same story one
+    # ruling later: added after leaf policy itself was already sealed into
+    # published digests, so it gets the identical digest-neutral treatment --
+    # see ``test_measurement_declaration_without_trajectory_paths_is_digest_neutral``.
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"leaves", "primary_leaf_id", "admission_leaf_ids", "trajectory_outcome_paths"}
+    )
+
     primary_estimand: str
     measurement_kind: str
     direction: str
@@ -257,6 +457,96 @@ class MeasurementDeclaration:
     optimum_upper_bound_kind: str | None
     bound_status: str | None
     outcome_support: str | None
+    leaves: tuple[LeafPolicyDeclaration, ...] = ()
+    primary_leaf_id: str | None = None
+    admission_leaf_ids: tuple[str, ...] = ()
+    # Ruling R9 (kernel_scoring_contract_spec.md, round 3): an exhaustive list
+    # of the outcome fields (JSON pointers) that carry the family's trajectory
+    # -- e.g. ``("/history",)`` for collusion. A family whose outcome embeds
+    # its trajectory declares these so the scoring-contract protocol test can
+    # compare a PROJECTION (outcome minus these paths) instead of the whole
+    # outcome for the paired-history check (section 6/ruling R7), whose
+    # byte-identical-outcome precondition is otherwise unsatisfiable by
+    # construction for such a family. A family that declares none is checked
+    # on the whole outcome, exactly as before this ruling.
+    trajectory_outcome_paths: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        # kernel_contract_impl_review.md finding 4: ``from_dict`` validated
+        # these three fields' cross-field invariants, but nothing stopped a
+        # ``dataclasses.replace`` on an already-registered manifest from
+        # smuggling an inconsistent leaf policy (undeclared primary, a
+        # deferred admission leaf, duplicate admission ids, ...) past every
+        # check and straight into ``PluginRegistry``. Running the same
+        # invariants here means every construction path is guarded, not only
+        # ``from_dict``'s.
+        leaf_ids = tuple(leaf.leaf_id for leaf in self.leaves)
+        if len(set(leaf_ids)) != len(leaf_ids):
+            raise AuthoringValidationError(
+                "measurement.leaves contains a duplicate leaf_id"
+            )
+        # Ruling R9: format/uniqueness is independent of whether a leaf policy
+        # is declared at all, so it is validated here unconditionally (not
+        # only inside the ``self.leaves`` branch below) -- the same reasoning
+        # as this method's own docstring note: every construction path,
+        # including ``dataclasses.replace``, must be guarded, not only
+        # ``from_dict``'s.
+        object.__setattr__(
+            self,
+            "trajectory_outcome_paths",
+            _json_pointer_tuple(
+                self.trajectory_outcome_paths, "measurement.trajectory_outcome_paths"
+            ),
+        )
+        if not self.leaves:
+            if self.primary_leaf_id is not None or self.admission_leaf_ids:
+                raise AuthoringValidationError(
+                    "measurement.primary_leaf_id and admission_leaf_ids require "
+                    "measurement.leaves to be declared"
+                )
+            return
+        finalize_time_ids = {
+            leaf.leaf_id for leaf in self.leaves if leaf.scope == "finalize_time"
+        }
+        if not finalize_time_ids:
+            raise AuthoringValidationError(
+                "measurement.leaves must declare at least one finalize_time leaf"
+            )
+        if self.primary_leaf_id is None:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id is required when leaves are declared"
+            )
+        if self.primary_leaf_id not in leaf_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must name a declared leaf"
+            )
+        if self.primary_leaf_id not in finalize_time_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must be a finalize_time leaf"
+            )
+        admission_leaf_ids = self.admission_leaf_ids or (self.primary_leaf_id,)
+        if len(set(admission_leaf_ids)) != len(admission_leaf_ids):
+            raise AuthoringValidationError(
+                "measurement.admission_leaf_ids must not contain duplicates"
+            )
+        unknown_admission = sorted(set(admission_leaf_ids) - set(leaf_ids))
+        if unknown_admission:
+            raise AuthoringValidationError(
+                f"measurement.admission_leaf_ids must be declared leaves: "
+                f"{unknown_admission}"
+            )
+        deferred_ids = {leaf.leaf_id for leaf in self.leaves if leaf.scope == "deferred"}
+        deferred_admission = sorted(set(admission_leaf_ids) & deferred_ids)
+        if deferred_admission:
+            raise AuthoringValidationError(
+                f"measurement.admission_leaf_ids must not include a deferred leaf: "
+                f"{deferred_admission}"
+            )
+        if self.primary_leaf_id not in admission_leaf_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must be included in admission_leaf_ids"
+            )
+        object.__setattr__(self, "admission_leaf_ids", admission_leaf_ids)
 
     @classmethod
     def from_dict(cls, value: Any, path: str = "measurement") -> "MeasurementDeclaration":
@@ -267,12 +557,83 @@ class MeasurementDeclaration:
             "optimum_upper_bound_kind",
             "bound_status",
             "outcome_support",
+            "leaves",
+            "primary_leaf_id",
+            "admission_leaf_ids",
+            "trajectory_outcome_paths",
         }
         data = _fields(
             value,
             required={"primary_estimand", "measurement_kind", "direction"},
             optional=optional,
             path=path,
+        )
+        leaves_value = data.get("leaves", ())
+        if not isinstance(leaves_value, (list, tuple)):
+            raise AuthoringValidationError(f"{path}.leaves must be an array")
+        leaves = tuple(
+            LeafPolicyDeclaration.from_dict(item, f"{path}.leaves[{index}]")
+            for index, item in enumerate(leaves_value)
+        )
+        leaf_ids = tuple(leaf.leaf_id for leaf in leaves)
+        if len(set(leaf_ids)) != len(leaf_ids):
+            raise AuthoringValidationError(
+                f"{path}.leaves contains a duplicate leaf_id"
+            )
+        primary_leaf_id = _optional_string(
+            data.get("primary_leaf_id"), f"{path}.primary_leaf_id"
+        )
+        admission_leaf_ids = _string_tuple(
+            data.get("admission_leaf_ids", ()),
+            f"{path}.admission_leaf_ids",
+            allow_empty=True,
+        )
+        if leaves:
+            finalize_time_ids = {
+                leaf.leaf_id for leaf in leaves if leaf.scope == "finalize_time"
+            }
+            if not finalize_time_ids:
+                raise AuthoringValidationError(
+                    f"{path}.leaves must declare at least one finalize_time leaf"
+                )
+            if primary_leaf_id is None:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id is required when leaves are declared"
+                )
+            if primary_leaf_id not in leaf_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must name a declared leaf"
+                )
+            if primary_leaf_id not in finalize_time_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must be a finalize_time leaf"
+                )
+            admission_leaf_ids = admission_leaf_ids or (primary_leaf_id,)
+            unknown_admission = sorted(set(admission_leaf_ids) - set(leaf_ids))
+            if unknown_admission:
+                raise AuthoringValidationError(
+                    f"{path}.admission_leaf_ids must be declared leaves: "
+                    f"{unknown_admission}"
+                )
+            deferred_ids = {leaf.leaf_id for leaf in leaves if leaf.scope == "deferred"}
+            deferred_admission = sorted(set(admission_leaf_ids) & deferred_ids)
+            if deferred_admission:
+                raise AuthoringValidationError(
+                    f"{path}.admission_leaf_ids must not include a deferred leaf: "
+                    f"{deferred_admission}"
+                )
+            if primary_leaf_id not in admission_leaf_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must be included in admission_leaf_ids"
+                )
+        elif primary_leaf_id is not None or admission_leaf_ids:
+            raise AuthoringValidationError(
+                f"{path}.primary_leaf_id and admission_leaf_ids require "
+                f"{path}.leaves to be declared"
+            )
+        trajectory_outcome_paths = _json_pointer_tuple(
+            data.get("trajectory_outcome_paths", ()),
+            f"{path}.trajectory_outcome_paths",
         )
         return cls(
             primary_estimand=_identifier(data["primary_estimand"], f"{path}.primary_estimand"),
@@ -288,6 +649,35 @@ class MeasurementDeclaration:
             optimum_upper_bound_kind=_optional_string(data.get("optimum_upper_bound_kind"), f"{path}.optimum_upper_bound_kind"),
             bound_status=_optional_string(data.get("bound_status"), f"{path}.bound_status"),
             outcome_support=_optional_string(data.get("outcome_support"), f"{path}.outcome_support"),
+            leaves=leaves,
+            primary_leaf_id=primary_leaf_id,
+            admission_leaf_ids=admission_leaf_ids,
+            trajectory_outcome_paths=trajectory_outcome_paths,
+        )
+
+    def finalize_time_leaf_policy(self) -> FinalizeTimeLeafPolicy:
+        """The manifest's finalize-time leaf contract (section 3 of the spec).
+
+        Raises if no leaf policy is declared: section 3 requires the
+        manifest, not a scorer or a test fixture, to be the source of the
+        leaf set, the primary, and admission membership, so a family with no
+        declared policy must fail loudly here rather than let the protocol
+        test invent one.
+        """
+        if not self.leaves or self.primary_leaf_id is None:
+            raise AuthoringValidationError(
+                "measurement.leaves and measurement.primary_leaf_id must be "
+                "declared before a finalize-time leaf policy can be read"
+            )
+        finalize_time_ids = tuple(
+            leaf.leaf_id for leaf in self.leaves if leaf.scope == "finalize_time"
+        )
+        return FinalizeTimeLeafPolicy(
+            leaf_ids=_canonical_leaf_order(finalize_time_ids, self.primary_leaf_id),
+            primary_leaf_id=self.primary_leaf_id,
+            admission_leaf_ids=_canonical_leaf_order(
+                self.admission_leaf_ids, self.primary_leaf_id
+            ),
         )
 
 
@@ -390,6 +780,10 @@ class FamilyManifest:
                 else GeneratorSpec.from_dict(data["generator"], "FamilyManifest.generator")
             ),
         )
+
+    def finalize_time_leaf_policy(self) -> FinalizeTimeLeafPolicy:
+        """The family's finalize-time leaf contract; see ``MeasurementDeclaration``."""
+        return self.measurement.finalize_time_leaf_policy()
 
 
 @dataclass(frozen=True, slots=True)
@@ -517,7 +911,11 @@ class CaseManifest:
                 data["provenance"], "CaseManifest.provenance"
             ),
             content_sha256=_sha256(data["content_sha256"], "CaseManifest.content_sha256"),
-            upstream_task_id=_optional_string(
+            # External benchmark ids ride into rLLM row ids and GRPO group
+            # keys; a colon here once collapsed grouping into one group, so
+            # the exportable-identifier grammar applies (adapters normalize
+            # foreign ids and keep the raw value in provenance/payload).
+            upstream_task_id=_optional_foreign_identifier(
                 data.get("upstream_task_id"), "CaseManifest.upstream_task_id"
             ),
         )

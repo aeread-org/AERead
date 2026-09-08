@@ -2460,6 +2460,7 @@ def _deserialize_receipt(value: Mapping[str, Any]) -> EvaluationReceipt:
             failure=failure,
             observability_limits=tuple(value.get("observability_limits", ())),
             replay_level=value.get("replay_level", "none"),
+            deferred_leaf_ids=tuple(value.get("deferred_leaf_ids", ())),
         )
         verify_evaluation_receipt(receipt)
         return receipt

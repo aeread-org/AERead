@@ -1,0 +1,19 @@
+# Runtime dependencies of the pinned upstream AgenticPay checkout
+# (commit 1ff4e1a2686eac6a07ff559df6d50329c6fd9f69).
+#
+# Importing the `agenticpay` package at all unconditionally imports
+# `agents.buyer_agent`/`agents.seller_agent` (`agenticpay/__init__.py` ->
+# `agenticpay/agents/__init__.py`), both of which do `from loguru import
+# logger` -- a dependency upstream's own requirements.txt never declares.
+# `agenticpay.models.base_vlm` additionally reaches numpy. Every other
+# runtime dependency in upstream's own requirements.txt (openai, vllm,
+# sglang, transformers, ...) belongs to a concrete LLM/VLM backend that is
+# import-guarded with try/except in `agenticpay/models/__init__.py` and is
+# never reached by this bridge's ScriptedAgent shim.
+#
+# Frozen here to the exact versions this adapter's fidelity suite was
+# verified against, because "the adapter reproduces upstream exactly" is a
+# claim about a specific interpreter, not about a dependency range.
+
+loguru==0.7.3
+numpy==2.4.6

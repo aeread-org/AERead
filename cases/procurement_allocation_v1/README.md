@@ -1,5 +1,8 @@
 # Procurement allocation v1
 
+**QC profile:** [`docs/families/procurement-allocation/qc.md`](../../docs/families/procurement-allocation/qc.md)
+— construct gate is `failed`; read it before citing any result as buyer competence.
+
 This family tests an interactive buyer that must acquire and negotiate supplier
 information before allocating an electronics BOM. Marketplace listings and verbal
 claims are provisional. Only environment-issued formal offers and verified sample
@@ -398,3 +401,107 @@ confirmation of V4. Its four conditions are frozen V4, sample-schedule gate only
 landed-cash gate only, and both gates together. V2 preserves the V1 scientific
 contract and adds slower bounded retry pacing after V1 was invalidated by repeated
 provider rate limits.
+
+## Regret decomposition of published GLM rows
+
+`regret_decomposition` replays every tracked GLM evidence row through the
+deterministic environment without provider calls and splits each feasible award's
+regret into exact additive term gaps against the full-information plan. All 216 rows
+across the development, blinded, scaffold, and confirmatory bundles replay exactly.
+Working-capital cost is 61% of feasible-award regret and traces to the payment-terms
+counter the oracle uses in 67 of 101 feasible rows and the model used in 7. See
+`docs/families/procurement-allocation/campaign.md` and
+`evidence/procurement_allocation_glm_regret_decomposition_v1/`.
+
+```bash
+python -m aeread_families.procurement_allocation.regret_decomposition \
+  --publish \
+  --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
+```
+
+## Negotiation-worksheet treatment
+
+`negotiation_worksheet_campaign` appends a working-capital worksheet to the frozen V4
+prompt and pairs 72 new GLM Parasail rows against the sealed confirmatory V2 V4 arm
+by case and seed. Print the no-spend plan, execute in twelve-row checkpoints, and
+publish separately:
+
+```bash
+python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/qualification_attempt_001 \
+  --execute --max-spend-usd 2.19
+```
+
+The qualified run (attempt 004, after a timeout-sealed and a 429-sealed attempt)
+completed and replayed all 72 rows for $0.1993. The preregistered rule was not met:
+worksheet-minus-V4 regret was -$3.82 per world with interval [-$12.69, $4.48]. The
+payment-terms lever transferred as intended, cutting that world's regret from $48.63
+to $10.68, but counters displaced the sample step on three rows and produced
+unverified-sample failures. See the campaign document and
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
+`negotiation_worksheet_v2_campaign` reorders the worksheet so a verified sample
+precedes any counter or award line. Its qualified run completed all 72 rows for
+$0.2065. The rule was again not met: regret -$0.28 per world ([-$7.37, $7.23]) and
+feasibility -0.014 ([-0.083, 0.042]). Counter-induced sample skips disappeared and
+the labeled payment-terms result held, but opaque ids hid which supplier would accept
+longer terms, and two opaque negotiated-MOQ rows awarded below minimum service after
+countering MOQ down. See
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+
+## Pre-award check
+
+The buyer can now send `check_award` with the exact lines it intends to submit and
+receive the verifier's own projection: feasibility, violations, completed kits,
+margin, and cash spend, computed by the same `evaluate_award` as the terminal score
+on the current formal offers and verified samples. A check costs one action and
+nothing else and never ends the episode. `pre_award_check_campaign` freezes a
+treatment that adds a mandatory clean check before any award to the worksheet V2
+procedure, paired against the sealed confirmatory V4 rows.
+
+The qualified run completed all 72 rows for $0.2672 and met the preregistered rule:
+treatment-minus-V4 regret -$28.15 per world ([-$56.02, -$4.58]), feasibility +0.389
+([0.167, 0.611]), no pass-to-fail transitions. Every row used the check; 51 of 53
+awards followed a clean check on identical lines. Remaining regret is deferral after
+a failing check on budget-constrained worlds and the MOQ price counter, which a
+feasibility check cannot surface. See
+`evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
+
+## Design review and the information panel
+
+`docs/families/procurement-allocation/design_review.md` records what this family
+measures, what it does not, and the ten defects behind the gaps, each with a
+recomputed number. In short: feasibility is measured and near-saturated;
+information cost and most of negotiation are not measurable with the v1 worlds.
+
+Three of those defects are now fixed in the environment, all additive and
+digest-neutral for existing cases:
+
+- **Optimistic verbal claims.** A supplier may declare `verbal_bias` in its
+  private terms. An `inquire` reply then states the biased value while formal
+  offers, verified samples, and the award evaluation keep using the truth, so a
+  claim can be wrong and only a quote or a sample catches it. A supplier without
+  the field states the truth, so every case authored before this is unchanged.
+- **`feasible_award` in the outcome.** Terminal feasibility counts an explicit
+  defer as feasible. `feasible_award` is true only for a submitted award that
+  passed every gate, and is the field a campaign guarding procurement success
+  should use.
+- **A bounded oracle enumeration.** The full-information solver now refuses a
+  world whose supplier-by-quantity product exceeds its limit, naming the fix,
+  instead of appearing to hang.
+
+`information_v1/` is an eight-world panel built on those fixes: suppliers overstate
+yield, lead time, and capacity; information costs 15 to 48 percent of gross
+revenue so buying all of it is a real loss; and price floors sit 15 to 30 percent
+below the quote with MOQ limits well under the quoted minimum, so a counter is
+worth tens of dollars. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.information_case_matrix --surface labeled --write
+python -m aeread_families.procurement_allocation.information_case_matrix --surface opaque --write
+```
+
+`confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
+generated after that prompt was frozen and its development result read.
+
