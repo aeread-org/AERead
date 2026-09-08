@@ -102,7 +102,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v17
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v18
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -112,7 +112,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v17 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v18 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -121,8 +121,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v17 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v17 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v18 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v18 \
   --publish-only
 ```
 

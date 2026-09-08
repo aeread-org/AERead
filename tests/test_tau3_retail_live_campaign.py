@@ -22,7 +22,9 @@ from aeread_families.tau3_retail.campaign import (
     CAMPAIGN_ID,
     PANEL_CASE_IDS,
     PANEL_STRATA,
+    _accounted_failure_cost,
     _combined_cap_cost,
+    _provider_failure_condition,
     _digest,
     build_campaign_plan,
     publish_campaign,
@@ -50,6 +52,7 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True
     assert plan["execution"]["continue_on_combined_cost_cap"] is True
+    assert plan["execution"]["continue_on_malformed_response"] is True
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
         "hard_total_cost_ceiling_usd"
     ]
@@ -63,6 +66,20 @@ def test_combined_cap_cost_extracts_only_the_typed_executor_failure() -> None:
 
     assert _combined_cap_cost(error) == pytest.approx(0.09320572)
     assert _combined_cap_cost(RuntimeError("cost budget exceeded")) is None
+
+
+def test_malformed_failure_preserves_the_accounted_execution_cost() -> None:
+    provider_failure = ProviderFailure(
+        "malformed_structured_output",
+        "tau3 retail response is not valid JSON",
+        retryable=False,
+    )
+    scheduler_failure = RuntimeError("response_source failed")
+    scheduler_failure.__cause__ = provider_failure
+    scheduler_failure.aeread_total_cost_usd = 0.0412
+
+    assert _provider_failure_condition(scheduler_failure) == "malformed_structured_output"
+    assert _accounted_failure_cost(scheduler_failure) == pytest.approx(0.0412)
 
 
 def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:
