@@ -22,6 +22,7 @@ from aeread_families.tau3_retail.campaign import (
     CAMPAIGN_ID,
     PANEL_CASE_IDS,
     PANEL_STRATA,
+    _combined_cap_cost,
     _digest,
     build_campaign_plan,
     publish_campaign,
@@ -48,9 +49,20 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["route"]["fallbacks"] == "not_reported"
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True
+    assert plan["execution"]["continue_on_combined_cost_cap"] is True
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
         "hard_total_cost_ceiling_usd"
     ]
+
+
+def test_combined_cap_cost_extracts_only_the_typed_executor_failure() -> None:
+    error = RuntimeError(
+        "response_source failed for logical_action_x: combined cost budget exceeded "
+        "for execution cell: 0.09320572000000002 > 0.09"
+    )
+
+    assert _combined_cap_cost(error) == pytest.approx(0.09320572)
+    assert _combined_cap_cost(RuntimeError("cost budget exceeded")) is None
 
 
 def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:
