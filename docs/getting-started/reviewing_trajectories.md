@@ -181,6 +181,12 @@ re-sealed with the new artifact digest via `add_publication_artifact`. This is
 a QC §4 mechanical correction: the earlier manifest stays in history and no
 reported number changes.
 
+**A family per-episode trace keeps its own name.** `trajectories/sanitized.jsonl`
+is the kernel grain's file. A family that also publishes a per-episode summary
+(the datacenter action-schema bundles, commercial-state) publishes it as
+`trajectories/episodes.jsonl`, so both shapes can sit in one bundle and each
+file means one thing.
+
 **Only leaf bundles can take the grain in place.** Later campaigns freeze
 their parent bundle's `publication_manifest.json` digest as a control
 (`PARENT_EVIDENCE_FILE_SHA256` in the campaign module), and a changed frozen

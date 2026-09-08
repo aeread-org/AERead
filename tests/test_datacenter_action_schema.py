@@ -298,23 +298,41 @@ def test_published_action_schema_campaigns_are_sealed_and_sanitized() -> None:
         core = {
             key: value
             for key, value in manifest.items()
-            if key != "artifact_sha256"
+            if key != "manifest_sha256"
         }
 
-        assert manifest["artifact_sha256"] == hashlib.sha256(
+        assert manifest["schema_version"] == "aeread.publication_manifest/0.1"
+        assert manifest["manifest_sha256"] == hashlib.sha256(
             canonical_json_bytes(core)
         ).hexdigest()
-        assert manifest["publisher_implementation_sha256"] == publisher_hash
-        assert manifest["publisher_helper_sha256"] == helper_hash
+        # The bundle was produced by the publisher version recorded here; it
+        # was migrated to the kernel manifest layout without re-running the
+        # family publisher (the migrated scorer code no longer audits these
+        # receipts), so the recorded hashes identify that earlier version.
+        bindings = manifest["source_bindings"]
+        assert manifest["publisher_implementation_sha256"] == bindings["publisher_implementation_sha256"]
+        assert manifest["publisher_helper_sha256"] == bindings["publisher_helper_sha256"]
+        assert bindings["layout_migration"]["renamed"] == {
+            "trajectories/sanitized.jsonl": "trajectories/episodes.jsonl"
+        }
         assert len(manifest["source_receipt_sha256s"]) == 20
         assert len(set(manifest["source_receipt_sha256s"])) == 20
         assert len(manifest["source_result_sha256s"]) == 20
         assert len(set(manifest["source_result_sha256s"])) == 20
         assert all(value is False for value in manifest["sanitization"].values())
-        for relative, metadata in manifest["files"].items():
+        assert all(value is False for value in manifest["family_sanitization"].values())
+        assert set(manifest["privacy_boundary"]) == {"included", "excluded"}
+        published = {
+            path.relative_to(publication).as_posix()
+            for path in publication.rglob("*")
+            if path.is_file() and path.name != "publication_manifest.json"
+        }
+        assert set(manifest["artifacts"]) == published
+        assert "trajectories/sanitized.jsonl" in published
+        assert "trajectories/episodes.jsonl" in published
+        for relative, digest in manifest["artifacts"].items():
             payload = (publication / relative).read_bytes()
-            assert len(payload) == metadata["bytes"]
-            assert hashlib.sha256(payload).hexdigest() == metadata["sha256"]
+            assert hashlib.sha256(payload).hexdigest() == digest
             lowered = payload.decode("utf-8").lower()
             assert not any(token in lowered for token in PROHIBITED_PUBLIC_TEXT)
 
@@ -327,7 +345,7 @@ def test_published_action_schema_v1_preserves_instrumentation_failure() -> None:
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [
         json.loads(line)
-        for line in (publication / "trajectories/sanitized.jsonl")
+        for line in (publication / "trajectories/episodes.jsonl")
         .read_text()
         .splitlines()
     ]
@@ -408,7 +426,7 @@ def test_published_action_schema_v2_preserves_qualified_null_result() -> None:
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [
         json.loads(line)
-        for line in (publication / "trajectories/sanitized.jsonl")
+        for line in (publication / "trajectories/episodes.jsonl")
         .read_text()
         .splitlines()
     ]
