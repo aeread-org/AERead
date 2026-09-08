@@ -68,9 +68,8 @@ rounds; without that ordering, repeated 5–8k-token uncached prefixes exhausted
 the assistant's case-level budget before the episode completed.
 Both model seats reserve 4096 completion tokens because Arena counts hidden
 reasoning and visible output against one limit. The $0.075 case ceiling is
-shared by the two seats, with two thirds reserved for the assistant and one
-third for the customer simulator; the runner also checks the combined
-post-charge total.
+shared by both seats: each receives that allowance while the runner enforces
+the sealed combined post-charge total across the entire trajectory.
 These ceilings replace the original $0.05/$0.30 estimate after the first
 pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
 campaign gives each seat enough local headroom to avoid a false seat-budget
@@ -103,7 +102,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v14
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v15
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -113,7 +112,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v14 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v15 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -122,8 +121,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v14 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v14 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v15 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v15 \
   --publish-only
 ```
 

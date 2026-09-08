@@ -270,10 +270,10 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
         == 2
     )
     assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
-        0.05 / 1.5
+        0.05
     )
     assert profiles["tau3_retail_user_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
-        0.05 / 3.0
+        0.05
     )
     with pytest.raises(EvidenceIntegrityError, match="sealed RunSpec"):
         asyncio.run(

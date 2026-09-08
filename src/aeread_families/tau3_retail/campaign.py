@@ -49,7 +49,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v14"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v15"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
