@@ -60,8 +60,14 @@ short form:
   is closed if it will not become mergeable. Stacks at most 2 deep, rooted in
   `main`, rebased on every merge. One concern per kernel PR. A red-CI PR is
   fixed or closed within 24 hours.
-- **From an agent session:** check `gh pr list --author @me --state open`
-  against the limit before opening another PR; never run scripted git in
+- **From an agent session:** `gh pr list --author @me --state open` does NOT
+  tell you your own count. Several sessions push under one identity, so that
+  list mixes yours with another session's and gives no way to tell them apart
+  -- it once read 10 to a session holding 5. Your PRs are the ones whose body
+  carries your session URL; the `pr-hygiene` check counts per worker on that
+  basis. Never rebase or force-push a branch whose PR body carries a different
+  session id: that is another worker's active branch, and it may have local
+  state you cannot see. never run scripted git in
   `/Users/chenyusu/AERead` (that checkout is live); work in a scratch
   worktree with a `cd "$wt" || exit` guard.
 

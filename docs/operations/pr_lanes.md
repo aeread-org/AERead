@@ -70,10 +70,26 @@ that were merged into one wrong one.
 
 ## 4. Limits
 
-- **Work in progress:** at most **3 ready-for-review PRs per author**. Drafts
+- **Work in progress:** at most **3 ready-for-review PRs per worker**. Drafts
   do not count, but a draft says in its first line why it is a draft and what
   would make it ready. A draft that is not expected to become mergeable is
   closed, not parked; the branch keeps the work.
+
+  **Per worker, not per GitHub account.** Several agent sessions push under one
+  identity in this repo, so counting by account charges one session for
+  another's work: the first run of this check reported 10 ready PRs to a
+  session that held 5, with 3 belonging to a different session and 2 being
+  drafts. A limit that miscounts is one people learn to disregard, which is
+  worse than not having a limit. Every PR body carries the session URL that
+  opened it, and `pr-hygiene` groups by that; PRs with no session id are a
+  human's and count together. If you are a person reading this: your account
+  is your worker, and nothing changes for you.
+
+  The corollary matters more than the count. Two sessions under one account
+  cannot see each other in `gh pr list --author @me` — each sees a list
+  containing the other's work and no way to tell which is which. That is a
+  second reason the "look before you start" rule above is written against
+  `--state open` for the whole repo rather than against your own PRs.
 - **Stacks:** at most **2 deep**, always rooted in `main` (never on a branch
   that is not itself an open PR), rebased on every merge below them. Stack
   bodies say "n of N" and the merge order.

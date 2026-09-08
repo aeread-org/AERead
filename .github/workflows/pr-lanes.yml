@@ -99,17 +99,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          # --- 1. Work-in-progress limit (pr_lanes.md: 3 ready PRs per author).
+          # --- 1. Work-in-progress limit (pr_lanes.md: 3 ready PRs per worker).
           # Drafts do not count, per the rule.
-          ready=$(gh pr list --repo "$REPO" --state open --author "$AUTHOR" \
-            --limit 100 --json number,isDraft \
-            --jq '[ .[] | select(.isDraft | not) ] | length')
-          echo "ready-for-review PRs open by $AUTHOR: $ready"
+          #
+          # Counted per WORKER, not per GitHub account. Several agent sessions
+          # push under one identity here, so counting by account charged one
+          # session for another's work and reported 10 to someone holding 7.
+          # A limit that miscounts is one people learn to disregard, which is
+          # worse than not having it. Every PR body carries the session URL
+          # that opened it; that is the worker. A PR with no session id is a
+          # human's, and all of those are counted together.
+          session=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body' \
+            | grep -oE 'session_[A-Za-z0-9]+' | head -1 || true)
+          [ -z "$session" ] && session="human"
+
+          ready=0
+          for n in $(gh pr list --repo "$REPO" --state open --author "$AUTHOR" \
+                       --limit 100 --json number,isDraft \
+                       --jq '.[] | select(.isDraft | not) | .number'); do
+            theirs=$(gh pr view "$n" --repo "$REPO" --json body --jq '.body' \
+              | grep -oE 'session_[A-Za-z0-9]+' | head -1 || true)
+            [ -z "$theirs" ] && theirs="human"
+            [ "$theirs" = "$session" ] && ready=$((ready + 1))
+          done
+          echo "ready-for-review PRs open by $AUTHOR from worker $session: $ready"
 
           wip_note=""
           if [ "$ready" -gt 3 ]; then
-            wip_note=$(printf '**WIP limit:** %s has **%s** ready-for-review PRs open; the limit is 3 (`docs/operations/pr_lanes.md`). This is not a merge gate. It is here because carrying many open branches is what let two people migrate the same three family scorers without noticing (#141).' "$AUTHOR" "$ready")
-            echo "::warning title=WIP limit::$AUTHOR has $ready ready PRs open, limit is 3"
+            wip_note=$(printf '**WIP limit:** this worker (`%s`) has **%s** ready-for-review PRs open under @%s; the limit is 3 (`docs/operations/pr_lanes.md`). Counted per worker, not per account -- several sessions push under one identity here. This is not a merge gate. It is here because carrying many open branches is what let two people migrate the same three family scorers without noticing (#141).' "$session" "$ready" "$AUTHOR")
+            echo "::warning title=WIP limit::worker $session has $ready ready PRs open, limit is 3"
           fi
 
           # --- 2. Same-family collision: another open PR touching my families.
