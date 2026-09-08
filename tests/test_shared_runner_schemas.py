@@ -1150,6 +1150,33 @@ def test_leaf_policy_declaration_post_init_rejects_subject_reduction_bypassing_f
         dataclasses.replace(leaf, seat_scope="planet")
 
 
+@pytest.mark.parametrize("invalid_reduction", ["", " \t", 0, [], {}])
+def test_leaf_policy_declaration_post_init_rejects_malformed_subject_reduction(
+    invalid_reduction: object,
+) -> None:
+    """Direct construction and ``replace`` must match ``from_dict`` validation."""
+    import dataclasses
+
+    valid = LeafPolicyDeclaration(
+        "tenant_realized_utility_leaf",
+        "finalize_time",
+        None,
+        seat_scope="subject_seat",
+        subject_reduction="mean",
+    )
+
+    with pytest.raises(AuthoringValidationError, match="subject_reduction"):
+        LeafPolicyDeclaration(
+            "tenant_realized_utility_leaf",
+            "finalize_time",
+            None,
+            seat_scope="subject_seat",
+            subject_reduction=invalid_reduction,  # type: ignore[arg-type]
+        )
+    with pytest.raises(AuthoringValidationError, match="subject_reduction"):
+        dataclasses.replace(valid, subject_reduction=invalid_reduction)
+
+
 def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclasses_replace() -> None:
     """Same bypass concern as R8's leaf-policy invariants (finding 4): a
     ``dataclasses.replace`` on an already-validated manifest must not smuggle

@@ -409,6 +409,7 @@ class LeafPolicyDeclaration:
                 f"leaf policy seat_scope must be one of {sorted(_SEAT_SCOPES)}, "
                 f"got {self.seat_scope!r}"
             )
+        _optional_string(self.subject_reduction, "leaf policy subject_reduction")
         if self.seat_scope != "subject_seat" and self.subject_reduction is not None:
             raise AuthoringValidationError(
                 "subject_reduction is only valid for a subject_seat leaf"
