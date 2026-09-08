@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_21",
+  "content_sha256": "807a5a32d0f21d53b89e8b41a729322440fd2e480f7ecb75fdd7c62307259a2a",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 13.591999999999999,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_21",
+      "cost": 4.99,
+      "description": "This Nerf Roblox Arsenal: Soul Catalyst blaster takes its inspiration from the Roblox experience Arsenal by ROLVe Community! This dart blaster includes a special code that allows you to redeem an exclusive virtual item on Roblox.* The Soul Catalyst blaster features easy pull-back priming to launch you into exciting outdoor play. Simply pull the slide back and release it, allowing the slide to spring back by itself. Pull the trigger and let the dart fly in outdoor games! Cool glow-in-the-dark details** on the blaster add an awesome look to your Nerf games. The blaster has single-dart capacity and easy front-loading. It comes with 4 Official Nerf foam darts. Launch into Nerf battles with the Nerf Roblox Arsenal: Soul Catalyst foam dart blaster for outdoor play! Eyewear recommended (not included). Copyright 2023 Roblox Corp. ROBLOX is a registered trademark. All rights reserved. Hasbro and all related terms are trademarks of Hasbro.",
+      "index_in_file": 20,
+      "interest": "mutual",
+      "price": 16.99,
+      "title": "Nerf Roblox Arsenal: Soul Catalyst Dart Blaster, Includes Code to Redeem Exclusive Virtual Item, 4 Elite Nerf Darts, Outdoor Games"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0B1VW77Z3",
+      "amazon_title": "Nerf Roblox Arsenal: Soul Catalyst Dart Blaster, Includes Code to Redeem Exclusive Virtual Item, 4 Elite Nerf Darts, Outdoor Games",
+      "average_price": "$13.30",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$14.07",
+      "current_price_date": "Nov 18, 2023",
+      "description": "This Nerf Roblox Arsenal: Soul Catalyst blaster takes its inspiration from the Roblox experience Arsenal by ROLVe Community! This dart blaster includes a special code that allows you to redeem an exclusive virtual item on Roblox.* The Soul Catalyst blaster features easy pull-back priming to launch you into exciting outdoor play. Simply pull the slide back and release it, allowing the slide to spring back by itself. Pull the trigger and let the dart fly in outdoor games! Cool glow-in-the-dark details** on the blaster add an awesome look to your Nerf games. The blaster has single-dart capacity and easy front-loading. It comes with 4 Official Nerf foam darts. Launch into Nerf battles with the Nerf Roblox Arsenal: Soul Catalyst foam dart blaster for outdoor play! Eyewear recommended (not included). Copyright 2023 Roblox Corp. ROBLOX is a registered trademark. All rights reserved. Hasbro and all related terms are trademarks of Hasbro.",
+      "features": "NERF ROBLOX ARSENAL SOUL CATALYST DART BLASTER: This Nerf dart-firing blaster takes its inspiration from the Roblox experience Arsenal by ROLVe Community\nEXCLUSIVE VIRTUAL ITEM CODE: This Nerf Roblox dart blaster includes a special code that allows you to redeem an exclusive virtual item on Roblox*\nPULL BACK PRIMING AND GLOW EFFECTS: Start blasting with easy pull-back priming. This foam dart blaster is designed with glow-in-the-dark details** that adds an exciting look to outdoor Nerf battles\nINCLUDES 4 NERF ELITE FOAM DARTS: Comes with 4 Official Nerf Elite darts that are great for fun indoor and outdoor games. Load, blast, and reload to keep on playing\nLOAD, PULL BACK AND BLAST: Front load 1 dart, pull the slide back and release it, and pull the trigger to send a dart blasting toward the competition",
+      "highest_price": "$14.99",
+      "highest_price_date": "Oct 27, 2023",
+      "img": "https://m.media-amazon.com/images/I/71xULhKEOfL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0B1VW77Z3?active=price_amazon&context=popular",
+      "list_price": "$16.99",
+      "lowest_price": "$4.99",
+      "lowest_price_date": "Nov 10, 2023",
+      "title": "Nerf Roblox Arsenal: Soul Catalyst Dart Blaster, Includes Code to Redeem Exclusive Virtual Item, 4 Elite Nerf Darts, Outdoor Games"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_21",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 921
+}

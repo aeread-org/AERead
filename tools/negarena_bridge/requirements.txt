@@ -1,0 +1,33 @@
+# Runtime dependencies of the pinned upstream NegotiationArena checkout
+# (commit c447fafd439a20b84cdedeb2f8a85c4fad764745).
+#
+# Neither package is ever called: no API key is read, no network request is
+# made. They exist purely because negotiationarena/utils.py does
+# `from negotiationarena.agents import ChatGPTAgent, ClaudeAgent` at module
+# scope, and negotiationarena/agents/__init__.py unconditionally imports
+# chatgpt.py (`from openai import OpenAI`) and claude.py (`from anthropic
+# import Anthropic, HUMAN_PROMPT, AI_PROMPT`). Every upstream module this
+# adapter delegates to -- including the "pure" game-object arithmetic in
+# negotiationarena/game_objects/*.py -- transitively imports both packages
+# at import time (see docs/negarena_adapter_spec.md's governing facts and
+# ledger_entries/negarena.md).
+#
+# anthropic==0.5.0 matches upstream's own requirements_dev.txt pin, and
+# still exports the legacy `Anthropic`/`HUMAN_PROMPT`/`AI_PROMPT` names
+# claude.py imports.
+#
+# openai is deliberately NOT pinned to upstream's frozen requirements_dev.txt
+# value (0.28.1): that version predates the `from openai import OpenAI`
+# client-class import chatgpt.py actually uses at this pin (verified --
+# `openai==0.28.1` raises `ImportError: cannot import name 'OpenAI'`), so a
+# modern client-style release is required for chatgpt.py to import at all.
+# Pinned to the exact version this bridge was verified against (see
+# tools/negarena_bridge/README.md's "On pinning" note); "reproduces upstream
+# exactly" is a statement about this interpreter's importability, not a
+# version claim upstream itself makes consistently.
+#
+# matplotlib/streamlit (upstream's webapp/figures) are NOT installed here:
+# nothing this adapter imports reaches them.
+
+openai==3.7.0
+anthropic==0.5.0

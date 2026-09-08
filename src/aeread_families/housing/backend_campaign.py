@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import time
@@ -34,6 +35,7 @@ from .runner import (
     OpenRouterRoutePin,
 )
 from .model_sensitivity import (
+    PacedProviderClient,
     _exception_attribute,
     _read_sealed,
     _sealed,
@@ -51,6 +53,7 @@ from .population_campaign import (
     _validate_admission_action,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from . import provider_pacing as provider_pacing_module
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_backend_campaign/0.1"
@@ -255,6 +258,57 @@ CAMPAIGN_SPECS = {
             "reserve; stop_immediately_on_route_drift_or_replay_failure"
         ),
     },
+    "housing_model_sensitivity_openrouter_deepinfra_v12": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_deepinfra_low_v12"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.08,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "DeepInfra",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_start_to_start",
+            "minimum_interval_seconds_by_provider": {
+                "DeepInfra": 15.0,
+                "Parasail": 15.0,
+            },
+            "first_call_delay_seconds": 15.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "6e51c13330a2aa73e4b9f8e7610c0cc232873b1aecaf1b85960a3db2ab8790cd"
+            ),
+        },
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -404,7 +458,11 @@ def load_contract(path: str | Path) -> dict[str, Any]:
             "condition_order", "rotate_by_case_configuration"
         ),
     }
-    for optional_control in ("action_schema_version", "wire_live_profile_controls"):
+    for optional_control in (
+        "action_schema_version",
+        "wire_live_profile_controls",
+        "call_pacing",
+    ):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
             expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
                 optional_control
@@ -735,13 +793,34 @@ def _admission_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
     return specs
 
 
+def _campaign_provider_client(contract: Mapping[str, Any]) -> Any:
+    client: Any = OpenRouterChatClient()
+    pacing = contract["controls"].get("call_pacing")
+    if pacing is None:
+        return client
+    implementation_sha256 = hashlib.sha256(
+        Path(provider_pacing_module.__file__).read_bytes()
+    ).hexdigest()
+    if implementation_sha256 != pacing["implementation_sha256"]:
+        raise ValueError(
+            "provider pacing implementation differs from the frozen campaign pin"
+        )
+    return PacedProviderClient(
+        client,
+        minimum_interval_seconds_by_provider=pacing[
+            "minimum_interval_seconds_by_provider"
+        ],
+        first_call_delay_seconds=pacing["first_call_delay_seconds"],
+    )
+
+
 async def run_profile_admission(
-    contract: Mapping[str, Any], *, output_root: Path
+    contract: Mapping[str, Any], *, output_root: Path, provider_client: Any | None = None
 ) -> dict[str, Any]:
     summary_path = output_root / "summary.json"
     if summary_path.exists():
         return _read_sealed(summary_path)
-    client = OpenRouterChatClient()
+    client = provider_client or _campaign_provider_client(contract)
     rows: list[dict[str, Any]] = []
     admission = contract["profile_admission"]
     for spec in _admission_specs(contract):
@@ -767,6 +846,11 @@ async def run_profile_admission(
             **spec,
         )
         started = time.perf_counter()
+        pacing_observation_index = (
+            client.observation_count
+            if isinstance(client, PacedProviderClient)
+            else None
+        )
         result = None
         try:
             result = await client.complete(request)
@@ -829,6 +913,10 @@ async def run_profile_admission(
                 "route_verified": provider_completed,
                 "sdk_retries": 0,
             }
+        if pacing_observation_index is not None:
+            row["call_pacing"] = client.pacing_summary_since(
+                pacing_observation_index
+            )
         sealed = _sealed(row)
         _write_json(result_path, sealed)
         rows.append(sealed)
@@ -901,8 +989,11 @@ async def execute_campaign(
             raise RuntimeError(
                 "OPENROUTER_API_KEY is required for the profile-admission stage"
             )
+        provider_client = _campaign_provider_client(contract)
         admission = await run_profile_admission(
-            contract, output_root=root / "profile_admission"
+            contract,
+            output_root=root / "profile_admission",
+            provider_client=provider_client,
         )
         result["profile_admission"] = admission
         if through == terminal_stage:
@@ -930,6 +1021,7 @@ async def execute_campaign(
                     output_root=root,
                     routes=routes,
                     stage_id=terminal_stage,
+                    provider_client=provider_client,
                 )
     return result
 

@@ -1,7 +1,7 @@
 """D12 procurement domain: multi-attribute supplier terms, award construction, authz gate.
 
 The B2B sibling of the bundle-under-budget env (see
-docs/exchange_economy/benchmark_scoping/2026-07-01_supply_chain_procurement_scenario.md):
+docs/exchange_economy/benchmark_scoping/2026-07-01_supply_chain_procurement_scenario.md; historical, not on main, see `git show c02e59da` lineage):
 a buyer-delegate must construct a **coupled multi-supplier award** -- units of every
 required component, sourced across suppliers with private unit costs and public
 capacity / lead-time / MOQ terms, under a procurement mandate (budget, approved-vendor

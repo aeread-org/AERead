@@ -1,0 +1,354 @@
+{
+  "case_id": "econevals.scheduling.basic.6",
+  "content_sha256": "8e8e11175d9b2dc2141a749f483a7236b431906dc4814f483a3939e001f30e3c",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "max_periods",
+      "error"
+    ]
+  },
+  "family_id": "econevals",
+  "family_version": "0.1.0",
+  "payload": {
+    "difficulty": "Basic",
+    "generated_instance": {
+      "score_gap_task": 3,
+      "score_gap_worker": null,
+      "task_ids": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10"
+      ],
+      "task_prefs": {
+        "T1": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T10": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T2": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T3": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T4": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T5": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T6": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T7": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T8": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ],
+        "T9": [
+          "W3",
+          "W7",
+          "W9",
+          "W2",
+          "W4",
+          "W10",
+          "W6",
+          "W5",
+          "W8",
+          "W1"
+        ]
+      },
+      "worker_ids": [
+        "W1",
+        "W2",
+        "W3",
+        "W4",
+        "W5",
+        "W6",
+        "W7",
+        "W8",
+        "W9",
+        "W10"
+      ],
+      "worker_prefs": {
+        "W1": [
+          "T10",
+          "T5",
+          "T6",
+          "T3",
+          "T2",
+          "T4",
+          "T7",
+          "T8",
+          "T1",
+          "T9"
+        ],
+        "W10": [
+          "T10",
+          "T9",
+          "T3",
+          "T6",
+          "T7",
+          "T1",
+          "T2",
+          "T4",
+          "T8",
+          "T5"
+        ],
+        "W2": [
+          "T1",
+          "T3",
+          "T6",
+          "T10",
+          "T4",
+          "T9",
+          "T5",
+          "T2",
+          "T8",
+          "T7"
+        ],
+        "W3": [
+          "T10",
+          "T5",
+          "T8",
+          "T1",
+          "T9",
+          "T6",
+          "T7",
+          "T3",
+          "T4",
+          "T2"
+        ],
+        "W4": [
+          "T10",
+          "T1",
+          "T3",
+          "T5",
+          "T2",
+          "T8",
+          "T6",
+          "T7",
+          "T9",
+          "T4"
+        ],
+        "W5": [
+          "T5",
+          "T1",
+          "T10",
+          "T3",
+          "T9",
+          "T6",
+          "T7",
+          "T2",
+          "T8",
+          "T4"
+        ],
+        "W6": [
+          "T8",
+          "T3",
+          "T5",
+          "T10",
+          "T7",
+          "T6",
+          "T9",
+          "T4",
+          "T1",
+          "T2"
+        ],
+        "W7": [
+          "T3",
+          "T2",
+          "T5",
+          "T6",
+          "T8",
+          "T4",
+          "T1",
+          "T7",
+          "T9",
+          "T10"
+        ],
+        "W8": [
+          "T7",
+          "T6",
+          "T3",
+          "T1",
+          "T10",
+          "T4",
+          "T2",
+          "T9",
+          "T8",
+          "T5"
+        ],
+        "W9": [
+          "T8",
+          "T10",
+          "T7",
+          "T3",
+          "T5",
+          "T2",
+          "T4",
+          "T6",
+          "T9",
+          "T1"
+        ]
+      }
+    },
+    "gold_optimum": {
+      "claim": "gale_shapley_stable_matching_exists",
+      "min_blocking_pairs": 0,
+      "reference_kind": "analytic_existence"
+    },
+    "pins": {
+      "difficulty": "Basic",
+      "max_llm_queries_per_period": 40,
+      "max_steps": 100,
+      "module_sha256": {
+        "experiments/pricing/generate_instance.py": "45d7743df9a6570c380054f0a12767b295b848004930de3bc9665f3572ce35fe",
+        "experiments/pricing/pricing_market_logic_multiproduct.py": "b2bac943c421d084258bd931d25f22591360c91097a51ab7e716857cb07f1723",
+        "experiments/procurement/generate_instance.py": "75507abd848762751b08d16cfc4ec1fdc5f1d76d51cb995fd438fab0c9e97aee",
+        "experiments/procurement/opt_solver.py": "e2710eadb1ea8ab77125e1d5276516aef67a5424e98bb56673d4fd82babab892",
+        "experiments/scheduling/generate_preferences.py": "a932725fb1c4c9172bab3dd0321a59604e269b04770a96ebdd92e5f631041b56",
+        "experiments/scheduling/stable_matching_environment.py": "6e44d8150941bdff8903dc49ac29994e50c0b4687836c6ca35d562ab23e1b128",
+        "utils/helper_functions.py": "25487b34700c435c2ff35e76104f9647122b43a088f025857e6dc09c744d0506"
+      },
+      "pricing_params": {
+        "group_idx_cutoff_proportion": 0.25,
+        "group_idx_p": 0.2,
+        "mu": 1.0,
+        "noise_param": 0.0,
+        "num_attempts": 100,
+        "num_products": 1,
+        "sigma": 0.5,
+        "start_multiplier": 100.0
+      },
+      "procurement_params": {
+        "agg_type": "prod",
+        "max_effectiveness": 3,
+        "min_effectiveness": 1,
+        "num_alternatives_per_input": 4,
+        "num_entries": 12,
+        "num_inputs": 3,
+        "num_items_per_entry_p": 0.8,
+        "offer_qty_in_sample_bundle_p": 0.5,
+        "quantity_per_item_p": 0.5
+      },
+      "scheduling_params": {
+        "blocking_pair_selection_method": "random_cache",
+        "num_blocking_pairs": 1,
+        "num_workers": 10
+      },
+      "upstream_commit": "e1f2a40fec96f0d27f5414873c4310f2b5c51935",
+      "upstream_license": "MIT",
+      "upstream_repo": "econ-evals-paper"
+    },
+    "seed": 6,
+    "track": "scheduling"
+  },
+  "provenance": {
+    "generator_id": "econevals_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "agent",
+      "role": "assistant"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "scheduling_basic",
+  "upstream_task_id": null,
+  "visibility_policy": "econevals_full_observability_v1",
+  "world_seed": 6
+}

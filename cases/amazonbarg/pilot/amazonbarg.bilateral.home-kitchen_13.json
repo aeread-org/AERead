@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_13",
+  "content_sha256": "ee2040c34857084ce67b382ff922c867a3e8cbfa29f274fa7cc5d0aa5e586737",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 192.0,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_13",
+      "cost": 74.69,
+      "description": "Turn any bedroom into a luxurious experience with the Chic Home Hannah Black 10 Piece Pinch Pleat King Size Comforter Set Specifications: Size: King Color: Black Piece Count: 10 Set Includes: 1pc Comforter (104Inches x 90Inches ) 4pc Sheet Set 2pc Shams (21Inches x 37Inches ) 1pc Decorative Pillow (16Inches x 16Inches ) 1pc Decorative Pillow (18Inches x 18Inches ) 1pc Breakfast Pillow (12Inches x 18Inches ) Shipping Dimensions (approx.): L 19.5\" x W 19.5\" x H 11.5\" Materials: Luxuriously brushed microfiber fabric, synthetic down alternative filling, Fabric and Design: Silky soft brushed microfiber material Fashion forward pinch pleated pintuck ruffled design Elegant and sophisticated look with color and design coordinated decorative pillows and sheets Features: Luxuriously soft feel for a great night sleep with less tossing and turning down alternative filling is perfect for those allergic to traditional down Just the right fill to keep you warm in the winter and cool in the summer Built to last with premium fabrics and expert stitching Care Instructions Dry clean preferred. Machine washable, use front loader machine (or top loader without agitator) to avoid tearing, use cold water on gentle cycle, tumble dry low Add 2 tennis balls to the dryer to speed up drying and add fluffiness Ready to transform your bedroom? Just scroll up and click “Add to CartInches ! Quantities are limited so hurry.",
+      "index_in_file": 12,
+      "interest": "mutual",
+      "price": 240.0,
+      "title": "Chic Home 10 Piece Hannah Pinch Pleated, ruffled and pleated complete King Bed In a Bag Comforter Set Black With sheet set"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B016N09T70",
+      "amazon_title": "Chic Home 10 Piece Hannah Pinch Pleated, ruffled and pleated complete King Bed In a Bag Comforter Set Black With sheet set",
+      "average_price": "$115.63",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$216.00",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Turn any bedroom into a luxurious experience with the Chic Home Hannah Black 10 Piece Pinch Pleat King Size Comforter Set Specifications: Size: King Color: Black Piece Count: 10 Set Includes: 1pc Comforter (104Inches x 90Inches ) 4pc Sheet Set 2pc Shams (21Inches x 37Inches ) 1pc Decorative Pillow (16Inches x 16Inches ) 1pc Decorative Pillow (18Inches x 18Inches ) 1pc Breakfast Pillow (12Inches x 18Inches ) Shipping Dimensions (approx.): L 19.5\" x W 19.5\" x H 11.5\" Materials: Luxuriously brushed microfiber fabric, synthetic down alternative filling, Fabric and Design: Silky soft brushed microfiber material Fashion forward pinch pleated pintuck ruffled design Elegant and sophisticated look with color and design coordinated decorative pillows and sheets Features: Luxuriously soft feel for a great night sleep with less tossing and turning down alternative filling is perfect for those allergic to traditional down Just the right fill to keep you warm in the winter and cool in the summer Built to last with premium fabrics and expert stitching Care Instructions Dry clean preferred. Machine washable, use front loader machine (or top loader without agitator) to avoid tearing, use cold water on gentle cycle, tumble dry low Add 2 tennis balls to the dryer to speed up drying and add fluffiness Ready to transform your bedroom? Just scroll up and click “Add to CartInches ! Quantities are limited so hurry.",
+      "features": "Microfiber\nMade in the USA or Imported\nSUPER SOFT PLUSH LUXURIOUS MICROFIBER – The Chic Home Hannah comforter is made with premium quality brushed microfiber – No more rustling and crinkling as you toss and turn to get comfortable. Just quiet peaceful sleep with an amazingly soft comforter cover.\nALTERNATIVE DOWN FILLING – The Hannah King size comforter is stuffed with 100% synthetic filling – Perfect for anyone with allergies looking to breathe and sleep easy, especially children and the elderly\nSTAY WARM AND COOL UNDER ONE COVER – Be comfortable all year round with the Hannah comforter King by Chic Home – Stuffed with lightweight synthetic down alternative filling the comforter will keep you warm in the winter and cool in the summer\nA BED IN A BAG BUILT TO LAST – The Chic Home Hannah King comforter set is made with strict quality control standards and comes with everything you need for a bedding makeover. With a King size comforter, sheet set, decorative pillows and shams, this set is all you need to transform your décor and elevate your style. Add one to cart today and turn your bedroom into a Chic Home.",
+      "highest_price": "$240.00",
+      "highest_price_date": "Aug 24, 2023",
+      "img": "https://m.media-amazon.com/images/I/81Rp0hWzfmL.__AC_SY300_SX300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B016N09T70?active=price_amazon&context=popular",
+      "list_price": "$224.00",
+      "lowest_price": "$74.69",
+      "lowest_price_date": "Jan 07, 2017",
+      "title": "Chic Home 10 Piece Hannah Pinch Pleated, ruffled and pleated complete King Bed In a Bag Comforter Set Black With sheet set"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_13",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 341
+}

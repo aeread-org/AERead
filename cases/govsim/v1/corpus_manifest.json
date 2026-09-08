@@ -1,0 +1,17 @@
+{
+  "case_ids": [
+    "govsim.fishing.greedy.0",
+    "govsim.fishing.mixed.0",
+    "govsim.fishing.sustainable.0",
+    "govsim.pollution.greedy.0",
+    "govsim.pollution.mixed.0",
+    "govsim.pollution.sustainable.0",
+    "govsim.sheep.greedy.0",
+    "govsim.sheep.mixed.0",
+    "govsim.sheep.sustainable.0"
+  ],
+  "content_sha256": "3ab8ba60dafd5268660b225bafc552ae6d89a4ab3a1dc7543abe3b04c27130a6",
+  "corpus_id": "govsim_v1",
+  "family_id": "govsim",
+  "split": "v1"
+}

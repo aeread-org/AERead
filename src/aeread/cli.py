@@ -23,6 +23,8 @@ VERBS: dict[str, tuple[str, str]] = {
                   "no-op / random / greedy baselines and non-triviality ordering"),
     "export-tables": ("aeread.shared_runner.analysis.research",
                       "export Run -> Task -> Model Call loss-analysis tables"),
+    "publish-trajectories": ("aeread.shared_runner.run.publish_trajectories",
+                             "add the kernel trajectory grain to a published bundle and re-seal it"),
 }
 
 

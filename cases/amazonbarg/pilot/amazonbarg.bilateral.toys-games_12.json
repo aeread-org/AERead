@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_12",
+  "content_sha256": "4ba2dd1c242e6963b762f366bc5cca198d20953a56347f8407574e247af10887",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 27.192000000000004,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_12",
+      "cost": 9.99,
+      "description": "Stock up with this refill pack of 75 Nerf Ultra darts for Nerf Ultra blasters! Nerf Ultra darts are the ultimate in Nerf dart blasting! These ground-breaking darts feature an innovative flight tip, Aerofin technology, and Nerf Ultra foam. Nerf Ultra darts work only with Nerf Ultra blasters. Experience the gold standard in Nerf dart blasting with Nerf Ultra blasters and darts -- their advanced design and performance delivers extreme distance, accuracy, and speed. Take your game to the next level with Nerf Ultra blasters and darts! (Blasters each sold separately.) Eyewear recommended (not included). Nerf and all related properties are trademarks of Hasbro.",
+      "index_in_file": 11,
+      "interest": "mutual",
+      "price": 33.99,
+      "title": "NERF Ultra 75-Dart Refill Pack - The Ultimate in Dart Blasting - Compatible Only Ultra Blasters (Amazon Exclusive)"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B07ZG961K7",
+      "amazon_title": "NERF Ultra 75-Dart Refill Pack (Amazon Exclusive)",
+      "average_price": "$19.31",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$9.99",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Stock up with this refill pack of 75 Nerf Ultra darts for Nerf Ultra blasters! Nerf Ultra darts are the ultimate in Nerf dart blasting! These ground-breaking darts feature an innovative flight tip, Aerofin technology, and Nerf Ultra foam. Nerf Ultra darts work only with Nerf Ultra blasters. Experience the gold standard in Nerf dart blasting with Nerf Ultra blasters and darts -- their advanced design and performance delivers extreme distance, accuracy, and speed. Take your game to the next level with Nerf Ultra blasters and darts! (Blasters each sold separately.) Eyewear recommended (not included). Nerf and all related properties are trademarks of Hasbro.",
+      "features": "NERF ULTRA DARTS ARE THE ULTIMATE IN NERF DART BLASTING: Blast into the game-changing superiority with Nerf Ultra darts -- the ultimate in Nerf dart blasting\n75 NERF ULTRA DARTS: Includes 75 ground-breaking Nerf Ultra darts that feature an innovative flight tip, Aerofin technology, and lightweight Nerf Ultra foam\nNERF ULTRA DARTS FOR NERF ULTRA BLASTERS: Nerf Ultra darts are compatible only with Nerf Ultra blasters. Stock up with this refill pack to keep backup firepower nearby! (Blasters each sold separately)\nSUSTAINABLE PACKAGING: Ships in simple, recyclable packaging that’s easy to open and frustration free",
+      "highest_price": "$33.99",
+      "highest_price_date": "May 14, 2022",
+      "img": "https://m.media-amazon.com/images/I/81TWMqPvOIL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B07ZG961K7?active=price_amazon&context=popular",
+      "list_price": "$33.99",
+      "lowest_price": "$9.99",
+      "lowest_price_date": "Nov 15, 2023",
+      "title": "NERF Ultra 75-Dart Refill Pack - The Ultimate in Dart Blasting - Compatible Only Ultra Blasters (Amazon Exclusive)"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_12",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 912
+}

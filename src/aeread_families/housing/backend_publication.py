@@ -262,6 +262,10 @@ def _publish_fact_tables(
         "action_schema",
         "probe_index",
         "status",
+        "elapsed_seconds",
+        "pacing_provider_calls",
+        "paced_call_count",
+        "pacing_wait_seconds",
         "failure_condition",
         "failure_status_code",
         "input_tokens",
@@ -275,19 +279,32 @@ def _publish_fact_tables(
         "raw_response_sha256",
         "artifact_sha256",
     )
-    admission_rows = [
-        {
-            field: (
-                campaign_id
-                if field == "campaign_id"
-                else contract["models"][row["model_id"]]["provider"]
-                if field == "provider"
-                else row.get(field)
-            )
-            for field in admission_fields
-        }
-        for row in admission["rows"]
-    ]
+    admission_rows: list[dict[str, Any]] = []
+    for row in admission["rows"]:
+        pacing = row.get("call_pacing")
+        pacing_fields = (
+            {
+                "pacing_provider_calls": pacing.get("provider_calls"),
+                "paced_call_count": pacing.get("paced_call_count"),
+                "pacing_wait_seconds": pacing.get("pacing_wait_seconds"),
+            }
+            if isinstance(pacing, Mapping)
+            else {}
+        )
+        admission_rows.append(
+            {
+                field: (
+                    campaign_id
+                    if field == "campaign_id"
+                    else contract["models"][row["model_id"]]["provider"]
+                    if field == "provider"
+                    else pacing_fields.get(field)
+                    if field in pacing_fields
+                    else row.get(field)
+                )
+                for field in admission_fields
+            }
+        )
     admission_payload = _csv_bytes(
         fieldnames=admission_fields, rows=admission_rows
     )
