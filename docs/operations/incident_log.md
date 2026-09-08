@@ -330,3 +330,23 @@ in `CLAUDE.md` ("Merging is a step that can fail").
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | P-J-01 | a docstring fix pointed at a historical design document with a blank commit hash, then with a commit that did not contain the file, before the third attempt verified the path with `git cat-file -e` | a verification step added after the second wrong hint | two force-pushes to an unreviewed branch | fixed; verify a `git show <sha>:<path>` hint before writing it |
+
+---
+
+## 2026-09-07, trajectory grain backfill
+
+Publishing the kernel trajectory grain (#136, #138) into the already-published
+procurement bundles (#139).
+
+### T — Tooling and process failures
+
+| id | what happened | detection | cost | disposition |
+|---|---|---|---|---|
+| P-T-04 | the local full-suite gate was `pytest ... \| tail -4` and the exit code read was `tail`'s; the first push of #139 was described as "full suite green locally" while five confirmatory tests were red | CI failed 20 tests on the same tree | one CI cycle; a wrong claim on a PR | suite commands now `set -o pipefail` and read pytest's summary line; #136–#138 had been independently green on CI |
+| P-T-05 | the P-T-02 zsh trap recurred: `for p in $PINNED` did not split, so seven paths became one, and `mv`/`git checkout` failed on a too-long filename | the commands' own errors | none; nothing was moved | redone in Python; shell loops over lists stay in bash arrays or Python |
+
+### J — Judgment failures
+
+| id | what happened | detection | cost | disposition |
+|---|---|---|---|---|
+| P-J-02 | ten bundles were re-sealed with the grain as a "mechanical correction" without checking whether anything froze their manifests; seven are pinned as parent controls (`PARENT_EVIDENCE_FILE_SHA256`) by later campaign modules, and a changed frozen control requires a new campaign identity | CI: `parent ... evidence manifest changed` | one CI cycle | parents restored byte-for-byte; their rows published as a derived bundle bound to the parents' digests; the leaf-only rule and the pin check are now in `reviewing_trajectories.md` §5 |

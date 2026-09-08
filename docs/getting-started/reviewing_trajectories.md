@@ -142,7 +142,9 @@ order (`schema_version: aeread.sanitized_trajectory_row/0.1`). A row carries:
 - `action`: the parsed, structured action the environment received (this is
   model-authored content, but it is the typed action, not the provider text);
 - `parse` (`ok`, `error_code`), `legality` (`legal`, `reason`), `outcome`
-  (`status`, `valid`, `failure_code`);
+  (`status`, `valid`, `failure_code`); `status` is one of `succeeded`,
+  `failed`, `outcome_unknown`, or `agent_action_failure` (an invalid action
+  the environment answered with its default transition);
 - `attempts[]`: each retry with its `provider_calls[]` — requested and resolved
   model, `pricing_id`, `request_sha256`, token counts, `cost_usd`, finish
   reason, or the typed failure condition — and the canonical response's
@@ -165,6 +167,17 @@ Every receipt must already be published by the bundle (the verb refuses
 otherwise), the file is written once, and `publication_manifest.json` is
 re-sealed with the new artifact digest via `add_publication_artifact`. This is
 a QC §4 mechanical correction: the earlier manifest stays in history and no
-reported number changes. Worked example:
+reported number changes.
+
+**Only leaf bundles can take the grain in place.** Later campaigns freeze
+their parent bundle's `publication_manifest.json` digest as a control
+(`PARENT_EVIDENCE_FILE_SHA256` in the campaign module), and a changed frozen
+control requires a new campaign identity, so a pinned parent's manifest must
+not be re-sealed. Before republishing, grep `src/` and `tests/` for the
+bundle's current `manifest_sha256` and the sha256 of its manifest file; if
+either is pinned, publish the rows in a derived bundle instead, one file per
+parent, with `source_bindings.parent_publications` recording each parent's
+digests. `evidence/procurement_allocation_trajectory_grains_v1/` is the worked
+example for seven pinned procurement parents. Worked example:
 `evidence/procurement_allocation_glm_morph_case_variance_v2/trajectories/sanitized.jsonl`
 (116 rows over 18 receipts).
