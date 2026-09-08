@@ -17,7 +17,10 @@ from aeread.shared_runner.run.publication import (
     atomic_publish,
     jsonl,
     receipt_projection,
+    rebuild_publication_manifest,
+    seal_publication_manifest,
 )
+from aeread.shared_runner.run.publication import MANIFEST_FILENAME
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
@@ -47,6 +50,12 @@ from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v9"
+
+PRIVACY_BOUNDARY = {
+    "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
+    "excluded": "prompts, provider payloads, event logs, artifact stores, account metadata",
+}
+
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
@@ -451,27 +460,25 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
     }
     for row in receipt_rows:
         files[f"receipts/{row['case_id']}.json"] = canonical_json_bytes(row) + b"\n"
-    artifact_rows = [
-        {
-            "path": path,
-            "sha256": hashlib.sha256(payload).hexdigest(),
-            "size_bytes": len(payload),
-        }
-        for path, payload in sorted(files.items())
-    ]
-    manifest: dict[str, Any] = {
-        "schema_version": "aeread.publication_manifest/0.1",
-        "publication_id": CAMPAIGN_ID,
-        "campaign_id": CAMPAIGN_ID,
-        "plan_sha256": plan["plan_sha256"],
-        "artifacts": artifact_rows,
-        "sanitization": dict(SANITIZATION_DECLARATION),
-    }
-    manifest["publication_sha256"] = _digest(manifest)
-    files["publication_manifest.json"] = canonical_json_bytes(manifest) + b"\n"
     for name, payload in files.items():
         assert_public_payload(name, payload)
         atomic_publish(publication_root / name, payload)
+    # The kernel writes the manifest in the one layout every bundle shares
+    # (docs/getting-started/reviewing_trajectories.md §5); plan_sha256 stays
+    # a top-level field as before.
+    if (publication_root / MANIFEST_FILENAME).exists():
+        # Re-publishing the same run is a no-op: the rebuild carries every
+        # field over and refuses any artifact whose bytes changed.
+        rebuild_publication_manifest(publication_root, privacy_boundary=PRIVACY_BOUNDARY)
+    else:
+        seal_publication_manifest(
+            publication_root,
+            publication_id=CAMPAIGN_ID,
+            campaign_id=CAMPAIGN_ID,
+            privacy_boundary=PRIVACY_BOUNDARY,
+            source_bindings={"plan_sha256": plan["plan_sha256"]},
+            plan_sha256=plan["plan_sha256"],
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
