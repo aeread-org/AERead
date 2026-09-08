@@ -610,7 +610,16 @@ class GovsimPlugin:
                 {
                     "round_index": len(new_state.get("round_trace", [])),
                     "agent_id": spokesperson,
-                    "message": actions[spokesperson].action["message"],
+                    # ``.get``, matching the reflect branch below. A
+                    # subscript here raised KeyError whenever a seat produced
+                    # a discuss action with no message -- a scripted policy,
+                    # or a model that answered with an empty object. The
+                    # empty string is recorded rather than skipped: a turn
+                    # where the spokesperson said nothing is a fact about the
+                    # episode, and dropping it from the transcript would hide
+                    # it. What is not done here is inventing text, which is
+                    # the failure this transcript was added to fix.
+                    "message": actions[spokesperson].action.get("message", ""),
                 }
             )
             new_state["transcript"] = transcript

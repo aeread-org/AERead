@@ -300,11 +300,31 @@ def test_scripted_harness_computes_the_assigned_policys_quantity_for_harvest() -
     assert harness.requests == [request]
 
 
-def test_scripted_harness_answers_discuss_and_reflect_with_an_empty_object() -> None:
+def test_scripted_harness_speaks_and_reflects_in_its_own_words() -> None:
+    """The scripted harness used to answer discuss and reflect with ``{}``.
+
+    That was correct while those phases carried no content. Once they did --
+    the transcript is the channel through which one agent's stated intent
+    changes another's harvest, which is the mechanism GovSim exists to study
+    -- a scripted seat that says nothing is a scripted seat that cannot
+    exercise the mechanism. It now states the policy it is following, which
+    is both true of it and enough for another seat to react to.
+    """
     harness = ScriptedGovsimHarness(policy_assignment={"persona_0": "sustainable_v1"})
-    for phase_id in (DISCUSS_PHASE, REFLECT_PHASE):
-        request = _FakeRequest(phase_id, "persona_0", {})
-        assert asyncio.run(harness(request)) == {}
+
+    discuss = asyncio.run(harness(_FakeRequest(DISCUSS_PHASE, "persona_0", {})))
+    assert set(discuss) == {"message"}
+    assert "sustainable_v1" in discuss["message"]
+
+    # The reflection is deliberately empty. A reflection is private memory,
+    # not speech, and a scripted policy has none -- so the harness answers
+    # with the key and nothing in it rather than composing an inner life the
+    # policy does not have. Empty is the honest answer here; the discuss
+    # message above is not, because a scripted seat really is following a
+    # stated policy and the other seats need something to react to.
+    reflect = asyncio.run(harness(_FakeRequest(REFLECT_PHASE, "persona_0", {})))
+    assert set(reflect) == {"reflection"}
+    assert reflect["reflection"] == ""
 
 
 def test_scripted_harness_raises_for_an_unknown_phase() -> None:

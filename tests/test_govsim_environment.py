@@ -515,6 +515,28 @@ def test_step_discuss_submits_one_chat_action_for_the_spokesperson() -> None:
     assert submitted == [{"kind": "chat", "agent_id": "persona_0"}]
 
 
+def test_discuss_records_silence_rather_than_inventing_an_utterance() -> None:
+    """A discuss action with no message must not raise, and must not be filled in.
+
+    Subscripting ``action["message"]`` raised KeyError for any seat that
+    produced an empty object -- a scripted policy, or a model that answered
+    with ``{}``. The empty string is recorded rather than skipped: a
+    spokesperson who said nothing is a fact about the episode, and dropping
+    the turn would hide it. What is deliberately not done is substituting
+    text, which is the failure the transcript was added to fix.
+    """
+    plugin = _plugin(bridge=FakeGovsimBridge())
+    family_case = _family_case(num_agents=5)
+    state = plugin.initial_state(family_case, cell=None)
+    phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
+    transition = plugin.step(
+        family_case, state, phases[DISCUSS_PHASE], {"persona_0": _envelope("persona_0", {})}
+    )
+    utterance = transition.state["transcript"][-1]
+    assert utterance["agent_id"] == "persona_0"
+    assert utterance["message"] == ""
+
+
 def test_step_reflect_submits_n_home_actions_and_loops_to_harvest() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
