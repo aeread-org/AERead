@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_2",
+  "content_sha256": "0bcb3a0b51fb114fc74d30d31255075479ed9aefe0e741f2f44d9b9fdb3f2b46",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 19.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_2",
+      "cost": 9.99,
+      "description": "Explore the mystical world of Eldrador with the Ice Dragon, a fun, educational toy figurine from Schleich! This set is authentically detailed, and is ideal for hours of imaginative play. Schleich® is a German toy company, and we bring realism to a new level. Our high quality, immersive playworlds open up a world of imaginative possibilities to toddlers and kids through safe and educational play. All Schleich products are carefully designed to inspire healthy and creative pretend play for children as both a single toy or part of a larger collection. All products and the materials used meet or exceed the strictest applicable national and international toy safety requirements. We are the world’s leading figurine company, and currently offer six different themed worlds and over 300 products designed to teach and inspire kids as they move through developmental stages. From the realistic worlds of Farm World, Wild Life and Horse Club to the mystical realms of bayala® and Eldrador® Creatures, we put The World in Your Hands.",
+      "index_in_file": 1,
+      "interest": "mutual",
+      "price": 24.99,
+      "title": "Schleich Eldrador Creatures Ice Dragon Toy Action Figure for Kids Ages 7-12, Blue, White"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B079NQ53BT",
+      "amazon_title": "Schleich Eldrador Creatures Ice Dragon Toy Action Figure for Kids Ages 7-12,Blue, White",
+      "average_price": "$22.58",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/31JbASWI-PL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$9.99",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Explore the mystical world of Eldrador with the Ice Dragon, a fun, educational toy figurine from Schleich! This set is authentically detailed, and is ideal for hours of imaginative play. Schleich® is a German toy company, and we bring realism to a new level. Our high quality, immersive playworlds open up a world of imaginative possibilities to toddlers and kids through safe and educational play. All Schleich products are carefully designed to inspire healthy and creative pretend play for children as both a single toy or part of a larger collection. All products and the materials used meet or exceed the strictest applicable national and international toy safety requirements. We are the world’s leading figurine company, and currently offer six different themed worlds and over 300 products designed to teach and inspire kids as they move through developmental stages. From the realistic worlds of Farm World, Wild Life and Horse Club to the mystical realms of bayala® and Eldrador® Creatures, we put The World in Your Hands.",
+      "features": "DETAILED & REALISTIC. Crafted with precision and authentic detail to create a lifelike toy that teaches and inspires toddlers and kids; helps introduce children to animals. From the first sketch to the intricate finishing touches, we see value in every detail.\nHEALTHY IMAGINATIVE PLAY. The Ice Dragon from Schleich is carefully designed to inspire safe and creative pretend play for children as both a single toy or part of a larger collection.\nPART OF A GROWING PLAY WORLD. The Ice Dragon is part of the Eldrador collection of figurines and playsets from Schleich. Great for gifting, this figurine can stand alone or fit into a larger, modular play world.\nBUILT TO LAST. As an 85-year-old German toy company, we are committed to manufacturing realistic toys with the highest standard of quality and safety for years of durable play and collectability. All products and the materials used meet or exceed the strictest applicable toy safety requirements.\nEXPERT APPROVED. “Schleich playsets and figurines inspire kids to play imaginatively: an essential part of healthy childhood development so often overlooked in today’s fast-paced world.” - Dr. Sandra Stone, open-ended play expert",
+      "highest_price": "$24.99",
+      "highest_price_date": "Mar 24, 2020",
+      "img": "https://m.media-amazon.com/images/I/71j3pLzhXNL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B079NQ53BT?active=price_amazon&context=popular",
+      "list_price": "$24.99",
+      "lowest_price": "$9.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "Schleich Eldrador Creatures Ice Dragon Toy Action Figure for Kids Ages 7-12, Blue, White"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_2",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 902
+}

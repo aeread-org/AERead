@@ -312,14 +312,8 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_run(
     assert comparison.original_final_db_sha256 == comparison.replayed_final_db_sha256
     assert replayed.terminal["reason"] == "user_stop"
 
-    # Known, general (not task-specific) property of Tau3RetailPlugin.step():
-    # every message it appends is re-timestamped through a fresh upstream
-    # model_validate call, so the RAW, byte-exact state never matches itself
-    # across two independent runs of one trajectory -- only its *content*
-    # does. Documented on replay._strip_message_timestamps; pinned here so
-    # this doesn't silently regress into a false "everything matches" claim.
-    assert comparison.final_state_matches is False
-    assert canonical_json_bytes(replayed.final_state) != canonical_json_bytes(
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(
         original.final_state
     )
 

@@ -48,6 +48,15 @@ from aeread.shared_runner.task.evaluation import audit_family_receipt
 from aeread.shared_runner.quality import QCCoverage, QCEvidenceRef
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.run.contract import load_contract as _load_kernel_contract
+from aeread.shared_runner.run.contract import (
+    require_claim_boundary,
+    require_disjoint_seeds,
+    require_positive_number,
+    require_seed_panel,
+)
+from aeread.shared_runner.run.contract import sealed as _sealed
+from aeread.shared_runner.run.contract import sha256_json as _sha256
 
 from .cases import load_authoring_records, load_cases
 from .environment import FAMILY_ID, FAMILY_VERSION
@@ -159,17 +168,8 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _sha256(value: Any) -> str:
-    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
-
-
 def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _sealed(value: Mapping[str, Any]) -> dict[str, Any]:
-    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
-    return {**core, "artifact_sha256": _sha256(core)}
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
@@ -209,10 +209,16 @@ def _campaign_implementation_sha256() -> str:
 
 
 def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
-    value = json.loads(Path(path).read_bytes())
-    if not isinstance(value, dict):
-        raise ValueError("campaign contract must be a JSON object")
-    required = {
+    return _load_kernel_contract(
+        path,
+        schema_version=CONTRACT_SCHEMA_VERSION,
+        required_keys=CONTRACT_FIELDS,
+        validators=(_validate_contract,),
+    )
+
+
+CONTRACT_FIELDS = frozenset(
+    {
         "schema_version",
         "campaign_id",
         "claim_status",
@@ -228,10 +234,10 @@ def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         "missingness",
         "stopping_rule",
     }
-    if set(value) != required:
-        raise ValueError("campaign contract fields are incomplete or unexpected")
-    if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
-        raise ValueError("unsupported commercial-state campaign schema")
+)
+
+
+def _validate_contract(value: Mapping[str, Any]) -> None:
     if value["campaign_id"] != CAMPAIGN_ID:
         raise ValueError(f"this driver accepts only {CAMPAIGN_ID}")
     if value["claim_status"] != "exploratory_variance_pilot":
@@ -277,14 +283,7 @@ def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
     for name, stage in (("full_trajectory", full), ("variance_pilot", pilot)):
         if not isinstance(stage, dict) or set(stage) != stage_fields:
             raise ValueError(f"{name} contract fields drifted")
-        seeds = stage["inference_seeds"]
-        if (
-            not isinstance(seeds, list)
-            or not seeds
-            or any(isinstance(seed, bool) or not isinstance(seed, int) or seed < 0 for seed in seeds)
-            or len(seeds) != len(set(seeds))
-        ):
-            raise ValueError(f"{name} inference seeds are invalid")
+        require_seed_panel(stage["inference_seeds"], label=name)
         slugs = stage["case_slugs"]
         if (
             not isinstance(slugs, list)
@@ -293,21 +292,19 @@ def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
             or not set(slugs).issubset(case_slugs)
         ):
             raise ValueError(f"{name} case panel is invalid")
-        ceiling = stage["cost_ceiling_usd"]
-        if isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or ceiling <= 0:
-            raise ValueError(f"{name} cost ceiling is invalid")
+        require_positive_number(stage["cost_ceiling_usd"], label=f"{name} cost ceiling")
         missing = stage["maximum_operational_failure_fraction"]
         if isinstance(missing, bool) or not isinstance(missing, (int, float)) or not 0 <= missing <= 1:
             raise ValueError(f"{name} missingness ceiling is invalid")
-        if stage["winner_claim_allowed"] is not False:
-            raise ValueError(f"{name} cannot authorize a winner claim")
+        require_claim_boundary(stage, label=name)
     if full["case_slugs"] != ["payment-release-reconcile"] or len(full["inference_seeds"]) != 1:
         raise ValueError("full-trajectory panel drifted")
     if pilot["case_slugs"] != case_slugs or len(pilot["inference_seeds"]) != 3:
         raise ValueError("variance-pilot panel drifted")
-    if set(full["inference_seeds"]) & set(pilot["inference_seeds"]):
-        raise ValueError("full-trajectory and variance-pilot seeds must be disjoint")
-    return value
+    require_disjoint_seeds(
+        ("full_trajectory", full["inference_seeds"]),
+        ("variance_pilot", pilot["inference_seeds"]),
+    )
 
 
 def _route_for(contract: Mapping[str, Any], model_id: str) -> OpenRouterRoute:

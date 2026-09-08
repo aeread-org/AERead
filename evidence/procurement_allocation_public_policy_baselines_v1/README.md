@@ -24,3 +24,5 @@ not population estimates or a general model ranking.
 Raw observations, prompts, event logs, provider fixtures, and replay stores remain
 under the ignored `runs/` tree. Published rows contain public actions, outcomes,
 usage-free request digests, and receipt/result hashes, never private supplier terms.
+
+`trajectories/sanitized.jsonl` (added 2026-09-07 as a mechanical correction; the manifest was re-sealed, no reported number changed) is the kernel trajectory grain: one row per logical action across the 48 published receipts, carrying the parsed action, legality, outcome, and per-call route/usage/cost facts, and nothing from the prompts or provider text. See `docs/getting-started/reviewing_trajectories.md` §5.

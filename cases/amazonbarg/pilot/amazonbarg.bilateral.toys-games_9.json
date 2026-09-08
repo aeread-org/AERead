@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_9",
+  "content_sha256": "1a52166b0964e1b83109c7fdfac01fadeda9f392b9d34f71ec5d73fe40f128f9",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 35.992000000000004,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_9",
+      "cost": 31.49,
+      "description": "In the places of power where ordered space decays and gives way to the void, there are those who would call power from the beyond to create abominations beyond our imagining. But there are a brave few who would set forth and risk their lives to put a stop to these terrors. This expansion features 5 investigators and contains all the player cards and customization options originally featured in The Dunwich Legacy cycle. Smite abominations as the chef, Zoey Samaras. Sniff out a good story as the reporter, Rex Murphy. Use your money and wits to solve any problem as the dilettante, Jenny Barnes. Speak with the dead and perform grim rites as the musician, Jim Culver. And finally, go looking for trouble as the drifter, “Ashcan” Pete, along with his trusty hound Duke. The Dunwich Legacy Investigator Expansion can be used to build or enhance investigator decks for any Arkham Horror: The Card Game scenario or campaign.",
+      "index_in_file": 8,
+      "interest": "mutual",
+      "price": 44.99,
+      "title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Investigator Expansion | Horror Game | Cooperative Mystery Game | Ages 14+ | 1-2 Players | Avg. Playtime 1-2 Hours | Made"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09M4F9P5V",
+      "amazon_title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Investigator Expansion | Horror Game | Cooperative Mystery Game | Ages 14+ | 1-2 Players | Avg. Playtime 1-2 Hours | Made",
+      "average_price": "$43.66",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/51Gi9VfzFdL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$31.49",
+      "current_price_date": "Nov 17, 2023",
+      "description": "In the places of power where ordered space decays and gives way to the void, there are those who would call power from the beyond to create abominations beyond our imagining. But there are a brave few who would set forth and risk their lives to put a stop to these terrors. This expansion features 5 investigators and contains all the player cards and customization options originally featured in The Dunwich Legacy cycle. Smite abominations as the chef, Zoey Samaras. Sniff out a good story as the reporter, Rex Murphy. Use your money and wits to solve any problem as the dilettante, Jenny Barnes. Speak with the dead and perform grim rites as the musician, Jim Culver. And finally, go looking for trouble as the drifter, “Ashcan” Pete, along with his trusty hound Duke. The Dunwich Legacy Investigator Expansion can be used to build or enhance investigator decks for any Arkham Horror: The Card Game scenario or campaign.",
+      "features": "RETURN TO DUNWICH: Venture back to the secluded village of Dunwich and revisit the horrors of the very first Arkham Horror LCG cycle.\nFACE TERROR: Encounter the same monstrous presence that once terrorized Dunwich, and take on new challenges and mysteries.\nNEW INVESTIGATORS: Expand your roster with iconic investigators Dr. Henry Armitage, Dr. Francis Morgan, and Professor Warren Price.\nFULL PLAYER CARD SET: All player cards for this cycle are included in this expansion, offering new deckbuilding options and strategies.\nFOR DUNWICH LOVERS: A must-have for fans of the original The Dunwich Legacy cycle, enhancing your gameplay experience.",
+      "highest_price": "$44.99",
+      "highest_price_date": "Nov 29, 2021",
+      "img": "https://m.media-amazon.com/images/I/81K1WnUMiiL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09M4F9P5V?active=price_amazon&context=popular",
+      "list_price": "$44.99",
+      "lowest_price": "$31.49",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Investigator Expansion | Horror Game | Cooperative Mystery Game | Ages 14+ | 1-2 Players | Avg. Playtime 1-2 Hours | Made"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_9",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 909
+}

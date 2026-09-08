@@ -1,0 +1,46 @@
+{
+  "content_sha256": "d134848cbfa6aac96b7cc6b7f3fb2e101f7df8126adca7808fa8813756dfcf1c",
+  "family_id": "econagent_v1",
+  "manifest_id": "econagent_v1_scenarios_v1",
+  "scenarios": [
+    {
+      "case_id": "econagent.pilot.small10x12.seed0",
+      "content_sha256": "0eac8d680870636e2644b5c8880217c3ae1193c6285ca5c253b4c2eeea71af00",
+      "episode_length": 12,
+      "n_agents": 10,
+      "purpose": "primary parity + goldens target",
+      "review_status": "upstream_pinned",
+      "scenario_id": "econagent.pilot.small10x12.seed0",
+      "world_seed": 0
+    },
+    {
+      "case_id": "econagent.pilot.small10x12.seed1",
+      "content_sha256": "89b706ffaf7051897a8df0ad1ece460c403e5bf24366e678dbce37acb2fe1c78",
+      "episode_length": 12,
+      "n_agents": 10,
+      "purpose": "second world seed, same shape",
+      "review_status": "upstream_pinned",
+      "scenario_id": "econagent.pilot.small10x12.seed1",
+      "world_seed": 1
+    },
+    {
+      "case_id": "econagent.pilot.tiny4x6.seed0",
+      "content_sha256": "4c336c893e1ed4e56c4e43f71d8cc4feaac6b0e0c7cd2a401f2a55381a7ba2c5",
+      "episode_length": 6,
+      "n_agents": 4,
+      "purpose": "fast-running smoke/degenerate-edge case",
+      "review_status": "upstream_pinned",
+      "scenario_id": "econagent.pilot.tiny4x6.seed0",
+      "world_seed": 0
+    },
+    {
+      "episode_length": 240,
+      "n_agents": 100,
+      "purpose": "full paper configuration (100 agents x 240 months); declared for corpus-enumeration completeness, never executed or gated this pass",
+      "review_status": "not_run",
+      "scenario_id": "econagent.full.baseline100x240",
+      "world_seed": null
+    }
+  ],
+  "split": "pilot"
+}

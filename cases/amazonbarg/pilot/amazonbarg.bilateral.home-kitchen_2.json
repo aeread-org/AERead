@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_2",
+  "content_sha256": "b2cc6a398fcfadb041a85a4e28558be0ffcb2a87c116085668e13fad68393503",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 173.44000000000003,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_2",
+      "cost": 95.0,
+      "description": "Product Description\nA lightweight 2-in-1 Lift-Away upright vacuum with a detachable pod for portable cleaning power. With the push of a button, Lift Away the pod to easily clean in hard-to-reach areas. This vacuum is also equipped with Swivel Steering for excellent control when maneuvering around furniture and has a completely sealed system with a HEPA filter to trap dust and allergens.\nBrand Story\nBy Shark",
+      "index_in_file": 1,
+      "interest": "mutual",
+      "price": 216.8,
+      "title": "Shark NV360 Navigator Lift-Away Deluxe Upright Vacuum with Large Dust Cup Capacity, HEPA Filter, Swivel Steering, Upholstery Tool & Crevice Tool, Blue"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B00JH98GR4",
+      "amazon_title": "Shark NV360 Navigator Lift-Away Deluxe Upright Vacuum with Large Dust Cup Capacity, HEPA Filter, Swivel Steering, Upholstery Tool & Crevice Tool, Blue",
+      "average_price": "$176.39",
+      "badge": "",
+      "camel_img": "https://m.media-amazon.com/images/I/31qnssh9uRL._UL320_.jpg",
+      "category": "home-kitchen",
+      "current_price": "$159.99",
+      "current_price_date": "Nov 05, 2023",
+      "description": "Product Description\nA lightweight 2-in-1 Lift-Away upright vacuum with a detachable pod for portable cleaning power. With the push of a button, Lift Away the pod to easily clean in hard-to-reach areas. This vacuum is also equipped with Swivel Steering for excellent control when maneuvering around furniture and has a completely sealed system with a HEPA filter to trap dust and allergens.\nBrand Story\nBy Shark",
+      "features": "POWERFUL SUCTION: Deep-clean carpets and tackle bare floors with multi-surface powerful suction.\nLIFT-AWAY FUNCTIONALITY: Detachable pod for cleaning under furniture or detach the nozzle to clean above the floor, on upholstery, furniture, stairs, and more.\nANTI-ALLERGEN COMPLETE SEAL TECHNOLOGY: Works with a HEPA filter to trap dust and allergens inside the vacuum cleaner.\nPERFECT FOR PETS: Powerful pet hair pickup attachments like the upholstery tool make cleaning pet hair a breeze.\nSWIVEL STEERING: Easily maneuver your vacuum in and out of tight spaces, in corners, around furniture, and more.\nBRUSHROLL SHUTOFF: Feature allows you to instantly switch from deep carpet cleaning to gentle bare floor cleaning.\nLARGE-CAPACITY DUST CUP: 0.9-quart capacity for longer cleaning sessions. Easily remove dust cup to empty debris in seconds.\nWHAT’S INCLUDED: Navigator Lift-Away Deluxe Upright Vacuum, Upholstery Tool & Crevice Tool. Rinse filters under running tap water until the water runs clear. Squeeze filters and let air dry for 24 hours before replacing. Do not wash in dishwasher or washing machine.",
+      "highest_price": "$216.80",
+      "highest_price_date": "Feb 22, 2023",
+      "img": "https://m.media-amazon.com/images/I/71FohJtmeNL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B00JH98GR4?active=price_amazon&context=popular",
+      "list_price": "$149.99",
+      "lowest_price": "$95.00",
+      "lowest_price_date": "Jun 03, 2022",
+      "title": "Shark NV360 Navigator Lift-Away Deluxe Upright Vacuum with Large Dust Cup Capacity, HEPA Filter, Swivel Steering, Upholstery Tool & Crevice Tool, Blue"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_2",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 330
+}

@@ -60,8 +60,14 @@ def test_qwen_plan_freezes_matched_panel_route_and_budget() -> None:
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(0.19)
     assert scored["retry_policy"]["max_action_attempts"] == 3
     assert scored["retry_policy"]["retry_base_seconds"] == pytest.approx(15.0)
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "cef886b5f890c4a14c224a09ea4541ebfdbaacbbf872f633139827a7f42a08d5"
+        "cd5fda834db3806476a1149b081439d8fdcf71baaeb3922715784ffb18d1b761"
     )
 
 

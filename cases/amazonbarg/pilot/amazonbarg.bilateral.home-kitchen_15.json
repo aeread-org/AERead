@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_15",
+  "content_sha256": "d60757791f894930a4f3f69b2eeae01b8de6c5059f97c74523e611281437db1c",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 127.19200000000001,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_15",
+      "cost": 76.99,
+      "description": "Product Description\nDrinkmate OmniFizz Sparkling Water and Soda Maker, Sparkles ANY Beverage\nGo BEYOND Sparkling Water\nIsn't it time to add more sparkle to your life? With the Drinkmate OmniFizz beverage carbonator, you can quickly and easily carbonate any beverage. You can directly add delicious bubbles to cold water, juices, iced tea, energy drinks, wine, cocktails and even flat soda or beer. Transform simple drinks into sparkling delights in seconds without having to dilute them with soda water.\nWhat will you sparkle next? Unleash your creativity and make healthy, delicious drinks that are only possible with Drinkmate!\nWhat distinguishes the Drinkmate from other soda makers?\nWith its patented attachment, the Fizz Infuser, the OmniFizz can sparkle ANY drink, not just water!\nWhat is the Fizz Infuser and how does it work?\nThe Fizz Infuser is placed directly on the bottle, so the OmniFizz itself never comes into contact with liquid. Other devices connect the bottle directly to the machine, creating a mess that's impossible to clean. The Fizz Infuser has a two-stage pressure valve, so pressure release can be easily controlled for a slow release to prevent any mess with heavily foaming drinks.\nSpecifications\nDrinkmate OmniFizz carbonates ANY drink with just the push of a button.\nNo electricity or batteries required.\nHand wash only.\nSmall footprint for any countertop: 8\"L x 5\"W x 16\"H\nSAFE, FAST, AND EASY TO USE\nOur patented Fizz Infuser technology makes sparkling your favorite beverages safe, fast, and easy! With other soda makers, you can only sparkle water, but thanks to the Fizz Infuser, the Drinkmate OmniFizz can sparkle ANY drink! Safe and easy operation. No electricity or batteries required. Hand wash only.\nDRINK HEALTHIER\nTired of drinks with ingredient lists filled with dozens of chemicals you've never heard of? With Drinkmate, you're in full control. The only limitation is your own imagination.\nSPARKLE ANY DRINK, NOT JUST WATER\nEnjoy sparkling water as well as juices, wine, tea, and cocktails. Flat soda or beer? No problem! With the Drinkmate OmiFizz, you can carbonate ANY drink at the touch of a button!\nTechnical Specifications (OmniFizz)\nLength 8 inches\nWidth 5 inches\nHeight 16 inches\nNet Weight 2.6 lbs\nWhy Drinkmate?\nIt's no secret that there are hundreds of home soda machines on the market, so what makes Drinkmate special? That's simple. Drinkmate can go beyond sparkling water. Juice, tea, sports drinks, flat beer, wine, cocktails... the possibilities are endless. No mess, no fuss.\nWhat will you sparkle next?",
+      "index_in_file": 14,
+      "interest": "mutual",
+      "price": 158.99,
+      "title": "Drinkmate OmniFizz Sparkling Water and Soda Maker, Carbonates Any Drink Without Diluting It, CO2 Cylinder Not Included (Royal Red)"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B01EDNNGMI",
+      "amazon_title": "Drinkmate OmniFizz Sparkling Water and Soda Maker, Carbonates Any Drink Without Diluting It, CO2 Cylinder Not Included (Royal Red)",
+      "average_price": "$114.93",
+      "badge": "Good Deal",
+      "category": "home-kitchen",
+      "current_price": "$79.99",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Product Description\nDrinkmate OmniFizz Sparkling Water and Soda Maker, Sparkles ANY Beverage\nGo BEYOND Sparkling Water\nIsn't it time to add more sparkle to your life? With the Drinkmate OmniFizz beverage carbonator, you can quickly and easily carbonate any beverage. You can directly add delicious bubbles to cold water, juices, iced tea, energy drinks, wine, cocktails and even flat soda or beer. Transform simple drinks into sparkling delights in seconds without having to dilute them with soda water.\nWhat will you sparkle next? Unleash your creativity and make healthy, delicious drinks that are only possible with Drinkmate!\nWhat distinguishes the Drinkmate from other soda makers?\nWith its patented attachment, the Fizz Infuser, the OmniFizz can sparkle ANY drink, not just water!\nWhat is the Fizz Infuser and how does it work?\nThe Fizz Infuser is placed directly on the bottle, so the OmniFizz itself never comes into contact with liquid. Other devices connect the bottle directly to the machine, creating a mess that's impossible to clean. The Fizz Infuser has a two-stage pressure valve, so pressure release can be easily controlled for a slow release to prevent any mess with heavily foaming drinks.\nSpecifications\nDrinkmate OmniFizz carbonates ANY drink with just the push of a button.\nNo electricity or batteries required.\nHand wash only.\nSmall footprint for any countertop: 8\"L x 5\"W x 16\"H\nSAFE, FAST, AND EASY TO USE\nOur patented Fizz Infuser technology makes sparkling your favorite beverages safe, fast, and easy! With other soda makers, you can only sparkle water, but thanks to the Fizz Infuser, the Drinkmate OmniFizz can sparkle ANY drink! Safe and easy operation. No electricity or batteries required. Hand wash only.\nDRINK HEALTHIER\nTired of drinks with ingredient lists filled with dozens of chemicals you've never heard of? With Drinkmate, you're in full control. The only limitation is your own imagination.\nSPARKLE ANY DRINK, NOT JUST WATER\nEnjoy sparkling water as well as juices, wine, tea, and cocktails. Flat soda or beer? No problem! With the Drinkmate OmiFizz, you can carbonate ANY drink at the touch of a button!\nTechnical Specifications (OmniFizz)\nLength 8 inches\nWidth 5 inches\nHeight 16 inches\nNet Weight 2.6 lbs\nWhy Drinkmate?\nIt's no secret that there are hundreds of home soda machines on the market, so what makes Drinkmate special? That's simple. Drinkmate can go beyond sparkling water. Juice, tea, sports drinks, flat beer, wine, cocktails... the possibilities are endless. No mess, no fuss.\nWhat will you sparkle next?",
+      "features": "CARBONATES ANY DRINK, NOT JUST WATER: Enjoy the sensation of sparkling water, juices, wine, cocktails, and even flat soda or beer. The Drinkmate OmniFizz soda maker puts you in control with the push of a button.\nDRINK HEALTHIER AND REDUCE PLASTIC BOTTLE WASTE: With the Drinkmate OmniFizz carbonator machine, you can avoid excess sugar and harmful chemicals, stay hydrated, and help the environment by carbonating drinks at home!\nSAFE, QUICK AND EASY TO OPERATE: Our patented Fizz Infuser technology makes it safe and simple to use. No electricity or batteries required. Fizz Infuser and PET bottles hand wash only.\nINCLUDES: Drinkmate OmniFizz sparkling beverage maker, one reusable 1L BPA-Free Carbonating Quick-Connect Bottle with volume measurement lines, and Fizz Infuser. CO2 supplies and additional accessories sold separately.\nPOWERED BY FOOD GRADE CO2 GAS: Compatible with all brands of standard 60L CO2 threaded cartridges in North America (including Drinkmate, SodaStream blue label and Soda Sense). Exchange empty cylinders with Drinkmate's convenient online exchange program.",
+      "highest_price": "$158.99",
+      "highest_price_date": "Jul 17, 2023",
+      "img": "https://m.media-amazon.com/images/I/51Zb91J07DL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B01EDNNGMI?active=price_amazon&context=popular",
+      "list_price": "$110.99",
+      "lowest_price": "$76.99",
+      "lowest_price_date": "Apr 17, 2020",
+      "title": "Drinkmate OmniFizz Sparkling Water and Soda Maker, Carbonates Any Drink Without Diluting It, CO2 Cylinder Not Included (Royal Red)"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_15",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 343
+}

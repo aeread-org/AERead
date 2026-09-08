@@ -171,3 +171,60 @@ def test_family_finalizer_seals_and_replays_explicit_multileaf_admission(
         receipt_path=execution.evidence.root / "evaluation_receipt.json",
     )
     assert audited["receipt_sha256"] == receipt.receipt_sha256
+
+
+def test_audit_and_replay_tolerate_kernel_pin_drift_but_not_family_drift(tmp_path) -> None:
+    from aeread.shared_runner.run.resolver import plan_with_pins
+    from aeread.shared_runner.task.evaluation import receipt_implementation_drift
+
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+
+    def current(target, **changes):
+        pins = tuple(
+            dataclasses.replace(pin, **changes) if pin == target else pin
+            for pin in setup.plan.implementation_pins
+        )
+        return dataclasses.replace(setup, plan=plan_with_pins(setup.plan, pins))
+
+    harness = next(pin for pin in setup.plan.implementation_pins if pin.kind == "harness")
+    kernel_moved = current(harness, sha256="a" * 64)
+    assert kernel_moved.plan.run_plan_id != setup.plan.run_plan_id
+
+    audited = audit_family_receipt(setup=kernel_moved, receipt_path=receipt_path)
+    assert audited["receipt_sha256"] == receipt.receipt_sha256
+    assert receipt_implementation_drift(kernel_moved.plan, audited) == (
+        f"implementation_drift:{harness.component_id}",
+    )
+    assert receipt_implementation_drift(setup.plan, audited) == ()
+    replayed = replay_housing_receipt(
+        setup=kernel_moved, receipt=receipt, evidence_root=tmp_path
+    )
+    assert canonical_json_bytes(replayed) == canonical_json_bytes(receipt)
+
+    scorer = next(pin for pin in setup.plan.implementation_pins if pin.kind == "scorer")
+    family_moved = current(scorer, sha256="b" * 64)
+    with pytest.raises(ValueError, match="plan_implementation_pins"):
+        audit_family_receipt(setup=family_moved, receipt_path=receipt_path)
+    with pytest.raises(ValueError, match="does not belong"):
+        replay_housing_receipt(setup=family_moved, receipt=receipt, evidence_root=tmp_path)

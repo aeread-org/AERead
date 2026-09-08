@@ -84,6 +84,11 @@ class CandidateCaseCampaignSpec:
     prompt: str = PROMPT
     prompt_id: str = "procurement_allocation_prompt_v1"
     treatment_id: str = "unscaffolded_control"
+    case_paths: tuple[Path, ...] = CASE_VARIANCE_PATHS
+    inference_seeds: tuple[int, ...] = PAIRED_INFERENCE_SEEDS
+    max_parallel_cells: int = MAX_PARALLEL_CELLS
+    trajectories_per_checkpoint: int = TRAJECTORIES_PER_CHECKPOINT
+    matched_baseline_campaign_id: str | None = GLM_BASELINE_CAMPAIGN_ID
 
 
 DEFAULT_SPEC = CandidateCaseCampaignSpec(
@@ -138,16 +143,16 @@ def build_plan(
     *, spec: CandidateCaseCampaignSpec = DEFAULT_SPEC
 ) -> dict[str, Any]:
     scored = planned_model_qualification(
-        case_paths=CASE_VARIANCE_PATHS,
-        inference_seeds=PAIRED_INFERENCE_SEEDS,
-        max_parallel_cells=MAX_PARALLEL_CELLS,
+        case_paths=spec.case_paths,
+        inference_seeds=spec.inference_seeds,
+        max_parallel_cells=spec.max_parallel_cells,
         campaign_id=spec.campaign_id,
         abort_on_operational_failure=True,
         candidate=spec.candidate,
         prompt=spec.prompt,
         prompt_id=spec.prompt_id,
         treatment_id=spec.treatment_id,
-        max_new_trajectories=TRAJECTORIES_PER_CHECKPOINT,
+        max_new_trajectories=spec.trajectories_per_checkpoint,
         max_action_attempts=MAX_ACTION_ATTEMPTS,
         retryable_conditions=RETRY_CONDITIONS,
         retry_backoff=RETRY_BACKOFF,
@@ -174,7 +179,7 @@ def build_plan(
             "license_id": spec.candidate.license_id,
             "model_card_url": spec.candidate.model_card_url,
         },
-        "matched_baseline_campaign_id": GLM_BASELINE_CAMPAIGN_ID,
+        "matched_baseline_campaign_id": spec.matched_baseline_campaign_id,
         "scored_plan": scored,
         "admission_canary": {
             "scored": False,
@@ -189,8 +194,9 @@ def build_plan(
         "conservative_total_cost_ceiling_usd": float(conservative_total),
         "hard_total_cost_ceiling_usd": spec.hard_total_cost_ceiling_usd,
         "eligibility": (
-            "all 18 rows completed and receipt-replayed with exact cost accounting; "
-            "model route, cases, seeds, prompt, harness, and digests match"
+            f"all {len(spec.case_paths) * len(spec.inference_seeds)} rows completed "
+            "and receipt-replayed with exact cost accounting; model route, cases, "
+            "seeds, prompt, harness, and digests match"
         ),
         "claim_scope": spec.claim_scope,
     }
@@ -203,8 +209,8 @@ async def _representative_request(
 ) -> ProviderRequest:
     setup = build_openrouter_setup(
         spec.candidate.route,
-        case_path=CASE_VARIANCE_PATHS[0],
-        seed=PAIRED_INFERENCE_SEEDS[0],
+        case_path=spec.case_paths[0],
+        seed=spec.inference_seeds[0],
         max_output_tokens=1800,
         timeout_seconds=180.0,
         max_cost_usd=spec.max_canary_cost_usd,
@@ -388,7 +394,7 @@ def _status(
     spec: CandidateCaseCampaignSpec = DEFAULT_SPEC,
 ) -> dict[str, Any]:
     scored_summary = artifact.get("summary", {}) if artifact is not None else {}
-    planned = len(CASE_VARIANCE_PATHS) * len(PAIRED_INFERENCE_SEEDS)
+    planned = len(spec.case_paths) * len(spec.inference_seeds)
     completed = int(scored_summary.get("completed_trajectory_count", 0))
     failures = int(scored_summary.get("operational_failure_count", 0))
     scored_cost = float(scored_summary.get("total_cost_usd", 0.0))
@@ -472,10 +478,10 @@ async def run_campaign(
     if canary.get("status") == "admitted":
         artifact = await run_model_qualification(
             run_root=scored_root,
-            case_paths=CASE_VARIANCE_PATHS,
-            inference_seeds=PAIRED_INFERENCE_SEEDS,
+            case_paths=spec.case_paths,
+            inference_seeds=spec.inference_seeds,
             max_spend_usd=resolved_max_spend - spec.max_canary_cost_usd,
-            max_parallel_cells=MAX_PARALLEL_CELLS,
+            max_parallel_cells=spec.max_parallel_cells,
             resume=scored_root.exists(),
             provider_factory=provider_factory,
             preflight_fn=preflight_fn,
@@ -485,7 +491,7 @@ async def run_campaign(
             prompt=spec.prompt,
             prompt_id=spec.prompt_id,
             treatment_id=spec.treatment_id,
-            max_new_trajectories=TRAJECTORIES_PER_CHECKPOINT,
+            max_new_trajectories=spec.trajectories_per_checkpoint,
             max_action_attempts=MAX_ACTION_ATTEMPTS,
             retryable_conditions=RETRY_CONDITIONS,
             retry_backoff=RETRY_BACKOFF,

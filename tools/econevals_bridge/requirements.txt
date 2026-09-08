@@ -1,0 +1,31 @@
+# Runtime dependencies of the pinned upstream econ-evals checkout
+# (commit e1f2a40, https://github.com/sara-fish/econ-evals-paper).
+#
+# Upstream's Pipfile declares open ranges and Python 3.12. They are frozen here
+# to the exact versions the adapter's generator-determinism and gold-optimum
+# checks were verified against, because "the generated corpus is byte-
+# reproducible from its seed" is a claim about a specific interpreter, not a
+# dependency range: a numpy/scipy point release can change float repr or a
+# solver's tie-break order without any change on our side.
+#
+# This set is installed into a dedicated interpreter that ONLY imports
+# upstream (via the subprocess bridge driver). It is deliberately not merged
+# into the project's own dependencies: upstream needs Python >= 3.12 while the
+# project runs on 3.11, and none of these packages belong in the project venv.
+#
+# gurobipy is present only for the procurement track's exact-optimum solver
+# (opt_solver.compute_opt). The pip-installed package ships a size-limited
+# free license (no license file needed); the pilot's Basic-difficulty
+# instances (3 inputs x 4 alternatives, 12 menu entries) solve under it with
+# no license error -- verified during recon. Do not raise procurement past
+# Basic without re-checking the model size against that limit.
+#
+# inflect is a transitive import of opt_solver.py (Entry.to_str uses it) and
+# is required even for corpus generation, not just scoring.
+
+gurobipy==13.0.3
+inflect==7.5.0
+numpy==2.5.2
+pandas==3.0.5
+pydantic==2.13.5
+scipy==1.18.1
