@@ -350,3 +350,27 @@ procurement bundles (#139).
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | P-J-02 | ten bundles were re-sealed with the grain as a "mechanical correction" without checking whether anything froze their manifests; seven are pinned as parent controls (`PARENT_EVIDENCE_FILE_SHA256`) by later campaign modules, and a changed frozen control requires a new campaign identity | CI: `parent ... evidence manifest changed` | one CI cycle | parents restored byte-for-byte; their rows published as a derived bundle bound to the parents' digests; the leaf-only rule and the pin check are now in `reviewing_trajectories.md` §5 |
+
+## 2026-09-08 — judgment: a frozen control edited in place under a published campaign
+
+`#98` added `feasible_award` to the `primary_outcomes` list in
+`procurement_allocation/model_campaign.py`. That list is frozen into every
+plan `planned_model_qualification` builds, and one of those plans --
+`procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1`,
+published in #62 -- had already been sealed under the old list. After #98,
+rebuilding that plan from source no longer reproduced its sealed digest
+(`3fbba58a…` became `8dc6d893…`), and #62 went red on a test that exists
+precisely to notice this.
+
+Campaign discipline says a changed frozen control takes a new identity. #98
+changed it in place. The consequence was contained -- the sealed bundle is
+untouched and correct, and no published evidence carried the parent digest --
+but "the test was wrong" would have been the easy reading, and updating the
+recorded digest would have deleted the only record that a frozen plan had
+stopped matching its source.
+
+Disposition: `primary_outcomes` is now a parameter threaded from each
+campaign's spec, defaulting to today's list; the sealed campaign declares the
+list it sealed with. Its digest reproduces again, and no other campaign's
+digest moved (42 procurement digest tests). The rule that should have caught
+this at review time, not test time, is the one #143 adds.

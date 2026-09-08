@@ -28,6 +28,8 @@ SEALED = sorted(EVIDENCE.glob("procurement_allocation*/reports/campaign_plan.jso
 #: Every sealed procurement plan digest, as published. Values are recorded so a
 #: bundle cannot be quietly rewritten together with its own digest.
 PUBLISHED_PLAN_DIGESTS = {
+    "procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1":
+        "3fbba58ab765cde80740fc18a328d2ec0a548e8fd6c76dc17ce597fd5a6557f5",
     "procurement_allocation_qwen3_235b_atlascloud_case_variance_v1":
         "9b7b2fbea8200eb9900ee063bf34255c3162f9aa7e733a5d76adb7224507a78f",
     "procurement_allocation_qwen3_235b_google_case_variance_v1":

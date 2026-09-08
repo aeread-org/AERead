@@ -79,6 +79,16 @@ MIN_SPLIT_WORLDS_FOR_TRANSFER_SIGNAL = 2
 
 SPEC = CandidateCaseCampaignSpec(
     campaign_id=CAMPAIGN_ID,
+    # Frozen at v1: the list this campaign was sealed and published with.
+    # `feasible_award` joined the shared default afterwards (#98); a sealed
+    # plan keeps the list it sealed.
+    primary_outcomes=(
+        "feasible",
+        "completed_kits",
+        "contribution_margin_usd",
+        "regret_to_upper_bound_usd",
+        "violations",
+    ),
     candidate=GLM_PARASAIL_CANDIDATE,
     lineage={
         "selection_status": "adaptive_model_route_transfer_after_qwen_holdout",
