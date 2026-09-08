@@ -25,6 +25,8 @@ VERBS: dict[str, tuple[str, str]] = {
                       "export Run -> Task -> Model Call loss-analysis tables"),
     "publish-trajectories": ("aeread.shared_runner.run.publish_trajectories",
                              "add the kernel trajectory grain to a published bundle and re-seal it"),
+    "seal-manifest": ("aeread.shared_runner.run.seal_manifest",
+                      "write or rebuild a bundle's kernel-standard publication manifest"),
 }
 
 
