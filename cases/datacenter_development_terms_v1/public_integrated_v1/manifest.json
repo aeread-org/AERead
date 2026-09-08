@@ -1,0 +1,52 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_v1",
+  "case_count": 3,
+  "construct": "Integrated public-evidence data-center project state and cash-flow-boundary reconstruction",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "public_primary_sec_filings_paraphrased",
+  "historical_grounding_status": "public_source_reproducible_from_sec_accessions_and_locators",
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "inference_status": "exploratory_three_new_integrated_public_project_clusters",
+  "authority_modes_exercised": [
+    "report"
+  ],
+  "state_value_vocabulary": [
+    "accepted_first_tranche_remaining_pending",
+    "approved_interconnection_not_delivered_capacity",
+    "contracted_backlog_not_current_revenue",
+    "contingent_termination_no_replacement_net_exposure",
+    "delivery_pending_phased_rack_ready",
+    "delivery_subject_to_construction_permitting_interconnection",
+    "executed_long_term_lease",
+    "executed_long_term_leases",
+    "issued_restricted_construction_debt",
+    "mixed_operating_partially_operating_and_under_construction",
+    "owned_by_project_affiliate",
+    "partly_funded_remaining_conditions_precedent",
+    "partly_issued_escrow_release_conditional",
+    "performance_guarantee_not_borrowing_guarantee",
+    "phased_not_commenced",
+    "portfolio_disjunction_not_project_specific_proof",
+    "tenant_reimbursement_above_cap_subject_to_conditions"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": [
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage"
+    ],
+    "hard_gates": [
+      "strict_schema",
+      "no_forbidden_action",
+      "no_forbidden_claim",
+      "no_unauthorized_external_action"
+    ],
+    "llm_judge_scope": "none"
+  }
+}

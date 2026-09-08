@@ -1,0 +1,94 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+  "base_pack_id": "datacenter_development_terms_public_integrated_expansion_v2",
+  "base_pack_sha256": "ffde8e79e9bb4a6baca981f0ae0d979507368469d976421a910dc4d35f980acb",
+  "case_count": 3,
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "derived_split": "public_integrated_expansion_v3",
+  "transformation_id": "restore_visible_tydal_invoice_payment_day_v1",
+  "answerability_correction": {
+    "case_slug": "tydal-open-book-epc-governance-and-risk",
+    "evidence_id": "e05",
+    "oracle_field": "amounts.invoice_payment_day",
+    "oracle_value": 22.0,
+    "omission_in_base": "invoice payment day absent from visible observation",
+    "source_locator": "Tydal EPC Agreement clause 7.5 - Invoicing"
+  },
+  "amount_evidence_map": {
+    "helios-phased-capacity-revenue-and-draws": {
+      "initial_critical_it_mw": "e01",
+      "phase_two_critical_it_mw": "e01",
+      "phase_three_critical_it_mw": "e01",
+      "total_contracted_critical_it_mw": "e01",
+      "base_lease_term_years": "e01",
+      "initial_gross_power_mw": "e02",
+      "later_phase_gross_power_mw": "e02",
+      "remaining_approved_uncontracted_gross_power_mw": "e02",
+      "advance_lease_billings": "e03",
+      "recognized_data_center_lease_revenue": "e03",
+      "facility_maximum": "e04",
+      "facility_drawn": "e04",
+      "maximum_loan_to_cost_percent": "e05",
+      "post_stabilization_minimum_dscr": "e05"
+    },
+    "lake-mariner-lease-commencement-prepaid-rent-and-land": {
+      "executed_customer_leases": "e01",
+      "commenced_customer_leases": "e01",
+      "pending_customer_leases": "e01",
+      "initial_customer_lease_term_years": "e01",
+      "renewal_options_per_customer_lease": "e01",
+      "renewal_option_years": "e01",
+      "prepaid_rent_received": "e03",
+      "prepaid_base_rent_months": "e03",
+      "monthly_base_rent_offset_percent": "e03",
+      "current_deferred_rent": "e03",
+      "noncurrent_deferred_rent": "e03",
+      "remaining_deferred_rent": "e03",
+      "ground_lease_acres": "e04",
+      "ground_lease_initial_years": "e04",
+      "ground_lease_renewal_periods": "e04",
+      "operating_hpc_critical_it_mw": "e05",
+      "near_term_expansion_gross_mw": "e05",
+      "conditional_power_access_gross_mw": "e05"
+    },
+    "tydal-open-book-epc-governance-and-risk": {
+      "estimated_total_refurbishment_nok": "e01",
+      "target_completion_year": "e02",
+      "monthly_accounts_day": "e03",
+      "cost_reapproval_threshold_percent": "e03",
+      "audit_right_end_year": "e03",
+      "invoice_payment_day": "e05",
+      "suspension_notice_days": "e05",
+      "tydal_phase_one_mw": "e06",
+      "tydal_phase_two_mw": "e06",
+      "total_tydal_site_mw": "e06"
+    }
+  },
+  "required_visible_fragments": {
+    "tydal-open-book-epc-governance-and-risk": {
+      "e05": [
+        "22nd",
+        "seven days"
+      ]
+    }
+  },
+  "preserved_fields": [
+    "title",
+    "task_family_id",
+    "independence_cluster_id",
+    "tier",
+    "cutoff",
+    "authority",
+    "prompt",
+    "response_vocabulary",
+    "oracle",
+    "world_seed"
+  ],
+  "inference_status": "answerability_corrected_indicator_map_three_additional_project_cluster_diagnostic",
+  "authority_modes_exercised": [
+    "report"
+  ]
+}

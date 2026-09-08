@@ -371,3 +371,120 @@ def test_sanitized_trajectory_rows_record_an_agent_action_failure_as_the_outcome
         "valid": False,
         "failure_code": "unknown_procurement_action",
     }
+def _kernel_manifest_bundle(tmp_path):
+    from aeread.shared_runner.run.publication import seal_publication_manifest
+
+    bundle = tmp_path / "bundle"
+    (bundle / "reports").mkdir(parents=True)
+    (bundle / "README.md").write_text("# bundle\n")
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"rows": 3}))
+    manifest = seal_publication_manifest(
+        bundle,
+        publication_id="bundle_v1",
+        campaign_id="campaign_v1",
+        privacy_boundary={"included": "facts", "excluded": "prompts"},
+        source_bindings={"plan_sha256": "p" * 64},
+        family_note="kept",
+    )
+    return bundle, manifest
+
+
+def test_seal_publication_manifest_digests_every_file_and_seals_the_core(tmp_path):
+    from aeread.shared_runner.run.publication import seal_publication_manifest
+
+    bundle, manifest = _kernel_manifest_bundle(tmp_path)
+    assert manifest["schema_version"] == "aeread.publication_manifest/0.1"
+    assert set(manifest["artifacts"]) == {"README.md", "reports/summary.json"}
+    for rel, digest in manifest["artifacts"].items():
+        assert hashlib.sha256((bundle / rel).read_bytes()).hexdigest() == digest
+    core = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    assert manifest["manifest_sha256"] == hashlib.sha256(canonical_json_bytes(core)).hexdigest()
+    assert manifest["family_note"] == "kept"
+    assert manifest["sanitization"]["raw_provider_responses_included"] is False
+    on_disk = json.loads((bundle / "publication_manifest.json").read_bytes())
+    assert on_disk == manifest
+    with pytest.raises(ValueError, match="already exists"):
+        seal_publication_manifest(bundle, publication_id="x", privacy_boundary={"included": "a", "excluded": "b"})
+    with pytest.raises(ValueError, match="privacy_boundary"):
+        seal_publication_manifest(tmp_path / "other", publication_id="x", privacy_boundary={"included": "a"})
+
+
+def test_rebuild_publication_manifest_converts_list_rows_and_keeps_provenance(tmp_path):
+    from aeread.shared_runner.run.publication import rebuild_publication_manifest
+
+    bundle, manifest = _kernel_manifest_bundle(tmp_path)
+    # Rewrite the manifest in the list layout some families produced.
+    legacy = {k: v for k, v in manifest.items() if k not in ("artifacts", "manifest_sha256")}
+    legacy["artifacts"] = [
+        {"path": rel, "sha256": digest, "size_bytes": (bundle / rel).stat().st_size}
+        for rel, digest in manifest["artifacts"].items()
+    ]
+    legacy["publication_sha256"] = "0" * 64
+    (bundle / "publication_manifest.json").write_bytes(canonical_json_bytes(legacy))
+    # A new grain appears before the rebuild.
+    (bundle / "trajectories").mkdir()
+    (bundle / "trajectories" / "sanitized.jsonl").write_text('{"a":1}\n')
+
+    rebuilt = rebuild_publication_manifest(bundle)
+    assert rebuilt["artifacts"] == {
+        **manifest["artifacts"],
+        "trajectories/sanitized.jsonl": hashlib.sha256(b'{"a":1}\n').hexdigest(),
+    }
+    assert "publication_sha256" not in rebuilt
+    assert rebuilt["family_note"] == "kept"
+    assert rebuilt["source_bindings"] == {"plan_sha256": "p" * 64}
+    assert rebuilt == json.loads((bundle / "publication_manifest.json").read_bytes())
+    assert rebuild_publication_manifest(bundle) == rebuilt  # idempotent
+
+
+def test_rebuild_publication_manifest_refuses_changed_or_missing_recorded_files(tmp_path):
+    from aeread.shared_runner.run.publication import rebuild_publication_manifest
+
+    bundle, _ = _kernel_manifest_bundle(tmp_path)
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"rows": 4}))
+    with pytest.raises(ValueError, match="differ from the recorded digest"):
+        rebuild_publication_manifest(bundle)
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"rows": 3}))
+    (bundle / "README.md").unlink()
+    with pytest.raises(ValueError, match="missing from the bundle"):
+        rebuild_publication_manifest(bundle)
+
+
+def test_seal_manifest_verb_is_registered(tmp_path):
+    from aeread.cli import VERBS
+    from aeread.shared_runner.run.seal_manifest import main
+
+    assert VERBS["seal-manifest"][0] == "aeread.shared_runner.run.seal_manifest"
+    bundle = tmp_path / "b"
+    bundle.mkdir()
+    (bundle / "README.md").write_text("x\n")
+    assert main([str(bundle), "--new", "--included", "facts", "--excluded", "prompts"]) == 0
+    assert main([str(bundle)]) == 0
+    manifest = json.loads((bundle / "publication_manifest.json").read_bytes())
+    assert manifest["publication_id"] == "b" and "README.md" in manifest["artifacts"]
+
+
+def test_rebuild_publication_manifest_can_supply_a_missing_privacy_boundary_but_not_replace_one(tmp_path):
+    from aeread.shared_runner.run.publication import rebuild_publication_manifest
+
+    bundle, manifest = _kernel_manifest_bundle(tmp_path)
+    stripped = {k: v for k, v in manifest.items() if k not in ("privacy_boundary", "manifest_sha256")}
+    (bundle / "publication_manifest.json").write_bytes(canonical_json_bytes(stripped))
+    boundary = {"included": "facts", "excluded": "prompts"}
+    assert rebuild_publication_manifest(bundle, privacy_boundary=boundary)["privacy_boundary"] == boundary
+    with pytest.raises(ValueError, match="different privacy_boundary"):
+        rebuild_publication_manifest(bundle, privacy_boundary={"included": "other", "excluded": "prompts"})
+
+
+def test_published_receipt_digests_scans_receipts_tables_and_the_manifest(tmp_path):
+    from aeread.shared_runner.run.publish_trajectories import published_receipt_digests
+
+    bundle = tmp_path / "b"
+    for folder in ("reports", "receipts", "tables"):
+        (bundle / folder).mkdir(parents=True)
+    a, b, c, d = ("a" * 64, "b" * 64, "c" * 64, "d" * 64)
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipt_sha256": a}))
+    (bundle / "receipts" / "projections.jsonl").write_text(json.dumps({"source_receipt_sha256": b}) + "\n")
+    (bundle / "tables" / "fact_manifest.json").write_text(json.dumps({"receipt": c}))
+    (bundle / "publication_manifest.json").write_text(json.dumps({"source_receipt_sha256s": [d]}))
+    assert published_receipt_digests(bundle) == {a, b, c, d}

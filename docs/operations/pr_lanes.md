@@ -26,12 +26,70 @@ The kernel is small and load-bearing; a second pair of eyes there has paid
 for itself twice in one week. Evidence is large and generated; eyes on the
 diff are worth less than a script that recomputes it.
 
-## 2. Limits
+## 2. Claim the work before you build it
 
-- **Work in progress:** at most **3 ready-for-review PRs per author**. Drafts
+Two of us migrated the same three families' scorers in parallel and neither
+noticed. It cost a day and produced a merge that passes review and is wrong
+(#141). Preventing the next one is three cheap habits.
+
+- **File an issue assigned, or file it unassigned on purpose.** An unassigned
+  issue is an open invitation, and it will be read as one. If you intend to do
+  the work yourself, assign it to yourself when you file it. `#74`, `#75` and
+  `#76` were filed by one person, left unassigned, and picked up by another
+  running a systematic sweep -- both were behaving reasonably.
+- **Look before you start, not before you push.** Before opening a branch on
+  a family or adapter, run `gh pr list --state open --search "<family>"` and
+  `gh issue list --search "<family>"`. In two of the three collisions above,
+  the other person's PR had been open for **five and eighteen hours** when the
+  second branch was started. Nobody looked, because the only "check first"
+  rule in this document was `--author @me` for the WIP limit -- a rule that
+  points at your own work, which is the one place a collision cannot be.
+- **Say you are taking it.** A one-line comment on the issue ("taking this in
+  `codex/<branch>`") is the whole protocol. If you find a PR already open on
+  your family, comment there instead of opening a second one.
+
+## 3. A clean merge is not evidence
+
+When two branches touch the same family's `measurement.py`, `environment.py`
+or scorer, **the second to land re-runs that family's tests against the merged
+file**. Not against its own branch -- against the merge.
+
+This is not caution for its own sake. In the collision above, each branch
+passed its own suite (30 and 24 tests) and the automatic merge produced a
+scorer that fails 6. Git reported no conflict because each side had added its
+`__call__` at a different point in the file, so the two insertions did not
+overlap; Python does not error on a duplicate method, it silently keeps the
+last one. The govsim pair, which edited the same lines, conflicted loudly and
+was safe. The difference between "caught" and "silently wrong" was where in
+the file each person happened to put the method.
+
+`tests/test_no_duplicate_class_members.py` now fails on a duplicated method in
+any family module, so this particular shape cannot merge silently again. The
+rule stays anyway: the test catches duplicate definitions, not two definitions
+that were merged into one wrong one.
+
+## 4. Limits
+
+- **Work in progress:** at most **3 ready-for-review PRs per worker**. Drafts
   do not count, but a draft says in its first line why it is a draft and what
   would make it ready. A draft that is not expected to become mergeable is
   closed, not parked; the branch keeps the work.
+
+  **Per worker, not per GitHub account.** Several agent sessions push under one
+  identity in this repo, so counting by account charges one session for
+  another's work: the first run of this check reported 10 ready PRs to a
+  session that held 5, with 3 belonging to a different session and 2 being
+  drafts. A limit that miscounts is one people learn to disregard, which is
+  worse than not having a limit. Every PR body carries the session URL that
+  opened it, and `pr-hygiene` groups by that; PRs with no session id are a
+  human's and count together. If you are a person reading this: your account
+  is your worker, and nothing changes for you.
+
+  The corollary matters more than the count. Two sessions under one account
+  cannot see each other in `gh pr list --author @me` — each sees a list
+  containing the other's work and no way to tell which is which. That is a
+  second reason the "look before you start" rule above is written against
+  `--state open` for the whole repo rather than against your own PRs.
 - **Stacks:** at most **2 deep**, always rooted in `main` (never on a branch
   that is not itself an open PR), rebased on every merge below them. Stack
   bodies say "n of N" and the merge order.
@@ -45,7 +103,7 @@ diff are worth less than a script that recomputes it.
   without the review above; anyone may merge their own evidence or family PR
   once the gate is met.
 
-## 3. What a review comment contains
+## 5. What a review comment contains
 
 - **kernel:** what was checked (tests read, invariants reasoned about, a
   mutation tried if the change is a guard), ranked findings with file:line,
@@ -56,13 +114,13 @@ diff are worth less than a script that recomputes it.
   only a human can answer: does the declaration match the measurement
   (`docs/getting-started/reviewing_trajectories.md` §3).
 
-## 4. When the rule bends
+## 6. When the rule bends
 
 `enforce_admins` is off, so an admin can merge past a red `kernel-review`
 check. Doing so is an incident-log row (`docs/operations/incident_log.md`),
 not a shortcut: record why, and what verification replaced the review.
 
-## 5. A PR shows "kernel-review — expected, waiting for status"
+## 7. A PR shows "kernel-review — expected, waiting for status"
 
 The check is a required status on `main`, and it is produced by the
 `pr-lanes` workflow on a pull-request event. A PR opened before that workflow

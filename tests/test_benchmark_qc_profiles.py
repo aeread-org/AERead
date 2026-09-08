@@ -41,6 +41,11 @@ PROFILE_EXEMPT: dict[str, str] = {
     "commercial_state_calibration_v1": "in-tree family predating Gate 0",
     "consent_ir_v1": "in-tree family predating Gate 0",
     "datacenter_development_v1": "in-tree family predating Gate 0",
+    "datacenter_counteroffer_action_schema_v1": "2026-09-08: in-tree family predating Gate 0, added by #63",
+    "datacenter_counteroffer_adoption_v1": "2026-09-08: in-tree family predating Gate 0, added by #63",
+    "datacenter_counteroffer_affordance_v1": "2026-09-08: in-tree family predating Gate 0, added by #63",
+    "datacenter_counteroffer_salience_v1": "2026-09-08: in-tree family predating Gate 0, added by #63",
+    "datacenter_development_terms_v1": "2026-09-08: in-tree family predating Gate 0, added by #63",
     "econagent_v1": "external adapter merged 2026-09-04 (#38); profile owed",
     "econevals": "external adapter merged 2026-09-04 (#28); profile owed",
     "govsim": "external adapter merged 2026-09-04 (#30); profile owed",
@@ -79,7 +84,7 @@ def test_the_exemption_backlog_does_not_grow_silently() -> None:
     unmigrated families: a named list whose length is asserted, never a derived
     one that quietly absorbs new entries.
     """
-    assert len(PROFILE_EXEMPT) == 19, (
+    assert len(PROFILE_EXEMPT) == 24, (
         "the Gate 0 exemption backlog changed size. If a family gained a "
         "profile, remove it from PROFILE_EXEMPT and add it to FAMILY_PROFILES. "
         "If a new family was exempted, argue it in review."

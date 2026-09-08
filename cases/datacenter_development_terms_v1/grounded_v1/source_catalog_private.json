@@ -1,0 +1,54 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "sanitized_source_role_catalog",
+  "lineage_scope": "verified_before_sanitization_no_original_artifacts",
+  "rights_status": "user_provided_sanitized_derivative_pack",
+  "original_artifacts_included": false,
+  "public_reproducibility": false,
+  "independence_assumption": "all four cases conservatively share one archive cluster",
+  "sources": {
+    "sanitized_archive_events": {
+      "kind": "commercial_event_archive",
+      "role": "time-indexed execution and coordination state",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_colo_proposal_c": {
+      "kind": "commercial_quote",
+      "role": "multi-cabinet colocation scope and pricing evidence",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_colo_proposal_d": {
+      "kind": "service_order",
+      "role": "single-cabinet colocation scope and execution evidence",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_supplier_quote": {
+      "kind": "commercial_quote",
+      "role": "compute-system configuration, freight, and cost evidence",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_pricing_deck": {
+      "kind": "pricing_deck",
+      "role": "historical sales-rate assumptions",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_cashflow_output": {
+      "kind": "workbook_output",
+      "role": "hard-coded return curve requiring model-audit controls",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    },
+    "sanitized_technical_bom": {
+      "kind": "workbook_summary",
+      "role": "incomplete technical build categories",
+      "verification": "verified_before_sanitization",
+      "original_included": false
+    }
+  }
+}
+

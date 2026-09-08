@@ -1,0 +1,37 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "case_count": 1,
+  "construct": "Agreement-state reconstruction and critical-path grounding across a data-center development stack",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "synthetic_authored_pilot",
+  "historical_grounding_status": "not_established",
+  "independent_sampling_unit": "independence_cluster_id",
+  "independence_cluster_count": 1,
+  "project_slot_count": 8,
+  "runnable_project_count": 1,
+  "source_required_project_count": 7,
+  "inference_status": "diagnostic_only",
+  "authority_modes_exercised": ["report"],
+  "agent_visible_fields": ["case_id", "title", "cutoff", "authority", "prompt", "observations", "response_contract"],
+  "evaluator_only_fields": ["oracle", "terminal_when", "source_refs", "failure_mechanisms", "arithmetic_checks"],
+  "response_fields": ["case_id", "states", "amounts", "actions", "claims", "evidence_ids", "external_actions_attempted"],
+  "state_value_vocabulary": [
+    "active_option_extension_due",
+    "executed_deposit_due",
+    "fully_executed_committed",
+    "nonbinding_term_sheet_conditions_unsatisfied",
+    "redline_only_not_executed",
+    "released_for_construction",
+    "signed_service_order",
+    "unsigned_proposal_no_ntp",
+    "verbal_alignment_only",
+    "withdrawn_or_expired"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": ["state_accuracy", "amount_accuracy", "required_action_recall", "required_claim_recall", "evidence_coverage"],
+    "hard_gates": ["strict_schema", "no_forbidden_action", "no_forbidden_claim", "no_unauthorized_external_action"],
+    "llm_judge_scope": "none"
+  }
+}

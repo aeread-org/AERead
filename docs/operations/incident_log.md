@@ -374,3 +374,19 @@ campaign's spec, defaulting to today's list; the sealed campaign declares the
 list it sealed with. Its digest reproduces again, and no other campaign's
 digest moved (42 procurement digest tests). The rule that should have caught
 this at review time, not test time, is the one #143 adds.
+## 2026-09-08 — tooling: main went red on a test neither PR had seen fail
+
+#125 added a two-way coverage ratchet over `TRUSTED_BUILTIN_PLUGIN_KEYS`.
+#147 enrolled seven datacenter keys as trusted, merging at 05:15Z -- after
+#125's last CI run and before its merge at 17:26Z. Each PR was green on its
+own; `main` at `b728736d` fails
+`test_every_trusted_key_is_checked_or_named_as_uncovered`, and #107's CI hit
+the same wall first.
+
+Not a defect in either PR. It is the gap branch protection leaves open: a
+required check is evaluated on the PR head against the base *at trigger
+time*, not at merge time, so two green PRs can compose into a red main.
+Disposition: the keys are named in the allowlist with their reason (campaign-
+registered, not a package hook), and the ratchet will demand their removal
+the day they resolve. Worth a rule: re-run a PR's checks if `main` has moved
+under it since they last ran, before merging.

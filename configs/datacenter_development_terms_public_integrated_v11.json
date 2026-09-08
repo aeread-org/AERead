@@ -1,0 +1,224 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_integrated_v11_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_integrated_v11",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v4",
+  "pack_sha256": "a47eb3e63166a8b77b004745ccf0bdb81d3c36cf48714fbbde9c1069a2b438ad",
+  "claim_status": "answerability_and_units_corrected_provider_order_diagnostic_30s_indicator_map_three_project_two_route_paired_exploratory",
+  "predecessor": {
+    "campaign_id": "datacenter_development_terms_public_integrated_v10",
+    "contract_sha256": "44177b05c551eb692e2ad5812f2bd12bef2b132a323b0c8c906c9119e2b72a24",
+    "design_sha256": "36330373b08c3491e3bae4ac8d1929e862083cce499e4a1ad69e0e786e3278c5",
+    "live_summary_sha256": "63d7d0db87cd9a1da91cbc0d4bb677aa8beeb3efe6ff5f8f1707e31d710abc84",
+    "public_evidence_sha256": "e754b8303b4f19ed20e2f4addf68ae174f0afb5e98febdfc0fdcc573cf4427aa",
+    "status": "unit_explicit_60s_five_of_six_complete_no_completion_gain",
+    "comparison_scope": "audit_lineage_only_not_analysis_data"
+  },
+  "answerability_correction": {
+    "base_pack_id": "datacenter_development_terms_public_integrated_expansion_v2",
+    "base_pack_sha256": "ffde8e79e9bb4a6baca981f0ae0d979507368469d976421a910dc4d35f980acb",
+    "corrected_pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+    "corrected_pack_sha256": "7caf40e4b7a67105ca15d5836e316c52facb9c3865015b1964ab15808c6c42a7",
+    "case_slug": "tydal-open-book-epc-governance-and-risk",
+    "evidence_id": "e05",
+    "oracle_field": "amounts.invoice_payment_day",
+    "visible_value_restored": 22.0,
+    "full_panel_replacement": true
+  },
+  "numeric_unit_correction": {
+    "base_pack_id": "datacenter_development_terms_public_integrated_expansion_v3",
+    "base_pack_sha256": "7caf40e4b7a67105ca15d5836e316c52facb9c3865015b1964ab15808c6c42a7",
+    "corrected_pack_id": "datacenter_development_terms_public_integrated_expansion_v4",
+    "corrected_pack_sha256": "a47eb3e63166a8b77b004745ccf0bdb81d3c36cf48714fbbde9c1069a2b438ad",
+    "visible_rule": "monetary_amounts_use_base_currency_units_other_amounts_use_key_named_units",
+    "affected_v8_case_slug": "lake-mariner-lease-commencement-prepaid-rent-and-land",
+    "affected_v8_currency_fields": [
+      "prepaid_rent_received",
+      "current_deferred_rent",
+      "noncurrent_deferred_rent",
+      "remaining_deferred_rent"
+    ],
+    "full_panel_replacement": true
+  },
+  "indicator_schema_qualification": {
+    "qualification_id": "mistral32_deepinfra_indicator_map_polaris_seed_322000",
+    "provider": "DeepInfra",
+    "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+    "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+    "case_sha256": "c95b2d3df234ee30d3df10be2033f4efab8069bd4e41019bfc377d74265fad99",
+    "run_plan_sha256": "8546e885b4a3d83074a53cfae29b32c2d0b127a624803ef24167cfc0b3fcd9b8",
+    "receipt_sha256": "982f7a4add0e995ae81d5ce7d3960f12e09380f104ba99e77a508b72165c4f88",
+    "inference_seed": 322000,
+    "status": "completed",
+    "route_verified": true,
+    "replay_verified": true,
+    "reported_cost_usd": 0.000248094,
+    "scope": "full_case_schema_route_compatibility_not_campaign_analysis"
+  },
+  "alternate_route_qualification": {
+    "qualification_id": "mistral32_parasail_indicator_map_tydal_seed_422100",
+    "provider": "Parasail",
+    "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+    "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+    "case_sha256": "4da4f11c913e01bf726b3309309ee1797222416d2e85c4fd504f1a35c07662be",
+    "run_plan_sha256": "10720cdef7b0e1621fcde168929420e06e847ae724f6bef738b092d2c1a16a02",
+    "receipt_sha256": "39a19368181a26dbe66c455448d79f105c2218d5e78ea8f605a0883af37991ca",
+    "inference_seed": 422100,
+    "status": "provider_rejected_pre_inference",
+    "failure_class": "environment_failure",
+    "failure_condition": "provider_rejected",
+    "reported_cost_usd": 0.0,
+    "decision": "exclude_parasail_from_campaign"
+  },
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T20:00:55Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints"
+    ],
+    "selection_rule": "use_only_full_case_qualified_provider_routes_supporting_seed_response_format_structured_outputs_complete_boolean_objects_and_price_caps_no_fallback",
+    "selected_endpoints": {
+      "mistral32_deepinfra": {
+        "provider": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      },
+      "qwen3_235b_google": {
+        "provider": "Google",
+        "tag": "google-vertex/us-south1",
+        "quantization": "unknown",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      }
+    }
+  },
+  "cases": {
+    "helios-phased-capacity-revenue-and-draws": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v4.helios-phased-capacity-revenue-and-draws",
+      "expected_case_sha256": "f90136aacca09e6c325e3857d2d5a5ecc7df7b9e832adcf466e91c52f2828275",
+      "source_cluster_id": "sec_galaxy_helios_2026",
+      "world_seed": 552001
+    },
+    "lake-mariner-lease-commencement-prepaid-rent-and-land": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v4.lake-mariner-lease-commencement-prepaid-rent-and-land",
+      "expected_case_sha256": "ddd571dd1aa306a8e7742de8cd4936b5d31717ac0b868daac74d2fb6e4818c1b",
+      "source_cluster_id": "sec_terawulf_lake_mariner_2026",
+      "world_seed": 552002
+    },
+    "tydal-open-book-epc-governance-and-risk": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v4.tydal-open-book-epc-governance-and-risk",
+      "expected_case_sha256": "bd794f391fd7b32bc103dde3cda5dc18469f1b9bb2f219332612864f12f8fbc4",
+      "source_cluster_id": "sec_bitdeer_tydal_2026",
+      "world_seed": 552003
+    }
+  },
+  "inference_seeds": [
+    422105
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_integrated_v11_mistral32_deepinfra",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_integrated_v11"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_google": {
+      "profile_id": "datacenter_terms_integrated_v11_qwen3_235b_google",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Google",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.22,
+        "cached_input_per_million": 0.22,
+        "output_per_million": 0.88,
+        "pricing_id": "openrouter_2026-09-03_qwen3_google_terms_integrated_v11"
+      },
+      "max_prompt_price_per_million": "0.22",
+      "max_completion_price_per_million": "0.88"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_indicator_map_v1",
+    "schema_mode": "complete_indicator_maps_v1",
+    "indicator_maps": true,
+    "max_output_tokens": 1200,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.025,
+    "campaign_max_cost_usd": 0.15,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "provider_schedule": "deterministic_route_queues_parallel_across_providers",
+    "provider_cooldown_seconds_after_attempt": {
+      "DeepInfra": 30.0,
+      "Google": 0.0
+    },
+    "provider_case_order": {
+      "DeepInfra": [
+        "tydal-open-book-epc-governance-and-risk",
+        "lake-mariner-lease-commencement-prepaid-rent-and-land",
+        "helios-phased-capacity-revenue-and-draws"
+      ],
+      "Google": [
+        "helios-phased-capacity-revenue-and-draws",
+        "lake-mariner-lease-commencement-prepaid-rent-and-land",
+        "tydal-open-book-epc-governance-and-risk"
+      ]
+    },
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 3,
+    "independent_cluster_count": 3,
+    "resampling_unit": "public_filing_project_cluster",
+    "replicate_policy": "one_fresh_predeclared_paired_seed_full_panel_unit_explicit_reversed_deepinfra_order_30_second_pacing",
+    "paired_by": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "primary_contrast": "qwen3_235b_google_minus_mistral32_deepinfra",
+    "primary_endpoints": [
+      "hard_gate_pass",
+      "score",
+      "forbidden_selection_count"
+    ],
+    "missingness": "report_separately_and_require_both_routes_for_pair_no_selective_retry",
+    "replacement_scope": "fresh_full_panel_provider_order_diagnostic_not_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

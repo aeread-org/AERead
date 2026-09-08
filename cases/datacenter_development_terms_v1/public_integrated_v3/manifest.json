@@ -1,0 +1,30 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_v3",
+  "base_pack_id": "datacenter_development_terms_public_integrated_v2",
+  "base_pack_sha256": "b3b088bb84fed518addba31cce0ee9193d3a2ebb3fc660145bd08734713a8e38",
+  "case_count": 3,
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "derived_split": "public_integrated_v3",
+  "transformation_id": "append_unique_array_label_instruction_v1",
+  "prompt_suffix": " List each label at most once in actions, claims, evidence_ids, and external_actions_attempted.",
+  "preserved_fields": [
+    "title",
+    "task_family_id",
+    "independence_cluster_id",
+    "tier",
+    "cutoff",
+    "authority",
+    "observations",
+    "response_vocabulary",
+    "oracle",
+    "world_seed"
+  ],
+  "required_harness_schema_constraint": "uniqueItems_true_for_all_array_fields",
+  "inference_status": "corrected_unique_array_exploratory_three_project_cluster_diagnostic",
+  "authority_modes_exercised": [
+    "report"
+  ]
+}

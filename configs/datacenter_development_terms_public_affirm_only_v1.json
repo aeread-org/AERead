@@ -1,0 +1,175 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_affirm_only_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_affirm_only_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_affirm_only_v1",
+  "pack_sha256": "ff718c36636d54568c8428c648daf5524e5e1397929e0710b990b4513ef84b78",
+  "claim_status": "exploratory_five_cluster_affirm_only_paired_replication",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T12:34:48Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints",
+      "https://openrouter.ai/api/v1/models/openai/gpt-oss-120b/endpoints"
+    ],
+    "selection_rule": "reuse the exact three pinned model-provider-quantization routes from the public variance panel and GPT-OSS add-on after refreshing endpoint status, structured-output parameters, and price caps; one concurrent call per provider; no fallback"
+  },
+  "baseline_bridge": {
+    "public_two_model": {
+      "campaign_id": "datacenter_development_terms_public_v1",
+      "contract_sha256": "b0c26585f391aa969a456c3b45e7aac06888733c3ae55041f125a25f89e969f2",
+      "design_sha256": "9a32e7f1ce86c4be6bd34103757f40b3fe6d730d73f24c95a831144a2787a54e",
+      "live_summary_sha256": "1911d470b3d639841f77a64433bfd44bc624f06d7785e5ea8f2ea0a726521993",
+      "public_manifest_sha256": "74fc560be7dc89276bd3ee60e449d39077e9a9a11e6114c8be3d4694bbe91556",
+      "trajectory_sha256": "25e53b93c7f20da2c33d9517d7067d6fc65c2613806d579ce36594f2f9742078",
+      "model_ids": [
+        "mistral32_deepinfra",
+        "qwen3_235b_novita"
+      ]
+    },
+    "gptoss_addon": {
+      "campaign_id": "datacenter_development_terms_public_gptoss_v1",
+      "contract_sha256": "ecba97f8281d7c0782dfcb36e3b4c143d3944fdb9c7dc0d4b9e7b55ac9f77e6f",
+      "design_sha256": "617dd2abd7d9b64c757d4221aef8b2d2447b2a314084349d8a344648fd23e6c1",
+      "live_summary_sha256": "08eafb806bf80cf0f1be0d91021e2a4ee598d482cf16d50cefb425a0576c36cc",
+      "public_manifest_sha256": "1f369655c625bc9a63ca13cdf16eff24fda15068fad5dcb7b5814fcd1645ba6c",
+      "trajectory_sha256": "d6fafdb5551ad8600ff62815cb633df059e8b996b5a31008fe6362e6da98a93c",
+      "model_ids": [
+        "gptoss120b_coreweave"
+      ]
+    },
+    "comparison_scope": "same_base_case_evidence_oracle_harness_model_route_and_inference_seed_prompt_suffix_only_descriptive"
+  },
+  "cases": {
+    "credit-facility-availability-and-rounding": {
+      "case_id": "datacenter_development_terms_v1.public_v1b.credit-facility-availability-and-rounding",
+      "expected_case_sha256": "852fe8d833e57830cdcecc6ad47daf0ae7cc52084b7975230133db1e214b968c",
+      "base_case_sha256": "82ccd94e0bc6cedf9de540f12343cab1ccad5263e0b38e58ead6dbf1bad38c54",
+      "source_cluster_id": "sec_enovum_credit_facility_2025",
+      "world_seed": 440004
+    },
+    "ground-lease-commencement-boundary": {
+      "case_id": "datacenter_development_terms_v1.public_v1b.ground-lease-commencement-boundary",
+      "expected_case_sha256": "e5a235f79f7e09374a85b12fccde61dce9b1a92af51eb880a1095be756e9e8c2",
+      "base_case_sha256": "706dbe7524059102ac27c9cd860145a10938ba2a56aeba0c11b7dd1bd8ee9a73",
+      "source_cluster_id": "sec_fermi_ground_lease_2025",
+      "world_seed": 440001
+    },
+    "large-load-study-to-service-gates": {
+      "case_id": "datacenter_development_terms_v1.public_v1b.large-load-study-to-service-gates",
+      "expected_case_sha256": "cd9f00dd992d6c6b3fb4c93a06616c8a2a8675aea765a7939077712841b8f6ae",
+      "base_case_sha256": "22b2e3225c849b3f0194f40cc59952f08d5b41b392ce99ba93e6579905b867de",
+      "source_cluster_id": "sec_aes_ohio_datacenter_tariff_2026",
+      "world_seed": 440003
+    },
+    "linked-land-power-construction-underwriting": {
+      "case_id": "datacenter_development_terms_v1.public_v1b.linked-land-power-construction-underwriting",
+      "expected_case_sha256": "ca5a633d2b59f1025c4fe761b26bb8f8a9116929011c233b5df55c8877da8f8c",
+      "base_case_sha256": "7fdc0e690dc69396941baa011a39a0b9523018519cd717030d0c4d5e2438bbd0",
+      "source_cluster_id": "sec_core_denton_project_terms_2026",
+      "world_seed": 440005
+    },
+    "phased-colocation-financing-and-rfs": {
+      "case_id": "datacenter_development_terms_v1.public_v1b.phased-colocation-financing-and-rfs",
+      "expected_case_sha256": "2b8f11b94b1fe86bb12ff9db7a49277391c18454ac24ca5854efbac68178db7a",
+      "base_case_sha256": "8ed31d3a101a36a3ca2493114ad91243ec940155f27a6eaa61408577210a2238",
+      "source_cluster_id": "sec_digi_cerebras_msa_2026",
+      "world_seed": 440002
+    }
+  },
+  "inference_seeds": [
+    314001,
+    314002,
+    314003
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_affirm_only_mistral32_deepinfra_v1",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_affirm_only_v1"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_novita": {
+      "profile_id": "datacenter_terms_affirm_only_qwen3_235b_novita_v1",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Novita",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.09,
+        "cached_input_per_million": 0.09,
+        "output_per_million": 0.58,
+        "pricing_id": "openrouter_2026-09-03_qwen3_novita_terms_affirm_only_v1"
+      },
+      "max_prompt_price_per_million": "0.09",
+      "max_completion_price_per_million": "0.58"
+    },
+    "gptoss120b_coreweave": {
+      "profile_id": "datacenter_terms_affirm_only_gptoss120b_coreweave_v1",
+      "requested_model": "openai/gpt-oss-120b",
+      "canonical_model": "openai/gpt-oss-120b",
+      "provider": "CoreWeave",
+      "quantization": "fp4",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.03,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.17,
+        "pricing_id": "openrouter_2026-09-03_gptoss120b_coreweave_terms_affirm_only_v1"
+      },
+      "max_prompt_price_per_million": "0.03",
+      "max_completion_price_per_million": "0.17"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 1400,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.9,
+    "concurrency": 3,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 5,
+    "independent_cluster_count": 5,
+    "resampling_unit": "public_filing_cluster",
+    "paired_by": [
+      "case_slug",
+      "model_id",
+      "inference_seed"
+    ],
+    "contrast": "affirm_only_minus_baseline",
+    "missingness": "report_separately_and_require_both_conditions_no_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

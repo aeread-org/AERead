@@ -1,0 +1,50 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_mechanism_v1",
+  "case_count": 6,
+  "construct": "Within-source diagnosis of data-center agreement dependency reasoning and candidate-selection semantics",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "public_primary_sec_filing_paraphrased",
+  "historical_grounding_status": "public_source_reproducible_from_sec_accession_and_locators",
+  "independent_sampling_unit": "public_filing_cluster",
+  "independence_cluster_count": 1,
+  "mechanism_count": 3,
+  "wording_conditions": [
+    "baseline",
+    "affirm_only"
+  ],
+  "inference_status": "within_source_mechanism_diagnostic_only",
+  "authority_modes_exercised": [
+    "report"
+  ],
+  "state_value_vocabulary": [
+    "continues_after_power_termination",
+    "cost_plus_fee_gmp_change_order_adjustable",
+    "executed",
+    "executed_pending_utility_consent",
+    "fixed_price",
+    "linked_coterminous",
+    "not_effective",
+    "not_fixed",
+    "separate_independent",
+    "terminates_with_power_agreement"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": [
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage"
+    ],
+    "hard_gates": [
+      "strict_schema",
+      "no_forbidden_action",
+      "no_forbidden_claim",
+      "no_unauthorized_external_action"
+    ],
+    "llm_judge_scope": "none"
+  }
+}

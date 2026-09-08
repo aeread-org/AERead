@@ -156,6 +156,18 @@ responses, or environment state; `sanitized_trajectory_jsonl` refuses the
 payload if a prohibited token slips through. The function rejects a receipt
 that does not belong to the store it is given.
 
+The manifest layout every bundle shares is written by
+`aeread seal-manifest`: `schema_version`, `publication_id`, `campaign_id`,
+`artifacts` (path → sha256 of every published file), `privacy_boundary`
+(`included`/`excluded`), the sanitization declaration, `source_bindings`, any
+family fields, and `manifest_sha256` over the rest. `aeread seal-manifest
+evidence/<campaign_id>` rebuilds an existing manifest into that layout from
+the files on disk (older list-shaped `artifacts` rows are accepted), carrying
+every provenance field over and refusing any file whose bytes differ from
+the recorded digest. `--new` writes a first manifest for a bundle without
+one. Families should call `seal_publication_manifest` rather than assemble
+manifests by hand.
+
 To add the grain to a published kernel-standard bundle
 (`aeread.publication_manifest/0.1`), run
 
@@ -168,6 +180,12 @@ otherwise), the file is written once, and `publication_manifest.json` is
 re-sealed with the new artifact digest via `add_publication_artifact`. This is
 a QC §4 mechanical correction: the earlier manifest stays in history and no
 reported number changes.
+
+**A family per-episode trace keeps its own name.** `trajectories/sanitized.jsonl`
+is the kernel grain's file. A family that also publishes a per-episode summary
+(the datacenter action-schema bundles, commercial-state) publishes it as
+`trajectories/episodes.jsonl`, so both shapes can sit in one bundle and each
+file means one thing.
 
 **Only leaf bundles can take the grain in place.** Later campaigns freeze
 their parent bundle's `publication_manifest.json` digest as a control

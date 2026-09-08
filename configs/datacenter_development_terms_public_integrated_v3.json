@@ -1,0 +1,138 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_integrated_v3_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_integrated_v3",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_v2",
+  "pack_sha256": "b3b088bb84fed518addba31cce0ee9193d3a2ebb3fc660145bd08734713a8e38",
+  "claim_status": "corrected_three_project_two_route_model_comparison_exploratory",
+  "predecessor": {
+    "campaign_id": "datacenter_development_terms_public_integrated_v2",
+    "contract_sha256": "878f8faba001f1c4f362738feec5d9b8a7da08d13137a8a2e6d09193810f0fe2",
+    "design_sha256": "8de9fdfc28f9cba1fcf096007b993a2c50e73a9af2ad045e41614998fb7fc455",
+    "live_summary_sha256": "50f01148c66975620ed90c44ab4d90dbc0f275bbd58e1bcb7416bb8f75d3f4a8",
+    "gptoss_completion_count_across_v1_v2": 0,
+    "gptoss_planned_cells_across_v1_v2": 18,
+    "status": "excluded_gptoss_prospectively_and_changed_qwen_provider_for_reliability",
+    "comparison_scope": "design_motivation_only_not_analysis_data"
+  },
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T14:29:40Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints"
+    ],
+    "selection_rule": "two_healthy_distinct_provider_routes_supporting_seed_response_format_and_structured_outputs_with_price_caps_no_fallback",
+    "selected_endpoints": {
+      "mistral32_deepinfra": {
+        "provider": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "uptime_last_30m": 99.95249907637093,
+        "uptime_last_5m": 99.9444290080578,
+        "uptime_last_1d": 99.6197161013173,
+        "required_parameters": ["seed", "response_format", "structured_outputs"]
+      },
+      "qwen3_235b_google": {
+        "provider": "Google",
+        "tag": "google-vertex/us-south1",
+        "quantization": "unknown",
+        "status": 0,
+        "uptime_last_30m": 100.0,
+        "uptime_last_5m": 100.0,
+        "uptime_last_1d": 99.91640335000153,
+        "required_parameters": ["seed", "response_format", "structured_outputs"]
+      }
+    }
+  },
+  "cases": {
+    "polaris-forge-contract-to-cashflow-boundary": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v2.polaris-forge-contract-to-cashflow-boundary",
+      "expected_case_sha256": "709a4922e026643396f22a20e0b963f09ad411ff01ee56302367d436b4b485ef",
+      "source_cluster_id": "sec_apld_polaris_forge_2026",
+      "world_seed": 441001
+    },
+    "black-pearl-phased-rent-debt-and-overrun": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v2.black-pearl-phased-rent-debt-and-overrun",
+      "expected_case_sha256": "c883436f5f5d17d7a8781853914967be7ab7f96df87612346cc16d72a6c32fbd",
+      "source_cluster_id": "sec_cipher_black_pearl_2026",
+      "world_seed": 441002
+    },
+    "horizon-tranche-acceptance-financing-guarantees": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v2.horizon-tranche-acceptance-financing-guarantees",
+      "expected_case_sha256": "c04dfde548a7c8cd888a6fd4279c1fe94d020c3c47a6f61e6e981b3f23bcd59c",
+      "source_cluster_id": "sec_iren_horizon_microsoft_2026",
+      "world_seed": 441003
+    }
+  },
+  "inference_seeds": [320001, 320002, 320003],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_integrated_v3_mistral32_deepinfra",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_integrated_v3"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_google": {
+      "profile_id": "datacenter_terms_integrated_v3_qwen3_235b_google",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Google",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.22,
+        "cached_input_per_million": 0.22,
+        "output_per_million": 0.88,
+        "pricing_id": "openrouter_2026-09-03_qwen3_google_terms_integrated_v3"
+      },
+      "max_prompt_price_per_million": "0.22",
+      "max_completion_price_per_million": "0.88"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 900,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.36,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 3,
+    "independent_cluster_count": 3,
+    "resampling_unit": "public_filing_project_cluster",
+    "stability_replicate_unit": "inference_seed_within_project_route",
+    "paired_by": ["case_slug", "inference_seed"],
+    "primary_contrast": "qwen3_235b_google_minus_mistral32_deepinfra",
+    "primary_endpoints": ["hard_gate_pass", "score", "forbidden_selection_count"],
+    "missingness": "report_separately_and_require_both_routes_for_pair_no_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}
