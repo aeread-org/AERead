@@ -350,3 +350,20 @@ procurement bundles (#139).
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | P-J-02 | ten bundles were re-sealed with the grain as a "mechanical correction" without checking whether anything froze their manifests; seven are pinned as parent controls (`PARENT_EVIDENCE_FILE_SHA256`) by later campaign modules, and a changed frozen control requires a new campaign identity | CI: `parent ... evidence manifest changed` | one CI cycle | parents restored byte-for-byte; their rows published as a derived bundle bound to the parents' digests; the leaf-only rule and the pin check are now in `reviewing_trajectories.md` §5 |
+
+## 2026-09-08 — tooling: main went red on a test neither PR had seen fail
+
+#125 added a two-way coverage ratchet over `TRUSTED_BUILTIN_PLUGIN_KEYS`.
+#147 enrolled seven datacenter keys as trusted, merging at 05:15Z -- after
+#125's last CI run and before its merge at 17:26Z. Each PR was green on its
+own; `main` at `b728736d` fails
+`test_every_trusted_key_is_checked_or_named_as_uncovered`, and #107's CI hit
+the same wall first.
+
+Not a defect in either PR. It is the gap branch protection leaves open: a
+required check is evaluated on the PR head against the base *at trigger
+time*, not at merge time, so two green PRs can compose into a red main.
+Disposition: the keys are named in the allowlist with their reason (campaign-
+registered, not a package hook), and the ratchet will demand their removal
+the day they resolve. Worth a rule: re-run a PR's checks if `main` has moved
+under it since they last ran, before merging.
