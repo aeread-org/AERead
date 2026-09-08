@@ -154,6 +154,24 @@ def _pick(payload: Any, fields: Sequence[str]) -> dict[str, Any]:
     return {name: payload[name] for name in fields if name in payload}
 
 
+def _public_action(value: Any) -> Any:
+    """Project parsed actions without publishing account identifiers."""
+
+    if isinstance(value, Mapping):
+        projected: dict[str, Any] = {}
+        for key, item in value.items():
+            if key == "user_id":
+                projected["user_id_sha256"] = hashlib.sha256(
+                    canonical_json_bytes(item)
+                ).hexdigest()
+            else:
+                projected[key] = _public_action(item)
+        return projected
+    if isinstance(value, (list, tuple)):
+        return [_public_action(item) for item in value]
+    return value
+
+
 def sanitized_trajectory_rows(evidence: Any, receipt: Any) -> tuple[dict[str, Any], ...]:
     """Project one sealed evidence store onto publishable per-action rows.
 
@@ -277,7 +295,7 @@ def sanitized_trajectory_rows(evidence: Any, receipt: Any) -> tuple[dict[str, An
             payload = evidence.read_event_payload(event)
             result = payload.get("parse_result") if isinstance(payload, Mapping) else None
             row["parse"] = _pick(result, ("ok", "error_code"))
-            row["action"] = _field(result, "action")
+            row["action"] = _public_action(_field(result, "action"))
         elif kind == "action_legality_checked":
             payload = evidence.read_event_payload(event)
             row["legality"] = _pick(

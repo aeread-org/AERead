@@ -13,6 +13,7 @@ from aeread.shared_runner.task.evaluation import (
     replay_family_receipt,
 )
 from aeread.shared_runner.task.execution import (
+    EvidenceIntegrityError,
     ProviderFailure,
     ProviderResult,
     execute_plan_cell,
@@ -83,6 +84,32 @@ def test_tau3_harness_rejects_prose_prefixed_structured_output() -> None:
         )
 
     assert captured.value.condition == "malformed_structured_output"
+
+
+def test_tau3_harness_recovers_prose_prefixed_json_only_under_the_sealed_policy() -> None:
+    notes = []
+    harness = object.__new__(Tau3RetailJsonHarness)
+    harness.prose_prefixed_json_recovery = True
+    value = harness._decode_turn(
+        'I will check that now.\n{"kind":"tool_calls","text":null,"calls":[]}',
+        SimpleNamespace(note=lambda kind, payload: notes.append((kind, payload))),
+    )
+
+    assert value["kind"] == "tool_calls"
+    assert notes == [
+        (
+            "tau3_retail_response_normalized",
+            {
+                "policy": "prose_prefixed_json_recovery_v1",
+                "prefix_length": len("I will check that now.\n"),
+            },
+        )
+    ]
+    with pytest.raises(ProviderFailure):
+        harness._decode_turn(
+            'prefix {"kind":"reply","text":"ok","calls":[]} trailing',
+            SimpleNamespace(note=lambda *_: None),
+        )
 
 
 def test_publish_only_is_provider_free_digest_bound_and_repeatable(
@@ -230,12 +257,39 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
         seed=300,
     )
     profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
-    assert profiles["tau3_retail_assistant_glm5p2_arena_v2"].budgets.max_cost_usd == pytest.approx(
+    assert setup.plan.run_spec.budget_overrides is not None
+    assert setup.plan.run_spec.budget_overrides.max_cost_usd == pytest.approx(0.05)
+    assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].harness.config[
+        "prose_prefixed_json_recovery"
+    ] == "prose_prefixed_json_recovery_v1"
+    assert profiles[
+        "tau3_retail_assistant_glm5p2_arena_v3"
+    ].retry_policy.retryable_conditions == ("length",)
+    assert (
+        profiles["tau3_retail_assistant_glm5p2_arena_v3"].retry_policy.max_action_attempts
+        == 2
+    )
+    assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
         0.03
     )
-    assert profiles["tau3_retail_user_glm5p2_arena_v2"].budgets.max_cost_usd == pytest.approx(
+    assert profiles["tau3_retail_user_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
         0.02
     )
+    with pytest.raises(EvidenceIntegrityError, match="sealed RunSpec"):
+        asyncio.run(
+            execute_plan_cell(
+                plan=setup.plan,
+                cell_id=setup.plan.cells[0].cell_id,
+                registry=setup.registry,
+                evidence_root=tmp_path / "mismatched-budget",
+                prompt_sources=setup.prompt_sources,
+                providers={PROVIDER: provider},
+                pricing=setup.pricing,
+                harnesses=setup.harnesses,
+                tool_runtime_factories=setup.tool_runtime_factories,
+                combined_cost_ceiling_usd=0.04,
+            )
+        )
     execution = asyncio.run(
         execute_plan_cell(
             plan=setup.plan,

@@ -334,8 +334,9 @@ def test_publish_trajectories_verb_is_registered_and_refuses_an_unpublished_rece
         publish_trajectory_grain(bundle, [attempt_dir])
     assert not (bundle / GRAIN).exists()
 
-    (bundle / "reports" / "summary.json").write_text(
-        json.dumps({"receipts": [receipt.receipt_sha256]})
+    (bundle / "receipts").mkdir()
+    (bundle / "receipts" / "case.json").write_text(
+        json.dumps({"source_receipt_sha256": receipt.receipt_sha256})
     )
     count, manifest = publish_trajectory_grain(bundle, [attempt_dir])
     assert count > 0
@@ -371,6 +372,81 @@ def test_sanitized_trajectory_rows_record_an_agent_action_failure_as_the_outcome
         "valid": False,
         "failure_code": "unknown_procurement_action",
     }
+
+
+def test_sanitized_trajectory_rows_hash_account_identifiers_in_actions():
+    from types import SimpleNamespace
+
+    from aeread.shared_runner.run.publication import (
+        sanitized_trajectory_jsonl,
+        sanitized_trajectory_rows,
+    )
+
+    ids = {
+        "run_plan_id": "plan",
+        "cell_id": "cell",
+        "episode_id": "ep",
+        "episode_attempt_id": "att",
+    }
+    events = [
+        SimpleNamespace(
+            event_type="logical_action_started",
+            sequence=0,
+            logical_action_id="la1",
+            phase_instance_id="ph1",
+            action_attempt_id=None,
+            provider_call_id=None,
+            tool_invocation_id=None,
+            payload={
+                "request": {
+                    "phase_id": "p",
+                    "seat_id": "s",
+                    "role": "r",
+                    "profile_id": "pr",
+                }
+            },
+        ),
+        SimpleNamespace(
+            event_type="action_parsed",
+            sequence=1,
+            logical_action_id="la1",
+            phase_instance_id="ph1",
+            action_attempt_id=None,
+            provider_call_id=None,
+            tool_invocation_id=None,
+            payload={
+                "parse_result": {
+                    "ok": True,
+                    "error_code": None,
+                    "action": {
+                        "kind": "tool_calls",
+                        "calls": [
+                            {"name": "lookup", "arguments": {"user_id": "private-7"}}
+                        ],
+                    },
+                }
+            },
+        ),
+    ]
+    evidence = SimpleNamespace(
+        verify_seal=lambda: SimpleNamespace(**ids),
+        read_events=lambda: iter(events),
+        read_event_payload=lambda event: event.payload,
+    )
+
+    (row,) = sanitized_trajectory_rows(
+        evidence,
+        {
+            **ids,
+            "receipt_sha256": "r",
+            "run_plan_sha256": "p",
+            "case_id": "c",
+        },
+    )
+    arguments = row["action"]["calls"][0]["arguments"]
+    assert "user_id" not in arguments
+    assert len(arguments["user_id_sha256"]) == 64
+    assert b'"user_id"' not in sanitized_trajectory_jsonl([row])
 def _kernel_manifest_bundle(tmp_path):
     from aeread.shared_runner.run.publication import seal_publication_manifest
 

@@ -90,11 +90,19 @@ model round, so its sealed `total_cost_usd` remains a historical lower bound.
 The bundle README carries the same disclosure, and its publication manifest
 seals that text. Republish from raw responses if corrected totals are needed.
 
+The v12 replacement seals the combined per-cell ceiling in the `RunSpec`; the
+executor derives the runtime limit from that value and refuses a mismatch. Its
+tau3 harness also seals `prose_prefixed_json_recovery_v1`: exactly one JSON
+object following a prose prefix may be recovered inside the family harness,
+with a `tau3_retail_response_normalized` evidence note. Fenced, trailing, or
+otherwise ambiguous content remains `malformed_structured_output`. The profile
+also opts into one bounded `length` retry supplied by the shared kernel.
+
 Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v12
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -104,7 +112,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v12 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -113,8 +121,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v12 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v12 \
   --publish-only
 ```
 
