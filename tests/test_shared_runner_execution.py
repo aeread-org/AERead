@@ -2327,3 +2327,182 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
             f"{field} must serialize explicitly; if this changes, the canonical "
             "encoding has been versioned and the golden vectors must be updated"
         )
+
+
+def _second_decision() -> DecisionRequest:
+    return DecisionRequest(
+        episode_id="episode_fixture",
+        phase_instance_id="phase_instance_fixture",
+        logical_action_id="logical_action_second",
+        cell_id="cell_fixture",
+        case_id="fixture_case",
+        phase_id="offer",
+        seat_id="buyer",
+        role="buyer",
+        profile_id="subject_model_v1",
+        observation_schema="private_value_v1",
+        action_schema="offer_v1",
+        observation={"private_value": 11},
+    )
+
+
+def test_a_401_after_the_route_answered_is_not_promoted_to_a_retry(tmp_path) -> None:
+    """Only a 404 becomes provider_rejected_after_route_proven. A 401 after
+    a success is a revoked credential; retrying it is more 401s (#125
+    review finding 2). Production path: real executor, real classifier."""
+    from aeread.shared_runner.task.execution import POST_ADMISSION_REJECTION
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [
+            _success_result(),
+            ProviderFailure("provider_rejected", "401 unauthorized", retryable=False, status_code=401),
+            _success_result(),
+        ],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=3, retryable_conditions=(POST_ADMISSION_REJECTION,)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    with pytest.raises(ProviderFailure, match="401"):
+        asyncio.run(executor(_second_decision()))
+    assert len(provider.requests) == 2, "the 401 must not be retried"
+    assert executor.execution_for("logical_action_second").status == "failed"
+    evidence.audit_reconciliation()
+
+
+def test_an_arena_length_failure_grows_the_next_request_budget(tmp_path) -> None:
+    """Arena converts a truncated structured response straight into
+    ProviderFailure("length"). That path used to retry at the same limit
+    (#125 review finding 4); it must grow like the ProviderResult path."""
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [ProviderFailure("length", "truncated at the output-token limit", retryable=True), _success_result()],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=2, retryable_conditions=("length",)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    first, second = provider.requests
+    assert second.max_output_tokens == first.max_output_tokens * 2
+    execution = executor.execution_for(_decision().logical_action_id)
+    assert execution.attempts[1].retry_reason == "length"
+    evidence.audit_reconciliation()
+
+
+def test_a_round_that_answered_proves_the_route_before_the_attempt_completes(tmp_path) -> None:
+    """Multi-round attempts: round 1 succeeds, round 2 returns 404. Proof used
+    to be recorded only when the whole attempt returned, so the 404 escaped
+    untyped and unretried (#125 review finding 1). This drives the real
+    failure-recording method on a fresh executor whose only evidence of the
+    route is the settled prior round."""
+    from aeread.shared_runner.task.execution import (
+        POST_ADMISSION_REJECTION,
+        EvidenceStore,
+        ProviderCallRecord,
+    )
+
+    # A real ProviderRequest, obtained the way the executor builds one.
+    donor_evidence = EvidenceStore(
+        tmp_path / "donor",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    donor = InspectingProvider(donor_evidence.events_path, [_success_result()])
+    asyncio.run(_executor(tmp_path, donor, evidence=donor_evidence)(_decision()))
+    request = donor.requests[0]
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(evidence.events_path, [])
+    profile = _profile(max_action_attempts=3, retryable_conditions=(POST_ADMISSION_REJECTION,))
+    executor = _executor(tmp_path, provider, evidence=evidence, profile=profile)
+    assert not executor._routes_proven, "a fresh executor has proven nothing"
+
+    settled_round = ProviderCallRecord(
+        provider_call_id="round_0_call",
+        action_attempt_id="attempt_multi",
+        status="succeeded",
+        request_sha256=request.request_sha256,
+        requested_model=request.model,
+        resolved_model=request.model,
+        response_id="resp_0",
+        finish_reason="stop",
+        input_tokens=10,
+        cached_input_tokens=0,
+        output_tokens=5,
+        cost_usd=0.0,
+        failure_condition=None,
+    )
+    failure = ProviderFailure("provider_rejected", "404 not found", retryable=False, status_code=404)
+    should_retry, condition = executor._record_provider_failure(
+        _decision(), profile, request, "attempt_multi", 0, None, [], failure,
+        prior_rounds=(settled_round,), pending=None,
+    )
+    assert should_retry is True
+    assert condition == POST_ADMISSION_REJECTION
+    assert executor._route_key(profile) in executor._routes_proven
+    execution = executor.execution_for(_decision().logical_action_id)
+    assert execution.status == "retrying"
+    assert execution.failure_code == POST_ADMISSION_REJECTION
+    assert execution.attempts[0].provider_calls[-1].failure_condition == POST_ADMISSION_REJECTION
+
+
+def test_a_404_after_the_route_answered_is_sealed_under_its_typed_condition(tmp_path) -> None:
+    """The effective condition must be computed before anything is written.
+    It used to be computed after the provider record and both events were
+    sealed under the raw condition, so nothing durable ever said
+    provider_rejected_after_route_proven and the finalizer could not see it
+    (#125 review finding 3). This reads the sealed payloads back."""
+    import json as _json
+
+    from aeread.shared_runner.task.execution import POST_ADMISSION_REJECTION
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [
+            _success_result(),
+            ProviderFailure("provider_rejected", "404 not found", retryable=False, status_code=404),
+            _success_result(),
+        ],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=2, retryable_conditions=(POST_ADMISSION_REJECTION,)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    response = asyncio.run(executor(_second_decision()))
+    executor.finalize_logical_action("logical_action_second", valid=True, failure_code=None)
+    assert response.text == '{"offer":7}'
+    assert len(provider.requests) == 3, "the 404 after proof is retried once"
+
+    execution = executor.execution_for("logical_action_second")
+    assert [a.status for a in execution.attempts] == ["failed", "succeeded"]
+    assert execution.attempts[0].provider_calls[-1].failure_condition == POST_ADMISSION_REJECTION
+    assert execution.attempts[1].retry_reason == POST_ADMISSION_REJECTION
+
+    sealed = {}
+    for event in evidence.read_events():
+        if event.event_type in {"provider_call_failed", "action_attempt_failed"}:
+            payload = _json.loads((tmp_path / "evidence" / event.payload_ref).read_text())
+            sealed[event.event_type] = payload["failure_condition"]
+    assert sealed == {
+        "provider_call_failed": POST_ADMISSION_REJECTION,
+        "action_attempt_failed": POST_ADMISSION_REJECTION,
+    }, sealed
+    evidence.audit_reconciliation()

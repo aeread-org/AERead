@@ -140,3 +140,102 @@ def test_scorer_signature_matches_the_kernel_call(family: str, plugin: type) -> 
         f"{family}: scorer __call__ takes {first!r} as its first argument; the "
         "kernel passes a FamilyScoringInput"
     )
+
+
+# --- Coverage against the trusted registry, not against whatever imports ---
+#
+# The discovery above walks `aeread_families.*.environment` and skips any
+# package that fails to import. That is two blind spots (review finding 6 on
+# #125): an import error is silently a pass, and a plugin registered from
+# anywhere but `<family>.environment` is never seen. This half enumerates the
+# registry's own trusted catalog instead. Every key either resolves -- and the
+# real registered plugin is checked -- or is named below with the reason it
+# cannot resolve in a plain environment. Both directions ratchet: an unlisted
+# unresolvable key fails, and a listed key that starts resolving fails until
+# it is removed from the list.
+
+import importlib as _importlib
+
+from aeread.shared_runner.registry import PluginRegistry, TRUSTED_BUILTIN_PLUGIN_KEYS
+
+KNOWN_UNRESOLVABLE_IN_PLAIN_ENV: dict[tuple[str, str], str] = {
+    # register_plugin(registry) constructs the adapter, which needs a pinned
+    # upstream checkout; the bridge-gated suites cover these when it exists.
+    ("econagent_v1", "0.1.0"): "register_plugin needs upstream_root",
+    ("govsim", "0.1.0"): "register_plugin needs upstream_root",
+    ("negarena", "0.1.0"): "register_plugin needs upstream_root",
+    ("tau3.retail", "0.1.0"): "register_plugin needs upstream_root",
+    ("alympics.wac", "0.1.0"): "register_plugin needs upstream_root",
+    ("amazonbarg.bilateral", "0.1.0"): "register_plugin needs upstream_root",
+    ("agenticpay.bilateral", "0.1.0"): "register_plugin needs upstream_root",
+    ("steer", "0.1.0"): "register_plugin needs steer_data_root",
+    # Registered by campaign or test code rather than a package-level hook.
+    ("housing_v1", "1.0.0"): "registered by aeread_families.housing campaign modules",
+    ("single_offer_v1", "1.0.0"): "no environment module; registered by its own campaign code",
+    ("datacenter_development_v1", "1.1.0"): "versioned plugin registered by datacenter campaign code",
+    ("datacenter_development_v1", "2.0.0"): "versioned plugin registered by datacenter campaign code",
+    ("kernel_contract_reference_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
+    ("kernel_contract_sequential_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
+}
+
+
+def _trusted_registry() -> tuple[PluginRegistry, dict[str, str]]:
+    """Register every family package that can register itself.
+
+    Returns the registry and, per package that could not, the reason -- an
+    import error is reported, never swallowed.
+    """
+    registry = PluginRegistry()
+    failures: dict[str, str] = {}
+    for module_info in pkgutil.iter_modules(aeread_families.__path__):
+        name = module_info.name
+        try:
+            module = _importlib.import_module(f"aeread_families.{name}")
+            hook = getattr(module, "register_plugin", None)
+            if hook is None:
+                environment = _importlib.import_module(f"aeread_families.{name}.environment")
+                hook = getattr(environment, "register_plugin", None)
+            if hook is None:
+                failures[name] = "no register_plugin hook"
+                continue
+            hook(registry)
+        except Exception as error:  # reported below, not skipped
+            failures[name] = f"{type(error).__name__}: {error}"
+    return registry, failures
+
+
+def test_every_trusted_key_is_checked_or_named_as_uncovered() -> None:
+    registry, _failures = _trusted_registry()
+    unlisted_unresolvable: list[str] = []
+    listed_but_resolvable: list[str] = []
+    checked = 0
+    for family_id, version, plugin_id in sorted(TRUSTED_BUILTIN_PLUGIN_KEYS):
+        try:
+            plugin = registry.resolve(family_id, version, plugin_id)
+        except Exception:
+            if (family_id, version) not in KNOWN_UNRESOLVABLE_IN_PLAIN_ENV:
+                unlisted_unresolvable.append(f"{family_id} {version}")
+            continue
+        if (family_id, version) in KNOWN_UNRESOLVABLE_IN_PLAIN_ENV:
+            listed_but_resolvable.append(f"{family_id} {version}")
+        # The same contract the discovery half checks, on the real registered
+        # object rather than on whatever class the module happened to expose.
+        parameters = [
+            p for n, p in inspect.signature(plugin.initial_state).parameters.items() if n != "self"
+        ]
+        assert len(parameters) == 2, f"{family_id} {version}: initial_state must take (family_case, cell/run)"
+        assert all(
+            p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            for p in parameters
+        ), f"{family_id} {version}: initial_state's second parameter must be passable positionally"
+        checked += 1
+    assert not unlisted_unresolvable, (
+        "trusted key(s) could not be resolved and are not named in "
+        "KNOWN_UNRESOLVABLE_IN_PLAIN_ENV -- an unlisted gap is a silent skip: "
+        + ", ".join(unlisted_unresolvable)
+    )
+    assert not listed_but_resolvable, (
+        "these keys now resolve; remove them from KNOWN_UNRESOLVABLE_IN_PLAIN_ENV "
+        "so they are actually checked: " + ", ".join(listed_but_resolvable)
+    )
+    assert checked >= 5, f"only {checked} trusted plugins were actually checked"

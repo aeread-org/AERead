@@ -26,38 +26,57 @@ class _Executor:
     )
 
     _is_post_admission_rejection = _Real._is_post_admission_rejection
+    _route_key = staticmethod(_Real._route_key)
 
-    def __init__(self, proven: set[str]) -> None:
+    def __init__(self, proven: set[tuple[str, str | None, str]]) -> None:
         self._routes_proven = proven
 
 
-def _profile(profile_id: str = "p1"):
-    return SimpleNamespace(profile_id=profile_id)
+def _profile(profile_id: str = "p1", *, provider: str = "openrouter", model: str = "m"):
+    return SimpleNamespace(
+        profile_id=profile_id,
+        model=SimpleNamespace(provider=provider, base_url="https://r/v1", model=model),
+    )
+
+
+ROUTE = ("openrouter", "https://r/v1", "m")
 
 
 def test_first_call_rejection_stays_non_retryable() -> None:
     executor = _Executor(proven=set())
-    failure = ProviderFailure("provider_rejected", "404", retryable=False)
+    failure = ProviderFailure("provider_rejected", "404", retryable=False, status_code=404)
     assert executor._is_post_admission_rejection(_profile(), failure) is False
 
 
 def test_rejection_after_a_success_is_typed_separately() -> None:
-    executor = _Executor(proven={"p1"})
-    failure = ProviderFailure("provider_rejected", "404", retryable=False)
+    executor = _Executor(proven={ROUTE})
+    failure = ProviderFailure("provider_rejected", "404", retryable=False, status_code=404)
     assert executor._is_post_admission_rejection(_profile(), failure) is True
 
 
-def test_a_different_profile_does_not_inherit_another_route_s_proof() -> None:
-    executor = _Executor(proven={"p1"})
-    failure = ProviderFailure("provider_rejected", "404", retryable=False)
-    assert executor._is_post_admission_rejection(_profile("p2"), failure) is False
+def test_proof_follows_the_route_not_the_profile() -> None:
+    """Two profiles on one route share the proof; one profile on a different
+    route does not. The thing that answered was the route."""
+    executor = _Executor(proven={ROUTE})
+    failure = ProviderFailure("provider_rejected", "404", retryable=False, status_code=404)
+    assert executor._is_post_admission_rejection(_profile("p2"), failure) is True
+    assert executor._is_post_admission_rejection(_profile("p1", model="other"), failure) is False
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, None])
+def test_only_a_404_is_promoted_after_proof(status: int | None) -> None:
+    """A 401 after a success is a revoked credential, not a flaky route;
+    retrying it is three more 401s (review finding 2)."""
+    executor = _Executor(proven={ROUTE})
+    failure = ProviderFailure("provider_rejected", "rejected", retryable=False, status_code=status)
+    assert executor._is_post_admission_rejection(_profile(), failure) is False
 
 
 @pytest.mark.parametrize("condition", ["rate_limit", "provider_5xx", "timeout"])
 def test_other_conditions_keep_their_own_typing(condition: str) -> None:
     """Only a rejection is reinterpreted; nothing else is relabelled."""
-    executor = _Executor(proven={"p1"})
-    failure = ProviderFailure(condition, "x", retryable=True)
+    executor = _Executor(proven={ROUTE})
+    failure = ProviderFailure(condition, "x", retryable=True, status_code=404)
     assert executor._is_post_admission_rejection(_profile(), failure) is False
 
 
