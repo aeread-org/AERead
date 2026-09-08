@@ -9,6 +9,11 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from aeread.shared_runner.run.publication import (
+    MANIFEST_FILENAME,
+    rebuild_publication_manifest,
+    seal_publication_manifest,
+)
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import audit_family_receipt
 from aeread.shared_runner.task.execution import EvidenceStore
@@ -40,6 +45,11 @@ from .objective_publication import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 HELPER_PATH = Path(__file__).with_name("affordance_publication.py")
+PRIVACY_BOUNDARY = {
+    "included": "case and model identities, per-episode outcomes and first-action shapes, receipt projections, fact tables, usage and cost, the per-action kernel trajectory grain",
+    "excluded": "prompts, provider payloads, written terms, free-form negotiation messages, event logs, artifact stores, account metadata",
+}
+
 VERSIONS = {
     "v1": {
         "campaign": campaign_v1,
@@ -456,7 +466,7 @@ def publish_version(version: str) -> dict[str, Any]:
     payloads = {
         "README.md": selection["readme"].encode("utf-8"),
         "reports/summary.json": canonical_json_bytes(public_summary) + b"\n",
-        "trajectories/sanitized.jsonl": _jsonl(trajectories),
+        "trajectories/episodes.jsonl": _jsonl(trajectories),
         "receipts/projections.jsonl": _jsonl(receipts),
         "tables/benchmark_results.csv": _csv(benchmark, benchmark_fields),
         "tables/profiles.csv": _csv(profiles, profile_fields),
@@ -492,37 +502,38 @@ def publish_version(version: str) -> dict[str, Any]:
     payloads["tables/fact_manifest.json"] = canonical_json_bytes(fact_manifest) + b"\n"
     for name, payload in payloads.items():
         _assert_public_payload(name, payload)
-    manifest = _sealed(
-        {
-            "schema_version": f"aeread.datacenter_counteroffer_action_schema_publication/0.{version[-1]}",
-            "campaign_id": contract["campaign_id"],
-            "source_summary_sha256": source_summary["artifact_sha256"],
-            "source_design_sha256": source_design["artifact_sha256"],
-            "source_fact_manifest_sha256": fact_manifest["artifact_sha256"],
-            "publisher_implementation_sha256": publisher_sha256,
-            "publisher_helper_sha256": helper_sha256,
-            "source_receipt_sha256s": [row["source_receipt_sha256"] for row in receipts],
-            "source_result_sha256s": [row["source_result_sha256"] for row in trajectories],
-            "files": {
-                name: {"bytes": len(payload), "sha256": _sha256_bytes(payload)}
-                for name, payload in sorted(payloads.items())
-            },
-            "sanitization": {
-                "complete_receipts_included": False,
-                "complete_written_terms_included": False,
-                "failure_messages_included": False,
-                "free_form_negotiation_messages_included": False,
-                "full_prompts_included": False,
-                "model_reasoning_included": False,
-                "raw_provider_responses_included": False,
-            },
-        }
-    )
     for name, payload in payloads.items():
         _atomic_publish(destination / name, payload)
-    manifest_payload = canonical_json_bytes(manifest) + b"\n"
-    _assert_public_payload("publication_manifest.json", manifest_payload)
-    _atomic_publish(destination / "publication_manifest.json", manifest_payload)
+    # The kernel writes the manifest in the one layout every bundle shares
+    # (docs/getting-started/reviewing_trajectories.md §5). The family's own
+    # provenance rides along as extra fields; a re-publish of the same run
+    # rebuilds idempotently and refuses any artifact whose bytes changed.
+    provenance = {
+        "source_summary_sha256": source_summary["artifact_sha256"],
+        "source_design_sha256": source_design["artifact_sha256"],
+        "source_fact_manifest_sha256": fact_manifest["artifact_sha256"],
+        "publisher_implementation_sha256": publisher_sha256,
+        "publisher_helper_sha256": helper_sha256,
+        "source_receipt_sha256s": [row["source_receipt_sha256"] for row in receipts],
+        "source_result_sha256s": [row["source_result_sha256"] for row in trajectories],
+    }
+    if (destination / MANIFEST_FILENAME).exists():
+        manifest = rebuild_publication_manifest(destination, privacy_boundary=PRIVACY_BOUNDARY)
+        if any(manifest.get(key) != value for key, value in provenance.items()):
+            raise ValueError(f"{version}: published manifest provenance differs from this publisher")
+    else:
+        manifest = seal_publication_manifest(
+            destination,
+            publication_id=contract["campaign_id"],
+            campaign_id=contract["campaign_id"],
+            privacy_boundary=PRIVACY_BOUNDARY,
+            source_bindings=provenance,
+            family_sanitization={
+                "complete_written_terms_included": False,
+                "free_form_negotiation_messages_included": False,
+            },
+            **provenance,
+        )
     return manifest
 
 

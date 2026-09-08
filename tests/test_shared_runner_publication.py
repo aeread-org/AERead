@@ -474,3 +474,17 @@ def test_rebuild_publication_manifest_can_supply_a_missing_privacy_boundary_but_
     assert rebuild_publication_manifest(bundle, privacy_boundary=boundary)["privacy_boundary"] == boundary
     with pytest.raises(ValueError, match="different privacy_boundary"):
         rebuild_publication_manifest(bundle, privacy_boundary={"included": "other", "excluded": "prompts"})
+
+
+def test_published_receipt_digests_scans_receipts_tables_and_the_manifest(tmp_path):
+    from aeread.shared_runner.run.publish_trajectories import published_receipt_digests
+
+    bundle = tmp_path / "b"
+    for folder in ("reports", "receipts", "tables"):
+        (bundle / folder).mkdir(parents=True)
+    a, b, c, d = ("a" * 64, "b" * 64, "c" * 64, "d" * 64)
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipt_sha256": a}))
+    (bundle / "receipts" / "projections.jsonl").write_text(json.dumps({"source_receipt_sha256": b}) + "\n")
+    (bundle / "tables" / "fact_manifest.json").write_text(json.dumps({"receipt": c}))
+    (bundle / "publication_manifest.json").write_text(json.dumps({"source_receipt_sha256s": [d]}))
+    assert published_receipt_digests(bundle) == {a, b, c, d}

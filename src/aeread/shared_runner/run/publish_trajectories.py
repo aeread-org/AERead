@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .publication import (
+    MANIFEST_FILENAME,
     add_publication_artifact,
     sanitized_trajectory_jsonl,
     sanitized_trajectory_rows,
@@ -28,11 +29,22 @@ GRAIN = "trajectories/sanitized.jsonl"
 
 
 def published_receipt_digests(bundle: Path) -> frozenset[str]:
-    """Every receipt digest a bundle's reports mention."""
+    """Every receipt digest a bundle publishes.
+
+    Families record them in different places: procurement in ``reports/``,
+    the datacenter and adapter bundles in ``receipts/`` and the manifest's
+    source bindings. All of them are scanned; the manifest is included so a
+    bundle whose only receipt list is ``source_receipt_sha256s`` still counts.
+    """
 
     digests: set[str] = set()
-    for report in sorted((bundle / "reports").glob("*.json")):
-        digests.update(re.findall(r"[0-9a-f]{64}", report.read_text()))
+    candidates = [bundle / MANIFEST_FILENAME]
+    for folder in ("reports", "receipts", "tables"):
+        candidates.extend(sorted((bundle / folder).glob("*.json")))
+        candidates.extend(sorted((bundle / folder).glob("*.jsonl")))
+    for path in candidates:
+        if path.is_file():
+            digests.update(re.findall(r"[0-9a-f]{64}", path.read_text()))
     return frozenset(digests)
 
 
