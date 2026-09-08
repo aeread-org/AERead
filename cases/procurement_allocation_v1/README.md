@@ -165,6 +165,31 @@ not produce a feasible purchase award or a single submitted multi-offer split; i
 only feasible terminal row was an explicit defer. See the campaign document and
 tracked evidence bundle for the paired effects and typed failure breakdown.
 
+The next adaptive diagnostic reuses the exact opaque cases, seeds, V2 prompt,
+harness, action contract, retry policy, and verifier with the previously qualified
+GLM 5.3 Flash/Parasail route. It asks whether feasible split allocation transfers to
+another open checkpoint/route; it is not a fresh holdout or pure model causal effect.
+The sealed 18-row plan is printed without provider calls by:
+
+```bash
+python -m aeread_families.procurement_allocation.glm_holdout_transfer_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/qualification_attempt_001
+```
+
+The campaign is integrity-qualified only after all 18 rows complete and replay with
+exact accounting. Its transfer signal requires feasible purchase awards in at least
+two independent split-required worlds while the sealed Qwen parent has none.
+
+The qualified transfer run completed and replayed all 18 rows with zero operational
+failures, one bounded rate-limit retry, and $0.0608959395 total spend including the
+canary. The transfer signal was observed: GLM produced feasible purchase awards in
+all five split-required worlds and 14/18 overall, with paired six-world regret
+falling by $115.20 (interval [-$154.77, -$62.84]). Every feasible GLM award matched
+the full-information bound exactly, so the residual regret is entirely the four
+infeasible rows; the budget-limited 18-kit world remained unsolved. The sanitized bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.

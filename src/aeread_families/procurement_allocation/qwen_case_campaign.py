@@ -37,6 +37,7 @@ from aeread_families.procurement_grounding.bakeoff import (
 
 from .case_matrix import CASE_VARIANCE_PATHS
 from .model_campaign import (
+    DEFAULT_PRIMARY_OUTCOMES,
     CAMPAIGN_ID as GLM_BASELINE_CAMPAIGN_ID,
     derive_inference_seeds,
     planned_model_qualification,
@@ -89,6 +90,7 @@ class CandidateCaseCampaignSpec:
     max_parallel_cells: int = MAX_PARALLEL_CELLS
     trajectories_per_checkpoint: int = TRAJECTORIES_PER_CHECKPOINT
     matched_baseline_campaign_id: str | None = GLM_BASELINE_CAMPAIGN_ID
+    primary_outcomes: tuple[str, ...] = tuple(DEFAULT_PRIMARY_OUTCOMES)
 
 
 DEFAULT_SPEC = CandidateCaseCampaignSpec(
@@ -159,6 +161,7 @@ def build_plan(
         retry_base_seconds=RETRY_BASE_SECONDS,
         retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
         max_cost_usd_per_trajectory=spec.max_trajectory_cost_usd,
+        primary_outcomes=spec.primary_outcomes,
     )
     conservative_total = (
         Decimal(str(scored["conservative_cost_ceiling_usd"]))

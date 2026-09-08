@@ -135,6 +135,16 @@ def _case_records(case_paths: Sequence[Path | str]) -> tuple[dict[str, Any], ...
     return tuple(records)
 
 
+DEFAULT_PRIMARY_OUTCOMES: tuple[str, ...] = (
+    "feasible",
+    "feasible_award",
+    "completed_kits",
+    "contribution_margin_usd",
+    "regret_to_upper_bound_usd",
+    "violations",
+)
+
+
 def planned_model_qualification(
     *,
     case_paths: Sequence[Path | str],
@@ -153,6 +163,12 @@ def planned_model_qualification(
     retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
     max_cost_usd_per_trajectory: float = 0.03,
+    # The outcome columns frozen into the plan. A parameter rather than the
+    # module constant it defaults to, because editing that constant (#98,
+    # adding feasible_award) silently re-digested every plan this function
+    # builds -- including one already sealed and published (#62). A sealed
+    # plan keeps the list it sealed; new plans get today's.
+    primary_outcomes: Sequence[str] = DEFAULT_PRIMARY_OUTCOMES,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -274,14 +290,7 @@ def planned_model_qualification(
             seed_count=len(inference_seeds),
             candidate=candidate,
         ),
-        "primary_outcomes": [
-            "feasible",
-            "feasible_award",
-            "completed_kits",
-            "contribution_margin_usd",
-            "regret_to_upper_bound_usd",
-            "violations",
-        ],
+        "primary_outcomes": list(primary_outcomes),
         "claim_scope": (
             "model qualification on declared cases; inference seeds within a case "
             "measure stochastic reliability and are not independent cases"
