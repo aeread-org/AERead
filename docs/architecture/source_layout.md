@@ -10,7 +10,7 @@ and research schemas, while preserving a strict dependency direction.
 src/
   aeread/
     shared_runner/
-      run/                 # plans, campaign gates, filesystem layout
+      run/                 # plans, campaign gates, contracts, publication, filesystem layout
       task/                # scheduling, execution, tools, receipts, evaluation
       model_call/          # harness contracts and provider-facing adapters
       analysis/            # fact projections, parity, paired statistics

@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.costly_information_budget",
+  "content_sha256": "eaa34fb648e2da0d0050a6e444923ad25451d17be60e222155dd43cf03ebf69d",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 4.0,
+      "counter_days": 1,
+      "inquiry_cost_usd": 2.5,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 4.0,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "sht30_i2c": 1,
+        "tp4056_usb_c_protected": 1
+      },
+      "cash_budget_usd": 120.0,
+      "deadline_days": 22,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "sensor_costly_information",
+      "revenue_per_completed_kit_usd": 7.0,
+      "shortfall_penalty_per_kit_usd": 2.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "sht30_i2c": "sht30_i2c_module_3v3",
+        "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.943,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 84DE98130803"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.15,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.15,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 9.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3"
+        },
+        "supplier_id": "supplier_84de98130803"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.492,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 5F7AAED717DE"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.6,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 9.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_5f7aaed717de"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.902,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier D3A48B2D4DDA"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.1,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 9.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3"
+        },
+        "supplier_id": "supplier_d3a48b2d4dda"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.5248,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 000C20DB42E8"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.64,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.64,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 9.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_000c20db42e8"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_information_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2514106
+}

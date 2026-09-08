@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_8",
+  "content_sha256": "e4c5229d8b2a7dbdcc2932adb84f7925072a8a7f9f7180358a28f3655a411164",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 79.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_8",
+      "cost": 74.99,
+      "description": "If you’re dreaming of the perfect Christmas Eve, get the festive season off to a magical start with this LEGO Santa’s Visit (10293) model building set for adults. This cozy project is the ideal way to spend quality time with family and friends. Build the intricate Christmas house with a LEGO Christmas tree and explore all of the model’s jolly features before placing it on display. Spot all the ingredients that make Christmas Eve so special. There are stockings on the fireplace, a plate of cookies with milk for Santa, and even a place setting for him at the dining table. The exterior of this LEGO house is equally detailed. See the Christmas tree, which lights up when you press down gently on the treetop. Extra details of this LEGO set for adults complete the cheerful scene with presents, a mailbox and brick-built boughs under the ‘snow’-topped roof. Santa’s Visit is part of the LEGO Winter Village Collection - a collection of buildable model kits for adults that celebrate the festive season. A Christmas building project to savor is a top Christmas gift idea before the festivities start and a great birthday present for teens and adults alike, and for all who love waiting for Christmas! Measures over 7.5 in. (19 cm) high, 10.5 in. (27 cm) wide and 6.5 in. (16 cm) deep. Contains 1445 pieces.",
+      "index_in_file": 7,
+      "interest": "mutual",
+      "price": 99.99,
+      "title": "LEGO Icons Santa’s Visit 10293 Christmas House Model Building Set for Adults and Families, Festive Home Décor with Xmas Tree, Gift Idea"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09GB938TT",
+      "amazon_title": "LEGO Icons Santa’s Visit 10293 Christmas House Model Building Set for Adults and Families, Festive Home Décor with Xmas Tree, Gift Idea",
+      "average_price": "$93.02",
+      "badge": "",
+      "camel_img": "https://m.media-amazon.com/images/I/51LFvCxm7fL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$92.99",
+      "current_price_date": "Nov 18, 2023",
+      "description": "If you’re dreaming of the perfect Christmas Eve, get the festive season off to a magical start with this LEGO Santa’s Visit (10293) model building set for adults. This cozy project is the ideal way to spend quality time with family and friends. Build the intricate Christmas house with a LEGO Christmas tree and explore all of the model’s jolly features before placing it on display. Spot all the ingredients that make Christmas Eve so special. There are stockings on the fireplace, a plate of cookies with milk for Santa, and even a place setting for him at the dining table. The exterior of this LEGO house is equally detailed. See the Christmas tree, which lights up when you press down gently on the treetop. Extra details of this LEGO set for adults complete the cheerful scene with presents, a mailbox and brick-built boughs under the ‘snow’-topped roof. Santa’s Visit is part of the LEGO Winter Village Collection - a collection of buildable model kits for adults that celebrate the festive season. A Christmas building project to savor is a top Christmas gift idea before the festivities start and a great birthday present for teens and adults alike, and for all who love waiting for Christmas! Measures over 7.5 in. (19 cm) high, 10.5 in. (27 cm) wide and 6.5 in. (16 cm) deep. Contains 1445 pieces.",
+      "features": "Features a LEGO Christmas house model with a toy Christmas tree and several mini builds for kids to enjoy, plus lots of details to discover\nThe cute home features favorite traditions with a fireplace, stocking, milk and cookies, plus a large chimney for Santa to drop through\nThere are gifts hidden around the house, and the rear roof moves outwards, giving further access to the upper floor bedroom\nThis LEGO set for adults includes 4 minifigures with Dad, mom, girl and Santa to recreate endless cozy family Christmas Eve scenes\nAdd some festive glow to the scene - the toy Christmas tree features a light brick (battery included) that lights up when you press the top\nBring the family together to enjoy a rewarding festive build, assembling all the details of a perfect night before Christmas\nThis beautiful ornament makes a great Christmas gift or occasional present for teens and adults waiting for the festive season",
+      "highest_price": "$99.99",
+      "highest_price_date": "Mar 15, 2022",
+      "img": "https://m.media-amazon.com/images/I/811ZKp9sfsL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09GB938TT?active=price_amazon&context=popular",
+      "list_price": "$99.99",
+      "lowest_price": "$74.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "LEGO Icons Santa’s Visit 10293 Christmas House Model Building Set for Adults and Families, Festive Home Décor with Xmas Tree, Gift Idea"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_8",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 908
+}

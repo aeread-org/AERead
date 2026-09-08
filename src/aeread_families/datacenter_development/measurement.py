@@ -20,6 +20,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
 
 SCORER_IMPLEMENTATION_ID = "datacenter_development_score_set_v1"
@@ -134,8 +135,9 @@ class DataCenterDevelopmentScorer:
         self._case = family_case
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...]
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...]
     ) -> FamilyScoreSet:
+        outcome = scoring_input.outcome
         baseline = self._case["baseline"]
         outside = self._case["outside_option"]
         primary_leaf = primary_measurement_leaf(self._case)

@@ -33,12 +33,18 @@ def _path(value: object, label: str) -> tuple[str, ...]:
     return value
 
 
-def _extract(value: Mapping[str, Any], path: tuple[str, ...], label: str) -> Any:
+_MISSING = object()
+
+
+def _lookup(value: Mapping[str, Any], path: tuple[str, ...]) -> Any:
+    """Follow *path* into *value*, returning ``_MISSING`` instead of raising.
+
+    A missing field is a parity finding for that one field, never grounds to
+    destroy every other field's verdict."""
     current: Any = value
     for component in path:
         if not isinstance(current, Mapping) or component not in current:
-            dotted = ".".join(path)
-            raise ParityContractError(f"{label} projection is missing {dotted!r}")
+            return _MISSING
         current = current[component]
     return current
 
@@ -103,12 +109,21 @@ class ParityField:
     adapted_path: tuple[str, ...]
     comparison: str = "exact"
     absolute_tolerance: float = 0.0
+    derived_from: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not is_exportable_id(self.field_id):
             raise ParityContractError("field_id must be an exportable identifier")
         _path(self.upstream_path, "upstream_path")
         _path(self.adapted_path, "adapted_path")
+        if not isinstance(self.derived_from, tuple) or any(
+            not is_exportable_id(source) for source in self.derived_from
+        ):
+            raise ParityContractError(
+                "derived_from must be a tuple of exportable field identifiers"
+            )
+        if len(self.derived_from) != len(set(self.derived_from)):
+            raise ParityContractError("derived_from entries must be unique")
         if self.comparison not in {"exact", "numeric_tolerance"}:
             raise ParityContractError("comparison must be exact or numeric_tolerance")
         if (
@@ -145,6 +160,29 @@ class ParitySpec:
         field_ids = tuple(field.field_id for field in self.fields)
         if len(field_ids) != len(set(field_ids)):
             raise ParityContractError("parity field IDs must be unique")
+        declared = set(field_ids)
+        for field in self.fields:
+            for source in field.derived_from:
+                if source == field.field_id or source not in declared:
+                    raise ParityContractError(
+                        f"field {field.field_id!r} derived_from must reference other "
+                        f"declared fields, got {source!r}"
+                    )
+        graph = {field.field_id: field.derived_from for field in self.fields}
+        for start, sources in graph.items():
+            stack = list(sources)
+            seen: set[str] = set()
+            while stack:
+                node = stack.pop()
+                if node == start:
+                    raise ParityContractError(
+                        f"derived_from cycle involving field {start!r}: a cycle "
+                        "leaves no independent field to confirm"
+                    )
+                if node in seen:
+                    continue
+                seen.add(node)
+                stack.extend(graph[node])
         field_by_id = {field.field_id: field for field in self.fields}
         criterion_field = field_by_id.get(self.criterion.metric_id)
         if criterion_field is None:
@@ -171,9 +209,13 @@ class ParityFieldResult:
     field_id: str
     matched: bool
     comparison: str
-    upstream_sha256: str
-    adapted_sha256: str
+    upstream_sha256: str | None
+    adapted_sha256: str | None
     absolute_error: float | None
+    status: str = "compared"
+    unavailable_sides: tuple[str, ...] = ()
+    derived: bool = False
+    derived_from: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,6 +231,9 @@ class ParityReport:
     upstream_projection_sha256: str
     adapted_projection_sha256: str
     report_sha256: str
+    # Trailing with a default so constructions predating the unavailable
+    # verdicts (positional included) stay valid.
+    unavailable_fields: tuple[str, ...] = ()
 
 
 def compare_projections(
@@ -212,8 +257,33 @@ def compare_projections(
     upstream_projection: dict[str, Any] = {}
     adapted_projection: dict[str, Any] = {}
     for field in spec.fields:
-        source = _extract(upstream, field.upstream_path, "upstream")
-        target = _extract(adapted, field.adapted_path, "adapted")
+        source = _lookup(upstream, field.upstream_path)
+        target = _lookup(adapted, field.adapted_path)
+        unavailable_sides = tuple(
+            side
+            for side, value in (("upstream", source), ("adapted", target))
+            if value is _MISSING
+        )
+        if unavailable_sides:
+            if source is not _MISSING:
+                upstream_projection[field.field_id] = source
+            if target is not _MISSING:
+                adapted_projection[field.field_id] = target
+            results.append(
+                ParityFieldResult(
+                    field_id=field.field_id,
+                    matched=False,
+                    comparison=field.comparison,
+                    upstream_sha256=None if source is _MISSING else _digest(source),
+                    adapted_sha256=None if target is _MISSING else _digest(target),
+                    absolute_error=None,
+                    status="unavailable",
+                    unavailable_sides=unavailable_sides,
+                    derived=bool(field.derived_from),
+                    derived_from=field.derived_from,
+                )
+            )
+            continue
         upstream_projection[field.field_id] = source
         adapted_projection[field.field_id] = target
         source_digest = _digest(source)
@@ -233,8 +303,18 @@ def compare_projections(
                 raise ParityContractError(
                     f"numeric_tolerance field {field.field_id!r} requires finite numbers"
                 )
-            absolute_error = abs(float(source) - float(target))
-            matched = absolute_error <= field.absolute_tolerance
+            if isinstance(source, int) and isinstance(target, int):
+                difference = abs(source - target)
+            else:
+                difference = abs(float(source) - float(target))
+            absolute_error = float(difference)
+            if field.absolute_tolerance == 0:
+                # Exactness must compare exactly: Python's cross-type numeric
+                # equality is exact, while conversion through float silently
+                # equates integers differing past 2**53.
+                matched = source == target
+            else:
+                matched = difference <= field.absolute_tolerance
         results.append(
             ParityFieldResult(
                 field_id=field.field_id,
@@ -243,9 +323,24 @@ def compare_projections(
                 upstream_sha256=source_digest,
                 adapted_sha256=target_digest,
                 absolute_error=absolute_error,
+                derived=bool(field.derived_from),
+                derived_from=field.derived_from,
             )
         )
-    mismatches = tuple(result.field_id for result in results if not result.matched)
+    mismatches = tuple(
+        result.field_id
+        for result in results
+        if result.status == "compared" and not result.matched
+    )
+    unavailable = tuple(
+        result.field_id for result in results if result.status == "unavailable"
+    )
+    if mismatches:
+        status = "mismatch"
+    elif unavailable:
+        status = "unavailable"
+    else:
+        status = "match"
     criterion_result = next(
         result for result in results if result.field_id == spec.criterion.metric_id
     )
@@ -254,10 +349,11 @@ def compare_projections(
         "parity_version": spec.parity_version,
         "criterion": spec.criterion,
         "criterion_sha256": _digest(spec.criterion),
-        "criterion_matched": criterion_result.matched,
-        "status": "match" if not mismatches else "mismatch",
+        "criterion_matched": criterion_result.status == "compared" and criterion_result.matched,
+        "status": status,
         "field_results": tuple(results),
         "mismatched_fields": mismatches,
+        "unavailable_fields": unavailable,
         "upstream_projection_sha256": _digest(upstream_projection),
         "adapted_projection_sha256": _digest(adapted_projection),
     }

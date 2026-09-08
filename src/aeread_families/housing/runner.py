@@ -42,6 +42,7 @@ from aeread.shared_runner.registry import (
     ProviderCapabilities,
 )
 from aeread.shared_runner.task.evaluation import (
+    FamilyScoringInput,
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
@@ -881,9 +882,11 @@ class HousingV1Plugin:
 
     def build_scorer(self, case):
         def score(
-            outcome: Mapping[str, Any], *, evidence_refs: Sequence[str] = ()
+            scoring_input: FamilyScoringInput, *, evidence_refs: Sequence[str] = ()
         ) -> ScoreEnvelope:
-            return _score_housing_outcome(case, outcome, evidence_refs=evidence_refs)
+            return _score_housing_outcome(
+                case, scoring_input.outcome, evidence_refs=evidence_refs
+            )
 
         return score
 

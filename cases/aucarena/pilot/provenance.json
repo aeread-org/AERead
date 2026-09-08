@@ -1,0 +1,15 @@
+{
+  "case_ids": [
+    "aucarena.pilot.successful_01",
+    "aucarena.pilot.valid_but_poor_01",
+    "aucarena.pilot.invalid_unauthorized_01",
+    "aucarena.pilot.malformed_operational_01",
+    "aucarena.pilot.degenerate_reference_01"
+  ],
+  "item_pool_count": 26,
+  "item_pool_path": "data/pseudo_items.jsonl",
+  "item_pool_sha256": "7418dba88c65ffd82797b6a2cbfab854cc1ebfabf87b5f40019834b84f21cf9b",
+  "upstream_commit": "d0f3bc851eb376d4ea5e69ae5fe52ec5be987bb3",
+  "upstream_license": "Apache-2.0",
+  "upstream_repo": "jiangjiechen/auction-arena"
+}

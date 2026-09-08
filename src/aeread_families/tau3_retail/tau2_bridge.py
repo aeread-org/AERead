@@ -39,6 +39,13 @@ _DRIVER_SCRIPT = Path(__file__).with_name("tau2_bridge_driver.py")
 _DEFAULT_TIMEOUT_SECONDS = 120.0
 
 
+def _stable_message(value: Mapping[str, Any]) -> dict[str, Any]:
+    message = dict(value)
+    if "timestamp" in message:
+        message["timestamp"] = None
+    return message
+
+
 class Tau2BridgeUnavailableError(RuntimeError):
     """No usable pinned-upstream Python interpreter could be located.
 
@@ -231,7 +238,7 @@ class Tau2Bridge:
             "error": response["error"],
             "db": response["db"],
             "db_hash": response["db_hash"],
-            "tool_message": response["tool_message"],
+            "tool_message": _stable_message(response["tool_message"]),
         }
 
     def normalize_db(self, db: Mapping[str, Any]) -> dict[str, Any]:
@@ -261,7 +268,7 @@ class Tau2Bridge:
     ) -> list[dict[str, Any]]:
         """Validate and dump messages through pinned upstream Pydantic models."""
         response = self._run({"op": "normalize_messages", "messages": messages})
-        return response["messages"]
+        return [_stable_message(message) for message in response["messages"]]
 
     def evaluate_env(
         self,

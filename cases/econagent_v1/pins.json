@@ -1,0 +1,11 @@
+{
+  "bracket_schedule": "us-federal-single-filer-2018-scaled",
+  "config_yaml_bytes": 2889,
+  "config_yaml_sha256": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e",
+  "env_config_sha256": "93efb6faf18466b22c3f0018380f9449155968745f12eb77587234c370fc73bf",
+  "policy_model": "complex",
+  "profiles_json_bytes": 7429,
+  "profiles_json_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+  "upstream_commit": "bfada09",
+  "upstream_repo": "tsinghua-fib-lab/ACL24-EconAgent"
+}

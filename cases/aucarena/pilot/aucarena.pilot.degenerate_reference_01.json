@@ -1,0 +1,53 @@
+{
+  "case_id": "aucarena.pilot.degenerate_reference_01",
+  "content_sha256": "5bbd2a1296fbb78d34e26c7f55232dd3141ac7c670c785c204a7aeba4e4778f0",
+  "episode": {
+    "max_logical_actions": 200,
+    "termination": [
+      "auction_complete"
+    ]
+  },
+  "family_id": "aucarena",
+  "family_version": "0.1.0",
+  "payload": {
+    "enable_discount": false,
+    "item_ids": [
+      5
+    ],
+    "item_pool_sha256": "7418dba88c65ffd82797b6a2cbfab854cc1ebfabf87b5f40019834b84f21cf9b",
+    "items": [
+      {
+        "desc": "A piece of equipment for any tough job",
+        "id": 5,
+        "name": "Equipment E",
+        "price": 5000,
+        "true_value": 10000
+      }
+    ],
+    "min_markup_pct": 0.1,
+    "roster": [
+      {
+        "budget": 6000,
+        "max_bid_cnt": 4,
+        "model_name": "scripted",
+        "seat_id": "agent"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "aucarena_importer",
+    "generator_version": "0.1.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "agent",
+      "role": "bidder"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": null,
+  "visibility_policy": "aucarena_full_observation_v1",
+  "world_seed": 1005
+}

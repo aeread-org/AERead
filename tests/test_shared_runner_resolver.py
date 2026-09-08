@@ -39,8 +39,8 @@ PROMPT_SHA = "b" * 64
 
 class _ScriptedStubHarness:
     """A minimal `scripted/1.0` stand-in: no real implementation exists yet,
-    only the pin bookkeeping in `_inputs()` references it, so admission only
-    needs `id`/`version`/`requires` to resolve it."""
+    only the pin bookkeeping in `_inputs()` references it. Registration
+    enforces protocol completeness, so the hooks exist but must never run."""
 
     id = "scripted"
     version = "1.0"
@@ -54,6 +54,18 @@ class _ScriptedStubHarness:
         blocking=False,
         spawns_subagents=False,
     )
+
+    async def open_episode(self, episode):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    async def act(self, request, ctx):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    async def close_episode(self, episode):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
+
+    def classify_failure(self, exc):  # pragma: no cover - never reachable
+        raise NotImplementedError("scripted/1.0 is a pin-only stand-in")
 
 
 def _capabilities(
@@ -664,3 +676,59 @@ def test_admission_seals_a_hashed_profile_admission_for_every_admitted_profile()
             "cost_complete",
         }
     verify_run_plan(plan)
+
+
+def _with_pin(pins, target: ImplementationPin, **changes) -> tuple[ImplementationPin, ...]:
+    import dataclasses
+
+    return tuple(
+        dataclasses.replace(pin, **changes) if pin == target else pin for pin in pins
+    )
+
+
+def test_plan_with_recorded_pins_reseals_identity_for_kernel_owned_drift_only() -> None:
+    from aeread.shared_runner.run.resolver import is_kernel_pin, plan_with_recorded_pins
+
+    inputs = _inputs()
+    plan = resolve_run_plan(**inputs)
+    harness = next(pin for pin in plan.implementation_pins if pin.kind == "harness")
+    scorer = next(pin for pin in plan.implementation_pins if pin.kind == "scorer")
+    assert is_kernel_pin(harness)
+    assert not is_kernel_pin(scorer)
+    assert is_kernel_pin(_pin("aeread.shared_runner.task.execution", "runtime"))
+    assert not is_kernel_pin(_pin("datacenter_runtime_v1", "runtime"))
+
+    recorded = _with_pin(plan.implementation_pins, harness, sha256="a" * 64)
+    old_inputs = dict(inputs)
+    old_inputs["implementation_pins"] = _with_pin(
+        inputs["implementation_pins"], harness, sha256="a" * 64
+    )
+    old_plan = resolve_run_plan(**old_inputs)
+
+    expected, drift = plan_with_recorded_pins(plan, recorded)
+    assert drift == (f"implementation_drift:{harness.component_id}",)
+    assert canonical_json_bytes(expected) == canonical_json_bytes(old_plan)
+    assert expected.run_plan_id == old_plan.run_plan_id != plan.run_plan_id
+    assert expected.input_digests[f"implementation:{harness.component_id}"] == "a" * 64
+    verify_run_plan(expected)
+
+    same, no_drift = plan_with_recorded_pins(plan, tuple(reversed(plan.implementation_pins)))
+    assert no_drift == ()
+    assert canonical_json_bytes(same) == canonical_json_bytes(plan)
+
+
+def test_plan_with_recorded_pins_rejects_family_drift_and_structural_mismatch() -> None:
+    from aeread.shared_runner.run.resolver import plan_with_recorded_pins
+
+    plan = resolve_run_plan(**_inputs())
+    harness = next(pin for pin in plan.implementation_pins if pin.kind == "harness")
+    scorer = next(pin for pin in plan.implementation_pins if pin.kind == "scorer")
+
+    with pytest.raises(PlanResolutionError, match=scorer.component_id):
+        plan_with_recorded_pins(plan, _with_pin(plan.implementation_pins, scorer, sha256="b" * 64))
+    with pytest.raises(PlanResolutionError, match="implementation pins"):
+        plan_with_recorded_pins(plan, plan.implementation_pins[1:])
+    with pytest.raises(PlanResolutionError, match="implementation pins"):
+        plan_with_recorded_pins(
+            plan, _with_pin(plan.implementation_pins, harness, version="9.9.9")
+        )

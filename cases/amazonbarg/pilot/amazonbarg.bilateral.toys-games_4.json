@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_4",
+  "content_sha256": "46ed5aa3d616a92fdda987e3dce5ad0b0f1dd1e5b76bdeabf19eb298bc3e83bb",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 29.592000000000002,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_4",
+      "cost": 18.99,
+      "description": "Introducing UNLOCK! Heroic Adventures, a brand new format for UNLOCK! in North America. This box includes 3 new Adventures. In Insert Coin, players must avoid \"Game Over\" by triumphing over multiple levels of video game adventures! Then in Sherlock Holmes - The Scarlet Thread of Murder, the master sleuth is on a very strange case and needs players' help to solve the mystery. Finally, In Pursuit of the White Rabbit introduces players to Wonderlands' weird inhabitants as they help Alice to escape in time! UNLOCK! is a series of escape adventures for up to six players. With one hour on the clock, players must work through a deck of sixty cards as a team, searching for clues, combining objects, and solving puzzles. The free UNLOCK! companion app runs the timer while providing clues, offering hints, and confirming successes. Once the team has reached a solution and entered the correct code into the app, they win",
+      "index_in_file": 3,
+      "interest": "mutual",
+      "price": 36.99,
+      "title": "UNLOCK! Heroic Adventures Card Game | Escape Room Games for Adults and Kids | Mystery Games for Family Game Night | Ages 10 and up | 1-6 Players | Average Playtime 1 Hour | Made by Space Cowboys"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B07NRSY4DW",
+      "amazon_title": "UNLOCK! Heroic Adventures Card Game | Escape Room Games for Adults and Kids | Mystery Games for Family Game Night | Ages 10 and up | 1-6 Players | Average Playtime 1 Hour | Made by Space Cowboys",
+      "average_price": "$29.77",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/5179ZHIc9YS._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$18.99",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Introducing UNLOCK! Heroic Adventures, a brand new format for UNLOCK! in North America. This box includes 3 new Adventures. In Insert Coin, players must avoid \"Game Over\" by triumphing over multiple levels of video game adventures! Then in Sherlock Holmes - The Scarlet Thread of Murder, the master sleuth is on a very strange case and needs players' help to solve the mystery. Finally, In Pursuit of the White Rabbit introduces players to Wonderlands' weird inhabitants as they help Alice to escape in time! UNLOCK! is a series of escape adventures for up to six players. With one hour on the clock, players must work through a deck of sixty cards as a team, searching for clues, combining objects, and solving puzzles. The free UNLOCK! companion app runs the timer while providing clues, offering hints, and confirming successes. Once the team has reached a solution and entered the correct code into the app, they win",
+      "features": "THRILLING ESCAPE ROOM ADVENTURES: Unlock! Heroic Adventures offers three captivating scenarios that bring the excitement of escape rooms to your tabletop.\nCOOPERATIVE PUZZLE-SOLVING: Join forces with friends and family to tackle puzzles, uncover clues, and crack riddles. Unlock! promotes teamwork and problem-solving skills.\nCOMPANION APP ENHANCEMENT: The Unlock! companion app elevates the game with timekeeping, hints, code verification, and more, all without requiring an internet connection.\nDIVERSE SCENARIOS: Immerse yourself in the intriguing worlds of \"Sherlock Holmes,\" \"In Pursuit of the White Rabbit,\" and \"Insert Coin.\" Each scenario offers a unique adventure.\nPERFECT FOR ALL AGES: Unlock! Heroic Adventures is an ideal choice for family game nights and social gatherings, providing engaging experiences for players of all ages.",
+      "highest_price": "$34.98",
+      "highest_price_date": "Nov 25, 2022",
+      "img": "https://m.media-amazon.com/images/I/81c5nhKdFyS.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B07NRSY4DW?active=price_amazon&context=popular",
+      "list_price": "$36.99",
+      "lowest_price": "$18.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "UNLOCK! Heroic Adventures Card Game | Escape Room Games for Adults and Kids | Mystery Games for Family Game Night | Ages 10 and up | 1-6 Players | Average Playtime 1 Hour | Made by Space Cowboys"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_4",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 904
+}

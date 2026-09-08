@@ -1,0 +1,82 @@
+name: pr-lanes
+
+# Classifies every pull request into a lane and enforces the one rule that
+# differs between lanes (docs/operations/pr_lanes.md):
+#
+#   lane:kernel   -> needs one approving review, on the current head commit,
+#                    from someone other than the author before it can merge.
+#   lane:evidence -> review is verification (replay, digests, errata), pasted
+#                    into the PR; no approval gate here.
+#   lane:family   -> everything else; CI green is the gate.
+#
+# The `kernel-review` check is a required status check on `main`, so it must
+# pass on every PR; it passes trivially for non-kernel lanes and for drafts.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-lanes-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  kernel-review:
+    name: kernel-review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify the lane and enforce the kernel review rule
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename')
+          kernel=$(printf '%s\n' "$files" | grep -E '^(src/aeread/shared_runner/|src/aeread/cli\.py$|conftest\.py$|tests/conftest\.py$)' || true)
+          evidence=$(printf '%s\n' "$files" | grep -E '^evidence/' || true)
+
+          labels=()
+          [ -n "$kernel" ] && labels+=("lane:kernel")
+          [ -n "$evidence" ] && labels+=("lane:evidence")
+          [ ${#labels[@]} -eq 0 ] && labels+=("lane:family")
+          for label in lane:kernel lane:evidence lane:family; do
+            gh label create "$label" --repo "$REPO" --color 5319e7 \
+              --description "PR lane (docs/operations/pr_lanes.md)" 2>/dev/null || true
+          done
+          for label in lane:kernel lane:evidence lane:family; do
+            gh pr edit "$PR" --repo "$REPO" --remove-label "$label" >/dev/null 2>&1 || true
+          done
+          gh pr edit "$PR" --repo "$REPO" --add-label "$(IFS=,; echo "${labels[*]}")" >/dev/null
+          echo "lanes: ${labels[*]}"
+
+          if [ -z "$kernel" ]; then
+            echo "not a kernel-lane PR; no review gate"
+            exit 0
+          fi
+          echo "kernel-lane files:"; printf '  %s\n' $kernel
+          if [ "$DRAFT" = "true" ]; then
+            echo "draft; the review gate applies once it is marked ready"
+            exit 0
+          fi
+          # Latest review per reviewer, on the current head, excluding the author.
+          approvals=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
+            --jq "[ .[] | select(.user.login != \"$AUTHOR\") ]
+                  | group_by(.user.login) | map(.[-1])
+                  | map(select(.state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\"))
+                  | length")
+          if [ "$approvals" -lt 1 ]; then
+            echo "::error title=kernel review required::This PR changes kernel-lane paths and has no approving review on head $HEAD_SHA from someone other than $AUTHOR. See docs/operations/pr_lanes.md."
+            exit 1
+          fi
+          echo "kernel review present: $approvals approving review(s) on head"

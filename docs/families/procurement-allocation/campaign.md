@@ -345,6 +345,76 @@ capacity-limited offers. It should freeze V2 unchanged and include the unscaffol
 control so transfer, supplier-ID robustness, and split-capacity execution can be
 estimated without additional prompt tuning.
 
+### Frozen targeted Qwen holdout
+
+That next campaign is frozen as
+`procurement_allocation_qwen3_235b_google_holdout_v1`. It contains six new opaque
+economic worlds: two single-component splits, one dual-component split, one
+multi-unit BOM split, one capacity-limited 18-kit minimum-service allocation, and
+one budget-limited 18-kit allocation. All six have new economic-world digests
+relative to the development, prior confirmatory, and risk-gate panels. Their exact
+oracles are positive, use only public quote/sample/award actions, and require no more
+than the declared ten actions.
+
+The Qwen3 235B Google route, model revision, Minimal Chat harness, structured action
+schema, verifier, retry policy, six opaque cases, and three inference seeds are held
+fixed. The only paired intervention is the prompt: unscaffolded control versus the
+unchanged constraint-ledger V2 prompt. Supplier identifiers and display names are
+opaque in both arms, and listing order is deterministically shuffled before either
+prompt sees a case.
+
+The frozen plan digest is
+`5ae0b91427f07c024120de0e96698ceafe1343c55d95e07b867b5cc8c479efde`.
+It declares 36 scored trajectories, two unscored prompt-specific canaries, a
+$0.94704 conservative total ceiling, and a $1.14 hard ceiling. Execution is
+sequential and checkpoints every six rows. No efficacy inspection or early stopping
+is permitted; any operational failure seals the affected attempt.
+
+The independent unit is the economic world. Three seeds are averaged within world,
+then V2-minus-control effects are reported for feasibility, completed kits, margin,
+and regret with a deterministic six-world cluster bootstrap. The preregistered
+diagnostic support rule requires the regret interval upper bound below zero and the
+feasibility interval lower bound at least -0.05. That rule affects interpretation,
+not eligibility: any complete, digest-matched, receipt-replayed result with exact
+cost accounting is published, including a null or adverse effect. Because the worlds
+were targeted from prior failures, even a supported result is a residual-capability
+transfer diagnostic rather than broad confirmatory evidence.
+
+#### Observed targeted Qwen holdout result
+
+Both canaries were admitted and all 36 scored rows completed and receipt-replayed
+with zero operational failures and exact accounting. The control arm had one bounded
+provider retry; V2 had none. Control scored cost was $0.0527916708, V2 scored cost
+was $0.0590797746, and the two canaries cost $0.0006390252, for $0.1125104706 total.
+Median trajectory time was 14.00 seconds for control and 10.84 seconds for V2.
+
+The preregistered residual-capability support rule was not met. V2-minus-control
+effects after averaging seeds within each world were +0.0556 terminal feasibility
+(six-world interval [0.0000, 0.1667]), +2.7222 completed kits ([-1.8333, 10.0000]),
+-$0.3611 contribution margin ([-$0.7861, $0.0167]), and +$0.3611 regret
+([-$0.0167, $0.7861]). The regret interval upper bound is not below zero. The one
+fail-to-pass transition was a defer, not a purchase: neither arm produced any
+feasible award.
+
+V2 did improve action-contract discipline. Control had five malformed procurement
+actions; V2 had none. Both arms made zero supplier-targeting attempts with an
+unknown opaque ID. V2 reached 17 award submissions versus 13 for control, but this
+did not translate into constraint-aware allocation. Across the five worlds that
+require a split, control submitted ten awards and V2 submitted fourteen; neither arm
+submitted a single award that split one component across multiple offers. Control
+recorded 14 over-capacity line violations and V2 recorded 15. Both arms exceeded the
+cash budget in all three budget-limited replicates by ordering the 20-kit target
+instead of the feasible 18-kit minimum-service quantity.
+
+The most informative result is therefore a separation between procedural compliance
+and economic decision competence. The frozen V2 procedure reliably eliminates the
+earlier JSON/action-field failures and reaches terminal decisions, but the model does
+not carry observed capacity, order-step, budget, and target-versus-minimum constraints
+into final award quantities. Additional wording on the same procedure is unlikely to
+be high value. A next test should change the decision representation or action
+interface—for example, a typed allocation worksheet or verifier-visible pre-award
+constraint check—rather than tune this prompt again.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
@@ -671,3 +741,494 @@ campaign to a persistently unavailable shared route. The next GLM test is a fres
 attempt under the identical frozen plan in a later availability window. A different
 model or provider belongs to a separately named campaign and cannot be pooled with
 V4; it should first pass an exact-request canary and a small complete case panel.
+
+## Regret decomposition over published GLM bundles
+
+The buyer objective is additive, and every tracked evidence row carries its parsed
+action trace. `regret_decomposition` re-drives each published GLM trajectory through
+the deterministic environment with no provider calls, recovers the full award
+evaluation, and splits each feasible award's regret exactly into term gaps against
+the recomputed full-information plan: lost revenue, excess purchase, shipping, duty,
+working-capital, information, return-freight, and refund-financing cost, lost refund
+recovery, and shortfall penalty. The replay must reproduce the published
+feasibility, margin, regret, and kit count within $0.000001; any mismatch is an
+integrity failure. Infeasible, deferred, and failed rows are categorized, not
+decomposed, because their regret is the whole bound.
+
+The analysis covers eight report files from four bundles: the development v2 and
+blinded v3 Morph runs, both strategy-scaffold v4 surfaces, and all four confirmatory
+v2 arms. All 216 rows replayed exactly and all 101 feasible awards decomposed with
+zero residual. The pooled result is descriptive over 29 curated worlds with mixed
+prompts, surfaces, and routes; the economic world remains the independent unit and
+no inferential ranking is implied.
+
+### Observed decomposition
+
+Feasible awards carry $1,250.81 of regret, a mean of $12.38 per row; seventeen rows,
+all under the V4 scaffold on confirmatory worlds, reached the bound exactly. Excess
+working-capital cost accounts for 61.0% of feasible regret, lost revenue for 20.5%,
+shortfall penalty for 10.9%, and lost refund recovery for 7.2%. Purchase price and
+information cost are slightly negative contributors: the model often pays less per
+unit and spends less on quotes and samples than the oracle, but loses more on
+financing and completed kits.
+
+The working-capital gap is a negotiation gap. The oracle award plan uses a
+negotiated counter in 67 of the 101 feasible rows, almost always to extend payment
+terms; the model submitted an award on a counter-improved offer in 7. Both
+payment-terms-counter surfaces in the confirmatory panel show a mean feasible regret
+of $48.63 with $48.27 from working capital alone, and the development and blinded
+working-capital worlds show $32.48 with $34.28 from the same term. Unscaffolded
+confirmatory control rows never used an accepted counter; the V4 scaffold rows used
+one in six of 39.
+
+The model matched the oracle supplier set in 75 of 101 feasible rows but matched
+quantities in only 33, and on development worlds it matched quantities in none. The
+remaining revenue and shortfall-penalty regret comes from under-ordering relative
+to yield on the quality/refund worlds and from awarding to a slower supplier on the
+service-defer worlds. The negotiated-MOQ confirmatory worlds lose $12.00 per row in
+purchase cost from accepting the base MOQ price instead of countering.
+
+This changes what the next procurement intervention should target. Prompt work so far
+has addressed award feasibility, which is where most total regret still sits, but on
+the feasible margin the dominant unexercised lever is the payment-terms counter that
+the case was designed to test. The tracked bundle is
+`evidence/procurement_allocation_glm_regret_decomposition_v1/`.
+
+Reproduce it without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.regret_decomposition
+
+python -m aeread_families.procurement_allocation.regret_decomposition \
+  --publish \
+  --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
+```
+
+## Frozen negotiation-worksheet treatment
+
+The decomposition selects the next adaptive treatment. It holds the GLM 5.3
+Flash/Parasail route, Minimal Chat harness, structured action contract, verifier,
+retry policy, twelve confirmatory worlds, both presentation surfaces, and the three
+confirmatory inference seeds fixed. It changes only the buyer prompt by appending a
+working-capital worksheet to the frozen V4 procedure: compute working-capital cost
+per formal offer from the visible financing rate, horizon, and payment terms; rank the
+five counterable terms by computed saving; counter on the single largest term with
+every other proposal field null; request payment terms equal to the horizon first
+and two-thirds of it once on rejection; and award only on each supplier's newest
+offer id.
+
+The paired control is the sealed confirmatory V2 treatment arm on each surface,
+bound by file and artifact digest, so no control rows are re-run. Rows pair by exact
+case id and inference seed. The campaign ID is
+`procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1`, the
+worksheet prompt digest is
+`29b5e6c336ad01d06e21fa48c723a6eed3c94e11e698f8fa7b481e0f0983d3d2`, and the plan
+digest is `dddf5f52f00c9e3667af74da6448087c5d979474dc49f99b3cde8354d3be043a`. It
+declares one unscored admission canary, 72 scored rows in six twelve-row checkpoints,
+a $1.11 conservative total ceiling, and a $2.19 hard ceiling.
+
+The preregistered primary estimand is worksheet-minus-V4 regret averaged equally over
+surfaces within each world, with a twelve-world cluster bootstrap. Support requires
+the regret interval upper bound below zero and the feasibility interval lower bound
+at least -0.05. Secondary outcomes are the working-capital term from the regret
+decomposition on feasible awards in each arm, accepted-counter counts, feasible
+awards placed on counter-improved offers, and the single-field proposal share. Because
+the treatment was chosen after inspecting the decomposition on these same worlds, a
+supported result is development evidence, not a holdout confirmation.
+
+```bash
+python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/qualification_attempt_001
+```
+
+Add `--execute --max-spend-usd 2.19` after loading `OPENROUTER_API_KEY`, continue
+each failure-free checkpoint with `--resume`, and publish with `--publish-only` to
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
+### Worksheet operational audit
+
+Attempt 001 admitted the canary, completed one row, and sealed on a typed provider
+`timeout` on the first call of row two with $0.0033577335 spent. Attempt 002 was
+interrupted by the operator before any scored row and is set aside. Attempt 003
+completed seven rows and sealed on three consecutive HTTP 429 responses inside 17
+seconds, exhausting the confirmatory three-attempt bound, at $0.0201324915. Attempt
+004, under the identical frozen plan in a later window, admitted the canary and
+completed all 72 rows in six failure-free checkpoints with zero operational failures.
+No partial efficacy result was inspected before attempt 004 qualified.
+
+### Observed worksheet result
+
+Attempt 004 cost $0.199348479 including the canary, with exact accounting and every
+row receipt-replayed. The preregistered support rule was not met. Worksheet-minus-V4
+regret averaged over surfaces was -$3.82 per world with twelve-world bootstrap
+interval [-$12.69, $4.48]; the interval includes zero. The feasibility guardrail
+held at +0.0556 ([-0.0278, 0.1667]). Completed kits moved -0.29 ([-1.40, 0.82]).
+Feasibility transitions were 4 fail-to-pass and 2 pass-to-fail on each surface.
+
+The mechanism did what it was built to do. All 58 worksheet counters proposed a
+single field, against zero of V4's 27; 22 were accepted against 12. On the
+payment-terms-counter world the worksheet cut regret from $48.63 to $10.68 in five of
+six rows by requesting 180-day terms, taking the rejection, and settling at 120 days,
+leaving $9.81 of working capital on the table against the private 150-day limit. Mean
+working-capital excess on feasible awards fell from $7.25 to $1.48 on labeled worlds
+and from $7.63 to $3.39 on opaque worlds. Multi-unit BOM, split-capacity rounding,
+and landed-cost worlds also improved by $29.24, $17.09, and $10.62 per world.
+
+The offsetting harm is concentrated and legible. On quality-refund-tail, negotiated
+MOQ, and refund-counter worlds the worksheet lost $20.77, $16.32, and $5.63 per
+world. In three of those rows the buyer countered and then submitted an award
+without the exact-variant sample, converting a feasible V4 outcome into a
+`sample_not_verified` failure worth the whole bound. In two refund-counter rows the
+buyer awarded to a worse supplier after a single-term counter on price. The
+worksheet's action-budget clause, which allows a counter only with three actions
+remaining, is not sufficient to protect the sample step once two counters per
+supplier are in play.
+
+The result is therefore a partial transfer: the payment-terms lever is now used, and
+the decomposition target it was built for fell, but a counter budget of two per
+supplier competes with sampling inside the ten-action limit and the preregistered
+overall rule does not clear. A follow-up should make the sample step a hard
+precondition of any award before allowing counters, or cap counters at one per
+supplier. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
+### Frozen negotiation-worksheet V2
+
+V2 keeps V1's route, harness, contract, verifier, retry policy, twelve confirmatory
+worlds, surfaces, seeds, paired sealed V4 control, support rule, and ceilings. It
+changes only the worksheet ordering after V1 showed counters displacing the sample
+step: a supplier must have a verified exact-variant sample before any counter against
+its offer and before any award line, and one action is reserved for the award before
+any counter is allowed. The campaign ID is
+`procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2`, the prompt
+digest is `5ad918b8595e38a91c0784b842abebe6b8ce4215f29fb4a33416f82f5f2d5fb0`, and the
+plan digest is `e7d002cd6a89607d56d2accc6149cd817f8e877840a1213efec2ae5d5beb37a2`. The
+plan binds the V1 evidence manifest by file digest. V2 is selected after inspecting
+V1 on the same worlds and remains development evidence.
+
+#### Observed worksheet V2 result
+
+Attempt 001 admitted the canary and completed all 72 rows in six failure-free
+checkpoints for $0.2065382055 with exact accounting and full receipt replay. The
+preregistered rule was not met on either check. Worksheet-minus-V4 regret averaged
+over surfaces was -$0.28 per world ([-$7.37, $7.23]) and feasibility was -0.0139
+([-0.0833, 0.0417]), so the guardrail's lower bound fell below -0.05. Completed kits
+moved +0.99 ([-0.17, 2.49]). Labeled regret was -$2.23 ([-$9.42, $2.52]); opaque
+regret was +$1.67 ([-$8.88, $15.50]).
+
+The V1 harm mechanism is gone. Every one of V2's seven `sample_not_verified`
+failures is a four-supplier split in the multi-unit-BOM and split-capacity worlds
+where the buyer quoted four suppliers, sampled three, and awarded all four inside the
+ten-action budget; none follows a counter, and the V4 control fails those same rows
+the same way. All 45 counters were single-field and 24 were accepted, up from 12.
+On the labeled payment-terms world all three seeds again reached $10.68 from
+$48.63, and mean working-capital excess on labeled feasible awards stayed at $1.48.
+
+The opaque surface exposes the next limit. On opaque payment-terms rows only one of
+three seeds captured the saving, because with opaque supplier ids the buyer could not
+tell the terms-flexible supplier from the terms-fixed one, spent its two counters on
+the fixed supplier, and stopped; the labeled result therefore depends on the
+supplier name leaking which supplier will accept longer terms. On the opaque
+negotiated-MOQ world two seeds countered MOQ downward after sampling and then awarded
+a quantity below minimum service, converting two feasible V4 rows into
+`minimum_service_not_met` failures worth $111 each; that world alone moved +$32.72.
+Two labeled refund-counter seeds chose the cheaper, lower-yield supplier without any
+counter and lost $24 of revenue each.
+
+Taken together, V1 and V2 show that the payment-terms lever is reliably usable once
+the buyer knows which offer to counter, that sample-first ordering is compatible
+with it, and that the remaining losses are quantity reasoning after a counter changes
+MOQ and supplier selection under opaque labels. Further prompt wording on the same
+procedure is unlikely to clear the preregistered rule; the next test should change
+the decision interface, for example a verifier-visible pre-award quantity check or a
+typed allocation worksheet, or should accept the presentation-surface dependence as a
+measured property of this route. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+
+## Verifier-visible pre-award check
+
+Worksheet V1 and V2 established that the payment-terms lever transfers once the
+buyer knows which offer to counter, and that the remaining losses are quantity
+errors after a counter changes MOQ, four-supplier splits with one unsampled line,
+and supplier selection under opaque labels. Both were prompt changes on the same
+action interface. The next treatment changes the interface.
+
+The environment now exposes `check_award`. It takes the exact `award_lines` the buyer
+intends to submit and returns, without ending the episode, whether that award would
+be feasible, the violations it would raise, and the completed kits, contribution
+margin, and cash spend it would produce. It runs the same `evaluate_award` the
+terminal score uses on the current formal offers and verified samples, so the
+projection is exact. It consumes one action and no money or calendar time. Checks
+are recorded in the observation and in the terminal state, and the public action
+trace carries their lines. Existing cases, prompts, and sealed evidence are
+unchanged: the control prompt never names the action, sealed rows never emitted it,
+and replay of every published row is byte-identical.
+
+### Frozen pre-award-check treatment
+
+The campaign holds the GLM 5.3 Flash/Parasail route, Minimal Chat harness, structured
+action contract, verifier, retry policy, twelve confirmatory worlds, both surfaces,
+and the confirmatory inference seeds fixed. The prompt is the frozen worksheet V2
+procedure plus one step: reserve one check and one award, never submit an award that
+has not passed a check with no violations, and fix the lines and re-check when the
+check reports violations. The paired control remains the sealed confirmatory V2 V4
+arm, bound by file and artifact digest, with rows paired by case id and seed.
+
+The campaign ID is
+`procurement_allocation_glm53_flash_parasail_pre_award_check_v1`, the prompt digest
+is `600828117b31f363232085cfcf088bfa20ba0207adeed05e83255c55f5f7a871`, and the plan
+digest is `70bef7fca393f73d9b8134a6f944b4e43d4a9b0faf3c15d5e616081f9e145c6d`. It binds
+the worksheet V2 evidence manifest, declares one unscored canary and 72 scored rows
+in six checkpoints, and keeps the $1.11 conservative and $2.19 hard ceilings. The
+preregistered support rule is unchanged: treatment-minus-V4 regret interval upper
+bound below zero and feasibility interval lower bound at least -0.05. Secondary
+diagnostics add the number of checks per row and the number of awards submitted
+after a clean check on identical lines.
+
+The control rows ran on an environment without `check_award`. Because the control
+never emitted it, the difference is inert for those rows, but the estimated effect
+bundles the new action with the instruction to use it. This remains adaptive
+development evidence on worlds the treatment was selected on.
+
+```bash
+python -m aeread_families.procurement_allocation.pre_award_check_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/qualification_attempt_001
+```
+
+#### Observed pre-award-check result
+
+Attempt 001 admitted the canary and completed all 72 rows in six failure-free
+checkpoints for $0.2672071875 with exact accounting and full receipt replay. The
+preregistered rule is met. Treatment-minus-V4 regret averaged over surfaces was
+-$28.15 per world with twelve-world bootstrap interval [-$56.02, -$4.58], and
+terminal feasibility rose +0.389 ([0.167, 0.611]). Labeled regret was -$29.24
+([-$56.79, -$5.92]) and opaque regret -$27.06 ([-$55.72, -$2.40]); there was no
+pass-to-fail transition on either surface, against 13 and 15 fail-to-pass.
+Completed kits moved -0.86 ([-4.31, 2.06]).
+
+The check was used in every one of the 72 rows, 83 times in total, and 51 of the 53
+submitted awards followed a clean check on identical lines. Feasible purchase
+awards rose from 39 to 53. The gains sit exactly where the decomposition and the
+worksheet campaigns located the losses: on-time-reliability worlds went from three
+infeasible awards per surface to feasible awards at or near the bound (-$122.46 per
+world), multi-unit BOM from -$117.73, and split-capacity rounding from -$68.77, in
+each case because the first check reported the unsampled line, the order-step
+violation, or the late supplier and the buyer fixed the lines before submitting.
+The payment-terms saving held (-$31.61) and the working-capital term on feasible
+awards fell to $1.10 labeled and $2.61 opaque.
+
+Two limits are visible. Fifteen rows ended in an explicit defer after a single
+failing check rather than a repaired award: all six cash-budget-counter rows, four
+sample-lead-time rows, and one each on three other worlds. A feasible defer counts
+as feasible under the preregistered rule but earns no margin, so these rows carry
+the whole bound in regret; they are the same worlds V4 also failed, which is why
+completed kits did not improve. The negotiated-MOQ world is unchanged at $12.66
+per row: a check reports feasibility, not price, so it cannot surface the MOQ
+counter the oracle uses.
+
+Support here is a development result. The treatment bundles a new action with the
+instruction to use it, the control never had the action, and the worlds are the
+ones on which the intervention was selected. What it establishes is that a
+verifier-visible pre-award check removes the quantity, sample, and service
+failures that three prompt treatments could not, at a cost of one action per row,
+and that the remaining regret is deferral under budget pressure and price
+negotiation. A confirmatory claim needs held-out worlds and, ideally, a control
+arm re-run on the same environment. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
+
+#### Risk-gate V4 rerun retired
+
+Maintainer decision 2026-09-04: the fresh V4 attempt is retired rather than
+rerun. The regret decomposition over every published GLM bundle and the two
+negotiation-worksheet treatments converged on the same limit: prompt-level gates
+move feasibility on the worlds they target and lose it elsewhere, and the remaining
+regret is quantity reasoning after a counter changes MOQ and supplier selection
+under opaque labels. The 2x2 prompt factorial would spend about $3 to measure two
+more such gates. The next procurement intervention changes the decision interface
+instead: a verifier-visible pre-award check. The V1 through V4 risk-gate audits
+remain as the operational record of the Parasail route's throttling behavior.
+
+## Held-out confirmation of the pre-award check
+
+The development result (PR #87) was supported but adaptive: the worlds were the
+ones the intervention was selected on, and the control arm had run on an
+environment without `check_award`, so the estimate bundled the action's presence
+with the prompt's use of it. `confirmatory_v2/` closes both gaps. Its twelve
+worlds were generated after the pre-award prompt was frozen at digest
+`600828117b31f363232085cfcf088bfa20ba0207adeed05e83255c55f5f7a871` and after the
+development result was read, with zero case-digest, economic-world-digest, or
+seed collisions against the development, confirmatory v1, risk-gate, blinded, and
+Qwen holdout panels. Both arms run fresh on the same environment: control is the
+frozen V4 scaffold, treatment the frozen pre-award procedure, 144 rows across
+twelve worlds, two surfaces, and three seeds.
+
+The guarded metric changed. Every campaign before this one guarded terminal
+feasibility, which `outcome` reports as true for an explicit defer; the
+development run passed that guardrail at +0.389 while producing fifteen
+deferrals. The confirmatory rule guards `feasible_award`, true only for a
+submitted award that passed every gate, and reports terminal feasibility as a
+diagnostic.
+
+### Operational audit, 2026-09-05
+
+The GLM 5.3 Flash/Parasail route was throttling heavily and no attempt reached
+the 144-row panel. Seven attempt roots across three campaign identities:
+
+| identity | attempt | rows | operational failures | provider calls ok / failed |
+|---|---|---|---|---|
+| v1 | 001 | 0 | 0 (canary rejected, `rate_limit`) | 0 / 0 |
+| v1 | 002 | 1 | 1 | 1 / 4 |
+| v1 | 003 | 2 | 1 | 13 / 4 |
+| v2 (paced) | 003 | 10 | 1 | 69 / 13 |
+| v2 (paced) | 004 | 0 | 0 (canary rejected) | 29 / 6 |
+| v3 (paced, `feasible_award`) | 003 | 7 | 1 | 44 / 4 |
+| v3 | 004 | 4 | 1 | 27 / 8 |
+
+Aggregate: 24 scored rows, $0.0636 spent, and **39 of 222 provider calls failed,
+a 17.6% failure rate**. V2 added the risk-gate pacing (four action attempts, 15s
+retry base) after V1 was sealed twice before any panel row completed; pacing
+raised the best attempt from 2 rows to 10 but did not clear the panel. V3 is the
+same plan with the corrected guardrail.
+
+Following the risk-gate V4 precedent, the response is a fresh attempt under the
+identical frozen plan in a later availability window, not more retries inside an
+action: four failures already span roughly 77 seconds, and the observed failures
+are route-wide rather than request-specific.
+
+Two operational findings worth fixing, both recorded in the design review:
+
+- A transient rate limit on the **unscored, zero-cost admission canary**
+  permanently seals an attempt root, because the canary is write-once. That cost
+  two of the seven attempts above before a single panel row ran. A typed
+  transient condition on a probe that produces no measurement should be
+  re-probeable within the attempt, with every probe recorded.
+- No partial efficacy was inspected in any sealed attempt, and none of the 24
+  rows contributes to a claim.
+
+### Observed confirmatory result, 2026-09-06: ineligible, and uninformative by construction
+
+The V4 attempt completed all 144 rows for $0.4512 with 12 typed missing rows. It
+is ineligible, and separately it cannot measure the treatment at all. The second
+fact is a defect in the holdout panel, authored in this branch, and it supersedes
+any reading of the effect estimate.
+
+**Eligibility: failed on the per-arm missingness ceiling.**
+
+| arm | missing of 36 | ceiling |
+|---|---:|---:|
+| labeled_control | 1 | 3 |
+| labeled_treatment | 4 | 3 |
+| opaque_control | 4 | 3 |
+| opaque_treatment | 3 | 3 |
+
+Ten of the twelve missing rows were `rate_limit`, one `provider_rejected`, one
+`timeout`: route throttling, with chance concentrating four and four into two
+arms. The panel total of 8.3% sits inside the declared 10% ceiling, but the
+ceiling binds per arm, where 10% of 36 rounds down to 3. That is a property of
+the frozen plan and is not revisited after seeing the outcome.
+
+**The panel cannot measure the treatment: the control saturates it.**
+
+| panel | control feasible-award rate | control mean regret |
+|---|---|---|
+| `confirmatory_v1` development | 56% labeled, 53% opaque | $66.86, $68.85 |
+| `confirmatory_v2` holdout | **97% labeled**, 78% opaque | $15.59, $36.24 |
+
+In **7 of 12** holdout worlds the V4 control wins every completed row, leaving no
+rows a treatment could improve. An overall effect near zero is what a ceiling
+produces; it is not evidence about the mechanism.
+
+The cause is an authoring error in this branch. The holdout was built to target
+the failure *themes* the check removes -- unsampled award lines, order-step
+rounding, capacity ceilings, service floors -- and each world exercises one of
+them cleanly. The development worlds were harder in a way that was not
+reproduced: they combine several of those pressures in a single world, which is
+why their control fails about 45% of the time. Matching the themes is not
+matching the difficulty.
+
+**What may be claimed.** Nothing, in either direction. The pre-award check is
+neither confirmed nor refuted by this run. The development result on
+`confirmatory_v1` stands as adaptive development evidence and keeps that label.
+Re-running this panel in a better route window would fix eligibility and still
+measure nothing.
+
+**What is actually required.** A holdout admitted against a *measured* control
+baseline, not an authored intuition about difficulty. Generate candidate worlds,
+run the frozen control and the deterministic policy baselines on them
+provider-free or cheaply, and admit a world only when the control leaves a
+declared minimum share of rows failing. That is a Gate 1 admission criterion the
+standard does not yet contain; it is recorded as design-review defect 14.
+
+## Due-diligence panel, first diagnostic 2026-09-06
+
+The first panel built under the [positioning decision](positioning.md): six
+worlds, six suppliers each, a **seven-action budget** so that verifying everyone
+costs nine and is impossible, and listings that all claim the same headline yield
+so price cannot rank suppliers. The trap sits at a different price tier in each
+world, so no fixed heuristic wins across the panel.
+
+**Admitted on measured headroom, by a screen that turned out to be half a
+screen.** A one-seed control screen costing $0.0139 found the frozen V4 control
+failing 3 of 6 worlds, and the two panels it rejected earlier saturated at 7 of
+12 and 7 of 7. But screening one policy detects only saturation. All three worlds
+that "passed" by having the control fail turned out to fail for both arms. See
+design-review defect 16.
+
+**Run.** Both arms, V4 scaffold against the pre-award check, six worlds by two
+surfaces by three seeds: 72 rows, 69 completed, 3 missing to rate limits, $0.201.
+
+**Result: the check does not pay under scarcity, and one world carries the whole
+effect.**
+
+| outcome, treatment minus control | mean per world | interval |
+|---|---|---|
+| feasible award | -0.100 | [-0.300, 0.000] |
+| regret | +$14.99 | [-$0.31, $45.42] |
+| completed kits | -5.03 | [-8.83, -1.25] |
+
+Five of the six worlds show a delta of exactly zero, and checking *why* is more
+damning than the delta. Only one world can express a difference at all:
+
+| world | control | treatment | verdict |
+|---|---|---|---|
+| trap_is_midpriced | 100% | 100% | saturated |
+| trap_is_priciest | 100% | 100% | saturated |
+| trap_is_cheapest | 0% | 0% | floored |
+| two_traps_one_clean | 0% | 0% | floored |
+| decoy_variant_and_trap | 17% | 17% | non-discriminating |
+| traps_differ_by_component | 100% | 50% | **discriminates** |
+
+**This is a one-world comparison, not a six-world one.** Five worlds are
+structurally incapable of showing an effect: two because both arms always win,
+two because both arms always lose, one because both land on the same rate. A
+bootstrap over six worlds where five cannot move is not a wide interval, it is a
+meaningless one, and the reported intervals should be read as describing a single
+world.
+
+The two floored worlds are the other half of the lesson: the traps are now too
+harsh, not merely the budget too tight. `trap_is_cheapest` and
+`two_traps_one_clean` are unsolvable by either arm within seven actions.
+
+**The mechanism is visible in the traces, and it is worth a proper test.** On the
+driving world the control plays `q q S q S S A`: batch the quotes, batch the
+samples, award, exactly seven actions, and it wins on five of six completed rows.
+The treatment interleaves, `q S q S q S A`, verifying each supplier before moving
+on. When that ordering costs one action more than the budget allows it ends
+`q S q q S K d` or `q S q S q d`: out of actions, and it **defers** rather than
+awarding. Every loss on that world is a deferral, not a violation.
+
+The check action itself is cheap, only 20 of 219 treatment actions. What costs is
+the discipline the procedure imposes around it. Under a ten-action budget that
+discipline was free and produced the development result; under seven it competes
+directly with the verification it exists to protect.
+
+**Claim scope.** A hypothesis, not a finding: *a procedure that adds ordering
+discipline buys reliability with actions, and under a tight verification budget
+that trade can invert.* Testing it needs a panel of twelve or more worlds where
+several show the effect, and a budget sweep rather than a single budget. This run
+had no frozen plan digest, having been driven through the qualification engine
+directly, so it is a diagnostic and cannot become a confirmatory claim without
+being rebuilt as a campaign.
+

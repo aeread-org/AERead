@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_18",
+  "content_sha256": "8569c18f9c8e8fbb2b0f9b1e99b53069bdd54ab9f0d2b743f5e02ab08cf02ab8",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 95.992,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_18",
+      "cost": 79.96,
+      "description": "Now you can incorporate delicious espresso drinks into your daily routine. Introducing Stilosa by De’Longhi. Created for those embarking on their espresso journey, this elegantly designed machine allows you to easily craft authentic espressos, lattes and cappuccinos in the comfort of your own home. The 15 bar pump creates the optimal pressure to extract a single or double espresso according to espresso brewing standards. An ergonomically designed portafilter has two filters, for single or double espresso. A separate tamper provides an additional control of even and consistent pressure for a better extraction. The two level cup holder accommodates taller cups. The heart of Stilosa – the durable Stainless steel boiler is engineered to last long and work for years with consistent performance, unlike the competition. The manual milk frother mixes steam and milk to create a rich, creamy froth for evenly textured lattes and cappuccinos just the way you like them. Stilosa’s sleek, refined design and stainless steel elements make this the perfect addition to your kitchen countertop, without taking up too much space. On top of that it’s simple to clean and maintain, to ensure your espresso machine lasts longer. Your at-home espresso journey starts now with Stilosa.\n\nWhat's included:\nEspresso Machine\nPortafilter\nTamper\nFilter for Single & Double Espresso\nMeasuring Spoon\nInstruction Manual & Quick Start Guide\n1 Year Warranty.",
+      "index_in_file": 17,
+      "interest": "mutual",
+      "price": 119.99,
+      "title": "De'Longhi Stilosa Manual Espresso Machine, Latte & Cappuccino Maker, 15 Bar Pump Pressure + Milk Frother Steam Wand, Black / Stainless, EC260BK, 13.5 x 8.07 x 11.22 inches"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B08C96BG9H",
+      "amazon_title": "De'Longhi Stilosa Manual Espresso Machine, Latte & Cappuccino Maker, 15 Bar Pump Pressure + Milk Frother Steam Wand, Black / Stainless, EC260BK, 13.5 x 8.07 x 11.22 inches",
+      "average_price": "$110.53",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$99.95",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Now you can incorporate delicious espresso drinks into your daily routine. Introducing Stilosa by De’Longhi. Created for those embarking on their espresso journey, this elegantly designed machine allows you to easily craft authentic espressos, lattes and cappuccinos in the comfort of your own home. The 15 bar pump creates the optimal pressure to extract a single or double espresso according to espresso brewing standards. An ergonomically designed portafilter has two filters, for single or double espresso. A separate tamper provides an additional control of even and consistent pressure for a better extraction. The two level cup holder accommodates taller cups. The heart of Stilosa – the durable Stainless steel boiler is engineered to last long and work for years with consistent performance, unlike the competition. The manual milk frother mixes steam and milk to create a rich, creamy froth for evenly textured lattes and cappuccinos just the way you like them. Stilosa’s sleek, refined design and stainless steel elements make this the perfect addition to your kitchen countertop, without taking up too much space. On top of that it’s simple to clean and maintain, to ensure your espresso machine lasts longer. Your at-home espresso journey starts now with Stilosa.\n\nWhat's included:\nEspresso Machine\nPortafilter\nTamper\nFilter for Single & Double Espresso\nMeasuring Spoon\nInstruction Manual & Quick Start Guide\n1 Year Warranty.",
+      "features": "Note: 1)Too coarse a grind, too little coffee, or insufficiently tamping the grounds before brewing can all lead to inadequate pressure for a proper brew\nBrew lattes, cappuccinos and espressos in a comfort of your home\nContemporary and Compact Design: The perfect addition to your modern kitchen countertop, without taking up too much space, plus it’s easy to clean\n15 BAR Pump: The optimal pressure to extract a single or double espresso, so your coffee drink comes out perfectly rich.\nManual Milk Frother: Texture your milk with ease to create an authentic cappuccino, latte or flat white..Stainless Steel Boiler. Auto shut-off",
+      "highest_price": "$119.99",
+      "highest_price_date": "Apr 26, 2023",
+      "img": "https://m.media-amazon.com/images/I/81c3ItE+jyL._AC_SX300_SY300_.jpg",
+      "link": "https://camelcamelcamel.com/product/B08C96BG9H?active=price_amazon&context=popular",
+      "list_price": "$109.99",
+      "lowest_price": "$79.96",
+      "lowest_price_date": "Nov 22, 2020",
+      "title": "De'Longhi Stilosa Manual Espresso Machine, Latte & Cappuccino Maker, 15 Bar Pump Pressure + Milk Frother Steam Wand, Black / Stainless, EC260BK, 13.5 x 8.07 x 11.22 inches"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_18",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 346
+}

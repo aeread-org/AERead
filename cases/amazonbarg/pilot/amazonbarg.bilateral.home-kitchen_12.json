@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_12",
+  "content_sha256": "138425dc94ec382d82e97198876c7d563d3d41463ad6ad02ea1135a9df737695",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 631.9920000000001,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_12",
+      "cost": 149.0,
+      "description": "Olee Sleep 10 Inch Blue and White Gel Memory Foam Mattress offers temperature control, pressure relieving comfort, and painless sleep experience.We create a multi-layer structure for maximum comfort and reliability. I-Gel foam provides heat transfer and temperature regulation. Its high responsiveness allows the medium firm foam to quickly adapt to body shapes and movements, for pressure relief and motion isolation. The convoluted foam targets pressure points and promote airflow. High density foam gives support and integrity.The durable, stretchy, polyester spandex jacquard fabric wicks moisture and protects mattress from dust and debris. The mattress provides exceptional comfort, support, and temperature regulation. With perfect motion isolation, supportive design, and temperature regulation, Olee Sleep's mattress guarantees the best sleep quality you've ever experienced.Olee Sleep's vision is to elevate sleep experience by incorporating proprietary technologies and innovative solutions that boast exceptional quality and offer unique features.Material\n- Polyester Spandex Jacquard: Polyester spandex cover provides breathability, flexibility, and dust protection.\n- I-Gel Foam: Cool gel infused memory foam technology designed to keep temperature cool through the night.\n- HD Foam: High density foam & memory foam synergy provides enhanced support and top comfort experience.\n- Convoluted Foam: Textured foam improves weight distribution, comfort, and air circulation.Product's Certifications\n- CFR 1632/1633: Certification of mattress for standard flammability resistance.\n- CertiPUR-US: Certification of polyurethane foam for indoor emissions, product performance, physical durability, and environmental responsibility.\n- OEKO-TEX: Certification of textile product for human and natural ecosystems safety.Product comes with a 10-year Manufacturer Warranty.",
+      "index_in_file": 11,
+      "interest": "mutual",
+      "price": 789.99,
+      "title": "Olee Sleep Queen Mattress, 10 Inch Gel Memory Foam Mattress, Gel Infused for Comfort and Pressure Relief, CertiPUR-US Certified, Bed-in-a-Box, Medium Firm, Blue, Queen Size"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B016WJWC0S",
+      "amazon_title": "Olee Sleep Queen Mattress, 10 Inch Gel Memory Foam Mattress, Gel Infused for Comfort and Pressure Relief, CertiPUR-US Certified, Bed-in-a-Box, Medium Firm, Blue, Queen Size",
+      "average_price": "$280.48",
+      "badge": "Best Price",
+      "category": "home-kitchen",
+      "current_price": "$149.00",
+      "current_price_date": "Nov 14, 2023",
+      "description": "Olee Sleep 10 Inch Blue and White Gel Memory Foam Mattress offers temperature control, pressure relieving comfort, and painless sleep experience.We create a multi-layer structure for maximum comfort and reliability. I-Gel foam provides heat transfer and temperature regulation. Its high responsiveness allows the medium firm foam to quickly adapt to body shapes and movements, for pressure relief and motion isolation. The convoluted foam targets pressure points and promote airflow. High density foam gives support and integrity.The durable, stretchy, polyester spandex jacquard fabric wicks moisture and protects mattress from dust and debris. The mattress provides exceptional comfort, support, and temperature regulation. With perfect motion isolation, supportive design, and temperature regulation, Olee Sleep's mattress guarantees the best sleep quality you've ever experienced.Olee Sleep's vision is to elevate sleep experience by incorporating proprietary technologies and innovative solutions that boast exceptional quality and offer unique features.Material\n- Polyester Spandex Jacquard: Polyester spandex cover provides breathability, flexibility, and dust protection.\n- I-Gel Foam: Cool gel infused memory foam technology designed to keep temperature cool through the night.\n- HD Foam: High density foam & memory foam synergy provides enhanced support and top comfort experience.\n- Convoluted Foam: Textured foam improves weight distribution, comfort, and air circulation.Product's Certifications\n- CFR 1632/1633: Certification of mattress for standard flammability resistance.\n- CertiPUR-US: Certification of polyurethane foam for indoor emissions, product performance, physical durability, and environmental responsibility.\n- OEKO-TEX: Certification of textile product for human and natural ecosystems safety.Product comes with a 10-year Manufacturer Warranty.",
+      "features": "[ Dimensions ] - 80 x 60 x 10 inches\n[ 4 Layers ] - 1.5\" I-Gel Memory Foam + 1.5\" HD Foam + 2.5\" Convoluted HD Foam + 4.5\" HD Foam\n[ Temperature Regulating ] - I-Gel memory foam disperses body heat and regulates temperatures, creating a pleasant sleeping experience while maintaining the right body temperature\n[ Pressure Relieving ] - Responsive, medium firm, foam layers adapt and conform to unique body contours, providing optimal comfort while targeting all pressure points\n[ Stable Support ] - Durable high density foam guarantees stable support through excellent motion transfer and uniform weight distribution\n[ Premium Cover ] - Polyester spandex blue jacquard fabric resists wrinkles and enhances flexibility & durability, ensuring the CertiPUR-US certified mattress is both breathable and protected against moisture, dust and debris\n[ Bed-in-a-Box ] - Smart shipping & delivery with vacuum-sealed packaging technology. Please allow the product to rest in room temperature for 72 hours to fully expand and recover\n› See more product details",
+      "highest_price": "$789.99",
+      "highest_price_date": "Nov 25, 2021",
+      "img": "https://m.media-amazon.com/images/I/81aSeiQntJL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B016WJWC0S?active=price_amazon&context=popular",
+      "list_price": "$399.99",
+      "lowest_price": "$149.00",
+      "lowest_price_date": "Nov 14, 2023",
+      "title": "Olee Sleep Queen Mattress, 10 Inch Gel Memory Foam Mattress, Gel Infused for Comfort and Pressure Relief, CertiPUR-US Certified, Bed-in-a-Box, Medium Firm, Blue, Queen Size"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_12",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 340
+}

@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_10",
+  "content_sha256": "ece71a7af7f59201ff2138e1d4bbe3d5fa184380dbb4dc66e59fc7bf4514b8f6",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 55.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_10",
+      "cost": 48.99,
+      "description": "A monstrous presence once terrorized the secluded village of Dunwich. The season of horror ended only after three professors from Miskatonic University—Dr. Henry Armitage, Dr. Francis Morgan, and Professor Warren Rice—ventured to Dunwich, armed with secret knowledge that enabled them to defeat the creature. Now, several months later, Dr. Armitage’s colleagues have gone missing, and he fears the worst. In The Dunwich Legacy Campaign Expansion, one to four investigators take up the search for the missing professors, launching an eight-scenario campaign that takes them from the notorious Clover Club and prestigious Miskatonic University all the way to the decrepit and treacherous town of Dunwich. This expansion includes all of the scenario content originally featured in The Dunwich Legacy cycle, now repackaged in one box.",
+      "index_in_file": 9,
+      "interest": "mutual",
+      "price": 69.99,
+      "title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Campaign Expansion - Return to The Terror! Lovecraftian Cooperative LCG, Ages 14+, 1-4 Players, 1-2 Hour Playtime, Made"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09M4GQVH5",
+      "amazon_title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Campaign Expansion - Return to The Terror! Lovecraftian Cooperative LCG, Ages 14+, 1-4 Players, 1-2 Hour Playtime, Made",
+      "average_price": "$68.24",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/512F0upB2NL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$48.99",
+      "current_price_date": "Nov 17, 2023",
+      "description": "A monstrous presence once terrorized the secluded village of Dunwich. The season of horror ended only after three professors from Miskatonic University—Dr. Henry Armitage, Dr. Francis Morgan, and Professor Warren Rice—ventured to Dunwich, armed with secret knowledge that enabled them to defeat the creature. Now, several months later, Dr. Armitage’s colleagues have gone missing, and he fears the worst. In The Dunwich Legacy Campaign Expansion, one to four investigators take up the search for the missing professors, launching an eight-scenario campaign that takes them from the notorious Clover Club and prestigious Miskatonic University all the way to the decrepit and treacherous town of Dunwich. This expansion includes all of the scenario content originally featured in The Dunwich Legacy cycle, now repackaged in one box.",
+      "features": "RETURN TO DUNWICH: Revisit the horrors of the secluded village of Dunwich in the very first Arkham Horror LCG cycle.\nFACE TERROR: Confront the monstrous presence that once terrorized Dunwich, and unravel new mysteries and challenges.\nFULL-LENGTH CAMPAIGN: Experience the entire original campaign in one comprehensive expansion, perfect for new and seasoned players.\nCAMPAIGN AND SCENARIO CARDS: All campaign- and scenario-related cards for \"The Dunwich Legacy\" cycle in one expansion.\nESSENTIAL FOR FANS: An essential addition for fans of the original cycle and a great opportunity for new players to dive into the terror.",
+      "highest_price": "$69.99",
+      "highest_price_date": "Nov 29, 2021",
+      "img": "https://m.media-amazon.com/images/I/81qVHIQj4zL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09M4GQVH5?active=price_amazon&context=popular",
+      "list_price": "$69.99",
+      "lowest_price": "$48.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "Fantasy Flight Games Arkham Horror The Card Game The Dunwich Legacy Campaign Expansion - Return to The Terror! Lovecraftian Cooperative LCG, Ages 14+, 1-4 Players, 1-2 Hour Playtime, Made"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_10",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 910
+}

@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_6",
+  "content_sha256": "b05a44b9d99c0a2d9041ed2f322b83971d5f96907361d90661567a5103f9dab9",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 599.96,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_6",
+      "cost": 549.95,
+      "description": "Explore the art of espresso made right, effortlessly, with the refined features of La Specialista Arte Evo from De'Longhi. Created for the hands-on home barista, this compact and stylishly designed espresso machine empowers you to craft custom espresso drinks with ease and precision. From start to finish, unlock all the aromatic flavors of the beans for results that perfectly match your palette. Full control is at your fingertips with exclusive features including a conical burr grinder with 8 precise settings developed to expertly grind all bean varieties in a single or double dose, and now cold brew. De’Longhi’s proprietary Cold Extraction Technology now allows you to enjoy cold brew in under 5 minutes. This innovative technology, developed in collaboration with the Specialty Coffee Association, utilizes precisely measured water flow and pressure rates, along with specific extraction temperatures, to create a delicious cold brew coffee in less than five minutes. The La Specialista Arte Evo comes equipped with a barista kit, including a tamper, dosing funnel, and more, to prepare your fresh grounds in either a single or double dose with a simple, mess-free experience. The Active Temperature Control allows you to select one of 3 temperature settings to match water infusion temperature to beans for optimal extraction. Finally, the powerful, commercial-style wand heats up quickly, delivers the right steam pressure needed to create consistently smooth micro-foam for latte art. Save time with four beverage presets—espresso, Americano, cold brew, and hot water. With La Specialista Arte Evo, an authentic, hand-crafted coffee experience is within your reach. Indulge in the creativity of coffee-making as you get the best out of every bean and enjoy experimenting with latte art as a home barista.",
+      "index_in_file": 5,
+      "interest": "mutual",
+      "price": 749.95,
+      "title": "De'Longhi EC9255M La Specialista Arte Evo Espresso Machine with Cold Brew"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0CCZQCNLJ",
+      "amazon_title": "De'Longhi EC9255M La Specialista Arte Evo Espresso Machine with Cold Brew",
+      "average_price": "$678.55",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/41RoQzXUspL._UL320_.jpg",
+      "category": "home-kitchen",
+      "current_price": "$549.95",
+      "current_price_date": "Nov 10, 2023",
+      "description": "Explore the art of espresso made right, effortlessly, with the refined features of La Specialista Arte Evo from De'Longhi. Created for the hands-on home barista, this compact and stylishly designed espresso machine empowers you to craft custom espresso drinks with ease and precision. From start to finish, unlock all the aromatic flavors of the beans for results that perfectly match your palette. Full control is at your fingertips with exclusive features including a conical burr grinder with 8 precise settings developed to expertly grind all bean varieties in a single or double dose, and now cold brew. De’Longhi’s proprietary Cold Extraction Technology now allows you to enjoy cold brew in under 5 minutes. This innovative technology, developed in collaboration with the Specialty Coffee Association, utilizes precisely measured water flow and pressure rates, along with specific extraction temperatures, to create a delicious cold brew coffee in less than five minutes. The La Specialista Arte Evo comes equipped with a barista kit, including a tamper, dosing funnel, and more, to prepare your fresh grounds in either a single or double dose with a simple, mess-free experience. The Active Temperature Control allows you to select one of 3 temperature settings to match water infusion temperature to beans for optimal extraction. Finally, the powerful, commercial-style wand heats up quickly, delivers the right steam pressure needed to create consistently smooth micro-foam for latte art. Save time with four beverage presets—espresso, Americano, cold brew, and hot water. With La Specialista Arte Evo, an authentic, hand-crafted coffee experience is within your reach. Indulge in the creativity of coffee-making as you get the best out of every bean and enjoy experimenting with latte art as a home barista.",
+      "features": "Perfect, consistent Grinding with a built-in grinder with 8 precise settings that ensure optimal single or double dose and grind size.\nPowerful, commercial-style wand that heats up quickly and delivers the right steam pressure needed to create consistently smooth micro-foam for latte art.\nEnjoy cold brew in under 5 minutes with De’Longhi’s proprietary Cold Extraction Technology.\nThe professional barista toolkit makes your experience mess-free and easier than ever with the dosing and tamping guide and tamping mat.\nLa Specialista Arte Evo has a 15 bar Italian pump that delivers perfect pressure, essential during the whole brewing process, from low pressure during pre-infusion, to the optimal 9 bar of high pressure during extraction.",
+      "highest_price": "$749.95",
+      "highest_price_date": "Oct 11, 2023",
+      "img": "https://m.media-amazon.com/images/I/813Q4duRLPL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0CCZQCNLJ?active=price_amazon&context=popular",
+      "list_price": "$749.95",
+      "lowest_price": "$549.95",
+      "lowest_price_date": "Nov 10, 2023",
+      "title": "De'Longhi EC9255M La Specialista Arte Evo Espresso Machine with Cold Brew"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_6",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 334
+}

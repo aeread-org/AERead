@@ -233,7 +233,9 @@ a tool. Use `model_calls.csv`, trajectories, and receipts for observed behavior.
 
 Stop promotion when a route drifts, hidden retries appear, replay fails, cost is
 incomplete, a score is invalid, paired worlds are selectively missing, or a
-control differs across treatment cells. Preserve the failure as evidence.
+control differs across treatment cells. Preserve the failure as evidence, and
+record it in the [incident log](incident_log.md) with its detection, its cost,
+and its disposition.
 
 Before `confirmatory_freeze`, a design change starts a new gate attempt and must
 be documented. After the freeze, any change to treatment, controls, cases,

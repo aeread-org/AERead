@@ -194,8 +194,14 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(2.96)
     assert plan["analysis"]["status"] == "adaptive_exploratory_not_confirmatory"
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "f17d77f2fd3f4ab1ea24838e4caba3ba0628d3332196e33c47a2b32103377970"
+        "79000523c8b8e5e7295f8715a0369cf4ab7e8a2dc95bb1c6c696788bf2e8dfde"
     )
     assert all(arm["planned_trajectory_count"] == 18 for arm in plan["arms"].values())
     assert all(

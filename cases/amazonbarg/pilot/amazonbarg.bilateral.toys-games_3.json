@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_3",
+  "content_sha256": "2062ecde9a3e53013bd70c3124132b3e2b760a4b21ce7cf29833a96e6b7f67e5",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 35.992000000000004,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_3",
+      "cost": 16.99,
+      "description": "Built-in tracks, colorful scenery, and fun play pieces let kids take their imaginations for a spin . . . and take playtime anywhere they want to go! Unfold the sturdy wooden case to create an illustrated play surface with built-in road tracks for the three wooden wheeled vehicles (a police car, ambulance, and fire engine) and a wooden helicopter to race to the rescue. Set up a bridge and a city tunnel with a monorail that slides across the top! Wooden play pieces include buildings, traffic signs, and a tree to enhance imaginative storytelling. All the pieces store in the fold-up case with convenient carrying handle for easy cleanup and travel (there’s plenty of room to add other toys, too!). Keep playtime rolling for kids three and older and encourage independent play and motor skill development.",
+      "index_in_file": 2,
+      "interest": "mutual",
+      "price": 44.99,
+      "title": "Melissa & Doug 18-Piece Wooden Take-Along Tabletop Town, 4 Rescue Vehicles, Play Pieces, Bridge"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B07KBP8D6K",
+      "amazon_title": "Melissa & Doug 18-Piece Wooden Take-Along Tabletop Town, 4 Rescue Vehicles, Play Pieces, Bridge",
+      "average_price": "$34.22",
+      "badge": "",
+      "camel_img": "https://m.media-amazon.com/images/I/51pM+konqhL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$24.19",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Built-in tracks, colorful scenery, and fun play pieces let kids take their imaginations for a spin . . . and take playtime anywhere they want to go! Unfold the sturdy wooden case to create an illustrated play surface with built-in road tracks for the three wooden wheeled vehicles (a police car, ambulance, and fire engine) and a wooden helicopter to race to the rescue. Set up a bridge and a city tunnel with a monorail that slides across the top! Wooden play pieces include buildings, traffic signs, and a tree to enhance imaginative storytelling. All the pieces store in the fold-up case with convenient carrying handle for easy cleanup and travel (there’s plenty of room to add other toys, too!). Keep playtime rolling for kids three and older and encourage independent play and motor skill development.",
+      "features": "18-piece town play set with wooden storage case that unfolds to create playing surface with built-in road tracks\nIncludes 4 wooden vehicles to race to the rescue around town: police car, ambulance, fire engine, helicopter\nSet up a bridge, city tunnel with monorail that slides across the top, buildings, traffic signs, tree\nPlenty of room to store all play pieces in the case with convenient carrying handle\nMakes a great gift for preschoolers, ages 3 to 6, for hands-on, screen-free play",
+      "highest_price": "$44.99",
+      "highest_price_date": "Aug 07, 2023",
+      "img": "https://m.media-amazon.com/images/I/81+EegMIP1L._AC_SY300_SX300_.jpg",
+      "link": "https://camelcamelcamel.com/product/B07KBP8D6K?active=price_amazon&context=popular",
+      "list_price": "$44.99",
+      "lowest_price": "$16.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "Melissa & Doug 18-Piece Wooden Take-Along Tabletop Town, 4 Rescue Vehicles, Play Pieces, Bridge"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_3",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 903
+}
