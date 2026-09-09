@@ -102,6 +102,7 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
+from aeread.shared_runner.run import json_pointer
 from aeread.shared_runner.run.layout import RunLayout
 from aeread.shared_runner.task.evaluation import (
     FamilyScoringInput,
@@ -2022,34 +2023,6 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 # ---------------------------------------------------------------------------
 
 
-def _json_pointer_get(document: Any, pointer: str) -> Any:
-    """Navigate one RFC 6901 JSON pointer through JSON objects only."""
-    node = document
-    for raw_segment in pointer.split("/")[1:]:
-        segment = raw_segment.replace("~1", "/").replace("~0", "~")
-        if isinstance(node, Mapping):
-            if segment not in node:
-                raise KeyError(f"{pointer!r} does not exist in this document")
-            node = node[segment]
-        else:
-            raise KeyError(f"{pointer!r} does not exist in this document")
-    return node
-
-
-def _drop_json_pointer(document: Any, segments: tuple[str, ...]) -> Any:
-    if not isinstance(document, Mapping):
-        raise TypeError("a trajectory_outcome_path must navigate through JSON objects")
-    key = segments[0].replace("~1", "/").replace("~0", "~")
-    if key not in document:
-        raise KeyError(f"outcome has no {key!r} field to project away")
-    if len(segments) == 1:
-        return {k: v for k, v in document.items() if k != key}
-    return {
-        k: (_drop_json_pointer(v, segments[1:]) if k == key else v)
-        for k, v in document.items()
-    }
-
-
 def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mapping[str, Any]:
     """``outcome`` with every declared ``trajectory_outcome_path`` removed (R9).
 
@@ -2087,7 +2060,7 @@ def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mappi
     """
     projected: Any = outcome
     for pointer in paths:
-        projected = _drop_json_pointer(projected, tuple(pointer.split("/")[1:]))
+        projected = json_pointer.drop(projected, pointer)
     return projected
 
 
@@ -2183,8 +2156,8 @@ def _assert_trajectory_outcome_paths_are_consistent(
     final_state = _final_replayed_state(scoring_input.phase_instances)
     for pointer in paths:
         try:
-            outcome_value = _json_pointer_get(scoring_input.outcome, pointer)
-        except KeyError as error:
+            outcome_value = json_pointer.get(scoring_input.outcome, pointer)
+        except json_pointer.JsonPointerError as error:
             raise AssertionError(
                 f"outcome{pointer} does not exist in the outcome -- every declared "
                 "trajectory_outcome_path must be present in every fixture outcome"
@@ -2211,8 +2184,8 @@ def _assert_trajectory_outcome_paths_are_consistent(
             "terminal facts behind the projection"
         )
         try:
-            derived_value = _json_pointer_get(final_state, pointer)
-        except KeyError as error:
+            derived_value = json_pointer.get(final_state, pointer)
+        except json_pointer.JsonPointerError as error:
             # kernel_r9r10_review.md finding 2: ruling R10 reads the SAME
             # pointer from both the outcome and the final replayed state --
             # a family whose outcome stores its trajectory under a
