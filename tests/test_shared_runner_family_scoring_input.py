@@ -65,23 +65,37 @@ def _run_housing_episode(tmp_path):
 
 
 class RecordingPlugin:
-    """Transparent wrapper recording every ``cell`` passed to ``initial_state``.
+    """Transparent wrapper recording every hook call made against the plugin.
 
-    Everything other than ``initial_state`` delegates straight through to the
-    wrapped plugin via ``__getattr__``, so this is otherwise indistinguishable
-    from the real plugin to the replay machinery.
+    ``initial_state`` also records the exact ``cell`` it was called with (the
+    pre-existing behaviour other tests here depend on). Every other hook --
+    ``phases``, ``eligible_actors``, ``step``, ``terminal``, ``outcome``,
+    ``build_scorer``, ``validate_payload``, and anything else the real plugin
+    exposes -- is recorded by name through a generic ``__getattr__`` that
+    wraps callables, so this is otherwise indistinguishable from the real
+    plugin to the replay machinery.
     """
 
     def __init__(self, plugin) -> None:
         self._plugin = plugin
+        self.calls: list[str] = []
         self.initial_state_runs: list[Any] = []
 
     def initial_state(self, family_case, cell):
+        self.calls.append("initial_state")
         self.initial_state_runs.append(cell)
         return self._plugin.initial_state(family_case, cell)
 
     def __getattr__(self, name):
-        return getattr(self._plugin, name)
+        attribute = getattr(self._plugin, name)
+        if not callable(attribute):
+            return attribute
+
+        def _recording(*args: Any, **kwargs: Any) -> Any:
+            self.calls.append(name)
+            return attribute(*args, **kwargs)
+
+        return _recording
 
 
 def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> None:
@@ -161,10 +175,35 @@ def test_replay_rejects_cell_evidence_identity_mismatch_before_plugin_invocation
     tmp_path,
 ) -> None:
     """#135 A1: a cell whose identity disagrees with the sealed evidence is
-    rejected before any plugin hook runs."""
+    rejected before any plugin hook runs or any event payload is read.
+
+    The identity check reads the event list exactly once -- to reach the
+    durable, hash-chained first event's ``cell_id`` (see the fix's comment in
+    ``_replay_family_trajectory``) -- and nothing more: no plugin hook
+    (recorded generically via ``RecordingPlugin``) and no per-event payload
+    read (``read_event_payload``) happens on the rejection path.
+    """
     _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
     recording_plugin = RecordingPlugin(plugin)
     wrong = dataclasses.replace(cell, cell_id="wrong_cell")
+
+    read_events_calls = 0
+    read_event_payload_calls = 0
+    original_read_events = execution.evidence.read_events
+    original_read_event_payload = execution.evidence.read_event_payload
+
+    def _counting_read_events() -> Any:
+        nonlocal read_events_calls
+        read_events_calls += 1
+        return original_read_events()
+
+    def _counting_read_event_payload(event: Any) -> Any:
+        nonlocal read_event_payload_calls
+        read_event_payload_calls += 1
+        return original_read_event_payload(event)
+
+    execution.evidence.read_events = _counting_read_events
+    execution.evidence.read_event_payload = _counting_read_event_payload
 
     with pytest.raises(ValueError, match="replay cell identity does not match sealed evidence"):
         replay_family_scoring_input(
@@ -175,7 +214,39 @@ def test_replay_rejects_cell_evidence_identity_mismatch_before_plugin_invocation
             cell=wrong,
         )
 
+    assert recording_plugin.calls == []
     assert recording_plugin.initial_state_runs == []
+    # #135 A1 fix note: the identity check itself must read the durable event
+    # list once to get a cell_id that a live attribute reassignment cannot
+    # forge (see the adversarial test below); it must never read an
+    # individual event's payload to do so.
+    assert read_events_calls == 1
+    assert read_event_payload_calls == 0
+
+
+def test_replay_rejects_cell_identity_even_when_evidence_cell_id_agrees(
+    tmp_path,
+) -> None:
+    """#135 A1 fix: ``evidence.cell_id`` is a plain assignable attribute
+    (``EvidenceStore.__init__``'s ``self.cell_id = cell_id``), not durable
+    evidence. A check that compares ``cell.cell_id`` against it is fooled the
+    moment both sides are reassigned to the same wrong value -- which is
+    exactly what this test does. Replay must still reject the mismatch by
+    checking against the durable, hash-chained first event's ``cell_id``
+    instead, which this in-memory reassignment cannot touch.
+    """
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
+    execution.evidence.cell_id = "attacker_cell"
+    attacker_cell = dataclasses.replace(cell, cell_id="attacker_cell")
+
+    with pytest.raises(ValueError, match="replay cell identity does not match sealed evidence"):
+        replay_family_scoring_input(
+            plugin=plugin,
+            family_case=family_case,
+            evidence=execution.evidence,
+            seat_context=SeatContext((), {}),
+            cell=attacker_cell,
+        )
 
 
 def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> None:
