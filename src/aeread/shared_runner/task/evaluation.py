@@ -262,14 +262,11 @@ def _replay_family_trajectory(
     """
     events = evidence.read_events()
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
-    # Called positionally, like every other plugin hook in this function
-    # (``plugin.step``/``.terminal``/``.outcome`` below) -- unlike those,
-    # this one previously used the keyword ``run=None``, which raises
-    # ``TypeError`` for any family whose second parameter is named ``cell``
-    # instead of ``run`` (``scheduler.py``'s own live call is positional for
-    # exactly this reason). Roughly half of today's families use each name;
-    # there is no live run/cell object to pass during replay either way, so
-    # ``None`` is passed unchanged -- only the calling convention was wrong.
+    # Positional, matching scheduler.py's own call site. The hook's second
+    # parameter is named `cell` by every external adapter and `run` by the
+    # natively-built families; a keyword call here silently admitted the
+    # latter and TypeError'd the former, so no external adapter could ever
+    # produce a replayed receipt.
     state = plugin.initial_state(family_case, None)
     phase_events = tuple(
         event for event in events if event.event_type == "phase_instance_started"
