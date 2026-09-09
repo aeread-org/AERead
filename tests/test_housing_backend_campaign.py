@@ -295,7 +295,11 @@ def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
     design = design_artifact(contract, routes=routes)
     provider_free = provider_free_artifact(contract)
     assert design["artifact_sha256"] == (
-        "5ead3480740ef7105a8c94d486c2f0e896c0682d15974a8eae1780ebdde04ea8"
+        # Re-pinned once when design identity stopped including the kernel
+        # implementation pins (#68): the artifact now seals design_sha256, the
+        # pin-free digest, instead of run_plan_id/plan_sha256, so this value
+        # changes only when the v11 design changes -- not on every kernel commit.
+        "eb8119be8f07aa2662fdcb108cb2a88fc2965391e85ff65d1bfabd95d8870b9c"
     )
     assert design["planned_trajectories"] == 4
     assert design["configuration_count"] == 1
@@ -1357,3 +1361,26 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_design_identity_is_stable_across_kernel_commits() -> None:
+    """The property behind design_sha256 (#68): re-pinning a plan to different
+    implementation bytes moves plan_sha256 -- a receipt must name the build
+    that produced it -- and must NOT move the design digest, because a frozen
+    design is the same design under any build. Before this, every kernel
+    commit moved every design-artifact digest in the repo."""
+    import dataclasses
+
+    from aeread.shared_runner.run.resolver import design_plan_sha256, plan_with_pins
+
+    v11 = load_contract(V11_CONTRACT_PATH)
+    setups = build_setups(v11, routes=route_table(v11))
+    plan = setups[sorted(setups)[0]].plan
+    assert plan.implementation_pins, "fixture plan carries implementation pins"
+    other_build = tuple(
+        dataclasses.replace(pin, sha256="0" * 64) if index == 0 else pin
+        for index, pin in enumerate(plan.implementation_pins)
+    )
+    repinned = plan_with_pins(plan, other_build)
+    assert repinned.plan_sha256 != plan.plan_sha256, "a receipt identity follows the build"
+    assert design_plan_sha256(repinned) == design_plan_sha256(plan), "a design identity does not"

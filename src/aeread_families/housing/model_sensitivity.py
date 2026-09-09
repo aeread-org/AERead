@@ -21,7 +21,7 @@ from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
     execute_plan_cell,
 )
-from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes, design_plan_sha256
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 from aeread.shared_runner.task.scheduler import SchedulerContractError
 
@@ -518,8 +518,11 @@ def design_artifact(
                 "config_id": config_id,
                 "condition_id": condition_id,
                 "case_sha256": case.content_sha256,
-                "run_plan_id": setup.plan.run_plan_id,
-                "plan_sha256": setup.plan.plan_sha256,
+                # Design identity, not run identity (#68). plan_sha256 pins
+                # the kernel build; a design is the same design under any
+                # build, so the artifact seals the pin-free digest and the
+                # run plan's own id stays with the receipts it belongs to.
+                "design_sha256": design_plan_sha256(setup.plan),
                 "profile_sha256s": profile_digests,
             }
             if multi_cell:
@@ -533,7 +536,7 @@ def design_artifact(
             plans.append(plan_row)
     return _sealed(
         {
-            "schema_version": "aeread.housing_model_sensitivity_design/0.1",
+            "schema_version": "aeread.housing_model_sensitivity_design/0.2",
             "campaign_id": contract["campaign_id"],
             "status": "passed",
             "claim_status": contract["claim_status"],
