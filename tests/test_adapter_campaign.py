@@ -226,6 +226,22 @@ def test_adapter_canary_rejects_an_unreported_cost(tmp_path: Path) -> None:
     assert record["cost_accounting_state"] == "unknown"
 
 
+def test_adapter_canary_does_not_treat_a_malformed_cost_as_free(tmp_path: Path) -> None:
+    path = tmp_path / "malformed-cost.json"
+    record = asyncio.run(
+        run_adapter_canary(
+            spec=SPEC,
+            plan_sha256="plan-steer-v1",
+            checkpoint_path=path,
+            client=_Client(cost_usd="not-a-number"),  # type: ignore[arg-type]
+        )
+    )
+    assert record["status"] == "rejected"
+    assert record["failure_condition"] == "invalid_provider_cost"
+    assert record["cost_usd"] is None
+    assert record["cost_accounting_state"] == "unknown"
+
+
 def test_adapter_canary_does_not_checkpoint_unexpected_internal_errors(
     tmp_path: Path,
 ) -> None:

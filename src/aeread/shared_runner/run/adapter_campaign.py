@@ -264,7 +264,7 @@ def _safe_recorded_cost(result: Any | None) -> float | None:
             return None
         value = float(raw)
     except (AttributeError, TypeError, ValueError):
-        return 0.0
+        return None
     return value if math.isfinite(value) and value >= 0 else None
 
 
