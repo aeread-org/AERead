@@ -14,6 +14,7 @@ import asyncio
 import dataclasses
 import json
 from types import MappingProxyType
+from typing import Any
 
 import pytest
 
@@ -60,17 +61,38 @@ def _run_housing_episode(tmp_path):
     )
     plugin = setup.registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
-    return setup, execution, plugin, family_case
+    return setup, execution, plugin, family_case, cell
+
+
+class RecordingPlugin:
+    """Transparent wrapper recording every ``cell`` passed to ``initial_state``.
+
+    Everything other than ``initial_state`` delegates straight through to the
+    wrapped plugin via ``__getattr__``, so this is otherwise indistinguishable
+    from the real plugin to the replay machinery.
+    """
+
+    def __init__(self, plugin) -> None:
+        self._plugin = plugin
+        self.initial_state_runs: list[Any] = []
+
+    def initial_state(self, family_case, cell):
+        self.initial_state_runs.append(cell)
+        return self._plugin.initial_state(family_case, cell)
+
+    def __getattr__(self, name):
+        return getattr(self._plugin, name)
 
 
 def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> None:
-    _setup, execution, plugin, family_case = _run_housing_episode(tmp_path)
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
 
     scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=cell,
     )
 
     assert isinstance(scoring_input, FamilyScoringInput)
@@ -97,7 +119,7 @@ def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> N
 
     # replay_family_state (the pre-existing caller) still works unchanged.
     outcome, outcome_event = replay_family_state(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence
+        plugin=plugin, family_case=family_case, evidence=execution.evidence, cell=cell
     )
     assert canonical_json_bytes(outcome) == canonical_json_bytes(scoring_input.outcome)
     assert outcome_event.event_id in scoring_input.evidence_refs
@@ -113,11 +135,51 @@ def test_replay_family_scoring_input_has_no_episode_result_parameter() -> None:
         "family_case",
         "evidence",
         "seat_context",
+        "cell",
     }
 
 
+def test_replay_passes_the_exact_plan_cell_to_initial_state(tmp_path) -> None:
+    """#135 A1: certified replay must invoke ``initial_state`` with the
+    exact executed ``PlanCell``, not a reconstruction of it."""
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
+    recording_plugin = RecordingPlugin(plugin)
+
+    replay_family_scoring_input(
+        plugin=recording_plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        seat_context=SeatContext((), {}),
+        cell=cell,
+    )
+
+    assert len(recording_plugin.initial_state_runs) == 1
+    assert recording_plugin.initial_state_runs[0] is cell
+
+
+def test_replay_rejects_cell_evidence_identity_mismatch_before_plugin_invocation(
+    tmp_path,
+) -> None:
+    """#135 A1: a cell whose identity disagrees with the sealed evidence is
+    rejected before any plugin hook runs."""
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
+    recording_plugin = RecordingPlugin(plugin)
+    wrong = dataclasses.replace(cell, cell_id="wrong_cell")
+
+    with pytest.raises(ValueError, match="replay cell identity does not match sealed evidence"):
+        replay_family_scoring_input(
+            plugin=recording_plugin,
+            family_case=family_case,
+            evidence=execution.evidence,
+            seat_context=SeatContext((), {}),
+            cell=wrong,
+        )
+
+    assert recording_plugin.initial_state_runs == []
+
+
 def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> None:
-    _setup, execution, plugin, family_case = _run_housing_episode(tmp_path)
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
 
     # A sanity replay succeeds before tampering.
     replay_family_scoring_input(
@@ -125,6 +187,7 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=cell,
     )
 
     events_path = execution.evidence.root / "events.jsonl"
@@ -146,17 +209,19 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
             family_case=family_case,
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
+            cell=cell,
         )
 
 
 def test_replay_family_scoring_input_result_is_deeply_immutable(tmp_path) -> None:
-    _setup, execution, plugin, family_case = _run_housing_episode(tmp_path)
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(tmp_path)
 
     scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=cell,
     )
 
     with pytest.raises(dataclasses.FrozenInstanceError):
