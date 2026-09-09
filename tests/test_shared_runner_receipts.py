@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
+from pathlib import Path
 
 import pytest
 
@@ -28,6 +31,8 @@ from aeread.shared_runner import (
     verify_evaluation_receipt,
     write_evaluation_receipt,
 )
+from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 def _implementation(identifier: str, marker: str) -> MeasurementImplementationRef:
@@ -329,29 +334,30 @@ def test_receipt_rejects_an_inapplicable_leaf_id_that_overlaps_deferred_leaf_ids
         )
 
 
-# Ruling R13 (kernel_scoring_contract_spec.md): a golden digest computed
-# against the PRE-R13 kernel (commit cda0a736 -- this branch's own fork
-# point, before EvaluationReceipt carried inapplicable_leaf_ids at all),
-# pinned so this test cannot pass merely because both sides of a same-code
-# comparison happen to agree with each other -- see
-# test_leaf_policy_declaration_without_seat_scope_is_digest_neutral's own
-# docstring in test_shared_runner_schemas.py for why that distinction
-# matters. Produced by:
+# Rulings R1 and R13: a golden digest computed against the kernel from BEFORE
+# EITHER additive field existed (commit 35e4536a, the parent of the commit
+# that added ``deferred_leaf_ids`` on 2026-09-04; ``inapplicable_leaf_ids``
+# came later still), pinned so this test cannot pass merely because both
+# sides of a same-code comparison happen to agree with each other. The
+# earlier pin (4a8c8e33..., against cda0a736) was computed while
+# ``deferred_leaf_ids`` was serialized unconditionally as ``[]`` and so froze
+# the four-day transitional shape as if it were the reference; the reference
+# is the shape sealed into published evidence before any of this. Produced by:
 #
-#   git archive cda0a736 src | tar -x -C /tmp/pre_r13/src/
-#   git show cda0a736:tests/test_shared_runner_receipts.py \
-#       > /tmp/pre_r13/receipts_test_pre_r13.py
+#   git archive 35e4536a src | tar -x -C /tmp/pre_field/src/
+#   git show 35e4536a:tests/test_shared_runner_receipts.py \
+#       > /tmp/pre_field/receipts_test_pre_field.py
 #   <this repo's venv python> -c '
 #       import sys, hashlib
-#       sys.path.insert(0, "/tmp/pre_r13/src/src")
-#       sys.path.insert(0, "/tmp/pre_r13")
+#       sys.path.insert(0, "/tmp/pre_field/src/src")
+#       sys.path.insert(0, "/tmp/pre_field")
 #       import aeread.shared_runner as sr
-#       import receipts_test_pre_r13 as t
+#       import receipts_test_pre_field as t
 #       sealed = t.seal_evaluation_receipt(t._receipt())
 #       print(hashlib.sha256(sr.canonical_json_bytes(sealed)).hexdigest())
 #   '
-_PRE_R13_RECEIPT_WITHOUT_INAPPLICABLE_LEAF_IDS_SHA256 = (
-    "4a8c8e334387725cf6a393addb95600c8061de554c757313e96aa9a362352269"
+_PRE_ADDITIVE_FIELDS_RECEIPT_SHA256 = (
+    "3289ee9b38bb6ff706e7f42e9951cbd930e4afd46b7e088f39baf4f250f01973"
 )
 
 
@@ -373,9 +379,10 @@ def test_receipt_without_inapplicable_leaf_ids_is_digest_neutral() -> None:
     sealed = seal_evaluation_receipt(_receipt())
     assert (
         hashlib.sha256(canonical_json_bytes(sealed)).hexdigest()
-        == _PRE_R13_RECEIPT_WITHOUT_INAPPLICABLE_LEAF_IDS_SHA256
+        == _PRE_ADDITIVE_FIELDS_RECEIPT_SHA256
     )
     assert '"inapplicable_leaf_ids"' not in canonical_json_bytes(sealed).decode("utf-8")
+    assert '"deferred_leaf_ids"' not in canonical_json_bytes(sealed).decode("utf-8")
 
     # Setting inapplicable_leaf_ids to a non-empty, disjoint value must
     # change the digest -- proving the field is not silently dropped the
@@ -407,3 +414,185 @@ def test_durable_receipt_round_trip_preserves_a_non_default_inapplicable_leaf_id
     loaded = read_evaluation_receipt(destination)
     assert loaded["inapplicable_leaf_ids"] == ["some_other_leaf_v1"]
     assert loaded["receipt_sha256"] == receipt.receipt_sha256
+
+
+_SEALED_BEFORE_DEFERRED_LEAF_IDS = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "receipts"
+    / "sealed_before_deferred_leaf_ids.json"
+)
+
+
+def _pre_deferred_leaf_ids_payload(receipt: EvaluationReceipt) -> dict[str, object]:
+    """The receipt as it serialized before ``deferred_leaf_ids`` existed."""
+
+    payload = json.loads(canonical_json_bytes(receipt))
+    payload.pop("receipt_sha256", None)
+    payload.pop("deferred_leaf_ids", None)
+    return payload
+
+
+def test_receipt_without_deferred_leaf_ids_is_digest_neutral() -> None:
+    """Ruling R1: an unset ``deferred_leaf_ids`` must be ABSENT from canonical
+    JSON, not merely ``[]``. The field was added after receipts had been
+    sealed into published evidence, so a receipt that declares no deferred
+    leaf must hash byte for byte as it did before the field existed, or every
+    receipt sealed before the field arrived fails verification. The digest
+    here is checked against the pre-field preimage computed by hand.
+    """
+
+    receipt = seal_evaluation_receipt(_receipt())
+
+    assert receipt.deferred_leaf_ids == ()
+    assert b'"deferred_leaf_ids"' not in canonical_json_bytes(receipt)
+    expected = dataclasses.replace(receipt, receipt_sha256=None)
+    assert receipt.receipt_sha256 == hashlib.sha256(
+        canonical_json_bytes(_pre_deferred_leaf_ids_payload(expected))
+    ).hexdigest()
+
+
+def test_receipt_sealed_before_deferred_leaf_ids_verifies_through_both_paths() -> None:
+    """A real receipt from ``housing_confirmatory_parasail_v2``, sealed by a
+    kernel that had no ``deferred_leaf_ids`` field. It always passed the
+    serialized check in ``read_evaluation_receipt`` and, before this fix,
+    always failed the dataclass check reached through
+    ``deserialize_evaluation_receipt``, because that path rebuilt the field
+    dict by hand and included the absent field's default in the preimage. The
+    two paths must be the same computation.
+    """
+
+    raw = _SEALED_BEFORE_DEFERRED_LEAF_IDS.read_bytes()
+    loaded = read_evaluation_receipt(_SEALED_BEFORE_DEFERRED_LEAF_IDS)
+    rebuilt = deserialize_evaluation_receipt(loaded)
+
+    assert rebuilt.deferred_leaf_ids == ()
+    assert rebuilt.receipt_sha256 == loaded["receipt_sha256"]
+    verify_evaluation_receipt(rebuilt)
+    # Re-serializing must reproduce the sealed bytes exactly, so a rewrite of
+    # an existing receipt file is a no-op rather than a refused overwrite.
+    assert canonical_json_bytes(rebuilt) + b"\n" == raw
+
+
+def test_receipt_with_deferred_leaf_ids_still_seals_and_protects_them() -> None:
+    """Digest neutrality is only for the empty case. A declared deferred leaf
+    stays visible on the receipt (kernel_contract_impl_review.md finding 12)
+    and stays under the digest, so clearing it is detected as tampering.
+    """
+
+    with_leaf = seal_evaluation_receipt(
+        _receipt(deferred_leaf_ids=("housing_deferred_diagnostic",))
+    )
+    without_leaf = seal_evaluation_receipt(_receipt())
+
+    assert b'"deferred_leaf_ids":["housing_deferred_diagnostic"]' in (
+        canonical_json_bytes(with_leaf)
+    )
+    assert with_leaf.receipt_sha256 != without_leaf.receipt_sha256
+    cleared = dataclasses.replace(with_leaf, deferred_leaf_ids=())
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        verify_evaluation_receipt(cleared)
+
+
+def test_durable_write_of_a_pre_deferred_leaf_ids_receipt_is_idempotent(tmp_path) -> None:
+    """Writing a receipt that was sealed before the field existed over its own
+    bytes must be accepted as identical, not refused as a different receipt.
+    """
+
+    destination = tmp_path / "evaluation_receipt.json"
+    destination.write_bytes(_SEALED_BEFORE_DEFERRED_LEAF_IDS.read_bytes())
+    rebuilt = deserialize_evaluation_receipt(read_evaluation_receipt(destination))
+
+    assert write_evaluation_receipt(rebuilt, destination) == destination
+    assert destination.read_bytes() == _SEALED_BEFORE_DEFERRED_LEAF_IDS.read_bytes()
+
+
+def _seal_with_the_transitional_preimage(receipt: EvaluationReceipt) -> EvaluationReceipt:
+    """Seal the way the kernel did between 2026-09-04 and the R1 opt-in: the
+    empty ``deferred_leaf_ids`` written into the preimage as ``[]``."""
+
+    payload = json.loads(canonical_json_bytes(receipt))
+    payload.pop("receipt_sha256", None)
+    payload.setdefault("deferred_leaf_ids", [])
+    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    return dataclasses.replace(receipt, receipt_sha256=digest)
+
+
+def test_receipt_sealed_in_the_transitional_window_still_verifies() -> None:
+    """Receipts sealed while the field existed without digest neutrality carry
+    ``"deferred_leaf_ids":[]`` in their preimage. They must keep verifying,
+    and a change to any real field must still be caught.
+    """
+
+    transitional = _seal_with_the_transitional_preimage(_receipt())
+    canonical = seal_evaluation_receipt(_receipt())
+
+    assert transitional.receipt_sha256 != canonical.receipt_sha256
+    verify_evaluation_receipt(transitional)
+    verify_evaluation_receipt(canonical)
+
+    tampered = dataclasses.replace(transitional, replicate_index=1)
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        verify_evaluation_receipt(tampered)
+
+
+def test_transitional_receipt_round_trips_through_serialization(tmp_path) -> None:
+    """Review finding on this change: a window receipt verified in memory but
+    could not be written and read back, because the bytes path had no
+    tolerance and the overwrite check compared raw bytes. Both paths now share
+    one accepted-digest computation, so the receipt reads, rewrites over its
+    own explicit-``[]`` bytes as a no-op, republishes to a new path in
+    canonical form, and reads back from there."""
+
+    transitional = _seal_with_the_transitional_preimage(_receipt())
+    payload = json.loads(canonical_json_bytes(transitional))
+    payload["deferred_leaf_ids"] = []
+    window_bytes = canonical_json_bytes(payload) + b"\n"
+    destination = tmp_path / "evaluation_receipt.json"
+    destination.write_bytes(window_bytes)
+
+    loaded = read_evaluation_receipt(destination)
+    rebuilt = deserialize_evaluation_receipt(loaded)
+    assert rebuilt.receipt_sha256 == transitional.receipt_sha256
+
+    # Idempotent overwrite of the explicit-[] bytes: accepted, file untouched.
+    assert write_evaluation_receipt(rebuilt, destination) == destination
+    assert destination.read_bytes() == window_bytes
+
+    # Republish to a new path in canonical form, then read it back.
+    republished = tmp_path / "republished.json"
+    write_evaluation_receipt(rebuilt, republished)
+    assert b'"deferred_leaf_ids"' not in republished.read_bytes()
+    again = deserialize_evaluation_receipt(read_evaluation_receipt(republished))
+    assert again.receipt_sha256 == transitional.receipt_sha256
+
+    # A different receipt at the same path is still refused.
+    other = seal_evaluation_receipt(_receipt(replicate_index=1))
+    with pytest.raises(MeasurementContractError, match="refusing to overwrite"):
+        write_evaluation_receipt(other, destination)
+
+
+def test_preimage_kind_makes_the_compatibility_path_visible_to_an_audit() -> None:
+    """A verified receipt does not otherwise say which preimage it matched.
+    ``receipt_preimage_kind`` names it, so a publisher or audit can record
+    when the transitional path was used."""
+
+    from aeread.shared_runner.task.receipts import (
+        CANONICAL_PREIMAGE,
+        TRANSITIONAL_PREIMAGE,
+        receipt_preimage_kind,
+    )
+
+    assert receipt_preimage_kind(seal_evaluation_receipt(_receipt())) == CANONICAL_PREIMAGE
+    assert receipt_preimage_kind(_seal_with_the_transitional_preimage(_receipt())) == (
+        TRANSITIONAL_PREIMAGE
+    )
+    # A declared leaf has only one preimage; the transitional kind cannot apply.
+    with_leaf = seal_evaluation_receipt(_receipt(deferred_leaf_ids=("some_leaf_v1",)))
+    assert receipt_preimage_kind(with_leaf) == CANONICAL_PREIMAGE
+    assert receipt_preimage_kind(read_evaluation_receipt(_SEALED_BEFORE_DEFERRED_LEAF_IDS)) == (
+        CANONICAL_PREIMAGE
+    )
+    tampered = dataclasses.replace(with_leaf, replicate_index=1)
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        receipt_preimage_kind(tampered)
