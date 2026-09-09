@@ -1456,7 +1456,7 @@ design was built to detect. That is a null result with content rather than an
 absence of evidence: the confidence interval excludes any difference as large
 as `0.05` in either direction.
 
-The predeclared slices agree and neither excludes zero. Cross-play gives
+Neither predeclared slice excludes zero, and neither is precise enough to exclude a meaningful effect either; see the corrections below. Cross-play gives
 `0.0361` with an interval of `-0.0221` to `0.0943`; self-play gives `-0.0253`
 with `-0.0853` to `0.0347`. Per-condition means fall between `0.809` and
 `0.853`, and each model's worst opponent is GLM.
@@ -1473,3 +1473,33 @@ models, these routes, and this panel: it says nothing about either model
 outside evidence-grounded Housing allocation, and nothing about differences
 smaller than the declared effect, which this design was not built to resolve.
 
+### Corrections recorded after publication
+
+Three things a reader of this section needs that the sealed bundle does not
+say. Each is a numbered row in `docs/operations/incident_log.md`.
+
+1. **The prose in the qualification report is stale.** The `interpretation`
+   string in `reports/qualification.json` still reads "exploratory pilot
+   evidence, not a model ranking or leaderboard". The machine fields beside
+   it, `claim_status`, `ranking_allowed` and `leaderboard_eligible`, record a
+   confirmatory comparison, and this section is the authoritative reading.
+   The publisher now emits confirmatory wording (D-19). The bundle keeps its
+   digest because it could not be regenerated at the time (D-20).
+2. **The slices are imprecise for one identifiable reason.** Their
+   half-widths, `0.058` and `0.060`, exceed the `0.05` threshold, so only the
+   pooled primary supports the equivalence claim. The imprecision traces to a
+   single world-configuration, `holdout_severe_unseen` at seed `1207545696`,
+   whose assignment upper bound is `56.18` against a median of `1828` and a
+   next-smallest of `782`. Dividing by it amplifies those eight trajectories to
+   a standard deviation of `1.27` against `0.116` for the other 709, and every
+   negative score in the campaign comes from it. With that world removed the
+   primary moves from `0.0046` to `0.0043` and both slices fall inside
+   `±0.05`. That removal is a sensitivity check, not a licensed re-analysis;
+   the frozen result stands. The exclusion rule tests the bound against
+   exactly zero and needs a floor (D-18).
+3. **The bundle verifies but could not be rebuilt.** All 720 receipts failed
+   `verify_evaluation_receipt` on the current tree because a kernel field
+   added in a merge that landed under the running campaign was not
+   digest-neutral. The kernel fix is PR #151; until it lands, verification of
+   this bundle is by its published digests, which recompute, not by
+   regeneration (D-20, O-11).
