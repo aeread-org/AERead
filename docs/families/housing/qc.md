@@ -1503,3 +1503,16 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    digest-neutral. The kernel fix is PR #151; until it lands, verification of
    this bundle is by its published digests, which recompute, not by
    regeneration (D-20, O-11).
+4. **"Not distinguishable" is a statement about assignment efficiency only.**
+   Tracing the thin-market world's trajectories found a landlord-seat
+   behaviour the headline cannot see. Across all 30 worlds GLM as landlord
+   emitted a counter at rent `0.0` 275 times while its reasoning said accept
+   the best offer; 264 zero-rent leases were signed, 16% of every lease it
+   signed as landlord, and it accepted below its own cost 22 times. DeepSeek
+   as landlord did neither, zero and two. IR violations: 213 of 358 GLM-landlord
+   cells against 17 of 359. Rent cancels in welfare and the assignment is the
+   one an accept would have produced, so the score was unmoved everywhere except
+   the one world where the match itself destroys value. Per-trajectory
+   `ir_violation_count` and `signed_rents` carry it; the published analysis
+   never aggregated them. On the accounting dimension the two models are not
+   interchangeable as landlords (D-21, D-22, D-23).
