@@ -255,6 +255,24 @@ KNOWN_DEFECTS = (
         ),
     },
     {
+        "id": "sequencing-anchored-by-presentation-order",
+        "summary": (
+            "The sequencing observation lists the agreements in the canonical "
+            "dependency order, which places financing last. That is also the "
+            "order that forgoes discovering the lender's thresholds, so the "
+            "presented default is systematically the worse choice. Models are "
+            "not merely copying, three distinct orders appear and only a third "
+            "match the list exactly, but every observed order puts the loan "
+            "after the lease, so presentation and reasoning cannot be "
+            "separated in this run. The list should be shuffled per world."
+        ),
+        "detected_by": "first panel carrying the sequencing diagnostic",
+        "severity": "confounds_a_reported_metric",
+        "status": "open",
+        "fix": None,
+        "regression_test": None,
+    },
+    {
         "id": "suite-needs-gitignored-artifacts",
         "summary": (
             "Fifteen datacenter_development_terms tests read artifacts under "
