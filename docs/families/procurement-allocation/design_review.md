@@ -809,6 +809,59 @@ procedure itself must branch: for example removing `request_sample` as a
 first-contact action, or pricing the first sample of an unscreened supplier at
 two actions rather than one.
 
+## 25. Not a model quirk: both models take one reading and commit
+
+Defect 24 recorded zero `inquire` actions from GLM 5.3 Flash across 59 rows. The
+obvious question is whether that is one model's habit. It is not.
+
+**Gemini 3.8 Flash, same six worlds, same two prompts, same harness, 23 rows.**
+
+| arm | rows | rows that screened | mean regret | median | wins |
+|---|---:|---:|---:|---:|---:|
+| control, frozen V4 | 12 | 0 | $134.20 | $254.00 | 6 |
+| screening guidance added | 11 | 0 | $100.45 | $11.17 | 7 |
+
+Zero again, in both arms, from a different model family. The cheap channel is not
+a GLM blind spot. Gemini is the stronger buyer overall, winning 13 of 23 against
+GLM's 21 of 59, but it screens exactly as often: never.
+
+**What they do instead.** The behaviour is identical across both models and is
+not about the price of information at all.
+
+| | GLM 5.3 Flash | Gemini 3.8 Flash |
+|---|---|---|
+| samples taken per supplier | 184 single draws, 3 doubles | 52 single draws, 0 doubles |
+| rows that ever re-sampled anyone | 3 of 59 | 0 of 23 |
+| unused actions at termination, median | 2 of 9 | 4 of 9 |
+| rows that missed the deadline | 22 of 59 | 0 of 23 |
+
+Both take exactly one reading per supplier, commit, and hand back unused budget.
+Gemini hands back nearly half. In worlds where the reading is deliberately noisy
+and a trap shows a clean batch about a fifth of the time, the second draw is the
+whole game, and neither model takes it.
+
+**A first analysis of this was wrong and is worth recording.** Comparing awarded
+suppliers against their *hidden* yields suggested both models were routinely
+awarding a supplier they had already seen was worse: 17 of 17 failing GLM rows
+and 5 of 7 for Gemini. Reconstructing what the buyer actually saw, from the
+declared noise seed, gives 10 of 57 for GLM and **0 of 20** for Gemini. The
+models were mostly not contradicting their evidence; their evidence was thin,
+because one draw of eight units cannot separate a 0.82 supplier from a 0.985 one.
+Judging a decision against information the decider did not have is how a
+stopping-rule problem gets mistaken for a reasoning problem.
+
+**What this changes.** Defect 23's cheap signal targets the wrong bottleneck.
+Making information cheaper does not help an agent that already stops buying it
+while holding spare budget. The measurable behaviour here is the stopping rule,
+which is question two of the [positioning note](positioning.md) and the one part
+of this family with no competitor in the suite. A panel should be built so that a
+single reading is demonstrably insufficient and a second is affordable, and
+scored on whether the buyer takes it.
+
+That is a sharper target than anything this family has had, and it is
+model-independent across the two tested. It remains one scaffold, two models, 82
+rows and six unadmitted worlds.
+
 ## Status of the fixes
 
 | defect | state |
@@ -830,6 +883,7 @@ two actions rather than one.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
 | 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
 | 23 exchangeability broken by a cheap signal | **mechanism landed, effect unproven** — `inquiry_batch` plus slow verification separates three deterministic policies by ~$254; no model has played it and no panel is admitted |
 | 22 difficulty is quantized in recoveries | open, and it supersedes the panel work; three shapes screened at $0.34 show trivial, trivial and floored with nothing between, so the next change is to the environment and not to any panel |
