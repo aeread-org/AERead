@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 import importlib
 import importlib.util
 import json
@@ -156,7 +157,9 @@ def test_adapter_canary_is_hashed_and_resumable(tmp_path: Path) -> None:
     assert first["cumulative_cost_usd"] == 0.003
     assert first["cost_usd"] == first["cumulative_cost_usd"]
     assert client.limits == [2048, 4096, 8192]
-    assert first["record_sha256"]
+    assert first["record_sha256"] == _digest(
+        {key: value for key, value in first.items() if key != "record_sha256"}
+    )
 
 
 def test_adapter_canary_rejects_checkpoint_input_mismatch(tmp_path: Path) -> None:
@@ -828,3 +831,341 @@ def test_adapter_canary_rejects_non_numeric_token_counts(tmp_path: Path) -> None
     assert record["failure_condition"] == "invalid_token_accounting"
     assert b"SECRET" not in canonical_json_bytes(record)
     assert record["probes"] == []
+
+
+# --- resume validates every field's value, not just key names --------------
+
+
+def test_resume_rejects_a_tampered_status(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["status"] = "tampered_status"
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_tampered_token_field(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["probes"] = [dict(first["probes"][0], input_tokens="SECRET")]
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_tampered_cost_usd(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["cost_usd"] = "SECRET-COST"
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_tampered_cost_accounting_state(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    # cost_usd is known and numeric, so "unknown" is an inconsistent pairing.
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    assert tampered["cost_usd"] is not None
+    tampered["cost_accounting_state"] = "unknown"
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+# --- resume checks status/probe consistency, not just per-field vocabulary -
+
+
+class InvalidContentClient(AdmittedClient):
+    async def complete(self, request):
+        result = await super().complete(request)
+        result.output_text = json.dumps({"status": "not_ok"})
+        return result
+
+
+def test_resume_rejects_an_invalid_response_rejection_rewritten_as_admitted(
+    tmp_path: Path,
+) -> None:
+    # The probe that triggered "invalid_response" completed fully (its
+    # finish_reason is "stop", not truncated) but never ran the later
+    # limits, so its probe count can never satisfy an admitted record's
+    # requirement that every requested limit was tried.
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048, 4096),
+            client=InvalidContentClient(),
+        )
+    )
+    assert first["status"] == "rejected"
+    assert first["failure_condition"] == "invalid_response"
+    assert len(first["probes"]) == 1
+
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["status"] = "admitted"
+    tampered["failure_type"] = None
+    tampered["failure_condition"] = None
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048, 4096),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_truncated_response_rejection_missing_its_terminal_probe(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048, 4096),
+            client=TruncatedClient(),
+        )
+    )
+    assert first["status"] == "rejected"
+    assert first["failure_condition"] == "length"
+    assert len(first["probes"]) == 1
+
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["probes"] = []
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="no probes"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048, 4096),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_an_admitted_record_with_a_non_stop_probe(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    assert first["status"] == "admitted"
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["probes"] = [dict(first["probes"][0], finish_reason="tool_calls")]
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="non-stop probe"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+# --- resume reads the checkpoint through a single O_NOFOLLOW descriptor ----
+
+
+def test_resume_rejects_a_symlink_substituted_after_lstat_without_calling_the_provider(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The symlink check performed before calling _resume (via os.lstat) and
+    # the checkpoint read inside _resume are two separate filesystem calls.
+    # A concurrent writer can swap the destination for a symlink in between;
+    # this is only caught if _resume's own open (not the earlier lstat) is
+    # what decides whether the path is safe to read.
+    path = tmp_path / "canary.json"
+    asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    elsewhere = tmp_path / "elsewhere.json"
+    elsewhere.write_text("not a checkpoint", encoding="utf-8")
+    real_lstat = os.lstat
+
+    def racing_lstat(target, *args, **kwargs):
+        result = real_lstat(target, *args, **kwargs)
+        if Path(target) == path:
+            path.unlink()
+            path.symlink_to(elsewhere)
+        return result
+
+    monkeypatch.setattr(os, "lstat", racing_lstat)
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError(
+                "provider must not be called when the checkpoint path is a symlink"
+            )
+
+    with pytest.raises(ValueError, match="must not be a symlink"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+    # The race never followed the link and wrote or read through it.
+    assert elsewhere.read_text(encoding="utf-8") == "not a checkpoint"
+
+
+# --- write-once falls back when hard links are unsupported -----------------
+
+
+def test_write_once_falls_back_when_hard_links_are_unsupported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Some filesystems do not support hard links at all and raise EPERM (or
+    # EOPNOTSUPP/ENOTSUP) from os.link. A paid canary result must still be
+    # durably published rather than left with no checkpoint on disk.
+    path = tmp_path / "canary.json"
+
+    def failing_link(src, dst, *args, **kwargs):
+        raise OSError(errno.EPERM, "Operation not permitted")
+
+    monkeypatch.setattr(os, "link", failing_link)
+    client = AdmittedClient()
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=client,
+        )
+    )
+    assert first["status"] == "admitted"
+    assert json.loads(path.read_text(encoding="utf-8")) == first
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a resumed canary")
+
+    second = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=ExplodingClient(),
+        )
+    )
+    assert second == first

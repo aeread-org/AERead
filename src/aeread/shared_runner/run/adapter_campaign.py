@@ -172,7 +172,6 @@ _PROBE_RECORD_KEYS = frozenset(
 # only caught by checking values against these sets, not by the digest.
 _RESUMABLE_RESOLVED_MODELS = frozenset({MODEL, _UNEXPECTED_MODEL})
 _RESUMABLE_FINISH_REASONS = _ALLOWED_FINISH_REASONS | frozenset({_UNEXPECTED_FINISH_REASON})
-_RESUMABLE_FAILURE_TYPES = frozenset({None, _PROVIDER_FAILURE, _CANARY_REJECTED})
 _RESUMABLE_PROVIDER_FAILURE_CONDITIONS = _SAFE_PROVIDER_FAILURE_CONDITIONS | frozenset(
     {"provider_error"}
 )
@@ -186,6 +185,26 @@ _CANARY_REJECTED_CONDITIONS = frozenset(
         "invalid_json_response",
         "invalid_response",
     }
+)
+
+# The two statuses a sealed checkpoint may carry. Anything else is rejected
+# on resume even when the record is internally self-consistent.
+_RESUMABLE_STATUSES = frozenset({"admitted", "rejected"})
+
+# ``cost_usd``/``cost_accounting_state`` are a matched pair: ``None`` iff
+# ``"unknown"``, a validated finite non-negative number iff ``"known"``. No
+# third combination is ever sealed, so none is ever resumable.
+_RESUMABLE_COST_ACCOUNTING_STATES = frozenset({"known", "unknown"})
+
+# ``failure_condition`` values for which the *last* probe's outcome is
+# determinable from the condition alone, because the write path only ever
+# reaches that condition after appending the probe that triggered it. Only
+# these are cross-checked against the last probe on resume; conditions
+# reached before a probe is appended (``cost_budget_exceeded``,
+# ``accounting_unavailable``, ``invalid_token_accounting``) legitimately
+# carry zero probes and are not held to this check.
+_LAST_PROBE_DETERMINABLE_CONDITIONS = frozenset(
+    {"length", "cost_ceiling_exceeded", "invalid_json_response", "invalid_response"}
 )
 
 
@@ -235,6 +254,18 @@ def _write_once(path: Path, value: Mapping[str, Any]) -> None:
     before the link is attempted, which would have a race window of its
     own: another process could swap a symlink into place after the check
     and before the link.
+
+    If ``os.link`` fails for a reason other than the path already existing
+    -- some filesystems (notably certain network or overlay mounts) do not
+    support hard links at all and raise ``EPERM``/``EOPNOTSUPP`` -- this
+    falls back to a direct ``O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW``
+    create-and-write of the final path, fsynced before return. This
+    fallback is documented as non-atomic with respect to visibility: unlike
+    the link-based publish, a concurrent reader can observe the destination
+    mid-write for the brief window between create and the payload actually
+    landing. It exists anyway because the alternative is worse: a paid
+    canary probe must never be left with no checkpoint at all just because
+    its filesystem lacks hard-link support.
     """
     payload = canonical_json_bytes(value) + b"\n"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -282,6 +313,31 @@ def _write_once(path: Path, value: Mapping[str, Any]) -> None:
                     f"refusing to overwrite a different adapter campaign checkpoint: {path}"
                 )
             return
+        except OSError as error:
+            if error.errno not in (
+                errno.EPERM,
+                errno.EOPNOTSUPP,
+                getattr(errno, "ENOTSUP", errno.EOPNOTSUPP),
+            ):
+                raise
+            # The filesystem backing ``path`` does not support hard links.
+            # Fall back to a direct, non-atomic-visibility create-exclusive
+            # write of the final path itself, documented on the function.
+            fallback_fd = os.open(
+                path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600
+            )
+            try:
+                view = memoryview(payload)
+                while view:
+                    written = os.write(fallback_fd, view)
+                    if written <= 0:
+                        raise OSError(
+                            "short write while persisting adapter campaign checkpoint"
+                        )
+                    view = view[written:]
+                os.fsync(fallback_fd)
+            finally:
+                os.close(fallback_fd)
 
         directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
         try:
@@ -345,8 +401,19 @@ def _verify_resumed_record(
     total_max_cost_usd: float,
 ) -> None:
     """Reject a checkpoint whose sealed contents disagree with today's
-    request construction or drift outside the closed schema it was sealed
-    against.
+    request construction, drift outside the closed schema it was sealed
+    against, or are internally inconsistent with each other.
+
+    A digest only proves a record is internally self-consistent with
+    whatever an attacker wrote into it -- it says nothing about whether
+    each field's *value* is one this schema ever actually seals. So every
+    field with a constrained value is checked here, not merely required to
+    be present: ``status`` against a closed enum, ``schema_version``
+    against the module constant, ``scored`` against ``False``,
+    ``route_provider``/``provider``/``model``/``revision`` against their
+    pinned constants, and ``cost_usd``/``cost_accounting_state`` against
+    each other (``None`` iff ``"unknown"``, else a validated finite
+    non-negative number iff ``"known"``).
 
     Every probe's ``request_sha256`` is not merely compared to itself: it
     is recomputed from the *current* prompt, schema, limits, model,
@@ -358,27 +425,66 @@ def _verify_resumed_record(
     this campaign ever intended to send -- rather than being exempted for
     having nothing else to check.
 
-    Every probe's key set must equal the closed probe schema, and its
+    Every probe's key set must equal the closed probe schema, its token
+    fields must be validated non-negative ints and its cost either ``None``
+    or a validated finite non-negative number, and its
     ``resolved_model``/``finish_reason`` -- along with the record's own
     ``failure_type``/``failure_condition`` -- must fall inside the same
-    closed vocabularies enforced at write time: a digest only proves a
-    record is internally self-consistent, not that an attacker who
-    recomputed it correctly after tampering a field stayed inside the
-    vocabulary this schema promises.
+    closed vocabularies enforced at write time.
+
+    Status and probes must agree with each other too: an admitted record's
+    probes must all report ``finish_reason == "stop"`` and must number
+    exactly the requested limits; a rejected record whose
+    ``failure_condition`` is one the write path only ever reaches *after*
+    appending the probe that triggered it (truncation, the cost ceiling, or
+    an unparsable/wrong-shaped response) must carry that probe, and that
+    probe's own outcome must be the one the condition claims. Conditions
+    the write path can reach with zero probes (an exhausted budget before
+    any call, or an accounting probe that failed before it was recorded)
+    are not held to that probe-presence check, since a legitimately sealed
+    record from that path has none to check.
     """
-    failure_type = record.get("failure_type")
-    if failure_type not in _RESUMABLE_FAILURE_TYPES:
-        raise ValueError("canary checkpoint has an unexpected failure_type")
-    failure_condition = record.get("failure_condition")
-    if failure_type is None:
-        if failure_condition is not None:
-            raise ValueError("canary checkpoint has an unexpected failure_condition")
-    elif failure_type == _PROVIDER_FAILURE:
-        if failure_condition not in _RESUMABLE_PROVIDER_FAILURE_CONDITIONS:
-            raise ValueError("canary checkpoint has an unexpected failure_condition")
+    status = record.get("status")
+    if status not in _RESUMABLE_STATUSES:
+        raise ValueError("canary checkpoint has an unexpected status")
+    if record.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("canary checkpoint has an unexpected schema_version")
+    if record.get("scored") is not False:
+        raise ValueError("canary checkpoint has an unexpected scored flag")
+    if record.get("route_provider") != ROUTE_PROVIDER:
+        raise ValueError("canary checkpoint has an unexpected route_provider")
+    if record.get("provider") != PROVIDER:
+        raise ValueError("canary checkpoint has an unexpected provider")
+    if record.get("model") != MODEL:
+        raise ValueError("canary checkpoint has an unexpected model")
+    if record.get("revision") != REVISION:
+        raise ValueError("canary checkpoint has an unexpected revision")
+
+    cost_usd = record.get("cost_usd")
+    cost_accounting_state = record.get("cost_accounting_state")
+    if cost_usd is None:
+        if cost_accounting_state != "unknown":
+            raise ValueError("canary checkpoint cost accounting state is inconsistent")
     else:
-        if failure_condition not in _CANARY_REJECTED_CONDITIONS:
-            raise ValueError("canary checkpoint has an unexpected failure_condition")
+        if cost_accounting_state != "known":
+            raise ValueError("canary checkpoint cost accounting state is inconsistent")
+        if _numeric(cost_usd) is None:
+            raise ValueError("canary checkpoint has an invalid cost_usd")
+
+    failure_type = record.get("failure_type")
+    failure_condition = record.get("failure_condition")
+    if status == "admitted":
+        if failure_type is not None or failure_condition is not None:
+            raise ValueError("canary checkpoint admitted record has unexpected failure fields")
+    else:
+        if failure_type not in (_PROVIDER_FAILURE, _CANARY_REJECTED):
+            raise ValueError("canary checkpoint has an unexpected failure_type")
+        if failure_type == _PROVIDER_FAILURE:
+            if failure_condition not in _RESUMABLE_PROVIDER_FAILURE_CONDITIONS:
+                raise ValueError("canary checkpoint has an unexpected failure_condition")
+        else:
+            if failure_condition not in _CANARY_REJECTED_CONDITIONS:
+                raise ValueError("canary checkpoint has an unexpected failure_condition")
 
     first_request = _build_probe_request(
         family_id=family_id, ordinal=0, limit=limits[0], remaining_budget=total_max_cost_usd
@@ -391,7 +497,7 @@ def _verify_resumed_record(
         raise ValueError("canary checkpoint probes must be a list")
     if len(probes) > len(limits):
         raise ValueError("canary checkpoint probe count exceeds requested limits")
-    if record.get("status") == "admitted" and len(probes) != len(limits):
+    if status == "admitted" and len(probes) != len(limits):
         raise ValueError("canary checkpoint probe count does not match requested limits")
 
     cumulative = 0.0
@@ -404,8 +510,17 @@ def _verify_resumed_record(
             raise ValueError("canary checkpoint probe limit does not match requested limits")
         if probe.get("resolved_model") not in _RESUMABLE_RESOLVED_MODELS:
             raise ValueError("canary checkpoint probe has an unexpected resolved_model")
-        if probe.get("finish_reason") not in _RESUMABLE_FINISH_REASONS:
+        probe_finish_reason = probe.get("finish_reason")
+        if probe_finish_reason not in _RESUMABLE_FINISH_REASONS:
             raise ValueError("canary checkpoint probe has an unexpected finish_reason")
+        if status == "admitted" and probe_finish_reason != "stop":
+            raise ValueError("canary checkpoint admitted record has a non-stop probe")
+        if _validated_token_count(probe.get("input_tokens")) is None:
+            raise ValueError("canary checkpoint probe has an invalid input_tokens")
+        if _validated_token_count(probe.get("cached_input_tokens")) is None:
+            raise ValueError("canary checkpoint probe has an invalid cached_input_tokens")
+        if _validated_token_count(probe.get("output_tokens")) is None:
+            raise ValueError("canary checkpoint probe has an invalid output_tokens")
         remaining = total_max_cost_usd - cumulative
         expected = _build_probe_request(
             family_id=family_id,
@@ -415,9 +530,33 @@ def _verify_resumed_record(
         ).request_sha256
         if probe.get("request_sha256") != expected:
             raise ValueError("canary checkpoint request hash mismatch")
-        cost = probe.get("cost_usd")
-        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
-            cumulative += cost
+        probe_cost = probe.get("cost_usd")
+        if probe_cost is not None:
+            validated_probe_cost = _numeric(probe_cost)
+            if validated_probe_cost is None:
+                raise ValueError("canary checkpoint probe has an invalid cost_usd")
+            cumulative += validated_probe_cost
+
+    if status == "rejected" and failure_type == _CANARY_REJECTED:
+        if failure_condition in _LAST_PROBE_DETERMINABLE_CONDITIONS:
+            if not probes:
+                raise ValueError("canary checkpoint rejected record has no probes")
+            last_finish_reason = probes[-1].get("finish_reason")
+            if failure_condition == "length":
+                if last_finish_reason not in _TRUNCATED_FINISH_REASONS:
+                    raise ValueError(
+                        "canary checkpoint failure_condition is inconsistent with its last probe"
+                    )
+            elif failure_condition == "cost_ceiling_exceeded":
+                if not cumulative > total_max_cost_usd:
+                    raise ValueError(
+                        "canary checkpoint failure_condition is inconsistent with its last probe"
+                    )
+            else:  # "invalid_json_response" or "invalid_response"
+                if last_finish_reason != "stop":
+                    raise ValueError(
+                        "canary checkpoint failure_condition is inconsistent with its last probe"
+                    )
 
 
 def _resume(
@@ -439,9 +578,35 @@ def _resume(
     checked too, so a record that is internally consistent but schema-
     extended, prompt-stale, or tampered-within-vocabulary is rejected all
     the same.
+
+    The checkpoint is never read by name through ``Path.read_text``: the
+    caller already ``lstat``-checked the destination before calling this
+    function, but that check and this read are two separate filesystem
+    calls, so a concurrent writer could swap a symlink into place in
+    between. This opens the path exactly once, with ``O_NOFOLLOW``, so that
+    exact race is caught here too -- a symlink discovered at open time
+    raises ``ELOOP``, which is turned into the same typed rejection as a
+    symlink discovered by the earlier ``lstat`` -- rather than trusting the
+    name to still mean what the ``lstat`` saw.
     """
     try:
-        record = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        checkpoint_fd = os.open(checkpoint_path, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError as error:
+        if error.errno == errno.ELOOP:
+            raise ValueError("canary checkpoint destination must not be a symlink") from error
+        raise
+    try:
+        chunks = []
+        while True:
+            chunk = os.read(checkpoint_fd, 65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        raw = b"".join(chunks)
+    finally:
+        os.close(checkpoint_fd)
+    try:
+        record = json.loads(raw.decode("utf-8"))
     except json.JSONDecodeError as error:
         raise ValueError("canary checkpoint is not valid JSON") from error
     if not isinstance(record, dict):
