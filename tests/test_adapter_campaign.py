@@ -379,51 +379,77 @@ def test_write_once_checks_symlinks_at_open_time_not_before(tmp_path: Path) -> N
     assert target.read_text(encoding="utf-8") == "not a checkpoint"
 
 
-def test_write_once_detects_a_concurrent_writer_that_publishes_a_symlink(
+def test_write_once_leaves_no_final_or_temp_file_when_the_write_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # By the time our own O_CREAT|O_EXCL call reaches the filesystem, a
-    # concurrent writer has swapped the destination for a symlink. This is
-    # only caught if the symlink check runs *after* that race -- i.e.
-    # inside the FileExistsError handler, informed by the path's state at
-    # open time -- rather than as an earlier stat performed before the
-    # open attempt, back when the path was still ordinary and absent.
+    # A write that dies partway through must not leave a partial final
+    # file, and must not leave a stray temp file behind either: the
+    # publish step (``os.link``) is never reached, and the temp file is
+    # removed by the outer ``finally`` regardless of where the failure
+    # happened.
+    path = tmp_path / "canary.json"
+
+    def failing_write(fd, data):
+        raise OSError("simulated write failure")
+
+    monkeypatch.setattr(os, "write", failing_write)
+    with pytest.raises(OSError, match="simulated write failure"):
+        _write_once(path, {"status": "ok"})
+    assert not path.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_write_once_rejects_a_symlink_published_after_the_temp_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # By the time our own atomic publish (``os.link``) reaches the
+    # filesystem, a concurrent writer has swapped the destination for a
+    # symlink. This is only caught if the symlink check runs *after* that
+    # race -- i.e. inside the ``FileExistsError`` handler, informed by the
+    # path's state at link time -- rather than as an earlier stat performed
+    # before the link attempt, back when the path was still ordinary and
+    # absent. The temp write itself must have already happened and
+    # succeeded by the time this race is injected.
     path = tmp_path / "canary.json"
     elsewhere = tmp_path / "elsewhere.json"
-    real_open = os.open
+    real_link = os.link
     calls = {"count": 0}
 
-    def racing_open(target, flags, mode=0o777, *args, **kwargs):
+    def racing_link(src, dst, *args, **kwargs):
         calls["count"] += 1
-        if calls["count"] == 1 and Path(target) == path:
+        if calls["count"] == 1 and Path(dst) == path:
             path.symlink_to(elsewhere)
-        return real_open(target, flags, mode, *args, **kwargs)
+        return real_link(src, dst, *args, **kwargs)
 
-    monkeypatch.setattr(os, "open", racing_open)
+    monkeypatch.setattr(os, "link", racing_link)
     with pytest.raises(ValueError, match="must not be a symlink"):
         _write_once(path, {"status": "ok"})
+    # The symlink's target is untouched: a rejected publish never follows
+    # the link and writes through it.
     assert not elsewhere.exists()
+    # No stray temp file survives the rejection.
+    assert sorted(p.name for p in tmp_path.iterdir()) == [path.name]
 
 
 def test_write_once_rejects_a_concurrent_writer_with_different_content(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Simulates a second writer publishing a different payload in the
-    # window between our directory creation and our own O_CREAT|O_EXCL
-    # attempt: our open() call itself is the only thing that discovers the
+    # window between our temp write and our own atomic ``os.link``
+    # attempt: the link call itself is the only thing that discovers the
     # race, so we inject the competing write from inside a patched
-    # os.open just before the real open() runs.
+    # os.link just before the real link() runs.
     path = tmp_path / "canary.json"
-    real_open = os.open
+    real_link = os.link
     calls = {"count": 0}
 
-    def racing_open(target, flags, mode=0o777, *args, **kwargs):
+    def racing_link(src, dst, *args, **kwargs):
         calls["count"] += 1
-        if calls["count"] == 1 and Path(target) == path:
+        if calls["count"] == 1 and Path(dst) == path:
             path.write_bytes(b'{"status":"from another writer"}\n')
-        return real_open(target, flags, mode, *args, **kwargs)
+        return real_link(src, dst, *args, **kwargs)
 
-    monkeypatch.setattr(os, "open", racing_open)
+    monkeypatch.setattr(os, "link", racing_link)
     with pytest.raises(ValueError, match="refusing to overwrite"):
         _write_once(path, {"status": "ok"})
     # No silent overwrite and no partial read: the file holds exactly what
@@ -436,16 +462,16 @@ def test_write_once_is_idempotent_against_a_concurrent_writer_with_identical_con
 ) -> None:
     path = tmp_path / "canary.json"
     payload = canonical_json_bytes({"status": "ok"}) + b"\n"
-    real_open = os.open
+    real_link = os.link
     calls = {"count": 0}
 
-    def racing_open(target, flags, mode=0o777, *args, **kwargs):
+    def racing_link(src, dst, *args, **kwargs):
         calls["count"] += 1
-        if calls["count"] == 1 and Path(target) == path:
+        if calls["count"] == 1 and Path(dst) == path:
             path.write_bytes(payload)
-        return real_open(target, flags, mode, *args, **kwargs)
+        return real_link(src, dst, *args, **kwargs)
 
-    monkeypatch.setattr(os, "open", racing_open)
+    monkeypatch.setattr(os, "link", racing_link)
     _write_once(path, {"status": "ok"})
     assert path.read_bytes() == payload
 
@@ -552,3 +578,253 @@ def test_resume_rejects_a_record_with_an_extra_key_even_with_matching_digest(
                 client=ExplodingClient(),
             )
         )
+
+
+def test_resume_rejects_a_record_with_a_probe_removed(tmp_path: Path) -> None:
+    # An admitted record must have exactly as many probes as limits it was
+    # admitted against: an attacker who deletes one probe and recomputes
+    # the digest correctly produces a record that is internally
+    # consistent, but no longer the shape an admission promises.
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048, 4096),
+            client=AdmittedClient(),
+        )
+    )
+    assert first["status"] == "admitted"
+    assert len(first["probes"]) == 2
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["probes"] = tampered["probes"][:1]
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="probe count does not match"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048, 4096),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_provider_failure_checkpoint_whose_prompt_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A ProviderFailure checkpoint carries no probes, so it has nothing to
+    # hash-check against the current prompt unless it is re-validated
+    # through its own sealed ``first_request_sha256``.
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=RejectedClient(),
+        )
+    )
+    assert first["status"] == "rejected"
+    assert first["failure_type"] == "provider_failure"
+    assert first["probes"] == []
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    monkeypatch.setattr(
+        adapter_campaign, "_CANARY_INSTRUCTIONS", "Return a different instruction."
+    )
+    with pytest.raises(ValueError, match="request hash mismatch"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_probe_with_an_extra_key(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["probes"] = [dict(first["probes"][0], extra_field="not part of the schema")]
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="unexpected key set"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_probe_with_a_missing_key(tmp_path: Path) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    incomplete_probe = dict(first["probes"][0])
+    del incomplete_probe["cached_input_tokens"]
+    tampered["probes"] = [incomplete_probe]
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="unexpected key set"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_record_with_an_unrecognized_failure_condition(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "canary.json"
+    first = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=path,
+            max_output_tokens=(2048,),
+            client=RejectedClient(),
+        )
+    )
+    assert first["status"] == "rejected"
+    tampered = {key: value for key, value in first.items() if key != "record_sha256"}
+    tampered["failure_condition"] = "not_a_real_condition"
+    tampered["record_sha256"] = _digest(tampered)
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError("provider must not be called on a rejected resume")
+
+    with pytest.raises(ValueError, match="unexpected failure_condition"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+# --- resume must not follow a symlinked checkpoint path ---------------------
+
+
+def test_resume_rejects_a_symlink_checkpoint_path_without_calling_the_provider(
+    tmp_path: Path,
+) -> None:
+    real_path = tmp_path / "canary_real.json"
+    asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=real_path,
+            max_output_tokens=(2048,),
+            client=AdmittedClient(),
+        )
+    )
+    symlink_path = tmp_path / "canary_link.json"
+    symlink_path.symlink_to(real_path)
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError(
+                "provider must not be called when checkpoint path is a symlink"
+            )
+
+    with pytest.raises(ValueError, match="must not be a symlink"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=symlink_path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+def test_resume_rejects_a_dangling_symlink_checkpoint_path_without_calling_the_provider(
+    tmp_path: Path,
+) -> None:
+    symlink_path = tmp_path / "canary_dangling.json"
+    symlink_path.symlink_to(tmp_path / "does_not_exist.json")
+
+    class ExplodingClient:
+        async def complete(self, request):
+            raise AssertionError(
+                "provider must not be called when checkpoint path is a symlink"
+            )
+
+    with pytest.raises(ValueError, match="must not be a symlink"):
+        asyncio.run(
+            run_adapter_canary(
+                family_id="contract_fixture",
+                checkpoint_path=symlink_path,
+                max_output_tokens=(2048,),
+                client=ExplodingClient(),
+            )
+        )
+
+
+# --- provider-reported token fields are validated before persisting --------
+
+
+def test_adapter_canary_rejects_non_numeric_token_counts(tmp_path: Path) -> None:
+    class LyingTokenClient(AdmittedClient):
+        async def complete(self, request):
+            result = await super().complete(request)
+            result.input_tokens = "SECRET"
+            return result
+
+    record = asyncio.run(
+        run_adapter_canary(
+            family_id="contract_fixture",
+            checkpoint_path=tmp_path / "bad_tokens.json",
+            max_output_tokens=(2048,),
+            client=LyingTokenClient(),
+        )
+    )
+    assert record["status"] == "rejected"
+    assert record["failure_condition"] == "invalid_token_accounting"
+    assert b"SECRET" not in canonical_json_bytes(record)
+    assert record["probes"] == []

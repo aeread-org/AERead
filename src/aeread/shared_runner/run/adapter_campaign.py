@@ -12,15 +12,32 @@ retried run resumes instead of re-spending money.
 Only ``run_adapter_canary``, the canary constants, and the two write-once
 helpers (``_write_once``, ``_digest``) are a stable surface for family
 campaign modules. Everything else here is private.
+
+The aggregate cost ceiling is enforced twice. Pre-call, every probe request
+carries ``max_cost_usd`` set to the remaining budget (``total_max_cost_usd``
+minus whatever has already been charged), so a well-behaved provider refuses
+the call itself rather than this module discovering the overage afterward.
+Post-call, any response whose reported cost -- added to the running total --
+would exceed the ceiling is rejected here regardless of what the provider
+allowed, and it is charged before that rejection, never coerced to zero.
+Actual spend can still exceed the ceiling only if the provider ignores
+``max_cost_usd`` and reports a cost that alone blows through the remainder
+in one call; that response is rejected as ``cost_ceiling_exceeded``, and the
+checkpoint's ``cumulative_cost_usd`` records the full amount actually
+charged, not the ceiling, so an over-charge is visible rather than silently
+truncated.
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
+import errno
 import hashlib
 import json
 import math
 import os
+import secrets
+import stat
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -111,6 +128,7 @@ _RECORD_SCHEMA_KEYS = frozenset(
         "schema_version",
         "route_provider",
         "scored",
+        "first_request_sha256",
         "family_id",
         "provider",
         "model",
@@ -127,6 +145,46 @@ _RECORD_SCHEMA_KEYS = frozenset(
         "failure_type",
         "failure_condition",
         "record_sha256",
+    }
+)
+
+# The exact set of keys a single sealed probe entry may carry. A probe
+# missing one of these or carrying an extra one is rejected on resume even
+# when the record's own digest is internally consistent, for the same
+# reason ``_RECORD_SCHEMA_KEYS`` exists: a digest only proves self-
+# coherence, not the shape this schema promises.
+_PROBE_RECORD_KEYS = frozenset(
+    {
+        "request_sha256",
+        "max_output_tokens",
+        "resolved_model",
+        "finish_reason",
+        "input_tokens",
+        "cached_input_tokens",
+        "output_tokens",
+        "cost_usd",
+    }
+)
+
+# Closed vocabularies a resumed record's status-linked fields must belong
+# to -- the same ones enforced at write time. A tampered-but-internally-
+# consistent checkpoint (digest recomputed correctly after the edit) is
+# only caught by checking values against these sets, not by the digest.
+_RESUMABLE_RESOLVED_MODELS = frozenset({MODEL, _UNEXPECTED_MODEL})
+_RESUMABLE_FINISH_REASONS = _ALLOWED_FINISH_REASONS | frozenset({_UNEXPECTED_FINISH_REASON})
+_RESUMABLE_FAILURE_TYPES = frozenset({None, _PROVIDER_FAILURE, _CANARY_REJECTED})
+_RESUMABLE_PROVIDER_FAILURE_CONDITIONS = _SAFE_PROVIDER_FAILURE_CONDITIONS | frozenset(
+    {"provider_error"}
+)
+_CANARY_REJECTED_CONDITIONS = frozenset(
+    {
+        "cost_budget_exceeded",
+        "accounting_unavailable",
+        "cost_ceiling_exceeded",
+        "invalid_token_accounting",
+        "length",
+        "invalid_json_response",
+        "invalid_response",
     }
 )
 
@@ -154,49 +212,87 @@ def _digest(value: Any) -> str:
 
 
 def _write_once(path: Path, value: Mapping[str, Any]) -> None:
-    """Durably persist ``value`` without ever overwriting different content.
+    """Durably and atomically persist ``value`` without ever overwriting
+    different content.
 
-    Mirrors ``task.receipts.write_evaluation_receipt``: the final path is
-    created with ``O_CREAT | O_EXCL`` so two processes racing to seal the
-    same checkpoint cannot corrupt each other's write. A process that loses
-    the race either finds byte-identical content (idempotent, returns
-    normally) or finds different content (a genuine conflict, raised).
+    The payload is written in full to a uniquely-named temp file in the
+    same directory and fsynced there -- under a name nothing else is
+    looking at -- before it is ever linked onto the final path. Publishing
+    is a single ``os.link(temp, path)`` call: an atomic filesystem
+    operation, so a concurrent reader can never observe a partially-written
+    final file, and a write that fails before that link leaves no final
+    file at all (only a temp file, which the outer ``finally`` always
+    removes, whatever happens).
 
-    The symlink check happens inside the ``FileExistsError`` handler --
-    i.e. at the moment ``os.open`` itself discovered the path already
-    exists -- rather than as a separate stat performed before the open
-    call. A pre-open check has a race window: another process could swap a
-    symlink into place after we checked and before we opened, and a
-    ``path.is_file()``/``read_bytes()`` comparison afterward would happily
-    follow that symlink and read its target.
+    ``os.link`` raises ``FileExistsError`` when the final path already
+    exists, which is how a losing racer discovers it lost: it opens the
+    winner's file with ``O_NOFOLLOW`` so a racer that published a symlink
+    is rejected rather than followed, then compares bytes through that
+    descriptor. Byte-identical content is idempotent and returns normally;
+    different content is a genuine conflict and is raised. The symlink
+    check happens only at this point -- informed by the filesystem's own
+    discovery that the path exists -- never as an earlier stat performed
+    before the link is attempted, which would have a race window of its
+    own: another process could swap a symlink into place after the check
+    and before the link.
     """
     payload = canonical_json_bytes(value) + b"\n"
     path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.parent / f".{path.name}.tmp-{os.getpid()}-{secrets.token_hex(8)}"
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        if path.is_symlink():
-            raise ValueError("checkpoint destination must not be a symlink")
-        if not path.is_file() or path.read_bytes() != payload:
-            raise ValueError(
-                f"refusing to overwrite a different adapter campaign checkpoint: {path}"
-            )
-        return
-    try:
-        view = memoryview(payload)
-        while view:
-            written = os.write(fd, view)
-            if written <= 0:
-                raise OSError("short write while persisting adapter campaign checkpoint")
-            view = view[written:]
-        os.fsync(fd)
+        temp_fd = os.open(
+            temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+        )
+        try:
+            view = memoryview(payload)
+            while view:
+                written = os.write(temp_fd, view)
+                if written <= 0:
+                    raise OSError("short write while persisting adapter campaign checkpoint")
+                view = view[written:]
+            os.fsync(temp_fd)
+        finally:
+            os.close(temp_fd)
+
+        try:
+            os.link(temp_path, path)
+        except FileExistsError:
+            try:
+                existing_fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+            except OSError as error:
+                if error.errno == errno.ELOOP:
+                    raise ValueError(
+                        "checkpoint destination must not be a symlink"
+                    ) from error
+                raise
+            try:
+                if stat.S_ISLNK(os.fstat(existing_fd).st_mode):
+                    raise ValueError("checkpoint destination must not be a symlink")
+                chunks = []
+                while True:
+                    chunk = os.read(existing_fd, 65536)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                existing = b"".join(chunks)
+            finally:
+                os.close(existing_fd)
+            if existing != payload:
+                raise ValueError(
+                    f"refusing to overwrite a different adapter campaign checkpoint: {path}"
+                )
+            return
+
+        directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
-        os.close(fd)
-    directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
 
 
 def _validate_limits(limits: tuple[int, ...]) -> None:
@@ -241,28 +337,75 @@ def _campaign_identity(
     }
 
 
-def _verify_resumed_probe_hashes(
+def _verify_resumed_record(
     record: Mapping[str, Any],
     *,
     family_id: str,
     limits: tuple[int, ...],
     total_max_cost_usd: float,
 ) -> None:
-    """Reject a checkpoint whose sealed probes disagree with today's requests.
+    """Reject a checkpoint whose sealed contents disagree with today's
+    request construction or drift outside the closed schema it was sealed
+    against.
 
-    Each stored ``request_sha256`` is not merely compared to itself: it is
-    recomputed from the *current* prompt, schema, limits, model, revision
-    and seed by rebuilding the same probe request this call would send, so
-    a prompt or schema edit invalidates every earlier checkpoint instead of
-    letting it resume unchanged.
+    Every probe's ``request_sha256`` is not merely compared to itself: it
+    is recomputed from the *current* prompt, schema, limits, model,
+    revision and seed by rebuilding the same probe request this call would
+    send, so a prompt or schema edit invalidates every earlier checkpoint
+    instead of letting it resume unchanged. A ``ProviderFailure`` checkpoint
+    carries no probes at all, so it is re-validated the same way against a
+    sealed ``first_request_sha256`` -- the hash of the very first probe
+    this campaign ever intended to send -- rather than being exempted for
+    having nothing else to check.
+
+    Every probe's key set must equal the closed probe schema, and its
+    ``resolved_model``/``finish_reason`` -- along with the record's own
+    ``failure_type``/``failure_condition`` -- must fall inside the same
+    closed vocabularies enforced at write time: a digest only proves a
+    record is internally self-consistent, not that an attacker who
+    recomputed it correctly after tampering a field stayed inside the
+    vocabulary this schema promises.
     """
+    failure_type = record.get("failure_type")
+    if failure_type not in _RESUMABLE_FAILURE_TYPES:
+        raise ValueError("canary checkpoint has an unexpected failure_type")
+    failure_condition = record.get("failure_condition")
+    if failure_type is None:
+        if failure_condition is not None:
+            raise ValueError("canary checkpoint has an unexpected failure_condition")
+    elif failure_type == _PROVIDER_FAILURE:
+        if failure_condition not in _RESUMABLE_PROVIDER_FAILURE_CONDITIONS:
+            raise ValueError("canary checkpoint has an unexpected failure_condition")
+    else:
+        if failure_condition not in _CANARY_REJECTED_CONDITIONS:
+            raise ValueError("canary checkpoint has an unexpected failure_condition")
+
+    first_request = _build_probe_request(
+        family_id=family_id, ordinal=0, limit=limits[0], remaining_budget=total_max_cost_usd
+    )
+    if record.get("first_request_sha256") != first_request.request_sha256:
+        raise ValueError("canary checkpoint request hash mismatch")
+
     probes = record.get("probes")
     if not isinstance(probes, list):
-        return
+        raise ValueError("canary checkpoint probes must be a list")
+    if len(probes) > len(limits):
+        raise ValueError("canary checkpoint probe count exceeds requested limits")
+    if record.get("status") == "admitted" and len(probes) != len(limits):
+        raise ValueError("canary checkpoint probe count does not match requested limits")
+
     cumulative = 0.0
     for ordinal, probe in enumerate(probes):
-        if not isinstance(probe, Mapping) or ordinal >= len(limits):
-            raise ValueError("canary checkpoint probe count exceeds requested limits")
+        if not isinstance(probe, Mapping):
+            raise ValueError("canary checkpoint probe is not an object")
+        if set(probe.keys()) != _PROBE_RECORD_KEYS:
+            raise ValueError("canary checkpoint probe has an unexpected key set")
+        if probe.get("max_output_tokens") != limits[ordinal]:
+            raise ValueError("canary checkpoint probe limit does not match requested limits")
+        if probe.get("resolved_model") not in _RESUMABLE_RESOLVED_MODELS:
+            raise ValueError("canary checkpoint probe has an unexpected resolved_model")
+        if probe.get("finish_reason") not in _RESUMABLE_FINISH_REASONS:
+            raise ValueError("canary checkpoint probe has an unexpected finish_reason")
         remaining = total_max_cost_usd - cumulative
         expected = _build_probe_request(
             family_id=family_id,
@@ -290,11 +433,12 @@ def _resume(
     Every sealed identity input must match the current call's arguments: a
     caller resuming with a different family, route, limit set, budget, or
     accounting requirement gets a typed ``ValueError`` rather than a stale
-    admission for work it never actually requested. The record's key set
-    and its probes' request hashes against the *current* request
-    construction are checked too, so a record that is internally
-    consistent but schema-extended or prompt-stale is rejected all the
-    same.
+    admission for work it never actually requested. The record's key set,
+    every probe's key set and request hash against the *current* request
+    construction, and every status-linked field's closed vocabulary are
+    checked too, so a record that is internally consistent but schema-
+    extended, prompt-stale, or tampered-within-vocabulary is rejected all
+    the same.
     """
     try:
         record = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -311,7 +455,7 @@ def _resume(
     for key, expected in identity.items():
         if record.get(key) != expected:
             raise ValueError("canary checkpoint input mismatch")
-    _verify_resumed_probe_hashes(
+    _verify_resumed_record(
         record, family_id=family_id, limits=limits, total_max_cost_usd=total_max_cost_usd
     )
     return record
@@ -354,6 +498,20 @@ def _numeric(value: Any) -> float | None:
     if not math.isfinite(value) or value < 0:
         return None
     return float(value)
+
+
+def _validated_token_count(value: Any) -> int | None:
+    """Return ``value`` as a validated non-negative ``int``, or ``None``.
+
+    A provider-reported token field that is anything other than a plain
+    non-negative int -- a string, for instance -- is never persisted
+    verbatim: an unvalidated numeric-looking field could otherwise smuggle
+    arbitrary provider text into a public checkpoint under a key that
+    looks like a count.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
 
 
 def _raw_usage_agrees(result: Any) -> bool:
@@ -458,7 +616,17 @@ async def run_adapter_canary(
         require_reported_accounting=require_reported_accounting,
     )
 
-    if checkpoint_path.exists():
+    # ``lstat``, not ``exists``/``is_file``: a symlink at the checkpoint
+    # destination is rejected outright, before any provider call, whether
+    # it points at a real checkpoint or nowhere at all. ``exists()`` follows
+    # the link and would happily resume through it.
+    try:
+        checkpoint_lstat = os.lstat(checkpoint_path)
+    except FileNotFoundError:
+        checkpoint_lstat = None
+    if checkpoint_lstat is not None:
+        if stat.S_ISLNK(checkpoint_lstat.st_mode):
+            raise ValueError("canary checkpoint destination must not be a symlink")
         return _resume(
             checkpoint_path,
             identity,
@@ -471,6 +639,9 @@ async def run_adapter_canary(
         "schema_version": SCHEMA_VERSION,
         "route_provider": ROUTE_PROVIDER,
         "scored": False,
+        "first_request_sha256": _build_probe_request(
+            family_id=family_id, ordinal=0, limit=limits[0], remaining_budget=budget
+        ).request_sha256,
         **identity,
     }
     probes: list[dict[str, Any]] = []
@@ -534,15 +705,26 @@ async def run_adapter_canary(
             return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="accounting_unavailable", cost_unknown=True)
         cumulative += cost
+        # Validated before it ever reaches the probe dict, never after: a
+        # provider-reported token field that is not a plain non-negative
+        # int (a string, say) must not be persisted verbatim, because by
+        # the time it was in the probe dict it would already be in the
+        # checkpoint bytes this rejection is trying to keep it out of.
+        input_tokens = _validated_token_count(result.input_tokens)
+        cached_input_tokens = _validated_token_count(result.cached_input_tokens)
+        output_tokens = _validated_token_count(result.output_tokens)
+        if input_tokens is None or cached_input_tokens is None or output_tokens is None:
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
+                             failure_condition="invalid_token_accounting")
         probes.append(
             {
                 "request_sha256": request.request_sha256,
                 "max_output_tokens": limit,
                 "resolved_model": _sanitized_resolved_model(result.resolved_model),
                 "finish_reason": _sanitized_finish_reason(result.finish_reason),
-                "input_tokens": result.input_tokens,
-                "cached_input_tokens": result.cached_input_tokens,
-                "output_tokens": result.output_tokens,
+                "input_tokens": input_tokens,
+                "cached_input_tokens": cached_input_tokens,
+                "output_tokens": output_tokens,
                 "cost_usd": cost,
             }
         )
