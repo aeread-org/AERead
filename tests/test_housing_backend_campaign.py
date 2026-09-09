@@ -570,9 +570,19 @@ def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
     )
     gates = {row["gate_id"]: row for row in qualification["gate_status"]}
 
+    # The published v8 design gate was sealed when design identity still
+    # included the kernel implementation pins (schema 0.1). Under the #68
+    # ruling a design's identity excludes them, so today's artifact cannot
+    # and should not reproduce that digest: the published one is sealed
+    # history and is asserted as such. What is asserted about today's code is
+    # the property the ruling defines -- the v8 design digest is stable across
+    # kernel commits -- pinned once, here. If it moves, the v8 design changed.
+    assert gates["design"]["artifact_sha256"] == (
+        "b1b14d848e613e4665da94517ab7f92ddf4b102b7a15d4e39bb830d1d7e4c1da"
+    )
     assert design_artifact(contract, routes=route_table(contract))[
         "artifact_sha256"
-    ] == gates["design"]["artifact_sha256"]
+    ] == "1628ee9d8ffe29ddf455831f549eb12535a40139a85597f060682807b6b5815d"
     assert provider_free_artifact(contract)["artifact_sha256"] == gates[
         "provider_free"
     ]["artifact_sha256"]
