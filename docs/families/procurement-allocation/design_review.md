@@ -752,6 +752,63 @@ suppliers that search order matters combinatorially, is untouched: it is
 generator work and only becomes meaningful once screening is cheap, since it is
 screening that makes a wide field affordable to survey.
 
+## 24. The cheap-information channel is unreachable, even when the prompt names it
+
+Defect 23 landed a mechanism that makes screening worth $254 a world to a
+deterministic policy. This is what happened when a model played the same worlds.
+
+**Control screen, six worlds, six seeds, 35 completed rows.**
+
+| action | count |
+|---|---:|
+| `request_quote` | 119 |
+| `request_sample` | 116 |
+| `submit_award` | 32 |
+| `counter_offer` | 9 |
+| `defer` | 3 |
+| **`inquire`** | **0** |
+
+Zero. The subject never buys the cheap reading, so the mechanism was inert and
+the four worlds that screened as admissible were separating on deadline
+accidents rather than on screening skill.
+
+**So the prompt was told about it.** A two-arm run on the same six worlds, five
+seeds each, identical supplier populations, differing in one added paragraph that
+names the `inquire` action, states that it costs one action against a sample's
+two, states that it returns a small inspected batch insufficient to award, and
+says that samples cost days against a real deadline.
+
+| arm | rows | rows that screened | inquiries | mean regret | median | wins |
+|---|---:|---:|---:|---:|---:|---:|
+| control, frozen V4 | 29 | 0 | 0 | $164.32 | $254.70 | 11 |
+| screening guidance added | 30 | 0 | 0 | $176.39 | $262.83 | 10 |
+
+**Still zero.** The regret difference is noise between two arms doing the same
+thing, and must not be read as a treatment effect.
+
+This is not an environment fault, and that was checked rather than assumed. On
+these exact case files the action parses, is legal, returns a reading of
+`screened_units: 6, screened_defects: 1, screened_yield_rate: 0.833`, and that
+reading appears in the buyer's observation. The channel is open. The subject does
+not enter it.
+
+**What this measures.** On these worlds a deterministic policy that screens
+before verifying scores $0.20 to $2.69 in regret. The subject averages $164 to
+$176. The gap is attributable to one behaviour: it never buys cheap information,
+and telling it to does not change that. That is the first capability gap this
+family has produced that is large, specific and mechanism-backed rather than a
+threshold artifact.
+
+It is also, deliberately, not a result yet. One model, one scaffold, 59 rows,
+six worlds, no admitted panel, and prompt wording is a weak instrument for a
+behaviour this stable. What it does establish is that **the fix for defect 15 was
+aimed at the wrong layer**. Information a subject will not buy cannot be made
+relevant by making it cheaper, more accurate, or better advertised. The next
+change has to make the direct path unavailable or costly enough that the
+procedure itself must branch: for example removing `request_sample` as a
+first-contact action, or pricing the first sample of an unscreened supplier at
+two actions rather than one.
+
 ## Status of the fixes
 
 | defect | state |
@@ -771,8 +828,9 @@ screening that makes a wide field affordable to survey.
 | 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
-| 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
+| 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
 | 23 exchangeability broken by a cheap signal | **mechanism landed, effect unproven** — `inquiry_batch` plus slow verification separates three deterministic policies by ~$254; no model has played it and no panel is admitted |
 | 22 difficulty is quantized in recoveries | open, and it supersedes the panel work; three shapes screened at $0.34 show trivial, trivial and floored with nothing between, so the next change is to the environment and not to any panel |
 | 21 the binary metric was the constraint | **evidenced** — the noisy panel is uninformative on `feasible_award` and discriminating on regret over the same 23 rows; `classify_world_continuous` added and mutation-verified, admission not yet re-run |
