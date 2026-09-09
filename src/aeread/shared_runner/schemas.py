@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping
 
+from .run import json_pointer
+
 
 class AuthoringValidationError(ValueError):
     """An authored runner record violates its strict versioned contract."""
@@ -27,13 +29,12 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 # ``trajectory_outcome_paths`` always names a specific field, never the root.
 # kernel_r9r10_review.md finding 4: every segment must additionally name an
 # OBJECT field. An RFC 6901 array-index segment (all ASCII digits, e.g.
-# "/history/0") satisfies this regex but can never complete the
-# scoring-contract protocol test's projection: that projection navigates
-# JSON objects only, and raises on a list. ``_json_pointer_tuple`` below
-# rejects any segment that is all ASCII digits, and rejects one declared
-# path being a strict prefix of another declared path (e.g. "/history"
-# together with "/history/x") as redundant overlap.
-_JSON_POINTER_RE = re.compile(r"^(?:/[^/]+)+$")
+# "/history/0") passes plain RFC 6901 syntax (``json_pointer.parse``) but can
+# never complete the scoring-contract protocol test's projection: that
+# projection navigates JSON objects only, and raises on a list.
+# ``_json_pointer_tuple`` below rejects any segment that is all ASCII digits,
+# and rejects one declared path being a strict prefix of another declared
+# path (e.g. "/history" together with "/history/x") as redundant overlap.
 _ARRAY_INDEX_SEGMENT_RE = re.compile(r"^[0-9]+$")
 
 
@@ -168,11 +169,13 @@ def _optional_foreign_identifier(value: Any, path: str) -> str | None:
 
 def _json_pointer(value: Any, path: str) -> str:
     result = _string(value, path)
-    if not _JSON_POINTER_RE.fullmatch(result):
+    try:
+        json_pointer.parse(result)
+    except json_pointer.JsonPointerError as error:
         raise AuthoringValidationError(
             f"{path} must be a JSON pointer with at least one non-empty segment "
             f"(e.g. '/history'): got {result!r}"
-        )
+        ) from error
     return result
 
 
@@ -190,7 +193,7 @@ def _json_pointer_tuple(value: Any, path: str) -> tuple[str, ...]:
     # pointer this far accepted by ``_JSON_POINTER_RE`` alone could still
     # never complete the protocol.
     for index, pointer in enumerate(result):
-        segments = pointer.split("/")[1:]
+        segments = json_pointer.parse(pointer)
         index_segments = [
             segment for segment in segments if _ARRAY_INDEX_SEGMENT_RE.fullmatch(segment)
         ]
