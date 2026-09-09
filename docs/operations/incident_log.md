@@ -416,3 +416,17 @@ Disposition: the keys are named in the allowlist with their reason (campaign-
 registered, not a package hook), and the ratchet will demand their removal
 the day they resolve. Worth a rule: re-run a PR's checks if `main` has moved
 under it since they last ran, before merging.
+
+## 2026-09-08, TERMS-Bench first live pilot (#92)
+
+The first live path for a family whose counterpart is not a model. The
+kernel gained a scripted-seat capability for it (#150,
+`docs/kernel_scripted_seats_design.md`); the family's live setup, campaign
+and publisher were built against it offline, every corpus case run through
+the real kernel with a fake route, before any provider call.
+
+### D — Design defects
+
+| id | defect | detection | cost | disposition |
+|---|---|---|---|---|
+| TB-D-01 | a receipt with a scripted seat could be sealed and replayed but not read back: the research layer's `_deserialize_receipt` did not know `scripted_seats`, rebuilt the receipt with the empty default, and `verify_evaluation_receipt` rejected the digest; the same gap sat in `_deserialize_run_plan` for cells, and the research report's permitted-seat check named only model seats | the family publisher's test, on the first genuine receipt it projected -- offline, before any spend | none; found before the canary | fixed in #150 (`fe8cdd6d`): the research layer reads `scripted_seats` on receipts and cells, defaulting when absent so older receipts read unchanged; `receipt_projection` publishes which seats were not models; round-trip test added |

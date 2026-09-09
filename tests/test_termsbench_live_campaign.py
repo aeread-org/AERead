@@ -294,3 +294,22 @@ def test_publish_refuses_a_receipt_that_names_another_case(tmp_path) -> None:
                              status="ok", elapsed=1.0)
     with pytest.raises(RuntimeError, match="names case"):
         module.publish_campaign(run_root=root, publication_root=tmp_path / "published")
+
+
+def test_max_cases_pauses_after_complete_checkpoints_without_touching_the_route(tmp_path) -> None:
+    """The operator's pause: with the first case already complete, a
+    `max_cases=1` resume returns before the second case needs a provider."""
+    root = tmp_path / "attempt"
+    plan = build_campaign_plan()
+    module._write_once_json(root / "campaign_plan.json", plan)
+    _admitted_probe(root, plan)
+    _complete_checkpoint(root, plan, ordinal=0, case_id=PANEL_CASE_IDS[0],
+                         receipt=_sealed_receipt(tmp_path, PANEL_CASE_IDS[0]),
+                         status="ok", elapsed=1.0)
+    asyncio.run(module.execute_campaign(run_root=root, max_cases=1))
+    assert not (root / "executions").exists()
+    assert sorted(p.name for p in (root / "checkpoints").glob("*.json")) == [
+        f"00_{PANEL_CASE_IDS[0]}.json"
+    ]
+    with pytest.raises(ValueError):
+        asyncio.run(module.execute_campaign(run_root=root, max_cases=0))

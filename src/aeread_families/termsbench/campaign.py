@@ -430,7 +430,16 @@ def _leaf_values(receipt: Any) -> dict[str, Any]:
     return out
 
 
-async def execute_campaign(*, run_root: Path) -> None:
+async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> None:
+    """Run the canary, then the panel in corpus order.
+
+    `max_cases` is an operator's pause, not a frozen control: it stops after
+    that many *complete* checkpoints exist so the operator can read the
+    canary and the first case before the rest of the panel spends. The plan
+    is unchanged by it and the run resumes from its checkpoints without it.
+    """
+    if max_cases is not None and max_cases < 1:
+        raise ValueError("max_cases must be at least 1")
     plan_path = run_root / "campaign_plan.json"
     plan = build_campaign_plan()
     _write_once_json(plan_path, plan)
@@ -444,7 +453,10 @@ async def execute_campaign(*, run_root: Path) -> None:
     # first, never touches the provider.
     provider: OpenRouterChatClient | None = None
     first_elapsed: float | None = None
+    completed = 0
     for ordinal, case_id in enumerate(PANEL_CASE_IDS):
+        if max_cases is not None and completed >= max_cases:
+            return
         checkpoint_path = run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json"
         if checkpoint_path.exists():
             checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -459,6 +471,7 @@ async def execute_campaign(*, run_root: Path) -> None:
             total_cost += float(checkpoint["cost_usd"])
             if first_elapsed is None:
                 first_elapsed = float(checkpoint["elapsed_seconds"])
+            completed += 1
             continue
         if total_cost + MAX_TRAJECTORY_COST_USD > HARD_TOTAL_COST_CEILING_USD:
             raise RuntimeError("insufficient campaign budget reserve for the next case")
@@ -530,6 +543,7 @@ async def execute_campaign(*, run_root: Path) -> None:
             }
             checkpoint["record_sha256"] = _digest(checkpoint)
             _write_once_json(checkpoint_path, checkpoint)
+            completed += 1
             if first_elapsed is None:
                 first_elapsed = elapsed
         except Exception as error:
@@ -710,6 +724,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--publish-to", type=Path, default=None)
+    parser.add_argument(
+        "--max-cases",
+        type=int,
+        default=None,
+        help="stop once this many panel cases are complete (an operator's pause; resumable)",
+    )
     args = parser.parse_args(argv)
     if args.publish_to is not None:
         publish_campaign(run_root=args.run_root, publication_root=args.publish_to)
@@ -718,7 +738,7 @@ def main(argv: list[str] | None = None) -> int:
         plan = build_campaign_plan()
         print(json.dumps({"plan_sha256": plan["plan_sha256"], "campaign_id": CAMPAIGN_ID}))
         return 0
-    asyncio.run(execute_campaign(run_root=args.run_root))
+    asyncio.run(execute_campaign(run_root=args.run_root, max_cases=args.max_cases))
     return 0
 
 
