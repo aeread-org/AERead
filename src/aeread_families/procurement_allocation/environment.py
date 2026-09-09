@@ -303,10 +303,17 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     if noise is not None:
         if not isinstance(noise, Mapping):
             raise ValueError("interaction.sample_noise must be an object")
-        if set(noise) != {"model", "seed"}:
+        if not {"model", "seed"} <= set(noise) or not set(noise) <= {
+            "model",
+            "seed",
+            "inquiry_batch",
+        }:
             raise ValueError(
-                "interaction.sample_noise requires exactly 'model' and 'seed'"
+                "interaction.sample_noise requires 'model' and 'seed' and permits "
+                "only 'inquiry_batch' besides"
             )
+        if "inquiry_batch" in noise:
+            _positive_int(noise.get("inquiry_batch"), "interaction.sample_noise.inquiry_batch")
         if noise.get("model") not in SAMPLE_NOISE_MODELS:
             raise ValueError(
                 f"unsupported interaction.sample_noise.model: {noise.get('model')!r}"
@@ -1287,6 +1294,34 @@ class ProcurementAllocationPlugin:
                         "claimed_yield_rate": terms["quality"]["verified_yield_rate"],
                         "sample_required_for_verification": True,
                     }
+                    # A cheap, weak reading when the case declares one. It costs
+                    # one action against a sample's two and inspects a far
+                    # smaller batch, so it narrows the field without settling
+                    # anything. It is deliberately still a verbal claim: only a
+                    # sample authorises an award, so the evidence hierarchy is
+                    # unchanged and what moves is the cost of looking.
+                    noise = family_case["interaction"].get("sample_noise")
+                    batch = (noise or {}).get("inquiry_batch")
+                    if batch:
+                        supplier_id = str(action["supplier_id"])
+                        prior = claims.get(field, {}).get("value", {})
+                        drawn = int(prior.get("screened_units", 0))
+                        defects = _binomial_defects(
+                            seed=int(noise["seed"]),
+                            supplier_id=f"inquiry:{supplier_id}",
+                            draw_index=drawn // int(batch),
+                            sample_size=int(batch),
+                            defect_rate=1.0
+                            - float(supplier["private_terms"]["quality"]["verified_yield_rate"]),
+                        )
+                        screened = drawn + int(batch)
+                        observed = int(prior.get("screened_defects", 0)) + defects
+                        value = {
+                            **value,
+                            "screened_units": screened,
+                            "screened_defects": observed,
+                            "screened_yield_rate": 1.0 - observed / screened,
+                        }
                 elif field == "sample_logistics":
                     value = {
                         key: terms["quality"][key]

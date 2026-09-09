@@ -698,6 +698,60 @@ mutation-verified. The reference is deliberately absent from `POLICY_IDS`,
 because that tuple is pinned by a published plan and extending it would re-date
 sealed campaign identities a second time (defect 19).
 
+## 23. Breaking exchangeability: a cheap signal, and verification that costs time
+
+Defect 22 said the panel problem is not a panel problem. This is the diagnosis
+stated plainly and the first mechanism against it.
+
+**Why the family was unmeasurable.** Every supplier was exchangeable. All
+listings claimed the same yield, every check cost the same two actions, and every
+check revealed the same amount. When candidates are exchangeable there is nothing
+to be smart about: the only decision left is *how many* to check, and the budget
+fixes that. So the optimal policy is "check what you can afford, award the best",
+which is twenty lines of deterministic code, and an agent can only fall short of
+it. The quantization in defect 22 is the symptom, not the disease.
+
+**The mechanism.** `interaction.sample_noise` gains an optional `inquiry_batch`.
+When declared, an `inquire` on `quality` returns a reading from a small inspected
+batch, drawn from a stream separate from the sample stream. It costs one action
+against a sample's two and inspects fewer units. It remains a **verbal claim**,
+so only a sample still authorises an award: the evidence hierarchy is untouched
+and what changes is the cost of looking.
+
+**On its own it is worthless, and that is the point.** A sample gives 8 units for
+2 actions and an inquiry 2 units for 1, so screening is the less efficient way to
+buy evidence and no sensible policy would use it. It becomes valuable only when
+verification is *slow* and a deadline binds, because then the scarce resource is
+days rather than actions, and a cheap fast reading can aim expensive slow
+verification. That is candidate one and candidate two working together; neither
+does anything alone.
+
+Measured offline across four layouts, at a four-day sample lead time, a nine
+action budget and a twenty-two day deadline:
+
+| policy | trap cheapest in A | traps spread across both |
+|---|---:|---:|
+| blind: verify in price order until the budget runs out | $269.42 | $254.70 |
+| frugal: verify only the cheapest in each component | $268.72 | $254.00 |
+| screen cheaply, then verify the best screened | **$0.20** | **$2.69** |
+
+Three policies, three outcomes, and the ordering is not a ranking of effort.
+Over-verifying misses the deadline and under-verifying buys the trap; both cost
+about $254 to $269. Only aiming slow verification with a cheap reading wins. The
+frugal control matters most: it is exactly as fast as the screener and takes no
+reading, so the screener's margin over it is information rather than time. That
+control exists because an earlier version of this probe credited the mechanism
+for what was really a baseline's weakness, which is defect 22's J-10 in
+miniature.
+
+**What is still unproven.** No model has played these worlds. Deterministic
+policies separating is a necessary condition for a measurable family and is not
+the same as a subject demonstrating skill, and a panel built on this must still
+pass Gate 1 admission on regret. The third candidate from defect 22, enough
+suppliers that search order matters combinatorially, is untouched: it is
+generator work and only becomes meaningful once screening is cheap, since it is
+screening that makes a wide field affordable to survey.
+
 ## Status of the fixes
 
 | defect | state |
@@ -719,6 +773,7 @@ sealed campaign identities a second time (defect 19).
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 23 exchangeability broken by a cheap signal | **mechanism landed, effect unproven** — `inquiry_batch` plus slow verification separates three deterministic policies by ~$254; no model has played it and no panel is admitted |
 | 22 difficulty is quantized in recoveries | open, and it supersedes the panel work; three shapes screened at $0.34 show trivial, trivial and floored with nothing between, so the next change is to the environment and not to any panel |
 | 21 the binary metric was the constraint | **evidenced** — the noisy panel is uninformative on `feasible_award` and discriminating on regret over the same 23 rows; `classify_world_continuous` added and mutation-verified, admission not yet re-run |
 | 20 sampling noise landed opt-in | mechanism only; a case without the declared block keeps perfect verification, so nothing sealed moves |

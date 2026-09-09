@@ -318,3 +318,125 @@ def test_scoring_uses_ground_truth_not_the_buyers_estimate() -> None:
     margins = {round(_award_margin(payload, seed), 8) for seed in seeds}
     assert len(margins) == 1, f"margin followed the buyer's estimate: {margins}"
     assert margins == {round(_award_margin(payload, None), 8)}
+
+
+# --- the cheap screening reading --------------------------------------------
+#
+# Defect 22: with uniform check costs and identical listing claims, suppliers are
+# exchangeable, so the only decision is how many to check and a twenty-line
+# policy plays it perfectly. `inquiry_batch` breaks that. An inquiry costs one
+# action against a sample's two, inspects a smaller batch, and is still only a
+# verbal claim, so it narrows the field without authorising anything.
+
+
+def _screened(payload: dict, supplier_id: str, times: int) -> dict:
+    plugin = ProcurementAllocationPlugin()
+    case = plugin.validate_payload(payload)
+    phase = plugin.phases(case)[0]
+    state = plugin.initial_state(case, None)
+    for _ in range(times):
+        action = {
+            "action": "inquire",
+            "supplier_id": supplier_id,
+            "fields": ["quality"],
+            "message": "screen",
+        }
+        parsed = plugin.parse_action(case, state, "buyer", phase, action)
+        assert parsed.ok, parsed.error
+        legality = plugin.legal(case, state, "buyer", phase, parsed.action)
+        state = plugin.step(case, state, phase, {"buyer": ActionEnvelope(
+            "buyer", legality.legal, parsed.action, parsed, legality)}).state
+    return state["claims"][supplier_id]["quality"]
+
+
+def _screening_payload(**extra) -> dict:
+    noise = {"model": "binomial", "seed": 11, "inquiry_batch": 2}
+    noise.update(extra)
+    payload = _payload(noise)
+    for supplier in payload["suppliers"]:
+        supplier["private_terms"]["quality"]["sample_size"] = 8
+    return payload
+
+
+def test_an_inquiry_returns_a_reading_only_when_declared() -> None:
+    plain = _payload({"model": "binomial", "seed": 11})
+    supplier = _first_supplier(plain)
+    assert "screened_units" not in _screened(plain, supplier, 1)["value"]
+    assert "screened_units" in _screened(_screening_payload(), supplier, 1)["value"]
+
+
+def test_a_reading_is_still_only_a_verbal_claim() -> None:
+    """The evidence hierarchy is unchanged: only a sample authorises an award."""
+    payload = _screening_payload()
+    record = _screened(payload, _first_supplier(payload), 2)
+    assert record["evidence_status"] == "verbal_claim"
+    assert record["evidence_status"] != "verified_sample"
+
+
+def test_readings_accumulate_across_inquiries() -> None:
+    payload = _screening_payload()
+    supplier = _first_supplier(payload)
+    one = _screened(payload, supplier, 1)["value"]
+    three = _screened(payload, supplier, 3)["value"]
+    assert one["screened_units"] == 2 and three["screened_units"] == 6
+    assert three["screened_defects"] >= one["screened_defects"]
+
+
+def test_a_reading_never_reveals_the_true_rate() -> None:
+    payload = _screening_payload()
+    value = _screened(payload, _first_supplier(payload), 2)["value"]
+    assert "verified_yield_rate" not in value
+    assert "screened_yield_rate" in value
+
+
+def test_screening_draws_come_from_a_separate_stream() -> None:
+    """Otherwise an inquiry hands over the sample a buyer has not paid for.
+
+    Driven through the environment, not through the draw helper. Calling the
+    helper with a literal prefix tests the helper and not the wiring, and a
+    version that fed screening from the sample stream passed exactly such a test.
+
+    The batch is set equal to the sample size and the defect rate to one half, so
+    a shared stream would make the first reading and the first sample identical
+    for every supplier.
+    """
+    # Batches are enlarged rather than yields lowered. Overriding the yields to
+    # a coin flip would make the world illegal, because its full-information
+    # optimum stops beating deferring, which is design-review defect 17 reaching
+    # into a unit test. At 200 units even a 1% defect rate produces a count that
+    # can disagree between the two streams.
+    payload = _screening_payload(inquiry_batch=200)
+    for supplier in payload["suppliers"]:
+        supplier["private_terms"]["quality"]["sample_size"] = 200
+    differed = False
+    for supplier in payload["suppliers"]:
+        supplier_id = str(supplier["supplier_id"])
+        screened = _screened(payload, supplier_id, 1)["value"]["screened_defects"]
+        sampled = _sample(payload, supplier_id, 1)["observed_defects"]
+        if screened != sampled:
+            differed = True
+    assert differed, "every screening reading equalled its sample: shared stream"
+
+
+def test_screening_is_reproducible_from_the_contract() -> None:
+    supplier = _first_supplier(_screening_payload())
+    assert _screened(_screening_payload(), supplier, 3) == _screened(
+        _screening_payload(), supplier, 3
+    )
+
+
+@pytest.mark.parametrize("batch", [0, -1, 2.5, "two"])
+def test_a_malformed_inquiry_batch_is_rejected(batch: object) -> None:
+    payload = _payload()
+    payload["interaction"]["sample_noise"] = {
+        "model": "binomial", "seed": 11, "inquiry_batch": batch}
+    with pytest.raises(ValueError):
+        ProcurementAllocationPlugin().validate_payload(payload)
+
+
+def test_an_unknown_noise_field_is_still_rejected() -> None:
+    payload = _payload()
+    payload["interaction"]["sample_noise"] = {
+        "model": "binomial", "seed": 11, "inquiry_batch": 2, "extra": 1}
+    with pytest.raises(ValueError):
+        ProcurementAllocationPlugin().validate_payload(payload)
