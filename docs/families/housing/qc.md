@@ -1523,30 +1523,46 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
 
 ### Individual rationality is a validity constraint, not a metric
 
-What the finding actually shows is that the design treats a validity
-constraint as a metric. A market outcome has three properties: efficiency,
-individual rationality, and distribution. Welfare covers the first.
-Individual rationality was recorded per cell and then averaged away. But an
-agent that signs a lease at zero rent or accepts below its own cost has not
-negotiated badly, it has failed to understand its own payoff. That is a
-capability failure of the same kind as an unparseable action, and the
-register already has the right treatment for those: type it, count it, gate
-on it, never average it into the score.
+The finding shows a design that treats a validity constraint as a metric. A
+market outcome has three properties: efficiency, individual rationality and
+distribution. Welfare covers the first. Individual rationality was recorded
+per cell and then averaged away. An agent that signs a lease at zero rent or
+accepts below its own cost has not negotiated badly; it has failed to
+understand its own payoff. That is a capability failure of the same kind as
+an unparseable action, and the register already treats those correctly: type
+it, count it, gate on it, never average it into the score.
 
-The structural change this implies, for the next campaign identity rather
-than the spent holdout:
+The analysis now supports that treatment through four contract keys, each
+optional and each defaulting to the sealed behaviour, so no existing
+campaign changes (D-24):
 
-- keep `within_case_score` as the efficiency headline; the confirmatory null
-  is a real finding about assignment quality;
-- promote an IR violation by the subject seat to a typed cell-level failure,
-  reported beside operational missingness and gated with the same kind of
-  ceiling, so no interval can average it away;
-- add the subject's realized surplus, normalized against its share of the
-  oracle, as a second predeclared metric, with a predeclared rule for when
-  the two disagree;
-- type IR violations by the opponent seat separately, since the estimand
-  conditions on the opponent panel and an opponent giving units away is
-  contamination of the condition, not evidence about the subject.
+| key | values | effect |
+|---|---|---|
+| `analysis.subject_ir_violation_policy` | `averaged` (default), `typed_failure` | under `typed_failure` a completed cell whose subject seat violated individual rationality is a typed failure: it carries no score, its world contributes no contrast, and the count is published |
+| `analysis.maximum_subject_ir_failure_fraction` | fraction | required with `typed_failure`; above it, `decision_supported` and `ranking_allowed` are withheld, the same way the missingness ceiling works |
+| `analysis.secondary_estimand` | `subject_surplus_share` | a second predeclared paired world-level contrast on the tenants' realized surplus as a share of the oracle bound |
+| `analysis.winner_claim_rule` | `primary_only` (default), `primary_and_secondary_consistent` | a winner needs the efficiency interval to exclude zero; under the consistency rule the surplus interval may not exclude zero in the opposite direction |
 
-Recorded as D-24.
+Every published trajectory row now carries `subject_seat_ir_violations`,
+`opponent_seat_ir_violations` and `subject_surplus_share`. Violations by the
+opponent seat are reported and never exclude the subject: the estimand
+conditions on the opponent panel, so a landlord giving units away is
+contamination of the condition, not evidence about the tenant. Using any of
+these keys is a new campaign identity; the confirmatory holdout is spent.
 
+### A third model in the landlord seat
+
+A development probe on 2026-09-09 put Gemini 3.7 Flash, on the Google AI
+Studio route, in the landlord seat of the thin-market world under the
+campaign's frozen action schema 2.0 and version 1 prompt, against DeepSeek
+and GLM tenants. It produced no usable response at all: every one of its 12
+landlord actions in each cell came back as the JSON literal `null`, which
+the harness typed `malformed_action`, so no hold was ever created and both
+cells scored zero (O-12). GLM in the same seat on the same world, in the
+same probe, reproduced the below-cost accept from the campaign. So among the
+three models the zero-rent counter belongs to GLM alone, DeepSeek makes
+neither error, and Gemini cannot be evaluated under this schema at all,
+which is the schema's second distinct failure across models. The probe's
+evidence lives in the uncommitted run root; the first Gemini cell also lost
+its receipt because the runner source was edited under the running probe
+(J-6), a small repeat of O-11.

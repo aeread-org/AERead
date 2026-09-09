@@ -20,7 +20,7 @@ from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
 from .backend_campaign import CAMPAIGN_SPECS, load_contract, route_table
-from .model_sensitivity import _read_sealed, build_setups
+from .model_sensitivity import _read_sealed, build_setups, seat_accounting_fields
 
 
 QUALIFICATION_SCHEMA_VERSION = "aeread.housing_backend_qualification/0.4"
@@ -273,6 +273,7 @@ def _project_attempt(
                 "oracle_upper_bound": outcome["oracle_total"],
                 "within_case_score": row["within_case_score"],
                 "ir_violation_count": row["ir_violation_count"],
+                **seat_accounting_fields(outcome),
                 "wasted_contacts": row["wasted_contacts"],
                 "role_metrics": row["role_metrics"],
                 "provider_cost_complete": row["provider_cost_complete"],

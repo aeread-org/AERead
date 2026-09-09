@@ -1279,6 +1279,62 @@ def variance_pilot_analysis(
     )
 
 
+SUBJECT_IR_POLICIES = ("averaged", "typed_failure")
+SECONDARY_ESTIMANDS = ("subject_surplus_share",)
+WINNER_CLAIM_RULES = ("primary_only", "primary_and_secondary_consistent")
+
+
+def seat_accounting_fields(outcome: Mapping[str, Any]) -> dict[str, Any]:
+    """Per-seat individual-rationality counts and the subject's surplus share.
+
+    Welfare cancels every rent, so a landlord that gives a unit away scores
+    the same as one that charges the ask (incident D-16). These fields are
+    what sees that: an IR violation split by the seat that committed it, and
+    the tenants' realized surplus as a share of the oracle bound. The subject
+    of every Housing condition sits in the tenant seats and the opponent in
+    the landlord seats.
+    """
+
+    violations = [str(item) for item in outcome.get("ir_violations", ())]
+    subject = sum(1 for item in violations if item.startswith("tenant:"))
+    opponent = sum(1 for item in violations if item.startswith("landlord:"))
+    oracle = outcome.get("oracle_total")
+    tenant_payoff = sum(float(v) for v in outcome.get("tenant_payoffs", {}).values())
+    share = (
+        round(tenant_payoff / float(oracle), 9)
+        if isinstance(oracle, (int, float)) and not isinstance(oracle, bool) and float(oracle) > 0
+        else None
+    )
+    return {
+        "subject_seat_ir_violations": subject,
+        "opponent_seat_ir_violations": opponent,
+        "subject_surplus_share": share,
+    }
+
+
+def _subject_ir_policy(analysis: Mapping[str, Any]) -> str:
+    policy = analysis.get("subject_ir_violation_policy", "averaged")
+    if policy not in SUBJECT_IR_POLICIES:
+        raise ValueError(f"unknown subject_ir_violation_policy: {policy!r}")
+    return policy
+
+
+def _economically_valid(row: Mapping[str, Any], policy: str) -> bool:
+    """Under ``typed_failure`` a cell whose subject seat violated individual
+    rationality is a typed failure, not a score. Incident D-24: an agent that
+    signs above its own value has not negotiated badly, it has failed to
+    understand its own payoff, which is a capability failure of the same
+    kind as an unparseable action and gets the same treatment."""
+
+    if policy != "typed_failure":
+        return True
+    if "subject_seat_ir_violations" not in row:
+        raise ValueError(
+            "typed_failure policy needs subject_seat_ir_violations on every completed row"
+        )
+    return int(row["subject_seat_ir_violations"]) == 0
+
+
 def _paired_world_means(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -1286,6 +1342,8 @@ def _paired_world_means(
     subjects: Sequence[str],
     expected_per_subject: int,
     opponent_filter: Callable[[Mapping[str, Any]], bool] | None = None,
+    metric: str = "within_case_score",
+    eligible_row: Callable[[Mapping[str, Any]], bool] | None = None,
 ) -> tuple[list[dict[str, Any]], list[float]]:
     """Return per-world subject means and the paired contrasts they support.
 
@@ -1306,11 +1364,13 @@ def _paired_world_means(
                 and row["subject"] == subject
                 and row["status"] == "completed"
                 and (opponent_filter is None or opponent_filter(row))
+                and (eligible_row is None or eligible_row(row))
+                and row.get(metric) is not None
             ]
             subject_counts[subject] = len(eligible)
             if len(eligible) == expected_per_subject:
                 subject_means[subject] = statistics.fmean(
-                    float(row["within_case_score"]) for row in eligible
+                    float(row[metric]) for row in eligible
                 )
         complete_pair = len(subject_means) == 2
         contrast = (
@@ -1397,12 +1457,24 @@ def confirmatory_analysis(
     world_seeds = contract["execution"]["world_seeds"]
     alpha = analysis["alpha"]
 
+    ir_policy = _subject_ir_policy(analysis)
+    valid = lambda row: _economically_valid(row, ir_policy)  # noqa: E731
+    secondary_estimand = analysis.get("secondary_estimand")
+    if secondary_estimand is not None and secondary_estimand not in SECONDARY_ESTIMANDS:
+        raise ValueError(f"unknown secondary_estimand: {secondary_estimand!r}")
+    winner_rule = analysis.get("winner_claim_rule", "primary_only")
+    if winner_rule not in WINNER_CLAIM_RULES:
+        raise ValueError(f"unknown winner_claim_rule: {winner_rule!r}")
+    if winner_rule == "primary_and_secondary_consistent" and secondary_estimand is None:
+        raise ValueError("a consistency rule needs a declared secondary_estimand")
+
     expected_all = len(configs) * len(opponents) * replicates
     world_rows, contrasts = _paired_world_means(
         rows,
         world_seeds=world_seeds,
         subjects=sorted(subjects),
         expected_per_subject=expected_all,
+        eligible_row=valid,
     )
     primary = _paired_interval(contrasts, alpha=alpha)
 
@@ -1413,6 +1485,7 @@ def confirmatory_analysis(
         subjects=sorted(subjects),
         expected_per_subject=expected_slice,
         opponent_filter=lambda row: row["opponent"] != row["subject"],
+        eligible_row=valid,
     )
     self_rows, self_contrasts = _paired_world_means(
         rows,
@@ -1420,9 +1493,36 @@ def confirmatory_analysis(
         subjects=sorted(subjects),
         expected_per_subject=expected_slice,
         opponent_filter=lambda row: row["opponent"] == row["subject"],
+        eligible_row=valid,
     )
+    secondary = None
+    if secondary_estimand is not None:
+        secondary_rows, secondary_contrasts = _paired_world_means(
+            rows,
+            world_seeds=world_seeds,
+            subjects=sorted(subjects),
+            expected_per_subject=expected_all,
+            metric=secondary_estimand,
+            eligible_row=valid,
+        )
+        secondary = {
+            "estimand": secondary_estimand,
+            "interval": _paired_interval(secondary_contrasts, alpha=alpha),
+            "worlds": secondary_rows,
+        }
 
     completed = [row for row in rows if row["status"] == "completed"]
+    subject_ir_failures = [row for row in completed if not valid(row)]
+    opponent_ir_cells = sum(
+        1 for row in completed if int(row.get("opponent_seat_ir_violations") or 0) > 0
+    )
+    ir_ceiling = analysis.get("maximum_subject_ir_failure_fraction")
+    if ir_policy == "typed_failure" and ir_ceiling is None:
+        raise ValueError("typed_failure policy needs maximum_subject_ir_failure_fraction")
+    subject_ir_fraction = len(subject_ir_failures) / len(rows) if rows else 0.0
+    subject_ir_above_ceiling = bool(
+        ir_ceiling is not None and subject_ir_fraction > float(ir_ceiling) + 1e-12
+    )
     condition_means = {}
     for condition in contract["conditions"]:
         scores = [
@@ -1462,7 +1562,22 @@ def confirmatory_analysis(
         minimum_paired is not None
         and paired >= int(minimum_paired)
         and len(rows) == planned
+        and not subject_ir_above_ceiling
     )
+    # A winner claim needs the efficiency interval to exclude zero. Under the
+    # consistency rule the surplus interval may not exclude zero in the
+    # opposite direction, so a model cannot be declared better at finding
+    # the pie while demonstrably worse at keeping any of it.
+    winner_claim_allowed = bool(decision_supported and primary["excludes_zero"])
+    if winner_claim_allowed and winner_rule == "primary_and_secondary_consistent":
+        interval = secondary["interval"]
+        opposite = bool(
+            interval["excludes_zero"]
+            and interval["mean"] is not None
+            and primary["mean"] is not None
+            and (interval["mean"] > 0) != (primary["mean"] > 0)
+        )
+        winner_claim_allowed = not opposite
     return _sealed(
         {
             "schema_version": "aeread.housing_confirmatory_analysis/0.1",
@@ -1491,6 +1606,15 @@ def confirmatory_analysis(
             },
             "condition_means": condition_means,
             "worst_opponent_by_subject": worst_opponent,
+            "subject_ir_violation_policy": ir_policy,
+            "subject_ir_failures": len(subject_ir_failures),
+            "subject_ir_failure_fraction": round(subject_ir_fraction, 9),
+            "maximum_subject_ir_failure_fraction": ir_ceiling,
+            "subject_ir_failure_above_ceiling": subject_ir_above_ceiling,
+            "opponent_seat_ir_violation_cells": opponent_ir_cells,
+            "secondary": secondary,
+            "winner_claim_rule": winner_rule,
+            "winner_claim_allowed": winner_claim_allowed,
             "minimum_paired_worlds_for_decision": minimum_paired,
             "decision_supported": decision_supported,
             "effect_at_least_minimum": bool(
@@ -1655,6 +1779,7 @@ async def run_live(
                 "tenant_payoff": sum(outcome["tenant_payoffs"].values()),
                 "landlord_payoff": sum(outcome["landlord_payoffs"].values()),
                 "ir_violation_count": len(outcome["ir_violations"]),
+                **seat_accounting_fields(outcome),
                 "wasted_contacts": outcome["wasted_contacts"],
                 "logical_action_count": execution.episode_result.logical_action_count,
                 "cost_usd": execution.total_cost_usd,
@@ -1829,7 +1954,9 @@ async def run_live(
                 "gate_id": "confirmatory_execution",
                 "decision_supported": analysis["decision_supported"],
                 "ranking_allowed": analysis["ranking_allowed"],
-                "winner_claim_allowed": analysis["ranking_allowed"],
+                "winner_claim_allowed": analysis.get(
+                    "winner_claim_allowed", analysis["ranking_allowed"]
+                ),
             }
         )
     if stage_id == "full_trajectory":

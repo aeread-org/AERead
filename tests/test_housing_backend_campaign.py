@@ -3700,3 +3700,195 @@ def test_landlord_seat_accounting_is_reproducible_and_traces_to_committed_eviden
         source = evidence_root.parents[0] / row["source_artifact"]
         assert source.exists(), row["source_artifact"]
         assert json.loads(source.read_bytes())["artifact_sha256"] == row["source_artifact_sha256"]
+
+
+def _with_seat_accounting(
+    rows: list[dict[str, object]],
+    *,
+    subject_ir: set[tuple[int, str, str]] | None = None,
+    opponent_ir: set[tuple[int, str, str]] | None = None,
+    glm_share: float = 0.40,
+    deepseek_share: float = 0.35,
+) -> list[dict[str, object]]:
+    """Decorate synthetic rows with the seat-accounting fields a live row carries."""
+
+    subject_ir = subject_ir or set()
+    opponent_ir = opponent_ir or set()
+    for row in rows:
+        if row["status"] != "completed":
+            continue
+        key = (row["world_seed"], row["config_id"], row["condition_id"])
+        row["subject_seat_ir_violations"] = 1 if key in subject_ir else 0
+        row["opponent_seat_ir_violations"] = 1 if key in opponent_ir else 0
+        row["subject_surplus_share"] = (
+            glm_share if row["subject"] == "glm_53_flash" else deepseek_share
+        )
+    return rows
+
+
+def _analysis_contract(**analysis_overrides: object) -> tuple[dict, list[int], list[str]]:
+    contract = load_contract(V19_CONTRACT_PATH)
+    worlds = contract["execution"]["world_seeds"]
+    configs = [config["config_id"] for config in selected_configs(contract)]
+    contract = json.loads(json.dumps(contract))
+    contract["analysis"]["minimum_paired_worlds_for_decision"] = 4
+    contract["analysis"].update(analysis_overrides)
+    return contract, worlds, configs
+
+
+def test_seat_accounting_fields_split_violations_by_seat_and_normalize_surplus() -> None:
+    from aeread_families.housing.model_sensitivity import seat_accounting_fields
+
+    fields = seat_accounting_fields(
+        {
+            "ir_violations": ["landlord:0", "tenant:2", "landlord:3"],
+            "oracle_total": 200.0,
+            "tenant_payoffs": {"tenant_0": 30.0, "tenant_2": 20.0},
+        }
+    )
+    assert fields == {
+        "subject_seat_ir_violations": 1,
+        "opponent_seat_ir_violations": 2,
+        "subject_surplus_share": 0.25,
+    }
+    # A zero bound carries no share, the same way it carries no score.
+    assert seat_accounting_fields(
+        {"ir_violations": [], "oracle_total": 0.0, "tenant_payoffs": {}}
+    )["subject_surplus_share"] is None
+
+
+def test_subject_ir_violation_is_averaged_by_default_and_typed_under_the_new_policy() -> None:
+    """Incident D-24. The legacy policy averages a subject's IR violation into
+    its score. Under ``typed_failure`` the cell is a typed failure, its world
+    contributes no contrast, and the count is reported and gated."""
+
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract()
+    offending = (worlds[0], configs[0], "glm_53_flash__vs__deepseek_v4_flash")
+    rows = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.70, deepseek_score=0.85),
+        subject_ir={offending},
+    )
+
+    legacy = confirmatory_analysis(rows, contract)
+    assert legacy["subject_ir_violation_policy"] == "averaged"
+    assert legacy["subject_ir_failures"] == 0
+    assert legacy["primary"]["paired_world_count"] == len(worlds)
+
+    typed_contract = json.loads(json.dumps(contract))
+    typed_contract["analysis"]["subject_ir_violation_policy"] = "typed_failure"
+    typed_contract["analysis"]["maximum_subject_ir_failure_fraction"] = 0.10
+    # Dropping the offending world costs one paired world; the declared
+    # minimum is set so that the decision still stands on the remainder.
+    typed_contract["analysis"]["minimum_paired_worlds_for_decision"] = len(worlds) - 1
+    typed = confirmatory_analysis(rows, typed_contract)
+    assert typed["subject_ir_failures"] == 1
+    assert typed["subject_ir_failure_above_ceiling"] is False
+    # The offending world drops out of the paired contrast entirely.
+    assert typed["primary"]["paired_world_count"] == len(worlds) - 1
+    dropped = next(w for w in typed["worlds"] if w["world_seed"] == worlds[0])
+    assert dropped["complete_pair"] is False
+    assert typed["decision_supported"] is True
+
+
+def test_subject_ir_failures_above_the_ceiling_withhold_the_decision() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract(
+        subject_ir_violation_policy="typed_failure",
+        maximum_subject_ir_failure_fraction=0.02,
+    )
+    offending = {
+        (seed, configs[0], "glm_53_flash__vs__deepseek_v4_flash") for seed in worlds[:2]
+    }
+    rows = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.70, deepseek_score=0.85),
+        subject_ir=offending,
+    )
+    result = confirmatory_analysis(rows, contract)
+    assert result["subject_ir_failures"] == 2
+    assert result["subject_ir_failure_above_ceiling"] is True
+    assert result["decision_supported"] is False
+    assert result["ranking_allowed"] is False
+    assert result["winner_claim_allowed"] is False
+
+
+def test_typed_failure_policy_refuses_rows_without_the_seat_split() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract(
+        subject_ir_violation_policy="typed_failure",
+        maximum_subject_ir_failure_fraction=0.10,
+    )
+    rows = _confirmatory_rows(worlds, configs, glm_score=0.70, deepseek_score=0.85)
+    with pytest.raises(ValueError, match="subject_seat_ir_violations"):
+        confirmatory_analysis(rows, contract)
+    missing_ceiling, _, _ = _analysis_contract(subject_ir_violation_policy="typed_failure")
+    with pytest.raises(ValueError, match="maximum_subject_ir_failure_fraction"):
+        confirmatory_analysis(_with_seat_accounting(rows), missing_ceiling)
+
+
+def test_opponent_seat_violations_are_reported_and_never_exclude_the_subject() -> None:
+    """The estimand conditions on the opponent panel: a landlord giving units
+    away is contamination of the condition, not evidence about the tenant."""
+
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract(
+        subject_ir_violation_policy="typed_failure",
+        maximum_subject_ir_failure_fraction=0.10,
+    )
+    contaminated = {
+        (seed, config, "deepseek_v4_flash__vs__glm_53_flash")
+        for seed in worlds
+        for config in configs
+    }
+    rows = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.70, deepseek_score=0.85),
+        opponent_ir=contaminated,
+    )
+    result = confirmatory_analysis(rows, contract)
+    assert result["opponent_seat_ir_violation_cells"] == len(contaminated)
+    assert result["subject_ir_failures"] == 0
+    assert result["primary"]["paired_world_count"] == len(worlds)
+
+
+def test_secondary_estimand_and_consistency_rule_block_an_inconsistent_winner() -> None:
+    """Efficiency and surplus can disagree. A model may find more of the pie
+    and keep less of it. Under the consistency rule that is not a winner."""
+
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract(
+        secondary_estimand="subject_surplus_share",
+        winner_claim_rule="primary_and_secondary_consistent",
+    )
+    # GLM finds more surplus (0.85 vs 0.70) but keeps less of it (0.30 vs 0.45).
+    rows = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.85, deepseek_score=0.70),
+        glm_share=0.30,
+        deepseek_share=0.45,
+    )
+    result = confirmatory_analysis(rows, contract)
+    assert result["primary"]["mean"] == pytest.approx(0.15)
+    assert result["primary"]["excludes_zero"] is True
+    assert result["secondary"]["estimand"] == "subject_surplus_share"
+    assert result["secondary"]["interval"]["mean"] == pytest.approx(-0.15)
+    assert result["decision_supported"] is True
+    assert result["winner_claim_allowed"] is False
+
+    # Consistent signs restore the claim.
+    agreeing = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.85, deepseek_score=0.70),
+        glm_share=0.45,
+        deepseek_share=0.30,
+    )
+    assert confirmatory_analysis(agreeing, contract)["winner_claim_allowed"] is True
+
+    # The legacy rule ignores the secondary entirely.
+    legacy, _, _ = _analysis_contract(secondary_estimand="subject_surplus_share")
+    assert confirmatory_analysis(rows, legacy)["winner_claim_allowed"] is True
+    inconsistent, _, _ = _analysis_contract(winner_claim_rule="primary_and_secondary_consistent")
+    with pytest.raises(ValueError, match="secondary_estimand"):
+        confirmatory_analysis(rows, inconsistent)
