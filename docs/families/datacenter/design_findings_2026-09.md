@@ -376,6 +376,42 @@ opt-in per case, through `negotiation.developer_chooses_order`, and those
 families keep the fixed sequence they were built against. A shared environment
 is a shared contract, and the tests said so within a minute of the change.
 
+### What the full design measured
+
+192 cells for $4.38, no environment failures, 143 completed. The run is not
+rankable: 48 cells were rate limited, which removed gpt-oss and Qwen from
+contention, and the one route with a complete panel admitted a single cell, so
+the leaderboard says nothing.
+
+The diagnostics say a great deal.
+
+| Route | Admitted | Power negotiation | Lease bankable |
+|---|---:|---|---:|
+| Gemini 3.8 Flash | 6 of 47 | accepted the opening 47 times | 44 of 47 |
+| GLM-5.3-flash | 1 of 48 | accepted 16, haggled 1 | 4 of 48 |
+| gpt-oss-120b | 0 of 19 | accepted 11 | n/a |
+| Qwen3-235B | 0 of 29 | no completed power agreement | n/a |
+
+**Nobody captured the trade.** Across 75 completed power agreements, 74
+accepted the counterparty's opening package unchanged and one haggled. Zero
+traded a concession for a better price. This number is not confounded: nothing
+in the presentation favours accepting, and the diagnostic separates trading,
+haggling and accepting, with tests pinning all three.
+
+**Nobody sequenced to discover**, in all 143 completed cells. That number *is*
+confounded, and is reported only with its caveat: the observation lists the
+agreements in dependency order, which places financing last, and that is also
+the order that forgoes learning the lender's thresholds. Models are not simply
+copying the list, since three distinct orders appear, but every one of them
+puts the loan after the lease, so presentation and reasoning cannot be
+separated here.
+
+One incidental result is worth keeping. Gemini writes leases that clear the
+lender's thresholds 44 times in 47 without ever having seen them, apparently by
+proposing strong terms as a default rather than by discovering the constraint.
+GLM manages it 4 times in 48. Getting the right answer and knowing why are
+different things, and the diagnostics can now tell them apart.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad
