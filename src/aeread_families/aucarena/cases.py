@@ -7,7 +7,10 @@ a raw 26-item pool (``data/pseudo_items.jsonl``) and a generator
 therefore *authors* the scenario corpus itself: an ordered subset of item
 ids, a bidder roster, and a world seed, materialized against the pinned item
 pool. See ``docs/aucarena_adapter_spec.md`` sections 1 and 5 for the
-governing facts and the five QC Gate-2 goldens this module encodes.
+governing facts and the five QC Gate-2 goldens this module encodes, plus
+``docs/superpowers/specs/2026-09-07-issue-135-repair-design.md`` section 7
+for the later, sixth curated measurement scenario (``MEASUREMENT_SCENARIOS``
+below) added once golden 5 was found to have no comparator population.
 
 This module never reimplements the auction rules (bid legality, hammer
 determination, profit bookkeeping) -- those are vendored in
@@ -156,6 +159,10 @@ _SHARED_ROSTER = (_AGENT, _FIELD_LOW, _FIELD_HIGH)
 MIN_MARKUP_PCT = 0.1
 ENABLE_DISCOUNT = False  # fixed for every case in this spec (SS7)
 
+#   Five fixed QC Gate-2 goldens (spec section 5). ``GOLDENS`` is a closed,
+#   historical enumeration -- it is never extended; see
+#   ``MEASUREMENT_SCENARIOS``/``ALL_SCENARIOS`` below for curated scenarios
+#   added after the five QC goldens were frozen.
 GOLDENS: tuple[GoldenScenario, ...] = (
     GoldenScenario(
         golden_name="successful",
@@ -188,6 +195,67 @@ GOLDENS: tuple[GoldenScenario, ...] = (
         world_seed=1005,
     ),
 )
+
+
+# --------------------------------------------------------------------------
+# Measurement scenarios (issue #135): curated cases added after the five QC
+# goldens above were frozen. ``aucarena.pilot.degenerate_reference_01`` (the
+# fifth golden) has no frozen field seat, so its declared relative-profit
+# estimand (``aucarena_profit_vs_field``) has an empty comparator population
+# and can only ever score ``invalid_measurement`` -- see ``QC_ONLY_CASE_IDS``
+# below. This measurement scenario reuses golden 5's exact item (5) and
+# world seed (1005) with a stable tested ``agent`` seat, but adds the shared
+# ``_FIELD_LOW``/``_FIELD_HIGH`` roster goldens 1-4 already use, so it has
+# the comparator population the estimand requires.
+# --------------------------------------------------------------------------
+
+MEASUREMENT_SCENARIOS: tuple[GoldenScenario, ...] = (
+    GoldenScenario(
+        golden_name="frozen_field_item5",
+        item_ids=(5,),
+        roster=(
+            RosterSeat(seat_id="agent", model_name="scripted", budget=6000, max_bid_cnt=4),
+            _FIELD_LOW,
+            _FIELD_HIGH,
+        ),
+        world_seed=1005,
+    ),
+)
+
+# Every curated scenario this importer materializes: the five closed QC
+# goldens followed by any later measurement scenario. ``import_all_cases``
+# and ``build_provenance`` both iterate this, never ``GOLDENS`` alone, so a
+# later addition here is picked up by both without a second edit site.
+ALL_SCENARIOS: tuple[GoldenScenario, ...] = GOLDENS + MEASUREMENT_SCENARIOS
+
+# AucArena campaign policy (spec section 7.2): cases whose declared
+# relative-profit estimand has no comparator population at all (an empty
+# frozen-field roster) are QC-only -- valid as an executable regression
+# guard that an empty comparator population can never silently yield a
+# numeric relative score, but never eligible for a live measurement panel,
+# campaign averages, or ranking. This is a closed policy set, not a mutation
+# of any case manifest: the legacy case's id, split, payload, and content
+# hash are unchanged (see ``docs/superpowers/specs/2026-09-07-issue-135-
+# repair-design.md`` section 7.2). The family's live/campaign module is
+# expected to re-export this set (and ``validate_measurement_cells``) once
+# it exists; until then this is the one place a measurement panel builder
+# for this family can check case eligibility against.
+QC_ONLY_CASE_IDS: frozenset[str] = frozenset({"aucarena.pilot.degenerate_reference_01"})
+
+
+def validate_measurement_cells(cells: tuple[tuple[str, int], ...]) -> None:
+    """Reject any measurement panel that intersects ``QC_ONLY_CASE_IDS``.
+
+    ``cells`` is ``(case_id, world_seed)`` pairs, mirroring a campaign's own
+    cell enumeration. Raises ``ValueError`` naming every offending case id
+    (sorted, so the message is deterministic) rather than silently dropping
+    or silently including a QC-only case.
+    """
+    overlap = sorted({case_id for case_id, _seed in cells} & QC_ONLY_CASE_IDS)
+    if overlap:
+        raise ValueError(
+            f"AucArena measurement panel contains QC-only cases: {overlap}"
+        )
 
 
 def _case_id(golden_name: str, number: int = 1) -> str:
@@ -274,13 +342,14 @@ def build_case(scenario: GoldenScenario, item_pool: Mapping[int, Mapping[str, An
 
 
 def import_all_cases(upstream_root: Path | str) -> dict[str, dict[str, Any]]:
-    """Materialize all five goldens against the pinned item pool.
+    """Materialize all six curated scenarios against the pinned item pool.
 
-    Returns ``{case_id: case_dict}`` in ``GOLDENS`` order.
+    Returns ``{case_id: case_dict}`` in ``ALL_SCENARIOS`` order: the five
+    closed QC goldens, then any later measurement scenario.
     """
     item_pool = load_item_pool(upstream_root)
     cases: dict[str, dict[str, Any]] = {}
-    for scenario in GOLDENS:
+    for scenario in ALL_SCENARIOS:
         case = build_case(scenario, item_pool)
         if case["case_id"] in cases:
             raise ValueError(f"duplicate case_id: {case['case_id']!r}")
@@ -298,7 +367,7 @@ def build_provenance(upstream_root: Path | str) -> dict[str, Any]:
         "item_pool_path": str(ITEM_POOL_RELATIVE_PATH),
         "item_pool_sha256": ITEM_POOL_SHA256,
         "item_pool_count": len(item_pool),
-        "case_ids": [_case_id(scenario.golden_name) for scenario in GOLDENS],
+        "case_ids": [_case_id(scenario.golden_name) for scenario in ALL_SCENARIOS],
     }
 
 
@@ -325,7 +394,7 @@ def write_cases(
 
 
 def run_import(upstream_root: Path | str, output_dir: Path) -> None:
-    """End-to-end: materialize the five goldens and write them to disk."""
+    """End-to-end: materialize the six curated scenarios and write them to disk."""
     cases = import_all_cases(upstream_root)
     provenance = build_provenance(upstream_root)
     write_cases(output_dir, provenance, cases)
@@ -350,7 +419,7 @@ def main(argv: list[str] | None = None) -> None:
         "--output-dir",
         type=Path,
         default=_default_output_dir(),
-        help="directory to write provenance.json and the five case files",
+        help="directory to write provenance.json and the six case files",
     )
     args = parser.parse_args(argv)
     run_import(args.upstream_root, args.output_dir)
