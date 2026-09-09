@@ -55,3 +55,42 @@ ruling rather than an implementation detail.
 
 Until then #92's live panel cannot be run without misrepresenting what
 TERMS-Bench measures.
+
+## Resolved (2026-09-08): the counterpart is a kernel scripted seat
+
+The second option above was taken. The kernel now has a scripted-seat
+capability (#150, `docs/kernel_scripted_seats_design.md`): a plan may
+declare a seat as filled by a family policy rather than a profile
+(`RunSpec.scripted_seats`), the kernel asks the plugin's
+`scripted_response(policy_id, request, world_seed=...)` for that seat's
+turn, seals it as a `scripted_action` (never as a provider call), and replay
+recomputes it and holds it against the sealed response. A scripted seat may
+be a block's control and never its subject.
+
+What this family did with it:
+
+- `environment.py` -- `TermsBenchPlugin.scripted_response` answers
+  `termsbench_counterpart_kernel_v1` from the same pure function the legacy
+  test harness used (`harness.resolve_counterpart_response`), so the
+  scripted seat reproduces the legacy counterpart exactly
+  (`tests/test_termsbench_scripted_seat.py`).
+- `live.py` -- the live setup: the agent is the only profile, the
+  counterpart is the scripted seat and the block's control. The harness
+  makes one model call per agent turn and hands the JSON object to the
+  family unchanged: a malformed move is a *measured* agreement violation
+  here, and `protocol_compliance` is the admission leaf, so the harness
+  does not judge it. Route, retry policy and the reasoning declaration are
+  econevals' measured configuration on the same GLM 5.3 Flash/Parasail
+  route.
+- `campaign.py` -- the pilot: one unscored canary, then the 30-case corpus
+  in the corpus manifest's order, serially, with the cost ceilings and the
+  campaign SOP's wall-time gate frozen in the plan. The publisher reports
+  per regime, because the leaves are regime-dependent, and adds the
+  family's own corpus aggregate (`SE+`, `AGR+`, `CSE+`) over the Overlap
+  half.
+
+Every corpus case was run offline through the real kernel against the
+scripted counterpart before the canary (`tests/test_termsbench_live_campaign.py`).
+The first defect that surfaced is TB-D-01 in the incident log: a receipt
+with a scripted seat could be sealed and replayed but not read back by the
+research layer, fixed in #150 before any spend.
