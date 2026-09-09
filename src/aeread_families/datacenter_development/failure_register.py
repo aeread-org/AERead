@@ -255,6 +255,25 @@ KNOWN_DEFECTS = (
         ),
     },
     {
+        "id": "bankability-threshold-never-binds",
+        "summary": (
+            "The lender's thresholds were meant to make sequencing pay, but the "
+            "conventional lease clears them without any discovery. Take-or-pay "
+            "convention is 100 percent against a requirement of 85 to 95, so "
+            "that dimension can never fail, and the security requirement is "
+            "defined as six months of rent, which is the conventional answer. "
+            "In 23 of 24 worlds a developer that proposes the standard package "
+            "passes without ever learning the lender's terms. Observed as one "
+            "route clearing the test in 44 of 47 cells while proposing the same "
+            "maximal take-or-pay every time."
+        ),
+        "detected_by": "the sequencing diagnostic on the first full panel",
+        "severity": "mechanism_does_not_bind",
+        "status": "open",
+        "fix": None,
+        "regression_test": None,
+    },
+    {
         "id": "sequencing-anchored-by-presentation-order",
         "summary": (
             "The sequencing observation lists the agreements in the canonical "
@@ -320,8 +339,10 @@ def _reclassification(message: str) -> dict[str, Any] | None:
 
 def _incident(run_id: str, path: Path) -> dict[str, Any] | None:
     result = json.loads(path.read_text(encoding="utf-8"))
+    attempt = path.stem.split("attempt")[-1] if "attempt" in path.stem else "current"
     common = {
         "run_id": run_id,
+        "attempt": attempt,
         "cell_key": result.get("cell_key"),
         "model_id": result.get("model_id"),
         "stratum": result.get("stratum"),
@@ -382,7 +403,11 @@ def build_register(
     incidents: list[dict[str, Any]] = []
     runs: list[dict[str, Any]] = []
     for run_dir in sorted(root.glob(run_glob)):
-        results = sorted(run_dir.glob("live/*/result.json"))
+        # Archived attempts count too: re-executing a failed cell must never
+        # make the original failure disappear from the record.
+        results = sorted(run_dir.glob("live/*/result.json")) + sorted(
+            run_dir.glob("live/*/result.attempt*.json")
+        )
         if not results:
             continue
         found = [
@@ -394,12 +419,15 @@ def build_register(
         runs.append(
             {
                 "run_id": run_dir.name,
-                "cells": len(results),
+                "cells": len(set(path.parent.name for path in results)),
+                "attempts": len(results),
                 "incidents": len(found),
                 "superseded": run_dir.name != DEFAULT_RUN_GLOB.rstrip("*"),
             }
         )
-    incidents.sort(key=lambda item: (item["run_id"], str(item["cell_key"])))
+    incidents.sort(
+        key=lambda item: (item["run_id"], str(item["cell_key"]), str(item["attempt"]))
+    )
 
     def _tally(field: str) -> dict[str, int]:
         return dict(sorted(Counter(item[field] for item in incidents).items()))

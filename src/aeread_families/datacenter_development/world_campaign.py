@@ -579,6 +579,50 @@ def _outcome_projection(outcome: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def archive_failed_attempt(cell_root: Path) -> int:
+    """Set a failed cell aside so it can be attempted again, on the record.
+
+    The frozen contract forbids retries inside an attempt, which is what keeps
+    a route's reliability honest. Re-executing a failed cell as a further
+    declared attempt is a different thing, and only defensible if the failure
+    stays visible: the prior result and its sealed evidence are kept beside the
+    new one, and the failure register still counts them.
+    """
+
+    result_path = cell_root / "result.json"
+    if not result_path.exists():
+        return 0
+    if _read_sealed(result_path).get("status") == "completed":
+        return 0
+    ordinal = 1
+    while (cell_root / f"result.attempt{ordinal}.json").exists():
+        ordinal += 1
+    evidence = cell_root / "evidence"
+    if evidence.exists():
+        evidence.rename(cell_root / f"evidence.attempt{ordinal}")
+    result_path.rename(cell_root / f"result.attempt{ordinal}.json")
+    return ordinal
+
+
+def _prior_attempts(cell_root: Path) -> list[dict[str, Any]]:
+    prior: list[dict[str, Any]] = []
+    for path in sorted(cell_root.glob("result.attempt*.json")):
+        try:
+            record = _read_sealed(path)
+        except ValueError:
+            continue
+        prior.append(
+            {
+                "attempt": path.stem.split("attempt")[-1],
+                "status": record.get("status"),
+                "failure_condition": (record.get("failure") or {}).get(
+                    "failure_condition"
+                ),
+            }
+        )
+    return prior
+
+
 async def _run_live_cell(
     contract: Mapping[str, Any],
     design_cell: Mapping[str, Any],
@@ -597,6 +641,7 @@ async def _run_live_cell(
     if cell_root.exists():
         raise ValueError(f"refusing to replace incomplete live cell {design_cell['cell_key']}")
 
+    prior = _prior_attempts(cell_root)
     setup = _setup(contract, design_cell, pack_root)
     if (
         setup.plan.plan_sha256 != design_cell["run_plan_sha256"]
@@ -614,6 +659,7 @@ async def _run_live_cell(
             evidence_root=cell_root / "evidence",
             seed=int(design_cell["inference_seed"]),
             case_path=pack_root / str(design_cell["case_file"]),
+            episode_attempt_ordinal=len(prior),
             max_output_tokens=int(controls["max_output_tokens_per_action"]),
             timeout_seconds=float(controls["timeout_seconds_per_action"]),
             max_cost_usd=_profile_cap(contract, str(design_cell["model_id"])),
@@ -631,6 +677,8 @@ async def _run_live_cell(
                 "campaign_id": contract["campaign_id"],
                 **dict(design_cell),
                 "status": "completed",
+                "attempt_ordinal": len(prior),
+                "prior_attempts": prior,
                 "receipt_status": receipt.status,
                 "inclusion_status": receipt.inclusion_status,
                 "receipt_sha256": receipt.receipt_sha256,
@@ -657,6 +705,8 @@ async def _run_live_cell(
                 "campaign_id": contract["campaign_id"],
                 **dict(design_cell),
                 "status": "operational_failure",
+                "attempt_ordinal": len(prior),
+                "prior_attempts": prior,
                 "receipt_status": receipt.status,
                 "inclusion_status": receipt.inclusion_status,
                 "receipt_sha256": receipt.receipt_sha256,
@@ -1117,6 +1167,7 @@ async def run_campaign(
     stop_after: str = "live",
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     cell_filter: Callable[[Mapping[str, Any]], bool] | None = None,
+    retry_failed: bool = False,
 ) -> dict[str, Any]:
     contract = load_contract(contract_path)
     root = Path(run_root)
@@ -1161,6 +1212,17 @@ async def run_campaign(
     selected = [
         cell for cell in design["cells"] if cell_filter is None or cell_filter(cell)
     ]
+    if retry_failed:
+        retried = sum(
+            1
+            for cell in selected
+            if archive_failed_attempt(root / "live" / str(cell["cell_key"]))
+        )
+        if not retried:
+            raise ValueError("no failed cells to re-execute")
+        summary_path = root / "live" / "summary.json"
+        if summary_path.exists():
+            summary_path.unlink()
     rows = await asyncio.gather(*(execute(cell) for cell in selected))
     if len(rows) != len(design["cells"]):
         return _sealed(
@@ -1189,6 +1251,11 @@ def main(argv: list[str] | None = None) -> int:
         choices=("design", "provider_free", "profile_admission", "live"),
         default="live",
     )
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="re-execute cells that failed operationally, as further attempts",
+    )
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--publication-root", type=Path, default=DEFAULT_PUBLICATION_ROOT)
     arguments = parser.parse_args(argv)
@@ -1198,6 +1265,7 @@ def main(argv: list[str] | None = None) -> int:
             run_root=arguments.run_root,
             pack_root=arguments.pack_root,
             stop_after=arguments.stop_after,
+            retry_failed=arguments.retry_failed,
         )
     )
     if arguments.publish and arguments.stop_after == "live":

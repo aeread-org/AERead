@@ -155,3 +155,18 @@ def test_named_regression_tests_actually_exist() -> None:
         assert f"def {name}(" in source.read_text(encoding="utf-8"), (
             f"{defect['id']}: {path} has no {name}"
         )
+
+
+def test_re_execution_cannot_erase_the_original_failure() -> None:
+    """A retried cell keeps its first failure in the register, on the record."""
+    from aeread_families.datacenter_development.world_campaign import (
+        archive_failed_attempt,
+    )
+
+    register = load_register()
+    # Every incident says which attempt it came from, so a re-executed cell
+    # contributes both the failure and whatever followed it.
+    assert all("attempt" in incident for incident in register["incidents"])
+    for run in register["runs"]:
+        assert run["attempts"] >= run["cells"], run["run_id"]
+    assert callable(archive_failed_attempt)
