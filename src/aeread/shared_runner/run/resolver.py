@@ -15,7 +15,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import ClassVar, Any, Mapping, Sequence
 
 from ..registry import (
     HarnessRegistry,
@@ -183,6 +183,13 @@ class PlanCell:
     profile_by_seat: Mapping[str, str]
     execution_mode: str
     case_max_logical_actions: int
+    # Seats this cell fills from a family policy rather than a model
+    # (docs/kernel_scripted_seats_design.md). Carried on the cell so the
+    # scheduler needs no back-reference to the run spec. Digest-neutral when
+    # empty, and omitted from the cell-id digest below for the same reason.
+    scripted_seats: Mapping[str, str] = MappingProxyType({})
+
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -825,12 +832,33 @@ def _validate_cross_references(
             )
         seat_ids = {seat.id for seat in case.seats}
         assignment_ids = set(run_spec.seat_assignments)
-        if seat_ids != assignment_ids:
+        scripted_ids = set(run_spec.scripted_seats)
+        filled_ids = assignment_ids | scripted_ids
+        if seat_ids != filled_ids:
             raise PlanResolutionError(
-                f"case {case_id!r} seats and RunSpec seat_assignments differ: "
-                f"case_only={sorted(seat_ids - assignment_ids)}, "
-                f"run_only={sorted(assignment_ids - seat_ids)}"
+                f"case {case_id!r} seats and RunSpec seat_assignments + scripted_seats differ: "
+                f"case_only={sorted(seat_ids - filled_ids)}, "
+                f"run_only={sorted(filled_ids - seat_ids)}"
             )
+        # A scripted seat is a family-resolved seat, not a model. Its policy
+        # must be one the family declares for that role, and the role may not
+        # be testable: a scripted subject is a measurement of nothing.
+        for seat in case.seats:
+            if seat.id not in scripted_ids:
+                continue
+            role = family.roles[seat.role]
+            policy_id = run_spec.scripted_seats[seat.id]
+            if policy_id not in role.scripted_policies:
+                raise PlanResolutionError(
+                    f"case {case_id!r} seat {seat.id!r} is scripted with policy "
+                    f"{policy_id!r}, which role {seat.role!r} does not declare "
+                    f"(declared: {sorted(role.scripted_policies)})"
+                )
+            if role.testable:
+                raise PlanResolutionError(
+                    f"case {case_id!r} seat {seat.id!r} is scripted but its role "
+                    f"{seat.role!r} is testable; a scripted seat cannot be a subject"
+                )
         for block_id in suite.evaluation_block_ids:
             block = block_by_id[block_id]
             unknown_subjects = sorted(set(block.subject_seats) - seat_ids)
@@ -839,6 +867,14 @@ def _validate_cross_references(
                 raise PlanResolutionError(
                     f"block {block_id!r} references unavailable seats: "
                     f"subjects={unknown_subjects}, controls={unknown_controls}"
+                )
+            scripted_in_block = sorted(
+                (set(block.subject_seats) | set(block.controlled_profiles)) & scripted_ids
+            )
+            if scripted_in_block:
+                raise PlanResolutionError(
+                    f"block {block_id!r} names scripted seat(s) {scripted_in_block} as a "
+                    "subject or control; a scripted seat is neither"
                 )
             control_mismatch = {
                 seat_id: (profile_id, run_spec.seat_assignments[seat_id])
@@ -1035,6 +1071,13 @@ def resolve_run_plan(
             **draft,
             "observations_per_cluster": cluster_counts[draft["cluster_id"]],
         }
+        # Added only when non-empty: cell_id is a digest of this dict, and a
+        # plan with no scripted seats must keep every cell id it had.
+        if run_spec.scripted_seats:
+            completed["scripted_seats"] = MappingProxyType(
+                dict(sorted(run_spec.scripted_seats.items()))
+            )
+
         cell_id = "cell_" + _digest(completed)[:20]
         cells.append(PlanCell(cell_id=cell_id, **completed))
     cells.sort(key=lambda cell: cell.cell_id)
