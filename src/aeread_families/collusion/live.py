@@ -7,7 +7,23 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from aeread.shared_runner.run.adapter_campaign import BASE_URL, MODEL, PROVIDER, REVISION
+from aeread.shared_runner.run.adapter_campaign import AdapterCanarySpec
+
+CANARY_SPEC = AdapterCanarySpec(
+    family_id="collusion",
+    provider="arena",
+    model="glm-5p2",
+    revision="glm-5p2",
+    base_url="https://api.preview.arena.ai/v1",
+    route_provider="Arena",
+    max_output_tokens=512,
+    max_cost_usd=0.01,
+)
+BASE_URL = CANARY_SPEC.base_url
+MODEL = CANARY_SPEC.model
+PROVIDER = CANARY_SPEC.provider
+REVISION = CANARY_SPEC.revision
+ROUTE_PROVIDER = CANARY_SPEC.route_provider
 from aeread.shared_runner.model_call.harness import default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
 from aeread.shared_runner.run.resolver import ImplementationPin, resolve_run_plan

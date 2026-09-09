@@ -8,14 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.run.adapter_campaign import (
-    MODEL,
-    PROVIDER,
-    REVISION,
-    ROUTE_PROVIDER,
-    _digest,
-    _write_once,
-)
+from aeread.shared_runner.run.adapter_campaign import _digest, _write_once
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
 from aeread.shared_runner.run.publication import (
     SANITIZATION_DECLARATION,
@@ -29,7 +22,7 @@ from aeread.shared_runner.task.evaluation import finalize_family_execution, repl
 from aeread.shared_runner.task.execution import ArenaChatClient, execute_plan_cell
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
-from .live import MAX_OUTPUT_TOKENS, build_live_setup, load_case
+from .live import CANARY_SPEC, MAX_OUTPUT_TOKENS, MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, build_live_setup, load_case
 
 CAMPAIGN_ID = "agenticpay_glm5p2_arena_first_light_v2"
 CASE_IDS = (
@@ -68,6 +61,7 @@ def campaign_plan() -> dict[str, Any]:
             "model": MODEL,
             "revision": REVISION,
             "route_provider": ROUTE_PROVIDER,
+            "canary_spec_sha256": CANARY_SPEC.spec_sha256,
             "substitution_for_issue_93": "glm-5.3-flash/Parasail unavailable to owner",
         },
         "panel": [
@@ -96,7 +90,12 @@ async def execute(*, run_root: Path, upstream_root: Path) -> None:
     plan = campaign_plan()
     _write_once(run_root / "campaign_plan.json", plan)
     canary = json.loads((run_root / "checkpoints" / "canary.json").read_text())
-    if canary.get("status") != "admitted" or canary.get("family_id") != "agenticpay_bilateral":
+    if (
+        canary.get("status") != "admitted"
+        or canary.get("family_id") != "agenticpay_bilateral"
+        or canary.get("plan_sha256") != plan["plan_sha256"]
+        or canary.get("spec_sha256") != CANARY_SPEC.spec_sha256
+    ):
         raise RuntimeError("AgenticPay canary was not admitted")
     total = float(canary.get("cost_usd", 0.0))
     provider = ArenaChatClient()

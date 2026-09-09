@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.run.adapter_campaign import MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, _digest, _write_once
+from aeread.shared_runner.run.adapter_campaign import _digest, _write_once
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
 from aeread.shared_runner.run.publication import (
     SANITIZATION_DECLARATION, assert_public_payload, atomic_publish, jsonl,
@@ -20,7 +20,8 @@ from aeread.shared_runner.task.execution import ArenaChatClient, execute_plan_ce
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
 from .live import (
-    CONTROL_PROVIDER, MAX_OUTPUT_TOKENS, SUBJECT_SEAT, ControlledNoopClient,
+    CANARY_SPEC, CONTROL_PROVIDER, MAX_OUTPUT_TOKENS, MODEL, PROVIDER, REVISION,
+    ROUTE_PROVIDER, SUBJECT_SEAT, ControlledNoopClient,
     build_live_setup, load_case,
 )
 
@@ -73,7 +74,7 @@ def campaign_plan() -> dict[str, Any]:
         "schema_version": "aeread.adapter_live_campaign/0.1",
         "campaign_id": CAMPAIGN_ID, "family_id": "alympics.wac",
         "route": {"provider": PROVIDER, "model": MODEL, "revision": REVISION,
-                  "route_provider": ROUTE_PROVIDER,
+                  "route_provider": ROUTE_PROVIDER, "canary_spec_sha256": CANARY_SPEC.spec_sha256,
                   "substitution_for_issue_93": "glm-5.3-flash/Parasail unavailable to owner"},
         "panel": [{"case_id": case.case_id, "case_sha256": case.content_sha256, "seed": SEED}
                   for case in cases],
@@ -93,7 +94,9 @@ async def execute(*, run_root: Path, upstream_root: Path) -> None:
     plan = campaign_plan()
     _write_once(run_root / "campaign_plan.json", plan)
     canary = json.loads((run_root / "checkpoints" / "canary.json").read_text())
-    if canary.get("status") != "admitted" or canary.get("family_id") != "alympics.wac":
+    if (canary.get("status") != "admitted" or canary.get("family_id") != "alympics.wac"
+            or canary.get("plan_sha256") != plan["plan_sha256"]
+            or canary.get("spec_sha256") != CANARY_SPEC.spec_sha256):
         raise RuntimeError("Alympics canary was not admitted")
     total = float(canary.get("cost_usd", 0.0))
     provider = ArenaChatClient()

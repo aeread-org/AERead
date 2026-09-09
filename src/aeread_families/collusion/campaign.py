@@ -3,14 +3,14 @@ from __future__ import annotations
 import argparse, asyncio, hashlib, json
 from pathlib import Path
 from typing import Any
-from aeread.shared_runner.run.adapter_campaign import MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, _digest, _write_once
+from aeread.shared_runner.run.adapter_campaign import _digest, _write_once
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
 from aeread.shared_runner.run.publication import SANITIZATION_DECLARATION, assert_public_payload, atomic_publish, jsonl, receipt_projection
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import finalize_family_execution, replay_family_receipt
 from aeread.shared_runner.task.execution import ArenaChatClient, execute_plan_cell
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
-from .live import MAX_OUTPUT_TOKENS, RULE_PROVIDER, SUBJECT_SEAT, build_live_setup, load_case
+from .live import CANARY_SPEC, MAX_OUTPUT_TOKENS, MODEL, PROVIDER, REVISION, ROUTE_PROVIDER, RULE_PROVIDER, SUBJECT_SEAT, build_live_setup, load_case
 
 CAMPAIGN_ID = "collusion_glm5p2_arena_first_light_v1"
 CASE_IDS = (
@@ -45,7 +45,7 @@ def campaign_plan() -> dict[str,Any]:
     cases=[load_case(x) for x in CASE_IDS]
     value={"schema_version":"aeread.adapter_live_campaign/0.1","campaign_id":CAMPAIGN_ID,
       "family_id":"collusion","route":{"provider":PROVIDER,"model":MODEL,"revision":REVISION,
-      "route_provider":ROUTE_PROVIDER,"substitution_for_issue_93":"glm-5.3-flash/Parasail unavailable to owner"},
+      "route_provider":ROUTE_PROVIDER,"canary_spec_sha256":CANARY_SPEC.spec_sha256,"substitution_for_issue_93":"glm-5.3-flash/Parasail unavailable to owner"},
       "panel":[{"case_id":x.case_id,"case_sha256":x.content_sha256,"seed":SEED} for x in cases],
       "execution":{"sequential":True,"abort_on_operational_failure":False,"replay_every_receipt":True,
       "max_output_tokens":MAX_OUTPUT_TOKENS,"reasoning_effort":"none","subject_seat":SUBJECT_SEAT,
@@ -56,7 +56,9 @@ def campaign_plan() -> dict[str,Any]:
 async def execute(*,run_root:Path)->None:
     plan=campaign_plan(); _write_once(run_root/"campaign_plan.json",plan)
     canary=json.loads((run_root/"checkpoints"/"canary.json").read_text())
-    if canary.get("status")!="admitted" or canary.get("family_id")!="collusion": raise RuntimeError("collusion canary not admitted")
+    if (canary.get("status")!="admitted" or canary.get("family_id")!="collusion"
+        or canary.get("plan_sha256") != plan["plan_sha256"]
+        or canary.get("spec_sha256") != CANARY_SPEC.spec_sha256): raise RuntimeError("collusion canary not admitted")
     total=float(canary.get("cost_usd",0)); provider=ArenaChatClient()
     for ordinal,case_id in enumerate(CASE_IDS):
         checkpoint=run_root/"checkpoints"/f"{ordinal:02d}_{case_id}.json"
