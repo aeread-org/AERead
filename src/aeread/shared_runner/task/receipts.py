@@ -15,7 +15,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, ClassVar, Mapping
 
 from .execution import EvidenceSeal
 from ..measurement import (
@@ -114,6 +114,24 @@ class EvaluationFailure:
 class EvaluationReceipt:
     """Final immutable admission record for one planned episode attempt."""
 
+    # Ruling R13 (kernel_scoring_contract_spec.md): ``inapplicable_leaf_ids``
+    # is added after receipts with an empty (or absent) leaf policy were
+    # already being sealed and replayed -- the same "additive field must not
+    # perturb existing digests" principle rulings R1/R9/R12 apply to
+    # ``schemas.py``'s manifest fields (``run.resolver._canonical_value``
+    # reads this ``ClassVar`` off ``type(value)`` for ANY dataclass it
+    # canonicalizes, not only manifest ones). A receipt that never declares
+    # a case_conditional leaf hashes exactly as it did before this field
+    # existed. ``deferred_leaf_ids`` is NOT in this set -- it predates this
+    # change and is unconditionally serialized already; adding it here now
+    # would itself be a digest-perturbing change, which is exactly what this
+    # mechanism exists to avoid. See ``_receipt_content_sha256`` for the
+    # matching fix that keeps ``receipt_sha256`` itself consistent with this
+    # omission.
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"inapplicable_leaf_ids"}
+    )
+
     spec_version: str
     receipt_sha256: str | None
     status: str
@@ -155,6 +173,23 @@ class EvaluationReceipt:
     # for every family that declares no leaf policy at all (the common case
     # today -- see ``FinalizeTimeLeafPolicy``).
     deferred_leaf_ids: tuple[str, ...] = field(default_factory=tuple)
+    # Ruling R13: a declared case_conditional leaf that does not apply to
+    # this execution's case (the plugin's inapplicable_leaf_ids(family_case)
+    # hook -- task/evaluation.py's _inapplicable_leaf_ids). Disjoint from
+    # both deferred_leaf_ids and the produced scores: inapplicability takes
+    # precedence over deferral (a leaf that is both case_conditional and
+    # deferred is declared-and-inapplicable on a case where it does not
+    # apply, declared-and-deferred otherwise), so every declared leaf has
+    # exactly one disposition on every receipt. Empty for every family that
+    # declares no case_conditional leaf at all (every family today).
+    # A plain ``()`` default, not ``field(default_factory=tuple)`` like
+    # ``deferred_leaf_ids`` above -- ``_CANONICAL_OMIT_IF_DEFAULT`` (both
+    # here and in ``run.resolver._canonical_value``) compares against
+    # ``dataclasses.Field.default``, which is ``MISSING`` for a
+    # ``default_factory`` field and would therefore never match, silently
+    # defeating the omission for every receipt regardless of this field's
+    # actual value.
+    inapplicable_leaf_ids: tuple[str, ...] = ()
 
     SPEC_VERSION = "aeread.receipt/0.1"
 
@@ -236,6 +271,33 @@ class EvaluationReceipt:
                 f"deferred_leaf_ids must not overlap with produced scores: {overlap}"
             )
         object.__setattr__(self, "deferred_leaf_ids", tuple(sorted(deferred_leaf_ids)))
+
+        # Ruling R13: same validation shape as deferred_leaf_ids above, plus
+        # the disjointness rule 4 requires -- every declared leaf has
+        # exactly one disposition (returned, deferred, or inapplicable), so
+        # inapplicable_leaf_ids must not overlap either of the other two.
+        inapplicable_leaf_ids = tuple(self.inapplicable_leaf_ids)
+        if len(set(inapplicable_leaf_ids)) != len(inapplicable_leaf_ids):
+            raise MeasurementContractError(
+                "inapplicable_leaf_ids must not contain duplicates"
+            )
+        for leaf_id in inapplicable_leaf_ids:
+            _require_id(leaf_id, "inapplicable leaf id")
+        scored_overlap = sorted(set(inapplicable_leaf_ids) & scored_leaf_ids)
+        if scored_overlap:
+            raise MeasurementContractError(
+                "inapplicable_leaf_ids must not overlap with produced scores: "
+                f"{scored_overlap}"
+            )
+        deferred_overlap = sorted(set(inapplicable_leaf_ids) & set(deferred_leaf_ids))
+        if deferred_overlap:
+            raise MeasurementContractError(
+                "inapplicable_leaf_ids must not overlap with deferred_leaf_ids: "
+                f"{deferred_overlap}"
+            )
+        object.__setattr__(
+            self, "inapplicable_leaf_ids", tuple(sorted(inapplicable_leaf_ids))
+        )
 
         limits = tuple(self.observability_limits)
         for limit in limits:
@@ -420,10 +482,26 @@ class EvaluationReceipt:
 
 
 def _receipt_content_sha256(receipt: EvaluationReceipt) -> str:
+    # Ruling R13: this payload is a plain dict, not the ``receipt`` dataclass
+    # itself, so it bypasses ``run.resolver._canonical_value``'s own
+    # ``_CANONICAL_OMIT_IF_DEFAULT`` recursion (that recursion only fires
+    # when it encounters a dataclass INSTANCE; a dict built by hand from
+    # every field, as this always has, is not one). ``write_evaluation_receipt``
+    # persists ``canonical_json_bytes(receipt)`` -- the dataclass itself,
+    # which DOES honour the omission -- so without this same omission here,
+    # a receipt whose ``inapplicable_leaf_ids`` holds its default would seal
+    # under a digest computed WITH that key present, then persist bytes
+    # WITHOUT it, and fail its own round-trip verification on every family
+    # that has never declared a case_conditional leaf (every family today).
+    omit_if_default = getattr(type(receipt), "_CANONICAL_OMIT_IF_DEFAULT", frozenset())
     payload = {
         item.name: getattr(receipt, item.name)
         for item in dataclasses.fields(receipt)
         if item.name != "receipt_sha256"
+        and not (
+            item.name in omit_if_default
+            and getattr(receipt, item.name) == item.default
+        )
     }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
