@@ -111,6 +111,9 @@ def receipt_projection(
         "failure": safe_failure,
         "scores": receipt["scores"],
         "observability_limits": receipt["observability_limits"],
+        # Which seats were not models (seat id -> scripted policy id); absent
+        # from receipts sealed before scripted seats existed, so defaulted.
+        "scripted_seats": dict(receipt.get("scripted_seats", {})),
         "campaign_cell_key": campaign_cell_key,
     }
 

@@ -1597,7 +1597,9 @@ def project_loss_analysis_tables(
         receipt = selected_receipts.get(cell.cell_id)
         calls = () if evidence is None else _extract_model_calls(evidence, task_id=cell.cell_id)
         if evidence is not None:
-            permitted_seats = set(cell.profile_by_seat)
+            # A scripted seat is a seat of the cell that makes no provider
+            # call; naming it here keeps the check about seats, not models.
+            permitted_seats = set(cell.profile_by_seat) | set(cell.scripted_seats)
             unknown_seats = sorted(
                 {
                     call.seat_id
@@ -2240,6 +2242,9 @@ def _deserialize_run_plan(value: Mapping[str, Any]) -> RunPlan:
                     "profile_by_seat": MappingProxyType(
                         dict(item["profile_by_seat"])
                     ),
+                    "scripted_seats": MappingProxyType(
+                        dict(item.get("scripted_seats", {}))
+                    ),
                 }
             )
             for item in value["cells"]
@@ -2461,6 +2466,9 @@ def _deserialize_receipt(value: Mapping[str, Any]) -> EvaluationReceipt:
             observability_limits=tuple(value.get("observability_limits", ())),
             replay_level=value.get("replay_level", "none"),
             deferred_leaf_ids=tuple(value.get("deferred_leaf_ids", ())),
+            # Omitted from the serialized receipt when empty (the digest
+            # neutrality rule), so an older receipt reads back unchanged.
+            scripted_seats=MappingProxyType(dict(value.get("scripted_seats", {}))),
         )
         verify_evaluation_receipt(receipt)
         return receipt

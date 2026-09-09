@@ -221,3 +221,29 @@ def test_a_plugin_without_the_hook_fails_before_the_episode_starts(tmp_path: Pat
 
     with pytest.raises(SchedulerContractError, match="no scripted_response hook"):
         _run(tmp_path, plugin_factory=_NoHook)
+
+
+def test_a_scripted_receipt_and_its_plan_survive_the_research_layer_round_trip(tmp_path: Path) -> None:
+    """The research layer rebuilds receipts and plans from disk and verifies
+    their digests; a field it did not know about would deserialize as its
+    default and fail verification -- which is how the TERMS-Bench publisher
+    found this gap on its first real receipt."""
+    from aeread.shared_runner.analysis import research
+    from aeread.shared_runner.run.publication import receipt_projection
+    from aeread.shared_runner.run.resolver import write_run_plan
+    from aeread.shared_runner.task.receipts import read_evaluation_receipt
+
+    setup, execution = _run(tmp_path)
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    serialized = read_evaluation_receipt(execution.evidence.root / "evaluation_receipt.json")
+    assert dict(serialized["scripted_seats"]) == SCRIPTED
+    rebuilt = research.deserialize_evaluation_receipt(serialized)
+    assert rebuilt.receipt_sha256 == receipt.receipt_sha256
+    assert dict(rebuilt.scripted_seats) == SCRIPTED
+    # The public projection carries which seats were not models.
+    assert receipt_projection(serialized, campaign_cell_key="k")["scripted_seats"] == SCRIPTED
+
+    plan_path = write_run_plan(setup.plan, tmp_path / "run_plan.json")
+    loaded = research._load_run_plan(plan_path)
+    assert loaded.plan_sha256 == setup.plan.plan_sha256
+    assert dict(loaded.cells[0].scripted_seats) == SCRIPTED
