@@ -496,6 +496,7 @@ def test_replay_reproduces_a_sequential_phase_instance_exactly(tmp_path) -> None
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
         cell=cell,
+        trajectory_outcome_paths=(),
     )
 
     assert canonical_json_bytes(scoring_input.phase_instances) == canonical_json_bytes(
@@ -543,4 +544,5 @@ def test_replay_rejects_a_phase_completion_boundary_that_understates_the_actors(
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
             cell=cell,
+            trajectory_outcome_paths=(),
         )

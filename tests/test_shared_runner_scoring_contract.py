@@ -2711,6 +2711,7 @@ def _assert_family_obeys_the_scoring_contract(
                 profile_by_seat=case.profile_by_seat,
             ),
             cell=case.cell,
+            trajectory_outcome_paths=(),
         )
         # Ruling R10: this fixture's OWN outcome must agree with its OWN
         # phase_instances at every declared path -- independent of any
@@ -3021,6 +3022,7 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
         evidence=left_execution.evidence,
         seat_context=SeatContext((), {}),
         cell=left_cell,
+        trajectory_outcome_paths=(),
     )
     right_scoring_input = replay_family_scoring_input(
         plugin=plugin,
@@ -3028,6 +3030,7 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
         evidence=right_execution.evidence,
         seat_context=SeatContext((), {}),
         cell=right_cell,
+        trajectory_outcome_paths=(),
     )
     # Sanity: this really is a byte-identical-outcome, differing-trajectory
     # pair, exactly what the main protocol test requires for the pairing.
@@ -3355,6 +3358,7 @@ def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independentl
         evidence=left_execution.evidence,
         seat_context=SeatContext((), {}),
         cell=left_cell,
+        trajectory_outcome_paths=(),
     )
     right_input = replay_family_scoring_input(
         plugin=plugin,
@@ -3362,6 +3366,7 @@ def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independentl
         evidence=right_execution.evidence,
         seat_context=SeatContext((), {}),
         cell=right_cell,
+        trajectory_outcome_paths=(),
     )
 
     over_broad_paths = ("/labels",)

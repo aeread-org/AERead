@@ -13,6 +13,7 @@ from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
+from ..run import json_pointer
 from ..run.layout import RunLayout
 from ..measurement import (
     FamilyScoreSet,
@@ -241,12 +242,55 @@ def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
     return ()
 
 
+def _assert_trajectory_outcome_paths_are_consistent(
+    outcome: Mapping[str, Any],
+    final_state: Any,
+    trajectory_outcome_paths: tuple[str, ...],
+) -> None:
+    """Ruling R10: each declared path's outcome copy must equal the SAME
+    pointer read from the final replayed state. Enforced here, at replay,
+    so every production caller of _replay_family_trajectory gets it --
+    previously this comparison existed only inside the scoring-contract
+    protocol test (issue #122)."""
+    if not trajectory_outcome_paths:
+        return
+    for pointer in trajectory_outcome_paths:
+        try:
+            outcome_value = json_pointer.get(outcome, pointer)
+        except json_pointer.JsonPointerError as error:
+            raise AssertionError(
+                f"outcome{pointer} does not exist in the outcome -- every "
+                "declared trajectory_outcome_path must be present in the "
+                "outcome"
+            ) from error
+        if not isinstance(outcome_value, (list, tuple)):
+            raise AssertionError(
+                f"outcome{pointer} is a {type(outcome_value).__name__}, not "
+                "a sequence -- a declared trajectory_outcome_path must point "
+                "at a sequence of per-step records"
+            )
+        try:
+            derived_value = json_pointer.get(final_state, pointer)
+        except json_pointer.JsonPointerError as error:
+            raise AssertionError(
+                f"outcome{pointer} does not exist in the final replayed "
+                "state -- ruling R10 reads the SAME pointer from both the "
+                "outcome and the final replayed state"
+            ) from error
+        if canonical_json_bytes(outcome_value) != canonical_json_bytes(derived_value):
+            raise AssertionError(
+                f"outcome{pointer} does not match the same pointer read "
+                "from the final replayed state"
+            )
+
+
 def _replay_family_trajectory(
     *,
     plugin: Any,
     family_case: Mapping[str, Any],
     evidence: EvidenceStore,
     cell: PlanCell,
+    trajectory_outcome_paths: tuple[str, ...],
 ) -> tuple[Mapping[str, Any], tuple[PhaseInstance, ...], Any, tuple[str, ...]]:
     """Re-execute the pinned case once, cross-checking every step against the seal.
 
@@ -267,6 +311,12 @@ def _replay_family_trajectory(
     by first use. Any disagreement between the re-execution and the sealed
     evidence raises immediately -- there is no partial result to fall back
     to.
+
+    Issue #122: ``trajectory_outcome_paths`` has no default -- every caller
+    must pass it explicitly, so a declaration cannot be silently omitted.
+    Ruling R10 is enforced here, against the recomputed outcome and this
+    same re-execution's final replayed state, immediately before returning
+    -- see ``_assert_trajectory_outcome_paths_are_consistent``.
     """
     if not isinstance(cell, PlanCell):
         raise TypeError("cell must be a PlanCell")
@@ -566,6 +616,9 @@ def _replay_family_trajectory(
     ) != canonical_json_bytes(outcome):
         raise ValueError("family replay family outcome differs from sealed evidence")
     _use(outcome_events[0])
+    _assert_trajectory_outcome_paths_are_consistent(
+        outcome, state, trajectory_outcome_paths
+    )
     return (
         _freeze(outcome),
         tuple(phase_instances),
@@ -580,12 +633,17 @@ def replay_family_state(
     family_case: Mapping[str, Any],
     evidence: EvidenceStore,
     cell: PlanCell,
+    trajectory_outcome_paths: tuple[str, ...],
 ) -> tuple[Mapping[str, Any], Any]:
     """#135 A1: certified replay receives the executed PlanCell; its identity
     is checked against the seal before the plugin is invoked."""
     outcome, _phase_instances, outcome_event, _evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
+            plugin=plugin,
+            family_case=family_case,
+            evidence=evidence,
+            cell=cell,
+            trajectory_outcome_paths=trajectory_outcome_paths,
         )
     )
     return outcome, outcome_event
@@ -638,6 +696,7 @@ def replay_family_scoring_input(
     evidence: EvidenceStore,
     seat_context: SeatContext,
     cell: PlanCell,
+    trajectory_outcome_paths: tuple[str, ...],
 ) -> FamilyScoringInput:
     """Produce one family's scoring input by verified deterministic re-execution.
 
@@ -657,10 +716,20 @@ def replay_family_scoring_input(
     ``replay_family_receipt``, ``audit_family_receipt``) reads it from the
     plan via ``_seat_context_for_cell`` and must pass it explicitly, so a
     caller cannot silently omit seat context the way a default would allow.
+
+    Issue #122: ``trajectory_outcome_paths`` is likewise required with no
+    default -- every production call site sources it from
+    ``registration.manifest.measurement.trajectory_outcome_paths`` (the
+    trusted registered manifest, never the run-plan's own manifest copy) and
+    must pass it explicitly.
     """
     outcome, phase_instances, _outcome_event, evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
+            plugin=plugin,
+            family_case=family_case,
+            evidence=evidence,
+            cell=cell,
+            trajectory_outcome_paths=trajectory_outcome_paths,
         )
     )
     return FamilyScoringInput(
@@ -1005,6 +1074,7 @@ def finalize_family_execution(
         evidence=execution.evidence,
         seat_context=seat_context,
         cell=cell,
+        trajectory_outcome_paths=registration.manifest.measurement.trajectory_outcome_paths,
     )
     if canonical_json_bytes(scoring_input.outcome) != canonical_json_bytes(
         execution.episode_result.outcome
@@ -1291,6 +1361,7 @@ def replay_family_receipt(
         evidence=evidence,
         seat_context=seat_context,
         cell=cell,
+        trajectory_outcome_paths=registration.manifest.measurement.trajectory_outcome_paths,
     )
     replayed_score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
@@ -1472,6 +1543,7 @@ def audit_family_receipt(
             evidence=evidence,
             seat_context=seat_context,
             cell=cell,
+            trajectory_outcome_paths=registration.manifest.measurement.trajectory_outcome_paths,
         )
         score_set = normalize_family_score_set(
             plugin.build_scorer(family_case)(

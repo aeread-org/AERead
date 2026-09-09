@@ -107,6 +107,7 @@ def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> N
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
         cell=cell,
+        trajectory_outcome_paths=(),
     )
 
     assert isinstance(scoring_input, FamilyScoringInput)
@@ -133,7 +134,11 @@ def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> N
 
     # replay_family_state (the pre-existing caller) still works unchanged.
     outcome, outcome_event = replay_family_state(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence, cell=cell
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        cell=cell,
+        trajectory_outcome_paths=(),
     )
     assert canonical_json_bytes(outcome) == canonical_json_bytes(scoring_input.outcome)
     assert outcome_event.event_id in scoring_input.evidence_refs
@@ -150,6 +155,7 @@ def test_replay_family_scoring_input_has_no_episode_result_parameter() -> None:
         "evidence",
         "seat_context",
         "cell",
+        "trajectory_outcome_paths",
     }
 
 
@@ -165,6 +171,7 @@ def test_replay_passes_the_exact_plan_cell_to_initial_state(tmp_path) -> None:
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
         cell=cell,
+        trajectory_outcome_paths=(),
     )
 
     assert len(recording_plugin.initial_state_runs) == 1
@@ -212,6 +219,7 @@ def test_replay_rejects_cell_evidence_identity_mismatch_before_plugin_invocation
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
             cell=wrong,
+            trajectory_outcome_paths=(),
         )
 
     assert recording_plugin.calls == []
@@ -246,6 +254,7 @@ def test_replay_rejects_cell_identity_even_when_evidence_cell_id_agrees(
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
             cell=attacker_cell,
+            trajectory_outcome_paths=(),
         )
 
 
@@ -259,6 +268,7 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
         cell=cell,
+        trajectory_outcome_paths=(),
     )
 
     events_path = execution.evidence.root / "events.jsonl"
@@ -281,6 +291,7 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
             cell=cell,
+            trajectory_outcome_paths=(),
         )
 
 
@@ -293,6 +304,7 @@ def test_replay_family_scoring_input_result_is_deeply_immutable(tmp_path) -> Non
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
         cell=cell,
+        trajectory_outcome_paths=(),
     )
 
     with pytest.raises(dataclasses.FrozenInstanceError):
