@@ -30,8 +30,10 @@ and a harness that answers without a model call is rejected by the kernel.
    Seat sets: `case seats == seat_assignments ∪ scripted_seats`, disjoint.
 2. **Validation (resolver).** A scripted seat's policy must be listed in the
    family's `roles[seat].scripted_policies`; the role must be `testable: false`;
-   the seat may not appear in any block's `subject_seats` or
-   `controlled_profiles`. A scripted seat has no profile, no provider, no
+   the seat may not appear in any block's `subject_seats`.
+   It may be a block's `controlled_profiles` entry -- a fixed policy is the
+   archetypal control; the resolver fixture's `controlled_fixed_counterpart`
+   block names exactly such a seat. A scripted seat has no profile, no provider, no
    admission canary and no cost.
 3. **Plan cell.** `PlanCell.scripted_seats` carries the mapping so the
    scheduler needs no back-reference to the run spec.

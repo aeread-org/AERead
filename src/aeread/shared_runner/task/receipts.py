@@ -15,7 +15,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import ClassVar, Any, Mapping
 
 from .execution import EvidenceSeal
 from ..measurement import (
@@ -155,6 +155,16 @@ class EvaluationReceipt:
     # for every family that declares no leaf policy at all (the common case
     # today -- see ``FinalizeTimeLeafPolicy``).
     deferred_leaf_ids: tuple[str, ...] = field(default_factory=tuple)
+    # Seats this cell filled from a family policy rather than a model
+    # (docs/kernel_scripted_seats_design.md), seat id -> policy id. Kept apart
+    # from agent_profile_sha256_by_seat, which names model seats only, so
+    # ruling R12's seat-set check compares like with like. A plain default,
+    # not a factory: _canonical_value omits a field only when it equals
+    # field.default, and that is what keeps every receipt sealed before this
+    # field existed byte-identical.
+    scripted_seats: Mapping[str, str] = MappingProxyType({})
+
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 
     SPEC_VERSION = "aeread.receipt/0.1"
 
@@ -219,6 +229,16 @@ class EvaluationReceipt:
                 "agent_profile_sha256_by_seat",
             ),
         )
+        scripted = dict(self.scripted_seats)
+        for seat_id, policy_id in scripted.items():
+            _require_id(seat_id, "scripted seat id")
+            _require_id(policy_id, f"scripted policy for seat {seat_id!r}")
+        if set(scripted) & set(self.agent_profile_sha256_by_seat):
+            raise MeasurementContractError(
+                "a seat cannot be both scripted and profiled: "
+                f"{sorted(set(scripted) & set(self.agent_profile_sha256_by_seat))}"
+            )
+        object.__setattr__(self, "scripted_seats", MappingProxyType(dict(sorted(scripted.items()))))
         self._validate_and_freeze_implementations()
         self._validate_and_freeze_plan_pins()
         self._validate_and_freeze_scores()
@@ -420,10 +440,17 @@ class EvaluationReceipt:
 
 
 def _receipt_content_sha256(receipt: EvaluationReceipt) -> str:
+    # The same omit-if-default rule the dataclass canonical path applies
+    # (run.resolver._canonical_value), applied here because this builds a
+    # plain dict and the dict path knows nothing about field defaults. Without
+    # it the writer omitted a defaulted field and this digest included it, so
+    # a freshly sealed receipt failed its own round-trip check.
+    omit_if_default = getattr(type(receipt), "_CANONICAL_OMIT_IF_DEFAULT", frozenset())
     payload = {
         item.name: getattr(receipt, item.name)
         for item in dataclasses.fields(receipt)
         if item.name != "receipt_sha256"
+        and not (item.name in omit_if_default and getattr(receipt, item.name) == item.default)
     }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 

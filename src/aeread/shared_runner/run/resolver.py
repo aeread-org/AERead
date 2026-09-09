@@ -868,18 +868,22 @@ def _validate_cross_references(
                     f"block {block_id!r} references unavailable seats: "
                     f"subjects={unknown_subjects}, controls={unknown_controls}"
                 )
-            scripted_in_block = sorted(
-                (set(block.subject_seats) | set(block.controlled_profiles)) & scripted_ids
-            )
-            if scripted_in_block:
+            # A scripted seat may be a block's control -- a fixed policy is
+            # the archetypal control -- but never its subject: a scripted
+            # subject is a measurement of nothing.
+            scripted_subjects = sorted(set(block.subject_seats) & scripted_ids)
+            if scripted_subjects:
                 raise PlanResolutionError(
-                    f"block {block_id!r} names scripted seat(s) {scripted_in_block} as a "
-                    "subject or control; a scripted seat is neither"
+                    f"block {block_id!r} names scripted seat(s) {scripted_subjects} as a "
+                    "subject; a scripted seat cannot be a subject"
                 )
+            # The controlled identity is whatever fills the seat: a profile id
+            # for a model seat, a policy id for a scripted one.
+            filled_by = {**run_spec.scripted_seats, **run_spec.seat_assignments}
             control_mismatch = {
-                seat_id: (profile_id, run_spec.seat_assignments[seat_id])
+                seat_id: (profile_id, filled_by[seat_id])
                 for seat_id, profile_id in block.controlled_profiles.items()
-                if run_spec.seat_assignments[seat_id] != profile_id
+                if filled_by[seat_id] != profile_id
             }
             if control_mismatch:
                 raise PlanResolutionError(

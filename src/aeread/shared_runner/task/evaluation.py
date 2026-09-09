@@ -328,6 +328,36 @@ def _replay_family_trajectory(
             request = DecisionRequest(**_freeze(dict(request_value)))
             observations[seat_id] = request.observation
             _use(start)
+            if start_payload.get("source") == "scripted_policy":
+                # A scripted seat has no model to re-ask, so ruling R2's
+                # cross-check takes the only form it can: recompute the
+                # policy's response from the sealed request and seed, and
+                # require it to equal the response that was sealed.
+                scripted_events = tuple(
+                    event
+                    for event in events
+                    if event.event_type == "scripted_action"
+                    and event.logical_action_id == start.logical_action_id
+                )
+                if len(scripted_events) != 1:
+                    raise ValueError("family replay scripted action lacks one sealed response")
+                scripted_payload = evidence.read_event_payload(scripted_events[0])
+                hook = getattr(plugin, "scripted_response", None)
+                if not callable(hook):
+                    raise ValueError("family replay cannot recompute a scripted seat without the hook")
+                recomputed = hook(
+                    scripted_payload["policy_id"],
+                    request,
+                    world_seed=scripted_payload["world_seed"],
+                )
+                if canonical_json_bytes(recomputed) != canonical_json_bytes(
+                    scripted_payload["response"]
+                ):
+                    raise ValueError(
+                        f"family replay scripted response mismatch for seat {seat_id!r}: "
+                        "the policy no longer reproduces the sealed response"
+                    )
+                _use(scripted_events[0])
             parsed_events = tuple(
                 event
                 for event in events
@@ -889,6 +919,7 @@ def finalize_family_execution(
             replicate_index=cell.replicate_index,
             panel_mode=cell.panel_mode,
             agent_profile_sha256_by_seat=_agent_profile_digests(setup.plan, cell),
+            scripted_seats=cell.scripted_seats,
             implementation_refs=_receipt_implementations(score_set),
             plan_implementation_pins=setup.plan.implementation_pins,
             evidence=evidence_seal,
@@ -1000,6 +1031,7 @@ def finalize_family_failure(
             replicate_index=cell.replicate_index,
             panel_mode=cell.panel_mode,
             agent_profile_sha256_by_seat=_agent_profile_digests(setup.plan, cell),
+            scripted_seats=cell.scripted_seats,
             implementation_refs=(
                 leaf.estimand.validity_domain.predicate,
                 leaf.verifier.reference.implementation,
