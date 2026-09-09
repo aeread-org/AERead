@@ -1596,3 +1596,20 @@ Using any of these is a new campaign identity. The probe's evidence lives
 in the uncommitted run root; the first Gemini cell also lost its receipt
 because the runner source was edited under the running probe (J-6), a
 small repeat of O-11.
+
+**Verified live under the update.** The same seats were run again under
+`housing_actions/2.2`, a `minimum_rent` of `1.0` and the version 2 prompts,
+on the same two worlds, Gemini as landlord against DeepSeek tenants:
+
+| world | landlord actions parsed | decisions | leases | zero-rent | IR | score |
+|---|---|---|---|---|---|---|
+| healthy, 905398266 | 7 of 7 | 4 accept, 3 reject | 4 | 0 | none | `0.928` |
+| thin market, 1207545696 | 12 of 12 | 1 counter, 11 reject | 0 | 0 | none | `0.0` |
+
+Where the frozen schema had produced 12 nulls and a zero, the portable one
+produced twelve coherent decisions. On the thin market Gemini rejected
+everything, including the one listing that could have been leased for the
+oracle's 56.18, so it is conservative to the point of leaving surplus on the
+table, which is a behaviour to measure rather than a failure of the seat. A
+GLM cell in the same run was lost to a transport error before its first
+action and is being rerun; its result is added below when it lands.
