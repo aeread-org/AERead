@@ -445,3 +445,27 @@ the real kernel with a fake route, before any provider call.
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | TB-T-01 | #150 pushed as ready with "full suite green locally" (2,477 passed) and CI failed at collection on Python 3.10: `mutable default <class 'mappingproxy'> for field scripted_seats is not allowed: use default_factory`. The local venv is 3.13, where `mappingproxy` is hashable and `dataclasses` accepts it as a plain default; on 3.10/3.11 it is unhashable and rejected. The plain default was chosen deliberately, because the omit-if-default rule compared against `field.default` and a factory field has none. First reading of the red check -- "kernel-review, no approval yet" -- was right for one job and hid the other | CI (`agenticpay-fidelity`, then `test (3.10)`) | two red checks on a PR just marked ready; one CI cycle | factory defaults on `RunSpec`, `PlanCell` and `EvaluationReceipt`, and a `field_default` helper the omit rule (both digest paths) looks through; reproduced and re-run under a 3.10 venv before the next push. Rule: a local gate on one interpreter is not the CI matrix; run the touched tests under 3.10 too when a dataclass default changes |
+| TB-T-02 | `gh pr edit 150 --body-file … && gh pr ready 150` exited non-zero on a GraphQL warning (`Projects (classic) is being deprecated … projectCards`) after applying only the title, so the chained `gh pr ready` never ran and the reviewer request failed the same way; the PR sat as a draft with the stale "implementation is not written yet" body while the push comment said it was ready. Noticed only because the follow-up `gh pr view` was read | a person read `gh pr view` output | none beyond confusion on the PR | `gh api -X PATCH repos/…/pulls/N` and `gh api … /requested_reviewers` for edits; never chain state changes behind a `gh pr edit` without checking its exit |
+| TB-T-03 | in zsh, `git show $B:src/aeread_families/tau3_retail/campaign.py` expanded `$B:s…` as a history modifier and produced `origin/codex/tau3-first-live-campaignetail/campaign.py` -- twice in one session, the second time on `$T:src/…` after the first was diagnosed | the commands' own errors | two wasted reads | `"${B}:path"` always; the P-T-02/P-T-05 zsh rows now have a third sibling |
+| TB-T-04 | the Tier 1 register built from the family worktree emitted `source_artifact` as absolute paths (the sealed runs live under the live checkout, not the worktree), and the prohibited-text scan refused the table on `/users/` | `assert_public_payload` at publish | one failed build | `failure_register.py --repository-root`; the scan doing its job is why this row exists rather than an absolute path in a committed register |
+
+## 2026-09-09 — tooling: a rebase raced a merge by two minutes
+
+#132 rebased onto `main` at 04:21Z and reported "rebased onto the current
+main after its kernel contract updates"; #112 had merged at 04:19Z as
+`2318d748`. The rebase base was `b37c3d0d`, one commit behind, so the
+branch carried #112's R13 code as it stood on #112's branch, not as merged:
+`git merge-tree` against `main` shows a single-line conflict in
+`task/evaluation.py` (`_reject_undeclared_inapplicable_ids(registration.manifest, …)`
+on `main`, the pre-merge `(family, …)` on the branch) and the usual union
+in `tests/test_shared_runner_scoring_contract.py`. GitHub runs no workflow on
+a conflicting PR, so the Python 3.12 fix pushed in the same rebase has not
+been exercised by CI either.
+
+Not a design defect in either PR, and a kernel-file conflict is a stop rather
+than a hand-resolve, so it was reported on #132 with the target commit. It is
+the same gap the 2026-09-08 row above names from the other side: a check, or
+a rebase, is evaluated against `main` *at that moment*. Rule to add to the
+one there: read `main`'s head from `git ls-remote` immediately before the
+rebase, and put that commit in the rebase comment, so "current main" is a
+digest and not a claim.
