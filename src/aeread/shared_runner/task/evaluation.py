@@ -24,6 +24,7 @@ from ..measurement import (
 from ..registry import PluginRegistry
 from ..run.resolver import (
     ImplementationPin,
+    PlanCell,
     PlanResolutionError,
     RunPlan,
     canonical_json_bytes,
@@ -241,9 +242,16 @@ def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
 
 
 def _replay_family_trajectory(
-    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+    *,
+    plugin: Any,
+    family_case: Mapping[str, Any],
+    evidence: EvidenceStore,
+    cell: PlanCell,
 ) -> tuple[Mapping[str, Any], tuple[PhaseInstance, ...], Any, tuple[str, ...]]:
     """Re-execute the pinned case once, cross-checking every step against the seal.
+
+    #135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked.
 
     Ruling R2 (kernel_scoring_contract_spec.md): this is a verified
     deterministic re-execution, not a pure read-back of durable evidence --
@@ -260,6 +268,10 @@ def _replay_family_trajectory(
     evidence raises immediately -- there is no partial result to fall back
     to.
     """
+    if not isinstance(cell, PlanCell):
+        raise TypeError("cell must be a PlanCell")
+    if cell.cell_id != evidence.cell_id:
+        raise ValueError("replay cell identity does not match sealed evidence")
     events = evidence.read_events()
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     # Positional, matching scheduler.py's own call site. The hook's second
@@ -267,7 +279,7 @@ def _replay_family_trajectory(
     # natively-built families; a keyword call here silently admitted the
     # latter and TypeError'd the former, so no external adapter could ever
     # produce a replayed receipt.
-    state = plugin.initial_state(family_case, None)
+    state = plugin.initial_state(family_case, cell)
     phase_events = tuple(
         event for event in events if event.event_type == "phase_instance_started"
     )
@@ -550,11 +562,17 @@ def _replay_family_trajectory(
 
 
 def replay_family_state(
-    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+    *,
+    plugin: Any,
+    family_case: Mapping[str, Any],
+    evidence: EvidenceStore,
+    cell: PlanCell,
 ) -> tuple[Mapping[str, Any], Any]:
+    """#135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked."""
     outcome, _phase_instances, outcome_event, _evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence
+            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
         )
     )
     return outcome, outcome_event
@@ -606,8 +624,12 @@ def replay_family_scoring_input(
     family_case: Mapping[str, Any],
     evidence: EvidenceStore,
     seat_context: SeatContext,
+    cell: PlanCell,
 ) -> FamilyScoringInput:
     """Produce one family's scoring input by verified deterministic re-execution.
+
+    #135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked.
 
     Ruling R2: this re-executes the pinned case deterministically and
     cross-checks every phase boundary, action, and terminal state against the
@@ -625,7 +647,7 @@ def replay_family_scoring_input(
     """
     outcome, phase_instances, _outcome_event, evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence
+            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
         )
     )
     return FamilyScoringInput(
@@ -969,6 +991,7 @@ def finalize_family_execution(
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=seat_context,
+        cell=cell,
     )
     if canonical_json_bytes(scoring_input.outcome) != canonical_json_bytes(
         execution.episode_result.outcome
@@ -1254,6 +1277,7 @@ def replay_family_receipt(
         family_case=family_case,
         evidence=evidence,
         seat_context=seat_context,
+        cell=cell,
     )
     replayed_score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
@@ -1434,6 +1458,7 @@ def audit_family_receipt(
             family_case=family_case,
             evidence=evidence,
             seat_context=seat_context,
+            cell=cell,
         )
         score_set = normalize_family_score_set(
             plugin.build_scorer(family_case)(
