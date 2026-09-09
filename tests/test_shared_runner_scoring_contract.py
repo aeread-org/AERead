@@ -942,8 +942,10 @@ def _build_reference_setup(
     family_manifest: FamilyManifest | None = None,
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
+    scripted_seats: Mapping[str, str] | None = None,
 ) -> _ReferenceSetup:
     case = case if case is not None else _reference_case()
+    scripted = dict(scripted_seats or {})
     family = family_manifest if family_manifest is not None else _reference_family_manifest()
     seat_ids = tuple(seat.id for seat in case.seats)
     sampling = SamplingPlan.from_dict(
@@ -1069,7 +1071,10 @@ def _build_reference_setup(
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [profile.profile_id],
-            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "seat_assignments": {
+                seat_id: profile.profile_id for seat_id in seat_ids if seat_id not in scripted
+            },
+            **({"scripted_seats": scripted} if scripted else {}),
             "execution_mode": "evaluate",
             "replicate_override": None,
             "budget_overrides": None,
@@ -1161,6 +1166,7 @@ async def _run_reference_episode(
     family_manifest: FamilyManifest | None = None,
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
+    scripted_seats: Mapping[str, str] | None = None,
 ):
     setup = _build_reference_setup(
         plugin_factory=plugin_factory,
@@ -1168,6 +1174,7 @@ async def _run_reference_episode(
         family_manifest=family_manifest,
         subject_seats=subject_seats,
         extra_pins=extra_pins,
+        scripted_seats=scripted_seats,
     )
     execution = await execute_plan_cell(
         plan=setup.plan,

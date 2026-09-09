@@ -1014,16 +1014,22 @@ class ScriptedSeatSource:
     docs/kernel_scripted_seats_design.md. The scheduler routes a scripted
     seat's request here instead of to the executor. This class answers it by
     calling the plugin's ``scripted_response(policy_id, request, *,
-    world_seed)`` hook and seals the same lifecycle events the executor seals
+    world_seed) -> str`` hook -- the response text a model would have
+    produced, wrapped here as a ``CanonicalResponse`` -- and seals the same lifecycle events the executor seals
     for a model seat -- ``logical_action_started``, ``action_parsed``,
     ``action_legality_checked``, ``logical_action_succeeded`` /
-    ``logical_action_agent_action_failure``, ``logical_action_failed`` -- so
-    replay walks both kinds of seat with one reader. Two things differ, on
-    purpose: ``logical_action_started`` carries ``source: scripted_policy``
-    and the policy id, and a ``scripted_action`` event seals the response
-    the policy produced. No ``provider_call_*`` or ``action_attempt_*`` event
-    is ever written for a scripted seat, so no receipt can read the turn as
-    model-produced, and there is nothing to bill.
+    ``logical_action_agent_action_failure``, ``logical_action_failed`` -- and
+    one action attempt, ordinal 0, with ``action_attempt_started`` and
+    ``action_attempt_succeeded`` in the executor's shapes, because replay
+    reads a logical action's canonical response from its one successful
+    attempt and an attempt is the response source's attempt, not a provider
+    call. Replay therefore walks both kinds of seat with one reader. Two
+    things differ, on purpose: ``logical_action_started`` and the attempt
+    carry ``source: scripted_policy`` and the policy id, and a
+    ``scripted_action`` event seals the response the policy produced. No
+    ``provider_call_*`` event is ever written for a scripted seat, so no
+    receipt can read the turn as model-produced, and there is nothing to
+    bill.
     """
 
     SOURCE = "scripted_policy"
@@ -1063,15 +1069,61 @@ class ScriptedSeatSource:
             logical_action_id=request.logical_action_id,
             visibility=f"seat:{request.seat_id}",
         )
-        response = self._hook(policy_id, request, world_seed=self._cell.world_seed)
-        if inspect.isawaitable(response):
-            response = await response
+        action_attempt_id = _stable_id(
+            "action_attempt", {"logical_action_id": request.logical_action_id, "ordinal": 0}
+        )
+        self.evidence.append_event(
+            "action_attempt_started",
+            {
+                "ordinal": 0,
+                "retry_reason": None,
+                "session_mode": "scripted",
+                "max_output_tokens": None,
+                "source": self.SOURCE,
+                "policy_id": policy_id,
+            },
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            action_attempt_id=action_attempt_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        text = self._hook(policy_id, request, world_seed=self._cell.world_seed)
+        if inspect.isawaitable(text):
+            text = await text
+        if not isinstance(text, str):
+            raise SchedulerContractError(
+                f"scripted policy {policy_id!r} must return the response text a model "
+                f"would have produced, got {type(text).__name__}"
+            )
+        # The policy's text takes the exact shape a model's answer takes, so
+        # parse, legality, the record and replay never distinguish the two;
+        # finish_reason names the source and there is no provider call to cite.
+        response = CanonicalResponse(
+            text=text,
+            finish_reason="scripted",
+            empty=(text == ""),
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+        )
+        self.evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": response},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            action_attempt_id=action_attempt_id,
+            visibility=f"seat:{request.seat_id}",
+        )
         self.evidence.append_event(
             "scripted_action",
             {
                 "policy_id": policy_id,
                 "world_seed": self._cell.world_seed,
-                "response": response,
+                "response": text,
             },
             phase_instance_id=request.phase_instance_id,
             logical_action_id=request.logical_action_id,
