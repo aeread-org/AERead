@@ -86,8 +86,9 @@ document; this file is the index and the disposition.
 | econevals | `evidence/econevals_failure_register/` | 19 typed failures over 13 attempt roots (10 `rate_limit`, 3 `malformed_structured_output`, 2 `provider_rejected`, 2 `provider_contract`, 2 `invalid_measurement`); 176 retried provider-call failures beneath them; attribution provider 12, model 5, environment 2 | `docs/families/econevals/incidents.md` |
 | termsbench | `evidence/termsbench_failure_register/` | 1 typed failure over 2 attempt roots (v1 aborted at 8/30 on `malformed_structured_output`, a decoding degeneration; v2 30/30 with no typed failure); 13 of 30 v2 episodes carry a measured individual-rationality violation, which is a score, not a failure row | the TERMS-Bench section below (TB-D-01..03, TB-O-01); `docs/families/termsbench/campaign_scoping.md` |
 
-Three registers exist in the required shape; procurement still owes one, and
-the data-center register needs moving to the standard layout. The gap is
+Four registers exist in the required shape (housing, econevals, termsbench,
+and the data-center one pending its move to the standard layout); procurement
+still owes one, and tau3 and the seven #132 adapter families owe theirs. The gap is
 recorded rather than quietly closed.
 
 A note the econevals register makes concrete: a checkpoint records
