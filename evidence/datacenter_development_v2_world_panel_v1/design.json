@@ -1,6 +1,6 @@
 {
-  "artifact_sha256": "a907e5a204774bc7ebfb93c72faff229ac63355c0ccbae20621b3eeaa638277e",
-  "campaign_driver_sha256": "587cb61fe09f479cc81e28ddbc3617f2d2c19a16ade0f9a92843b3c794c91e75",
+  "artifact_sha256": "ae495cb5f9eee91bcc4e116e21fcf2aeacde7b45cd93911011527c079925aecd",
+  "campaign_driver_sha256": "407c5a4eb25f6b46b34f722c3e381f2c02eca3e2b49701634c45b3b83d3f8321",
   "campaign_id": "datacenter_development_v2_world_panel_v1",
   "campaign_max_cost_usd": 14.02,
   "cells": [

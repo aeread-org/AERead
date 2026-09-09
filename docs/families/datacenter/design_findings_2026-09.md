@@ -412,6 +412,35 @@ proposing strong terms as a default rather than by discovering the constraint.
 GLM manages it 4 times in 48. Getting the right answer and knowing why are
 different things, and the diagnostics can now tell them apart.
 
+### Re-executing the failed cells
+
+Forty-nine cells had failed operationally, which removed two routes from
+contention. Re-executing them as further declared attempts recovered twelve;
+thirty-seven hit the same rate limits again. The throttling is persistent
+rather than transient, and it sits almost entirely on two routes.
+
+That is enough to rank two of four. Gemini and GLM now have complete,
+route-verified panels; gpt-oss and Qwen remain unranked with 24 and 13 failed
+cells respectively, which is a reliability fact about those routes and is
+reported as one rather than hidden.
+
+| Route | Admitted | No deal | Excluded | Failed |
+|---|---:|---:|---:|---:|
+| Gemini 3.8 Flash | 6 | 1 | 41 | 0 |
+| GLM-5.3-flash | 1 | 33 | 14 | 0 |
+| gpt-oss-120b | 0 | 16 | 8 | 24 |
+| Qwen3-235B | 0 | 18 | 17 | 13 |
+
+The two rankable routes fail in opposite directions, which the single NPV
+column would not have shown. Gemini always transacts and is excluded 85 percent
+of the time for signing a stack that does not stand up. GLM mostly declines to
+transact at all, exhausting its rounds in 69 percent of cells and scoring the
+walk-away. Neither is competence.
+
+The trade result is unchanged and now rests on 76 completed power agreements:
+75 accepted the counterparty's opening package and one did anything else. None
+traded.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

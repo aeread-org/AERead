@@ -1,23 +1,23 @@
 {
-  "artifact_sha256": "6a502e0b23feecf89922636583887b3871a0889ade1e66b78dd1b45221882962",
+  "artifact_sha256": "1f62570d4b7b1e378ddd044037ac6d7a1969e96bd1a25a0d75000ce17456b611",
   "by_attribution_as_recorded": {
     "budget": 5,
     "environment": 10,
-    "model": 209,
-    "negotiation": 200,
-    "provider": 110
+    "model": 215,
+    "negotiation": 206,
+    "provider": 147
   },
   "by_attribution_corrected": {
     "budget": 7,
     "environment": 8,
-    "model": 224,
-    "negotiation": 200,
-    "provider": 95
+    "model": 230,
+    "negotiation": 206,
+    "provider": 132
   },
   "by_class": {
-    "excluded": 209,
-    "no_agreement": 200,
-    "operational": 125
+    "excluded": 215,
+    "no_agreement": 206,
+    "operational": 162
   },
   "campaign_id": "datacenter_development_v2_world_panel_v1",
   "defects": [
@@ -112,6 +112,15 @@
       "summary": "Price negotiation cannot break the structural plan: in 19 of 24 worlds both adopting every counter and negotiating every price to the floor are structurally valid. The counter package is internally consistent, so cross-agreement planning is solved for free and the sequence order is fixed rather than chosen. The family currently measures distributive pricing and schema compliance far more than it measures planning."
     },
     {
+      "detected_by": "the sequencing diagnostic on the first full panel",
+      "fix": null,
+      "id": "bankability-threshold-never-binds",
+      "regression_test": null,
+      "severity": "mechanism_does_not_bind",
+      "status": "open",
+      "summary": "The lender's thresholds were meant to make sequencing pay, but the conventional lease clears them without any discovery. Take-or-pay convention is 100 percent against a requirement of 85 to 95, so that dimension can never fail, and the security requirement is defined as six months of rent, which is the conventional answer. In 23 of 24 worlds a developer that proposes the standard package passes without ever learning the lender's terms. Observed as one route clearing the test in 44 of 47 cells while proposing the same maximal take-or-pay every time."
+    },
+    {
       "detected_by": "first panel carrying the sequencing diagnostic",
       "fix": null,
       "id": "sequencing-anchored-by-presentation-order",
@@ -132,6 +141,7 @@
   ],
   "incidents": [
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gemini38_flash_aistudio__seed_41211",
@@ -144,6 +154,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gemini38_flash_aistudio__seed_41212",
@@ -156,6 +167,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__glm53_parasail__seed_41212",
@@ -167,6 +179,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41211",
@@ -178,6 +191,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
+      "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41211",
+      "class": "no_agreement",
+      "condition": "power_negotiation_rounds_exhausted",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "e287a747b811cb3e19b055507d992a98803670b9a1d8581f0b34ed0af40b93af",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41212",
@@ -189,6 +215,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
+      "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "3e1887154cfc919f387bb95efca3ed571c4ddf5df703c9faec57fbb460242257",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__qwen3_235b_google__seed_41211",
@@ -200,6 +239,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__qwen3_235b_google__seed_41212",
@@ -211,6 +251,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gemini38_flash_aistudio__seed_41211",
@@ -223,6 +264,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gemini38_flash_aistudio__seed_41212",
@@ -235,6 +277,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__glm53_parasail__seed_41211",
@@ -246,6 +289,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__glm53_parasail__seed_41212",
@@ -257,6 +301,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41211",
@@ -268,6 +313,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
+      "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "bd0df5d03ec07f47096513aae7b086e72aad938bcb7e18bac585868670cf24e6",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41212",
@@ -279,6 +337,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
+      "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "8f402720828d91533a0721e92a99f62eed1b03bbd48d9e1bc337811093bfa320",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41211",
@@ -290,6 +361,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
+      "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41211",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_json",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "ab663220160a5b33b5014eec9feeff4eaf0d326808916dd0d7927749e77c946b",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41212",
@@ -301,6 +385,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gemini38_flash_aistudio__seed_41211",
@@ -313,6 +398,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gemini38_flash_aistudio__seed_41212",
@@ -325,6 +411,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__glm53_parasail__seed_41211",
@@ -336,6 +423,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__glm53_parasail__seed_41212",
@@ -347,6 +435,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41211",
@@ -358,6 +447,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
+      "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "642c3668be18de73f8607d99faca4872992facf5794e436387fe83e038e5ed86",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41212",
@@ -369,6 +471,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
+      "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "28904f03176e3d7947c0f66f4d5d7618675e531056e034fecbaaaf5ec2e32d62",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41211",
@@ -380,6 +495,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41212",
@@ -391,6 +507,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
+      "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41212",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_json",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "630d0f632a882fe44ec88f20e92cf58f1ab07be48589185910314c7af55e1c3f",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gemini38_flash_aistudio__seed_41211",
@@ -403,6 +532,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gemini38_flash_aistudio__seed_41212",
@@ -415,6 +545,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__glm53_parasail__seed_41211",
@@ -426,6 +557,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__glm53_parasail__seed_41212",
@@ -437,6 +569,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41211",
@@ -448,6 +581,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
+      "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "8ebb663e554b79382deb3a3149876e9ac6acc025484282677352bf3ba127d884",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41212",
@@ -459,6 +605,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
+      "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "9dd3da845676441312d377e3204fb4538f64f5b13c0967bdb8e763d83c5d2838",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41211",
@@ -470,6 +629,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
+      "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41211",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_json",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "01ef72cd30fbffe24d098c519ec0677c70d94ee1c800f638b8d67a9ad62f845f",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41212",
@@ -481,6 +653,19 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
+      "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "2023369e938391a80c0d47822fb81c51f85a2c6208b2a35264e32f34fa45d167",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41211",
@@ -493,6 +678,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41212",
@@ -505,6 +691,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -516,6 +703,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41212",
@@ -527,6 +715,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -538,6 +727,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41212",
@@ -549,6 +739,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -560,6 +751,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41212",
@@ -571,6 +763,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41211",
@@ -583,6 +776,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41212",
@@ -595,6 +789,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -606,6 +801,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41212",
@@ -618,6 +814,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -629,6 +826,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41212",
@@ -640,6 +838,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -651,6 +850,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41212",
@@ -662,6 +862,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41211",
@@ -674,6 +875,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41212",
@@ -686,6 +888,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -697,6 +900,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41212",
@@ -708,6 +912,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -719,6 +924,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41212",
@@ -730,6 +936,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -741,6 +948,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41212",
@@ -752,6 +960,19 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
+      "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41212",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_json",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "db3510d871cf0271aebc3392b4b08cecef2f183c2777b45ca8e53c3e9ab2967f",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -766,6 +987,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41212",
@@ -780,6 +1002,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -791,6 +1014,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41212",
@@ -802,6 +1026,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41211",
@@ -813,6 +1038,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41212",
@@ -824,6 +1050,19 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
+      "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41212",
+      "class": "no_agreement",
+      "condition": "power_negotiation_rounds_exhausted",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "14fa47a6f2b9418f29d9bfad45da02337d292ff632b0beb12fe4ebc1a9139ea8",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -835,6 +1074,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41212",
@@ -846,6 +1086,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gemini38_flash_aistudio__seed_41211",
@@ -858,6 +1099,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gemini38_flash_aistudio__seed_41212",
@@ -870,6 +1112,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__glm53_parasail__seed_41211",
@@ -881,6 +1124,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__glm53_parasail__seed_41212",
@@ -892,6 +1136,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41211",
@@ -903,6 +1148,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
+      "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "97bffca02de3b1591df555df8858c386dd095fe28cf5a44469a97f94695f4884",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41212",
@@ -914,6 +1172,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
+      "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "668ac6f8c913abfe30772fca5800126c7ac2f2ea453250c6efda51febfc99880",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41211",
@@ -925,6 +1196,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
+      "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "e3d9de6aaaa76f9a327d253061d8b1de6a3ec8dbfbf4163e79c631f7038c1a92",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41212",
@@ -936,6 +1220,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
+      "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "45fdc7993108b9567ee6a108ce0e12f151a009546f79d9a8d01c40897b16b043",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gemini38_flash_aistudio__seed_41212",
@@ -948,6 +1245,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__glm53_parasail__seed_41211",
@@ -959,6 +1257,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__glm53_parasail__seed_41212",
@@ -970,6 +1269,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41211",
@@ -981,6 +1281,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
+      "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "31169e83766a8fc690635a512b207c2aec8dc4f3fc068179ef5017e294165684",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41212",
@@ -992,6 +1305,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
+      "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "a77b5dcb092ddf74e45f76f2b0cfefaafc20e675757d3e7d99621781c0b3dfd8",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41211",
@@ -1003,6 +1329,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
+      "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "659128fd05534d8c422953e96d9c73449e427dbc6a225b74576dea69d1096bdb",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41212",
@@ -1014,6 +1353,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gemini38_flash_aistudio__seed_41211",
@@ -1025,6 +1365,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
+      "cell_key": "liability_transfer_003__gemini38_flash_aistudio__seed_41211",
+      "class": "no_agreement",
+      "condition": "land_negotiation_rounds_exhausted",
+      "model_id": "gemini38_flash_aistudio",
+      "receipt_sha256": "2a3188b25e8620841e1e4a70b5f8066ed6c51867ba47db4af077254a9953ea26",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gemini38_flash_aistudio__seed_41212",
@@ -1037,6 +1390,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__glm53_parasail__seed_41211",
@@ -1048,6 +1402,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__glm53_parasail__seed_41212",
@@ -1059,6 +1414,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41211",
@@ -1070,6 +1426,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
+      "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "3d1eca2c1bfd9395ba04edb350d5410cc773fa182cca817ecc9b81017aaaae90",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41212",
@@ -1081,6 +1450,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
+      "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "123ae2bc35d4832f499bffba87f0fcbde2a634e5afc1991468e899f21fb34905",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__qwen3_235b_google__seed_41211",
@@ -1092,6 +1474,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__qwen3_235b_google__seed_41212",
@@ -1103,6 +1486,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gemini38_flash_aistudio__seed_41211",
@@ -1115,6 +1499,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gemini38_flash_aistudio__seed_41212",
@@ -1127,6 +1512,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__glm53_parasail__seed_41211",
@@ -1138,6 +1524,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__glm53_parasail__seed_41212",
@@ -1149,6 +1536,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41211",
@@ -1160,6 +1548,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
+      "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "7f504e1fbdf9003987a94695b471eb1dd7aba4e7e2763b6c62a0284ec6e70e8a",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41212",
@@ -1171,6 +1572,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
+      "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "6f76076a36a445c89d4c0166f9bc4f05e33f0202907e78ec47b385b59a3adc25",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41211",
@@ -1182,6 +1596,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
+      "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "58eda67cf5c0829a67ebb542ad349e9a0bd258330595c13a55b559a737671249",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41212",
@@ -1193,6 +1620,19 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
+      "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "5e8186fe3b85c72d5cd85fa52fc36e3ef25d0059dba41466f155afc8ca47c611",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "liability_transfer"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gemini38_flash_aistudio__seed_41212",
@@ -1205,6 +1645,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -1216,6 +1657,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41212",
@@ -1227,6 +1669,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41211",
@@ -1238,6 +1681,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
+      "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41211",
+      "class": "no_agreement",
+      "condition": "power_negotiation_rounds_exhausted",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "af17381b3266e7631fbdf9768d41f9c06959da39f61268e04dc1ad1e65b6f92c",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41212",
@@ -1249,6 +1705,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
+      "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41212",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_datacenter_stack_action",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "83f5cb9856247a058cfcd83737201d427b1c7672dacee34fabd94619b2e23224",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41211",
@@ -1260,6 +1729,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "model",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
+      "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41211",
+      "class": "excluded",
+      "condition": "invalid_action:malformed_json",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "02f6f0a82d0a1dad9f76769785c9b90492e86f3cf4b7aa6345cbdcd581ac685f",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41212",
@@ -1271,6 +1753,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
+      "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "352bbbfb1dc8a024bd87b288dc011c8e7ca50443907b915b93c24f54748cfe17",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gemini38_flash_aistudio__seed_41212",
@@ -1283,6 +1778,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__glm53_parasail__seed_41211",
@@ -1294,6 +1790,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__glm53_parasail__seed_41212",
@@ -1305,6 +1802,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41211",
@@ -1316,6 +1814,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
+      "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "121be3d9222ef59cae16231d77827a5049aa66c1606b23c7f50710466dbfb787",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41212",
@@ -1327,6 +1838,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
+      "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41212",
+      "class": "no_agreement",
+      "condition": "power_negotiation_rounds_exhausted",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "b8c07e167d4005d142259c649630d349cadaffd3c27a2ecf4b640331e2ea982d",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41211",
@@ -1338,6 +1862,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
+      "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "d3ed18fae144f55368a1653faa7dcbc5ae0ffd1dcd84bf80e68bfd02a09072cd",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41212",
@@ -1349,6 +1886,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gemini38_flash_aistudio__seed_41211",
@@ -1361,6 +1899,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gemini38_flash_aistudio__seed_41212",
@@ -1373,6 +1912,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__glm53_parasail__seed_41211",
@@ -1384,6 +1924,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__glm53_parasail__seed_41212",
@@ -1395,6 +1936,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gptoss120b_coreweave__seed_41211",
@@ -1406,6 +1948,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gptoss120b_coreweave__seed_41212",
@@ -1417,6 +1960,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41211",
@@ -1428,6 +1972,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
+      "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "f51b19d3b83cbc5b96016e922322f998b3d9968150cdb0076325d8a1936d9cd2",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41212",
@@ -1439,6 +1996,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
+      "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "885cd9dd82cadaa63e4b39aedd7ebddd02788747b37bf0d1983c3b5e22993049",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gemini38_flash_aistudio__seed_41211",
@@ -1451,6 +2021,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gemini38_flash_aistudio__seed_41212",
@@ -1463,6 +2034,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__glm53_parasail__seed_41211",
@@ -1474,6 +2046,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__glm53_parasail__seed_41212",
@@ -1485,6 +2058,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gptoss120b_coreweave__seed_41211",
@@ -1496,6 +2070,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gptoss120b_coreweave__seed_41212",
@@ -1507,6 +2082,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41211",
@@ -1518,6 +2094,19 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
+      "attribution": "negotiation",
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
+      "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41211",
+      "class": "no_agreement",
+      "condition": "power_negotiation_rounds_exhausted",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "04e52a80cf2c9324abcbb8e53a290d89bf729ee830c6247c21d277d2bb34a13d",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41212",
@@ -1529,6 +2118,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gemini38_flash_aistudio__seed_41212",
@@ -1541,6 +2131,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -1552,6 +2143,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41212",
@@ -1563,6 +2155,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -1574,6 +2167,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41212",
@@ -1585,6 +2179,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -1596,6 +2191,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41212",
@@ -1607,6 +2203,19 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
+      "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "efa259b5ff20e75787f122d97bba3d5f1185d910ffd3804243d449838a2e293e",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "revenue_without_bankability"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41211",
@@ -1619,6 +2228,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41212",
@@ -1631,6 +2241,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -1645,6 +2256,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41212",
@@ -1656,6 +2268,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -1667,6 +2280,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41212",
@@ -1678,6 +2292,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -1689,6 +2304,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41212",
@@ -1700,6 +2316,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gemini38_flash_aistudio__seed_41211",
@@ -1712,6 +2329,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -1723,6 +2341,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41212",
@@ -1734,6 +2353,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -1745,6 +2365,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41212",
@@ -1756,6 +2377,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -1767,6 +2389,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41212",
@@ -1778,6 +2401,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gemini38_flash_aistudio__seed_41211",
@@ -1790,6 +2414,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -1801,6 +2426,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41212",
@@ -1813,6 +2439,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -1824,6 +2451,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41212",
@@ -1835,6 +2463,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -1846,6 +2475,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41212",
@@ -1857,6 +2487,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gemini38_flash_aistudio__seed_41211",
@@ -1868,6 +2499,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gemini38_flash_aistudio__seed_41212",
@@ -1882,6 +2514,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__glm53_parasail__seed_41211",
@@ -1893,6 +2526,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__glm53_parasail__seed_41212",
@@ -1904,6 +2538,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41211",
@@ -1915,6 +2550,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
+      "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "0124a5271a1d238d3e5b131241d4e3456b4531a8936c6d9d21c818df001f5c34",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41212",
@@ -1926,6 +2574,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
+      "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "d90fea90e16a832da0f03e74e391c147c43d5112ab110aaf5198be9de99357a5",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41211",
@@ -1937,6 +2598,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
+      "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "3a4d69bbd345d735847e4f5e02595c6e0fc052b34921ee80c7c872218b9c055d",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41212",
@@ -1948,6 +2622,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gemini38_flash_aistudio__seed_41211",
@@ -1959,6 +2634,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gemini38_flash_aistudio__seed_41212",
@@ -1970,6 +2646,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__glm53_parasail__seed_41211",
@@ -1981,6 +2658,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__glm53_parasail__seed_41212",
@@ -1992,6 +2670,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41211",
@@ -2003,6 +2682,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
+      "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "97d03696bbf273e7c9eecc4b941c9ebe18642bda47cac98e59d612209282b31b",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41212",
@@ -2014,6 +2706,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
+      "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "35b7023a1ec12d12c7f38cf21ec2e66d4582ea1ef3986e0e875dd8812689a44a",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41211",
@@ -2025,6 +2730,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41212",
@@ -2036,6 +2742,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
+      "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "qwen3_235b_google",
+      "receipt_sha256": "ea3ea6a284cb977f2d9dcd0587c21d00a81d1dc2721916c8ca2ae09fb2ff86d2",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gemini38_flash_aistudio__seed_41211",
@@ -2050,6 +2769,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gemini38_flash_aistudio__seed_41212",
@@ -2064,6 +2784,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__glm53_parasail__seed_41211",
@@ -2075,6 +2796,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__glm53_parasail__seed_41212",
@@ -2086,6 +2808,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41211",
@@ -2097,6 +2820,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
+      "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "bdcc5201be3a5e9962b6b58431991d172ee2157ca3ff00740f3860262f8f3b6f",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41212",
@@ -2108,6 +2844,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
+      "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "428706793ce28cb1cbd7169104d51c1f21cd3110914bd84176494a4e559639f6",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__qwen3_235b_google__seed_41211",
@@ -2119,6 +2868,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__qwen3_235b_google__seed_41212",
@@ -2130,6 +2880,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gemini38_flash_aistudio__seed_41211",
@@ -2144,6 +2895,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gemini38_flash_aistudio__seed_41212",
@@ -2158,6 +2910,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__glm53_parasail__seed_41211",
@@ -2169,6 +2922,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__glm53_parasail__seed_41212",
@@ -2180,6 +2934,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41211",
@@ -2191,6 +2946,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
+      "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41211",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "f04fd492b6c18a52dd44bc4aa5f8db8a11f176dd47df30622d8929b645cea252",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "1",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41212",
@@ -2202,6 +2970,19 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
+      "attribution": "provider",
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
+      "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41212",
+      "class": "operational",
+      "condition": "rate_limit",
+      "model_id": "gptoss120b_coreweave",
+      "receipt_sha256": "d10eaa1c12407db6e1696ae9c43f4c7d87be1f9d18b6e3d3549a6c136dfca0ba",
+      "run_id": "datacenter_development_v2_world_panel_v1",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__qwen3_235b_google__seed_41211",
@@ -2213,6 +2994,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__qwen3_235b_google__seed_41212",
@@ -2224,6 +3006,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gemini38_flash_aistudio__seed_41211",
@@ -2235,6 +3018,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -2246,6 +3030,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -2257,6 +3042,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -2268,6 +3054,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41211",
@@ -2279,6 +3066,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -2290,6 +3078,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -2301,6 +3090,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -2312,6 +3102,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41211",
@@ -2323,6 +3114,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -2334,6 +3126,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -2345,6 +3138,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -2356,6 +3150,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41211",
@@ -2367,6 +3162,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gemini38_flash_aistudio__seed_41211",
@@ -2378,6 +3174,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -2389,6 +3186,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -2400,6 +3198,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -2416,6 +3215,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41211",
@@ -2427,6 +3227,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -2438,6 +3239,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -2449,6 +3251,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -2460,6 +3263,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gemini38_flash_aistudio__seed_41211",
@@ -2471,6 +3275,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -2482,6 +3287,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -2493,6 +3299,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -2504,6 +3311,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gemini38_flash_aistudio__seed_41211",
@@ -2515,6 +3323,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -2526,6 +3335,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -2537,6 +3347,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -2548,6 +3359,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gemini38_flash_aistudio__seed_41211",
@@ -2562,6 +3374,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__glm53_parasail__seed_41211",
@@ -2573,6 +3386,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41211",
@@ -2584,6 +3398,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__qwen3_235b_google__seed_41211",
@@ -2595,6 +3410,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gemini38_flash_aistudio__seed_41211",
@@ -2609,6 +3425,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__glm53_parasail__seed_41211",
@@ -2620,6 +3437,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41211",
@@ -2631,6 +3449,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41211",
@@ -2642,6 +3461,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__glm53_parasail__seed_41211",
@@ -2653,6 +3473,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41211",
@@ -2664,6 +3485,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41211",
@@ -2675,6 +3497,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gemini38_flash_aistudio__seed_41211",
@@ -2689,6 +3512,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__glm53_parasail__seed_41211",
@@ -2700,6 +3524,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41211",
@@ -2711,6 +3536,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41211",
@@ -2722,6 +3548,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -2733,6 +3560,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -2744,6 +3572,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -2755,6 +3584,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -2766,6 +3596,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -2777,6 +3608,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -2788,6 +3620,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -2799,6 +3632,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -2810,6 +3644,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -2821,6 +3656,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -2835,6 +3671,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -2846,6 +3683,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41211",
@@ -2857,6 +3695,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -2868,6 +3707,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__glm53_parasail__seed_41211",
@@ -2879,6 +3719,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41211",
@@ -2890,6 +3731,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41211",
@@ -2901,6 +3743,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__glm53_parasail__seed_41211",
@@ -2912,6 +3755,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41211",
@@ -2923,6 +3767,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41211",
@@ -2934,6 +3779,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__glm53_parasail__seed_41211",
@@ -2945,6 +3791,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41211",
@@ -2956,6 +3803,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__qwen3_235b_google__seed_41211",
@@ -2967,6 +3815,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__glm53_parasail__seed_41211",
@@ -2978,6 +3827,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41211",
@@ -2989,6 +3839,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41211",
@@ -3000,6 +3851,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gemini38_flash_aistudio__seed_41211",
@@ -3014,6 +3866,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -3025,6 +3878,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41211",
@@ -3036,6 +3890,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41211",
@@ -3047,6 +3902,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gemini38_flash_aistudio__seed_41211",
@@ -3061,6 +3917,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__glm53_parasail__seed_41211",
@@ -3072,6 +3929,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41211",
@@ -3083,6 +3941,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41211",
@@ -3094,6 +3953,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__glm53_parasail__seed_41211",
@@ -3105,6 +3965,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gptoss120b_coreweave__seed_41211",
@@ -3116,6 +3977,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41211",
@@ -3127,6 +3989,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gemini38_flash_aistudio__seed_41211",
@@ -3141,6 +4004,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__glm53_parasail__seed_41211",
@@ -3152,6 +4016,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gptoss120b_coreweave__seed_41211",
@@ -3163,6 +4028,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41211",
@@ -3174,6 +4040,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -3185,6 +4052,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -3196,6 +4064,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -3207,6 +4076,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -3218,6 +4088,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -3229,6 +4100,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -3240,6 +4112,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -3251,6 +4124,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -3262,6 +4136,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -3273,6 +4148,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -3284,6 +4160,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -3295,6 +4172,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -3306,6 +4184,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gemini38_flash_aistudio__seed_41211",
@@ -3320,6 +4199,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__glm53_parasail__seed_41211",
@@ -3331,6 +4211,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41211",
@@ -3342,6 +4223,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41211",
@@ -3353,6 +4235,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gemini38_flash_aistudio__seed_41211",
@@ -3367,6 +4250,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__glm53_parasail__seed_41211",
@@ -3378,6 +4262,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41211",
@@ -3389,6 +4274,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41211",
@@ -3400,6 +4286,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gemini38_flash_aistudio__seed_41211",
@@ -3414,6 +4301,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__glm53_parasail__seed_41211",
@@ -3425,6 +4313,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41211",
@@ -3436,6 +4325,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__qwen3_235b_google__seed_41211",
@@ -3447,6 +4337,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gemini38_flash_aistudio__seed_41211",
@@ -3461,6 +4352,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__glm53_parasail__seed_41211",
@@ -3472,6 +4364,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41211",
@@ -3483,6 +4376,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__qwen3_235b_google__seed_41211",
@@ -3494,6 +4388,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__glm53_parasail__seed_41211",
@@ -3505,6 +4400,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41211",
@@ -3516,6 +4412,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__qwen3_235b_google__seed_41211",
@@ -3532,6 +4429,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__glm53_parasail__seed_41211",
@@ -3543,6 +4441,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41211",
@@ -3554,6 +4453,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41211",
@@ -3565,6 +4465,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__glm53_parasail__seed_41211",
@@ -3576,6 +4477,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41211",
@@ -3587,6 +4489,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41211",
@@ -3598,6 +4501,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__glm53_parasail__seed_41211",
@@ -3609,6 +4513,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41211",
@@ -3620,6 +4525,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41211",
@@ -3636,6 +4542,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -3647,6 +4554,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -3658,6 +4566,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -3669,6 +4578,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -3680,6 +4590,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -3691,6 +4602,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -3707,6 +4619,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -3718,6 +4631,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -3729,6 +4643,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -3745,6 +4660,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -3759,6 +4675,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -3770,6 +4687,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41211",
@@ -3781,6 +4699,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -3792,6 +4711,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__glm53_parasail__seed_41211",
@@ -3803,6 +4723,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41211",
@@ -3814,6 +4735,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41211",
@@ -3830,6 +4752,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__glm53_parasail__seed_41211",
@@ -3841,6 +4764,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41211",
@@ -3852,6 +4776,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41211",
@@ -3863,6 +4788,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gemini38_flash_aistudio__seed_41211",
@@ -3874,6 +4800,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__glm53_parasail__seed_41211",
@@ -3885,6 +4812,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41211",
@@ -3896,6 +4824,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__qwen3_235b_google__seed_41211",
@@ -3912,6 +4841,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__glm53_parasail__seed_41211",
@@ -3923,6 +4853,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41211",
@@ -3934,6 +4865,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41211",
@@ -3945,6 +4877,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -3956,6 +4889,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41211",
@@ -3967,6 +4901,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41211",
@@ -3983,6 +4918,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__glm53_parasail__seed_41211",
@@ -3994,6 +4930,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41211",
@@ -4005,6 +4942,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41211",
@@ -4016,6 +4954,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__glm53_parasail__seed_41211",
@@ -4027,6 +4966,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gptoss120b_coreweave__seed_41211",
@@ -4038,6 +4978,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41211",
@@ -4049,6 +4990,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__glm53_parasail__seed_41211",
@@ -4060,6 +5002,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gptoss120b_coreweave__seed_41211",
@@ -4071,6 +5014,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41211",
@@ -4087,6 +5031,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -4098,6 +5043,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -4109,6 +5055,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -4125,6 +5072,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -4136,6 +5084,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -4147,6 +5096,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -4163,6 +5113,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -4174,6 +5125,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -4185,6 +5137,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -4201,6 +5154,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gemini38_flash_aistudio__seed_41211",
@@ -4212,6 +5166,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -4223,6 +5178,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -4234,6 +5190,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -4250,6 +5207,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gemini38_flash_aistudio__seed_41211",
@@ -4261,6 +5219,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__glm53_parasail__seed_41211",
@@ -4272,6 +5231,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41211",
@@ -4283,6 +5243,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41211",
@@ -4299,6 +5260,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gemini38_flash_aistudio__seed_41211",
@@ -4310,6 +5272,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__glm53_parasail__seed_41211",
@@ -4321,6 +5284,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41211",
@@ -4332,6 +5296,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41211",
@@ -4343,6 +5308,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gemini38_flash_aistudio__seed_41211",
@@ -4354,6 +5320,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__glm53_parasail__seed_41211",
@@ -4365,6 +5332,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41211",
@@ -4376,6 +5344,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__qwen3_235b_google__seed_41211",
@@ -4387,6 +5356,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gemini38_flash_aistudio__seed_41211",
@@ -4401,6 +5371,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__glm53_parasail__seed_41211",
@@ -4412,6 +5383,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41211",
@@ -4423,6 +5395,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__qwen3_235b_google__seed_41211",
@@ -4439,6 +5412,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41211",
@@ -4451,6 +5425,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -4462,6 +5437,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -4473,6 +5449,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -4484,6 +5461,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41211",
@@ -4500,6 +5478,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -4511,6 +5490,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -4522,6 +5502,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -4533,6 +5514,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41211",
@@ -4545,6 +5527,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -4556,6 +5539,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -4567,6 +5551,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -4578,6 +5563,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -4592,6 +5578,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -4603,6 +5590,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -4614,6 +5602,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gemini38_flash_aistudio__seed_41211",
@@ -4626,6 +5615,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -4637,6 +5627,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "environment",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gemini38_flash_aistudio__seed_41211",
@@ -4653,6 +5644,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -4664,6 +5656,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -4675,6 +5668,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -4686,6 +5680,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41211",
@@ -4698,6 +5693,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -4709,6 +5705,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -4720,6 +5717,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -4731,6 +5729,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gemini38_flash_aistudio__seed_41211",
@@ -4742,6 +5741,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -4754,6 +5754,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -4765,6 +5766,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -4776,6 +5778,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -4787,6 +5790,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -4798,6 +5802,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -4809,6 +5814,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "budget",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41211",
@@ -4820,6 +5826,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -4831,6 +5838,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -4842,6 +5850,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -4853,6 +5862,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41211",
@@ -4865,6 +5875,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -4876,6 +5887,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -4887,6 +5899,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -4898,6 +5911,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "budget",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41211",
@@ -4909,6 +5923,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -4920,6 +5935,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -4931,6 +5947,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -4942,6 +5959,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "budget",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -4953,6 +5971,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -4964,6 +5983,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41211",
@@ -4975,6 +5995,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -4986,6 +6007,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gemini38_flash_aistudio__seed_41211",
@@ -4998,6 +6020,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -5009,6 +6032,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "budget",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gemini38_flash_aistudio__seed_41211",
@@ -5020,6 +6044,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -5031,6 +6056,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -5042,6 +6068,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -5053,6 +6080,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "budget",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41211",
@@ -5064,6 +6092,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -5075,6 +6104,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -5086,6 +6116,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -5097,6 +6128,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gemini38_flash_aistudio__seed_41211",
@@ -5109,6 +6141,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -5120,6 +6153,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -5131,6 +6165,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -5142,6 +6177,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gemini38_flash_aistudio__seed_41211",
@@ -5154,6 +6190,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -5165,6 +6202,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -5176,6 +6214,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -5187,6 +6226,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gemini38_flash_aistudio__seed_41211",
@@ -5199,6 +6239,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__glm53_parasail__seed_41211",
@@ -5210,6 +6251,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__gptoss120b_coreweave__seed_41211",
@@ -5221,6 +6263,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
       "cell_key": "covenant_cliff_001__qwen3_235b_google__seed_41211",
@@ -5232,6 +6275,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gemini38_flash_aistudio__seed_41211",
@@ -5244,6 +6288,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__glm53_parasail__seed_41211",
@@ -5255,6 +6300,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__gptoss120b_coreweave__seed_41211",
@@ -5266,6 +6312,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
       "cell_key": "covenant_cliff_002__qwen3_235b_google__seed_41211",
@@ -5277,6 +6324,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gemini38_flash_aistudio__seed_41211",
@@ -5289,6 +6337,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__glm53_parasail__seed_41211",
@@ -5300,6 +6349,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__gptoss120b_coreweave__seed_41211",
@@ -5311,6 +6361,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
       "cell_key": "covenant_cliff_003__qwen3_235b_google__seed_41211",
@@ -5322,6 +6373,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__glm53_parasail__seed_41211",
@@ -5333,6 +6385,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__gptoss120b_coreweave__seed_41211",
@@ -5344,6 +6397,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
       "cell_key": "covenant_cliff_004__qwen3_235b_google__seed_41211",
@@ -5355,6 +6409,7 @@
       "stratum": "covenant_cliff"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gemini38_flash_aistudio__seed_41211",
@@ -5366,6 +6421,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__glm53_parasail__seed_41211",
@@ -5377,6 +6433,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__gptoss120b_coreweave__seed_41211",
@@ -5388,6 +6445,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
       "cell_key": "delayed_revenue_001__qwen3_235b_google__seed_41211",
@@ -5399,6 +6457,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gemini38_flash_aistudio__seed_41211",
@@ -5411,6 +6470,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__glm53_parasail__seed_41211",
@@ -5422,6 +6482,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__gptoss120b_coreweave__seed_41211",
@@ -5433,6 +6494,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
       "cell_key": "delayed_revenue_002__qwen3_235b_google__seed_41211",
@@ -5444,6 +6506,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gemini38_flash_aistudio__seed_41211",
@@ -5455,6 +6518,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__glm53_parasail__seed_41211",
@@ -5466,6 +6530,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__gptoss120b_coreweave__seed_41211",
@@ -5477,6 +6542,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
       "cell_key": "delayed_revenue_003__qwen3_235b_google__seed_41211",
@@ -5488,6 +6554,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gemini38_flash_aistudio__seed_41211",
@@ -5502,6 +6569,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__glm53_parasail__seed_41211",
@@ -5513,6 +6581,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__gptoss120b_coreweave__seed_41211",
@@ -5524,6 +6593,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
       "cell_key": "delayed_revenue_004__qwen3_235b_google__seed_41211",
@@ -5535,6 +6605,7 @@
       "stratum": "delayed_revenue"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__glm53_parasail__seed_41211",
@@ -5546,6 +6617,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__gptoss120b_coreweave__seed_41211",
@@ -5557,6 +6629,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
       "cell_key": "liability_transfer_001__qwen3_235b_google__seed_41211",
@@ -5568,6 +6641,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gemini38_flash_aistudio__seed_41211",
@@ -5580,6 +6654,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__glm53_parasail__seed_41211",
@@ -5591,6 +6666,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__gptoss120b_coreweave__seed_41211",
@@ -5602,6 +6678,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
       "cell_key": "liability_transfer_002__qwen3_235b_google__seed_41211",
@@ -5613,6 +6690,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gemini38_flash_aistudio__seed_41211",
@@ -5624,6 +6702,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__glm53_parasail__seed_41211",
@@ -5635,6 +6714,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__gptoss120b_coreweave__seed_41211",
@@ -5646,6 +6726,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
       "cell_key": "liability_transfer_003__qwen3_235b_google__seed_41211",
@@ -5657,6 +6738,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gemini38_flash_aistudio__seed_41211",
@@ -5669,6 +6751,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__glm53_parasail__seed_41211",
@@ -5680,6 +6763,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__gptoss120b_coreweave__seed_41211",
@@ -5691,6 +6775,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
       "cell_key": "liability_transfer_004__qwen3_235b_google__seed_41211",
@@ -5702,6 +6787,7 @@
       "stratum": "liability_transfer"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gemini38_flash_aistudio__seed_41211",
@@ -5714,6 +6800,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__glm53_parasail__seed_41211",
@@ -5725,6 +6812,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__gptoss120b_coreweave__seed_41211",
@@ -5736,6 +6824,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
       "cell_key": "restrictive_draws_001__qwen3_235b_google__seed_41211",
@@ -5747,6 +6836,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gemini38_flash_aistudio__seed_41211",
@@ -5759,6 +6849,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__glm53_parasail__seed_41211",
@@ -5770,6 +6861,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__gptoss120b_coreweave__seed_41211",
@@ -5781,6 +6873,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
       "cell_key": "restrictive_draws_002__qwen3_235b_google__seed_41211",
@@ -5792,6 +6885,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gemini38_flash_aistudio__seed_41211",
@@ -5804,6 +6898,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__glm53_parasail__seed_41211",
@@ -5815,6 +6910,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "provider",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__gptoss120b_coreweave__seed_41211",
@@ -5826,6 +6922,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
       "cell_key": "restrictive_draws_003__qwen3_235b_google__seed_41211",
@@ -5837,6 +6934,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__glm53_parasail__seed_41211",
@@ -5848,6 +6946,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__gptoss120b_coreweave__seed_41211",
@@ -5859,6 +6958,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
       "cell_key": "restrictive_draws_004__qwen3_235b_google__seed_41211",
@@ -5870,6 +6970,7 @@
       "stratum": "restrictive_draws"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__glm53_parasail__seed_41211",
@@ -5881,6 +6982,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__gptoss120b_coreweave__seed_41211",
@@ -5892,6 +6994,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
       "cell_key": "revenue_without_bankability_001__qwen3_235b_google__seed_41211",
@@ -5903,6 +7006,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gemini38_flash_aistudio__seed_41211",
@@ -5915,6 +7019,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__glm53_parasail__seed_41211",
@@ -5926,6 +7031,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__gptoss120b_coreweave__seed_41211",
@@ -5937,6 +7043,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
       "cell_key": "revenue_without_bankability_002__qwen3_235b_google__seed_41211",
@@ -5948,6 +7055,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gemini38_flash_aistudio__seed_41211",
@@ -5960,6 +7068,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__glm53_parasail__seed_41211",
@@ -5971,6 +7080,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__gptoss120b_coreweave__seed_41211",
@@ -5982,6 +7092,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
       "cell_key": "revenue_without_bankability_003__qwen3_235b_google__seed_41211",
@@ -5993,6 +7104,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gemini38_flash_aistudio__seed_41211",
@@ -6004,6 +7116,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__glm53_parasail__seed_41211",
@@ -6015,6 +7128,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__gptoss120b_coreweave__seed_41211",
@@ -6026,6 +7140,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
       "cell_key": "revenue_without_bankability_004__qwen3_235b_google__seed_41211",
@@ -6037,6 +7152,7 @@
       "stratum": "revenue_without_bankability"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gemini38_flash_aistudio__seed_41211",
@@ -6048,6 +7164,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__glm53_parasail__seed_41211",
@@ -6059,6 +7176,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__gptoss120b_coreweave__seed_41211",
@@ -6070,6 +7188,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
       "cell_key": "verbal_written_divergence_001__qwen3_235b_google__seed_41211",
@@ -6081,6 +7200,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gemini38_flash_aistudio__seed_41211",
@@ -6092,6 +7212,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__glm53_parasail__seed_41211",
@@ -6103,6 +7224,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__gptoss120b_coreweave__seed_41211",
@@ -6114,6 +7236,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
       "cell_key": "verbal_written_divergence_002__qwen3_235b_google__seed_41211",
@@ -6125,6 +7248,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gemini38_flash_aistudio__seed_41211",
@@ -6136,6 +7260,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__glm53_parasail__seed_41211",
@@ -6147,6 +7272,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__gptoss120b_coreweave__seed_41211",
@@ -6158,6 +7284,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
       "cell_key": "verbal_written_divergence_003__qwen3_235b_google__seed_41211",
@@ -6169,6 +7296,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gemini38_flash_aistudio__seed_41211",
@@ -6180,6 +7308,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__glm53_parasail__seed_41211",
@@ -6191,6 +7320,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "negotiation",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__gptoss120b_coreweave__seed_41211",
@@ -6202,6 +7332,7 @@
       "stratum": "verbal_written_divergence"
     },
     {
+      "attempt": "current",
       "attribution": "model",
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
       "cell_key": "verbal_written_divergence_004__qwen3_235b_google__seed_41211",
@@ -6214,54 +7345,63 @@
     }
   ],
   "open_defects": [
+    "bankability-threshold-never-binds",
     "sequencing-anchored-by-presentation-order",
     "suite-needs-gitignored-artifacts"
   ],
   "reclassified_incidents": 17,
   "runs": [
     {
+      "attempts": 241,
       "cells": 192,
-      "incidents": 185,
+      "incidents": 234,
       "run_id": "datacenter_development_v2_world_panel_v1",
       "superseded": false
     },
     {
+      "attempts": 4,
       "cells": 4,
       "incidents": 4,
       "run_id": "datacenter_development_v2_world_panel_v1_run3_partial_predegeneracy_fix_20260904",
       "superseded": true
     },
     {
+      "attempts": 25,
       "cells": 25,
       "incidents": 25,
       "run_id": "datacenter_development_v2_world_panel_v1_run4_phasegraph_bug_20260904",
       "superseded": true
     },
     {
+      "attempts": 96,
       "cells": 96,
       "incidents": 83,
       "run_id": "datacenter_development_v2_world_panel_v1_run5_precalibration_20260905",
       "superseded": true
     },
     {
+      "attempts": 96,
       "cells": 96,
       "incidents": 79,
       "run_id": "datacenter_development_v2_world_panel_v1_run6_preplanning_20260906",
       "superseded": true
     },
     {
+      "attempts": 33,
       "cells": 33,
       "incidents": 32,
       "run_id": "datacenter_development_v2_world_panel_v1_run7_action_budget_bug_20260906",
       "superseded": true
     },
     {
+      "attempts": 34,
       "cells": 34,
       "incidents": 34,
       "run_id": "datacenter_development_v2_world_panel_v1_run8_cost_cap_too_tight_20260906",
       "superseded": true
     },
     {
+      "attempts": 96,
       "cells": 96,
       "incidents": 92,
       "run_id": "datacenter_development_v2_world_panel_v1_run9_planning_only_20260907",
@@ -6270,6 +7410,6 @@
   ],
   "schema_version": "aeread.datacenter_failure_register/0.1",
   "total_cells": 576,
-  "total_incidents": 534,
+  "total_incidents": 583,
   "unclassified_conditions": []
 }

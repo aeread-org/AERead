@@ -1,6 +1,6 @@
 # Data-center family failure register
 
-534 incidents across 576 cells in 8 runs of `datacenter_development_v2_world_panel_v1`.
+583 incidents across 576 cells in 8 runs of `datacenter_development_v2_world_panel_v1`.
 
 Attribution answers the question worth asking later: whose fault was it? Anything a model can trigger is the model's, never the provider's.
 
@@ -8,9 +8,9 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 |---|---:|---:|
 | budget | 5 | 7 |
 | environment | 10 | 8 |
-| model | 209 | 224 |
-| negotiation | 200 | 200 |
-| provider | 110 | 95 |
+| model | 215 | 230 |
+| negotiation | 206 | 206 |
+| provider | 147 | 132 |
 
 17 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
 
@@ -18,7 +18,7 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 
 | Run | Cells | Incidents | Superseded |
 |---|---:|---:|---|
-| `datacenter_development_v2_world_panel_v1` | 192 | 185 | no |
+| `datacenter_development_v2_world_panel_v1` | 192 | 234 | no |
 | `datacenter_development_v2_world_panel_v1_run3_partial_predegeneracy_fix_20260904` | 4 | 4 | yes |
 | `datacenter_development_v2_world_panel_v1_run4_phasegraph_bug_20260904` | 25 | 25 | yes |
 | `datacenter_development_v2_world_panel_v1_run5_precalibration_20260905` | 96 | 83 | yes |
@@ -41,7 +41,8 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | covenant-cliff-unbuildable-from-leverage | specification_not_realisable | worked_around | `test_every_world_has_feasible_trap_and_walk_away_paths` |
 | traps-unreachable-by-counter-adopters | strata_do_not_test_what_they_claim | fixed | `test_the_task_cannot_be_solved_without_cross_agreement_lookahead` |
 | planning-decoupled-from-negotiation | under-tests_declared_capability | fixed | `test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative` |
+| bankability-threshold-never-binds | mechanism_does_not_bind | open | `none` |
 | sequencing-anchored-by-presentation-order | confounds_a_reported_metric | open | `none` |
 | suite-needs-gitignored-artifacts | blocks_clean_checkout | open | `none` |
 
-Open: sequencing-anchored-by-presentation-order, suite-needs-gitignored-artifacts.
+Open: bankability-threshold-never-binds, sequencing-anchored-by-presentation-order, suite-needs-gitignored-artifacts.
