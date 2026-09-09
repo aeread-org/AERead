@@ -1520,3 +1520,33 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    committed rows by `python -m aeread_families.housing.seat_accounting`; it
    shows the same pattern in every earlier multi-world campaign that carried
    the fields, and never once under a DeepSeek landlord.
+
+### Individual rationality is a validity constraint, not a metric
+
+What the finding actually shows is that the design treats a validity
+constraint as a metric. A market outcome has three properties: efficiency,
+individual rationality, and distribution. Welfare covers the first.
+Individual rationality was recorded per cell and then averaged away. But an
+agent that signs a lease at zero rent or accepts below its own cost has not
+negotiated badly, it has failed to understand its own payoff. That is a
+capability failure of the same kind as an unparseable action, and the
+register already has the right treatment for those: type it, count it, gate
+on it, never average it into the score.
+
+The structural change this implies, for the next campaign identity rather
+than the spent holdout:
+
+- keep `within_case_score` as the efficiency headline; the confirmatory null
+  is a real finding about assignment quality;
+- promote an IR violation by the subject seat to a typed cell-level failure,
+  reported beside operational missingness and gated with the same kind of
+  ceiling, so no interval can average it away;
+- add the subject's realized surplus, normalized against its share of the
+  oracle, as a second predeclared metric, with a predeclared rule for when
+  the two disagree;
+- type IR violations by the opponent seat separately, since the estimand
+  conditions on the opponent panel and an opponent giving units away is
+  contamination of the condition, not evidence about the subject.
+
+Recorded as D-24.
+
