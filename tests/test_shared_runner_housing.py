@@ -16,6 +16,7 @@ from aeread.shared_runner import (
 )
 from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.execution import _paired_cell_request_seed, execute_plan_cell
+from aeread.shared_runner.task.execution import CanonicalResponse
 from aeread_families.housing.runner import (
     HOUSING_COMMIT_OUTPUT_SCHEMA,
     HOUSING_CONTACT_OUTPUT_SCHEMA,
@@ -434,3 +435,41 @@ def test_scripted_housing_cli_returns_the_validated_receipt_identity(tmp_path) -
     assert result["replay_level"] == "state_and_score"
     assert len(result["receipt_sha256"]) == 64
     assert Path(result["receipt_path"]).is_file()
+
+
+def _canonical(text: str) -> CanonicalResponse:
+    return CanonicalResponse(
+        text=text,
+        finish_reason="stop",
+        empty=False,
+        truncated=False,
+        provider_call_ids=("call_1",),
+        tool_invocation_ids=(),
+        input_tokens=10,
+        cached_input_tokens=0,
+        output_tokens=1,
+        cost_usd=0.0,
+    )
+
+
+def test_parser_types_a_null_reply_as_a_route_fault_not_a_malformed_action() -> None:
+    """Incident O-12: a route that answers the JSON literal null to a
+    structured-output request has not written a bad action, it has failed to
+    honour the schema. The two are typed apart so the failure lands on the
+    route, never on the model."""
+
+    plugin = HousingV1Plugin()
+    family_case = plugin.validate_payload(_case_payload())
+    state = plugin.initial_state(family_case, run=None)
+    respond = {phase.phase_id: phase for phase in plugin.phases(family_case)}["respond"]
+
+    null_reply = plugin.parse_action(family_case, state, "landlord_0", respond, _canonical("null"))
+    assert not null_reply.ok
+    assert null_reply.error_code == "structured_output_unsupported"
+
+    list_reply = plugin.parse_action(family_case, state, "landlord_0", respond, _canonical("[]"))
+    assert not list_reply.ok
+    assert list_reply.error_code == "malformed_action"
+
+    garbage = plugin.parse_action(family_case, state, "landlord_0", respond, _canonical("{not json"))
+    assert garbage.error_code == "malformed_json"

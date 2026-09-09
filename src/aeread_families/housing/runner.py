@@ -262,13 +262,24 @@ DEFAULT_PROMPT_VERSION = "housing_prompts/1.0"
 
 
 def _with_rent_floor(schema: Mapping[str, Any], minimum_rent: float) -> dict[str, Any]:
-    """Return a copy of a version 2 schema with every rent minimum raised."""
+    """Return a copy of a schema with every rent minimum raised.
+
+    Works on both shapes: the version 2 union of branch objects, and the
+    flat object whose rent fields are nullable numbers. A ``minimum`` on a
+    nullable number constrains the number case only, which is what a floor
+    should do.
+    """
 
     copied = json.loads(json.dumps(schema))
-    for branch in copied.get("oneOf", []):
+    objects = list(copied.get("oneOf", [])) or [copied]
+    for obj in objects:
         for field in ("rent", "counter_rent"):
-            spec = branch.get("properties", {}).get(field)
-            if isinstance(spec, dict) and spec.get("type") == "number":
+            spec = obj.get("properties", {}).get(field)
+            if not isinstance(spec, dict):
+                continue
+            declared = spec.get("type")
+            types = declared if isinstance(declared, list) else [declared]
+            if "number" in types:
                 spec["minimum"] = minimum_rent
     return copied
 
@@ -296,6 +307,30 @@ def output_schemas_for(
             "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
         }
         landlord = {"housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2}
+        return tenant, landlord
+    if action_schema_version == "housing_actions/2.2":
+        # The portable shape. Version 2's union of branch objects is refused
+        # outright by at least one route: Gemini 3.7 Flash on Google AI
+        # Studio answers the JSON literal null to any top-level oneOf or
+        # anyOf, whatever the branches contain (incident O-12). This version
+        # keeps the flat version 1 object, which that route honours, and
+        # carries the same rent floor, so the coupling between a decision
+        # and its fields is enforced by the environment and by admission
+        # rather than by the grammar. One schema version per campaign,
+        # declared for every seat.
+        if not _finite_number(minimum_rent) or float(minimum_rent) <= 0.0:
+            raise ValueError("housing_actions/2.2 requires a positive minimum_rent")
+        tenant = {
+            "housing_contact_v1": _with_rent_floor(
+                HOUSING_CONTACT_OUTPUT_SCHEMA, float(minimum_rent)
+            ),
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+        }
+        landlord = {
+            "housing_respond_v1": _with_rent_floor(
+                HOUSING_RESPOND_OUTPUT_SCHEMA, float(minimum_rent)
+            )
+        }
         return tenant, landlord
     if action_schema_version == "housing_actions/2.1":
         if not _finite_number(minimum_rent) or float(minimum_rent) <= 0.0:
@@ -787,6 +822,12 @@ class HousingV1Plugin:
             value = json.loads(response.text)
         except (TypeError, json.JSONDecodeError):
             return ParseResult.failure("malformed_json")
+        if value is None:
+            # The JSON literal null is not a model that wrote a bad action;
+            # it is a route that could not satisfy the declared schema at all
+            # (incident O-12). Typed apart so it is never read as the model's
+            # fault, and so admission can refuse the seat for the right reason.
+            return ParseResult.failure("structured_output_unsupported")
         if not isinstance(value, dict):
             return ParseResult.failure("malformed_action")
 

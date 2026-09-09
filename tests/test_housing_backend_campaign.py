@@ -3892,3 +3892,78 @@ def test_secondary_estimand_and_consistency_rule_block_an_inconsistent_winner() 
     inconsistent, _, _ = _analysis_contract(winner_claim_rule="primary_and_secondary_consistent")
     with pytest.raises(ValueError, match="secondary_estimand"):
         confirmatory_analysis(rows, inconsistent)
+
+
+def test_action_schema_2_2_is_the_flat_shape_with_the_rent_floor() -> None:
+    """Incident O-12: Gemini 3.7 Flash on Google AI Studio answers the JSON
+    literal null to any top-level union of branch objects, whatever the
+    branches contain, and answers a valid action to the flat version 1
+    object. Version 2.2 keeps the flat object and carries the floor."""
+
+    from aeread_families.housing.runner import (
+        HOUSING_COMMIT_OUTPUT_SCHEMA,
+        HOUSING_RESPOND_OUTPUT_SCHEMA,
+        output_schemas_for,
+    )
+
+    tenant, landlord = output_schemas_for("housing_actions/2.2", 1.0)
+    respond = landlord["housing_respond_v1"]
+    contact = tenant["housing_contact_v1"]
+    assert "oneOf" not in respond and "anyOf" not in respond
+    assert respond["properties"]["decision"] == {"enum": ["accept", "counter", "reject_all"]}
+    assert respond["properties"]["counter_rent"] == {"type": ["number", "null"], "minimum": 1.0}
+    assert contact["properties"]["rent"]["minimum"] == 1.0
+    assert tenant["housing_commit_v1"] is HOUSING_COMMIT_OUTPUT_SCHEMA
+    # The sealed version 1 constant is untouched.
+    assert "minimum" not in HOUSING_RESPOND_OUTPUT_SCHEMA["properties"]["counter_rent"]
+    with pytest.raises(ValueError, match="positive minimum_rent"):
+        output_schemas_for("housing_actions/2.2", 0.0)
+
+
+def test_a_route_that_answers_null_is_refused_at_admission_as_a_route_fault(
+    tmp_path: Path,
+) -> None:
+    """A model that writes nonsense is a model fault (invalid_admission_action).
+    A route that returns null to the schema itself is a route fault and must
+    be recorded as structured_output_unsupported, never charged to the model."""
+
+    from aeread_families.housing.population_campaign import (
+        StructuredOutputUnsupported,
+        _validate_admission_action,
+    )
+
+    with pytest.raises(StructuredOutputUnsupported) as caught:
+        _validate_admission_action("housing_respond_v1", "null", {"inbox": []})
+    assert caught.value.condition == "structured_output_unsupported"
+
+    contract = load_contract(V24_CONTRACT_PATH)
+    calls: list[str] = []
+
+    class NullClient:
+        async def complete(self, request):  # noqa: ANN001, ANN201
+            calls.append(request.provider_call_id)
+            return ProviderResult(
+                response_id="null-route",
+                requested_model=request.model,
+                resolved_model=request.revision,
+                output_text="null",
+                finish_reason="stop",
+                input_tokens=400,
+                cached_input_tokens=0,
+                output_tokens=1,
+                cost_usd=0.0001,
+                raw_response={"id": "null-route"},
+            )
+
+    result = asyncio.run(
+        run_profile_admission(
+            contract,
+            output_root=tmp_path / "admission",
+            provider_client=NullClient(),
+        )
+    )
+    assert result["status"] == "failed_with_typed_missingness"
+    assert {row["failure_condition"] for row in result["rows"]} == {
+        "structured_output_unsupported"
+    }
+    assert len(calls) == len(set(calls)) == 18

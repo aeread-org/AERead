@@ -2460,7 +2460,13 @@ async def run_profile_admission(
             except Exception as error:
                 provider_completed = result is not None
                 failure_condition = _exception_attribute(error, "condition")
-                if provider_completed and isinstance(error, ValueError):
+                if (
+                    provider_completed
+                    and isinstance(error, ValueError)
+                    and not failure_condition
+                ):
+                    # A typed condition on the error wins: a route that
+                    # cannot satisfy the schema is not an invalid action.
                     failure_condition = "invalid_admission_action"
                 failure_condition = failure_condition or "execution_error"
                 attempt_row = {

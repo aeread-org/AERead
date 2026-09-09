@@ -1553,16 +1553,46 @@ these keys is a new campaign identity; the confirmatory holdout is spent.
 ### A third model in the landlord seat
 
 A development probe on 2026-09-09 put Gemini 3.7 Flash, on the Google AI
-Studio route, in the landlord seat of the thin-market world under the
-campaign's frozen action schema 2.0 and version 1 prompt, against DeepSeek
-and GLM tenants. It produced no usable response at all: every one of its 12
-landlord actions in each cell came back as the JSON literal `null`, which
-the harness typed `malformed_action`, so no hold was ever created and both
-cells scored zero (O-12). GLM in the same seat on the same world, in the
-same probe, reproduced the below-cost accept from the campaign. So among the
-three models the zero-rent counter belongs to GLM alone, DeepSeek makes
-neither error, and Gemini cannot be evaluated under this schema at all,
-which is the schema's second distinct failure across models. The probe's
-evidence lives in the uncommitted run root; the first Gemini cell also lost
-its receipt because the runner source was edited under the running probe
-(J-6), a small repeat of O-11.
+Studio route, in the landlord seat under the campaign's frozen action schema
+2.0 and version 1 prompt, against DeepSeek and GLM tenants, on the
+thin-market world and on one healthy world. It produced no usable response
+at all: every landlord action came back as the JSON literal `null`, which
+the harness typed as a malformed action, so no hold was ever created and
+every cell scored zero (O-12). GLM in the same seat on the thin-market
+world, in the same probe, reproduced the below-cost accept from the
+campaign. Among the three models, then, the zero-rent counter belongs to
+GLM alone, DeepSeek makes neither error, and Gemini could not be evaluated
+under this schema at all.
+
+Replaying one of Gemini's landlord requests with alternative schemas located
+the incompatibility precisely. The route rejects a top-level union of branch
+objects of any kind, not the keywords inside it:
+
+| schema sent | reply |
+|---|---|
+| version 2 as frozen, `oneOf` with `const` branches | `null` |
+| `anyOf` with `enum` branches, no `additionalProperties` | `null` |
+| `anyOf` with `const` branches | `null` |
+| version 1, one flat object with an `enum` decision and nullable fields | a valid action |
+| the flat object with `minimum: 1.0` on the nullable rent | a valid action |
+
+Three changes follow, all opt-in and all landed:
+
+- **`housing_actions/2.2`, the portable schema.** The flat version 1 object
+  with the campaign's `minimum_rent` as the minimum of every nullable rent.
+  The coupling between a decision and its fields that version 2 enforced in
+  the grammar is enforced twice elsewhere, by the environment as a typed
+  invalid response and by admission, so nothing is lost semantically, and
+  the floor is what closes the zero-rent hole in either shape.
+- **`structured_output_unsupported`, a route fault.** A reply of `null` is
+  no longer a malformed action charged to the model. The parser types it
+  apart, and admission records it as the seat's failure condition, so a
+  route that cannot honour the schema is refused with the right reason
+  instead of sending someone after the prompt.
+- **One schema version per campaign, for every seat.** Mixing versions
+  across subjects would confound the subjects with their schemas.
+
+Using any of these is a new campaign identity. The probe's evidence lives
+in the uncommitted run root; the first Gemini cell also lost its receipt
+because the runner source was edited under the running probe (J-6), a
+small repeat of O-11.
