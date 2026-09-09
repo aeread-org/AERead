@@ -53,6 +53,16 @@ class _ScriptedCounterpartPlugin(_ReferencePlugin):
         del family_case, state
         return ("counterpart_0",) if phase.phase_id == "counterpart_turn" else ("participant_0",)
 
+    def parse_action(self, family_case, state, seat, phase, response):
+        # A scripted seat hands the scheduler the structured response, as a
+        # harness-driven model seat would; the reference family's model seat
+        # still speaks in canonical responses.
+        if isinstance(response, Mapping):
+            if response.get("label") in {"x", "y"}:
+                return ParseResult.success({"label": response["label"]})
+            return ParseResult.failure("malformed_choice")
+        return super().parse_action(family_case, state, seat, phase, response)
+
     def step(self, family_case, state, phase, actions):
         del family_case
         (seat_id,) = actions
@@ -68,15 +78,15 @@ class _ScriptedCounterpartPlugin(_ReferencePlugin):
 
     def scripted_response(self, policy_id, request, *, world_seed):
         assert policy_id == POLICY
-        return json.dumps({"label": "x" if (world_seed + request.observation["round"]) % 2 == 0 else "y"})
+        return {"label": "x" if (world_seed + request.observation["round"]) % 2 == 0 else "y"}
 
 
 class _DriftedCounterpartPlugin(_ScriptedCounterpartPlugin):
     """The same family after someone changed the policy: replay must notice."""
 
     def scripted_response(self, policy_id, request, *, world_seed):
-        original = json.loads(super().scripted_response(policy_id, request, world_seed=world_seed))
-        return json.dumps({"label": "y" if original["label"] == "x" else "x"})
+        original = super().scripted_response(policy_id, request, world_seed=world_seed)
+        return {"label": "y" if original["label"] == "x" else "x"}
 
 
 # The receipt's plan-pin-completeness check is only reachable through
@@ -178,7 +188,7 @@ def test_a_scripted_seat_runs_without_a_provider_and_is_sealed_as_such(tmp_path:
     assert len(_payloads(execution, "provider_call_started")) == 2
     scripted = _payloads(execution, "scripted_action")
     assert len(scripted) == 1
-    assert scripted[0][1]["policy_id"] == POLICY and json.loads(scripted[0][1]["response"]) == {"label": "y"}
+    assert scripted[0][1]["policy_id"] == POLICY and scripted[0][1]["response"] == {"label": "y"}
     starts = {p["request"]["seat_id"]: p for _, p in _payloads(execution, "logical_action_started")}
     assert starts["counterpart_0"]["source"] == "scripted_policy"
     assert starts["counterpart_0"]["profile_id"] == f"scripted:{POLICY}"

@@ -1014,8 +1014,9 @@ class ScriptedSeatSource:
     docs/kernel_scripted_seats_design.md. The scheduler routes a scripted
     seat's request here instead of to the executor. This class answers it by
     calling the plugin's ``scripted_response(policy_id, request, *,
-    world_seed) -> str`` hook -- the response text a model would have
-    produced, wrapped here as a ``CanonicalResponse`` -- and seals the same lifecycle events the executor seals
+    world_seed) -> Mapping`` hook -- the structured response the family's
+    ``parse_action`` consumes, exactly what a harness-driven model seat hands
+    the scheduler -- and seals the same lifecycle events the executor seals
     for a model seat -- ``logical_action_started``, ``action_parsed``,
     ``action_legality_checked``, ``logical_action_succeeded`` /
     ``logical_action_agent_action_failure``, ``logical_action_failed`` -- and
@@ -1087,17 +1088,22 @@ class ScriptedSeatSource:
             action_attempt_id=action_attempt_id,
             visibility=f"seat:{request.seat_id}",
         )
-        text = self._hook(policy_id, request, world_seed=self._cell.world_seed)
-        if inspect.isawaitable(text):
-            text = await text
-        if not isinstance(text, str):
+        structured = self._hook(policy_id, request, world_seed=self._cell.world_seed)
+        if inspect.isawaitable(structured):
+            structured = await structured
+        if not isinstance(structured, Mapping):
             raise SchedulerContractError(
-                f"scripted policy {policy_id!r} must return the response text a model "
-                f"would have produced, got {type(text).__name__}"
+                f"scripted policy {policy_id!r} must return the structured response the "
+                f"family's parse_action consumes, got {type(structured).__name__}"
             )
-        # The policy's text takes the exact shape a model's answer takes, so
-        # parse, legality, the record and replay never distinguish the two;
-        # finish_reason names the source and there is no provider call to cite.
+        # What the scheduler receives is what a harness-driven model seat
+        # receives: the structured response the family parses. What the
+        # attempt seals is what the executor seals for such a seat: a canonical
+        # response carrying the response text, here the mapping's canonical
+        # JSON -- so parse, legality, the record and replay never distinguish
+        # the two kinds of seat. finish_reason names the source; there is no
+        # provider call to cite and nothing was billed.
+        text = canonical_json_bytes(structured).decode("utf-8")
         response = CanonicalResponse(
             text=text,
             finish_reason="scripted",
@@ -1123,13 +1129,13 @@ class ScriptedSeatSource:
             {
                 "policy_id": policy_id,
                 "world_seed": self._cell.world_seed,
-                "response": text,
+                "response": structured,
             },
             phase_instance_id=request.phase_instance_id,
             logical_action_id=request.logical_action_id,
             visibility=f"seat:{request.seat_id}",
         )
-        return response
+        return structured
 
     def finalize_logical_action(
         self, logical_action_id: str, *, valid: bool, failure_code: str | None

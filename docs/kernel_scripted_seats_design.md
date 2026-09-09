@@ -39,11 +39,13 @@ and a harness that answers without a model call is rejected by the kernel.
    scheduler needs no back-reference to the run spec.
 4. **Scheduler.** In `_request_action`, a seat in `cell.scripted_seats` does
    not build a `DecisionRequest`. It calls one new optional plugin hook,
-   `plugin.scripted_response(policy_id, request, *, world_seed) -> str` -- the
-   response text a model in that seat would have produced, which the kernel
-   wraps as a `CanonicalResponse` with `finish_reason="scripted"` and no
-   provider call ids, so parse, legality, the record and replay never
-   distinguish the two kinds of seat -- and seals a `scripted_action` event carrying the
+   `plugin.scripted_response(policy_id, request, *, world_seed) -> Mapping` --
+   the structured response the family's `parse_action` consumes, which is
+   exactly what a harness-driven model seat hands the scheduler (the harness
+   output's `action`, not the sealed canonical response). The kernel seals the
+   mapping's canonical JSON as the attempt's `CanonicalResponse` with
+   `finish_reason="scripted"` and no provider call ids, so parse, legality,
+   the record and replay never distinguish the two kinds of seat -- and seals a `scripted_action` event carrying the
    policy id, the observation digest and the action -- never a
    `provider_call_*` event, so no receipt can read a scripted turn as
    model-produced. The `LogicalActionRecord` marks `source="scripted_policy"`.
