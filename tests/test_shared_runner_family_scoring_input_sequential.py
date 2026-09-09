@@ -42,7 +42,7 @@ from aeread.shared_runner.schemas import (
     SuiteManifest,
 )
 from aeread.shared_runner.model_call.harness import default_harnesses
-from aeread.shared_runner.task.evaluation import replay_family_scoring_input
+from aeread.shared_runner.task.evaluation import SeatContext, replay_family_scoring_input
 from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     ProviderFailure,
@@ -490,7 +490,10 @@ def test_replay_reproduces_a_sequential_phase_instance_exactly(tmp_path) -> None
     execution, plugin, family_case = _run_episode((3, 4), evidence_root=tmp_path)
 
     scoring_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        seat_context=SeatContext((), {}),
     )
 
     assert canonical_json_bytes(scoring_input.phase_instances) == canonical_json_bytes(
@@ -533,5 +536,8 @@ def test_replay_rejects_a_phase_completion_boundary_that_understates_the_actors(
 
     with pytest.raises(ValueError, match="completion boundary"):
         replay_family_scoring_input(
-            plugin=plugin, family_case=family_case, evidence=execution.evidence
+            plugin=plugin,
+            family_case=family_case,
+            evidence=execution.evidence,
+            seat_context=SeatContext((), {}),
         )
