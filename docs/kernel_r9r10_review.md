@@ -745,3 +745,41 @@ negative controls remain green.
 ```
 
 122 passed, 0 failed.
+
+## Issue #122 — production enforcement moves out of the protocol test
+
+**Finding.** Everything above this section describes `trajectory_outcome_paths`'
+JSON Pointer projection and ruling R10's consistency check as they lived in
+`tests/test_shared_runner_scoring_contract.py` — test helpers, never run by
+`finalize_family_execution`, `replay_family_receipt`, or
+`audit_family_receipt` on an ordinary production run. A family whose
+`outcome()` deterministically mis-copies its own trajectory verified
+against itself on every path except the scoring-contract protocol test's
+enrolled fixtures.
+
+**Disposition — fixed.** `src/aeread/shared_runner/run/json_pointer.py` is
+now the one production RFC 6901 parser/navigator; `schemas.py`'s
+`trajectory_outcome_paths` format validation and
+`task/evaluation.py`'s `_replay_family_trajectory` both consume it.
+`_replay_family_trajectory` enforces ruling R10 itself, immediately after
+computing the recomputed `outcome`, against the same `state` local
+variable the scoring-contract test's `_final_replayed_state` independently
+reconstructs. The declaration reaches it as a required
+`trajectory_outcome_paths: tuple[str, ...]` keyword (no default --
+omitting it is a `TypeError`, so no call site can silently fall back to
+the wrong source) threaded through `replay_family_state` /
+`replay_family_scoring_input`, sourced by each of the three production
+callers from `registration.manifest.measurement.trajectory_outcome_paths`
+— the trusted registered manifest, never the run-plan's own copy (same
+rule `kernel_contract_impl_review.md` finding 6 already established for
+leaf policy, now covered by adversarial tests in both directions). Every
+family that declares nothing passes `trajectory_outcome_paths=()`
+explicitly and stays byte-for-byte unchanged, pinned by a golden-oracle
+digest-neutrality test.
+
+**Test.** `tests/test_shared_runner_json_pointer.py` (the module in
+isolation); `tests/test_shared_runner_trajectory_outcome_r10_replay.py`
+(R10 at the replay function itself, including a corrupted-plugin mutation
+test proving the prior gap was real); `tests/test_shared_runner_trajectory_outcome_r10_production_callers.py`
+(all three production callers source the declaration correctly, and
+digest neutrality holds for the no-declaration case).
