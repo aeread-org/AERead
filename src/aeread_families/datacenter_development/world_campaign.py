@@ -565,6 +565,10 @@ def _outcome_projection(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "lender_npv_cents": int(outcome["lender_npv_cents"]),
         "customer_npv_cents": int(outcome["customer_npv_cents"]),
         "total_project_npv_cents": int(outcome["total_project_npv_cents"]),
+        "sequencing": _plain(outcome.get("sequencing")),
+        "integrative_trade": _plain(outcome.get("integrative_trade")),
+        "verbal_written_mismatch": _plain(outcome.get("verbal_written_mismatch")),
+        "declined_agreements": list(outcome.get("declined_agreements") or []),
         "default_reasons": (
             list(outcome["project_outcome"]["project"]["default_reasons"])
             if isinstance(outcome.get("project_outcome"), Mapping)

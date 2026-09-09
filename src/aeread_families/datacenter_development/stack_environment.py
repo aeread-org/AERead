@@ -913,6 +913,8 @@ class DataCenterStackPlugin:
             "verbal_written_mismatch": self._verbal_written_mismatch(
                 family_case, terminal
             ),
+            "sequencing": self._sequencing(family_case, terminal),
+            "integrative_trade": self._integrative_trade(family_case, terminal),
             "binding_contract_integrity": False,
             "project_constraints_satisfied": False,
             "amendment_precedence_valid": True,
@@ -956,6 +958,84 @@ class DataCenterStackPlugin:
             }
         )
         return result
+
+    def _sequencing(
+        self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Did the developer learn what it needed before it committed?
+
+        The lender's bankability thresholds are private and appear only in its
+        counter. Negotiating the loan before the lease turns a guess into a
+        known constraint, and whether the executed lease then clears those
+        thresholds is the payoff.
+        """
+
+        order = list(terminal.get("order") or [])
+        position = {key: index for index, key in enumerate(order)}
+        executed = terminal["executed"]
+        loan = executed.get("loan", {}).get("terms")
+        service = executed.get("service", {}).get("terms")
+        bankable = None
+        if loan is not None and service is not None:
+            bankable = (
+                service["committed_capacity_kw"] >= loan["minimum_contracted_capacity_kw"]
+                and service["take_or_pay_bps"] >= loan["minimum_take_or_pay_bps"]
+                and service["credit_support_cents"]
+                >= loan["minimum_customer_credit_support_cents"]
+            )
+        return {
+            "developer_chose_order": chooses_order(family_case),
+            "order": order,
+            "loan_before_service": (
+                position["loan"] < position["service"]
+                if "loan" in position and "service" in position
+                else None
+            ),
+            "executed_lease_meets_lender_minimums": bankable,
+        }
+
+    def _integrative_trade(
+        self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Did the developer trade a concession for a better price, or just haggle?
+
+        Measured against the counterparty's own opening package: a better price
+        on its own is refused, so capturing one means something was given back.
+        """
+
+        report: dict[str, Any] = {}
+        for agreement_key in sorted(self.sequence):
+            policy = family_case["policies"][agreement_key]
+            specification = policy.get("utility")
+            executed = terminal["executed"].get(agreement_key)
+            if specification is None or executed is None:
+                continue
+            values = executed["terms"]
+            reference = specification["reference"]
+            weights = specification["weights"]
+            better_for_developer = [
+                field
+                for field, weight in weights.items()
+                if int(weight) > 0 and int(values[field]) < int(reference[field])
+            ]
+            conceded = [
+                field
+                for field, weight in weights.items()
+                if int(weight) > 0 and int(values[field]) > int(reference[field])
+            ]
+            utility = counterparty_utility(
+                _terms(agreement_key, values), policy
+            )
+            report[agreement_key] = {
+                "counterparty_utility": utility,
+                "counterparty_reservation": int(specification["reservation"]),
+                "terms_improved_on_opening": sorted(better_for_developer),
+                "terms_conceded": sorted(conceded),
+                "trade_captured": bool(better_for_developer) and bool(conceded),
+                "accepted_the_opening_package": not better_for_developer
+                and not conceded,
+            }
+        return report
 
     def _verbal_written_mismatch(
         self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]

@@ -623,3 +623,110 @@ def test_the_lender_thresholds_are_private_varied_and_discoverable() -> None:
         assert str(counter["minimum_customer_credit_support_cents"]) not in seen
 
     assert len(thresholds) > 1, "thresholds must vary or they can be memorised"
+
+
+# ----------------------------------------------------------- analysis inputs
+
+
+def _outcome_for(file_name: str, *, mutate=None) -> dict:
+    """Run the scripted plan on one world and return its outcome."""
+    import asyncio
+    import tempfile
+
+    from aeread_families.datacenter_development.stack_environment import (
+        DataCenterStackPlugin,
+    )
+
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(_payload(file_name))
+    terminal = {
+        "executed": {},
+        "public_history": [],
+        "order": ["land", "loan", "service", "power", "epc", "land_amendment"],
+        "declined": [],
+        "termination_reason": "agreement_stack_executed",
+        "temporal_violations": [],
+        "finished": True,
+    }
+    for key in SEQUENCE:
+        terminal["executed"][key] = {
+            "terms": dict(case["scripted_developer"][f"{key}_terms"])
+        }
+    if mutate is not None:
+        mutate(terminal, case)
+    return {
+        "sequencing": plugin._sequencing(case, terminal),
+        "trade": plugin._integrative_trade(case, terminal),
+    }
+
+
+def test_the_trade_diagnostic_separates_bargaining_from_accepting() -> None:
+    """Three behaviours must be distinguishable, or the panel is uninterpretable."""
+    file_name = "revenue_without_bankability_001.json"
+    payload = _payload(file_name)
+    opening = payload["policies"]["power"]["utility"]["reference"]
+
+    # The scripted plan trades: it improves the prices and concedes the date.
+    traded = _outcome_for(file_name)["trade"]["power"]
+    assert traded["trade_captured"] is True
+    assert traded["accepted_the_opening_package"] is False
+    assert traded["terms_conceded"] == ["energization_month"]
+
+    # Accepting the counterparty's opening package captures nothing.
+    def accept(terminal, case):
+        terminal["executed"]["power"]["terms"].update(
+            {field: value for field, value in opening.items()}
+        )
+
+    accepted = _outcome_for(file_name, mutate=accept)["trade"]["power"]
+    assert accepted["trade_captured"] is False
+    assert accepted["accepted_the_opening_package"] is True
+    assert accepted["counterparty_utility"] == 0
+
+    # Haggling, improving prices with nothing given back, is visible as a
+    # capture with no concession, and sits below the reservation.
+    def haggle(terminal, case):
+        terminal["executed"]["power"]["terms"]["energization_month"] = opening[
+            "energization_month"
+        ]
+
+    haggled = _outcome_for(file_name, mutate=haggle)["trade"]["power"]
+    assert haggled["trade_captured"] is False
+    assert haggled["terms_conceded"] == []
+    assert haggled["counterparty_utility"] < haggled["counterparty_reservation"]
+
+
+def test_the_sequencing_diagnostic_records_discovery_and_its_payoff() -> None:
+    file_name = "revenue_without_bankability_001.json"
+
+    informed = _outcome_for(file_name)["sequencing"]
+    assert informed["developer_chose_order"] is True
+    assert informed["loan_before_service"] is True
+    assert informed["executed_lease_meets_lender_minimums"] is True
+
+    # Committing to the lease first is recorded as such.
+    def blind(terminal, case):
+        terminal["order"] = [
+            "land",
+            "service",
+            "loan",
+            "power",
+            "epc",
+            "land_amendment",
+        ]
+
+    assert _outcome_for(file_name, mutate=blind)["sequencing"][
+        "loan_before_service"
+    ] is False
+
+    # And a lease that misses the lender's thresholds is flagged, which is what
+    # guessing costs.
+    def unbankable(terminal, case):
+        loan = terminal["executed"]["loan"]["terms"]
+        terminal["executed"]["service"]["terms"]["take_or_pay_bps"] = (
+            loan["minimum_take_or_pay_bps"] - 500
+        )
+
+    assert _outcome_for(file_name, mutate=unbankable)["sequencing"][
+        "executed_lease_meets_lender_minimums"
+    ] is False

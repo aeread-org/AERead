@@ -7,7 +7,8 @@
   "expected_pack_sha256": "979f1bee46738362a14c17e4870933e54e1de326126705a482d2778eeb38e020",
   "claim_status": "twenty_four_world_controlled_developer_paired_panel_exploratory",
   "inference_seeds": [
-    41211
+    41211,
+    41212
   ],
   "conditions": [
     "controlled_developer"
@@ -96,7 +97,7 @@
     "max_output_tokens_per_action": 6000,
     "timeout_seconds_per_action": 180.0,
     "max_cost_usd_per_live_profile": 0.03,
-    "campaign_max_cost_usd": 7.0,
+    "campaign_max_cost_usd": 14.02,
     "concurrency": 3,
     "max_concurrent_cells_per_route_provider": 1,
     "provider_cooldown_seconds_after_cell": 25.0,
