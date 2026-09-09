@@ -270,9 +270,22 @@ def _replay_family_trajectory(
     """
     if not isinstance(cell, PlanCell):
         raise TypeError("cell must be a PlanCell")
-    if cell.cell_id != evidence.cell_id:
-        raise ValueError("replay cell identity does not match sealed evidence")
     events = evidence.read_events()
+    if not events:
+        raise ValueError("family replay contains no identity-bearing event")
+    # #135 A1 fix: ``evidence.cell_id`` is a plain assignable attribute
+    # (execution.py's ``self.cell_id = cell_id``), so comparing ``cell``
+    # against it proves nothing -- both sides can be reassigned to the same
+    # wrong value and the comparison still passes. ``events[0].cell_id`` is
+    # durable: it was stamped into the first event's hash-chained payload at
+    # append time and is read back from the evidence log itself, so it
+    # cannot be altered by mutating the live ``EvidenceStore`` object after
+    # the fact. ``evidence.seal()`` was considered and rejected here: calling
+    # it before ``score_recorded`` is appended seals the store early, and
+    # ``finalize_family_execution``'s subsequent ``append_event`` then raises
+    # ``EvidenceSealedError`` -- replay must not have that side effect.
+    if cell.cell_id != events[0].cell_id:
+        raise ValueError("replay cell identity does not match sealed evidence")
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     # Positional, matching scheduler.py's own call site. The hook's second
     # parameter is named `cell` by every external adapter and `run` by the
