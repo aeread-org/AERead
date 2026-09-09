@@ -279,6 +279,31 @@ bridge subprocess disabled entirely, per section 5's replay bullet — see `repl
 module docstring for why the seam that gets replayed here is the *bridge*, not the response
 source, unlike `tau3_retail`).
 
+### Milestone 4 correction (#135 A1/A2 — certified replay is now cell-bound)
+
+A later milestone (kernel PR #135 A1) corrected the gap milestone-3 correction 1 above
+worked around rather than fixed: `task.evaluation._replay_family_trajectory` now receives
+the actual executed `PlanCell` — for `finalize_family_execution`, `replay_family_receipt`,
+and `audit_family_receipt` alike — and checks its identity against the sealed evidence
+before calling `plugin.initial_state` at all, instead of always calling
+`initial_state(family_case, run=None)` with no cell. `EconAgentV1Plugin._mint_session_id`
+(#135 A2) was simplified to match: it derives `bridge_session_id` deterministically from
+the real cell's own `cell_id` whenever a cell is available — now true for certified replay
+too, not only for a live run — and falls back to a deterministic, `family_case`-digest-only
+id only for a direct, unsealed parity call that bypasses the real scheduler entirely. The
+destructive case-keyed FIFO this milestone had used to make the no-cell fallback reproduce
+a specific live run's id (see the now-superseded "Escalated, not fixed here" item this
+corrects) is removed: it made two live episodes of the identical `family_case`,
+finalized/replayed/audited out of mint order, capable of consuming each other's session id.
+Certified replay's cell-bound identity check makes that no longer possible — order never
+matters, and each cell's session id depends only on its own `cell_id`. PR #132's own
+evidence (an earlier, incident-only live campaign bundle, not this adapter's own
+certification base) remains an immutable historical record, unedited by this pass; any
+new receipts this milestone's own tests produce come from real, bridge-backed episodes
+run fresh for this branch, and any future live/paid campaign success is demonstrated only
+by a successor campaign's own new receipts, never claimed here from these deterministic
+tests.
+
 ---
 
 ## 1. Pinned source and corpus enumeration (QC Gate 1)

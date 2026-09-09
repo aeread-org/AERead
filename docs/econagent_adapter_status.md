@@ -2,6 +2,26 @@
 
 Branch `zeyu/econagent-contract-migration`. Last verified 2026-09-06.
 
+## #135 A1/A2 update (2026-09-09)
+
+Certified family replay (`finalize_family_execution`/`replay_family_receipt`/
+`audit_family_receipt`) is now **cell-bound**: kernel PR #135 A1 threads the actual
+executed `PlanCell` through `task.evaluation._replay_family_trajectory` and checks its
+identity against the sealed evidence before `plugin.initial_state` is ever called.
+#135 A2 removed this adapter's own destructive case-keyed session FIFO
+(`_live_session_ids_by_case_digest`) that the "Escalated, not fixed here" item below
+previously recorded as a shared-kernel-owned gap — `EconAgentV1Plugin._mint_session_id`
+now derives `bridge_session_id` deterministically from the real cell's own `cell_id`
+whenever a cell is available (live run or certified replay alike) and falls back to a
+deterministic, `family_case`-digest-only id only for a direct, unsealed parity call that
+bypasses the real scheduler entirely — never from mint order, and never perturbed by any
+other cell's mint. See `docs/econagent_adapter_spec.md`'s "Milestone 4 correction" for the
+full mechanism. PR #132's own evidence (an earlier, incident-only live campaign bundle)
+remains an immutable historical record, unedited by this pass; this fix's own tests are
+all deterministic, bridge-backed, non-paid runs, and demonstrate replay/audit identity
+only — no live/paid campaign success is claimed here. Any future live/paid receipts for
+this family come only from a dedicated successor campaign, not from this fix.
+
 ## What the adapter claims
 
 For three pinned, reduced-scale EconAgent (ACL 2024; `tsinghua-fib-lab/ACL24-EconAgent`,
@@ -345,17 +365,23 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 
 ## Open items noted in the ledger, not fixed here
 
-- **Escalated, not fixed here: two live episodes of the identical `family_case`,
-  finalized out of mint order, can consume each other's `bridge_session_id`.**
-  `docs/econagent_migration_review.md` finding 1 (independent review, 2026-09-06):
-  `_mint_session_id`'s no-cell fallback (`environment.py:645-716`) is an in-order FIFO,
-  and kernel replay has no way to name which live episode it is replaying — see that
-  method's own "Stated limit" paragraph. A genuine fix needs
-  `task.evaluation._replay_family_trajectory` to thread the sealed evidence's own
-  `cell_id` through as `run`, which is a shared-kernel change touching every migrated
-  family's replay path, not something this adapter's own code can fix. Confirmed
-  reachable (two evaluation blocks running the identical case) and recorded there with
-  full evidence for an owner decision.
+- ~~**Escalated, not fixed here: two live episodes of the identical `family_case`,
+  finalized out of mint order, can consume each other's `bridge_session_id`.**~~ —
+  **resolved by kernel PR #135 A1/A2** (see the "#135 A1/A2 update" section at the top of
+  this document). `docs/econagent_migration_review.md` finding 1 (independent review,
+  2026-09-06) correctly identified the shared-kernel-owned root cause: `task.evaluation.
+  _replay_family_trajectory` had no `PlanCell` to give kernel replay at all, which is
+  exactly what forced `_mint_session_id`'s no-cell fallback into an order-dependent,
+  in-order FIFO. #135 A1 threads the sealed evidence's own executed `PlanCell` through
+  `_replay_family_trajectory` (and therefore `replay_family_scoring_input`,
+  `finalize_family_execution`, `replay_family_receipt`, and `audit_family_receipt`); #135
+  A2 then deletes the FIFO (`_live_session_ids_by_case_digest` and every associated
+  `append`/`popleft`) entirely, since certified replay never needs the no-cell fallback
+  any more. Confirmed by
+  `tests/test_econagent_replay.py::test_same_case_cells_finalize_in_reverse_order_and_replay_repeatedly`:
+  two distinct cells of the identical case, sharing one registry/plugin, finalized in the
+  REVERSE order they executed, each receipt replayed and audited twice, with stable
+  receipt bytes/digests and an empty `_sessions` table throughout.
 - No static Gate-1/Gate-2 check in the shared kernel cross-validates a case's declared
   `episode.max_logical_actions` against its phases' actual seat cardinality before an
   episode is really run through `run_episode` — the exact gap that let the
