@@ -12,14 +12,19 @@ capability that note asked for.
 
 What a model decides here: one negotiation move per `agent_turn`,
 `{"decision": "offer", "price": p, "message": m}` or `{"decision":
-"accept"|"reject", "message": m}`. The harness passes the model's JSON
-object through unchanged. It does not validate the move, because a
-malformed or illegal move is a *measured* outcome in this family --
-`_step_agent` terminates the episode with `agreement_violation`, and
-`protocol_compliance` is the admission leaf -- and a harness that quietly
-re-prompted until the model produced something well-formed would be
-scoring its own patience. The only condition retried inside an attempt is
-an empty response, which is a route fault and not an answer.
+"accept"|"reject", "message": m}`. The harness passes the model's answer
+through unchanged, a JSON object as the object and anything else wrapped
+as `{"raw_text": ...}`. It does not validate the move, because a malformed
+or illegal move is a *measured* outcome in this family -- `parse_action`
+rejects it, `_step_agent` records `malformed_action_schema` and terminates
+the episode with `agreement_violation`, and `protocol_compliance` is the
+admission leaf -- and a harness that re-prompted, or that typed a finished
+answer as a route fault, would be scoring its own patience (TB-D-02: the
+1.0 harness did the latter and aborted the v1 pilot). This is also the
+kernel's own stance: the OpenRouter client keeps a completed, billable
+non-JSON answer on the normal response path for the family to classify.
+The only condition raised inside an attempt is an empty response, which is
+a route fault and not an answer.
 
 The route seal, retry policy and reasoning declaration follow econevals'
 measured configuration on the same GLM-5.3-Flash/Parasail route
@@ -187,16 +192,20 @@ def agent_output_schema() -> dict[str, Any]:
 
 
 class TermsBenchJsonHarness:
-    """One model call per agent turn; the JSON object is handed to the
-    family unchanged.
+    """One model call per agent turn; the answer is handed to the family
+    unchanged.
 
     The counterpart phase is never routed here: the plan declares the seat
     as scripted and the kernel answers it from the plugin. A request for any
     other phase is a contract violation, not something to answer.
+
+    1.1: a finished answer that is not a JSON object reaches the family as
+    `{"raw_text": text}` and is measured there; 1.0 raised it as a route
+    fault (TB-D-02).
     """
 
     id = "termsbench_json"
-    version = "1.0"
+    version = "1.1"
     requires = HarnessRequirements(
         provider=frozenset({"structured_output"}),
         tools="none",
@@ -260,22 +269,14 @@ class TermsBenchJsonHarness:
         try:
             value = json.loads(text)
         except json.JSONDecodeError:
-            # Not JSON at all is a structured-output fault of the route, not
-            # a move: the family cannot parse what is not an object, and the
-            # profile asked for one. Sealed as the attempt's condition.
-            raise ProviderFailure(
-                "malformed_structured_output",
-                "termsbench agent turn was not a JSON object",
-                retryable=False,
-            ) from None
-        if not isinstance(value, Mapping):
-            raise ProviderFailure(
-                "malformed_structured_output",
-                "termsbench agent turn must be a JSON object",
-                retryable=False,
-            )
+            value = None
+        # A finished answer that is not an object is the model's move, and
+        # the family measures it: `parse_action` finds no decision,
+        # `_step_agent` records `malformed_action_schema`. The sealed
+        # provider result keeps the text and its finish reason.
+        action = dict(value) if isinstance(value, Mapping) else {"raw_text": text}
         return HarnessOutput(
-            action=dict(value),
+            action=action,
             claimed_tool_calls=(),
             rounds_used=1,
             notes={},
@@ -496,7 +497,7 @@ def build_live_setup(
         *_measurement_pins(),
         _pin(PLUGIN_ID, "family_plugin", environment_path, version="0.1.0"),
         _pin(SCORER_ID, "scorer", measurement_path, version="0.1.0"),
-        _pin(TermsBenchJsonHarness.id, "harness", live_path, version="1.0"),
+        _pin(TermsBenchJsonHarness.id, "harness", live_path, version=TermsBenchJsonHarness.version),
         _pin("aeread_families.termsbench.live", "runtime", live_path, version="1.0.0"),
     )
     plan = resolve_run_plan(

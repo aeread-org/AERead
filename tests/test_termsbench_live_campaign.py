@@ -17,7 +17,7 @@ import pytest
 
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import finalize_family_execution
-from aeread.shared_runner.task.execution import execute_plan_cell
+from aeread.shared_runner.task.execution import ProviderFailure, execute_plan_cell
 from aeread_families.termsbench import campaign as module
 from aeread_families.termsbench.campaign import (
     CAMPAIGN_ID,
@@ -57,6 +57,8 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert sorted({row["difficulty_bin"] for row in plan["panel"]}) == [0, 1, 2, 3, 4]
     assert plan["seats"]["counterpart"].startswith("kernel_scripted_seat:")
     assert plan["execution"]["max_serial_wall_seconds"] == MAX_SERIAL_WALL_SECONDS
+    assert plan["execution"]["cell_failure_policy"] == "seal_typed_exclusion_and_continue"
+    assert plan["campaign_id"].endswith("_v2")
     planned = MAX_CANARY_COST_USD + len(PANEL_CASE_IDS) * MAX_TRAJECTORY_COST_USD
     assert plan["budget"]["planned_maximum_usd"] == pytest.approx(planned)
     assert planned <= HARD_TOTAL_COST_CEILING_USD
@@ -313,3 +315,91 @@ def test_max_cases_pauses_after_complete_checkpoints_without_touching_the_route(
     ]
     with pytest.raises(ValueError):
         asyncio.run(module.execute_campaign(run_root=root, max_cases=0))
+
+
+class _FailingThenScriptedRoute(_ScriptedRoute):
+    """The first provider call fails closed with a non-retryable typed
+    condition; every later call serves the scripted moves."""
+
+    def __init__(self, moves):
+        super().__init__(moves)
+        self.failed_once = False
+
+    async def complete(self, request):
+        if not self.failed_once:
+            self.failed_once = True
+            raise ProviderFailure("provider_contract", "route said no", retryable=False)
+        return await super().complete(request)
+
+
+def _agreeing_moves(case_id: str) -> list[dict]:
+    payload = load_case(case_id).payload
+    r_a, r_b = float(payload["agent"]["r_a"]), float(payload["t_b"]["r_b"])
+    return [
+        {"decision": "offer", "price": r_b + 0.5 * (r_a - r_b), "message": "opening"},
+        {"decision": "accept", "message": "agreed"},
+    ]
+
+
+def test_a_cell_that_fails_inside_the_kernel_is_sealed_and_the_campaign_continues(
+    tmp_path, monkeypatch
+) -> None:
+    """v1 aborted the panel on one cell (TB-O-01). v2 seals the cell as a
+    typed exclusion receipt and runs the next case."""
+    root = tmp_path / "attempt"
+    plan = build_campaign_plan()
+
+    async def admitted(*, path, plan_sha256, ordinal):
+        record = {"status": "admitted", "cost_usd": 0.0, "plan_sha256": plan_sha256,
+                  "probe_ordinal": ordinal}
+        record["record_sha256"] = module._digest(record)
+        module._write_once_json(path, record)
+        return record
+
+    route = _FailingThenScriptedRoute(_agreeing_moves(PANEL_CASE_IDS[1]))
+    monkeypatch.setattr(module, "_probe_canary", admitted)
+    monkeypatch.setattr(module, "OpenRouterChatClient", lambda: route)
+    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    first = json.loads((root / "checkpoints" / f"00_{PANEL_CASE_IDS[0]}.json").read_text())
+    second = json.loads((root / "checkpoints" / f"01_{PANEL_CASE_IDS[1]}.json").read_text())
+    assert first["status"] == "failed"
+    assert first["receipt_status"] == "invalid_measurement"
+    assert first["inclusion_status"] == "excluded"
+    assert first["failure_condition"] == "provider_contract"
+    assert first["failure_class"] == "integration_or_configuration"
+    assert (root / first["receipt_path"]).exists()
+    assert second["status"] == "complete"
+    # A resume never reruns the failed cell.
+    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    assert json.loads((root / "checkpoints" / f"00_{PANEL_CASE_IDS[0]}.json").read_text()) == first
+
+
+def test_publish_carries_a_failed_cell_as_typed_missingness(tmp_path, monkeypatch) -> None:
+    root = tmp_path / "attempt"
+    plan = build_campaign_plan()
+
+    async def admitted(*, path, plan_sha256, ordinal):
+        record = {"status": "admitted", "cost_usd": 0.0, "plan_sha256": plan_sha256,
+                  "probe_ordinal": ordinal}
+        record["record_sha256"] = module._digest(record)
+        module._write_once_json(path, record)
+        return record
+
+    route = _FailingThenScriptedRoute(_agreeing_moves(PANEL_CASE_IDS[1]))
+    monkeypatch.setattr(module, "_probe_canary", admitted)
+    monkeypatch.setattr(module, "OpenRouterChatClient", lambda: route)
+    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    for ordinal, case_id in list(enumerate(PANEL_CASE_IDS))[2:]:
+        _complete_checkpoint(root, plan, ordinal=ordinal, case_id=case_id,
+                             receipt=_sealed_receipt(tmp_path, case_id), status="ok", elapsed=1.0)
+    publication = tmp_path / "published"
+    module.publish_campaign(run_root=root, publication_root=publication)
+    summary = json.loads((publication / "reports" / "summary.json").read_text())
+    assert summary["completed_cases"] == len(PANEL_CASE_IDS)
+    assert summary["failed_cases"] == 1
+    assert summary["failure_conditions"] == {"provider_contract": 1}
+    assert summary["excluded_cases"] == 1
+    rows = [json.loads(l) for l in (publication / "trajectories" / "archive.jsonl").read_text().splitlines() if l.strip()]
+    failed = [row for row in rows if row["cell_status"] == "failed"]
+    assert len(failed) == 1 and failed[0]["case_id"] == PANEL_CASE_IDS[0]
+    assert failed[0]["termination_reason"] is None and failed[0]["protocol_compliance_value"] is None

@@ -25,11 +25,16 @@ alone do not give:
   the projection exceeds `MAX_SERIAL_WALL_SECONDS`, which is a frozen
   control here and not an operator's judgment.
 
-Execution stops at the first operational failure and never reruns a case:
-a failed case is typed missingness. The publisher is deliberately outside
-the execution freeze (`campaign.py` is not in `execution_source_sha256`),
-because a publisher defect must be fixable without invalidating a panel
-that already paid for its calls.
+A cell that fails inside the kernel -- an exhausted retry policy, a
+contract error mid-episode -- is sealed as a typed exclusion receipt
+(`finalize_family_failure`) and the campaign continues: a failed cell is
+typed missingness and is never rerun. The campaign aborts only outside a
+cell: a rejected canary, a plan that does not verify, a failure that left
+no attempt root to seal. v1 aborted the whole panel on one cell (TB-O-01);
+v2 is the new identity that carries this policy and the 1.1 harness. The
+publisher is deliberately outside the execution freeze (`campaign.py` is
+not in `execution_source_sha256`), because a publisher defect must be
+fixable without invalidating a panel that already paid for its calls.
 """
 
 from __future__ import annotations
@@ -55,6 +60,7 @@ from aeread.shared_runner.run.publication import (
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
+    finalize_family_failure,
     replay_family_receipt,
 )
 from aeread.shared_runner.task.execution import (
@@ -89,12 +95,13 @@ from .measurement import (
     PROTOCOL_COMPLIANCE_LEAF_ID,
     SURPLUS_EFFICIENCY_LEAF_ID,
     aggregate_surplus_efficiency_corpus,
+    build_protocol_compliance_leaf,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PILOT_MANIFEST_PATH = CASES_DIR / "pilot_manifest.json"
 
-CAMPAIGN_ID = "termsbench_glm53_flash_parasail_pilot_v1"
+CAMPAIGN_ID = "termsbench_glm53_flash_parasail_pilot_v2"
 SEED = 300
 MAX_PARALLEL_CELLS = 1
 
@@ -230,6 +237,7 @@ def build_campaign_plan() -> dict[str, Any]:
         ],
         "execution": {
             "max_parallel_cells": MAX_PARALLEL_CELLS,
+            "cell_failure_policy": "seal_typed_exclusion_and_continue",
             "abort_on_operational_failure": True,
             "resume_only_failure_free_checkpoints": True,
             "publish_only": True,
@@ -463,11 +471,11 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
             recorded = checkpoint.get("record_sha256")
             payload = {k: v for k, v in checkpoint.items() if k != "record_sha256"}
             if (
-                checkpoint.get("status") != "complete"
+                checkpoint.get("status") not in {"complete", "failed"}
                 or checkpoint.get("plan_sha256") != plan["plan_sha256"]
                 or recorded != _digest(payload)
             ):
-                raise RuntimeError("campaign cannot resume from a failed checkpoint")
+                raise RuntimeError("campaign cannot resume from an operational failure")
             total_cost += float(checkpoint["cost_usd"])
             if first_elapsed is None:
                 first_elapsed = float(checkpoint["elapsed_seconds"])
@@ -547,21 +555,67 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
             if first_elapsed is None:
                 first_elapsed = elapsed
         except Exception as error:
-            failure = {
+            elapsed = time.monotonic() - started
+            try:
+                receipt = finalize_family_failure(
+                    setup=setup,
+                    cell_id=setup.plan.cells[0].cell_id,
+                    evidence_root=execution_root,
+                    error=error,
+                    leaf_builder=build_protocol_compliance_leaf,
+                )
+            except Exception as sealing_error:
+                # Nothing to seal: the failure is outside the cell.
+                failure = {
+                    "schema_version": CHECKPOINT_SCHEMA,
+                    "campaign_id": CAMPAIGN_ID,
+                    "plan_sha256": plan["plan_sha256"],
+                    "ordinal": ordinal,
+                    "case_id": case_id,
+                    "status": "operational_failure",
+                    "failure_type": type(error).__name__,
+                    "failure_condition": getattr(error, "condition", "execution_failure"),
+                    "sealing_failure_type": type(sealing_error).__name__,
+                    "cost_usd": _sealed_spend(execution_root),
+                    "elapsed_seconds": elapsed,
+                }
+                failure["record_sha256"] = _digest(failure)
+                _write_once_json(checkpoint_path, failure)
+                raise
+            cost = _sealed_spend(execution_root)
+            total_cost += cost
+            receipt_path = next(execution_root.rglob("evaluation_receipt.json"))
+            checkpoint = {
                 "schema_version": CHECKPOINT_SCHEMA,
                 "campaign_id": CAMPAIGN_ID,
                 "plan_sha256": plan["plan_sha256"],
                 "ordinal": ordinal,
                 "case_id": case_id,
-                "status": "operational_failure",
+                "status": "failed",
+                "run_plan_id": setup.plan.run_plan_id,
+                "run_plan_sha256": setup.plan.plan_sha256,
+                "receipt_path": str(receipt_path.relative_to(run_root)),
+                "receipt_sha256": receipt.receipt_sha256,
+                "receipt_replayed": False,
+                "receipt_status": receipt.status,
+                "inclusion_status": receipt.inclusion_status,
                 "failure_type": type(error).__name__,
-                "failure_condition": getattr(error, "condition", "execution_failure"),
-                "cost_usd": _sealed_spend(execution_root),
-                "elapsed_seconds": time.monotonic() - started,
+                "failure_class": receipt.failure.failure_class if receipt.failure else None,
+                "failure_condition": receipt.failure.condition if receipt.failure else None,
+                "cost_usd": cost,
+                "elapsed_seconds": elapsed,
+                "termination_reason": None,
+                "final_price": None,
+                "rounds_used": None,
+                "malformed_action_schema": None,
             }
-            failure["record_sha256"] = _digest(failure)
-            _write_once_json(checkpoint_path, failure)
-            raise
+            checkpoint["record_sha256"] = _digest(checkpoint)
+            _write_once_json(checkpoint_path, checkpoint)
+            completed += 1
+            if first_elapsed is None:
+                first_elapsed = elapsed
+            if total_cost > HARD_TOTAL_COST_CEILING_USD:
+                raise RuntimeError("campaign exceeded its hard total cost ceiling")
 
 
 def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
@@ -590,7 +644,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         )
         payload = {k: v for k, v in checkpoint.items() if k != "record_sha256"}
         if (
-            checkpoint.get("status") != "complete"
+            checkpoint.get("status") not in {"complete", "failed"}
             or checkpoint.get("plan_sha256") != plan["plan_sha256"]
             or checkpoint.get("record_sha256") != _digest(payload)
         ):
@@ -628,6 +682,9 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
                 "malformed_action_schema": checkpoint["malformed_action_schema"],
                 "receipt_status": checkpoint["receipt_status"],
                 "inclusion_status": checkpoint["inclusion_status"],
+                "cell_status": checkpoint["status"],
+                "failure_class": checkpoint.get("failure_class"),
+                "failure_condition": checkpoint.get("failure_condition"),
                 **_leaf_values(receipt),
                 "cost_usd": checkpoint["cost_usd"],
                 "elapsed_seconds": checkpoint["elapsed_seconds"],
@@ -644,11 +701,14 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         included = [row for row in rows if row["inclusion_status"] == "included"]
         return {
             "completed_cases": len(rows),
+            "failed_cases": sum(1 for row in rows if row["cell_status"] == "failed"),
             "included_cases": len(included),
             "excluded_cases": len(rows) - len(included),
+            # A failed cell has no termination: it is counted in
+            # `failed_cases`, not as a reason.
             "termination_reasons": {
                 reason: sum(1 for row in rows if row["termination_reason"] == reason)
-                for reason in sorted({row["termination_reason"] for row in rows})
+                for reason in sorted({row["termination_reason"] for row in rows if row["termination_reason"]})
             },
         }
 
@@ -669,6 +729,11 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "completed_cases": len(trajectory_rows),
         "included_cases": sum(1 for row in trajectory_rows if row["inclusion_status"] == "included"),
         "excluded_cases": sum(1 for row in trajectory_rows if row["inclusion_status"] != "included"),
+        "failed_cases": sum(1 for row in trajectory_rows if row["cell_status"] == "failed"),
+        "failure_conditions": {
+            condition: sum(1 for row in trajectory_rows if row["failure_condition"] == condition)
+            for condition in sorted({row["failure_condition"] for row in trajectory_rows if row["failure_condition"]})
+        },
         "operational_failures": 0,
         "by_regime": {"overlap": _regime("overlap"), "nodeal": _regime("nodeal")},
         "overlap_corpus_aggregate": overlap_aggregate,
@@ -689,8 +754,10 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
             "route. The agent seat is the only model seat; the counterpart is the "
             "family's own seeded kernel, run as a kernel scripted seat and sealed as "
             "such in every receipt. Every case is the pinned corpus case, unmodified. "
-            "All cases ran sequentially through the shared runner and replayed their "
-            "receipts, which recompute the counterpart's every turn. Leaves are "
+            "All cases ran sequentially through the shared runner; completed cases "
+            "replayed their receipts, which recompute the counterpart's every turn, and "
+            "a cell that failed inside the kernel is a typed exclusion receipt, never "
+            "rerun. Leaves are "
             "regime-dependent: see `reports/summary.json` `by_regime`, and the "
             "family's corpus aggregate over the Overlap half.\n"
         ).encode("utf-8"),

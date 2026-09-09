@@ -113,20 +113,28 @@ def test_a_protocol_breaking_move_is_not_the_harness_s_to_judge() -> None:
     assert output.action == move
 
 
-@pytest.mark.parametrize(
-    ("text", "condition", "retryable"),
-    [
-        ("", "empty_response", True),
-        ("   \n", "empty_response", True),
-        ("I offer 100", "malformed_structured_output", False),
-        ("[1, 2]", "malformed_structured_output", False),
-    ],
-)
-def test_route_faults_are_typed_conditions(text: str, condition: str, retryable: bool) -> None:
+@pytest.mark.parametrize("text", ["", "   \n"])
+def test_an_empty_response_is_a_retryable_route_fault(text: str) -> None:
     with pytest.raises(ProviderFailure) as excinfo:
         asyncio.run(TermsBenchJsonHarness().act(_request(), _ctx(text)))
-    assert excinfo.value.condition == condition
-    assert excinfo.value.retryable is retryable
+    assert excinfo.value.condition == "empty_response"
+    assert excinfo.value.retryable is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I offer 100",
+        "[1, 2]",
+        '{"decision": "offer", "price": 56.59933527458603456593352745860345659335',
+    ],
+)
+def test_a_finished_answer_that_is_not_an_object_reaches_the_family_as_raw_text(text: str) -> None:
+    """TB-D-02: the 1.0 harness typed these as route faults and aborted the
+    v1 pilot on a model that repeated a price's digits to the output ceiling.
+    The family measures them (`malformed_action_schema`), the harness does not."""
+    output = asyncio.run(TermsBenchJsonHarness().act(_request(), _ctx(text)))
+    assert output.action == {"raw_text": text.strip()}
 
 
 def test_the_counterpart_phase_never_reaches_the_model() -> None:
@@ -171,7 +179,8 @@ class _ScriptedRoute:
         if not self._moves:
             raise ProviderFailure("provider_contract", "no scripted moves remain", retryable=False)
         self.calls += 1
-        text = canonical_json_bytes(self._moves.pop(0)).decode("utf-8")
+        move = self._moves.pop(0)
+        text = move if isinstance(move, str) else canonical_json_bytes(move).decode("utf-8")
         return ProviderResult(
             response_id=f"scripted_{request.provider_call_id}",
             requested_model=request.model,
@@ -240,5 +249,42 @@ def test_the_live_plan_runs_end_to_end_against_the_scripted_counterpart(tmp_path
     leaf_ids = {score.leaf.leaf_id for score in receipt.scores}
     assert "termsbench_protocol_compliance_leaf" in leaf_ids
     assert "termsbench_surplus_efficiency_leaf" in leaf_ids
+    replayed = replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path / "run")
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+
+
+def test_a_degenerate_answer_is_a_measured_agreement_violation_not_an_abort(tmp_path: Path) -> None:
+    """The v1 pilot's case 7, offline: the model's answer never closes its
+    JSON. The episode ends as the family's own `agreement_violation` with
+    `malformed_action_schema`; by the family's convention (spec golden 4)
+    the receipt stays `ok`/included with the admission leaf scoring the
+    critical violation and the value-axis leaf an `invalid_measurement`;
+    replay reproduces it -- no operational failure."""
+    setup = build_live_setup(case_id=NODEAL_CASE_ID, seed=300, max_trajectory_cost_usd=0.05)
+    route = _ScriptedRoute([{"decision": "offer", "price": 1.0, "message": "x"}])
+    route._moves = ['{"decision": "offer", "price": 56.599335274586034565933527458603456']  # raw text
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "run",
+            prompt_sources=setup.prompt_sources,
+            providers={PROVIDER: route},
+            pricing=setup.pricing,
+            harnesses=setup.harnesses,
+            tool_runtime_factories=setup.tool_runtime_factories,
+        )
+    )
+    outcome = execution.episode_result.outcome
+    assert outcome["termination_reason"] == "agreement_violation"
+    assert outcome["malformed_action_schema"] is True
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok" and receipt.inclusion_status == "included"
+    by_leaf = {score.leaf.leaf_id: score for score in receipt.scores}
+    compliance = by_leaf["termsbench_protocol_compliance_leaf"]
+    assert compliance.primary.value == 1.0
+    assert compliance.metrics["malformed_action_schema"].value == 1.0
+    assert by_leaf["termsbench_no_deal_agreement_leaf"].status == "invalid_measurement"
     replayed = replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path / "run")
     assert replayed.receipt_sha256 == receipt.receipt_sha256
