@@ -73,6 +73,80 @@ _CANARY_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+# The probe's instruction text as a named constant, not an inline literal, so
+# a resumed campaign can prove it was sealed against *this* prompt: identity
+# checks rebuild the probe request from this constant and compare hashes,
+# which only works if the constant -- not a copy of the string -- is what
+# ``_build_probe_request`` actually sends.
+_CANARY_INSTRUCTIONS = "Return only the requested JSON object."
+
+# A closed allowlist of persistable ``failure_type`` labels. Never the raw
+# exception class name: a class name is an implementation detail, not a
+# stable contract, and persisting one risks leaking internals into a public
+# checkpoint as Python renames or refactors them.
+_PROVIDER_FAILURE = "provider_failure"
+_CANARY_REJECTED = "canary_rejected"
+
+# A closed allowlist of ``finish_reason`` values safe to persist verbatim.
+# Arena (OpenAI-compatible) responses may carry an arbitrary provider string
+# here; one outside this set is folded into a sentinel so unexpected
+# provider text can never reach a public checkpoint.
+_ALLOWED_FINISH_REASONS = frozenset(
+    {"stop", "length", "max_output_tokens", "tool_calls", "content_filter", "unknown"}
+)
+_UNEXPECTED_FINISH_REASON = "unexpected_finish_reason"
+
+# ``resolved_model`` is only ever persisted as the requested ``MODEL`` or
+# this sentinel -- never the raw provider string -- so a provider that
+# resolves to (or impersonates) an unexpected model never leaks that string
+# into a public checkpoint.
+_UNEXPECTED_MODEL = "unexpected_model"
+
+# The exact set of top-level keys a sealed checkpoint may carry. ``_resume``
+# rejects any record whose key set differs from this, even when its digest
+# is internally consistent: a digest only proves a record is self-coherent,
+# not that it is shaped the way this schema promises.
+_RECORD_SCHEMA_KEYS = frozenset(
+    {
+        "schema_version",
+        "route_provider",
+        "scored",
+        "family_id",
+        "provider",
+        "model",
+        "revision",
+        "base_url",
+        "requested_limits",
+        "total_max_cost_usd",
+        "require_reported_accounting",
+        "status",
+        "probes",
+        "cumulative_cost_usd",
+        "cost_usd",
+        "cost_accounting_state",
+        "failure_type",
+        "failure_condition",
+        "record_sha256",
+    }
+)
+
+
+def _sanitized_finish_reason(value: Any) -> str:
+    """Return ``value`` if it is on the closed allowlist, else a sentinel."""
+    if isinstance(value, str) and value in _ALLOWED_FINISH_REASONS:
+        return value
+    return _UNEXPECTED_FINISH_REASON
+
+
+def _sanitized_resolved_model(value: Any) -> str:
+    """Return the requested ``MODEL`` if it matches, else a sentinel.
+
+    The raw provider string is never persisted when it disagrees with the
+    pinned ``MODEL``: an unexpected resolved model is a configuration or
+    impersonation signal, not content safe to echo into a checkpoint.
+    """
+    return MODEL if value == MODEL else _UNEXPECTED_MODEL
+
 
 def _digest(value: Any) -> str:
     """Return the sha256 of ``value``'s canonical JSON encoding."""
@@ -87,14 +161,22 @@ def _write_once(path: Path, value: Mapping[str, Any]) -> None:
     same checkpoint cannot corrupt each other's write. A process that loses
     the race either finds byte-identical content (idempotent, returns
     normally) or finds different content (a genuine conflict, raised).
+
+    The symlink check happens inside the ``FileExistsError`` handler --
+    i.e. at the moment ``os.open`` itself discovered the path already
+    exists -- rather than as a separate stat performed before the open
+    call. A pre-open check has a race window: another process could swap a
+    symlink into place after we checked and before we opened, and a
+    ``path.is_file()``/``read_bytes()`` comparison afterward would happily
+    follow that symlink and read its target.
     """
     payload = canonical_json_bytes(value) + b"\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.is_symlink():
-        raise ValueError("checkpoint destination must not be a symlink")
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
+        if path.is_symlink():
+            raise ValueError("checkpoint destination must not be a symlink")
         if not path.is_file() or path.read_bytes() != payload:
             raise ValueError(
                 f"refusing to overwrite a different adapter campaign checkpoint: {path}"
@@ -159,13 +241,60 @@ def _campaign_identity(
     }
 
 
-def _resume(checkpoint_path: Path, identity: Mapping[str, Any]) -> dict[str, Any]:
+def _verify_resumed_probe_hashes(
+    record: Mapping[str, Any],
+    *,
+    family_id: str,
+    limits: tuple[int, ...],
+    total_max_cost_usd: float,
+) -> None:
+    """Reject a checkpoint whose sealed probes disagree with today's requests.
+
+    Each stored ``request_sha256`` is not merely compared to itself: it is
+    recomputed from the *current* prompt, schema, limits, model, revision
+    and seed by rebuilding the same probe request this call would send, so
+    a prompt or schema edit invalidates every earlier checkpoint instead of
+    letting it resume unchanged.
+    """
+    probes = record.get("probes")
+    if not isinstance(probes, list):
+        return
+    cumulative = 0.0
+    for ordinal, probe in enumerate(probes):
+        if not isinstance(probe, Mapping) or ordinal >= len(limits):
+            raise ValueError("canary checkpoint probe count exceeds requested limits")
+        remaining = total_max_cost_usd - cumulative
+        expected = _build_probe_request(
+            family_id=family_id,
+            ordinal=ordinal,
+            limit=limits[ordinal],
+            remaining_budget=remaining,
+        ).request_sha256
+        if probe.get("request_sha256") != expected:
+            raise ValueError("canary checkpoint request hash mismatch")
+        cost = probe.get("cost_usd")
+        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+            cumulative += cost
+
+
+def _resume(
+    checkpoint_path: Path,
+    identity: Mapping[str, Any],
+    *,
+    family_id: str,
+    limits: tuple[int, ...],
+    total_max_cost_usd: float,
+) -> dict[str, Any]:
     """Validate and return an existing checkpoint, never calling the provider.
 
     Every sealed identity input must match the current call's arguments: a
     caller resuming with a different family, route, limit set, budget, or
     accounting requirement gets a typed ``ValueError`` rather than a stale
-    admission for work it never actually requested.
+    admission for work it never actually requested. The record's key set
+    and its probes' request hashes against the *current* request
+    construction are checked too, so a record that is internally
+    consistent but schema-extended or prompt-stale is rejected all the
+    same.
     """
     try:
         record = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -177,9 +306,14 @@ def _resume(checkpoint_path: Path, identity: Mapping[str, Any]) -> dict[str, Any
     payload = {key: value for key, value in record.items() if key != "record_sha256"}
     if stored_digest != _digest(payload):
         raise ValueError("canary checkpoint digest mismatch")
+    if set(record.keys()) != _RECORD_SCHEMA_KEYS:
+        raise ValueError("canary checkpoint has an unexpected key set")
     for key, expected in identity.items():
         if record.get(key) != expected:
             raise ValueError("canary checkpoint input mismatch")
+    _verify_resumed_probe_hashes(
+        record, family_id=family_id, limits=limits, total_max_cost_usd=total_max_cost_usd
+    )
     return record
 
 
@@ -192,7 +326,7 @@ def _build_probe_request(
         base_url=BASE_URL,
         model=MODEL,
         revision=REVISION,
-        instructions="Return only the requested JSON object.",
+        instructions=_CANARY_INSTRUCTIONS,
         input_text=(
             f"This is unscored route-admission probe {ordinal} for {family_id} "
             f'at a {limit}-token limit. Return {{"status":"ok"}}.'
@@ -325,7 +459,13 @@ async def run_adapter_canary(
     )
 
     if checkpoint_path.exists():
-        return _resume(checkpoint_path, identity)
+        return _resume(
+            checkpoint_path,
+            identity,
+            family_id=family_id,
+            limits=limits,
+            total_max_cost_usd=budget,
+        )
 
     record: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -354,10 +494,12 @@ async def run_adapter_canary(
         else:
             final["cost_usd"] = cumulative
             final["cost_accounting_state"] = "known"
-        if failure_type is not None:
-            final["failure_type"] = failure_type
-        if failure_condition is not None:
-            final["failure_condition"] = failure_condition
+        # Always present, even as None on the admitted path: a checkpoint's
+        # key set must be the same shape regardless of status so ``_resume``
+        # can reject any record whose keys differ from the schema's,
+        # without tolerating an "absent means admitted" special case.
+        final["failure_type"] = failure_type
+        final["failure_condition"] = failure_condition
         final["record_sha256"] = _digest(
             {key: value for key, value in final.items() if key != "record_sha256"}
         )
@@ -367,7 +509,7 @@ async def run_adapter_canary(
     for ordinal, limit in enumerate(limits):
         remaining = budget - cumulative
         if remaining <= 0:
-            return finalize(status="rejected", failure_type="canary_rejected",
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="cost_budget_exceeded")
         request = _build_probe_request(
             family_id=family_id, ordinal=ordinal, limit=limit, remaining_budget=remaining
@@ -380,36 +522,46 @@ async def run_adapter_canary(
                 if error.condition in _SAFE_PROVIDER_FAILURE_CONDITIONS
                 else "provider_error"
             )
-            return finalize(status="rejected", failure_type="ProviderFailure",
-                             failure_condition=condition)
+            # A billed call that raised before returning any accounting
+            # never proves it cost nothing: the failure is charged as
+            # unknown, not coerced to the already-known cumulative, and it
+            # is terminal -- no further probe is attempted.
+            return finalize(status="rejected", failure_type=_PROVIDER_FAILURE,
+                             failure_condition=condition, cost_unknown=True)
 
         cost = _resolve_probe_cost(result, require_reported_accounting=require_reported_accounting)
         if cost is None:
-            return finalize(status="rejected", failure_type="canary_rejected",
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="accounting_unavailable", cost_unknown=True)
         cumulative += cost
         probes.append(
             {
                 "request_sha256": request.request_sha256,
                 "max_output_tokens": limit,
-                "resolved_model": result.resolved_model,
-                "finish_reason": result.finish_reason,
+                "resolved_model": _sanitized_resolved_model(result.resolved_model),
+                "finish_reason": _sanitized_finish_reason(result.finish_reason),
                 "input_tokens": result.input_tokens,
                 "cached_input_tokens": result.cached_input_tokens,
                 "output_tokens": result.output_tokens,
                 "cost_usd": cost,
             }
         )
+        # Charged before any content check: a response whose reported cost
+        # alone breaches the aggregate ceiling is rejected here even if its
+        # content would otherwise have been admitted.
+        if cumulative > budget:
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
+                             failure_condition="cost_ceiling_exceeded")
         if result.finish_reason in _TRUNCATED_FINISH_REASONS:
-            return finalize(status="rejected", failure_type="canary_rejected",
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="length")
         try:
             payload = json.loads(result.output_text)
         except json.JSONDecodeError:
-            return finalize(status="rejected", failure_type="canary_rejected",
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="invalid_json_response")
         if payload != {"status": "ok"}:
-            return finalize(status="rejected", failure_type="canary_rejected",
+            return finalize(status="rejected", failure_type=_CANARY_REJECTED,
                              failure_condition="invalid_response")
 
     return finalize(status="admitted")
