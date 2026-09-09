@@ -3089,7 +3089,11 @@ def _econagent_fixture(
     # EconAgentV1Plugin._mint_session_id) resolve correctly.
     (registration,) = setup.registry.registrations()
     return registration, (
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            cell=setup.plan.cells[0],
+        ),
     )
 
 

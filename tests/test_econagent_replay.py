@@ -827,6 +827,8 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
     right_setup, right_plugin, right_case, right_evidence = run_kernel_contract_fixture(
         tmp_path, world_seed=1, suffix="paired_right", gamma=-1.0
     )
+    left_cell = left_setup.plan.cells[0]
+    right_cell = right_setup.plan.cells[0]
     del left_setup, right_setup
 
     # A genuinely different case (world_seed), never a duplicate of the same
@@ -838,12 +840,14 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
         family_case=left_case,
         evidence=left_evidence,
         seat_context=SeatContext((), {}),
+        cell=left_cell,
     )
     right_input = replay_family_scoring_input(
         plugin=right_plugin,
         family_case=right_case,
         evidence=right_evidence,
         seat_context=SeatContext((), {}),
+        cell=right_cell,
     )
 
     # The byte-identity claim, verified here -- not asserted in a comment.
@@ -929,6 +933,8 @@ def test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf(
     right_setup, right_plugin, right_case, right_evidence = run_kernel_contract_fixture(
         tmp_path, world_seed=0, suffix="sensitivity_right", episode_length=2
     )
+    left_cell = left_setup.plan.cells[0]
+    right_cell = right_setup.plan.cells[0]
     del left_setup, right_setup
 
     left_input = replay_family_scoring_input(
@@ -936,12 +942,14 @@ def test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf(
         family_case=left_case,
         evidence=left_evidence,
         seat_context=SeatContext((), {}),
+        cell=left_cell,
     )
     right_input = replay_family_scoring_input(
         plugin=right_plugin,
         family_case=right_case,
         evidence=right_evidence,
         seat_context=SeatContext((), {}),
+        cell=right_cell,
     )
     # A genuinely different trajectory, not a coincidence of identical
     # replayed state.
