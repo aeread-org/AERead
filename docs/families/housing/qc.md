@@ -1610,6 +1610,19 @@ Where the frozen schema had produced 12 nulls and a zero, the portable one
 produced twelve coherent decisions. On the thin market Gemini rejected
 everything, including the one listing that could have been leased for the
 oracle's 56.18, so it is conservative to the point of leaving surplus on the
-table, which is a behaviour to measure rather than a failure of the seat. A
-GLM cell in the same run was lost to a transport error before its first
-action and is being rerun; its result is added below when it lands.
+table, which is a behaviour to measure rather than a failure of the seat.
+
+GLM in the same seat on the thin-market world under the same controls, rerun
+once after a transport loss before its first action:
+
+| world | landlord actions parsed | decisions | leases | zero-rent | IR | score |
+|---|---|---|---|---|---|---|
+| thin market, 1207545696 | 6 of 12 | 1 accept, 3 counter, 1 reject | 1 | 0 | none | `1.0` |
+
+The one lease is the profitable listing at the oracle's 56.18; no counter at
+zero and no accept below cost. The six unparsed actions all came on an empty
+inbox, where GLM wrote a counter rent above its cost with no offer to attach
+it to, and the environment discarded them as typed invalid responses, which
+is the correct outcome for a round with nothing to answer. The frozen schema
+had shown the same habit as placeholder offer ids. One cell each is a
+demonstration that the update runs, not a measurement of either model.
