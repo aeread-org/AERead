@@ -1504,15 +1504,15 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    this bundle is by its published digests, which recompute, not by
    regeneration (D-20, O-11).
 4. **"Not distinguishable" is a statement about assignment efficiency only.**
-   Tracing the thin-market world's trajectories found a landlord-seat
-   behaviour the headline cannot see. Across all 30 worlds GLM as landlord
-   emitted a counter at rent `0.0` 275 times while its reasoning said accept
-   the best offer; 264 zero-rent leases were signed, 16% of every lease it
-   signed as landlord, and it accepted below its own cost 22 times. DeepSeek
-   as landlord did neither, zero and two. IR violations: 213 of 358 GLM-landlord
-   cells against 17 of 359. Rent cancels in welfare and the assignment is the
-   one an accept would have produced, so the score was unmoved everywhere except
-   the one world where the match itself destroys value. Per-trajectory
-   `ir_violation_count` and `signed_rents` carry it; the published analysis
-   never aggregated them. On the accounting dimension the two models are not
-   interchangeable as landlords (D-21, D-22, D-23).
+   Verifiable from the committed `trajectories/attempted.json` (artifact
+   `da01cba93ade…`): 264 of the 1601 leases signed under a GLM landlord carry a
+   rent of `0.0`, against 0 of 1565 under DeepSeek, and IR violations occur in
+   213 of 358 GLM-landlord cells against 17 of 359. Rent cancels in welfare and
+   a zero-rent lease is the same assignment an accept would have produced, so
+   the score was unmoved everywhere except the one world where the match itself
+   destroys value. Both fields were recorded per trajectory and never
+   aggregated. The origin of those leases, zero-rent counters where the model
+   appears to have meant accept, and 22 accepts below cost, were observed only
+   in the uncommitted local run root and cannot be checked from the repository.
+   On the accounting dimension the two models are not interchangeable as
+   landlords (D-21, D-22, D-23).
