@@ -30,13 +30,14 @@ from .runner import (
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
     HOUSING_COMMIT_OUTPUT_SCHEMA,
+    DEFAULT_PROMPT_VERSION,
+    PROMPT_VERSIONS,
+    output_schemas_for,
     HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
     HOUSING_CONTACT_OUTPUT_SCHEMA,
     HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
-    HOUSING_LANDLORD_PROMPT,
     HOUSING_RESPOND_OUTPUT_SCHEMA,
     HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
-    HOUSING_TENANT_PROMPT,
     OpenRouterRoutePin,
 )
 from .model_sensitivity import (
@@ -1874,6 +1875,11 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "admission_timeout_enforcement",
         "seat_max_cost_usd",
         "retry_backoff",
+        # Both arrived with incidents D-21 to D-23. A campaign that declares
+        # neither runs the version 1 prompts with no rent floor, exactly as
+        # every sealed campaign did.
+        "prompt_version",
+        "minimum_rent",
     ):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
             expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
@@ -2181,19 +2187,22 @@ def _profile_request(
 ) -> ProviderRequest:
     model = contract["models"][model_id]
     route = route_table(contract)[model_id]
-    prompt = HOUSING_TENANT_PROMPT if role == "tenant" else HOUSING_LANDLORD_PROMPT
-    if contract["controls"].get("action_schema_version") == "housing_actions/2.0":
-        output_schemas = {
-            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
-            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
-            "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
-        }
-    else:
+    controls = contract["controls"]
+    prompt_version = controls.get("prompt_version", DEFAULT_PROMPT_VERSION)
+    if prompt_version not in PROMPT_VERSIONS:
+        raise ValueError(f"unknown prompt version: {prompt_version!r}")
+    prompt = PROMPT_VERSIONS[prompt_version][role][1]
+    tenant_schemas, landlord_schemas = output_schemas_for(
+        controls.get("action_schema_version"), float(controls.get("minimum_rent", 0.0))
+    )
+    if tenant_schemas is None or landlord_schemas is None:
         output_schemas = {
             "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
             "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
             "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA,
         }
+    else:
+        output_schemas = {**tenant_schemas, **landlord_schemas}
     output_schema = output_schemas[action_schema]
     phase_id = {
         "housing_contact_v1": "contact",
@@ -2408,6 +2417,7 @@ async def run_profile_admission(
                     spec["action_schema"],
                     result.output_text,
                     observations[spec["action_schema"]],
+                    minimum_rent=float(contract["controls"].get("minimum_rent", 0.0)),
                 )
                 if result.cost_usd is None:
                     raise ValueError("admission call omitted provider billing")

@@ -2441,7 +2441,7 @@ def test_failure_register_is_reproducible_and_traces_to_committed_evidence(
     from aeread_families.housing.failure_register import build_register, publish
 
     evidence_root = CONFIRMATORY_CONTRACT_PATH.parents[1] / "evidence"
-    register_root = evidence_root / "housing_failure_register"
+    register_root = evidence_root / "housing" / "failure_register"
 
     payload, summary = build_register(evidence_root)
     committed = (register_root / "tables" / "failures.csv").read_bytes()
@@ -3487,3 +3487,216 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_action_schema_2_1_raises_every_rent_minimum_to_the_declared_floor() -> None:
+    """Incident D-23: version 2.0 declares ``counter_rent`` with a minimum of
+    zero, so a zero counter is schema-valid. Version 2.1 keeps the shape and
+    raises every rent minimum to the campaign's floor, the same number the
+    environment enforces."""
+
+    from aeread_families.housing.runner import (
+        HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+        output_schemas_for,
+    )
+
+    assert output_schemas_for(None) == (None, None)
+    tenant_v20, landlord_v20 = output_schemas_for("housing_actions/2.0")
+    assert landlord_v20["housing_respond_v1"] is HOUSING_RESPOND_OUTPUT_SCHEMA_V2
+
+    tenant_v21, landlord_v21 = output_schemas_for("housing_actions/2.1", 1.0)
+    counter = next(
+        branch
+        for branch in landlord_v21["housing_respond_v1"]["oneOf"]
+        if branch["properties"]["decision"] == {"const": "counter"}
+    )
+    offer = next(
+        branch
+        for branch in tenant_v21["housing_contact_v1"]["oneOf"]
+        if branch["properties"]["decision"] == {"const": "offer"}
+    )
+    assert counter["properties"]["counter_rent"]["minimum"] == 1.0
+    assert offer["properties"]["rent"]["minimum"] == 1.0
+    # The sealed 2.0 constant is untouched by building 2.1 from it.
+    zero_counter = next(
+        branch
+        for branch in HOUSING_RESPOND_OUTPUT_SCHEMA_V2["oneOf"]
+        if branch["properties"]["decision"] == {"const": "counter"}
+    )
+    assert zero_counter["properties"]["counter_rent"]["minimum"] == 0
+    with pytest.raises(ValueError, match="positive minimum_rent"):
+        output_schemas_for("housing_actions/2.1", 0.0)
+    with pytest.raises(ValueError, match="unknown action schema version"):
+        output_schemas_for("housing_actions/9.9", 1.0)
+
+
+def test_version_2_prompts_state_an_objective_and_version_1_is_unchanged() -> None:
+    """Incident D-21: the version 1 landlord prompt names the model a
+    deterministic controlled landlord and states no goal. Version 2 states
+    the payoff and the never-below-cost rule for both seats. Version 1 stays
+    byte-identical because it is inside every sealed implementation digest."""
+
+    from aeread_families.housing.runner import (
+        DEFAULT_PROMPT_VERSION,
+        HOUSING_LANDLORD_PROMPT,
+        HOUSING_LANDLORD_PROMPT_V2,
+        HOUSING_TENANT_PROMPT_V2,
+        PROMPT_VERSIONS,
+    )
+
+    flat = lambda text: " ".join(text.split())  # noqa: E731 - prompts wrap at 80 columns
+    assert DEFAULT_PROMPT_VERSION == "housing_prompts/1.0"
+    assert HOUSING_LANDLORD_PROMPT.startswith("You are a deterministic controlled landlord.")
+    assert "cost" not in HOUSING_LANDLORD_PROMPT
+    assert "Never accept or counter below your private cost" in flat(HOUSING_LANDLORD_PROMPT_V2)
+    assert "rent minus your private cost" in flat(HOUSING_LANDLORD_PROMPT_V2)
+    assert "Never offer or sign above your private value" in flat(HOUSING_TENANT_PROMPT_V2)
+    assert PROMPT_VERSIONS["housing_prompts/2.0"]["landlord"][0] == "housing_landlord_v2"
+    assert PROMPT_VERSIONS["housing_prompts/1.0"]["landlord"] == (
+        "housing_landlord_v1",
+        HOUSING_LANDLORD_PROMPT,
+    )
+
+
+def test_smoke_setup_carries_the_floor_only_when_positive_and_keeps_case_identity() -> None:
+    """A floor of zero must leave every sealed case digest untouched, so the
+    payload carries ``minimum_rent`` only when it is positive."""
+
+    from aeread_families.housing.runner import build_housing_smoke
+
+    common = dict(
+        tenant_provider="openrouter",
+        tenant_model="deepseek/deepseek-v4-flash-0731",
+        tenant_revision="deepseek/deepseek-v4-flash-20260731",
+        world_seed=41001,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+    )
+    legacy = build_housing_smoke(**common)
+    same = build_housing_smoke(**common, minimum_rent=0.0)
+    floored = build_housing_smoke(**common, minimum_rent=1.0, prompt_version="housing_prompts/2.0")
+
+    def payload(setup):
+        case = next(iter(setup.registry.cases.values())) if hasattr(setup.registry, "cases") else None
+        return case
+
+    assert canonical_json_bytes(legacy.plan) == canonical_json_bytes(same.plan)
+    assert canonical_json_bytes(legacy.plan) != canonical_json_bytes(floored.plan)
+    assert set(legacy.prompt_sources) == {"housing_tenant_v1", "housing_landlord_v1"}
+    assert set(floored.prompt_sources) == {"housing_tenant_v2", "housing_landlord_v2"}
+    with pytest.raises(ValueError, match="unknown prompt version"):
+        build_housing_smoke(**common, prompt_version="housing_prompts/3.0")
+    with pytest.raises(ValueError, match="minimum_rent"):
+        build_housing_smoke(**common, minimum_rent=-1.0)
+
+
+def test_admission_validator_applies_the_rent_floor() -> None:
+    from aeread_families.housing import environment as hz
+    from aeread_families.housing.population_campaign import _validate_admission_action
+
+    world = hz.make_bid_world(2, 1, seed=41001)
+    market = hz.HousingMarket(world, rounds=4)
+    market.submit_offers({0: (0, world.ask[0])})
+    observation = market.landlord_observation(0)
+    offer_id = observation["inbox"][0].offer_id
+    zero_counter = json.dumps(
+        {"decision": "counter", "offer_id": offer_id, "counter_rent": 0.0}
+    )
+    # Legacy: valid, which is how the campaign let it through.
+    assert _validate_admission_action("housing_respond_v1", zero_counter, observation)
+    with pytest.raises(ValueError, match="semantically invalid"):
+        _validate_admission_action(
+            "housing_respond_v1", zero_counter, observation, minimum_rent=1.0
+        )
+    fine = json.dumps(
+        {"decision": "counter", "offer_id": offer_id, "counter_rent": world.ask[0] + 5}
+    )
+    assert _validate_admission_action(
+        "housing_respond_v1", fine, observation, minimum_rent=1.0
+    )
+
+
+def test_confirmatory_panel_floor_excludes_the_thin_market_world_and_nothing_else() -> None:
+    """Incident D-18: seed 1207545696's severe configuration has an upper
+    bound of 56.18 against a median of 1828. The zero rule cannot see it. A
+    panel that declares ``minimum_upper_bound`` must exclude it with the
+    typed reason, may not use that reason without a floor, and may not leave
+    a caught seed admitted."""
+
+    from aeread_families.housing.model_sensitivity import confirmatory_panel
+
+    contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
+    base = contract["confirmatory_panel"]
+    assert "minimum_upper_bound" not in base
+    assert confirmatory_panel(contract) is not None  # sealed panel still verifies
+
+    floored = json.loads(json.dumps(contract))
+    panel = floored["confirmatory_panel"]
+    panel["minimum_upper_bound"] = 300.0
+    panel["excluded_world_seeds"] = {
+        **base["excluded_world_seeds"],
+        "1207545696": "below_upper_bound_floor",
+    }
+    panel["admitted_world_seeds"] = [
+        seed for seed in base["admitted_world_seeds"] if seed != 1207545696
+    ]
+    verified = confirmatory_panel(floored)
+    assert verified["excluded_world_seeds"]["1207545696"] == "below_upper_bound_floor"
+
+    # The floor reason without a declared floor is not justified.
+    no_floor = json.loads(json.dumps(floored))
+    del no_floor["confirmatory_panel"]["minimum_upper_bound"]
+    with pytest.raises(ValueError, match="not justified"):
+        confirmatory_panel(no_floor)
+
+    # A declared floor that catches a seed left admitted is refused.
+    unapplied = json.loads(json.dumps(contract))
+    unapplied["confirmatory_panel"]["minimum_upper_bound"] = 300.0
+    with pytest.raises(ValueError, match="below the declared upper-bound floor"):
+        confirmatory_panel(unapplied)
+
+    # A floor that catches nothing changes nothing.
+    harmless = json.loads(json.dumps(contract))
+    harmless["confirmatory_panel"]["minimum_upper_bound"] = 10.0
+    assert confirmatory_panel(harmless)["excluded_world_seeds"] == base["excluded_world_seeds"]
+
+
+def test_landlord_seat_accounting_is_reproducible_and_traces_to_committed_evidence(
+    tmp_path: Path,
+) -> None:
+    """Derived only from published rows, never from the run root, and
+    regenerating must reproduce the committed bytes, like the failure register."""
+
+    import csv as _csv
+
+    from aeread_families.housing.seat_accounting import build, publish
+
+    evidence_root = CONFIRMATORY_CONTRACT_PATH.parents[1] / "evidence"
+    analysis_root = evidence_root / "housing" / "landlord_seat_accounting"
+
+    seat_bytes, world_bytes, summary = build(evidence_root)
+    assert seat_bytes == (analysis_root / "tables" / "by_seat.csv").read_bytes()
+    assert world_bytes == (analysis_root / "tables" / "by_world.csv").read_bytes()
+    committed = json.loads((analysis_root / "reports" / "summary.json").read_bytes())
+    assert summary == committed
+    core = {k: v for k, v in summary.items() if k != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == summary["artifact_sha256"]
+    assert publish(evidence_root, tmp_path / "accounting") == committed
+
+    rows = list(_csv.DictReader(seat_bytes.decode().splitlines()))
+    confirmatory = {
+        row["landlord_model"]: row
+        for row in rows
+        if row["campaign_id"] == "housing_confirmatory_parasail_v2"
+    }
+    # The numbers the QC document cites, recomputed from the committed rows.
+    assert confirmatory["glm_53_flash"]["zero_rent_leases"] == "264"
+    assert confirmatory["glm_53_flash"]["signed_leases"] == "1601"
+    assert confirmatory["glm_53_flash"]["cells_with_ir_violation"] == "213"
+    assert confirmatory["deepseek_v4_flash"]["zero_rent_leases"] == "0"
+    assert confirmatory["deepseek_v4_flash"]["cells_with_ir_violation"] == "17"
+    for row in rows:
+        source = evidence_root.parents[0] / row["source_artifact"]
+        assert source.exists(), row["source_artifact"]
+        assert json.loads(source.read_bytes())["artifact_sha256"] == row["source_artifact_sha256"]

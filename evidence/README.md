@@ -14,11 +14,37 @@ state:
 Generic `output/` and `outputs/` directories are not used. See the normative
 [artifact layout](../docs/architecture/artifact_layout.md).
 
+## Layout: sealed bundles at their sealed paths, derived analyses per project
+
+Two kinds of artifact live here and they are placed differently.
+
+- **Sealed campaign bundles** stay at `evidence/<publication_id>/`, the path
+  they were published under. Their digest-covered artifacts embed that path
+  (a `canonical_fact_index.json` names its own `fact_manifest_path`, a
+  failure-register row names its `source_artifact`), and published bundles
+  are never edited, so a sealed bundle is not moved.
+- **Derived analyses and registers** live under `evidence/<project>/<analysis>/`,
+  one subfolder per project. They are generated from published evidence only,
+  never from the ignored run roots, and regenerating one must reproduce the
+  committed bytes. Housing today: `evidence/housing/failure_register/` and
+  `evidence/housing/landlord_seat_accounting/`. New projects create their own
+  `evidence/<project>/` the first time they publish a derived analysis.
+
 Campaign evidence should use a dedicated subdirectory. A publication must
 retain typed failures and exclusions, identify its source receipts by digest,
 and state whether costs are exact or lower bounds. Do not commit API keys,
 provider-account identifiers, raw provider responses, hidden reasoning, or
 complete prompts.
+
+Derived analyses, per project:
+
+- `housing/failure_register/`: every typed Housing failure across campaigns
+  in one register, traced to committed artifacts by digest; rebuild with
+  `python -m aeread_families.housing.failure_register`.
+- `housing/landlord_seat_accounting/`: zero-rent leases and IR violations per
+  landlord seat, aggregated from published per-trajectory rows the primary
+  outcome cannot see because welfare cancels rent; rebuild with
+  `python -m aeread_families.housing.seat_accounting`.
 
 Current campaign directories include:
 

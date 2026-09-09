@@ -572,6 +572,8 @@ def _validate_admission_action(
     action_schema: str,
     output_text: str,
     observation: Mapping[str, Any],
+    *,
+    minimum_rent: float = 0.0,
 ) -> dict[str, Any]:
     value = json.loads(output_text)
     if not isinstance(value, dict):
@@ -593,7 +595,7 @@ def _validate_admission_action(
                 and isinstance(value["rent"], (int, float))
                 and not isinstance(value["rent"], bool)
                 and math.isfinite(float(value["rent"]))
-                and float(value["rent"]) >= 0.0
+                and float(value["rent"]) >= minimum_rent
             )
     elif action_schema == "housing_respond_v1":
         if set(value) != {"decision", "offer_id", "counter_rent"}:
@@ -610,6 +612,7 @@ def _validate_admission_action(
                 and isinstance(value["counter_rent"], (int, float))
                 and not isinstance(value["counter_rent"], bool)
                 and math.isfinite(float(value["counter_rent"]))
+                and float(value["counter_rent"]) >= minimum_rent
             )
     elif action_schema == "housing_commit_v1":
         if set(value) != {"decision", "hold_id"}:

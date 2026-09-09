@@ -212,3 +212,41 @@ def test_scripted_strategies_are_distinct_and_oracle_bounded_over_seeds():
         assert 0.0 <= naive.total <= opt.total + 1e-9
         differences.append(adaptive.total - naive.total)
     assert any(abs(difference) > 1e-9 for difference in differences)
+
+
+def test_zero_rent_counter_is_legal_by_default_and_illegal_under_a_declared_floor():
+    """Incidents D-22 and D-23: a landlord countered at rent 0.0 275 times in
+    the confirmatory campaign and every one became a signed lease, because
+    any finite non-negative rent was legal. The default keeps that behaviour
+    so sealed receipts replay unchanged; a case that declares a floor turns
+    the same action into a typed invalid response with no hold."""
+
+    legacy = _market()
+    legacy.submit_offers({0: (0, legacy.world.ask[0] + 10)})
+    result = legacy.submit_responses({0: {0: ("counter", 0.0)}})
+    assert result.holds[0].rent == 0.0
+
+    floored = hz.HousingMarket(
+        hz.make_bid_world(3, 2, seed=1), rounds=4, minimum_rent=1.0
+    )
+    floored.submit_offers({0: (0, floored.world.ask[0] + 10)})
+    result = floored.submit_responses({0: {0: ("counter", 0.0)}})
+    assert result.holds == {}
+    assert result.verdicts[0].outcome == "pass"
+    assert result.verdicts[0].reason == "invalid_response"
+
+
+def test_declared_floor_also_refuses_zero_rent_offers():
+    floored = hz.HousingMarket(
+        hz.make_bid_world(3, 2, seed=1), rounds=4, minimum_rent=1.0
+    )
+    result = floored.submit_offers({0: (0, 0.0), 1: (1, 0.5)})
+    assert result.verdicts[0].reason == "invalid_rent"
+    assert result.verdicts[1].reason == "invalid_rent"
+    assert result.inbox == {}
+
+
+@pytest.mark.parametrize("floor", [-1.0, float("nan"), float("inf"), True])
+def test_market_rejects_a_malformed_floor(floor):
+    with pytest.raises(ValueError, match="minimum_rent"):
+        hz.HousingMarket(hz.make_bid_world(3, 2, seed=1), rounds=4, minimum_rent=floor)

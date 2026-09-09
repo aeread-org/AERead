@@ -349,9 +349,23 @@ class TerminalEconomics:
 
 
 class HousingMarket:
-    def __init__(self, world: BidWorld, rounds: int = 4):
+    def __init__(self, world: BidWorld, rounds: int = 4, minimum_rent: float = 0.0):
         if rounds < 0:
             raise ValueError("rounds must be non-negative")
+        # A market sealed before this floor existed accepted any finite
+        # non-negative rent, including zero, and the confirmatory campaign
+        # signed 264 leases at exactly 0.0 that way (incident D-22, D-23). The
+        # floor is opt-in per case, default zero, so every sealed receipt
+        # replays to the same outcome; a campaign that wants zero-rent holds
+        # refused as invalid declares a positive floor in its contract.
+        if (
+            isinstance(minimum_rent, bool)
+            or not isinstance(minimum_rent, (int, float))
+            or not math.isfinite(float(minimum_rent))
+            or float(minimum_rent) < 0.0
+        ):
+            raise ValueError("minimum_rent must be a finite non-negative number")
+        self.minimum_rent = float(minimum_rent)
         self.world = world
         self.rounds = rounds
         self.round_index = 0
@@ -452,10 +466,9 @@ class HousingMarket:
     def _valid_listing(self, listing_id: Any) -> bool:
         return self._valid_id(listing_id) and 0 <= listing_id < self.world.num_listings
 
-    @staticmethod
-    def _valid_rent(rent: Any) -> bool:
+    def _valid_rent(self, rent: Any) -> bool:
         return (isinstance(rent, (int, float)) and not isinstance(rent, bool)
-                and math.isfinite(float(rent)) and float(rent) >= 0.0)
+                and math.isfinite(float(rent)) and float(rent) >= self.minimum_rent)
 
     def _require_phase(self, expected: str) -> None:
         if self.phase != expected:

@@ -1385,7 +1385,7 @@ campaign that produced it. A pattern spanning campaigns was therefore
 invisible without opening a dozen bundles by hand, which is how the same
 provider defect kept being rediscovered under a new identity.
 
-[`evidence/housing_failure_register/`](../../../evidence/housing_failure_register/reports/summary.json)
+[`evidence/housing/failure_register/`](../../../evidence/housing/failure_register/reports/summary.json)
 collects all of them in one place. It reads only published evidence, never
 the ignored local run directories, so every row carries the committed
 artifact it came from and that artifact's digest. It is derived rather than
@@ -1515,4 +1515,8 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    appears to have meant accept, and 22 accepts below cost, were observed only
    in the uncommitted local run root and cannot be checked from the repository.
    On the accounting dimension the two models are not interchangeable as
-   landlords (D-21, D-22, D-23).
+   landlords (D-21, D-22, D-23). The aggregation is now a derived artifact,
+   `evidence/housing/landlord_seat_accounting/`, rebuilt byte for byte from
+   committed rows by `python -m aeread_families.housing.seat_accounting`; it
+   shows the same pattern in every earlier multi-world campaign that carried
+   the fields, and never once under a DeepSeek landlord.

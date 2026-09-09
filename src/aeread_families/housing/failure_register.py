@@ -216,7 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evidence-root", default=str(repo_root / "evidence"))
     parser.add_argument(
         "--register-root",
-        default=str(repo_root / "evidence" / "housing_failure_register"),
+        default=str(repo_root / "evidence" / "housing" / "failure_register"),
     )
     args = parser.parse_args(argv)
     summary = publish(Path(args.evidence_root), Path(args.register_root))

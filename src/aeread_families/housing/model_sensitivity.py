@@ -30,9 +30,11 @@ from .runner import (
     DEEPINFRA_HOUSING_ROUTE,
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
+    DEFAULT_PROMPT_VERSION,
     HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
     HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
     HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+    output_schemas_for,
     OpenRouterRoutePin,
     build_housing_smoke,
     finalize_housing_execution,
@@ -564,23 +566,60 @@ def confirmatory_panel(contract: Mapping[str, Any]) -> dict[str, Any] | None:
         raise ValueError("confirmatory admitted seeds do not match the exclusions")
     # An exclusion is only legitimate when the environment itself forces it,
     # so every declared reason is re-derived here rather than trusted.
-    for seed_text, reason in excluded.items():
-        if reason != "degenerate_upper_bound":
-            raise ValueError(f"unsupported confirmatory exclusion reason: {reason!r}")
-        if not any(
-            audit_bid_world(
-                tenants=config["tenants"],
-                listings=config["listings"],
-                rounds=config["rounds"],
-                common_weight=config["common_weight"],
-                world_seed=int(seed_text),
-            )["oracle_total"]
-            <= 0
+    #
+    # Two reasons exist. ``degenerate_upper_bound`` is a bound of exactly zero:
+    # the world carries no normalized score at all. ``below_upper_bound_floor``
+    # is a bound below the panel's declared ``minimum_upper_bound``: the score
+    # exists but its denominator is so small that ordinary mistakes become
+    # scores of minus two and one world-configuration supplies most of a
+    # slice's variance (incident D-18: a bound of 56 against a median of
+    # 1828). A panel that declares no floor keeps the zero rule only, so
+    # every sealed panel verifies exactly as before.
+    floor = panel.get("minimum_upper_bound", 0.0)
+    if (
+        isinstance(floor, bool)
+        or not isinstance(floor, (int, float))
+        or not math.isfinite(float(floor))
+        or float(floor) < 0.0
+    ):
+        raise ValueError("confirmatory minimum_upper_bound must be finite and non-negative")
+    floor = float(floor)
+
+    def _bounds(seed_text: str) -> list[float]:
+        return [
+            float(
+                audit_bid_world(
+                    tenants=config["tenants"],
+                    listings=config["listings"],
+                    rounds=config["rounds"],
+                    common_weight=config["common_weight"],
+                    world_seed=int(seed_text),
+                )["oracle_total"]
+            )
             for config in sealed_configs
-        ):
+        ]
+
+    for seed_text, reason in excluded.items():
+        if reason == "degenerate_upper_bound":
+            justified = any(bound <= 0 for bound in _bounds(seed_text))
+        elif reason == "below_upper_bound_floor":
+            justified = floor > 0.0 and any(bound < floor for bound in _bounds(seed_text))
+        else:
+            raise ValueError(f"unsupported confirmatory exclusion reason: {reason!r}")
+        if not justified:
             raise ValueError(
                 f"confirmatory exclusion is not justified for seed {seed_text}"
             )
+    if floor > 0.0:
+        # A declared floor must also be applied: a seed it catches cannot be
+        # left admitted.
+        for seed in panel["world_seeds"]:
+            if str(seed) in excluded:
+                continue
+            if any(bound < floor for bound in _bounds(str(seed))):
+                raise ValueError(
+                    f"seed {seed} is below the declared upper-bound floor but not excluded"
+                )
     return panel
 
 
@@ -645,26 +684,19 @@ def build_setups(
     historical_implementation_digests = _HISTORICAL_IMPLEMENTATION_DIGESTS.get(
         str(contract["campaign_id"])
     )
-    use_action_schemas_v2 = (
-        controls.get("action_schema_version") == "housing_actions/2.0"
+    minimum_rent = float(controls.get("minimum_rent", 0.0))
+    prompt_version = controls.get("prompt_version", DEFAULT_PROMPT_VERSION)
+    tenant_schemas, landlord_schemas = output_schemas_for(
+        controls.get("action_schema_version"), minimum_rent
     )
     tenant_harness_config = (
-        {
-            "output_schema_by_action_schema": {
-                "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
-                "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
-            }
-        }
-        if use_action_schemas_v2
+        {"output_schema_by_action_schema": tenant_schemas}
+        if tenant_schemas is not None
         else None
     )
     landlord_harness_config = (
-        {
-            "output_schema_by_action_schema": {
-                "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
-            }
-        }
-        if use_action_schemas_v2
+        {"output_schema_by_action_schema": landlord_schemas}
+        if landlord_schemas is not None
         else None
     )
     live_profile_controls = (
@@ -728,6 +760,8 @@ def build_setups(
                     ],
                     tenant_harness_config=tenant_harness_config,
                     landlord_harness_config=landlord_harness_config,
+                    prompt_version=prompt_version,
+                    minimum_rent=minimum_rent,
                     implementation_digest_overrides=(
                         historical_implementation_digests
                     ),
@@ -861,6 +895,11 @@ def _confirmatory_provider_free_artifact(
             # rather than an error: it carries no normalized score and stays
             # visible outside normalized-score inference.
             degenerate = facts["oracle_total"] <= 0
+            below_floor = (
+                not degenerate
+                and float(panel.get("minimum_upper_bound", 0.0)) > 0.0
+                and facts["oracle_total"] < float(panel["minimum_upper_bound"])
+            )
             rows.append(
                 {
                     "config_id": config["config_id"],
@@ -868,7 +907,11 @@ def _confirmatory_provider_free_artifact(
                     "world_sha256": facts["world_sha256"],
                     "case_config_sha256": _sha256(dict(config)),
                     "admission": (
-                        "degenerate_upper_bound" if degenerate else "admitted"
+                        "degenerate_upper_bound"
+                        if degenerate
+                        else "below_upper_bound_floor"
+                        if below_floor
+                        else "admitted"
                     ),
                     "oracle_total": facts["oracle_total"],
                     "naive_normalized": facts["naive_normalized"],

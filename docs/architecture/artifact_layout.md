@@ -45,6 +45,15 @@ Provider/model calls are append-only events inside `events.jsonl`. They do not
 receive mutable source directories. The report projection turns each started
 call and its terminal event into one row of `model_calls.csv`.
 
+## Derived analyses live per project
+
+Sealed bundles keep the `evidence/<publication_id>/` path they were published
+under, because their digest-covered artifacts embed it. Anything *derived*
+from published bundles, a cross-campaign register or an aggregate analysis,
+lives under `evidence/<project>/<analysis>/` with one subfolder per project,
+is generated only from committed evidence, and must regenerate byte for byte.
+See `evidence/README.md`.
+
 ## Canonical publication hierarchy
 
 Each selected campaign or run publishes one self-contained bundle:
