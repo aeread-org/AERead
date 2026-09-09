@@ -1172,12 +1172,31 @@ def publish_campaign(
                 "protocol_conformant": full_trajectory_gate_passed,
             },
             "interpretation": (
-                f"The campaign passed all prerequisite gates and attempted all "
-                f"{live['planned_trajectories']} frozen Housing model-to-model "
-                f"cells. {live['completed_trajectories']} trajectories completed "
-                f"with verified replay and {live['operational_failures']} remain "
-                "typed operational missingness. This is exploratory pilot evidence, "
-                "not a model ranking or leaderboard."
+                (
+                    f"The campaign passed all prerequisite gates and attempted "
+                    f"all {live['planned_trajectories']} frozen Housing "
+                    f"model-to-model cells. {live['completed_trajectories']} "
+                    f"trajectories completed with verified replay and "
+                    f"{live['operational_failures']} remain typed operational "
+                    "missingness. This is a confirmatory model comparison "
+                    "against a holdout sealed before any outcome was observed, "
+                    "so the predeclared paired interval and its slices carry "
+                    "the claim. Read the interval and the declared minimum "
+                    "meaningful effect together: an interval that excludes no "
+                    "difference is a null, not a tie broken by the point "
+                    "estimate."
+                    if is_confirmatory
+                    else (
+                        f"The campaign passed all prerequisite gates and "
+                        f"attempted all {live['planned_trajectories']} frozen "
+                        f"Housing model-to-model cells. "
+                        f"{live['completed_trajectories']} trajectories "
+                        f"completed with verified replay and "
+                        f"{live['operational_failures']} remain typed "
+                        "operational missingness. This is exploratory pilot "
+                        "evidence, not a model ranking or leaderboard."
+                    )
+                )
                 if full_trajectory_gate_passed
                 else (
                     f"The campaign passed design, provider-free, catalog, and "
