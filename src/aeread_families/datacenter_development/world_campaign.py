@@ -1216,12 +1216,18 @@ async def run_campaign(
         cell for cell in design["cells"] if cell_filter is None or cell_filter(cell)
     ]
     if retry_failed:
-        retried = sum(
-            1
-            for cell in selected
-            if archive_failed_attempt(root / "live" / str(cell["cell_key"]))
-        )
-        if not retried:
+        pending = 0
+        for cell in selected:
+            cell_root = root / "live" / str(cell["cell_key"])
+            if archive_failed_attempt(cell_root):
+                pending += 1
+            elif not (cell_root / "result.json").exists() and any(
+                cell_root.glob("result.attempt*.json")
+            ):
+                # Already set aside by an earlier re-execution that did not
+                # finish; it still needs running.
+                pending += 1
+        if not pending:
             raise ValueError("no failed cells to re-execute")
         summary_path = root / "live" / "summary.json"
         if summary_path.exists():
