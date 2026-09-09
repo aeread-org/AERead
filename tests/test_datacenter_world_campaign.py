@@ -231,3 +231,37 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
     assert "| 1 | gemini38_flash_aistudio |" in text
     assert "Unranked" in text and "gptoss120b_coreweave" in text
     assert "No winner claim" in text
+
+
+def test_a_retry_may_reuse_a_cell_directory_but_not_overwrite_a_live_one(tmp_path) -> None:
+    """Archived attempts must not look like a half-finished cell.
+
+    The guard exists so a run that died mid-cell is never silently overwritten.
+    A declared re-execution leaves archived results and evidence behind, and
+    those must not trip it.
+    """
+    import json as _json
+
+    from aeread_families.datacenter_development.world_campaign import (
+        _sealed,
+        archive_failed_attempt,
+    )
+
+    cell = tmp_path / "cell"
+    (cell / "evidence").mkdir(parents=True)
+    failed = _sealed({"status": "operational_failure", "failure": {"failure_condition": "rate_limit"}})
+    (cell / "result.json").write_text(_json.dumps(failed, indent=2, sort_keys=True) + "\n")
+
+    ordinal = archive_failed_attempt(cell)
+    assert ordinal == 1
+    assert (cell / "result.attempt1.json").is_file()
+    assert (cell / "evidence.attempt1").is_dir()
+    # The live slots are clear, so a re-execution may proceed.
+    assert not (cell / "result.json").exists()
+    assert not (cell / "evidence").exists()
+
+    # A completed cell is never archived.
+    done = _sealed({"status": "completed", "failure": None})
+    (cell / "result.json").write_text(_json.dumps(done, indent=2, sort_keys=True) + "\n")
+    assert archive_failed_attempt(cell) == 0
+    assert (cell / "result.json").is_file()

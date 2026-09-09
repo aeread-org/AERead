@@ -638,7 +638,10 @@ async def _run_live_cell(
         if result["run_plan_sha256"] != design_cell["run_plan_sha256"]:
             raise ValueError(f"resumed result drift for {design_cell['cell_key']}")
         return result
-    if cell_root.exists():
+    # A cell directory holding evidence but no result is a run that died
+    # mid-cell, and must not be silently overwritten. Archived attempts from a
+    # declared re-execution are a different thing and are expected to be here.
+    if (cell_root / "evidence").exists():
         raise ValueError(f"refusing to replace incomplete live cell {design_cell['cell_key']}")
 
     prior = _prior_attempts(cell_root)
