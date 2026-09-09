@@ -67,6 +67,51 @@ def _rng_for_round(world_seed: int, round_k: int) -> np.random.Generator:
     return np.random.Generator(np.random.PCG64(np.random.SeedSequence([world_seed, round_k])))
 
 
+def resolve_counterpart_response(
+    observation: Mapping[str, Any],
+    *,
+    world_seed: int,
+    draws_override: Mapping[str, float] | None = None,
+) -> dict[str, Any]:
+    """The counterpart's turn as a structured response, from its observation.
+
+    A pure function of the observation, the world seed and an optional pinned
+    draw set -- the same computation whether the caller is the scripted test
+    harness or the kernel's scripted-seat hook (``TermsBenchPlugin.
+    scripted_response``, docs/kernel_scripted_seats_design.md). Purity is
+    what lets replay recompute the turn and require it to equal the sealed one.
+    """
+    round_k = observation["round"]
+    draws = dict(_draw_randoms(_rng_for_round(world_seed, round_k)))
+    if draws_override is not None:
+        draws.update(draws_override)
+    decision = k.resolve_counterpart_turn(
+        round_k=round_k,
+        horizon=observation["horizon"],
+        family=observation["family"],
+        agent_role=observation["agent_role"],
+        counterpart_role=observation["counterpart_role"],
+        r_b=float(observation["t_b"]["r_b"]),
+        kappa_b=float(observation["t_b"]["kappa_b"]),
+        eta_b=observation["t_b"]["eta_b"],
+        p_min=float(observation["price_bounds"]["p_min"]),
+        p_max=float(observation["price_bounds"]["p_max"]),
+        opening_harshness=float(observation["opening_harshness"]),
+        agent_offers=tuple(observation["agent_offers"]),
+        counterpart_offers=tuple(observation["counterpart_offers"]),
+        draws=draws,
+    )
+    return {
+        "resolved": decision.resolved,
+        "price": decision.price,
+        "sentiment_cue": decision.sentiment_cue,
+        "strategic_cue": decision.strategic_cue,
+        "message": render_counterpart_message(decision),
+        "round": round_k,
+        "draws": draws,
+    }
+
+
 class ScriptedTermsBenchHarness:
     """Serve a fixed agent script and the real counterpart kernel.
 
@@ -132,43 +177,16 @@ class ScriptedTermsBenchHarness:
         raise RuntimeError(f"unknown phase_id: {request.phase_id!r}")
 
     def _resolve_counterpart(self, request: Any) -> dict[str, Any]:
-        observation = request.observation
-        round_k = observation["round"]
-        override = self._draws_override.get(round_k)
-        if override is not None:
-            draws = dict(_draw_randoms(_rng_for_round(self.world_seed, round_k)))
-            draws.update(override)
-        else:
-            draws = _draw_randoms(_rng_for_round(self.world_seed, round_k))
-        decision = k.resolve_counterpart_turn(
-            round_k=round_k,
-            horizon=observation["horizon"],
-            family=observation["family"],
-            agent_role=observation["agent_role"],
-            counterpart_role=observation["counterpart_role"],
-            r_b=float(observation["t_b"]["r_b"]),
-            kappa_b=float(observation["t_b"]["kappa_b"]),
-            eta_b=observation["t_b"]["eta_b"],
-            p_min=float(observation["price_bounds"]["p_min"]),
-            p_max=float(observation["price_bounds"]["p_max"]),
-            opening_harshness=float(observation["opening_harshness"]),
-            agent_offers=tuple(observation["agent_offers"]),
-            counterpart_offers=tuple(observation["counterpart_offers"]),
-            draws=draws,
+        round_k = request.observation["round"]
+        response = resolve_counterpart_response(
+            request.observation,
+            world_seed=self.world_seed,
+            draws_override=self._draws_override.get(round_k),
         )
-        response = {
-            "resolved": decision.resolved,
-            "price": decision.price,
-            "sentiment_cue": decision.sentiment_cue,
-            "strategic_cue": decision.strategic_cue,
-            "message": render_counterpart_message(decision),
-            "round": round_k,
-            "draws": draws,
-        }
         if self.evidence is not None:
             self.evidence.append_event(
                 "termsbench_counterpart_draws",
-                {"round": round_k, "draws": draws, "resolved": decision.resolved},
+                {"round": round_k, "draws": response["draws"], "resolved": response["resolved"]},
                 phase_instance_id=request.phase_instance_id,
                 logical_action_id=request.logical_action_id,
                 action_attempt_id=request.logical_action_id,
