@@ -2,12 +2,12 @@
 
 **Reviewer:** Yuchen Fang  
 **Delivery target:** 2026-09-05–06  
-**Scope:** Published AERead trajectories on GitHub `main`, plus Housing V12–V15 evidence in open stacked PRs [#61](https://github.com/aeread-org/AERead/pull/61) and [#68](https://github.com/aeread-org/AERead/pull/68)
-**Status:** Review artifact
+**Scope:** Published AERead trajectories on GitHub `main`, including the merged Housing V12 gate in [#61](https://github.com/aeread-org/AERead/pull/61) and the kernel trajectory-grain backfill from merged [#136](https://github.com/aeread-org/AERead/pull/136), plus Housing V13–V15 evidence in open [#68](https://github.com/aeread-org/AERead/pull/68)
+**Status:** Review artifact; refreshed after #61 and #136 merged, with #68 still open
 
 ## Bottom line
 
-The repository's `main` branch publishes 74 sanitized trajectory records: 52 completed and 22 typed operational failures. The open V12–V15 stack adds 52 attempted records—4 V13 completions and 48 V15 attempts, of which 43 completed and 5 are typed operational failures. This review therefore covers a 126-record public evidence surface while keeping merged and open-PR evidence explicitly separate.
+The repository's `main` branch publishes 74 sanitized Housing trajectory records: 52 completed and 22 typed operational failures. The open V13–V15 stack in #68 adds 52 attempted records—4 V13 completions and 48 V15 attempts, of which 43 completed and 5 are typed operational failures. This review therefore covers a 126-record Housing evidence surface while keeping merged and open-PR evidence explicitly separate. Separately, merged #136 adds 116 per-action kernel-grain rows to the procurement worked-example bundle; those action rows are not added to the Housing episode count.
 
 The most important conclusion is methodological:
 
@@ -23,10 +23,10 @@ Claims below are consequently labeled as **observed**, **candidate interpretatio
 | Housing model sensitivity V7 | 7 | 0 | Completed comparison trajectories |
 | Housing model sensitivity V8 | 11 | 1 | Full one-world matrix and timeout failure |
 | Housing Morph V10 | 31 | 17 | Multi-world extrema, retries, and failure classes |
-| Housing V12 pacing gate (open PR) | 0 | 0 | Admission blocked execution; pacing and timeout diagnosis |
-| Housing V13 cooldown gate (open PR) | 4 | 0 | Successful one-world route promotion gate |
-| Housing V14 variance pilot (open PR) | 0 | 0 | Admission blocked execution despite cooldown |
-| Housing V15 variance pilot (open PR) | 43 | 5 | Multi-world extrema, visible retries, and residual GLM-route failures |
+| Housing V12 pacing gate (merged #61) | 0 | 0 | Admission blocked execution; pacing and timeout diagnosis |
+| Housing V13 cooldown gate (open #68) | 4 | 0 | Successful one-world route promotion gate |
+| Housing V14 variance pilot (open #68) | 0 | 0 | Admission blocked execution despite cooldown |
+| Housing V15 variance pilot (open #68) | 43 | 5 | Multi-world extrema, visible retries, and residual GLM-route failures |
 | Commercial-state variance V1 | 1 | 3 | Non-Housing requirement-tracking case and early infrastructure failures |
 | Housing V9 and V11 | 0 | 0 | Admission blocked execution; no trajectories to interpret |
 
@@ -37,6 +37,7 @@ Primary files:
 - [Housing V8 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
 - [Housing Morph V10 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json)
 - [Housing V12 PR](https://github.com/aeread-org/AERead/pull/61)
+- [Procurement kernel trajectory-grain example from merged #136](https://github.com/aeread-org/AERead/tree/main/evidence/procurement_allocation_glm_morph_case_variance_v2/trajectories)
 - [Housing V13 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v13/trajectories/attempted.json)
 - [Housing V14 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v14/trajectories/attempted.json)
 - [Housing V15 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v15/trajectories/attempted.json)
