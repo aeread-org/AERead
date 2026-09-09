@@ -648,6 +648,56 @@ is still a scratch artifact rather than a committed generator, deliberately: it
 should be promoted only once it passes admission under the continuous rule. The
 next measurement is that admission, then a two-arm comparison scored on regret.
 
+## 22. Difficulty is quantized in recoveries, and the reference performs them too
+
+Three panel shapes were built and screened on 2026-09-08, at a total of $0.34.
+Together they close the question of whether the panel problem is solvable by
+building better worlds. It is not.
+
+Recovering from a trap costs exactly two actions, a quote and a sample. At a
+seven-action budget a buyer can afford one recovery and not two, so a world
+needs zero, one, or two of them, and all three cases fail for different reasons.
+
+| shape | declared baselines | strong reference | control | verdict |
+|---|---|---|---|---|
+| trap outside the cheapest tier | lose | **win**, regret $4.72 to $11.52 | 0 to 267, bimodal | trivial |
+| trap cheapest in one component | lose | win | wins every seed | trivial |
+| trap cheapest in both components | lose | lose | fails 47 of 48 rows | floored |
+
+The middle row is the one that matters. A world needing exactly one recovery is
+solved by a deterministic policy that samples the cheapest listing in each
+component and awards the best it holds, because that policy performs the
+recovery too. Raising the budget adds recoveries to the subject and to the
+reference alike, so the quantization does not go away by spending actions.
+
+**An eight-world panel was admitted and then withdrawn.** It passed screening
+against the declared baselines, which lose these worlds without ever awarding:
+they spend all seven actions qualifying three suppliers and then defer, because
+their stopping rule requires covering the full target rather than the service
+minimum. A subject that beats that has beaten a stopping rule, not a market.
+Adding a stronger screening reference showed it solving 8 of 8 at regret $4.72
+to $11.52, better than the subject's average. The panel and its generator were
+removed rather than published.
+
+**What this means.** The panel problem is not a panel-construction problem, and
+no further world tuning should be attempted against the current environment. For
+a subject to be distinguishable it must be able to do something the reference
+cannot, and with homogeneous sample costs, identical listing claims and a single
+scalar quality signal, it cannot. The environment needs a mechanism that rewards
+choosing *what* to inspect, not merely inspecting and then awarding. Candidates,
+none yet evaluated: heterogeneous sample costs and lead times so the choice of
+what to verify carries a real price; cheap partial signals a fixed policy would
+not know how to weigh; and enough suppliers that search order matters
+combinatorially rather than by a two-way tie-break.
+
+**What is kept from the attempt.** The screening machinery, which is now
+sharper: a materiality threshold, so dispersion must be a real fraction of the
+scale in play rather than merely non-zero, and `replay_best_qualified`, a
+screening-only reference that awards what it has rather than deferring. Both are
+mutation-verified. The reference is deliberately absent from `POLICY_IDS`,
+because that tuple is pinned by a published plan and extending it would re-date
+sealed campaign identities a second time (defect 19).
+
 ## Status of the fixes
 
 | defect | state |
@@ -669,6 +719,7 @@ next measurement is that admission, then a two-arm comparison scored on regret.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 22 difficulty is quantized in recoveries | open, and it supersedes the panel work; three shapes screened at $0.34 show trivial, trivial and floored with nothing between, so the next change is to the environment and not to any panel |
 | 21 the binary metric was the constraint | **evidenced** — the noisy panel is uninformative on `feasible_award` and discriminating on regret over the same 23 rows; `classify_world_continuous` added and mutation-verified, admission not yet re-run |
 | 20 sampling noise landed opt-in | mechanism only; a case without the declared block keeps perfect verification, so nothing sealed moves |
 | 19 environment change re-dates every sealed campaign identity | open; ten frozen digests across seven tests moved for changes unrelated to any of those campaigns, and the sealed bundles still self-verify |

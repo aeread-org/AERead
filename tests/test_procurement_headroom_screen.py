@@ -169,3 +169,54 @@ def test_variance_is_computed_on_real_numbers_not_just_booleans() -> None:
     """The screen reports dispersion for continuous scores too."""
     assert within_world_variance([8.04, 8.04, 8.04]) == 0.0
     assert within_world_variance([18.32, 29.32, 18.87, 20.85]) > 0.0
+
+
+# --- dispersion must be material -------------------------------------------
+#
+# Two worlds were admitted on a $0.25 spread and a $0.35 margin against a $269
+# baseline. The control failed at every seed there and differed only in what it
+# spent on information, so "not all identical" admitted a world with no headroom.
+
+
+def test_a_sub_material_spread_is_degenerate() -> None:
+    """The measured case: control fails every seed, spends slightly differently."""
+    baselines = {policy: 269.07 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([268.72, 268.97, 268.80, 268.91], baselines)
+        == DEGENERATE
+    )
+
+
+def test_a_sub_material_margin_over_the_baseline_is_trivial() -> None:
+    """Beating a public-observation policy by a rounding error is not beating it.
+
+    The spread here is large, so this isolates the margin test: the control
+    varies a lot but its *best* barely improves on a policy that reads only the
+    public listing.
+    """
+    baselines = {policy: 201.0 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([200.0, 269.0, 240.0], baselines) == TRIVIAL
+
+
+def test_a_material_spread_and_margin_is_admitted() -> None:
+    """The two worlds that genuinely separated, at their measured values."""
+    baselines = {policy: 267.88 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([1.88, 267.88, 130.0], baselines) == ADMIT
+
+
+def test_materiality_is_relative_not_absolute() -> None:
+    """A small-stakes world is judged on its own scale, not a fixed dollar cut."""
+    baselines = {policy: 10.0 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([0.1, 5.0, 9.0], baselines) == ADMIT
+    tiny = {policy: 0.5 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([0.40, 0.42, 0.44], tiny) == DEGENERATE
+
+
+def test_the_threshold_is_declarable() -> None:
+    baselines = {policy: 100.0 for policy in SCREEN_BASELINES}
+    scores = [70.0, 78.0, 74.0]
+    assert classify_world_continuous(scores, baselines, minimum_relative_spread=0.05) == ADMIT
+    assert (
+        classify_world_continuous(scores, baselines, minimum_relative_spread=0.30)
+        == DEGENERATE
+    )
