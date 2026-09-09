@@ -81,3 +81,17 @@ def test_publish_is_regenerable_and_public(tmp_path: Path) -> None:
     assert first["artifact_sha256"] == again["artifact_sha256"]
     assert (out / "tables" / "failures.csv").exists()
     assert json.loads((out / "reports" / "summary.json").read_text())["failure_count"] == 4
+
+
+def test_the_committed_register_reproduces_from_the_sealed_runs() -> None:
+    """The standard: regenerating the register must reproduce the committed
+    bytes. Runs only where the sealed runs are (gitignored `runs/`)."""
+    import pytest
+
+    repository_root = Path(__file__).resolve().parents[1]
+    run_root = repository_root / "runs" / "termsbench"
+    committed = repository_root / "evidence" / "termsbench_failure_register" / "tables" / "failures.csv"
+    if not run_root.exists() or not committed.exists():
+        pytest.skip("no sealed termsbench runs beside this checkout")
+    table, _summary = build(run_root=run_root, repository_root=repository_root)
+    assert table == committed.read_bytes()
