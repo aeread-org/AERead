@@ -345,7 +345,8 @@ def test_v12_changes_only_campaign_identity_profiles_and_call_pacing() -> None:
         == pytest.approx(0.14)
     )
     assert design_artifact(v12, routes=routes)["artifact_sha256"] == (
-        "e26b9f1e43ce5976f5e17c53749880f1f4512e5f3442f386edcffc176d8c08c5"
+        # Re-pinned once with the design-identity change (#68); see the v11 note.
+        "4447c1f1c93b79cd1c67c84d6bc56af0d05d20be4a326fb670a675bfd35d107b"
     )
     assert provider_free_artifact(v12)["artifact_sha256"] == (
         "a0e032b4f6a8131845879addbc9a837e47b77d64eac15a9742a41d8eca246203"
