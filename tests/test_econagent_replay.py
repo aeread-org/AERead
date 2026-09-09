@@ -21,7 +21,7 @@ import copy
 import hashlib
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -1320,24 +1320,167 @@ def test_initial_state_mints_distinct_session_ids_for_two_different_cells_of_the
         plugin._sessions.pop(state_a["bridge_session_id"]).close()
 
 
-def test_initial_state_refuses_to_start_the_same_cell_twice_concurrently() -> None:
-    """A session's bridge is looked up by ``bridge_session_id`` alone
-    (``_require_session``); silently overwriting an already-active entry
-    for the same cell would orphan the first session's own bridge with no
-    way to reach it (or close it) again. ``_mint_session_id`` raises
-    instead of allowing that."""
+def test_initial_state_evicts_a_stale_session_for_the_same_cell_instead_of_raising() -> None:
+    """Review finding 1: a session's bridge is looked up by
+    ``bridge_session_id`` alone (``_require_session``), so a second
+    ``initial_state`` call for the SAME cell while the first session is
+    still registered used to raise ``RuntimeError("already active")``.
+    That broke the kernel's own retry path -- a crashed attempt's
+    ``initial_state``/``step`` never got a chance to close its session
+    (no close hook exists for a mid-attempt crash), so the NEXT attempt for
+    the identical cell hit this same "already active" error forever,
+    bricking the cell. ``_mint_session_id`` now evicts (closes) the stale
+    entry and proceeds instead of raising -- identity is cell-bound, so
+    evicting by this cell's own derived id can never disturb any other
+    cell's session.
+    """
     _require_bridge()
     case = _case("econagent.pilot.tiny4x6.seed0")
     plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
     family_case = plugin.validate_payload(case.payload)
     cell = _cell(case, suffix="reused")
 
+    first_state = plugin.initial_state(family_case, cell)
+    first_bridge = plugin._sessions[first_state["bridge_session_id"]]
+    original_close = first_bridge.close
+    close_calls: list[bool] = []
+
+    def spy_close() -> None:
+        close_calls.append(True)
+        original_close()
+
+    first_bridge.close = spy_close
+
+    second_state = plugin.initial_state(family_case, cell)
+
+    assert first_state["bridge_session_id"] == second_state["bridge_session_id"]
+    assert close_calls == [True]
+    assert len(plugin._sessions) == 1
+    assert plugin._sessions[second_state["bridge_session_id"]] is not first_bridge
+
+    plugin._sessions.pop(second_state["bridge_session_id"]).close()
+
+
+def test_mint_session_id_rejects_a_real_cell_with_no_cell_id() -> None:
+    """Review finding 2: the earlier ``getattr(cell, "cell_id", None) is
+    None`` check fell back to the unsealed, case-digest-only id for ANY
+    cell lacking a truthy ``cell_id`` -- not only the genuine ``cell is
+    None`` case (a direct, unsealed parity call). A non-``None`` cell
+    object with no ``cell_id`` is a malformed ``PlanCell``, not "no cell
+    was supplied," and must be refused outright rather than silently
+    routed onto the fallback. Only ``cell is None`` itself still falls
+    back, deterministically.
+    """
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    real_cell = _cell(case, suffix="missing-cell-id")
+    cell_with_no_id = replace(real_cell, cell_id=None)
+
+    with pytest.raises(ValueError, match="cell_id"):
+        plugin._mint_session_id(cell_with_no_id, family_case)
+
+    fallback_id = plugin._mint_session_id(None, family_case)
+    assert fallback_id.startswith("econagent_v1:case:")
+
+
+def test_initial_state_evicts_a_stale_fallback_session_instead_of_orphaning_it() -> None:
+    """Review finding 3: two overlapping, unsealed (``cell=None``) parity
+    calls for the IDENTICAL ``family_case`` mint the identical fallback id
+    (``_mint_session_id``'s own digest-only fallback is deterministic by
+    design -- see ``test_cell_bound_session_ids_do_not_feed_unsealed_
+    fallback_state`` below). Without eviction the second ``initial_state``
+    call would silently overwrite ``self._sessions[fallback_id]``,
+    orphaning the first call's own bridge subprocess with no way to reach
+    or close it again. The same eviction applied to the cell-bound branch
+    (review finding 1) applies here too.
+    """
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+
+    first_state = plugin.initial_state(family_case, None)
+    first_bridge = plugin._sessions[first_state["bridge_session_id"]]
+    original_close = first_bridge.close
+    close_calls: list[bool] = []
+
+    def spy_close() -> None:
+        close_calls.append(True)
+        original_close()
+
+    first_bridge.close = spy_close
+
+    second_state = plugin.initial_state(family_case, None)
+
+    assert first_state["bridge_session_id"] == second_state["bridge_session_id"]
+    assert close_calls == [True]
+    assert len(plugin._sessions) == 1
+    assert plugin._sessions[second_state["bridge_session_id"]] is not first_bridge
+
+    plugin._sessions.pop(second_state["bridge_session_id"]).close()
+
+
+def test_step_closes_a_crashed_session_before_the_exception_propagates_and_a_retry_succeeds() -> None:
+    """Review finding 1, the central "exception poisoning" case: a
+    mid-episode bridge failure (here, ``step_month`` on the episode's
+    SECOND month) must not leave its session sitting in ``self._sessions``
+    forever -- nothing ever closes a crashed attempt's bridge otherwise,
+    since no close hook runs on an exception. The kernel retries a crashed
+    attempt within the SAME process; identity is cell-bound, so the retry's
+    own ``initial_state`` for the SAME cell must succeed with a fresh
+    bridge, never hit a stale "already active" entry.
+    """
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    phase = plugin.phases(family_case)[0]
+    cell = _cell(case, suffix="crash-retry")
+
+    def _ack_all(state: dict[str, Any]) -> dict[str, Any]:
+        actors = plugin.eligible_actors(family_case, state, phase)
+        actions = {}
+        for seat in actors:
+            parsed = plugin.parse_action(
+                family_case, state, seat, phase, {"acknowledge": True}
+            )
+            assert parsed.ok
+            actions[seat] = parsed
+        return actions
+
     state = plugin.initial_state(family_case, cell)
-    try:
-        with pytest.raises(RuntimeError, match="already active"):
-            plugin.initial_state(family_case, cell)
-    finally:
-        plugin._sessions.pop(state["bridge_session_id"]).close()
+    crashed_bridge = plugin._sessions[state["bridge_session_id"]]
+    original_step_month = crashed_bridge.step_month
+    calls = {"count": 0}
+
+    def flaky_step_month() -> dict[str, Any]:
+        calls["count"] += 1
+        if calls["count"] == 2:
+            raise RuntimeError("injected bridge failure")
+        return original_step_month()
+
+    crashed_bridge.step_month = flaky_step_month
+
+    # Month 1 succeeds normally.
+    state = plugin.step(family_case, state, phase, _ack_all(state)).state
+    assert state["termination"] is None
+
+    # Month 2's step_month raises -- the exception must propagate...
+    with pytest.raises(RuntimeError, match="injected bridge failure"):
+        plugin.step(family_case, state, phase, _ack_all(state))
+
+    # ...and the crashed session must be gone, not left poisoning a retry.
+    assert plugin._sessions == {}
+
+    # The kernel's own retry: a fresh initial_state for the SAME cell
+    # re-derives the identical session id and succeeds with a NEW bridge.
+    retried_state = plugin.initial_state(family_case, cell)
+    assert retried_state["bridge_session_id"] == state["bridge_session_id"]
+    retried_bridge = plugin._sessions[retried_state["bridge_session_id"]]
+    assert retried_bridge is not crashed_bridge
+
+    plugin._sessions.pop(retried_state["bridge_session_id"]).close()
 
 
 def test_cell_bound_session_ids_do_not_feed_unsealed_fallback_state() -> None:

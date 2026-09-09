@@ -368,6 +368,11 @@ class EconAgentV1Plugin:
         ``run=None``.
         """
         scenario = family_case["scenario"]
+        # Mint (and, per review finding 1/3, evict any stale entry for) the
+        # session id BEFORE starting the new bridge subprocess: a malformed
+        # cell (review finding 2) then raises before anything is spawned,
+        # rather than leaking a started-but-never-registered bridge.
+        session_id = self._mint_session_id(run, family_case)
         bridge = self._bridge_factory()
         bridge.start_episode(
             n_agents=scenario["n_agents"],
@@ -377,7 +382,6 @@ class EconAgentV1Plugin:
             gamma=scenario["gamma"],
             h=scenario["h"],
         )
-        session_id = self._mint_session_id(run, family_case)
         self._sessions[session_id] = bridge
         snapshot = bridge.agent_snapshot()
         return {
@@ -519,7 +523,8 @@ class EconAgentV1Plugin:
             )
 
         new_state = _plain(state)
-        bridge = self._require_session(new_state["bridge_session_id"])
+        session_id = new_state["bridge_session_id"]
+        bridge = self._require_session(session_id)
         # Captured BEFORE bridge.step_month() mutates anything: this is the
         # rate upstream's own SimpleSaving is about to apply for THIS month
         # (whether or not this month is actually a saving-interest boundary
@@ -529,30 +534,51 @@ class EconAgentV1Plugin:
         # back out of the finished dense_log instead would be wrong for any
         # boundary month past the first.
         pre_step_interest_rate = new_state["world"]["interest_rate"]
-        result = bridge.step_month()
-        snapshot = bridge.agent_snapshot()
+        try:
+            result = bridge.step_month()
+            snapshot = bridge.agent_snapshot()
 
-        new_state["timestep"] = result["timestep"]
-        new_state["agents"] = snapshot["agents"]
-        new_state["world"] = snapshot["world"]
-        new_state["month_actions"] = list(new_state["month_actions"]) + [result["actions"]]
-        new_state["world_interest_rate_by_month"] = list(
-            new_state["world_interest_rate_by_month"]
-        ) + [pre_step_interest_rate]
+            new_state["timestep"] = result["timestep"]
+            new_state["agents"] = snapshot["agents"]
+            new_state["world"] = snapshot["world"]
+            new_state["month_actions"] = list(new_state["month_actions"]) + [
+                result["actions"]
+            ]
+            new_state["world_interest_rate_by_month"] = list(
+                new_state["world_interest_rate_by_month"]
+            ) + [pre_step_interest_rate]
 
-        if result["done"] or new_state["timestep"] >= new_state["episode_length"]:
-            # Upstream's own per-component dense log (e.g. "PeriodicTax") is
-            # only backfilled by env's _finalize_logs() once this LAST
-            # step_month() has completed -- must be read now, before the
-            # session closes (see econagent_bridge.py's dense_log()
-            # docstring). Read before close(): a bridge failure fetching it
-            # must surface as the same typed EconAgentBridgeError a mid-
-            # episode failure would, never a silently-terminal episode with
-            # missing evidence.
-            new_state["dense_log"] = bridge.dense_log()
-            _set_termination(new_state, "episode_length_reached")
-            bridge.close()
-            self._sessions.pop(new_state["bridge_session_id"], None)
+            if result["done"] or new_state["timestep"] >= new_state["episode_length"]:
+                # Upstream's own per-component dense log (e.g. "PeriodicTax")
+                # is only backfilled by env's _finalize_logs() once this LAST
+                # step_month() has completed -- must be read now, before the
+                # session closes (see econagent_bridge.py's dense_log()
+                # docstring). Read before close(): a bridge failure fetching
+                # it must surface as the same typed EconAgentBridgeError a
+                # mid-episode failure would, never a silently-terminal
+                # episode with missing evidence.
+                new_state["dense_log"] = bridge.dense_log()
+                _set_termination(new_state, "episode_length_reached")
+                self._close_session(session_id)
+        except Exception:
+            # Review finding 1 ("exception poisoning"): a mid-episode
+            # bridge failure (step_month/agent_snapshot/dense_log) must not
+            # leave this session sitting in self._sessions forever with no
+            # close hook ever having run for it. The kernel retries a
+            # crashed attempt within the SAME process, and because identity
+            # is cell-bound (_mint_session_id), the retry re-derives this
+            # IDENTICAL session_id -- evict it here, before the exception
+            # propagates, so the retry's own initial_state starts fresh
+            # instead of being bricked by a stale, broken entry.
+            # ``_evict_session``, not ``_close_session``: the bridge that
+            # just failed is often ALREADY broken in a way that makes its
+            # own ``close()`` raise too (e.g. a killed subprocess's stdin
+            # pipe -- see tests/test_econagent_goldens.py's
+            # ``test_golden_bridge_killed_mid_episode_...`` golden, which
+            # deliberately never calls ``close()`` on such a bridge itself);
+            # that secondary failure must never mask the original one.
+            self._evict_session(session_id)
+            raise
 
         return TransitionResult(
             state=new_state,
@@ -639,10 +665,17 @@ class EconAgentV1Plugin:
         -- all driven through the same ``cell`` -- mints the identical
         ``bridge_session_id`` and therefore byte-identical canonical state
         (``pre_state_sha256``/``post_state_sha256``/``final_state``), not
-        merely semantically equivalent content. Raises if that same cell
-        already has an active session -- the same plan cell must never be
-        started twice concurrently in one plugin instance, since sessions
-        are looked up by this id alone (``_require_session``). Two distinct
+        merely semantically equivalent content. If that same cell already
+        has an active session, EVICTS it (best-effort closes its bridge via
+        ``_evict_session``) and proceeds rather than raising (review
+        finding 1): the kernel retries a crashed attempt within the SAME
+        process, and a step()/initial_state() failure partway through that
+        attempt (see ``step``'s own ``except`` clause) must not brick the
+        cell for every later attempt just because no earlier code path ever
+        closed the dead entry. Evicting by id is safe precisely because
+        identity is cell-bound -- the id a retry derives for this cell is
+        always the SAME id the crashed attempt derived, so eviction can
+        never select, or disturb, any OTHER cell's session. Two distinct
         cells of the identical case (e.g. two seeds of one
         ``family_case``, or a live run finalized/replayed/audited in any
         order relative to a sibling cell sharing one plugin instance) never
@@ -655,28 +688,42 @@ class EconAgentV1Plugin:
         the "wrong" order).
 
         Falls back to an id derived purely from ``family_case``'s own
-        canonical digest when ``cell`` is ``None`` (or lacks a ``cell_id``)
-        -- now reached only by a direct, unsealed parity call that bypasses
-        the real scheduler entirely (a handful of this family's own tests
-        call ``initial_state`` directly with no real ``PlanCell``); #135 A1
+        canonical digest only when ``cell`` is ``None`` -- now reached only
+        by a direct, unsealed parity call that bypasses the real scheduler
+        entirely (a handful of this family's own tests call
+        ``initial_state`` directly with no real ``PlanCell``); #135 A1
         means certified kernel replay always supplies the real cell, so this
         fallback no longer needs to reproduce any specific live run's id.
         Deterministic and stable across repeated calls for the identical
         ``family_case`` -- never derived from, or perturbed by, any cell any
-        caller minted before it.
+        caller minted before it. Two overlapping, unsealed calls for the
+        identical ``family_case`` therefore mint the identical fallback id
+        too; the same eviction above applies there (review finding 3) so
+        the second call's own ``initial_state`` never silently overwrites
+        ``self._sessions`` out from under the first call's still-unclosed
+        bridge.
+
+        A non-``None`` cell with no truthy ``cell_id`` is refused outright
+        (``ValueError``, review finding 2) rather than silently routed onto
+        the unsealed fallback above: a real ``PlanCell`` with a missing or
+        empty ``cell_id`` is malformed, not "no cell was supplied," and must
+        never be served the fallback's case-digest-only identity.
         """
-        cell_id = getattr(cell, "cell_id", None)
-        if cell_id is not None:
-            session_id = f"econagent_v1:{cell_id}"
-            if session_id in self._sessions:
-                raise RuntimeError(
-                    f"a bridge session for cell {cell_id!r} is already active; "
-                    "the same plan cell must never be started twice concurrently"
+        if cell is not None:
+            cell_id = getattr(cell, "cell_id", None)
+            if not cell_id:
+                raise ValueError(
+                    "EconAgent requires a PlanCell with cell_id for live "
+                    "execution and certified replay"
                 )
+            session_id = f"econagent_v1:{cell_id}"
+            self._evict_session(session_id)
             return session_id
 
         case_digest = hashlib.sha256(canonical_json_bytes(family_case)).hexdigest()
-        return f"econagent_v1:case:{case_digest}"
+        session_id = f"econagent_v1:case:{case_digest}"
+        self._evict_session(session_id)
+        return session_id
 
     def _require_session(self, session_id: str) -> EconAgentBridge:
         bridge = self._sessions.get(session_id)
@@ -686,6 +733,50 @@ class EconAgentV1Plugin:
                 "and the episode must not already be terminal"
             )
         return bridge
+
+    def _close_session(self, session_id: str) -> None:
+        """Close and forget one bridge session, tolerating there being none.
+
+        Reused only by ``step``'s own NATURAL termination (the episode
+        reached its last month cleanly): a ``bridge.close()`` failure there
+        is a genuine, worth-surfacing problem (the bridge was healthy right
+        up to this point), so unlike ``_evict_session`` below this
+        propagates whatever ``bridge.close()`` itself raises -- exactly the
+        behavior this call site had before ``_close_session`` existed as a
+        named helper. A no-op when ``session_id`` has no active session,
+        and tolerant of a bridge that was already closed
+        (``EconAgentBridge.close()`` documents itself as idempotent).
+        """
+        bridge = self._sessions.pop(session_id, None)
+        if bridge is not None:
+            bridge.close()
+
+    def _evict_session(self, session_id: str) -> None:
+        """Evict one session, tolerating a bridge that cannot be cleanly closed.
+
+        Reused by every "must make forward progress no matter what"
+        cleanup path: stale-session eviction in ``_mint_session_id``
+        (review findings 1 and 3) and ``step``'s own mid-episode-failure
+        ``except`` clause (review finding 1). The bridge being evicted here
+        is already known-broken -- that is WHY it is being evicted -- so a
+        secondary ``bridge.close()`` failure on top of that (e.g. a
+        SIGKILLed or already-crashed subprocess whose stdin pipe is itself
+        already broken -- see ``tests/test_econagent_goldens.py``'s
+        ``test_golden_bridge_killed_mid_episode_...`` golden, which
+        deliberately never calls ``close()`` on such a bridge itself) must
+        never block progress or mask a more important exception (the
+        original bridge failure ``step``'s ``except`` clause is about to
+        re-raise). Always pops ``session_id`` out of ``self._sessions``
+        first -- so the id is free for a fresh session either way -- then
+        best-effort closes, swallowing whatever ``bridge.close()`` raises.
+        """
+        bridge = self._sessions.pop(session_id, None)
+        if bridge is None:
+            return
+        try:
+            bridge.close()
+        except Exception:
+            pass
 
 
 __all__ = [
