@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping
 
@@ -1544,8 +1544,10 @@ class RunSpec:
     # seat has no profile, no provider, no admission and no cost; it must be
     # absent from ``seat_assignments`` and the resolver requires its policy to
     # be declared under the seat's role. Digest-neutral when empty, so every
-    # plan sealed before this field existed hashes exactly as it did.
-    scripted_seats: Mapping[str, str] = MappingProxyType({})
+    # plan sealed before this field existed hashes exactly as it did. A
+    # factory default: dataclasses on Python < 3.12 reject a mappingproxy as
+    # a plain default, and the omit rule looks through the factory.
+    scripted_seats: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 

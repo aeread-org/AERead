@@ -187,7 +187,11 @@ class PlanCell:
     # (docs/kernel_scripted_seats_design.md). Carried on the cell so the
     # scheduler needs no back-reference to the run spec. Digest-neutral when
     # empty, and omitted from the cell-id digest below for the same reason.
-    scripted_seats: Mapping[str, str] = MappingProxyType({})
+    # A factory, not a plain default: dataclasses on Python < 3.12 reject a
+    # mappingproxy default as mutable; ``field_default`` looks through it.
+    scripted_seats: Mapping[str, str] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 
@@ -235,6 +239,19 @@ class RunPlan:
     profile_admissions: tuple[ProfileAdmission, ...]
 
 
+def field_default(field: "dataclasses.Field[Any]") -> Any:
+    """The value a dataclass field holds when nothing set it: its plain
+    default, or a fresh value from its factory. The omit-if-default rule
+    looks through both, because a ``mappingproxy`` default has to be a
+    factory (``dataclasses`` rejects it as a plain default on Python < 3.12,
+    where ``mappingproxy`` is unhashable)."""
+    if field.default is not dataclasses.MISSING:
+        return field.default
+    if field.default_factory is not dataclasses.MISSING:  # type: ignore[misc]
+        return field.default_factory()  # type: ignore[misc]
+    return dataclasses.MISSING
+
+
 def _canonical_value(value: Any) -> Any:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         # Ruling R1 (kernel_scoring_contract_spec.md): a dataclass may opt a
@@ -249,7 +266,7 @@ def _canonical_value(value: Any) -> Any:
         output: dict[str, Any] = {}
         for field in dataclasses.fields(value):
             current = getattr(value, field.name)
-            if field.name in omit_if_default and current == field.default:
+            if field.name in omit_if_default and current == field_default(field):
                 continue
             output[field.name] = _canonical_value(current)
         return output
@@ -1198,6 +1215,7 @@ def write_run_plan(plan: RunPlan, destination: str | Path) -> Path:
 
 
 __all__ = [
+    "field_default",
     "CapabilityExclusionError",
     "ImplementationPin",
     "PlanCell",

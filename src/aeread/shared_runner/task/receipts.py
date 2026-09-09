@@ -23,7 +23,7 @@ from ..measurement import (
     MeasurementContractError,
     ScoreEnvelope,
 )
-from ..run.resolver import ImplementationPin, canonical_json_bytes
+from ..run.resolver import ImplementationPin, canonical_json_bytes, field_default
 from ..schemas import is_exportable_id
 
 
@@ -158,11 +158,12 @@ class EvaluationReceipt:
     # Seats this cell filled from a family policy rather than a model
     # (docs/kernel_scripted_seats_design.md), seat id -> policy id. Kept apart
     # from agent_profile_sha256_by_seat, which names model seats only, so
-    # ruling R12's seat-set check compares like with like. A plain default,
-    # not a factory: _canonical_value omits a field only when it equals
-    # field.default, and that is what keeps every receipt sealed before this
-    # field existed byte-identical.
-    scripted_seats: Mapping[str, str] = MappingProxyType({})
+    # ruling R12's seat-set check compares like with like. A factory default
+    # (dataclasses on Python < 3.12 reject a mappingproxy as a plain default);
+    # the omit-if-default rule looks through it via ``field_default``, and
+    # that is what keeps every receipt sealed before this field existed
+    # byte-identical.
+    scripted_seats: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 
@@ -450,7 +451,7 @@ def _receipt_content_sha256(receipt: EvaluationReceipt) -> str:
         item.name: getattr(receipt, item.name)
         for item in dataclasses.fields(receipt)
         if item.name != "receipt_sha256"
-        and not (item.name in omit_if_default and getattr(receipt, item.name) == item.default)
+        and not (item.name in omit_if_default and getattr(receipt, item.name) == field_default(item))
     }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
