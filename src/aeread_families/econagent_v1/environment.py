@@ -13,7 +13,6 @@ family state.
 """
 from __future__ import annotations
 
-import collections
 import copy
 import hashlib
 import subprocess
@@ -215,28 +214,21 @@ class EconAgentV1Plugin:
     ``cell`` -- produce byte-identical canonical state, not merely
     semantically equivalent content.
 
-    kernel_scoring_contract_spec.md milestone 3 finding: the KERNEL's own
-    generic replay (``task.evaluation._replay_family_trajectory``, driving
-    ``replay_family_scoring_input``/``finalize_family_execution``) has no
-    ``PlanCell`` to give ``initial_state`` at all -- it always calls
-    ``plugin.initial_state(family_case, run=None)``, unlike the real
-    scheduler (which always passes the genuine ``PlanCell`` positionally).
-    A ``cell``-derived id can therefore never be reproduced by that replay
-    path from ``family_case`` alone. ``_mint_session_id`` closes this gap the
-    only way possible without weakening cell-level collision safety or
-    touching shared kernel code: it remembers, per distinct ``family_case``,
-    a FIFO queue of the ids REAL cells minted for it, and the no-``cell``
-    fallback (used by kernel replay, and by the handful of tests that call
-    ``initial_state`` directly) consumes the OLDEST still-queued id instead of
-    minting a random one. FIFO order matters: it is what lets several
-    independent live episodes of the identical ``family_case`` -- e.g. the
-    scoring-contract protocol test's own same-case sensitivity-witness pair
-    (kernel_scoring_contract_spec.md ruling R9(b)) -- each be replayed
-    correctly by ``_assert_family_obeys_the_scoring_contract``'s single
-    shared registration, one call to ``replay_family_scoring_input`` per
-    fixture, in the same order the fixtures were minted. See
-    ``_mint_session_id``'s own docstring for the full reasoning and its
-    stated limit.
+    #135 A1/A2: the KERNEL's own generic replay
+    (``task.evaluation._replay_family_trajectory``, driving
+    ``replay_family_scoring_input``/``finalize_family_execution``/
+    ``replay_family_receipt``/``audit_family_receipt``) now receives the
+    actual executed ``PlanCell`` and checks its identity against the sealed
+    evidence before ``initial_state`` is ever called -- certified replay is
+    cell-bound, the same as a live run, so its minted
+    ``bridge_session_id`` always matches the live run's own. The no-``cell``
+    fallback in ``_mint_session_id`` below therefore no longer serves
+    certified kernel replay at all; it remains deterministic (derived only
+    from ``family_case``'s own canonical digest, never from order or from
+    any other cell's mint) for the narrower case of a direct,
+    unsealed parity call that bypasses the real scheduler entirely (e.g. a
+    handful of this family's own tests that call ``initial_state`` directly
+    with no real ``PlanCell``). See ``_mint_session_id``'s own docstring.
     """
 
     def __init__(
@@ -250,18 +242,6 @@ class EconAgentV1Plugin:
             lambda: EconAgentBridge.discover(self.upstream_root)
         )
         self._sessions: dict[str, EconAgentBridge] = {}
-        # Populated only by a REAL cell's mint (see `_mint_session_id`);
-        # consulted only by the no-cell fallback, so kernel replay -- which
-        # never supplies a cell -- can reproduce the id the corresponding
-        # live run actually used. Keyed by the validated `family_case`'s own
-        # canonical digest, never by anything cell-derived. A FIFO queue, not
-        # a single slot: several independent live episodes of the identical
-        # `family_case` each get their OWN entry, consumed in mint order by
-        # the fallback, so each is later replayed against its own id rather
-        # than the most recent one.
-        self._live_session_ids_by_case_digest: dict[str, collections.deque[str]] = (
-            collections.defaultdict(collections.deque)
-        )
 
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _plain(payload)
@@ -374,15 +354,18 @@ class EconAgentV1Plugin:
         """Build the initial family state for one episode.
 
         The second parameter is named ``run`` (not ``cell``) to match every
-        other family's own ``initial_state`` hook -- required because
-        ``task.evaluation._replay_family_trajectory`` calls
-        ``plugin.initial_state(family_case, run=None)`` by keyword
-        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
-        contract); the live scheduler (``task.scheduler.run_episode``) still
-        passes this positionally, so this rename does not change what value
-        actually arrives here (see ``_mint_session_id``'s own docstring,
-        which still calls this parameter ``cell`` -- it is the same value,
-        renamed only at this call boundary).
+        other family's own ``initial_state`` hook. #135 A1:
+        ``task.evaluation._replay_family_trajectory`` now calls
+        ``plugin.initial_state(family_case, cell)`` by keyword with the real,
+        sealed-evidence-checked ``PlanCell`` (kernel_scoring_contract_spec.md's
+        ``replay_family_scoring_input`` contract); the live scheduler
+        (``task.scheduler.run_episode``) still passes the same value
+        positionally, so this rename does not change what value actually
+        arrives here (see ``_mint_session_id``'s own docstring, which still
+        calls this parameter ``cell`` -- it is the same value, renamed only
+        at this call boundary). Only a direct, unsealed parity call that
+        bypasses the real scheduler entirely still calls this with
+        ``run=None``.
         """
         scenario = family_case["scenario"]
         bridge = self._bridge_factory()
@@ -644,62 +627,44 @@ class EconAgentV1Plugin:
 
     def _mint_session_id(self, cell: Any, family_case: Mapping[str, Any]) -> str:
         """Choose this episode's ``bridge_session_id`` (docs/econagent_codex_triage.md
-        finding 6, extended by a kernel_scoring_contract_spec.md milestone-3
-        finding -- see this class's own docstring for the second half).
+        finding 6, extended by #135 A1/A2 -- see this class's own docstring).
 
-        Deterministic whenever the real scheduler supplies a ``cell``: its
-        own ``cell_id`` already uniquely identifies one case x block x seed
-        x repetition execution unit (see ``PlanCell``), so two independent
-        runs of the identical logical episode -- a live run and its own
-        offline replay, both driven through ``run_episode``/
-        ``replay_episode`` with the same ``cell`` -- mint the identical
+        Deterministic whenever the real scheduler (or certified kernel
+        replay -- #135 A1 threads the real ``cell`` all the way through
+        ``replay_family_scoring_input``/``finalize_family_execution``/
+        ``replay_family_receipt``/``audit_family_receipt``) supplies a
+        ``cell``: its own ``cell_id`` already uniquely identifies one case x
+        block x seed x repetition execution unit (see ``PlanCell``), so
+        every independent run/replay/audit of the identical logical episode
+        -- all driven through the same ``cell`` -- mints the identical
         ``bridge_session_id`` and therefore byte-identical canonical state
         (``pre_state_sha256``/``post_state_sha256``/``final_state``), not
         merely semantically equivalent content. Raises if that same cell
         already has an active session -- the same plan cell must never be
         started twice concurrently in one plugin instance, since sessions
-        are looked up by this id alone (``_require_session``). Enqueues the
-        minted id against ``family_case``'s own canonical digest so the
-        no-``cell`` fallback below can reproduce it later, in the same order.
+        are looked up by this id alone (``_require_session``). Two distinct
+        cells of the identical case (e.g. two seeds of one
+        ``family_case``, or a live run finalized/replayed/audited in any
+        order relative to a sibling cell sharing one plugin instance) never
+        collide and never interact: each cell's id depends only on its own
+        ``cell_id``, never on mint order or on what any other cell minted
+        before it (#135 A2 -- this previously went through a case-keyed
+        FIFO queue that made the no-``cell`` fallback below depend on the
+        order REAL cells happened to mint in, which broke the moment a
+        second cell of the same case was finalized/replayed/audited in
+        the "wrong" order).
 
-        Falls back to the OLDEST still-queued id minted from a REAL cell for
-        this EXACT ``family_case`` when ``cell`` is ``None`` (or lacks a
-        ``cell_id``) -- required because
-        ``task.evaluation._replay_family_trajectory`` (kernel replay, driving
-        ``finalize_family_execution``/the scoring-contract protocol test's
-        own fixtures for the first time this milestone) always calls
-        ``initial_state(family_case, run=None)`` and has no ``PlanCell`` to
-        give it at all; a cell-derived id could never be reproduced there
-        otherwise, and every phase's ``pre_state_sha256``/
-        ``post_state_sha256`` cross-check would fail on the very first phase
-        boundary. FIFO, not "most recent": when SEVERAL independent live
-        episodes share the identical ``family_case`` (e.g. the protocol
-        test's own same-case sensitivity-witness pair, ruling R9(b)) and are
-        later each replayed exactly once, in the same order they were
-        minted, each replay consumes its OWN corresponding id, never
-        another episode's. When no live mint is queued at all for this
-        ``family_case`` (a handful of tests that call ``initial_state``
-        directly, bypassing the real scheduler entirely, and never feed the
-        result into a cross-run canonical-state comparison), falls back to
-        an id derived from ``family_case``'s own digest -- deterministic,
-        but only ever compared for INEQUALITY against another distinct
-        case's id in those tests, never for equality against a specific live
-        run's id.
-
-        **Stated limit.** This assumes every live-minted id for a given
-        ``family_case`` is eventually consumed by replay/audit AT MOST ONCE,
-        in mint order -- true for one finalize-then-forget pass per episode
-        (every path exercised by this family's own tests today), but a
-        SECOND, later re-replay of an already-consumed episode (e.g. a
-        repeated ``audit_family_receipt`` call) would find its queue entry
-        already gone and fall through to the case-digest-derived id instead,
-        which would then disagree with that episode's own sealed evidence. A
-        future need for repeatable, idempotent re-replay of the same episode
-        would need a kernel-level fix (e.g. ``_replay_family_trajectory``
-        threading the sealed evidence's own ``cell_id`` through as ``run``)
-        rather than this family-local one.
+        Falls back to an id derived purely from ``family_case``'s own
+        canonical digest when ``cell`` is ``None`` (or lacks a ``cell_id``)
+        -- now reached only by a direct, unsealed parity call that bypasses
+        the real scheduler entirely (a handful of this family's own tests
+        call ``initial_state`` directly with no real ``PlanCell``); #135 A1
+        means certified kernel replay always supplies the real cell, so this
+        fallback no longer needs to reproduce any specific live run's id.
+        Deterministic and stable across repeated calls for the identical
+        ``family_case`` -- never derived from, or perturbed by, any cell any
+        caller minted before it.
         """
-        case_digest = hashlib.sha256(canonical_json_bytes(family_case)).hexdigest()
         cell_id = getattr(cell, "cell_id", None)
         if cell_id is not None:
             session_id = f"econagent_v1:{cell_id}"
@@ -708,11 +673,9 @@ class EconAgentV1Plugin:
                     f"a bridge session for cell {cell_id!r} is already active; "
                     "the same plan cell must never be started twice concurrently"
                 )
-            self._live_session_ids_by_case_digest[case_digest].append(session_id)
             return session_id
-        queued = self._live_session_ids_by_case_digest.get(case_digest)
-        if queued:
-            return queued.popleft()
+
+        case_digest = hashlib.sha256(canonical_json_bytes(family_case)).hexdigest()
         return f"econagent_v1:case:{case_digest}"
 
     def _require_session(self, session_id: str) -> EconAgentBridge:

@@ -50,9 +50,12 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
+from aeread.shared_runner.run.layout import RunLayout
 from aeread.shared_runner.task.evaluation import (
     SeatContext,
+    audit_family_receipt,
     finalize_family_execution,
+    replay_family_receipt,
     replay_family_scoring_input,
 )
 from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
@@ -487,13 +490,29 @@ def _measurement_pins(pins: Mapping[str, Any]) -> tuple[ImplementationPin, ...]:
     )
 
 
-def build_econagent_setup(case: CaseManifest, *, suffix: str) -> EconAgentSetup:
-    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+def build_econagent_setup(
+    case: CaseManifest,
+    *,
+    suffix: str,
+    sampling_seeds: tuple[int, ...] = (300,),
+) -> EconAgentSetup:
+    """Resolve a real, provider-free ``RunPlan`` for ``case`` (spec section 5.3).
 
     Every agent seat shares one placeholder agent profile: this family's real
     runtime never invokes it (see ``EconAgentSetup``'s own docstring), so the
     harness/provider it names exist only to satisfy ``resolve_run_plan``'s
     structural checks.
+
+    ``sampling_seeds`` defaults to a single seed -- one cell -- but every
+    caller that passes more than one distinct seed (e.g. ``(300, 301)``)
+    resolves one plan with one cell PER seed, all for the SAME ``case``:
+    the kernel's own cell-resolution loop (``resolve_run_plan``) treats each
+    ``sampling.seeds`` entry as a distinct ``PlanCell`` regardless of the
+    case's own ``world_seed`` (every resulting cell's ``world_seed`` field
+    still reads ``case.world_seed``, unchanged; only ``sampling_seed`` and
+    therefore ``cell_id`` differ) -- this is how
+    ``test_same_case_cells_finalize_in_reverse_order_and_replay_repeatedly``
+    gets two distinct, same-case cells sharing one registry/plugin.
     """
     family = family_manifest()
     seat_ids = [seat.id for seat in case.seats]
@@ -504,7 +523,7 @@ def build_econagent_setup(case: CaseManifest, *, suffix: str) -> EconAgentSetup:
             "estimand": "fixed_econagent_case",
             "target": case.case_id,
             "selection": "fixed_curated",
-            "seeds": [case.world_seed],
+            "seeds": list(sampling_seeds),
             "replicates": 1,
             "cluster_level": "world_seed",
             "cluster_id_fields": ["generator_version", "world_seed"],
@@ -1319,6 +1338,110 @@ def test_initial_state_refuses_to_start_the_same_cell_twice_concurrently() -> No
             plugin.initial_state(family_case, cell)
     finally:
         plugin._sessions.pop(state["bridge_session_id"]).close()
+
+
+def test_cell_bound_session_ids_do_not_feed_unsealed_fallback_state() -> None:
+    """#135 A2 RED: the destructive case-keyed FIFO this test guards against
+    removing (``_live_session_ids_by_case_digest``) let the no-``cell``
+    fallback silently consume an id a REAL cell had minted -- so a
+    generic kernel replay call for one cell could be served a DIFFERENT
+    cell's ``bridge_session_id``, which then mismatches that cell's own
+    sealed evidence. The no-``cell`` fallback must be a pure, deterministic
+    function of ``family_case`` alone: stable across repeated calls, and
+    never perturbed by how many REAL cells minted a session for the
+    identical case in between. No bridge subprocess is ever started here --
+    ``_mint_session_id`` is pure id-string bookkeeping.
+    """
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    plugin._mint_session_id(_cell(case, suffix="cell-a"), family_case)
+    plugin._mint_session_id(_cell(case, suffix="cell-b"), family_case)
+    first = plugin._mint_session_id(None, family_case)
+    second = plugin._mint_session_id(None, family_case)
+    assert first == second
+    assert first.startswith("econagent_v1:case:")
+
+
+def test_same_case_cells_finalize_in_reverse_order_and_replay_repeatedly(
+    tmp_path: Path,
+) -> None:
+    """#135 A2 production regression: one shared registry/plugin runs TWO
+    distinct cells of the SAME case -- never two independent one-cell
+    setups, which would exercise nothing about shared session identity --
+    finalizes them in the REVERSE order they executed, and replays/audits
+    each receipt twice. This is exactly the shape a same-case FIFO
+    (removed by this change) would get wrong: consuming the wrong cell's
+    queued id, or leaving a stale entry for a later call to find. With a
+    cell-bound id instead, order never matters, and every replay/audit of
+    an already-finished cell starts from a clean ``_sessions`` table: by
+    the time each run reaches termination, ``EconAgentV1Plugin.step`` has
+    already popped its own session, so the assertion below holds after
+    every phase of this test, not merely at the very end.
+    """
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    setup = build_econagent_setup(case, suffix="reverse_order", sampling_seeds=(300, 301))
+    cell_a, cell_b = setup.plan.cells
+    assert cell_a.case_id == cell_b.case_id == case.case_id
+    assert cell_a.cell_id != cell_b.cell_id
+
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    def run_cell(cell: PlanCell) -> CellExecution:
+        evidence_root = RunLayout(tmp_path, setup.plan.run_plan_id).attempt_dir(
+            cell.cell_id, "attempt_1"
+        )
+        evidence = EvidenceStore(
+            evidence_root,
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingEconAgentHarness(evidence=evidence)
+        result = asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return CellExecution(
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_attempt_id="attempt_1",
+            episode_result=result,
+            evidence=evidence,
+            action_executions=(),
+            total_cost_usd=0.0,
+        )
+
+    # Execute A then B ...
+    execution_a = run_cell(cell_a)
+    execution_b = run_cell(cell_b)
+    assert plugin._sessions == {}
+
+    # ... finalize B then A: the reverse of execution order.
+    receipt_b = finalize_family_execution(setup=setup, execution=execution_b)
+    receipt_a = finalize_family_execution(setup=setup, execution=execution_a)
+    assert plugin._sessions == {}
+    assert receipt_a.cell_id == cell_a.cell_id
+    assert receipt_b.cell_id == cell_b.cell_id
+    assert receipt_a.receipt_sha256 != receipt_b.receipt_sha256
+
+    for cell, receipt, execution in (
+        (cell_a, receipt_a, execution_a),
+        (cell_b, receipt_b, execution_b),
+    ):
+        for _ in range(2):
+            replayed = replay_family_receipt(
+                setup=setup, receipt=receipt, evidence_root=tmp_path
+            )
+            assert canonical_json_bytes(replayed) == canonical_json_bytes(receipt)
+            assert plugin._sessions == {}
+
+        receipt_path = execution.evidence.root / "evaluation_receipt.json"
+        for _ in range(2):
+            audited = audit_family_receipt(setup=setup, receipt_path=receipt_path)
+            assert audited["receipt_sha256"] == receipt.receipt_sha256
+            assert plugin._sessions == {}
 
 
 def test_replay_recomputes_all_three_leaves_with_zero_live_calls() -> None:

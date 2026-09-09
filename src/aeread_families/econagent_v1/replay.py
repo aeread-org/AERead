@@ -419,17 +419,23 @@ def _strip_bridge_session_id(value: Any) -> Any:
     relevant to any accounting leaf. It is, however, part of the full
     per-phase ``state`` the scheduler hashes for
     ``pre_state_sha256``/``post_state_sha256`` and freezes into
-    ``final_state``. ``_mint_session_id`` now derives it deterministically
-    from the real scheduler's own ``cell.cell_id`` (fix for
-    docs/econagent_codex_triage.md finding 6), so a live run replayed
-    through the same ``cell`` hash-matches itself; this stripping remains
-    only as defense-in-depth for the one path that still mints a random id
-    -- ``cell=None``, direct plugin calls that bypass the real scheduler
-    entirely (see ``_mint_session_id``'s own docstring). Unlike
-    ``tau3_retail``'s message timestamps (a real per-message field on every
-    recorded response), this is a single, always-top-level key on the
-    family's own ``state`` dict, so stripping it is a narrow, general (not
-    task-specific) correction, not a broad rewrite of the comparison.
+    ``final_state``. ``_mint_session_id`` derives it deterministically from
+    the real scheduler's own ``cell.cell_id`` (fix for
+    docs/econagent_codex_triage.md finding 6) whenever a real ``cell`` is
+    available -- true for every live run, and, since #135 A1, for
+    CERTIFIED kernel replay too (``task.evaluation._replay_family_trajectory``
+    now receives and checks the actual executed ``PlanCell`` before calling
+    ``initial_state`` at all -- see ``_mint_session_id``'s own docstring) --
+    so a live run replayed through the same ``cell`` hash-matches itself.
+    This stripping remains only as defense-in-depth for the narrower path
+    that still derives a deterministic, ``family_case``-digest-only id
+    instead -- ``cell=None``, a direct plugin call that bypasses the real
+    scheduler (and certified replay) entirely (see ``_mint_session_id``'s
+    own docstring). Unlike ``tau3_retail``'s message timestamps (a real
+    per-message field on every recorded response), this is a single,
+    always-top-level key on the family's own ``state`` dict, so stripping
+    it is a narrow, general (not task-specific) correction, not a broad
+    rewrite of the comparison.
     """
     if isinstance(value, Mapping):
         return {
