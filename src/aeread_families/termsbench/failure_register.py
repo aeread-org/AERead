@@ -274,12 +274,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--publication-root", type=Path, default=repository_root / "evidence" / REGISTER_ID
     )
+    parser.add_argument(
+        "--repository-root",
+        type=Path,
+        default=None,
+        help="the checkout `source_artifact` paths are relative to (default: this package's; "
+        "pass the checkout that holds `runs/` when building from a worktree)",
+    )
     parser.add_argument("--regenerate", action="store_true", help="replace an existing bundle")
     args = parser.parse_args(argv)
     summary = publish(
         run_root=args.run_root,
         publication_root=args.publication_root,
-        repository_root=repository_root,
+        repository_root=args.repository_root or repository_root,
         regenerate=args.regenerate,
     )
     print(json.dumps(summary, indent=1, sort_keys=True))

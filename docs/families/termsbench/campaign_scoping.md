@@ -121,3 +121,34 @@ campaign continues. The v1 attempt root stays sealed as evidence. What the
 two clients do with a truncated structured response differs (Arena types it
 `length`, OpenRouter returns the text) and is filed as #152 rather than
 changed under the scripted-seat PR.
+
+## Pilot v2 result (2026-09-08)
+
+`termsbench_glm53_flash_parasail_pilot_v2`, attempt_001, published at
+`evidence/termsbench_glm53_flash_parasail_pilot_v2/`: canary admitted; 30/30
+cases complete, every receipt `ok` and included, every receipt replayed with
+the counterpart recomputed on every turn; $0.029 in total, 5.6 minutes of
+serial wall time (longest case 108 s). The Tier 1 register
+(`evidence/termsbench_failure_register/`) holds one row, v1's abort.
+
+What GLM 5.3 Flash did under this profile (no reasoning effort, a
+1,500-token reasoning cap that in practice yields ~30 reasoning tokens,
+temperature 0):
+
+- **Overlap (15):** every case reached agreement (`AGR+ = 1.0`), 12 by the
+  counterpart accepting the agent's offer and 3 by the agent accepting; the
+  agent's share of the zone of agreement averaged `SE+ = CSE+ = 0.40`
+  (range −0.03 to 0.81). One case is a critical violation: the buyer agreed
+  above its own reservation value.
+- **No-deal (15):** 14 ended by the counterpart walking away and 1 by the
+  agent accepting a price -- an agreement in a world with no zone of
+  agreement (`FAGR- = 1` on that case). Twelve of the fifteen carry an
+  individual-rationality violation: the buyer offered above its own
+  reservation value to chase a seller it could not reach. That is the
+  paper's `CritViol` and it is scored, not excluded; a reader of the corpus
+  aggregate should not average it away.
+- No malformed move in v2. v1's case 7 did not repeat its degeneration at
+  the same seed and temperature; the route is not deterministic.
+
+Episodes ran 1–10 rounds (median 3); the wall-time gate and both cost
+ceilings had an order of magnitude of headroom.
