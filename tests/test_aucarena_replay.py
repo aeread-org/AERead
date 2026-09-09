@@ -1167,6 +1167,51 @@ def test_frozen_field_case_is_included_with_the_declared_relative_profit(
     assert case.case_id == "aucarena.pilot.frozen_field_item5_01"
     evidence_root = tmp_path / "measurement"
 
+    # Derive the expected per-seat profits from this case's own declared
+    # inputs (``payload["items"][0]``) and the fixed, scripted behavior of
+    # this test's harness (spec section 7.3) -- never from the receipt
+    # under test:
+    #
+    # - ``agent`` (the tested seat) is scripted by ``withdraw_answer`` to
+    #   bid ``-1`` on every request, i.e. always withdraw
+    #   (``vendored.set_withdraw``: a negative bid means withdrawn), so it
+    #   never wins item 5 and its profit stays at the environment's
+    #   zero-initialized value (``environment.py``: every seat starts with
+    #   ``"profit": 0``, mutated only by a *winning* ``win_bid`` call).
+    # - ``field_low`` is a ``rule`` seat with ``max_bid_cnt`` 0 in this
+    #   case's roster, so its vendored ``bid_rule`` never submits a bid
+    #   either, and it also never wins -- profit stays 0.
+    # - ``field_high`` is therefore the auction's only active bidder, so
+    #   the hammer falls on its own opening bid at item 5's starting
+    #   ``price`` (no competing bid ever arrives to raise it). Its profit
+    #   follows the vendored ``win_bid`` formula
+    #   (``_vendored_upstream.py``): ``new_profit = profit + true_value -
+    #   bid``, i.e. ``0 + true_value - price``.
+    item = case.payload["items"][0]
+    tested_profit = 0.0
+    field_low_profit = 0.0
+    field_high_profit = float(item["true_value"] - item["price"])
+
+    # ``score_profit_vs_field``'s own arithmetic (measurement.py:758-775):
+    # ``primary`` is the tested seat's profit minus the *mean* field
+    # profit; each ``delta_vs_<seat_id>`` metric is the tested seat's
+    # profit minus that one seat's own profit.
+    mean_field_profit = (field_low_profit + field_high_profit) / len(
+        (field_low_profit, field_high_profit)
+    )
+    expected_primary = tested_profit - mean_field_profit
+    expected_delta_low = tested_profit - field_low_profit
+    expected_delta_high = tested_profit - field_high_profit
+
+    # Regression pin: with this case's frozen numbers (item 5's price
+    # $5000 vs. true_value $10000, agent scripted to withdraw, field_low's
+    # max_bid_cnt 0) the derivation above always resolves to these
+    # literals. Pinned alongside the derivation so a change to either the
+    # case or the formula shows up as a diff here, not a silent drift.
+    assert expected_primary == -2500.0
+    assert expected_delta_low == 0.0
+    assert expected_delta_high == -5000.0
+
     setup, receipt = _run_and_finalize_through_evidence_root(
         case, suffix="frozen_field_receipt", evidence_root=evidence_root
     )
@@ -1182,11 +1227,11 @@ def test_frozen_field_case_is_included_with_the_declared_relative_profit(
     assert primary.status == "ok"
     assert primary.primary is not None
     assert primary.primary.unit == "usd"
-    assert primary.primary.value == -2500.0
-    assert primary.reference_values["field_low_profit"].value == 0.0
-    assert primary.reference_values["field_high_profit"].value == 5000.0
-    assert primary.metrics["delta_vs_field_low"].value == 0.0
-    assert primary.metrics["delta_vs_field_high"].value == -5000.0
+    assert primary.primary.value == expected_primary
+    assert primary.reference_values["field_low_profit"].value == field_low_profit
+    assert primary.reference_values["field_high_profit"].value == field_high_profit
+    assert primary.metrics["delta_vs_field_low"].value == expected_delta_low
+    assert primary.metrics["delta_vs_field_high"].value == expected_delta_high
     assert primary.evidence_refs
 
     replayed = replay_family_receipt(
@@ -1198,7 +1243,7 @@ def test_frozen_field_case_is_included_with_the_declared_relative_profit(
     replayed_primary = next(
         score for score in replayed.scores if score.leaf.leaf_id == replayed.primary_leaf_id
     )
-    assert replayed_primary.primary.value == -2500.0
+    assert replayed_primary.primary.value == expected_primary
 
 
 def test_degenerate_qc_case_through_the_real_finalizer_stays_invalid_excluded_and_null(
