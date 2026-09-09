@@ -94,3 +94,30 @@ scripted counterpart before the canary (`tests/test_termsbench_live_campaign.py`
 The first defect that surfaced is TB-D-01 in the incident log: a receipt
 with a scripted seat could be sealed and replayed but not read back by the
 research layer, fixed in #150 before any spend.
+
+## Pilot v1 → v2 (2026-09-08)
+
+`termsbench_glm53_flash_parasail_pilot_v1`, attempt_001: canary admitted;
+cases 0–6 complete and replayed; case 7 (`nodeal.1010055`) aborted the
+panel. GLM 5.3 Flash at temperature 0 wrote `{"decision": "offer", "price":
+56.5993352745860345659335…` and repeated the digits of the price to the
+4,000-token ceiling (`finish_reason: length`); the 1.0 harness typed that
+as a non-retryable `malformed_structured_output` route fault, which the
+kernel wraps as a contract error and the campaign as an operational abort
+(TB-O-01, TB-D-02 in the incident log). Two things were wrong with that,
+neither of them the model's answer:
+
+- the family already defines a malformed move as a *measured* outcome
+  (`malformed_action_schema`, spec golden 4), and the kernel's OpenRouter
+  client deliberately keeps a completed non-JSON answer on the normal path
+  for the family to classify -- the harness had pre-empted both;
+- one cell's failure should never cost the other twenty-two cases.
+
+v2 is the new campaign identity that carries the fixes, as a changed
+frozen control requires: harness 1.1 hands a finished non-object answer to
+the family as `{"raw_text": …}`, and a cell that fails inside the kernel is
+sealed as a typed exclusion receipt (`finalize_family_failure`) while the
+campaign continues. The v1 attempt root stays sealed as evidence. What the
+two clients do with a truncated structured response differs (Arena types it
+`length`, OpenRouter returns the text) and is filed as #152 rather than
+changed under the scripted-seat PR.
