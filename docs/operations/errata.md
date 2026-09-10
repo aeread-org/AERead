@@ -23,10 +23,10 @@ is **superseded** by a new one that names it in `superseded_by`.
 | Field | Meaning |
 |---|---|
 | `errata_id` | `ERR-YYYY-MM-DD-NNN`, the date the finding was recorded |
-| `category` | `kernel`, `family`, `provider`, or `judgment` — where the defect lived |
+| `category` | `kernel`, `provider`, or `judgment` — where the defect lived |
 | `effect` | What a reader must now assume: `cost_lower_bound`, `score_invalid`, `route_unverified`, `evidence_incomplete`, `claim_withdrawn`, `other` |
 | `title`, `description` | The finding, stated so a reader of the affected bundle understands the consequence without opening the PR |
-| `selectors` | Any of `campaign_ids`, `run_plan_sha256s`, `receipt_sha256s`, `implementation_pins` (`component_id` + digest set), `family_ids`. At least one is required. |
+| `selectors` | `campaign_ids`, `run_plan_sha256s`, `receipt_sha256s`, `implementation_pins` (`component_id` + digest set). All four fields are required; at least one must be non-empty. |
 | `fix_ref` | PR or commit that fixed the defect, if any |
 | `disposition` | `open` (affected evidence not yet corrected or relabelled), `fixed` (corrected or relabelled), `superseded` |
 | `evidence_refs` | Links that substantiate the finding |
@@ -38,8 +38,16 @@ disposition moves to `fixed` via a superseding record.
 
 ## 2. Selecting by identity
 
-- `campaign_ids` is the universal selector: every published manifest carries
-  one.
+Family targeting is deferred: neither the published manifests nor the
+bundle subjects declare a family identity. New records reject the `family`
+category and `family_ids` selector. Restoring them requires a declared family
+identity in the kernel publication manifest and both matching paths. Existing
+sealed records with the empty field `family_ids: []` remain readable without
+rewriting their bytes; a non-empty legacy family selector is rejected.
+
+- `campaign_ids` selects manifests declaring a non-empty campaign identity.
+  The register scans those campaign bundles; auxiliary manifests with a null
+  `campaign_id` are outside that scan.
 - `run_plan_sha256s` and `receipt_sha256s` refine to specific plans or
   receipts where the bundle publishes `receipts/projections.jsonl` or a
   manifest `plan_sha256`.
@@ -49,8 +57,12 @@ disposition moves to `fixed` via a superseding record.
   does not depend on profile configuration that receipts do not carry (a
   scorer digest is a good pin selector; a bug that only bites when
   `max_rounds > 1` is not — select those by plan digest after resolving
-  which plans qualify). Published projections omit pins, so resolve the
-  selector once against local run directories with
+  which plans qualify). The bundle scanner carries explicit manifest
+  `implementation_pins` and projection `plan_implementation_pins` into the
+  same matcher used by the attempt ledger. Each pin must name its
+  `component_id` and `sha256`; both must match. Current published bundles
+  omit these fields, so resolve the selector once against local run
+  directories with
   `plans_sealed_under(runs_root, component_id, sha256s)` and record the
   resulting plan digests in the erratum as well, so published evidence can
   match it.
@@ -76,8 +88,8 @@ records and the evidence have diverged.
 ## 4. When to file one
 
 Any time the incident log gets a row whose consequence reaches already-
-published numbers: a kernel accounting or evidence bug (`kernel`), a family
-scorer or verifier defect (`family`), a route or provider that did not do what
+published numbers: a kernel accounting or evidence bug (`kernel`), a route
+or provider that did not do what
 its pin declares (`provider`), or a claim the maintainers withdraw
 (`judgment`). If the consequence is confined to unpublished local runs, the
 incident log alone is enough.

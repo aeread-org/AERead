@@ -9,7 +9,7 @@ withdrawn -- needs somewhere to live that is not the bundle itself.
 An erratum is a sealed, append-only record under ``evidence/errata/`` that
 names the finding once and selects the affected evidence by identity:
 campaign ids, ``run_plan_sha256`` values, receipt digests, implementation-pin
-digests, or family ids. Every affected bundle then inherits it by selector
+digests. Every affected bundle then inherits it by selector
 rather than by edit: the derived register under ``evidence/errata_register/``
 lists which published bundles each erratum touches, ``ERRATA.md`` sidecars
 next to those bundles surface it to a reader, and the research ledger carries
@@ -44,7 +44,7 @@ DEFAULT_ERRATA_DIRECTORY = "errata"
 DEFAULT_REGISTER_DIRECTORY = "errata_register"
 SIDECAR_NAME = "ERRATA.md"
 
-CATEGORIES = frozenset({"kernel", "family", "provider", "judgment"})
+CATEGORIES = frozenset({"kernel", "provider", "judgment"})
 EFFECTS = frozenset(
     {
         "cost_lower_bound",
@@ -110,14 +110,12 @@ class ErratumSelectors:
     run_plan_sha256s: tuple[str, ...]
     receipt_sha256s: tuple[str, ...]
     implementation_pins: tuple[PinSelector, ...]
-    family_ids: tuple[str, ...]
 
     _FIELDS = (
         "campaign_ids",
         "run_plan_sha256s",
         "receipt_sha256s",
         "implementation_pins",
-        "family_ids",
     )
 
     @classmethod
@@ -136,7 +134,6 @@ class ErratumSelectors:
             ),
             receipt_sha256s=_digests(value["receipt_sha256s"], "selectors.receipt_sha256s"),
             implementation_pins=tuple(PinSelector.from_dict(item) for item in pins),
-            family_ids=_strings(value["family_ids"], "selectors.family_ids"),
         )
         if selectors.is_empty():
             raise ErrataContractError("an erratum must declare at least one selector")
@@ -149,7 +146,6 @@ class ErratumSelectors:
                 self.run_plan_sha256s,
                 self.receipt_sha256s,
                 self.implementation_pins,
-                self.family_ids,
             )
         )
 
@@ -159,7 +155,6 @@ class ErratumSelectors:
             "run_plan_sha256s": list(self.run_plan_sha256s),
             "receipt_sha256s": list(self.receipt_sha256s),
             "implementation_pins": [pin.to_dict() for pin in self.implementation_pins],
-            "family_ids": list(self.family_ids),
         }
 
 
@@ -235,6 +230,17 @@ class Erratum:
         fix_ref = payload["fix_ref"]
         if fix_ref is not None and (not isinstance(fix_ref, str) or not fix_ref):
             raise ErrataContractError("fix_ref must be null or a non-empty string")
+        selectors = payload["selectors"]
+        # The original sealed record has this empty, unsupported field. Keep
+        # those durable bytes readable without offering it on new records.
+        if (
+            value.get("schema_version") == ERRATUM_SCHEMA_VERSION
+            and "artifact_sha256" in value
+            and isinstance(selectors, Mapping)
+            and selectors.get("family_ids") == []
+        ):
+            selectors = dict(selectors)
+            selectors.pop("family_ids")
         return cls(
             errata_id=errata_id,
             opened_at=opened_at,
@@ -242,7 +248,7 @@ class Erratum:
             effect=effect,
             title=payload["title"].strip(),
             description=payload["description"].strip(),
-            selectors=ErratumSelectors.from_dict(payload["selectors"]),
+            selectors=ErratumSelectors.from_dict(selectors),
             fix_ref=fix_ref,
             disposition=disposition,
             superseded_by=superseded_by,
@@ -270,8 +276,9 @@ class Erratum:
         campaign_id: str | None = None,
         run_plan_sha256: str | None = None,
         receipt_sha256: str | None = None,
-        family_id: str | None = None,
         implementation_pins: Iterable[Any] | None = None,
+        run_plan_sha256s: Iterable[str] = (),
+        receipt_sha256s: Iterable[str] = (),
     ) -> tuple[str, ...]:
         """Which selectors this subject hits, in a fixed order; empty means none."""
 
@@ -279,12 +286,16 @@ class Erratum:
         selectors = self.selectors
         if campaign_id is not None and campaign_id in selectors.campaign_ids:
             hits.append("campaign_id")
-        if run_plan_sha256 is not None and run_plan_sha256 in selectors.run_plan_sha256s:
+        if any(
+            plan in selectors.run_plan_sha256s
+            for plan in (run_plan_sha256, *run_plan_sha256s)
+        ):
             hits.append("run_plan_sha256")
-        if receipt_sha256 is not None and receipt_sha256 in selectors.receipt_sha256s:
+        if any(
+            receipt in selectors.receipt_sha256s
+            for receipt in (receipt_sha256, *receipt_sha256s)
+        ):
             hits.append("receipt_sha256")
-        if family_id is not None and family_id in selectors.family_ids:
-            hits.append("family_id")
         if implementation_pins is not None and selectors.implementation_pins:
             wanted = {
                 (pin.component_id, sha): True
@@ -312,7 +323,6 @@ def errata_for(
     campaign_id: str | None = None,
     run_plan_sha256: str | None = None,
     receipt_sha256: str | None = None,
-    family_id: str | None = None,
     implementation_pins: Iterable[Any] | None = None,
     include_superseded: bool = False,
 ) -> tuple[str, ...]:
@@ -327,7 +337,6 @@ def errata_for(
             campaign_id=campaign_id,
             run_plan_sha256=run_plan_sha256,
             receipt_sha256=receipt_sha256,
-            family_id=family_id,
             implementation_pins=pins,
         )
     ]
@@ -415,10 +424,33 @@ class PublishedBundle:
     path: str
     run_plan_sha256s: tuple[str, ...]
     receipt_sha256s: tuple[str, ...]
+    implementation_pins: tuple[Mapping[str, str], ...] = ()
+
+
+def _published_pins(value: Any) -> tuple[Mapping[str, str], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ErrataContractError("published implementation pins must be a list")
+    pins: list[Mapping[str, str]] = []
+    for pin in value:
+        component = _pin_field(pin, "component_id")
+        digest = _pin_field(pin, "sha256")
+        if (
+            not isinstance(component, str)
+            or not component
+            or not isinstance(digest, str)
+            or not _SHA256.fullmatch(digest)
+        ):
+            raise ErrataContractError(
+                "published implementation pins require component_id and sha256"
+            )
+        pins.append({"component_id": component, "sha256": digest})
+    return tuple(pins)
 
 
 def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
-    """Every published bundle: a directory holding ``publication_manifest.json``."""
+    """Published bundles whose manifest declares a non-empty campaign identity."""
 
     root = Path(evidence_root)
     bundles: list[PublishedBundle] = []
@@ -434,6 +466,7 @@ def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
             continue
         plans: set[str] = set()
         receipts: set[str] = set()
+        pins = list(_published_pins(manifest.get("implementation_pins")))
         plan_sha256 = manifest.get("plan_sha256")
         if isinstance(plan_sha256, str) and _SHA256.match(plan_sha256):
             plans.add(plan_sha256)
@@ -448,6 +481,7 @@ def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
                     continue
                 if not isinstance(row, Mapping):
                     continue
+                pins.extend(_published_pins(row.get("plan_implementation_pins")))
                 plan = row.get("run_plan_sha256")
                 if isinstance(plan, str) and _SHA256.match(plan):
                     plans.add(plan)
@@ -460,6 +494,12 @@ def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
                 path=manifest_path.parent.name,
                 run_plan_sha256s=tuple(sorted(plans)),
                 receipt_sha256s=tuple(sorted(receipts)),
+                implementation_pins=tuple(
+                    {"component_id": component, "sha256": digest}
+                    for component, digest in sorted(
+                        {(pin["component_id"], pin["sha256"]) for pin in pins}
+                    )
+                ),
             )
         )
     return tuple(bundles)
@@ -479,15 +519,12 @@ class AffectedBundleRow:
 
 
 def _bundle_hits(erratum: Erratum, bundle: PublishedBundle) -> tuple[str, ...]:
-    hits: list[str] = []
-    hits.extend(erratum.matches(campaign_id=bundle.campaign_id))
-    if any(plan in erratum.selectors.run_plan_sha256s for plan in bundle.run_plan_sha256s):
-        hits.append("run_plan_sha256")
-    if any(
-        receipt in erratum.selectors.receipt_sha256s for receipt in bundle.receipt_sha256s
-    ):
-        hits.append("receipt_sha256")
-    return tuple(hits)
+    return erratum.matches(
+        campaign_id=bundle.campaign_id,
+        run_plan_sha256s=bundle.run_plan_sha256s,
+        receipt_sha256s=bundle.receipt_sha256s,
+        implementation_pins=bundle.implementation_pins,
+    )
 
 
 def affected_rows(
