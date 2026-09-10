@@ -331,9 +331,15 @@ two:
    behaviour.
 5. Test the calibration hypothesis and let it fail. A contrast invariant across
    a difficulty sweep is evidence about the instrument, not the subjects.
-6. **Decompose the metric's variance by factor: case, opponent, subject.** This
-   is the step that names the cause. If the subject's share is near zero, no
-   sample size, sealing discipline or replication recovers a result.
+6. **Decompose the metric's variance by factor: case, opponent, subject, on
+   the panel that will actually be frozen.** This is the step that names the
+   cause. Judge the subject's share against chance, not against zero: a
+   meaningless label splitting `n` cells into `k` groups still explains
+   `(k-1)/(n-1)` in expectation. If the subject's share does not exceed that,
+   no sample size, sealing discipline or replication recovers a result. Run it
+   on the confirmatory panel and not only on the pilot's: Housing's subject
+   share was twice chance on the pilot panel and half chance on the holdout,
+   so the pilot could not have revealed the problem it was meant to size.
 7. **Score control policies whose ordering is known before the run, and sweep
    the counterparty as a controlled variable.** This is the step that proves
    the mechanism, and separates a metric that cannot see the subject from a

@@ -215,7 +215,52 @@ Under both, the subject's share of within-case variance rises from `0.067` to
 as `common_weight` rises: monotone, sixfold, the dose-response a capability
 measure should show and which welfare never showed at any difficulty.
 
-## 8. What landed, and what is still owed
+## 8. The pilot measured a different environment
+
+Turning the decomposition from an ad-hoc script into a reproducible tool, and
+running it over every published Housing campaign rather than the confirmatory
+one alone, surfaced a second failure that the single-campaign view had hidden.
+
+A subject share must be read against chance, not against zero. Splitting a
+case's cells by any label captures variance even when the label is
+meaningless: for two subjects and eight cells per case the expected share is
+`(k-1)/(n-1)`, or `0.144`. Measured that way:
+
+| campaign | cells | welfare, times chance | surplus, times chance |
+|---|---|---|---|
+| pilot line, v23 | 186 | `2.00` | `0.79` |
+| pilot line, v26 | 189 | `2.33` | `0.51` |
+| confirmatory holdout | 717 | `0.47` | `1.86` |
+
+The two lines ran on different environments:
+
+| | tenants / listings | common weights | rounds | worlds |
+|---|---|---|---|---|
+| pilot panel | 6 / 5, 4, 3 | `0.85`, `0.85`, `0.30` | 2 | 8 |
+| holdout panel | 8 / 6, 5, 4 | `0.45`, `0.70`, `0.95` | 3 | 30 |
+
+On the pilot panel welfare carried subject signal at roughly twice chance, so
+nothing in the pilot suggested the estimand was blind. On the holdout it fell
+below chance. The surplus estimand reverses the pattern, which is the more
+sobering half: neither metric's sensitivity survived the panel change in
+either direction, so the recommendation in section 7 cannot be treated as
+settled either, and must be re-established on whatever panel is actually
+frozen.
+
+This compounds with, rather than restates, section 2. The confirmatory world
+count was derived from between-world variance measured on the pilot panel. It
+was then spent on a panel where the metric behaves differently. Even an
+estimand that responded to the subject would have been sized on the wrong
+environment.
+
+The instrument that found this is published at
+`evidence/housing/estimand_diagnostics/`, reads only committed rows, and
+regenerates byte for byte. Its earlier version used a fixed floor of `0.15` on
+the subject's share, which would have passed the very campaign it exists to
+catch, since `0.067` clears `0.02` and even a coin flip returns `0.144`. The
+chance baseline replaced it (D-28).
+
+## 9. What landed, and what is still owed
 
 Landed, all opt-in per contract so no sealed campaign changes behaviour:
 
@@ -239,15 +284,20 @@ Still owed before another confirmatory comparison:
 1. A new sealed panel. The holdout is spent and must not be reused.
 2. The control arm rerun under the rent floor, to confirm the floor alone
    brings the opponent-violation rate under the declared ceiling. Free.
-3. A variance pilot sized on the surplus estimand. The world count in use was
-   derived from welfare's between-world variance, which is a different
-   quantity's noise.
-4. A like-for-like baseline: the naive tenant policy against the same model
+3. A variance pilot on the confirmatory panel's own generator parameters, or
+   a declared reason a different one is admissible. The pilot in use ran 6
+   tenants at common weights 0.85 and 0.30 over 2 rounds; the holdout runs 8
+   tenants at 0.45 to 0.95 over 3 rounds, and the estimand does not behave the
+   same on both (D-28).
+4. A variance pilot sized on whichever estimand is made primary. The world
+   count in use was derived from welfare's between-world variance, which is a
+   different quantity's noise.
+5. A like-for-like baseline: the naive tenant policy against the same model
    landlord, reported beside the primary. The published baseline pairs the
    naive tenant with a scripted landlord and is not comparable as it stands
    (D-25).
 
-## 9. How this was found, and how it should have been
+## 10. How this was found, and how it should have been
 
 The sequence matters more than the conclusion, because the conclusion is
 specific to Housing and the sequence is not.
@@ -308,7 +358,7 @@ prescription of measurement hygiene, which would have produced a cleaner
 measurement of nothing. Each was corrected by evidence or by review, which is
 the reason the register keeps wrong hypotheses at the moment they are made.
 
-## 10. What this review does not establish
+## 11. What this review does not establish
 
 The confirmatory result stands as what it is: a precise null on allocative
 efficiency, for these two models, these routes and this panel. Nothing here
