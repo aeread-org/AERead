@@ -790,13 +790,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--publish-to", type=Path, default=None)
     parser.add_argument(
+        "--paper-model",
+        action="store_true",
+        help="run the GPT-4o panel that checks this adapter against the paper",
+    )
+    parser.add_argument(
         "--max-cases",
         type=int,
         default=None,
         help="stop once this many panel cases are complete (an operator's pause; resumable)",
     )
     args = parser.parse_args(argv)
-    if getattr(args, 'paper_model', False):
+    # Selected before anything reads the plan, so the campaign id, the
+    # route and the schema dialect all move together.
+    if args.paper_model:
         _use_paper_model()
     # Publish is checked BEFORE the plan-digest branch. It used to come after,
     # so `--publish-to` without `--execute` -- which is exactly how a
