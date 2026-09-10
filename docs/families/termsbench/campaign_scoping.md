@@ -152,3 +152,45 @@ temperature 0):
 
 Episodes ran 1–10 rounds (median 3); the wall-time gate and both cost
 ceilings had an order of magnitude of headroom.
+
+## Pilot v3: the same panel with the model allowed to think (2026-09-10)
+
+v2's 43% critical-violation rate sat twenty times above the paper's 0–2.06%
+band for thirteen agents, which is the kind of gap that is usually the
+harness rather than the model. It was. One probe call per condition on this
+route showed that `reasoning.max_tokens` is a suppression switch rather than
+a budget — 1,500 and 8,000 both yield ~13 reasoning tokens, as does
+`reasoning.effort: "low"` — while declaring no reasoning block at all yields
+~260. v2 (`reasoning_capped_1500_v1`) therefore measured a GLM 5.3 Flash
+that did not deliberate. v3 is the same 30 cases, same seed, same scripted
+counterpart, with `reasoning_unconstrained_v1` and a 12,000-token completion
+budget for the rationale the route now emits (that budget change is bundled
+with the condition, and the claim is about the bundled configuration, per
+`docs/research/reasoning_condition_and_diagnostics.md` §3).
+
+| | v2 suppressed | v3 deliberating | paper, 13 agents |
+|---|---:|---:|---|
+| `SE+` | 0.402 | **0.533** | 0.189 – 0.694 |
+| `CSE+` | 0.402 | **0.533** | 0.296 – 0.721 |
+| `AGR+` | 1.00 | 1.00 | 0.522 – 0.999 |
+| `FAGR-` | 0.067 (1/15) | **0.133 (2/15)** | ~0, worst 0.0017 |
+| `CritViol%` | 0.433 (13/30) | **0.067 (2/30)** | 0 – 0.0206 |
+| cost / wall | $0.029 / 5.6 min | $0.134 / 43.5 min | — |
+
+Deliberation bought a third more surplus and cut critical violations by
+6.5×: the agent stopped offering above its own reservation value to chase a
+seller it could not reach, which was 12 of v2's 13 breaches. What it did not
+fix — and appears to have made worse — is the false agreement: two no-deal
+cases closed in v3 against one in v2, both times by the counterpart
+accepting an offer the agent should never have made. On 15 no-deal cases
+that is one event of difference and no basis for a claim, but it is the
+axis the paper singles out as independent of surplus, and ours is the arm
+where it is worst.
+
+Per counterpart family, `SE+` moved candid 0.325 → 0.562, taciturn 0.351 →
+0.476, expressive 0.529 → 0.562. The paper's "cue penalty" predicts *less*
+surplus where cues are informative (candid, expressive) than where they are
+muted (taciturn); v3 is ordered that way and v2 was not, but five overlap
+cases per family cannot support the comparison.
+
+Neither arm produced a malformed action. v1's degeneration has not recurred.
