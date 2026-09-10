@@ -36,7 +36,6 @@ PUBLICATION_SCHEMA_VERSION = "aeread.commercial_state_publication/0.1"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CAMPAIGN_ROOT = REPOSITORY_ROOT / "runs" / CAMPAIGN_ID
 DEFAULT_PUBLICATION_ROOT = REPOSITORY_ROOT / "evidence" / CAMPAIGN_ID
-__all__ = ["PROHIBITED_PUBLIC_TEXT", "publish_campaign_evidence", "main"]
 
 
 def _publisher_implementation_sha256() -> str:
@@ -334,6 +333,8 @@ if __name__ == "__main__":
 __all__ = [
     "DEFAULT_CAMPAIGN_ROOT",
     "DEFAULT_PUBLICATION_ROOT",
+    "PROHIBITED_PUBLIC_TEXT",
     "PUBLICATION_SCHEMA_VERSION",
+    "main",
     "publish_campaign_evidence",
 ]
