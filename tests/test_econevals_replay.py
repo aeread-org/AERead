@@ -38,6 +38,12 @@ from aeread.shared_runner.schemas import (
     SuiteManifest,
 )
 from aeread.shared_runner.task.evaluation import finalize_family_execution
+import dataclasses
+
+from aeread.shared_runner.measurement import MetricValue
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.task.evaluation import replay_family_receipt
+from aeread.shared_runner.task.receipts import seal_evaluation_receipt
 from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.econevals.econevals_bridge import (
@@ -870,7 +876,9 @@ def _run_econevals_episode_through_finalizer(bridge: EconevalsBridge, tmp_path: 
     """Drive one shrunk (``max_steps=2``) pricing episode all the way to a
     sealed receipt through the real production finalizer.
 
-    Returns ``(receipt, evidence, family_case, resolved_plugin, result)``.
+    Returns ``(receipt, evidence, family_case, resolved_plugin, result,
+    setup, evidence_root)`` -- the last two so a caller can replay the
+    receipt against the same sealed evidence.
     """
     case = _shrunk_case("pricing_basic", "econevals.pricing.basic.0", max_steps=2)
     plugin = EconevalsPlugin(bridge=bridge)
@@ -880,8 +888,16 @@ def _run_econevals_episode_through_finalizer(bridge: EconevalsBridge, tmp_path: 
     family_case = resolved_plugin.validate_payload(case.payload)
     product_ids = family_case["generated_instance"]["product_ids"]
 
+    # finalize_family_execution and a LATER replay_family_receipt must see the
+    # same sealed evidence, and replay resolves it through RunLayout, so the
+    # store is opened at the layout's own attempt directory rather than at a
+    # path of this test's choosing.
+    evidence_root = tmp_path / "evidence_finalize_receipt"
+    attempt_dir = RunLayout(evidence_root, plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
     evidence = EvidenceStore(
-        tmp_path / "evidence_finalize_receipt",
+        attempt_dir,
         run_plan_id=plan.run_plan_id,
         cell_id=cell.cell_id,
         episode_id=f"episode_{cell.cell_id}",
@@ -910,7 +926,7 @@ def _run_econevals_episode_through_finalizer(bridge: EconevalsBridge, tmp_path: 
     )
     setup = _EvaluationSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
     receipt = finalize_family_execution(setup=setup, execution=execution)
-    return receipt, evidence, family_case, resolved_plugin, result
+    return receipt, evidence, family_case, resolved_plugin, result, setup, evidence_root
 
 
 def test_finalize_wires_econevals_to_the_shared_family_finalizer(tmp_path: Path) -> None:
@@ -934,7 +950,7 @@ def test_finalize_wires_econevals_to_the_shared_family_finalizer(tmp_path: Path)
     engineer from the bridge.
     """
     bridge = _bridge()
-    receipt, evidence, family_case, resolved_plugin, result = (
+    receipt, evidence, family_case, resolved_plugin, result, _setup, _evidence_root = (
         _run_econevals_episode_through_finalizer(bridge, tmp_path)
     )
 
@@ -980,3 +996,54 @@ def test_finalize_wires_econevals_to_the_shared_family_finalizer(tmp_path: Path)
     receipt_path = evidence.root / "evaluation_receipt.json"
     assert receipt_path.is_file()
     assert receipt_path.read_bytes() == canonical_json_bytes(receipt) + b"\n"
+
+
+def test_econevals_receipt_replays_and_refuses_a_resealed_tamper(tmp_path: Path) -> None:
+    """The finalize test above never called ``replay_family_receipt``, so this
+    family had no replay coverage despite the pair being described as
+    finalize-and-replay.
+
+    Cross-model review of this branch raised that, and it was right. Replay is
+    added here with the negative control that makes the call load-bearing,
+    because ``replay_family_receipt`` returns the receipt it was handed:
+    asserting on the returned object alone would be self-satisfying. Three
+    checks stand in front of its comparison against the re-derived score set,
+    established by probing rather than read off the source -- an altered
+    receipt fails its own digest, a re-sealed one is refused against the bytes
+    actually written to the attempt directory, and only a receipt that is both
+    self-consistent and truly sealed reaches the comparison. This asserts the
+    reachable one.
+    """
+    bridge = _bridge()
+    receipt, _evidence, _family_case, _plugin, _result, setup, evidence_root = (
+        _run_econevals_episode_through_finalizer(bridge, tmp_path)
+    )
+
+    # The untampered receipt replays from its own sealed evidence. Without this
+    # the assertion below could pass because replay refuses everything.
+    replayed = replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+
+    # Re-seal a receipt that claims a different objective value, so it clears
+    # the digest gate, and check the replay still refuses it.
+    falsified = tuple(
+        dataclasses.replace(
+            score,
+            primary=MetricValue(score.primary.value + 1.0, score.primary.unit),
+        )
+        if score.leaf.leaf_id == receipt.primary_leaf_id and score.primary is not None
+        else score
+        for score in receipt.scores
+    )
+    resealed = seal_evaluation_receipt(
+        dataclasses.replace(receipt, scores=falsified, receipt_sha256=None)
+    )
+    assert resealed.receipt_sha256 != receipt.receipt_sha256
+
+    with pytest.raises(ValueError, match="durable family receipt bytes"):
+        replay_family_receipt(
+            setup=setup, receipt=resealed, evidence_root=evidence_root
+        )
+
