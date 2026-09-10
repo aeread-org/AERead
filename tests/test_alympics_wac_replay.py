@@ -11,19 +11,53 @@ when it is present, and are skipped (never faked) otherwise.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, Callable, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    case_content_sha256,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import (
+    FamilyScoringInput,
+    SeatContext,
+    finalize_family_execution,
+    replay_family_scoring_input,
+)
+from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
+from aeread_families.alympics_wac import cases as alympics_cases
+from aeread_families.alympics_wac import measurement as alympics_measurement
 from aeread_families.alympics_wac.cases import SEAT_ORDER
-from aeread_families.alympics_wac.environment import AlympicsWacPlugin
+from aeread_families.alympics_wac.environment import (
+    PLUGIN_ID,
+    SCORER_ID,
+    AlympicsWacPlugin,
+    family_manifest,
+    register_plugin,
+)
 from aeread_families.alympics_wac.harness import (
     ScriptedAlympicsWacHarness,
     baseline_policy_assignment,
@@ -122,6 +156,496 @@ def _run_live(case: CaseManifest, tmp_path: Path, *, suffix: str):
     )
     evidence.seal()
     return cell, plugin, result, policy_assignment
+
+
+# ---------------------------------------------------------------------------
+# Evidence-complete episode driving (kernel_scoring_contract_spec.md
+# milestone 3): a response source that ALSO writes the full generic evidence
+# trail ``task.evaluation.replay_family_scoring_input`` needs to replay, plus
+# a real, ``resolve_run_plan``-resolved ``RunPlan`` -- both required to drive
+# ``task.evaluation.finalize_family_execution`` for this family for the
+# first time, and reused by ``tests/test_shared_runner_scoring_contract.py``
+# for its own paired-history fixtures. Mirrors govsim's identically-purposed
+# ``EvidenceRecordingGovsimHarness``/``build_govsim_setup``
+# (``tests/test_govsim_replay.py``).
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingAlympicsWacHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery, since every alympics.wac bid is a plain scripted
+    integer, never a provider completion.
+
+    ``ScriptedAlympicsWacHarness`` (this family's existing scripted response
+    source, ``harness.py``) writes only its own convenience event
+    (``alympics_wac_bid_served``) and has never produced evidence
+    ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
+    replay -- ``finalize_family_execution`` calls that replay internally, so
+    this class is what makes driving THAT finalizer for this family possible
+    at all. ``answer`` supplies the raw scripted ``{"bid": ...}`` decision
+    for one request; this class owns only the evidence-recording seam
+    around it, mirroring ``AttemptExecutor``'s own event shapes
+    field-for-field.
+    """
+
+    def __init__(
+        self, *, answer: Callable[[Any], Mapping[str, Any]], evidence: EvidenceStore
+    ) -> None:
+        self._answer = answer
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        response = dict(self._answer(request))
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): this family's own
+        # ``parse_action`` never reads it (the scheduler hands it the raw
+        # ``response`` dict returned above, unchanged -- see
+        # ``ScriptedAlympicsWacHarness``'s identical contract), and replay
+        # itself reconstructs ``parse``/``legality`` directly from the
+        # "action_parsed"/"action_legality_checked" events below, never from
+        # this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+def kernel_contract_fixture_case(
+    *, rounds: int, world_seed: int = 0, suffix: str = "kernel_contract_fixture"
+) -> CaseManifest:
+    """A small, fast alympics.wac case for the finalizer receipt test and
+    ``tests/test_shared_runner_scoring_contract.py``'s own paired-history
+    fixtures.
+
+    Unlike govsim's analogous fixture case, this family's seat roster is
+    upstream-fixed (``cases.SEAT_ORDER``/``cases.PERSONAS`` -- no
+    constructor parameter varies the 5-persona roster;
+    ``docs/alympics_adapter_spec.md`` section 1), so this cannot shrink the
+    seat count the way ``test_govsim_replay._two_agent_two_round_case``
+    does -- only ``rounds`` varies. ``policy_assignment`` is a required
+    field of every alympics.wac case (``cases.build_case``), but the actual
+    bids for this fixture always come from
+    ``EvidenceRecordingAlympicsWacHarness``'s own ``answer`` callable, never
+    from ``harness.POLICY_FUNCTIONS`` -- the declared assignment here
+    (all-``proportional``) is therefore an unused placeholder, not a claim
+    about how the episode is actually driven. A generous constant supply
+    (100, comfortably above every persona's requirement even after several
+    same-round winners) means this fixture's bid schedules control winners
+    purely through bid magnitude and the balance-exceeding legality gate,
+    never through supply exhaustion. Never written to the on-disk corpus.
+    """
+    cell = {
+        "case_id": f"{alympics_cases.CASE_ID_PREFIX}.{suffix}",
+        "supply_regime": {"kind": "constant", "value": 100},
+        "rounds": rounds,
+        "supply_schedule_seed": None,
+        "policy_assignment": {seat: "proportional" for seat in SEAT_ORDER},
+        "note": "kernel scoring-contract fixture; never written to the checked-in corpus",
+    }
+    raw = alympics_cases.build_case(cell)
+    raw = dict(raw)
+    raw["world_seed"] = world_seed
+    raw["content_sha256"] = "0" * 64
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
+@dataclass(frozen=True, slots=True)
+class AlympicsWacSetup:
+    """A resolved, provider-free ``RunPlan`` for one alympics.wac case.
+
+    Like govsim's own analogous setup, this family's real runtime never
+    goes through ``execute_plan_cell``'s harness/provider stack at all --
+    every seat is answered directly through ``run_episode``'s
+    ``response_source`` (``ScriptedAlympicsWacHarness``/
+    ``EvidenceRecordingAlympicsWacHarness`` above), matching this module's
+    own ``_run_live``. The declared ``minimal_chat`` harness and fixture
+    provider below exist purely to satisfy ``resolve_run_plan``'s
+    structural pin/capability checks and are never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: Mapping[str, str]
+    pricing: Mapping[str, Any]
+
+
+_ALYMPICS_FIXTURE_PROFILE_ID = "alympics_wac_unused_fixture_profile_v1"
+_ALYMPICS_FIXTURE_PROVIDER_ID = "alympics_wac_unused_fixture_provider"
+_ALYMPICS_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_alympics_setup(
+    case: CaseManifest, *, suffix: str, focal_seat: str
+) -> AlympicsWacSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every seat shares one placeholder agent profile: this family's real
+    runtime never invokes it (see ``AlympicsWacSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+
+    ``focal_seat`` (required, no default -- ruling R12, no silent
+    convention) names the ONE seat the resolved ``EvaluationBlock`` declares
+    ``subject_seats`` for; every other seat is ``controlled_profiles``,
+    pinned to the same placeholder profile every seat shares. This is what
+    ``finalize_family_execution``'s own ``_seat_context_for_cell`` reads
+    into ``scoring_input.seat_context`` for this family's receipt test
+    (``test_finalize_wires_alympics_wac_to_the_shared_family_finalizer``) --
+    before ruling R12 this block declared EVERY seat a subject
+    (``kind="self_play"``), which would resolve to
+    ``ambiguous_subject_seat`` today, never the intended single-seat
+    happy path.
+    """
+    family = family_manifest()
+    seat_ids = [seat.id for seat in case.seats]
+    if focal_seat not in seat_ids:
+        raise ValueError(f"focal_seat {focal_seat!r} is not one of this case's seats")
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"alympics_wac_{suffix}_sample_v1",
+            "estimand": "fixed_alympics_wac_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"alympics_wac_{suffix}_block",
+            "kind": "controlled",
+            "subject_seats": [focal_seat],
+            "controlled_profiles": {
+                seat: _ALYMPICS_FIXTURE_PROFILE_ID for seat in seat_ids if seat != focal_seat
+            },
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"alympics_wac_{suffix}_analysis_v1",
+            "estimands": [alympics_measurement.TERMINAL_WEALTH_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"alympics_wac_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _ALYMPICS_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _ALYMPICS_FIXTURE_PROVIDER_ID,
+                "model": "alympics_wac_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {},
+            },
+            "prompt": {
+                "prompt_id": f"alympics_wac_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"alympics.wac scripted seat: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _ALYMPICS_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "alympics_wac_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"alympics_wac_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry, upstream_root=UPSTREAM_ROOT)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    import aeread_families.alympics_wac.environment as alympics_environment_module
+    import aeread.shared_runner.task.execution as execution_module
+
+    environment_path = Path(alympics_environment_module.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(alympics_measurement.__file__)
+    pins = (
+        _pin(PLUGIN_ID, "family_plugin", environment_path),
+        _pin(SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_ALYMPICS_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        # measurement.py declares each leaf's validity-domain predicate and
+        # scorer implementation under its own distinct component id (see
+        # environment.py's family_manifest() docstring on
+        # scoring.reference_provider_ids); every one of those nine must
+        # also be pinned here, or
+        # EvaluationReceipt._validate_and_freeze_plan_pins rejects the
+        # sealed receipt as missing implementations.
+        _pin("alympics_wac_base_domain_predicate", "reference", environment_path),
+        _pin("alympics_wac_bid_legality_gate", "reference", environment_path),
+        _pin("alympics_wac_settlement_shadow_recompute", "reference", environment_path),
+        _pin("alympics_wac_terminal_wealth_baseline_run", "reference", measurement_path),
+        _pin("alympics_wac_survival_baseline_run", "reference", measurement_path),
+        _pin("alympics_wac_terminal_wealth_scorer", "reference", measurement_path),
+        _pin("alympics_wac_survival_scorer", "reference", measurement_path),
+        _pin("alympics_wac_bid_legality_scorer", "reference", measurement_path),
+        _pin("alympics_wac_settlement_exactness_scorer", "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _ALYMPICS_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return AlympicsWacSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
+
+
+def _clean_episode_answer(request: Any) -> Mapping[str, Any]:
+    """A legal, boring bid every round for every seat -- 1 unit, always
+    affordable -- for the finalizer receipt test's "clean episode" (no
+    eliminations, no illegal bids, ``status="ok"``,
+    ``inclusion_status="included"``)."""
+    return {"bid": 1}
+
+
+# The single subject seat the finalizer receipt test's resolved plan names
+# (ruling R12) -- an arbitrary seat, not "alex" for any FOCAL_SEAT-shaped
+# reason (that convention is gone); every seat bids identically under
+# ``_clean_episode_answer``, so any seat is an equally valid subject here.
+_FINALIZE_RECEIPT_FOCAL_SEAT = "alex"
 
 
 # ---------------------------------------------------------------------------
@@ -490,3 +1014,198 @@ def test_replay_and_verify_with_no_original_in_memory_never_fabricates_a_match(
     # Re-scoring the replayed episode from its own state still works --
     # only the *comparison* is unavailable, never the scoring.
     assert report.scores.terminal_wealth.status == "ok"
+
+
+def test_finalize_wires_alympics_wac_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+
+    Every other family already migrated to the ``FamilyScoringInput``
+    contract has at least one test driving a real episode through
+    ``task.evaluation.finalize_family_execution`` (see
+    ``tests/test_govsim_replay.py``'s identically-purposed
+    ``test_finalize_wires_govsim_to_the_shared_family_finalizer``);
+    alympics.wac had none, because its existing scripted response source
+    (``ScriptedAlympicsWacHarness``) writes only its own convenience event
+    and has never produced evidence ``finalize_family_execution``'s
+    internal ``replay_family_scoring_input`` call can replay --
+    ``EvidenceRecordingAlympicsWacHarness`` (this module, above) is what
+    makes this reachable.
+
+    Drives one small, real, upstream-backed CLEAN episode (every seat bids
+    a fixed, always-legal ``1`` every round; nobody is ever eliminated) end
+    to end through the real finalizer and asserts a receipt comes back
+    carrying EXACTLY this family's four declared finalize-time leaf ids and
+    the declared primary -- not merely that a receipt came back.
+
+    Ruling R12: the resolved plan's ``EvaluationBlock`` names exactly ONE
+    subject seat (``_FINALIZE_RECEIPT_FOCAL_SEAT``, "alex") --
+    ``finalize_family_execution``'s own ``_seat_context_for_cell`` reads
+    that into ``scoring_input.seat_context``, which
+    ``AlympicsWacScorer.__call__`` resolves to that seat -- so this stays
+    the happy path (``status="ok"``, ``inclusion_status="included"``), not
+    the ``ambiguous_subject_seat`` a self-play block naming every seat a
+    subject would now produce.
+    """
+    case = kernel_contract_fixture_case(rounds=2, suffix="finalize_receipt")
+    setup = build_alympics_setup(
+        case, suffix="finalize_receipt", focal_seat=_FINALIZE_RECEIPT_FOCAL_SEAT
+    )
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAlympicsWacHarness(
+        answer=_clean_episode_answer, evidence=evidence
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        alympics_measurement.TERMINAL_WEALTH_LEAF_ID,
+        alympics_measurement.SURVIVAL_LEAF_ID,
+        alympics_measurement.BID_LEGALITY_LEAF_ID,
+        alympics_measurement.SETTLEMENT_EXACTNESS_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == alympics_measurement.TERMINAL_WEALTH_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    for score in receipt.scores:
+        assert score.status == "ok"
+
+
+def test_run_plan_resolves_for_every_seat_as_the_sole_declared_subject() -> None:
+    """Ruling R12 step 3(c): confirms no per-focal-seat variant of
+    ``family_manifest()``'s nine ``scoring.reference_provider_ids`` is
+    needed (or may exist).
+
+    ``resolve_run_plan``'s pin-completeness check (``run/resolver.py``'s
+    ``_required_pin_kinds``) is computed purely from the manifest, which
+    never varies by which seat a plan names the subject -- every
+    ``ImplementationRef`` these leaves carry is a fixed component id
+    naming adapter source code, never anything about which seat is
+    focal (``environment.py``'s own ``reference_provider_ids`` docstring,
+    ``measurement.py``'s ``_opponent_panel_sha256`` docstring). Resolving a
+    plan with each of the 5 seats in turn as the SOLE declared subject,
+    against the identical 9 pins every time, is the empirical proof: if a
+    per-seat variant were ever required, one of these would raise
+    ``PlanResolutionError`` ("missing implementation pins" or "unreferenced
+    implementation pins") for every seat but whichever ``build_
+    alympics_setup``'s own pins happened to match.
+    """
+    case = kernel_contract_fixture_case(rounds=2, suffix="pin_resolution_probe")
+    for seat in SEAT_ORDER:
+        setup = build_alympics_setup(
+            case, suffix=f"pin_resolution_probe_{seat}", focal_seat=seat
+        )
+        assert list(setup.plan.evaluation_blocks[0].subject_seats) == [seat]
+        assert setup.plan.implementation_pins  # resolved at all, non-empty
+
+
+def test_call_reports_typed_invalid_reasons_for_zero_and_unknown_subject_seats(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12: ``AlympicsWacScorer.__call__`` resolves
+    ``scoring_input.seat_context.subject_seats`` per call
+    (``measurement.py``'s ``_resolve_focal_seat``). The ambiguous-subject-
+    seat and ok/single-seat paths are already exercised by the
+    scoring-contract protocol fixtures
+    (``tests/test_shared_runner_scoring_contract.py``'s
+    ``_alympics_kernel_contract_fixtures``) and this family's own receipt
+    test above; the remaining two typed reasons -- zero subject seats and
+    an unrecognized one -- are exercised here directly, on the SAME clean
+    episode the receipt test drives, bypassing
+    ``finalize_family_execution`` (which would additionally require a
+    resolved plan's ``EvaluationBlock`` to already name the tested
+    ``subject_seats`` -- this test constructs ``SeatContext`` directly
+    instead, mirroring ``_assert_family_obeys_the_scoring_contract``'s own
+    pattern). Leaf 4 (settlement_exactness) stays "ok" in both cases -- it
+    needs no focal seat at all.
+    """
+    case = kernel_contract_fixture_case(rounds=2, suffix="seat_context_probe")
+    setup = build_alympics_setup(case, suffix="seat_context_probe", focal_seat="alex")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_seat_context_probe",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAlympicsWacHarness(
+        answer=_clean_episode_answer, evidence=evidence
+    )
+    asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    scorer = plugin.build_scorer(family_case)
+
+    per_seat_leaf_ids = (
+        alympics_measurement.TERMINAL_WEALTH_LEAF_ID,
+        alympics_measurement.SURVIVAL_LEAF_ID,
+        alympics_measurement.BID_LEGALITY_LEAF_ID,
+    )
+
+    zero_seats_scoring_input = replay_family_scoring_input(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=evidence,
+        seat_context=SeatContext((), {}),
+    )
+    zero_seats_score_set = scorer(
+        zero_seats_scoring_input, evidence_refs=zero_seats_scoring_input.evidence_refs
+    )
+    for leaf_id in per_seat_leaf_ids:
+        score = next(s for s in zero_seats_score_set.scores if s.leaf.leaf_id == leaf_id)
+        assert score.status == "invalid_measurement"
+        assert score.validity.reasons == ("no_subject_seat",)
+    settlement = next(
+        s
+        for s in zero_seats_score_set.scores
+        if s.leaf.leaf_id == alympics_measurement.SETTLEMENT_EXACTNESS_LEAF_ID
+    )
+    assert settlement.status == "ok"
+
+    unknown_seat_scoring_input = replay_family_scoring_input(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=evidence,
+        seat_context=SeatContext(("frank",), {}),
+    )
+    unknown_seat_score_set = scorer(
+        unknown_seat_scoring_input, evidence_refs=unknown_seat_scoring_input.evidence_refs
+    )
+    for leaf_id in per_seat_leaf_ids:
+        score = next(
+            s for s in unknown_seat_score_set.scores if s.leaf.leaf_id == leaf_id
+        )
+        assert score.status == "invalid_measurement"
+        assert score.validity.reasons == ("unknown_subject_seat",)
+    settlement = next(
+        s
+        for s in unknown_seat_score_set.scores
+        if s.leaf.leaf_id == alympics_measurement.SETTLEMENT_EXACTNESS_LEAF_ID
+    )
+    assert settlement.status == "ok"
