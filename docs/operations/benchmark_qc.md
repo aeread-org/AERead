@@ -312,6 +312,43 @@ Before freezing an estimand, therefore:
   constraint scores exploitation rather than skill, so it is only meaningful
   under a reservation floor and a typed individual-rationality gate.
 
+**Detecting a blind estimand after the fact.** A campaign whose estimand does
+not respond to the subject produces artifacts indistinguishable, to every gate
+above, from one that found a genuine null: the freeze holds, the holdout stays
+sealed, receipts replay, digests recompute, tests pass. The Housing family
+passed all five gates while its subject explained `0.000` of score variance.
+When a result must be audited after execution, the following order isolates the
+cause, and the two steps that identify causes rather than symptoms are the last
+two:
+
+1. Treat a clean null as a claim to attack. A precise interval inside the
+   declared effect is either a finding or a blind instrument.
+2. Decompose the headline into components that can disagree with each other,
+   and check whether one case, world or configuration supplies most of a tail.
+3. Read individual episodes for the extreme cases. Summary statistics do not
+   show an agent violating its own payoff.
+4. Ask whether the anecdote is the pattern by sweeping every cell for the same
+   behaviour.
+5. Test the calibration hypothesis and let it fail. A contrast invariant across
+   a difficulty sweep is evidence about the instrument, not the subjects.
+6. **Decompose the metric's variance by factor: case, opponent, subject.** This
+   is the step that names the cause. If the subject's share is near zero, no
+   sample size, sealing discipline or replication recovers a result.
+7. **Score control policies whose ordering is known before the run, and sweep
+   the counterparty as a controlled variable.** This is the step that proves
+   the mechanism, and separates a metric that cannot see the subject from a
+   counterparty whose own failures bury it.
+
+Steps 6 and 7 require no provider. Run them before the freeze, where they cost
+nothing, rather than after execution, where they cost the campaign.
+
+**Record wrong hypotheses at the moment they are made.** An investigation of
+this kind produces intermediate diagnoses that later prove wrong, and they
+carry the reasoning that made them plausible. Log them under the incident
+standard rather than editing them away once the cause is known; see the
+Housing estimand review for a worked instance, including three such
+corrections.
+
 ### Gate 4: Attribution and experimental controls
 
 **Purpose:** ensure that each result supports its claimed level of attribution.

@@ -327,7 +327,11 @@ making 600 sequential calls.
 9. **A verifier rejecting the model is not a broken pipeline.** Conflating
    the two makes a panel unable to report the thing it measures.
 10. **Decompose the variance of your metric before you trust a result, and do
-    it before the campaign, not after.** Housing ran ten campaigns, a variance
+    it before the campaign, not after.** The full procedure for auditing a
+    result after execution, and the two provider-free steps that identify
+    causes rather than symptoms, are in Gate 3 of
+    [the benchmark QC standard](benchmark_qc.md); the worked instance is the
+    [Housing estimand review](../families/housing/estimand_review.md). Housing ran ten campaigns, a variance
     pilot, a sealed freeze and a 720-cell confirmatory comparison for $6.90,
     and reported a precise null. Decomposing the 717 completed cells
     afterwards showed the case explained 42.8% of score variance and the
