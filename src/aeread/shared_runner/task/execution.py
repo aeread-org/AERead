@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, S
 from ..registry import PluginRegistry, PluginRegistryError
 from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
 from .scheduler import (
+    SchedulerContractError,
     DecisionRequest,
     EpisodeResult,
     PhaseInstance,
@@ -1005,6 +1006,179 @@ def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
     if request.reasoning_token_budget is not None:
         block["max_tokens"] = request.reasoning_token_budget
     return block
+
+
+class ScriptedSeatSource:
+    """Response source for a seat the family resolves itself (a scripted seat).
+
+    docs/kernel_scripted_seats_design.md. The scheduler routes a scripted
+    seat's request here instead of to the executor. This class answers it by
+    calling the plugin's ``scripted_response(policy_id, request, *,
+    world_seed) -> Mapping`` hook -- the structured response the family's
+    ``parse_action`` consumes, exactly what a harness-driven model seat hands
+    the scheduler -- and seals the same lifecycle events the executor seals
+    for a model seat -- ``logical_action_started``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded`` /
+    ``logical_action_agent_action_failure``, ``logical_action_failed`` -- and
+    one action attempt, ordinal 0, with ``action_attempt_started`` and
+    ``action_attempt_succeeded`` in the executor's shapes, because replay
+    reads a logical action's canonical response from its one successful
+    attempt and an attempt is the response source's attempt, not a provider
+    call. Replay therefore walks both kinds of seat with one reader. Two
+    things differ, on purpose: ``logical_action_started`` and the attempt
+    carry ``source: scripted_policy`` and the policy id, and a
+    ``scripted_action`` event seals the response the policy produced. No
+    ``provider_call_*`` event is ever written for a scripted seat, so no
+    receipt can read the turn as model-produced, and there is nothing to
+    bill.
+    """
+
+    SOURCE = "scripted_policy"
+
+    def __init__(self, *, evidence: EvidenceStore, plugin: Any, cell: Any) -> None:
+        hook = getattr(plugin, "scripted_response", None)
+        if not callable(hook):
+            raise SchedulerContractError(
+                f"cell {cell.cell_id!r} names scripted seats {sorted(cell.scripted_seats)} "
+                f"but plugin {type(plugin).__qualname__} has no scripted_response hook"
+            )
+        self.evidence = evidence
+        self._hook = hook
+        self._cell = cell
+        self._policy_by_action: dict[str, str] = {}
+
+    def _policy_for(self, request: DecisionRequest) -> str:
+        policy_id = self._cell.scripted_seats.get(request.seat_id)
+        if policy_id is None:
+            raise SchedulerContractError(
+                f"seat {request.seat_id!r} is not a scripted seat of cell {self._cell.cell_id!r}"
+            )
+        return policy_id
+
+    async def __call__(self, request: DecisionRequest) -> Any:
+        policy_id = self._policy_for(request)
+        self._policy_by_action[request.logical_action_id] = policy_id
+        self.evidence.append_event(
+            "logical_action_started",
+            {
+                "profile_id": request.profile_id,
+                "request": request,
+                "source": self.SOURCE,
+                "policy_id": policy_id,
+            },
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        action_attempt_id = _stable_id(
+            "action_attempt", {"logical_action_id": request.logical_action_id, "ordinal": 0}
+        )
+        self.evidence.append_event(
+            "action_attempt_started",
+            {
+                "ordinal": 0,
+                "retry_reason": None,
+                "session_mode": "scripted",
+                "max_output_tokens": None,
+                "source": self.SOURCE,
+                "policy_id": policy_id,
+            },
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            action_attempt_id=action_attempt_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        structured = self._hook(policy_id, request, world_seed=self._cell.world_seed)
+        if inspect.isawaitable(structured):
+            structured = await structured
+        if not isinstance(structured, Mapping):
+            raise SchedulerContractError(
+                f"scripted policy {policy_id!r} must return the structured response the "
+                f"family's parse_action consumes, got {type(structured).__name__}"
+            )
+        # What the scheduler receives is what a harness-driven model seat
+        # receives: the structured response the family parses. What the
+        # attempt seals is what the executor seals for such a seat: a canonical
+        # response carrying the response text, here the mapping's canonical
+        # JSON -- so parse, legality, the record and replay never distinguish
+        # the two kinds of seat. finish_reason names the source; there is no
+        # provider call to cite and nothing was billed.
+        text = canonical_json_bytes(structured).decode("utf-8")
+        response = CanonicalResponse(
+            text=text,
+            finish_reason="scripted",
+            empty=(text == ""),
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+        )
+        self.evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": response},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            action_attempt_id=action_attempt_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        self.evidence.append_event(
+            "scripted_action",
+            {
+                "policy_id": policy_id,
+                "world_seed": self._cell.world_seed,
+                "response": structured,
+            },
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return structured
+
+    def finalize_logical_action(
+        self, logical_action_id: str, *, valid: bool, failure_code: str | None
+    ) -> None:
+        self.evidence.append_event(
+            "logical_action_succeeded" if valid else "logical_action_agent_action_failure",
+            {"valid": valid, "failure_code": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = getattr(record, "envelope", None)
+        if envelope is None:
+            raise EvidenceIntegrityError("finalize_action requires a logical action record")
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code if not envelope.parse.ok else envelope.legality.reason
+            )
+        self.evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self.evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        self.finalize_logical_action(
+            record.logical_action_id, valid=envelope.valid, failure_code=failure_code
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self.evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
 
 
 class OpenAIResponsesClient:
@@ -3934,11 +4108,17 @@ async def execute_plan_cell(
         },
         request_seed_by_profile=request_seed_by_profile,
     )
+    scripted_source = (
+        ScriptedSeatSource(evidence=evidence, plugin=plugin, cell=cell)
+        if cell.scripted_seats
+        else None
+    )
     result = await run_episode(
         cell=cell,
         case=case,
         plugin=plugin,
         response_source=executor,
+        scripted_source=scripted_source,
     )
     evidence.audit_reconciliation()
     return CellExecution(

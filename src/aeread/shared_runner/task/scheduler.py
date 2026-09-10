@@ -363,8 +363,11 @@ def _validate_cell_case(cell: PlanCell, case: CaseManifest) -> Mapping[str, str]
             f"case {case.case_id!r} content hash changed after plan resolution"
         )
     role_by_seat = {seat.id: seat.role for seat in case.seats}
-    if set(role_by_seat) != set(cell.profile_by_seat):
-        raise SchedulerContractError("cell profile assignments do not cover case seats exactly")
+    filled = set(cell.profile_by_seat) | set(cell.scripted_seats)
+    if set(role_by_seat) != filled:
+        raise SchedulerContractError(
+            "cell profile and scripted seat assignments do not cover case seats exactly"
+        )
     if cell.case_max_logical_actions != case.episode.max_logical_actions:
         raise SchedulerContractError(
             "cell logical-action budget does not match the sealed case budget"
@@ -501,6 +504,7 @@ async def _request_action(
     observation: Any,
     action_ordinal: int,
     response_source: ResponseSource,
+    scripted_source: ResponseSource | None = None,
 ) -> LogicalActionRecord:
     logical_action_id = _stable_id(
         "logical_action",
@@ -511,6 +515,18 @@ async def _request_action(
             "action_ordinal": action_ordinal,
         },
     )
+    # A scripted seat (docs/kernel_scripted_seats_design.md) is answered by
+    # the family's declared policy through its own response source, never by
+    # the executor; everything after the response -- parse, legality, the
+    # record -- is the same path a model seat takes.
+    scripted_policy = cell.scripted_seats.get(seat_id)
+    if scripted_policy is not None:
+        if scripted_source is None:
+            raise SchedulerContractError(
+                f"seat {seat_id!r} is scripted with {scripted_policy!r} but no "
+                "scripted_source was supplied"
+            )
+        response_source = scripted_source
     request = DecisionRequest(
         episode_id=episode_id,
         phase_instance_id=phase_instance_id,
@@ -520,7 +536,11 @@ async def _request_action(
         phase_id=phase.phase_id,
         seat_id=seat_id,
         role=role,
-        profile_id=cell.profile_by_seat[seat_id],
+        profile_id=(
+            f"scripted:{scripted_policy}"
+            if scripted_policy is not None
+            else cell.profile_by_seat[seat_id]
+        ),
         observation_schema=phase.observation_schema_by_role[role],
         action_schema=phase.action_schema_by_role[role],
         observation=_freeze(observation),
@@ -695,6 +715,7 @@ async def run_episode(
     case: CaseManifest,
     plugin: Any,
     response_source: ResponseSource,
+    scripted_source: ResponseSource | None = None,
 ) -> EpisodeResult:
     """Execute one resolved cell without owning or invoking a model provider."""
     role_by_seat = _validate_cell_case(cell, case)
@@ -825,6 +846,7 @@ async def run_episode(
                         observation=observations[seat_id],
                         action_ordinal=logical_action_count - 1,
                         response_source=response_source,
+                        scripted_source=scripted_source,
                     )
                     action_records.append(record)
                     envelopes[seat_id] = record.envelope
@@ -881,6 +903,7 @@ async def run_episode(
                         observation=observations[seat_id],
                         action_ordinal=logical_action_count - 1,
                         response_source=response_source,
+                        scripted_source=scripted_source,
                     )
                     action_records.append(record)
                     transition = _step(

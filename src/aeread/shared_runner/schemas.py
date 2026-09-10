@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping
 
@@ -1604,6 +1604,27 @@ class RunSpec:
     execution_mode: str
     replicate_override: int | None
     budget_overrides: BudgetOverrides | None
+    # Scripted seats (docs/kernel_scripted_seats_design.md): seat id -> policy
+    # id, for a seat the family resolves itself rather than a model. Such a
+    # seat has no profile, no provider, no admission and no cost; it must be
+    # absent from ``seat_assignments`` and the resolver requires its policy to
+    # be declared under the seat's role. Digest-neutral when empty, so every
+    # plan sealed before this field existed hashes exactly as it did. A
+    # factory default: dataclasses on Python < 3.12 reject a mappingproxy as
+    # a plain default, and the omit rule looks through the factory.
+    scripted_seats: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
+
+    def __post_init__(self) -> None:
+        # Guarded here, not only in ``from_dict``: ``dataclasses.replace`` is a
+        # construction path too (the lesson R12/R13 recorded).
+        overlap = sorted(set(self.scripted_seats) & set(self.seat_assignments))
+        if overlap:
+            raise AuthoringValidationError(
+                f"RunSpec.scripted_seats and seat_assignments both name seats {overlap}; "
+                "a seat is either a model or scripted, never both"
+            )
 
     @classmethod
     def from_dict(cls, value: Any) -> "RunSpec":
@@ -1620,6 +1641,7 @@ class RunSpec:
                 "replicate_override",
                 "budget_overrides",
             },
+            optional={"scripted_seats"},
             path="RunSpec",
         )
         _require_spec_version(data["spec_version"], cls.SPEC_VERSION, "RunSpec")
@@ -1631,6 +1653,7 @@ class RunSpec:
                 f"RunSpec.seat_assignments references undeclared profiles: {unknown_profiles}"
             )
         raw_overrides = data["budget_overrides"]
+        scripted = _string_mapping(data.get("scripted_seats", {}), "RunSpec.scripted_seats")
         return cls(
             spec_version=cls.SPEC_VERSION,
             run_spec_id=_identifier(data["run_spec_id"], "RunSpec.run_spec_id"),
@@ -1653,6 +1676,7 @@ class RunSpec:
                 if raw_overrides is None
                 else BudgetOverrides.from_dict(raw_overrides, "RunSpec.budget_overrides")
             ),
+            scripted_seats=MappingProxyType(dict(sorted(scripted.items()))),
         )
 
 

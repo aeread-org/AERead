@@ -15,7 +15,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import ClassVar, Any, Mapping, Sequence
 
 from ..registry import (
     HarnessRegistry,
@@ -183,6 +183,17 @@ class PlanCell:
     profile_by_seat: Mapping[str, str]
     execution_mode: str
     case_max_logical_actions: int
+    # Seats this cell fills from a family policy rather than a model
+    # (docs/kernel_scripted_seats_design.md). Carried on the cell so the
+    # scheduler needs no back-reference to the run spec. Digest-neutral when
+    # empty, and omitted from the cell-id digest below for the same reason.
+    # A factory, not a plain default: dataclasses on Python < 3.12 reject a
+    # mappingproxy default as mutable; ``field_default`` looks through it.
+    scripted_seats: Mapping[str, str] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset({"scripted_seats"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,6 +239,19 @@ class RunPlan:
     profile_admissions: tuple[ProfileAdmission, ...]
 
 
+def field_default(field: "dataclasses.Field[Any]") -> Any:
+    """The value a dataclass field holds when nothing set it: its plain
+    default, or a fresh value from its factory. The omit-if-default rule
+    looks through both, because a ``mappingproxy`` default has to be a
+    factory (``dataclasses`` rejects it as a plain default on Python < 3.12,
+    where ``mappingproxy`` is unhashable)."""
+    if field.default is not dataclasses.MISSING:
+        return field.default
+    if field.default_factory is not dataclasses.MISSING:  # type: ignore[misc]
+        return field.default_factory()  # type: ignore[misc]
+    return dataclasses.MISSING
+
+
 def _canonical_value(value: Any) -> Any:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         # Ruling R1 (kernel_scoring_contract_spec.md): a dataclass may opt a
@@ -242,7 +266,7 @@ def _canonical_value(value: Any) -> Any:
         output: dict[str, Any] = {}
         for field in dataclasses.fields(value):
             current = getattr(value, field.name)
-            if field.name in omit_if_default and current == field.default:
+            if field.name in omit_if_default and current == field_default(field):
                 continue
             output[field.name] = _canonical_value(current)
         return output
@@ -825,12 +849,33 @@ def _validate_cross_references(
             )
         seat_ids = {seat.id for seat in case.seats}
         assignment_ids = set(run_spec.seat_assignments)
-        if seat_ids != assignment_ids:
+        scripted_ids = set(run_spec.scripted_seats)
+        filled_ids = assignment_ids | scripted_ids
+        if seat_ids != filled_ids:
             raise PlanResolutionError(
-                f"case {case_id!r} seats and RunSpec seat_assignments differ: "
-                f"case_only={sorted(seat_ids - assignment_ids)}, "
-                f"run_only={sorted(assignment_ids - seat_ids)}"
+                f"case {case_id!r} seats and RunSpec seat_assignments + scripted_seats differ: "
+                f"case_only={sorted(seat_ids - filled_ids)}, "
+                f"run_only={sorted(filled_ids - seat_ids)}"
             )
+        # A scripted seat is a family-resolved seat, not a model. Its policy
+        # must be one the family declares for that role, and the role may not
+        # be testable: a scripted subject is a measurement of nothing.
+        for seat in case.seats:
+            if seat.id not in scripted_ids:
+                continue
+            role = family.roles[seat.role]
+            policy_id = run_spec.scripted_seats[seat.id]
+            if policy_id not in role.scripted_policies:
+                raise PlanResolutionError(
+                    f"case {case_id!r} seat {seat.id!r} is scripted with policy "
+                    f"{policy_id!r}, which role {seat.role!r} does not declare "
+                    f"(declared: {sorted(role.scripted_policies)})"
+                )
+            if role.testable:
+                raise PlanResolutionError(
+                    f"case {case_id!r} seat {seat.id!r} is scripted but its role "
+                    f"{seat.role!r} is testable; a scripted seat cannot be a subject"
+                )
         for block_id in suite.evaluation_block_ids:
             block = block_by_id[block_id]
             unknown_subjects = sorted(set(block.subject_seats) - seat_ids)
@@ -840,10 +885,22 @@ def _validate_cross_references(
                     f"block {block_id!r} references unavailable seats: "
                     f"subjects={unknown_subjects}, controls={unknown_controls}"
                 )
+            # A scripted seat may be a block's control -- a fixed policy is
+            # the archetypal control -- but never its subject: a scripted
+            # subject is a measurement of nothing.
+            scripted_subjects = sorted(set(block.subject_seats) & scripted_ids)
+            if scripted_subjects:
+                raise PlanResolutionError(
+                    f"block {block_id!r} names scripted seat(s) {scripted_subjects} as a "
+                    "subject; a scripted seat cannot be a subject"
+                )
+            # The controlled identity is whatever fills the seat: a profile id
+            # for a model seat, a policy id for a scripted one.
+            filled_by = {**run_spec.scripted_seats, **run_spec.seat_assignments}
             control_mismatch = {
-                seat_id: (profile_id, run_spec.seat_assignments[seat_id])
+                seat_id: (profile_id, filled_by[seat_id])
                 for seat_id, profile_id in block.controlled_profiles.items()
-                if run_spec.seat_assignments[seat_id] != profile_id
+                if filled_by[seat_id] != profile_id
             }
             if control_mismatch:
                 raise PlanResolutionError(
@@ -1035,6 +1092,13 @@ def resolve_run_plan(
             **draft,
             "observations_per_cluster": cluster_counts[draft["cluster_id"]],
         }
+        # Added only when non-empty: cell_id is a digest of this dict, and a
+        # plan with no scripted seats must keep every cell id it had.
+        if run_spec.scripted_seats:
+            completed["scripted_seats"] = MappingProxyType(
+                dict(sorted(run_spec.scripted_seats.items()))
+            )
+
         cell_id = "cell_" + _digest(completed)[:20]
         cells.append(PlanCell(cell_id=cell_id, **completed))
     cells.sort(key=lambda cell: cell.cell_id)
@@ -1151,6 +1215,7 @@ def write_run_plan(plan: RunPlan, destination: str | Path) -> Path:
 
 
 __all__ = [
+    "field_default",
     "CapabilityExclusionError",
     "ImplementationPin",
     "PlanCell",

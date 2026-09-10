@@ -23,7 +23,7 @@ from ..measurement import (
     MeasurementContractError,
     ScoreEnvelope,
 )
-from ..run.resolver import ImplementationPin, canonical_json_bytes
+from ..run.resolver import ImplementationPin, canonical_json_bytes, field_default
 from ..schemas import is_exportable_id
 
 
@@ -128,8 +128,11 @@ class EvaluationReceipt:
     # mechanism exists to avoid. See ``_receipt_content_sha256`` for the
     # matching fix that keeps ``receipt_sha256`` itself consistent with this
     # omission.
+    # ``scripted_seats`` (docs/kernel_scripted_seats_design.md) is omitted
+    # under the same rule, for the same reason: every receipt sealed before
+    # the field existed keeps its digest.
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
-        {"inapplicable_leaf_ids"}
+        {"inapplicable_leaf_ids", "scripted_seats"}
     )
 
     spec_version: str
@@ -190,6 +193,15 @@ class EvaluationReceipt:
     # defeating the omission for every receipt regardless of this field's
     # actual value.
     inapplicable_leaf_ids: tuple[str, ...] = ()
+    # Seats this cell filled from a family policy rather than a model
+    # (docs/kernel_scripted_seats_design.md), seat id -> policy id. Kept apart
+    # from agent_profile_sha256_by_seat, which names model seats only, so
+    # ruling R12's seat-set check compares like with like. A factory default
+    # (dataclasses on Python < 3.12 reject a mappingproxy as a plain default);
+    # the omit-if-default rule looks through it via ``field_default``, and
+    # that is what keeps every receipt sealed before this field existed
+    # byte-identical.
+    scripted_seats: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     SPEC_VERSION = "aeread.receipt/0.1"
 
@@ -259,6 +271,16 @@ class EvaluationReceipt:
         self._validate_and_freeze_scores()
         self._validate_evidence()
 
+        scripted = dict(self.scripted_seats)
+        for seat_id, policy_id in scripted.items():
+            _require_id(seat_id, "scripted seat id")
+            _require_id(policy_id, f"scripted policy for seat {seat_id!r}")
+        if set(scripted) & set(self.agent_profile_sha256_by_seat):
+            raise MeasurementContractError(
+                "a seat cannot be both scripted and profiled: "
+                f"{sorted(set(scripted) & set(self.agent_profile_sha256_by_seat))}"
+            )
+        object.__setattr__(self, "scripted_seats", MappingProxyType(dict(sorted(scripted.items()))))
         deferred_leaf_ids = tuple(self.deferred_leaf_ids)
         if len(set(deferred_leaf_ids)) != len(deferred_leaf_ids):
             raise MeasurementContractError("deferred_leaf_ids must not contain duplicates")
@@ -500,7 +522,7 @@ def _receipt_content_sha256(receipt: EvaluationReceipt) -> str:
         if item.name != "receipt_sha256"
         and not (
             item.name in omit_if_default
-            and getattr(receipt, item.name) == item.default
+            and getattr(receipt, item.name) == field_default(item)
         )
     }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
