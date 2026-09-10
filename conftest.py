@@ -124,6 +124,19 @@ _BRIDGE_FAMILIES = (
             "pinned upstream NegotiationArena checkout not found",
         ),
     ),
+    (
+        "AEREAD_GOVSIM_BRIDGE_REQUIRED",
+        (
+            "Provide the pinned upstream checkout (AEREAD_GOVSIM_UPSTREAM_ROOT) "
+            "and an interpreter for it (tools/govsim_bridge/provision.sh, then "
+            "export $AEREAD_GOVSIM_BRIDGE_PYTHON), or unset "
+            "$AEREAD_GOVSIM_BRIDGE_REQUIRED to allow skipping."
+        ),
+        (
+            "no pinned upstream govsim Python interpreter found",
+            "pinned upstream govsim checkout not found",
+        ),
+    ),
 )
 
 
@@ -139,6 +152,7 @@ _BRIDGE_FAMILY_DISPLAY = {
     "AEREAD_ECONAGENT_BRIDGE_REQUIRED": {"family": "EconAgent (econagent_v1 adapter)", "title": "upstream bridge required: EconAgent (econagent_v1 adapter)", "note_when_unenforced": False},
     "AEREAD_AMAZONBARG_BRIDGE_REQUIRED": {"family": "AmazonPriceHistory (amazonbarg.bilateral adapter)", "title": "upstream bridge required: AmazonPriceHistory (amazonbarg.bilateral adapter)", "note_when_unenforced": False},
     "AEREAD_NEGARENA_BRIDGE_REQUIRED": {"family": "NegotiationArena (negarena adapter)", "title": "upstream bridge required: NegotiationArena (negarena adapter)", "note_when_unenforced": False},
+    "AEREAD_GOVSIM_BRIDGE_REQUIRED": {"family": "GovSim (govsim adapter)", "title": "upstream bridge required: GovSim (govsim adapter)", "note_when_unenforced": False},
 }
 
 
