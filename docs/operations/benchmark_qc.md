@@ -278,6 +278,40 @@ Stop when stronger and weaker policies are indistinguishable under the declared
 rule, performance is driven by a shortcut, or the metric hides a critical
 validity or component failure.
 
+**A single efficiency metric is never sufficient on its own, and a
+transfer-cancelling one cannot measure a seat whose lever is the transfer.**
+Twice now a family has run a full campaign against a metric that was
+structurally incapable of responding to the agent under test. In procurement,
+award feasibility is a deterministic step in the action budget, so three
+panels were rejected for what looked like calibration. In Housing, social
+welfare sums value minus rent plus rent minus cost, so every transfer cancels
+exactly; the tenant seat's only lever is the price it agrees to; and a sealed
+720-cell confirmatory comparison reported a precise null in which the subject
+under test explained 0.000 of score variance. Both metrics were correct. Both
+were blind to the thing the campaign existed to compare.
+
+Before freezing an estimand, therefore:
+
+- **Name each seat's levers and check the primary metric is a function of
+  them.** Efficiency metrics answer "was the right allocation found". They do
+  not answer "who captured the value", and a seat that only moves the second
+  is invisible to the first. Declare a distribution-side estimand, such as the
+  subject's realized surplus normalized to the same bound, co-primary rather
+  than as a secondary slice.
+- **Prove sensitivity provider-free, before spending.** Score the declared
+  control ladder on the frozen panel and confirm the primary separates it. A
+  truthful-bidding policy is the sharpest probe available here: it wins
+  allocations as often as a shrewd one and captures nothing, so any metric
+  that rates the two alike is transfer-blind and must not be the sole primary.
+- **Decompose the metric's variance across case, opponent and subject.** If
+  the subject's share is near zero, no sample size, sealing or replication
+  will recover a result; those protections all assume the estimand responds to
+  the comparison.
+- **A distribution-side metric requires the validity guards.** Surplus
+  measured against a counterparty that violates its own participation
+  constraint scores exploitation rather than skill, so it is only meaningful
+  under a reservation floor and a typed individual-rationality gate.
+
 ### Gate 4: Attribution and experimental controls
 
 **Purpose:** ensure that each result supports its claimed level of attribution.

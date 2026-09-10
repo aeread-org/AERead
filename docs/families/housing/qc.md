@@ -1593,6 +1593,39 @@ metric scores exploitation of a broken counterparty as skill. It is
 meaningful only under D-23's rent floor and D-24's subject-IR gate, which is
 why those land together (D-27).
 
+### The paired test on the distribution-side metric
+
+Rerunning the frozen estimand structure on tenant surplus, over the same
+worlds and the same equal weighting, separates the two questions the previous
+section raised. The metric is necessary but not sufficient on its own:
+
+| contrast, GLM minus DeepSeek | n | mean | 95% interval | excludes zero |
+|---|---|---|---|---|
+| welfare, the frozen primary | 27 | `+0.005` | `-0.016` to `+0.025` | no |
+| tenant surplus | 27 | `+0.465` | `-0.196` to `+1.126` | no |
+| tenant surplus, less the degenerate world | 26 | `+0.157` | `-0.042` to `+0.357` | no |
+| tenant surplus vs a DeepSeek landlord | 28 | `+0.186` | `+0.149` to `+0.222` | **yes** |
+| tenant surplus vs a GLM landlord | 27 | `+0.135` | `-0.236` to `+0.507` | no |
+
+Read together these say the signal exists and the counterparty destroys it.
+Against the landlord that rejects 6.2% of responses and signs nothing below
+cost, the subject difference is `+0.186` with an interval of about `±0.037`,
+3.7 times the declared minimum meaningful effect, and it excludes zero
+decisively. Against the landlord that signed 264 leases at zero rent, the same
+contrast has a standard deviation seven times larger and excludes nothing. The
+opponent does not bias the paired estimand, since the design balances it and
+the main effect cancels, but a counterparty violating its own participation
+constraint injects variance the pairing cannot remove.
+
+So the answer to "is the landlord holding too much lever" is: not leverage,
+brokenness. A well-behaved opponent leaves the subject cleanly measurable. This
+is why the rent floor and the individual-rationality gate are preconditions for
+the surplus estimand rather than accounting hygiene beside it.
+
+These numbers are post-hoc, on a spent holdout, using an estimand that was not
+predeclared, and the favourable slice was chosen after seeing it. They are a
+hypothesis for the next campaign identity, not a result (D-27).
+
 ### Individual rationality is a validity constraint, not a metric
 
 The finding shows a design that treats a validity constraint as a metric. A
