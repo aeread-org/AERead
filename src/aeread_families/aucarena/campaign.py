@@ -34,6 +34,7 @@ from .live import (
     build_live_setup,
     load_case,
 )
+from .cases import validate_measurement_cells
 
 CAMPAIGN_ID = "aucarena_glm5p2_arena_first_light_v3"
 CELLS = (
@@ -41,7 +42,7 @@ CELLS = (
     ("aucarena.pilot.valid_but_poor_01", 300),
     ("aucarena.pilot.invalid_unauthorized_01", 300),
     ("aucarena.pilot.malformed_operational_01", 300),
-    ("aucarena.pilot.degenerate_reference_01", 300),
+    ("aucarena.pilot.frozen_field_item5_01", 300),
     ("aucarena.pilot.successful_01", 301),
 )
 MAX_CASE_COST_USD = 0.03
@@ -65,6 +66,7 @@ def _checkpoint_name(ordinal: int, case_id: str, seed: int) -> str:
 
 
 def campaign_plan() -> dict[str, Any]:
+    validate_measurement_cells(CELLS)
     panel = []
     for case_id, seed in CELLS:
         case = load_case(case_id)
@@ -89,6 +91,7 @@ def campaign_plan() -> dict[str, Any]:
             "max_output_tokens": MAX_OUTPUT_TOKENS,
             "reasoning_effort": "none",
             "sixth_cell": "prespecified replicate of successful_01",
+            "qc_cells": ["aucarena.pilot.degenerate_reference_01"],
         },
         "budget": {
             "max_case_cost_usd": MAX_CASE_COST_USD,

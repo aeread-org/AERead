@@ -9,6 +9,12 @@ def test_campaign_freezes_six_cells_and_local_rule_profiles() -> None:
     plan = campaign_plan()
     assert len(CELLS) == 6
     assert len(plan["panel"]) == 6
+    assert "aucarena.pilot.degenerate_reference_01" not in {
+        case_id for case_id, _seed in CELLS
+    }
+    assert "aucarena.pilot.frozen_field_item5_01" in {
+        case_id for case_id, _seed in CELLS
+    }
     setup = build_live_setup(case_id="aucarena.pilot.successful_01")
     profiles = dict(setup.plan.cells[0].profile_by_seat)
     assert profiles["agent"].startswith("aucarena_glm5p2_arena")
