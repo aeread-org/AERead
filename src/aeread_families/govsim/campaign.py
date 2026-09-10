@@ -85,7 +85,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # what they say reaches every other agent's next observation -- so it gets
 # its own identity rather than overwriting v1's published bundle. Both stay
 # readable side by side, which is the comparison worth having.
-CAMPAIGN_ID = "govsim_glm53_flash_parasail_dialogue_v2"
+# v3, not a rerun of v2: v2's completed attempt (3/3, $0.0397) froze
+# environment.py at the digest that preceded the `.get("message", "")`
+# fix, and a plan `main` cannot rebuild from its own source is not
+# publishable under that identity (G-D-02 in the family's incident ledger).
+CAMPAIGN_ID = "govsim_glm53_flash_parasail_dialogue_v3"
 CANARY_CASE_ID = "govsim.fishing.sustainable.0"
 # One per scenario; see the module docstring on why not all nine.
 PANEL_CASE_IDS = (
