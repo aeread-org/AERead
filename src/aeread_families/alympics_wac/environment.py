@@ -39,8 +39,9 @@ import logging
 import subprocess
 import sys
 import types
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Mapping, NamedTuple
+from typing import Any, Iterator, Mapping, NamedTuple
 
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
@@ -277,8 +278,9 @@ def _plain(value: Any) -> Any:
 _UPSTREAM_ROOT_BY_MODULE: dict[str, str] = {}
 
 
-def _install_openai_stub() -> None:
-    """Install a safe placeholder before importing upstream, if needed.
+@contextmanager
+def _openai_placeholder() -> Iterator[None]:
+    """Bind a safe placeholder to ``openai`` for the upstream import only.
 
     ``Alympics.py`` does a module-level ``import openai`` but touches no
     attribute on it at import time; ``LLM.__init__`` only ever *sets*
@@ -286,11 +288,37 @@ def _install_openai_stub() -> None:
     ``openai.ChatCompletion``) is always replaced per-instance below before
     it can ever run. Safe on any object, including a bare
     ``types.ModuleType`` placeholder -- installed only if nothing has
-    already imported the real package in this process (harmless either way,
-    since no code path here ever calls anything on it).
+    already imported the real package in this process.
+
+    Scoped to the import, and withdrawn again on the way out. ``sys.modules``
+    is process-global: a placeholder left resident there is handed to every
+    later ``import openai`` anywhere in the process, and a bare
+    ``ModuleType`` carries none of the real package's attributes -- so the
+    next family that needs the real ``openai`` fails with an
+    ``AttributeError`` raised in its own code and caused by this one.
+    amazonbarg's upstream shim subclasses ``openai.OpenAI`` and fails
+    outright once this function has run in the same interpreter (#162),
+    which is why the placeholder is no longer left behind.
+
+    Withdrawing it costs this family nothing: upstream's own module global
+    still holds a direct reference to the placeholder object from its
+    import, so the attributes ``LLM.__init__`` sets keep landing on the
+    placeholder. It is in fact stricter than before -- those assignments can
+    no longer reach the real package's shared module state.
     """
-    if "openai" not in sys.modules:
-        sys.modules["openai"] = types.ModuleType("openai")
+    if "openai" in sys.modules:
+        yield
+        return
+    placeholder = types.ModuleType("openai")
+    sys.modules["openai"] = placeholder
+    try:
+        yield
+    finally:
+        # By identity: if anything inside the window rebound the name (the
+        # real package finally being imported, say), that is what every
+        # later importer should keep seeing.
+        if sys.modules.get("openai") is placeholder:
+            del sys.modules["openai"]
 
 
 def _load_upstream(upstream_root: Path) -> Any:
@@ -311,14 +339,14 @@ def _load_upstream(upstream_root: Path) -> Any:
     if bound_root == root_key and module_key in sys.modules:
         return sys.modules[module_key]
 
-    _install_openai_stub()
     src_dir = str(Path(upstream_root) / "src")
     previous_flag = sys.dont_write_bytecode
     sys.dont_write_bytecode = True
     try:
-        if src_dir not in sys.path:
-            sys.path.insert(0, src_dir)
-        import waterAllocation as wa_module  # noqa: F401 (also imports Alympics)
+        with _openai_placeholder():
+            if src_dir not in sys.path:
+                sys.path.insert(0, src_dir)
+            import waterAllocation as wa_module  # noqa: F401 (also imports Alympics)
     finally:
         sys.dont_write_bytecode = previous_flag
 
