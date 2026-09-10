@@ -70,8 +70,8 @@ from .live import (
     BASELINE_PROMPT,
     BASELINE_PROMPT_ID,
     GLM53_FLASH_PARASAIL,
-    GPT35_TURBO_OPENAI,
-    GPT4O_20240513_OPENAI,
+    GPT4O_20240806_OPENAI,
+    GPT4O_MINI_OPENAI,
     MAX_OUTPUT_TOKENS_UNCONSTRAINED,
     REASONING_UNCONSTRAINED_V1,
     RouteSpec,
@@ -148,20 +148,27 @@ CAMPAIGNS: Mapping[str, CampaignSpec] = MappingProxyType({
         # survives in our harness, the environment cannot produce collapse
         # and our GLM result means much less than it appears to.
         CampaignSpec(
-            campaign_id="govsim_gpt35_turbo_baseline_v1",
-            route=GPT35_TURBO_OPENAI,
+            campaign_id="govsim_gpt4o_mini_baseline_v1",
+            route=GPT4O_MINI_OPENAI,
             max_trajectory_cost_usd=0.40,
             hard_total_cost_ceiling_usd=1.50,
             max_canary_cost_usd=0.02,
-            purpose="the paper's collapsing agent: 0% survival, 1.1 months",
+            purpose=(
+                "not a paper agent: the weakest model this harness can reach, "
+                "asked whether this environment can produce a collapse at all"
+            ),
         ),
         CampaignSpec(
-            campaign_id="govsim_gpt4o_20240513_baseline_v1",
-            route=GPT4O_20240513_OPENAI,
+            campaign_id="govsim_gpt4o_20240806_baseline_v1",
+            route=GPT4O_20240806_OPENAI,
             max_trajectory_cost_usd=1.20,
             hard_total_cost_ceiling_usd=4.00,
             max_canary_cost_usd=0.05,
-            purpose="the paper's best agent: 53.3% survival, 9.3 months",
+            purpose=(
+                "the nearest reachable snapshot to the paper's best agent "
+                "(GPT-4o: 53.3% survival, 9.3 months); three months later "
+                "than the snapshot it ran"
+            ),
         ),
     )
 })

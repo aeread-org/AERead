@@ -128,38 +128,55 @@ GLM53_FLASH_PARASAIL = RouteSpec(
 # Every other agent in that paper -- Claude-3 Opus/Sonnet/Haiku, Llama-3,
 # Mistral, Mixtral, Qwen -- is unreachable under this kernel's declared-seed
 # requirement (#172), so these two are what the comparison can have.
-GPT35_TURBO_OPENAI = RouteSpec(
-    model="openai/gpt-3.5-turbo",
-    revision="openai/gpt-3.5-turbo",
+# NOT a model the paper evaluated, and it is here for a different job. The
+# paper's collapsing agents -- GPT-3.5, Claude-3 Haiku/Sonnet, Llama-3,
+# Mistral, Qwen-72B, all at 0% survival -- are every one of them unreachable:
+# the Anthropic and open-weight endpoints refuse a declared seed, and
+# `gpt-3.5-turbo` refuses `json_schema` outright. So no paper agent can play
+# the control. `gpt-4o-mini` is the weakest agent this harness can reach, and
+# it was the weakest of the three in the TERMS-Bench panels by a wide margin;
+# the question it answers is not "does our number match the paper's" but the
+# one underneath it: can this environment produce a collapse at all, or does
+# every model it can run survive?
+GPT4O_MINI_OPENAI = RouteSpec(
+    model="openai/gpt-4o-mini-2024-07-18",
+    revision="openai/gpt-4o-mini-2024-07-18",
     route_provider="OpenAI",
     quantization="unknown",
-    max_prompt_price_per_million="0.50",
-    max_completion_price_per_million="1.50",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.60",
     pricing=TokenPricing(
-        input_per_million=0.50,
-        cached_input_per_million=0.50,
-        output_per_million=1.50,
-        pricing_id="openrouter_2026-09-10_gpt35_turbo_openai",
+        input_per_million=0.15,
+        cached_input_per_million=0.075,
+        output_per_million=0.60,
+        pricing_id="openrouter_2026-09-10_gpt4o_mini_openai",
     ),
-    profile_suffix="gpt35_turbo",
+    profile_suffix="gpt4o_mini",
     output_schema_dialect="strict",
 )
 
-# The dated snapshot the 2024 paper would have run, not the moving alias.
-GPT4O_20240513_OPENAI = RouteSpec(
-    model="openai/gpt-4o-2024-05-13",
-    revision="openai/gpt-4o-2024-05-13",
+# The nearest reachable snapshot to the paper's best agent, and NOT the one
+# it ran. `gpt-4o-2024-05-13` -- the snapshot current when the paper was
+# written -- refuses our request: "'response_format' of type 'json_schema'
+# is not supported with this model". OpenAI's Structured Outputs arrived
+# with `2024-08-06`, so every model the 2024 paper evaluated predates the
+# feature this harness requires, and `gpt-3.5-turbo` never gained it at all.
+# Three months of model separate this route from the paper's row, and that
+# is a caveat on the comparison rather than a detail (#172).
+GPT4O_20240806_OPENAI = RouteSpec(
+    model="openai/gpt-4o-2024-08-06",
+    revision="openai/gpt-4o-2024-08-06",
     route_provider="OpenAI",
     quantization="unknown",
-    max_prompt_price_per_million="5.00",
-    max_completion_price_per_million="15.00",
+    max_prompt_price_per_million="2.50",
+    max_completion_price_per_million="10.00",
     pricing=TokenPricing(
-        input_per_million=5.00,
-        cached_input_per_million=2.50,
-        output_per_million=15.00,
-        pricing_id="openrouter_2026-09-10_gpt4o_20240513_openai",
+        input_per_million=2.50,
+        cached_input_per_million=1.25,
+        output_per_million=10.00,
+        pricing_id="openrouter_2026-09-10_gpt4o_20240806_openai",
     ),
-    profile_suffix="gpt4o_20240513",
+    profile_suffix="gpt4o_20240806",
     output_schema_dialect="strict",
 )
 
@@ -775,8 +792,8 @@ __all__ = [
     "ROUTE",
     "RouteSpec",
     "GLM53_FLASH_PARASAIL",
-    "GPT35_TURBO_OPENAI",
-    "GPT4O_20240513_OPENAI",
+    "GPT4O_MINI_OPENAI",
+    "GPT4O_20240806_OPENAI",
     "REASONING_SUPPRESSED_V1",
     "REASONING_UNCONSTRAINED_V1",
     "MAX_OUTPUT_TOKENS_SUPPRESSED",
