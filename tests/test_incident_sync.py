@@ -8,6 +8,7 @@ unresolved, and that a row is identified the same way twice running.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -118,3 +119,55 @@ def test_the_repositorys_own_log_lints() -> None:
     """The convention is only worth having if the real log obeys it."""
     problems = incident_sync.lint(incident_sync.collect(incident_sync.REPOSITORY_ROOT))
     assert problems == [], "\n".join(problems)
+
+
+def test_a_branch_announces_only_the_rows_it_adds(tmp_path: Path) -> None:
+    """A row already open on the base is not this branch's news; a row the
+    branch adds, or flips back to open, is."""
+    root = _ledger(tmp_path, LEDGER + "\n| O-9 | a fresh failure | CI | one run | open |\n")
+    base_text = LEDGER.replace("| D-1 | a thing broke | a person read it | one run | fixed in #12 |",
+                               "| D-1 | a thing broke | a person read it | one run | open |")
+    base = incident_sync.collect_at("BASE", root, reader=lambda ref, rel: base_text)
+    added = incident_sync.new_unresolved(incident_sync.collect(root), base)
+    keys = [row.key for row in added]
+    # appended after the procurement table, so that is its section
+    assert "2026-09-02-procurement/O-9" in keys    # added by the branch
+    assert "2026-09-01-housing/D-1" not in keys    # the branch RESOLVED this one
+    assert "2026-09-01-housing/D-14" not in keys   # already open on the base
+
+
+def test_a_ledger_absent_from_the_base_contributes_nothing(tmp_path: Path) -> None:
+    """A family whose ledger is new on this branch has no base rows, and that
+    must read as 'all new' rather than crash."""
+    root = _ledger(tmp_path, LEDGER)
+    base = incident_sync.collect_at("BASE", root, reader=lambda ref, rel: None)
+    assert base == []
+    added = incident_sync.new_unresolved(incident_sync.collect(root), base)
+    assert len(added) == 2
+
+
+def test_announce_rewrites_its_own_comment_rather_than_stacking(tmp_path: Path) -> None:
+    """Every push re-announces, so the comment must be replaced in place or a
+    long-lived branch grows a wall of them."""
+    rows = [r for r in incident_sync.collect(_ledger(tmp_path, LEDGER)) if r.unresolved]
+    calls: list[list[str]] = []
+
+    def runner(args):
+        calls.append(list(args))
+        if args[:2] == ["pr", "view"]:
+            return json.dumps({"comments": [{"id": "IC_kwDO-99", "body": incident_sync.ANNOUNCE_MARKER + "\nold"}]})
+        return ""
+
+    result = incident_sync.announce(rows, "153", runner=runner)
+    assert result == "updated the incident comment"
+    assert not any(c[:2] == ["pr", "comment"] for c in calls)
+    patched = next(c for c in calls if c[0] == "api")
+    assert any("issues/comments/99" in arg for arg in patched)
+    assert incident_sync.ANNOUNCE_MARKER in patched[-1]
+
+
+def test_announce_says_so_plainly_when_a_branch_adds_none(tmp_path: Path) -> None:
+    calls: list[list[str]] = []
+    incident_sync.announce([], "1", runner=lambda a: calls.append(list(a)) or (json.dumps({"comments": []}) if a[:2] == ["pr", "view"] else ""))
+    body = next(c for c in calls if c[:2] == ["pr", "comment"])[-1]
+    assert "adds no unresolved incident rows" in body

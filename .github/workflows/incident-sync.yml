@@ -23,6 +23,11 @@ on:
       - "docs/families/*/incidents.md"
       - "tools/incident_sync.py"
   workflow_dispatch:
+  # A push event can be missed and a run can fail; the log is the source of
+  # truth either way, so a nightly pass makes the issue tracker eventually
+  # consistent with it without anyone remembering to look.
+  schedule:
+    - cron: "17 6 * * *"
 
 permissions:
   contents: read
@@ -31,13 +36,27 @@ jobs:
   lint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # To write the comment naming what this branch will open. It cannot
+      # open anything: creating issues needs `issues: write`, which only the
+      # post-merge job has.
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Every row parses and every unresolved row says so
         run: python tools/incident_sync.py --lint
+      - name: Say on the pull request which rows it will open
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch --quiet --depth=100 origin "${{ github.base_ref }}"
+          python tools/incident_sync.py --announce             --pr "${{ github.event.pull_request.number }}"             --base-ref "origin/${{ github.base_ref }}"
 
   sync:
     if: github.event_name != 'pull_request'
