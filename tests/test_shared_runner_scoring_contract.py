@@ -191,6 +191,21 @@ from aeread_families.negarena.environment import (
 )
 from aeread_families.negarena.harness import run_scripted_negarena_episode as negarena_run_scripted_episode
 
+from aeread_families.econevals.econevals_bridge import (
+    EconevalsBridge,
+    EconevalsBridgeUnavailableError,
+    discover_bridge_python as econevals_discover_bridge_python,
+)
+from aeread_families.econevals.environment import (
+    EconevalsPlugin,
+    family_manifest as econevals_family_manifest,
+)
+from tests.test_econevals_replay import _cell as _econevals_cell
+from tests.test_econevals_replay import _shrunk_case as _econevals_shrunk_case
+from tests.test_econevals_replay import (
+    run_scripted_econevals_episode_with_full_evidence as _run_econevals_episode_with_full_evidence,
+)
+
 from tests.test_collusion_replay import (
     EvidenceRecordingCollusionHarness,
     _malformed_first_round_answer,
@@ -3145,7 +3160,6 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # directly in _build_protocol_test_registry_and_fixtures like
         # collusion/aucarena above (see ``_termsbench_fixtures``).
 
-        ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
     }
 )
@@ -3192,6 +3206,7 @@ _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("econagent_v1", "0.1.0"),
+        ("econevals", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
     }
@@ -6889,5 +6904,203 @@ def test_negarena_obeys_the_scoring_contract(tmp_path: Path) -> None:
     (registration,) = registry.registrations()
     key = (registration.family_id, registration.family_version)
     assert key == ("negarena", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
+
+
+# ---------------------------------------------------------------------------
+# econevals: a real, bridge-backed family whose two declared leaves (the
+# legality/feasibility gate and the objective_reference leaf, spec section
+# 2) are both ``scope="finalize_time"`` and scored from the FINAL period's
+# own recorded attempt only (measurement.py's
+# ``EconevalsScorer.score_terminal_state``). Upstream's own pricing
+# ``get_profits`` is a pure function of ``(instance, period, prices)`` with
+# no cross-period state carried forward (verified directly against the real
+# upstream module, ``pricing_market_logic_multiproduct.get_profits`` reads
+# only THAT period's own ``alpha_list[period]``/``multiplier_list[period]``),
+# so two episodes that submit DIFFERENT prices in every period except the
+# LAST one, and the SAME price in the last one, produce a byte-identical
+# outcome (``environment.py``'s own ``outcome()`` is ``{termination_reason,
+# period_count, num_attempts}`` -- none of which stores the per-period price
+# history) from a genuinely differing trajectory (the earlier periods' own
+# recorded tool calls/transitions differ) -- exactly the paired-history
+# precondition ruling R7 needs, without touching the checked-in corpus case
+# itself (only ``pins.max_steps``/``episode.max_logical_actions``, mirroring
+# ``tests/test_econevals_replay.py``'s own ``_shrunk_case`` convention for a
+# test that must reach a genuine termination in a handful of periods).
+#
+# econevals's production manifest does not yet declare a finalize-time leaf
+# policy (unlike the six already-migrated external families above) -- #108's
+# leaf-policy redesign that would have added one was explicitly NOT adopted
+# (owner ruling on #141); main's scorer stands unperturbed. This test
+# therefore attaches the SAME two leaves ``EconevalsScorer.__call__`` itself
+# always returns for a gate-passing pricing case to a *copy* of the resolved
+# manifest (``_with_declared_leaf_policy``, mirroring housing's/
+# procurement's identical treatment above), purely so the protocol check has
+# something to assert the scorer's output against; the production manifest
+# builder is untouched.
+#
+# Unlike every other family this suite verifies unconditionally, econevals's
+# fixtures need the real, provisioned econevals bridge (a subprocess
+# executing the pinned upstream econ-evals checkout). Folding it into
+# ``test_every_registered_family_obeys_the_scoring_contract`` would make
+# that test -- and every other family's own always-on coverage inside it --
+# newly skip whenever the bridge is unavailable. It is therefore verified in
+# its own per-test-skippable test instead (mirrors negarena's identical
+# treatment immediately above, the migration reference for this shape).
+# ---------------------------------------------------------------------------
+
+_ECONEVALS_UPSTREAM_ROOT = Path(
+    os.environ.get(
+        "AEREAD_ECONEVALS_UPSTREAM_ROOT",
+        "/Users/sunzeyu/Documents/econ benchmark/upstream-econevals",
+    )
+)
+
+_ECONEVALS_PRICING_GATE_LEAF_ID = "econevals_pricing_gate_leaf"
+_ECONEVALS_PRICING_OBJECTIVE_LEAF_ID = "econevals_pricing_objective_leaf"
+
+
+def _econevals_bridge() -> EconevalsBridge:
+    """Discover the real ``EconevalsBridge``, or skip this test cleanly.
+
+    Two-stage check, mirroring ``_negarena_bridge`` above and
+    ``tests/test_econevals_cases.py``'s own ``_upstream_available()``: the
+    pinned checkout's presence and the bridge interpreter's presence are
+    genuinely separate failure modes (``discover_bridge_python`` only
+    locates a python executable; it never imports the package that
+    executable's venv was provisioned against), and ``conftest.py``'s own
+    ``AEREAD_ECONEVALS_BRIDGE_REQUIRED`` marker tuple distinguishes them the
+    same way (one marker per failure mode). Deliberately a per-test skip,
+    never module-level -- see ``_negarena_bridge``'s own docstring for why
+    (this module is imported unconditionally by every OTHER family's own
+    always-on coverage).
+    """
+    if not (_ECONEVALS_UPSTREAM_ROOT / "econ_evals" / "__init__.py").is_file():
+        pytest.skip(
+            f"pinned upstream econ-evals checkout not found at {_ECONEVALS_UPSTREAM_ROOT}"
+        )
+    try:
+        bridge_python = econevals_discover_bridge_python()
+    except EconevalsBridgeUnavailableError as error:
+        pytest.skip(str(error))
+    return EconevalsBridge(python_executable=bridge_python)
+
+
+def _econevals_pricing_script(
+    product_ids: Sequence[str], prices_by_period: Sequence[Mapping[str, float]]
+) -> list[list[dict[str, Any]]]:
+    return [
+        [
+            {"id": "1", "name": "get_product_ids", "arguments": {}},
+            {
+                "id": "2",
+                "name": "set_prices",
+                "arguments": {
+                    "prices_dict_str": {
+                        product_id: prices[product_id] for product_id in product_ids
+                    }
+                },
+            },
+        ]
+        for prices in prices_by_period
+    ]
+
+
+# Period 0 differs (2.0 vs 5.0, both legal non-negative prices); period 1 --
+# the LAST period, the only one ``score_terminal_state`` ever reads -- is
+# identical (1.0) on both sides.
+_ECONEVALS_LEFT_PRICES_BY_PERIOD: tuple[Mapping[str, float], ...] = (
+    {"Product_1": 2.0},
+    {"Product_1": 1.0},
+)
+_ECONEVALS_RIGHT_PRICES_BY_PERIOD: tuple[Mapping[str, float], ...] = (
+    {"Product_1": 5.0},
+    {"Product_1": 1.0},
+)
+
+
+def _econevals_fixture_pair(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    """The byte-identical-outcome, differing-trajectory econevals pair.
+
+    Both fixtures replay the SAME (shrunk to 2 periods) pricing case through
+    the SAME registered plugin, each in its own sealed ``EvidenceStore``.
+    """
+    bridge = _econevals_bridge()
+    case = _econevals_shrunk_case("pricing_basic", "econevals.pricing.basic.0", max_steps=2)
+    manifest = _with_declared_leaf_policy(
+        econevals_family_manifest(),
+        leaves=(
+            LeafPolicyDeclaration(_ECONEVALS_PRICING_GATE_LEAF_ID, "finalize_time", None),
+            LeafPolicyDeclaration(_ECONEVALS_PRICING_OBJECTIVE_LEAF_ID, "finalize_time", None),
+        ),
+        primary_leaf_id=_ECONEVALS_PRICING_OBJECTIVE_LEAF_ID,
+        admission_leaf_ids=(
+            _ECONEVALS_PRICING_OBJECTIVE_LEAF_ID,
+            _ECONEVALS_PRICING_GATE_LEAF_ID,
+        ),
+    )
+    plugin = EconevalsPlugin(bridge=bridge)
+    registry = PluginRegistry()
+    registry.register_trusted(manifest, plugin)
+    resolved_plugin = registry.resolve_manifest(manifest)
+    family_case = resolved_plugin.validate_payload(case.payload)
+    product_ids = family_case["generated_instance"]["product_ids"]
+
+    def _run(
+        prices_by_period: Sequence[Mapping[str, float]], suffix: str
+    ) -> FamilyScoringFixture:
+        cell = _econevals_cell(case, suffix=f"scoring_contract_{suffix}")
+        evidence = EvidenceStore(
+            tmp_path / f"econevals_scoring_contract_{suffix}",
+            run_plan_id=f"runplan_econevals_scoring_contract_{suffix}",
+            cell_id=cell.cell_id,
+            episode_id=f"episode_econevals_scoring_contract_{suffix}",
+            episode_attempt_id="attempt_1",
+        )
+        asyncio.run(
+            _run_econevals_episode_with_full_evidence(
+                cell=cell,
+                case=case,
+                plugin=resolved_plugin,
+                family_case=family_case,
+                evidence=evidence,
+                script=_econevals_pricing_script(product_ids, prices_by_period),
+            )
+        )
+        evidence.seal()
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    left = _run(_ECONEVALS_LEFT_PRICES_BY_PERIOD, "left")
+    right = _run(_ECONEVALS_RIGHT_PRICES_BY_PERIOD, "right")
+    return manifest, plugin, (left, right)
+
+
+def test_econevals_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """econevals's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see the
+    comment block above this test for why): this family's fixtures require
+    the real, provisioned econevals bridge (a subprocess executing the
+    pinned upstream econ-evals checkout), which every OTHER family this
+    suite verifies deliberately does not, so folding it into that always-on
+    test would make THEIR coverage newly skip too whenever the bridge is
+    unavailable. Per-test skip only, never module-level (mirrors
+    ``tests/test_econevals_environment.py``'s own documented convention).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against econevals's own
+    registry registration and its two paired fixtures
+    (``_econevals_fixture_pair`` -- byte-identical terminal outcome,
+    genuinely differing trajectory, verified constructible against the real
+    bridge before being wired in here).
+    """
+    registry = PluginRegistry()
+    manifest, plugin, fixture_pair = _econevals_fixture_pair(tmp_path)
+    registry.register_trusted(manifest, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("econevals", "0.1.0")
 
     _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
