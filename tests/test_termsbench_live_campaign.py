@@ -47,9 +47,14 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["route"]["model"] == MODEL
     assert plan["route"]["route_provider"] == ROUTE_PROVIDER
     assert plan["route"]["fallbacks"] == "disabled"
-    # A cap alone: an effort next to it is refused by the route (#133).
+    # v3's condition: no reasoning block at all, which the 2026-09-10 probe
+    # showed is the only way to obtain deliberation on this route -- a cap is
+    # a suppression switch whatever its value, and an effort cannot be
+    # declared beside one (#133).
+    assert plan["route"]["reasoning_condition_id"] == "reasoning_unconstrained_v1"
     assert plan["route"]["reasoning_effort"] is None
-    assert plan["route"]["reasoning_token_budget"] == 1500
+    assert plan["route"]["reasoning_token_budget"] is None
+    assert plan["route"]["reasoning_declared_block"] is False
     assert [row["case_id"] for row in plan["panel"]] == list(PANEL_CASE_IDS)
     assert len(plan["panel"]) == 30
     regimes = sorted(row["regime"] for row in plan["panel"])
@@ -58,7 +63,7 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["seats"]["counterpart"].startswith("kernel_scripted_seat:")
     assert plan["execution"]["max_serial_wall_seconds"] == MAX_SERIAL_WALL_SECONDS
     assert plan["execution"]["cell_failure_policy"] == "seal_typed_exclusion_and_continue"
-    assert plan["campaign_id"].endswith("_v2")
+    assert plan["campaign_id"].endswith("_v3")
     planned = MAX_CANARY_COST_USD + len(PANEL_CASE_IDS) * MAX_TRAJECTORY_COST_USD
     assert plan["budget"]["planned_maximum_usd"] == pytest.approx(planned)
     assert planned <= HARD_TOTAL_COST_CEILING_USD

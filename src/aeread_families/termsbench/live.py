@@ -127,16 +127,40 @@ PRICING = TokenPricing(
 # only be spent on empty responses, which the retry policy already covers.
 MAX_ROUNDS = 1
 
-# Same declaration econevals measured on this route: a cap alone. Declaring
-# an effort alongside it is a 400 from the route (#133), and with neither
-# the route reasons at length and the answer is cut by the output ceiling.
-REASONING_DECLARATION: dict[str, object] = {
+# Two measured reasoning conditions on this route, not one preference.
+#
+# Probed 2026-09-10 with one call each on the canary observation
+# (`docs/families/termsbench/campaign_scoping.md`): declaring
+# `reasoning.max_tokens` at all collapses reasoning to ~13 tokens / 40
+# characters *whatever the budget* -- 1,500 and 8,000 behave identically --
+# and `reasoning.effort: "low"` does the same (13 tokens). Declaring nothing
+# yields ~260 reasoning tokens of real deliberation on the same prompt. The
+# cap is a switch, not a budget, which is the sharper form of what econevals
+# recorded; an effort cannot be declared beside a cap either way (#133).
+#
+# So a family that wants a deliberating model on this route must declare no
+# reasoning block, and one that wants a fast model declares either. Both are
+# legitimate conditions and each is a campaign identity of its own.
+REASONING_SUPPRESSED_V1: dict[str, object] = {
     "condition_id": "reasoning_capped_1500_v1",
     "effort": None,
     "token_budget": 1500,
     "rationale_visibility": "hidden",
 }
+REASONING_UNCONSTRAINED_V1: dict[str, object] = {
+    "condition_id": "reasoning_unconstrained_v1",
+    "effort": None,
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+# The default keeps pilot v2's identity readable in one name; a campaign
+# names the condition it froze rather than inheriting whatever this is.
+REASONING_DECLARATION = REASONING_SUPPRESSED_V1
 MAX_OUTPUT_TOKENS = 4000
+# With no reasoning block the route emits its rationale into the same
+# completion budget, so a deliberating campaign needs headroom the
+# suppressed one does not.
+MAX_OUTPUT_TOKENS_UNCONSTRAINED = 12000
 
 PROMPT_ID = "termsbench_negotiation_json_v1"
 PROMPT = """You are negotiating the price of a single item with one counterpart
@@ -320,11 +344,25 @@ def _measurement_pins() -> tuple[ImplementationPin, ...]:
     )
 
 
-def _profile(*, seed: int, max_logical_actions: int, max_cost_usd: float) -> AgentProfile:
+def _profile(
+    *,
+    seed: int,
+    max_logical_actions: int,
+    max_cost_usd: float,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS,
+) -> AgentProfile:
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
-            "profile_id": "termsbench_agent_glm53_flash_parasail_v1",
+            # The reasoning condition is part of the agent's identity: two
+            # profiles differing only in it are two agents, not one agent
+            # twice.
+            "profile_id": (
+                "termsbench_agent_glm53_flash_parasail_v1"
+                if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
+                else f"termsbench_agent_glm53_flash_parasail_{reasoning['condition_id']}"
+            ),
             "model": {
                 "provider": PROVIDER,
                 "model": MODEL,
@@ -356,10 +394,10 @@ def _profile(*, seed: int, max_logical_actions: int, max_cost_usd: float) -> Age
             },
             "tools": [],
             "memory": {"mode": "disabled"},
-            "reasoning": dict(REASONING_DECLARATION),
+            "reasoning": dict(reasoning),
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": MAX_OUTPUT_TOKENS,
+                "max_output_tokens": max_output_tokens,
                 "seed": seed,
                 "top_p": None,
             },
@@ -383,6 +421,8 @@ def build_live_setup(
     case_id: str,
     seed: int,
     max_trajectory_cost_usd: float,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS,
 ) -> TermsBenchLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -401,6 +441,8 @@ def build_live_setup(
         seed=seed,
         max_logical_actions=case.episode.max_logical_actions,
         max_cost_usd=max_trajectory_cost_usd,
+        reasoning=reasoning,
+        max_output_tokens=max_output_tokens,
     )
     suffix = case_id.replace(".", "_")
     sampling = SamplingPlan.from_dict(
@@ -543,6 +585,7 @@ __all__ = [
     "AGENT_SEAT",
     "COUNTERPART_SEAT",
     "MAX_OUTPUT_TOKENS",
+    "MAX_OUTPUT_TOKENS_UNCONSTRAINED",
     "MAX_ROUNDS",
     "MODEL",
     "PRICING",
@@ -551,6 +594,8 @@ __all__ = [
     "PROVIDER",
     "QUANTIZATION",
     "REASONING_DECLARATION",
+    "REASONING_SUPPRESSED_V1",
+    "REASONING_UNCONSTRAINED_V1",
     "REVISION",
     "ROUTE_PROVIDER",
     "TermsBenchJsonHarness",

@@ -20,8 +20,11 @@ from aeread_families.termsbench.environment import AGENT_PHASE, COUNTERPART_PHAS
 from aeread_families.termsbench.live import (
     AGENT_SEAT,
     COUNTERPART_SEAT,
+    MAX_OUTPUT_TOKENS_UNCONSTRAINED,
     MAX_ROUNDS,
     REASONING_DECLARATION,
+    REASONING_SUPPRESSED_V1,
+    REASONING_UNCONSTRAINED_V1,
     TermsBenchJsonHarness,
     build_live_setup,
     load_case,
@@ -288,3 +291,29 @@ def test_a_degenerate_answer_is_a_measured_agreement_violation_not_an_abort(tmp_
     assert by_leaf["termsbench_no_deal_agreement_leaf"].status == "invalid_measurement"
     replayed = replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path / "run")
     assert replayed.receipt_sha256 == receipt.receipt_sha256
+
+
+def test_the_reasoning_condition_is_part_of_the_agent_s_identity() -> None:
+    """Probed on this route 2026-09-10: `reasoning.max_tokens` at any value
+    (1,500 and 8,000 alike) and `reasoning.effort: "low"` both collapse
+    reasoning to ~13 tokens; declaring nothing yields ~260. The two are
+    different agents, so they get different profile ids and different plan
+    digests -- a panel cannot silently change which one it measured."""
+    suppressed = build_live_setup(
+        case_id=OVERLAP_CASE_ID, seed=300, max_trajectory_cost_usd=0.05,
+        reasoning=REASONING_SUPPRESSED_V1,
+    )
+    deliberating = build_live_setup(
+        case_id=OVERLAP_CASE_ID, seed=300, max_trajectory_cost_usd=0.05,
+        reasoning=REASONING_UNCONSTRAINED_V1, max_output_tokens=MAX_OUTPUT_TOKENS_UNCONSTRAINED,
+    )
+    (a,), (b,) = suppressed.plan.agent_profiles, deliberating.plan.agent_profiles
+    assert a.profile_id != b.profile_id
+    assert suppressed.plan.plan_sha256 != deliberating.plan.plan_sha256
+    # The default is pilot v2's condition, so v2's profile identity is still
+    # reproducible from this source.
+    assert a.profile_id == "termsbench_agent_glm53_flash_parasail_v1"
+    assert a.reasoning.token_budget == 1500 and a.sampling.max_output_tokens == 4000
+    assert b.reasoning.token_budget is None and b.reasoning.effort is None
+    assert b.sampling.max_output_tokens == 12000
+    assert dict(REASONING_DECLARATION) == dict(REASONING_SUPPRESSED_V1)

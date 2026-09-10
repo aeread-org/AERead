@@ -75,13 +75,13 @@ from .live import (
     AGENT_PHASE,
     AGENT_SEAT,
     CASES_DIR,
-    MAX_OUTPUT_TOKENS,
+    MAX_OUTPUT_TOKENS_UNCONSTRAINED,
     MODEL,
     PRICING,
     PROMPT,
     PROVIDER,
     QUANTIZATION,
-    REASONING_DECLARATION,
+    REASONING_UNCONSTRAINED_V1,
     REVISION,
     ROUTE_PROVIDER,
     agent_output_schema,
@@ -101,7 +101,15 @@ from .measurement import (
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PILOT_MANIFEST_PATH = CASES_DIR / "pilot_manifest.json"
 
-CAMPAIGN_ID = "termsbench_glm53_flash_parasail_pilot_v2"
+# v3 is v2's design with one control changed and therefore a new identity:
+# the reasoning condition. v2 ran `reasoning_capped_1500_v1`, which the
+# 2026-09-10 probe showed is a suppression switch (~13 reasoning tokens),
+# so v2 measured a model that did not deliberate. v3 declares no reasoning
+# block, which is the only way to obtain deliberation on this route, and
+# gives the completion budget the headroom that rationale needs.
+CAMPAIGN_ID = "termsbench_glm53_flash_parasail_pilot_v3"
+REASONING = REASONING_UNCONSTRAINED_V1
+MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS_UNCONSTRAINED
 SEED = 300
 MAX_PARALLEL_CELLS = 1
 
@@ -112,11 +120,14 @@ MAX_CANARY_PROBES = 6
 CANARY_RETRY_BASE_SECONDS = 15.0
 
 # An episode is at most `horizon` agent turns (10 in the pilot corpus), each
-# one call with a growing transcript, a capped reasoning budget and a short
-# answer; a generous bound per trajectory is a few cents. The hard ceiling
-# leaves room for the whole panel at the bound plus the canary.
-MAX_TRAJECTORY_COST_USD = 0.05
-HARD_TOTAL_COST_CEILING_USD = 2.00
+# one call with a growing transcript. Under v3's unconstrained reasoning the
+# route spends its rationale inside the completion budget, so the worst case
+# is ten turns at the 12,000-token ceiling: ~$0.06. The per-case cap is set
+# above that and the hard ceiling covers the whole panel at the cap plus the
+# canary, so a cap breach is a measured exclusion rather than the campaign's
+# ceiling stopping the run.
+MAX_TRAJECTORY_COST_USD = 0.10
+HARD_TOTAL_COST_CEILING_USD = 3.50
 
 # Campaign SOP wall-time gate: the first completed case's serial wall time,
 # projected over the panel, must fit in this. Four hours.
@@ -196,9 +207,11 @@ def build_campaign_plan() -> dict[str, Any]:
             "route_provider": ROUTE_PROVIDER,
             "quantization": QUANTIZATION,
             "fallbacks": "disabled",
-            "reasoning_condition_id": REASONING_DECLARATION["condition_id"],
-            "reasoning_effort": REASONING_DECLARATION["effort"],
-            "reasoning_token_budget": REASONING_DECLARATION["token_budget"],
+            "reasoning_condition_id": REASONING["condition_id"],
+            "reasoning_declared_block": REASONING["effort"] is not None
+            or REASONING["token_budget"] is not None,
+            "reasoning_effort": REASONING["effort"],
+            "reasoning_token_budget": REASONING["token_budget"],
             "route_attestation": "openrouter_provider_order_pinned",
             "provider_cost_status": "response_reported",
             "provider_seed_status": "requested",
@@ -312,8 +325,8 @@ async def _probe_canary(*, path: Path, plan_sha256: str, ordinal: int) -> dict[s
         temperature=0.0,
         top_p=None,
         max_output_tokens=MAX_CANARY_OUTPUT_TOKENS,
-        reasoning_effort=REASONING_DECLARATION["effort"],
-        reasoning_token_budget=REASONING_DECLARATION["token_budget"],
+        reasoning_effort=REASONING["effort"],
+        reasoning_token_budget=REASONING["token_budget"],
         timeout_seconds=180.0,
         request_sha256="",
         max_cost_usd=MAX_CANARY_COST_USD,
@@ -490,7 +503,11 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
                 f"{MAX_SERIAL_WALL_SECONDS}s"
             )
         setup = build_live_setup(
-            case_id=case_id, seed=SEED, max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD
+            case_id=case_id,
+            seed=SEED,
+            max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
+            reasoning=REASONING,
+            max_output_tokens=MAX_OUTPUT_TOKENS,
         )
         execution_root = run_root / "executions" / case_id
         if execution_root.exists():
