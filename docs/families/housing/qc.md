@@ -1532,11 +1532,24 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    handing the same leased listings to random tenants scores `0.676`, the
    models score `0.827`, the best sorting of those same listings `0.944`. It
    is also not saturated. What the report never said is where the declared
-   comparison baseline sits: the family's own naive scripted market, one bid
-   of ask plus one on the best-gap listing with scripted landlords, scores
-   `0.869`, above both models by `0.04` on every configuration and for both
-   subjects. The confirmatory null is therefore a null between two players
-   that both sort worse than a one-line heuristic (D-25).
+   comparison baseline sits: the family's own naive scripted market scores
+   `0.869` against the models' `0.827`. That comparison is **not**
+   like-for-like, and the first version of this paragraph wrongly called it
+   one. `run_scripted_market` pairs the naive tenant with the *scripted*
+   landlord, which never rejects outright, while the models faced *model*
+   landlords rejecting 6.2% and 35.5% of their responses; the gap is `-0.025`
+   against the accommodating landlord and `-0.058` against the harsh one, and
+   the models beat the baseline on their own world in 40.4% of cells. Roughly
+   half the gap is the counterparty rather than the tenant, and a like-for-like
+   baseline is owed (D-25).
+
+   The difficulty knob does not help here. Across the three configurations,
+   which span listings 6/5/4 and `common_weight` 0.45/0.70/0.95, so the
+   idiosyncratic share of tenant value runs from 55% down to 5%, the gap is
+   `-0.041`, `-0.042`, `-0.042` and the win rate 40.6%, 41.2%, 39.6%. Nothing
+   collapses at the hard end either: the models score highest there (`0.854`).
+   The opponent seat, by contrast, moves the score by `0.033`, as large as the
+   whole baseline gap (D-26).
 
 ### Individual rationality is a validity constraint, not a metric
 
