@@ -26,6 +26,7 @@ import argparse
 import collections
 import hashlib
 import json
+import random
 import statistics
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -36,15 +37,25 @@ from . import environment as hz
 
 DIAGNOSTICS_SCHEMA_VERSION = "aeread.housing_estimand_diagnostics/0.1"
 
-#: A subject share is judged against chance, not against a fixed number.
-#: Splitting a case's cells by a label captures variance even when the label
-#: means nothing: for k groups and n cells the expected share is (k-1)/(n-1),
-#: which is 0.143 for the two subjects and eight cells per case that Housing
-#: runs. A raw share of 0.067 is therefore not merely small, it is half what a
-#: coin flip would produce. This ratio replaces the arbitrary floor an earlier
-#: version of this module used, which would have passed the very campaign the
-#: module exists to catch.
-MINIMUM_SIGNAL_TO_NULL_RATIO = 1.0
+#: A share is judged against a permutation null, not against a fixed floor and
+#: not against the null's mean alone.
+#:
+#: Two earlier versions of this module were wrong in instructive ways. The
+#: first used a fixed floor of 0.15, which would have passed the very campaign
+#: the module exists to catch. The second compared the observed share with the
+#: analytic expectation (k-1)/(n-1); that expectation is accurate on average
+#: here, 0.144 against a permuted mean of 0.141, but comparing a point with a
+#: mean ignores the null's spread, which is wide: permuting subject labels
+#: within case puts 95 percent of the mass between 0.042 and 0.448. A share of
+#: 0.067 sits comfortably inside that, and so does 0.267.
+#:
+#: So the decomposition on its own cannot show that one metric sees the
+#: subject better than another. What it shows, at p = 0.001 and below, is that
+#: the opponent explains real variance while the subject does not, in either
+#: metric. Evidence that a metric is mis-ordered has to come from a control
+#: whose answer is known in advance; see ``sensitivity_control``.
+PERMUTATION_TRIALS = 1000
+SIGNIFICANCE_LEVEL = 0.05
 
 
 def _case_configs(sweep_path: Path) -> dict[str, dict[str, Any]]:
@@ -129,29 +140,36 @@ def _share(
     return between / total
 
 
-def _expected_share_under_null(
-    rows: Sequence[Mapping[str, Any]], key: Callable[[Mapping[str, Any]], Any]
-) -> float:
-    """Share a meaningless label would capture, weighted as the real one is.
+def _permutation_null(
+    rows: Sequence[Mapping[str, Any]],
+    metric: str,
+    field: str,
+    *,
+    trials: int = PERMUTATION_TRIALS,
+) -> list[float]:
+    """Shares obtained by permuting the label within each case.
 
-    Within a case of ``n`` cells split into ``k`` groups, a label carrying no
-    information still explains ``(k-1)/(n-1)`` of the within-case sum of
-    squares in expectation. Cases contribute in proportion to their cell
-    count, matching how the observed share pools them.
+    Permuting inside a case preserves the design exactly, including its
+    balance across the other seat and its replicate structure, which an
+    analytic expectation assuming exchangeability does not. The seed is fixed
+    so the artifact regenerates byte for byte.
     """
 
+    rng = random.Random(20260910)
     cases: dict[Any, list[Mapping[str, Any]]] = collections.defaultdict(list)
     for row in rows:
         cases[(row["world_seed"], row["config_id"])].append(row)
-    weighted, total = 0.0, 0
-    for group in cases.values():
-        cells = len(group)
-        groups = len({key(row) for row in group})
-        if cells < 2 or groups < 2:
-            continue
-        weighted += cells * (groups - 1) / (cells - 1)
-        total += cells
-    return weighted / total if total else 0.0
+    shares: list[float] = []
+    for _ in range(trials):
+        shuffled: list[dict[str, Any]] = []
+        for group in cases.values():
+            labels = [row[field] for row in group]
+            rng.shuffle(labels)
+            shuffled.extend(
+                {**row, field: label} for row, label in zip(group, labels)
+            )
+        shares.append(_within_case_share(shuffled, metric, lambda row: row[field]))
+    return shares
 
 
 def _within_case_share(
@@ -186,7 +204,17 @@ def decompose(rows: Sequence[Mapping[str, Any]], metric: str) -> dict[str, Any]:
     case = lambda row: (row["world_seed"], row["config_id"])  # noqa: E731
     subject_total = _share(rows, metric, lambda row: row["subject"])
     subject_within = _within_case_share(rows, metric, lambda row: row["subject"])
-    null_share = _expected_share_under_null(rows, lambda row: row["subject"])
+    opponent_within = _within_case_share(rows, metric, lambda row: row["opponent"])
+    subject_null = _permutation_null(rows, metric, "subject")
+    opponent_null = _permutation_null(rows, metric, "opponent")
+
+    def p_value(observed: float, null: Sequence[float]) -> float:
+        # One-sided, with the observed value counted, so a share no null draw
+        # exceeds still reports 1/(trials+1) rather than an impossible zero.
+        return (sum(1 for value in null if value >= observed) + 1) / (len(null) + 1)
+
+    subject_p = p_value(subject_within, subject_null)
+    opponent_p = p_value(opponent_within, opponent_null)
     return {
         "metric": metric,
         "cells": len(rows),
@@ -210,14 +238,12 @@ def decompose(rows: Sequence[Mapping[str, Any]], metric: str) -> dict[str, Any]:
             if subject_within > 0
             else None
         ),
-        "subject_share_under_null": round(null_share, 6),
-        "subject_signal_to_null_ratio": (
-            round(subject_within / null_share, 3) if null_share > 0 else None
-        ),
-        "subject_signal_above_chance": bool(
-            null_share > 0
-            and subject_within / null_share >= MINIMUM_SIGNAL_TO_NULL_RATIO
-        ),
+        "subject_null_mean": round(statistics.fmean(subject_null), 6),
+        "subject_null_upper_95": round(sorted(subject_null)[int(0.95 * len(subject_null))], 6),
+        "subject_permutation_p": round(subject_p, 4),
+        "subject_signal_above_chance": bool(subject_p < SIGNIFICANCE_LEVEL),
+        "opponent_permutation_p": round(opponent_p, 4),
+        "opponent_signal_above_chance": bool(opponent_p < SIGNIFICANCE_LEVEL),
     }
 
 
@@ -252,12 +278,17 @@ def build(evidence_root: Path, sweep_path: Path) -> dict[str, Any]:
             "subject. A benchmark measures whichever factor carries the "
             "variance, whatever the design calls the subject."
         ),
-        "minimum_signal_to_null_ratio": MINIMUM_SIGNAL_TO_NULL_RATIO,
+        "permutation_trials": PERMUTATION_TRIALS,
+        "significance_level": SIGNIFICANCE_LEVEL,
         "how_to_read": (
-            "subject_share_within_case is compared with subject_share_under_null, "
-            "the share a meaningless label captures by chance in the same design. "
-            "A ratio at or below 1 means the estimand carries no subject signal "
-            "beyond a coin flip, and no sample size recovers a comparison."
+            "Each share is compared with a null built by permuting that label "
+            "within each case, which preserves the design. A subject p-value "
+            "above the significance level means the estimand carries no "
+            "detectable subject signal, and no sample size recovers a "
+            "comparison. It does NOT establish that one metric sees the subject "
+            "better than another: the null is wide, so shares that differ "
+            "substantially can both be insignificant. Ordering evidence must "
+            "come from a control whose answer is known in advance."
         ),
         "by_campaign": by_campaign,
     }

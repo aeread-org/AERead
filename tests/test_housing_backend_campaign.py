@@ -4099,16 +4099,13 @@ def test_sensitivity_control_is_reproducible_and_locates_the_measurable_ceiling(
 
 def test_estimand_diagnostics_judge_the_subject_share_against_chance(tmp_path: Path) -> None:
     """D-27 and D-28. A label splitting a case's cells captures variance even
-    when it means nothing, so a raw share is unreadable on its own. The
-    confirmatory welfare share of 0.067 is below the 0.144 a coin flip returns
-    in the same design, which is the fact an earlier fixed floor of 0.15 would
-    have hidden by passing everything above 0.02."""
+    when it means nothing, so a raw share is unreadable on its own, and the
+    null's spread matters as much as its mean: permuting subject labels within
+    case reaches 0.448 at the 95th percentile. Judged that way the confirmatory
+    subject share is undetectable under both metrics while the opponent is
+    detectable under both, and the pilot panel differs from the holdout."""
 
-    from aeread_families.housing.estimand_diagnostics import (
-        MINIMUM_SIGNAL_TO_NULL_RATIO,
-        decompose,
-        publish,
-    )
+    from aeread_families.housing.estimand_diagnostics import decompose, publish
 
     root = CONFIRMATORY_CONTRACT_PATH.parents[1]
     analysis_root = root / "evidence" / "housing" / "estimand_diagnostics"
@@ -4123,18 +4120,26 @@ def test_estimand_diagnostics_judge_the_subject_share_against_chance(tmp_path: P
     welfare = confirmatory["within_case_score"]
     surplus = confirmatory["subject_surplus_share"]
     # Three ten-thousandths, which rounds to 0.000 in a three-decimal table but
-    # is not exactly zero; the meaningful comparison is against chance below.
+    # is not exactly zero.
     assert welfare["subject_share_of_total"] < 0.001
-    assert welfare["subject_share_within_case"] < welfare["subject_share_under_null"]
+    # On this panel neither metric detects the subject, and both detect the
+    # opponent. The point estimates differ fourfold, 0.067 against 0.267, and
+    # neither is distinguishable from a design-preserving null whose spread
+    # reaches 0.30. Reporting the ratio of the two shares, as an earlier
+    # version of this module did, would have implied a difference the data do
+    # not support.
     assert welfare["subject_signal_above_chance"] is False
-    assert surplus["subject_signal_to_null_ratio"] > MINIMUM_SIGNAL_TO_NULL_RATIO
-    assert surplus["subject_signal_above_chance"] is True
+    assert surplus["subject_signal_above_chance"] is False
+    assert welfare["opponent_signal_above_chance"] is True
+    assert surplus["opponent_signal_above_chance"] is True
+    assert surplus["subject_share_within_case"] > welfare["subject_share_within_case"]
 
-    # D-28: the pilot line and the holdout disagree, in both directions, which
-    # is why the diagnostic has to run on the panel that will be frozen.
+    # D-28, the better-evidenced finding: on the pilot panel the same welfare
+    # metric does detect the subject, so the pilot could not have warned that
+    # the holdout would not.
     pilot = committed["by_campaign"]["housing_model_sensitivity_openrouter_parasail_v26"]
-    assert pilot["within_case_score"]["subject_signal_above_chance"] is True
-    assert pilot["subject_surplus_share"]["subject_signal_above_chance"] is False
+    assert pilot["within_case_score"]["subject_permutation_p"] < 0.05
+    assert welfare["subject_permutation_p"] > 0.5
 
     # A label that carries no information sits at chance, whatever the metric.
     rows = [
@@ -4145,3 +4150,4 @@ def test_estimand_diagnostics_judge_the_subject_share_against_chance(tmp_path: P
     flat = decompose(rows, "within_case_score")
     assert flat["subject_share_within_case"] == 0.0
     assert flat["subject_signal_above_chance"] is False
+    assert flat["subject_permutation_p"] > 0.05

@@ -69,8 +69,16 @@ And the primary contrast computed per configuration is `+0.024`, `-0.015`,
 `+0.011`: it changes sign.
 
 The subject's share of the total is `0.000258`, which the table rounds to
-three decimals. Section 8 gives the reading that matters: it is less than half
-of what a meaningless label captures by chance in the same design.
+three decimals.
+
+A share must be read against a null, and the null must preserve the design.
+Permuting the subject label within each case, which keeps the balance across
+opponents and replicates, puts 95 percent of the mass between `0.042` and
+`0.448` with a mean of `0.141`. The observed `0.067` sits well inside that, at
+`p = 0.746`. So the honest statement is not that the subject share is
+extraordinarily low; it is that the subject is **not detectable at all**,
+while the opponent is, at `p = 0.003`. The same test on the surplus estimand
+returns `p = 0.390` for the subject and `p = 0.001` for the opponent.
 
 The confirmatory null was therefore not a finding that two models are equal. It
 was a correct measurement of an estimand that carries almost no agent signal.
@@ -219,6 +227,17 @@ Under both, the subject's share of within-case variance rises from `0.067` to
 as `common_weight` rises: monotone, sixfold, the dose-response a capability
 measure should show and which welfare never showed at any difficulty.
 
+That rise must be reported with its uncertainty, and an earlier draft of this
+review did not. Against the permutation null the surplus subject share of
+`0.267` returns `p = 0.390`. It is not distinguishable from chance on this
+panel. The point estimate is four times welfare's and the direction is
+consistent with everything else here, but the decomposition alone does not
+establish that surplus detects these two models. The evidence that carries the
+recommendation is the control in section 5, where the ordering is known before
+the run, together with the clean-counterparty contrast above, which does
+exclude zero. Section 8 is the reason to expect no more than that: subject
+detectability has not been stable across panels for either metric.
+
 ## 8. The pilot measured a different environment
 
 Turning the decomposition from an ad-hoc script into a reproducible tool, and
@@ -230,11 +249,14 @@ case's cells by any label captures variance even when the label is
 meaningless: for two subjects and eight cells per case the expected share is
 `(k-1)/(n-1)`, or `0.144`. Measured that way:
 
-| campaign | cells | welfare, times chance | surplus, times chance |
+| campaign | cells | welfare, subject `p` | surplus, subject `p` |
 |---|---|---|---|
-| pilot line, v23 | 186 | `2.00` | `0.79` |
-| pilot line, v26 | 189 | `2.33` | `0.51` |
-| confirmatory holdout | 717 | `0.47` | `1.86` |
+| pilot line, v23 | 186 | **`0.004`** | `0.858` |
+| pilot line, v26 | 189 | **`0.001`** | `0.977` |
+| confirmatory holdout | 717 | `0.746` | `0.390` |
+
+Bold marks a subject effect distinguishable from a design-preserving
+permutation null at the five percent level.
 
 The two lines ran on different environments:
 
@@ -243,13 +265,13 @@ The two lines ran on different environments:
 | pilot panel | 6 / 5, 4, 3 | `0.85`, `0.85`, `0.30` | 2 | 8 |
 | holdout panel | 8 / 6, 5, 4 | `0.45`, `0.70`, `0.95` | 3 | 30 |
 
-On the pilot panel welfare carried subject signal at roughly twice chance, so
-nothing in the pilot suggested the estimand was blind. On the holdout it fell
-below chance. The surplus estimand reverses the pattern, which is the more
-sobering half: neither metric's sensitivity survived the panel change in
-either direction, so the recommendation in section 7 cannot be treated as
-settled either, and must be re-established on whatever panel is actually
-frozen.
+On the pilot panel, welfare's subject effect is significant at `p = 0.004` and
+`p = 0.001`. Nothing in the pilot suggested the estimand was blind, because on
+that panel it was not. On the holdout the same metric returns `p = 0.746`. The
+surplus estimand reverses the pattern and is significant on neither panel,
+which is the more sobering half: subject detectability did not survive the
+panel change for either metric, so the recommendation in section 7 cannot be
+treated as settled and must be re-established on whatever panel is frozen.
 
 This compounds with, rather than restates, section 2. The confirmatory world
 count was derived from between-world variance measured on the pilot panel. It
@@ -259,10 +281,14 @@ environment.
 
 The instrument that found this is published at
 `evidence/housing/estimand_diagnostics/`, reads only committed rows, and
-regenerates byte for byte. Its earlier version used a fixed floor of `0.15` on
-the subject's share, which would have passed the very campaign it exists to
-catch, since `0.067` clears `0.02` and even a coin flip returns `0.144`. The
-chance baseline replaced it (D-28).
+regenerates byte for byte. Two earlier versions of it were wrong in ways worth
+recording. The first used a fixed floor of `0.15` on the subject's share,
+which would have passed the very campaign it exists to catch. The second
+compared the observed share with the analytic expectation `(k-1)/(n-1)`; that
+expectation is accurate on average here, `0.144` against a permuted mean of
+`0.141`, but comparing a point estimate with a mean ignores the null's spread,
+and the spread is what matters: it reaches `0.448`. Only the permutation
+version supports the significance claims above (D-28).
 
 ## 9. What landed, and what is still owed
 
