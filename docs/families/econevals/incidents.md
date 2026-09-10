@@ -588,3 +588,15 @@ roots are kept in the run tree.
 The selection here is over attempts, not cases: the panel is re-attempted whole
 and no case is ever rerun on its own. Ten campaign identities preceded this one
 and every failure is recorded above.
+
+## 2026-09-10, panel v11 (the deliberating arm)
+
+| Campaign | Attempt | Outcome | Cost (USD) | Disposition |
+|---|---|---|---:|---|
+| `panel_v11` | 001 | aborted on the first case: the bridge could not import upstream | 0.0219 | sealed; the identity is re-attempted as 002 after re-provisioning |
+
+### O — Operational failures
+
+| id | what happened | detection | cost | disposition |
+|---|---|---|---|---|
+| E-O-14 | `panel_v11` attempt 001 admitted its canary (464 output tokens, the deliberating condition confirmed live) and then died on the first case: `econevals bridge op 'procurement_evaluate' failed (ModuleNotFoundError): No module named 'econ_evals'`. Two independent faults in the local provisioning, neither in the adapter: the bridge interpreter had been orphaned by a Homebrew Python upgrade -- its `sys.prefix` resolved to the framework rather than the venv, so its own site-packages (with `gurobipy`, `numpy`, `pandas`) was off the path -- and the pinned upstream checkout had been emptied, 0 Python files where govsim's neighbouring checkout still had 108 | the campaign's own abort on case 0 | $0.0219 of provider spend on a case that could never have completed, and one campaign identity attempt | interpreter rebuilt from `tools/econevals_bridge/requirements.txt`; upstream re-cloned and verified at the pinned commit `e1f2a40f` (43 Python files) before use. Attempt 002 runs the same identity. **Worth a preflight:** the campaign spends on the model before it ever exercises the bridge, so a provisioning fault is discovered at the first tool call rather than at startup. A provider-free bridge call before the canary would have caught both faults for nothing |
