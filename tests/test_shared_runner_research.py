@@ -876,7 +876,6 @@ def test_research_ledger_attempts_carry_matching_errata_ids() -> None:
                 "run_plan_sha256s": [plan.plan_sha256],
                 "receipt_sha256s": [],
                 "implementation_pins": [],
-                "family_ids": [],
             },
             "fix_ref": None,
             "disposition": "open",

@@ -6,7 +6,7 @@ never deleted; a wrong or outdated record is superseded by a new one that
 names it in `superseded_by`.
 
 Each record selects the affected evidence by identity (campaign ids, plan
-digests, receipt digests, implementation-pin digests, family ids). The derived
+digests, receipt digests, implementation-pin digests). The derived
 register under `../errata_register/` and the `ERRATA.md` sidecars next to
 affected bundles are regenerated from these records with
 `aeread errata --write-notes`; see `docs/operations/errata.md`.

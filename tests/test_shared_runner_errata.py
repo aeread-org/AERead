@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -11,15 +12,17 @@ import pytest
 from aeread.shared_runner.analysis.errata import (
     Erratum,
     ErrataContractError,
+    affected_rows,
     build_register,
     errata_for,
     load_errata,
     main,
     plans_sealed_under,
     publish_register,
+    scan_bundles,
     write_erratum,
 )
-from aeread.shared_runner.run.contract import read_sealed
+from aeread.shared_runner.run.contract import read_sealed, sealed
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 PLAN_A = "a" * 64
@@ -44,7 +47,6 @@ def _erratum(**overrides) -> dict:
             "implementation_pins": [
                 {"component_id": "minimal_chat", "sha256s": [PIN_OLD]}
             ],
-            "family_ids": [],
         },
         "fix_ref": "#101 (d89da44)",
         "disposition": "open",
@@ -69,7 +71,6 @@ def test_erratum_round_trips_and_requires_a_selector() -> None:
             "run_plan_sha256s": [],
             "receipt_sha256s": [],
             "implementation_pins": [],
-            "family_ids": [],
         }
     )
     with pytest.raises(ErrataContractError, match="at least one selector"):
@@ -81,6 +82,7 @@ def test_erratum_round_trips_and_requires_a_selector() -> None:
     [
         ("errata_id", "ERR-1", "errata_id"),
         ("category", "vibes", "category"),
+        ("category", "family", "category"),
         ("effect", "bad", "effect"),
         ("disposition", "closed", "disposition"),
         ("opened_at", "yesterday", "opened_at"),
@@ -140,6 +142,34 @@ def test_load_errata_on_a_missing_root_is_empty(tmp_path: Path) -> None:
     assert load_errata(tmp_path / "nowhere") == ()
 
 
+@pytest.mark.parametrize("family_ids", [[], ["housing"]])
+def test_new_errata_reject_removed_family_selector(family_ids) -> None:
+    payload = _erratum()
+    payload["selectors"]["family_ids"] = family_ids
+    with pytest.raises(ErrataContractError, match="selectors"):
+        Erratum.from_dict(payload)
+
+
+def test_existing_sealed_empty_family_selector_loads_without_rewriting() -> None:
+    root = Path(__file__).resolve().parents[1] / "evidence" / "errata"
+    path = root / "ERR-2026-09-06-001.json"
+    before = path.read_bytes()
+    (erratum,) = load_errata(root)
+    assert "family_ids" not in erratum.to_dict()["selectors"]
+    assert path.read_bytes() == before
+
+
+def test_sealed_nonempty_family_selector_is_rejected(tmp_path: Path) -> None:
+    payload = _erratum()
+    payload["selectors"]["family_ids"] = ["housing"]
+    record = sealed({"schema_version": "aeread.erratum/0.1", **payload})
+    (tmp_path / f"{payload['errata_id']}.json").write_bytes(
+        canonical_json_bytes(record) + b"\n"
+    )
+    with pytest.raises(ErrataContractError, match="selectors"):
+        load_errata(tmp_path)
+
+
 # --- matching ---
 
 
@@ -155,7 +185,6 @@ def test_errata_for_matches_any_selector_and_skips_superseded() -> None:
                 "run_plan_sha256s": [],
                 "receipt_sha256s": [],
                 "implementation_pins": [],
-                "family_ids": [],
             },
         )
     )
@@ -232,7 +261,6 @@ def test_register_lists_affected_bundles_by_selector_and_is_reproducible(tmp_pat
                     "run_plan_sha256s": [],
                     "receipt_sha256s": ["2" * 64],
                     "implementation_pins": [],
-                    "family_ids": [],
                 },
             )
         ),
@@ -254,6 +282,81 @@ def test_register_lists_affected_bundles_by_selector_and_is_reproducible(tmp_pat
     assert first_summary["rows_sha256"] == hashlib.sha256(first_csv).hexdigest()
     assert first_summary["schema_version"] == "aeread.errata_register/0.1"
     assert first_summary["source_truth"] == ["evidence/errata", "publication_manifest.json", "receipts/projections.jsonl"]
+
+
+@pytest.mark.parametrize("source", ["manifest", "projection"])
+def test_bundle_pin_selector_reaches_register_and_sidecar(tmp_path: Path, source: str) -> None:
+    evidence = tmp_path / "evidence"
+    affected = _bundle(evidence, "pin_only", plan=PLAN_A, receipts=(RECEIPT_1,))
+    _bundle(evidence, "no_pins", plan=PLAN_B)
+    pins = [{"component_id": "minimal_chat", "sha256": PIN_OLD}]
+    path = (
+        affected / "publication_manifest.json"
+        if source == "manifest"
+        else affected / "receipts" / "projections.jsonl"
+    )
+    payload = json.loads(path.read_bytes())
+    payload["implementation_pins" if source == "manifest" else "plan_implementation_pins"] = pins
+    raw = canonical_json_bytes(payload) + b"\n"
+    path.write_bytes(raw)
+    selector = {
+        "campaign_ids": [], "run_plan_sha256s": [], "receipt_sha256s": [],
+        "implementation_pins": [{"component_id": "minimal_chat", "sha256s": [PIN_OLD]}],
+    }
+    erratum = Erratum.from_dict(_erratum(selectors=selector))
+    write_erratum(evidence / "errata", erratum)
+
+    assert errata_for((erratum,), implementation_pins=pins) == (erratum.errata_id,)
+    rows = affected_rows(scan_bundles(evidence), (erratum,))
+    assert [(row.bundle_path, row.matched_by) for row in rows] == [
+        ("pin_only", "implementation_pin")
+    ]
+    summary = publish_register(evidence, write_notes=True)
+    assert summary["affected_bundle_count"] == 1
+    assert "implementation_pin" in (affected / "ERRATA.md").read_text()
+    assert not (evidence / "no_pins" / "ERRATA.md").exists()
+    assert path.read_bytes() == raw
+    assert publish_register(evidence, write_notes=True) == summary
+
+    combined = dict(selector, campaign_ids=["pin_only"], run_plan_sha256s=[PLAN_A],
+                    receipt_sha256s=[RECEIPT_1])
+    rows = affected_rows(scan_bundles(evidence), (Erratum.from_dict(_erratum(selectors=combined)),))
+    assert rows[0].matched_by == "campaign_id,run_plan_sha256,receipt_sha256,implementation_pin"
+
+    for component, digest in [("other_component", PIN_OLD), ("minimal_chat", PIN_NEW)]:
+        selector["implementation_pins"] = [{"component_id": component, "sha256s": [digest]}]
+        other = Erratum.from_dict(_erratum(selectors=selector))
+        assert affected_rows(scan_bundles(evidence), (other,)) == ()
+
+
+def test_fixture_erratum_matches_a_real_published_bundle(tmp_path: Path) -> None:
+    repo = Path(__file__).resolve().parents[1]
+    name = "datacenter_development_terms_public_integrated_v8"
+    source = repo / "evidence" / name
+    evidence = tmp_path / "evidence"
+    bundle = evidence / name
+    (bundle / "receipts").mkdir(parents=True)
+    paths = [Path("publication_manifest.json"), Path("receipts/projections.jsonl")]
+    for path in paths:
+        shutil.copyfile(source / path, bundle / path)
+    projection = json.loads((source / paths[1]).read_text().splitlines()[0])
+    manifest = json.loads((source / paths[0]).read_bytes())
+    erratum = Erratum.from_dict(_erratum(selectors={
+        "campaign_ids": [manifest["campaign_id"]],
+        "run_plan_sha256s": [projection["run_plan_sha256"]],
+        "receipt_sha256s": [projection["source_receipt_sha256"]],
+        "implementation_pins": [],
+    }))
+    write_erratum(evidence / "errata", erratum)
+    summary = publish_register(evidence, write_notes=True)
+    assert summary["affected_bundles"] == [name]
+    assert summary["row_count"] == 1
+    rows = affected_rows(scan_bundles(evidence), (erratum,))
+    assert rows[0].matched_by == "campaign_id,run_plan_sha256,receipt_sha256"
+    assert erratum.errata_id in (bundle / "ERRATA.md").read_text()
+    for path in paths:
+        assert (bundle / path).read_bytes() == (source / path).read_bytes()
+    assert publish_register(evidence, write_notes=True) == summary
 
 
 def test_publish_register_writes_tables_summary_and_sidecar_notes(tmp_path: Path) -> None:
