@@ -310,10 +310,25 @@ def test_validate_payload_rejects_an_upstream_checkout_at_the_wrong_revision(
 
     other_root = tmp_path / "upstream"
     shutil.copytree(UPSTREAM_ROOT, other_root)
+    # The commit identity is supplied explicitly, through the environment
+    # rather than read from ambient git config. A CI runner has no global
+    # user.name/user.email, so a bare ``git commit`` there exits 128 ("Author
+    # identity unknown") and this test fails for a reason that has nothing to
+    # do with the revision mismatch it exists to assert. Environment variables
+    # are used instead of ``-c`` because they also win when the surrounding
+    # environment sets an explicitly empty GIT_AUTHOR_*/GIT_COMMITTER_*, which
+    # ``-c`` cannot override.
+    identity = {
+        "GIT_AUTHOR_NAME": "AERead Test",
+        "GIT_AUTHOR_EMAIL": "test@aeread.invalid",
+        "GIT_COMMITTER_NAME": "AERead Test",
+        "GIT_COMMITTER_EMAIL": "test@aeread.invalid",
+    }
     subprocess.run(
         ["git", "-C", str(other_root), "commit", "--allow-empty", "-m", "not the pinned commit"],
         check=True,
         capture_output=True,
+        env={**os.environ, **identity},
     )
 
     plugin = AmazonbargPlugin(upstream_root=other_root)
