@@ -86,11 +86,11 @@ document; this file is the index and the disposition.
 | econevals | `evidence/econevals_failure_register/` | 19 typed failures over 13 attempt roots (10 `rate_limit`, 3 `malformed_structured_output`, 2 `provider_rejected`, 2 `provider_contract`, 2 `invalid_measurement`); 176 retried provider-call failures beneath them; attribution provider 12, model 5, environment 2 | `docs/families/econevals/incidents.md` |
 | termsbench | `evidence/termsbench_failure_register/` | 1 typed failure over 2 attempt roots (v1 aborted at 8/30 on `malformed_structured_output`, a decoding degeneration; v2 30/30 with no typed failure); 13 of 30 v2 episodes carry a measured individual-rationality violation, which is a score, not a failure row | the TERMS-Bench section below (TB-D-01..03, TB-O-01); `docs/families/termsbench/campaign_scoping.md` |
 | govsim | not yet built -- **owed** | 3 live campaigns (`first_light_v1`, `dialogue_v2`, `dialogue_v3`) with 0 typed execution failures; the family's incidents are judgment-bearing (a fabricated-utterance near miss, an identity collision, a pre-fix source pin, an arm mismatch) rather than machine-derivable | [the govsim ledger](../families/govsim/incidents.md) (G-D-01..03, G-J-01..02) |
-| tau3 retail | not yet built -- **owed** (PR #97) | 5 campaign identities in one day (v14-v18); v18 excluded 3 cases on the per-case cap and 1 on a malformed response | PR #97; no Tier 2 section yet |
+| tau3 retail | `evidence/tau3_retail_failure_register/` | 8 typed/sealed failures across v14-v18; v18 excluded 3 cases on the per-case cap and 1 on a malformed response | this section below |
 
-Four registers exist in the required shape (housing, econevals, termsbench,
-and the data-center one pending its move to the standard layout); procurement
-still owes one, and tau3 and the seven #132 adapter families owe theirs. The gap is
+Five registers exist in the required shape (housing, econevals, termsbench,
+tau3 retail, and the data-center one pending its move to the standard layout);
+procurement and the seven #132 adapter families still owe theirs. The gap is
 recorded rather than quietly closed.
 
 A note the econevals register makes concrete: a checkpoint records
@@ -103,6 +103,22 @@ checkpoint's label.
 
 
 ---
+
+## tau3 retail — v14 through v18
+
+The machine register is [the tau3 retail failure register](../../evidence/tau3_retail_failure_register/).
+The five campaign identities are retained because each failed root is sealed
+evidence; later fixes do not retroactively change an earlier plan.
+
+| ID | Detection | Cost (USD) | What happened | Disposition |
+|---|---|---:|---|---|
+| TAU3-O-01 | live checkpoint | 0.00000 | v14 and v15 stopped on case 14 with an untyped operational failure after the canary. | superseded by the replacement panel; roots retained |
+| TAU3-O-02 | live checkpoint | 0.00000 | v16 completed case 14, then stopped on case 10 with the same untyped operational failure. | superseded by v17/v18; root retained |
+| TAU3-O-03 | live checkpoint | 0.00000 | v17 repeated the case-10 operational failure after completing case 14. | superseded by the replacement panel; root retained |
+| TAU3-D-01 | reviewer comparison of sealed costs | 0.29196660 | The initial `$0.09` cap was sized before merged per-round accounting was applied. Three v18 cases reached the cap. | fixed in v19 with a measured `$0.15` case cap and a `$1.00` hard campaign ceiling |
+| TAU3-D-02 | sealed event/checkpoint comparison | 0.07782174 | v18 case 84 returned malformed structured output. The campaign recorded and excluded it rather than scoring the raw failure. | fixed: record `malformed_response`, preserve cost, and continue |
+| TAU3-J-01 | review of v14-v18 accounting | 0.00000 | The first hypothesis blamed the cap setting; the actual change was merged per-round accounting, which made multi-round turns cost more. | corrected: v19 is calibrated from all sealed costs |
+| TAU3-O-04 | v19 admission checkpoint | 0.00000 | The real rerun could not pass its canary because `ARENA_API_KEY` was not available in this environment; no paid call was made and no panel case was started. | blocked pending credentials; sealed v19 root retained |
 
 ## 2026-09-05 / 06 — Housing delivery and confirmatory push
 

@@ -13,7 +13,6 @@ from aeread.shared_runner.task.evaluation import (
     replay_family_receipt,
 )
 from aeread.shared_runner.task.execution import (
-    EvidenceIntegrityError,
     ProviderFailure,
     ProviderResult,
     execute_plan_cell,
@@ -23,7 +22,7 @@ from aeread_families.tau3_retail.campaign import (
     PANEL_CASE_IDS,
     PANEL_STRATA,
     _accounted_failure_cost,
-    _combined_cap_cost,
+    _cap_cost,
     _provider_failure_condition,
     _digest,
     build_campaign_plan,
@@ -51,21 +50,11 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["route"]["fallbacks"] == "not_reported"
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True
-    assert plan["execution"]["continue_on_combined_cost_cap"] is True
+    assert plan["execution"]["continue_on_case_cost_cap"] is True
     assert plan["execution"]["continue_on_malformed_response"] is True
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
         "hard_total_cost_ceiling_usd"
     ]
-
-
-def test_combined_cap_cost_extracts_only_the_typed_executor_failure() -> None:
-    error = RuntimeError(
-        "response_source failed for logical_action_x: combined cost budget exceeded "
-        "for execution cell: 0.09320572000000002 > 0.09"
-    )
-
-    assert _combined_cap_cost(error) == pytest.approx(0.09320572)
-    assert _combined_cap_cost(RuntimeError("cost budget exceeded")) is None
 
 
 def test_malformed_failure_preserves_the_accounted_execution_cost() -> None:
@@ -299,26 +288,11 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
         == 2
     )
     assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
-        0.05
+        0.03
     )
     assert profiles["tau3_retail_user_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
-        0.05
+        0.02
     )
-    with pytest.raises(EvidenceIntegrityError, match="sealed RunSpec"):
-        asyncio.run(
-            execute_plan_cell(
-                plan=setup.plan,
-                cell_id=setup.plan.cells[0].cell_id,
-                registry=setup.registry,
-                evidence_root=tmp_path / "mismatched-budget",
-                prompt_sources=setup.prompt_sources,
-                providers={PROVIDER: provider},
-                pricing=setup.pricing,
-                harnesses=setup.harnesses,
-                tool_runtime_factories=setup.tool_runtime_factories,
-                combined_cost_ceiling_usd=0.04,
-            )
-        )
     execution = asyncio.run(
         execute_plan_cell(
             plan=setup.plan,

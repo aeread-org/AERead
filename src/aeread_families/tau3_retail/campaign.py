@@ -51,7 +51,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v18"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v19"
 
 PRIVACY_BOUNDARY = {
     "included": "case identities, receipt projections, per-episode outcomes, usage and cost",
@@ -77,12 +77,12 @@ SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.005
 MAX_CANARY_OUTPUT_TOKENS = 256
-MAX_TRAJECTORY_COST_USD = 0.09
+MAX_TRAJECTORY_COST_USD = 0.15
 HARD_TOTAL_COST_CEILING_USD = 1.00
 
-_COMBINED_CAP_REACHED = re.compile(
-    r"combined cost budget exceeded for execution cell: ([0-9]+(?:\.[0-9]+)?) > "
-    r"[0-9]+(?:\.[0-9]+)?$"
+_CAP_REACHED = re.compile(
+    r"(?:combined cost budget exceeded for execution cell|cost budget exceeded for profile .*?): "
+    r"([0-9]+(?:\.[0-9]+)?) > [0-9]+(?:\.[0-9]+)?$"
 )
 
 
@@ -90,9 +90,9 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
 
 
-def _combined_cap_cost(error: BaseException) -> float | None:
-    """Return the actual sealed charge when the executor stops at its combined cap."""
-    match = _COMBINED_CAP_REACHED.search(str(error))
+def _cap_cost(error: BaseException) -> float | None:
+    """Return the actual sealed charge when a profile or cell cap stops execution."""
+    match = _CAP_REACHED.search(str(error))
     return float(match.group(1)) if match else None
 
 
@@ -182,7 +182,7 @@ def build_campaign_plan() -> dict[str, Any]:
         "execution": {
             "max_parallel_cells": MAX_PARALLEL_CELLS,
             "abort_on_operational_failure": True,
-            "continue_on_combined_cost_cap": True,
+            "continue_on_case_cost_cap": True,
             "continue_on_malformed_response": True,
             "resume_only_failure_free_checkpoints": True,
             "publish_only": True,
@@ -396,7 +396,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
             checkpoint["record_sha256"] = _digest(checkpoint)
             _write_once_json(checkpoint_path, checkpoint)
         except Exception as error:
-            cap_cost = _combined_cap_cost(error)
+            cap_cost = _cap_cost(error)
             if cap_cost is not None:
                 checkpoint = {
                     "schema_version": "aeread.tau3_retail_checkpoint/0.1",

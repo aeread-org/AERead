@@ -235,7 +235,7 @@ def build_live_setup(
         tools=tool_names,
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd,
+        max_cost_usd=max_trajectory_cost_usd * 0.60,
     )
     user = _profile(
         seat="user",
@@ -245,7 +245,7 @@ def build_live_setup(
         tools=(),
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd,
+        max_cost_usd=max_trajectory_cost_usd * 0.40,
     )
     sampling = SamplingPlan.from_dict(
         {
