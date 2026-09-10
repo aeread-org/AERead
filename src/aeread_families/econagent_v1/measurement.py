@@ -40,10 +40,11 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -53,6 +54,8 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import PhaseInstance
 
 LEAF_VERSION = "1.0.0"
 ESTIMAND_VERSION = "1.0.0"
@@ -62,19 +65,33 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "econagent_v1_pilot_v1"
 DOMAIN_VERSION = "1.0.0"
 
+# The one validity-domain predicate every leaf below shares (``_validity_domain()``).
+# Named here -- rather than left as the inline literal `_validity_domain()`
+# passes to `_implementation` -- so `environment.py`'s `family_manifest()` can
+# declare it under `scoring.reference_provider_ids` without a second,
+# independently-typed copy of the same string (mirrors govsim's identically-
+# purposed `BASE_DOMAIN_PREDICATE_ID`).
+DOMAIN_PREDICATE_ID = "econagent_v1_domain_predicate"
+
 BUDGET_IDENTITY_ESTIMAND_ID = "econagent_budget_identity"
 BUDGET_IDENTITY_LEAF_ID = "econagent_budget_identity_leaf"
 BUDGET_IDENTITY_REFERENCE_ID = "econagent_budget_identity_reference"
+# The reference's own IMPLEMENTATION id (`ReferenceSpec.implementation`) --
+# distinct from `BUDGET_IDENTITY_REFERENCE_ID` above (`ReferenceSpec.reference_id`,
+# a different field). Named for the same reason as `DOMAIN_PREDICATE_ID`.
+BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID = "econagent_budget_identity_check"
 BUDGET_IDENTITY_SCORER_ID = "econagent_budget_identity_scorer"
 
 TAX_BRACKET_ESTIMAND_ID = "econagent_tax_bracket_arithmetic"
 TAX_BRACKET_LEAF_ID = "econagent_tax_bracket_arithmetic_leaf"
 TAX_BRACKET_REFERENCE_ID = "econagent_tax_bracket_reference"
+TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID = "econagent_tax_bracket_bridge_recompute"
 TAX_BRACKET_SCORER_ID = "econagent_tax_bracket_arithmetic_scorer"
 
 MACRO_TRAJECTORY_ESTIMAND_ID = "econagent_macro_trajectory"
 MACRO_TRAJECTORY_LEAF_ID = "econagent_macro_trajectory_leaf"
 MACRO_TRAJECTORY_REFERENCE_ID = "econagent_macro_trajectory_reference"
+MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID = "econagent_macro_trajectory_descriptive"
 MACRO_TRAJECTORY_SCORER_ID = "econagent_macro_trajectory_scorer"
 
 # Floating-point residue tolerance only -- a violation past this tolerance is
@@ -107,7 +124,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="econagent_v1/case_payload",
-        predicate=_implementation("econagent_v1_domain_predicate", "environment.py"),
+        predicate=_implementation(DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -139,7 +156,7 @@ def build_budget_identity_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         input_scope="trajectory",
         units="pass",
         source_sha256=pins["config_yaml_sha256"],
-        implementation=_implementation("econagent_budget_identity_check", "measurement.py"),
+        implementation=_implementation(BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID, "measurement.py"),
     )
     verifier = VerifierSpec(
         verifier_family="rule_constraint",
@@ -174,7 +191,7 @@ def build_tax_bracket_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         units="pass",
         source_sha256=pins["config_yaml_sha256"],
         implementation=_implementation(
-            "econagent_tax_bracket_bridge_recompute", "econagent_bridge.py"
+            TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID, "econagent_bridge.py"
         ),
     )
     verifier = VerifierSpec(
@@ -219,7 +236,7 @@ def build_macro_trajectory_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         input_scope="trajectory",
         units="coin",
         source_sha256=pins["config_yaml_sha256"],
-        implementation=_implementation("econagent_macro_trajectory_descriptive", "measurement.py"),
+        implementation=_implementation(MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID, "measurement.py"),
     )
     verifier = VerifierSpec(
         verifier_family="comparative",
@@ -787,6 +804,65 @@ def score_macro_trajectory(
 
 
 # ---------------------------------------------------------------------------
+# FamilyScoringInput plumbing (kernel_scoring_contract_spec.md section 1).
+# ---------------------------------------------------------------------------
+
+
+def _terminal_fields_from_phase_instances(
+    phase_instances: tuple[PhaseInstance, ...],
+) -> dict[str, Any]:
+    """Read this episode's terminal accounting fields off the last replayed
+    phase instance's transition state.
+
+    ``scoring_input.outcome`` (``environment.py``'s ``outcome()``) returns
+    only ``termination_reason, timestep, n_agents, final_inventory_coin`` --
+    final aggregates -- and never ``dense_log``/``month_actions``/
+    ``world_interest_rate_by_month``/``world`` (docs/econagent_migration_plan.md's
+    "Ruling applicability" section confirms this against the real
+    implementation, not by assumption). All three of this family's leaves
+    are declared ``input_scope="trajectory"``, so ``EconAgentV1Scorer.__call__``
+    reads those fields off ``scoring_input.phase_instances`` instead, via
+    this function.
+
+    ``environment.py``'s ``step()`` is the only place that mutates
+    ``dense_log``/``month_actions``/``world_interest_rate_by_month``/``world``/
+    ``n_agents``, directly into its own state dict, and this family's one
+    phase (``AGENT_MONTH_PHASE``) is ``mode="simultaneous"`` with exactly one
+    ``step()`` call per phase instance (one month each) -- so the LAST phase
+    instance's LAST (only) transition's state carries the full, cumulative,
+    terminal content for the whole episode, exactly what
+    ``EconAgentV1Plugin.terminal()`` itself reads off that same state.
+
+    Ruling R3 (kernel_scoring_contract_spec.md): reading it here is safe
+    because every phase boundary's post-state hash is cross-checked against
+    sealed evidence during replay, so a state that diverged from the real
+    run would already have failed finalization before this scorer is ever
+    called -- this only reads what the verified re-execution produced, never
+    re-derives it independently.
+
+    Returns an empty ``dict`` (every field absent) when ``phase_instances``
+    itself is empty or its last state is not a mapping -- the caller's own
+    ``.get(..., default)`` calls turn that into the same
+    ``dense_log=None``/``invalid_measurement`` path every ``score_*``
+    function already takes for a missing or malformed dense log.
+    """
+    if not phase_instances:
+        return {}
+    last_state = phase_instances[-1].transitions[-1].state
+    if not isinstance(last_state, Mapping):
+        return {}
+    world = last_state.get("world")
+    world_period = world.get("period") if isinstance(world, Mapping) else None
+    return {
+        "dense_log": last_state.get("dense_log"),
+        "n_agents": last_state.get("n_agents"),
+        "world_period": world_period,
+        "month_actions": last_state.get("month_actions"),
+        "world_interest_rate_by_month": last_state.get("world_interest_rate_by_month"),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Scorer bundle.
 # ---------------------------------------------------------------------------
 
@@ -796,15 +872,27 @@ class EconAgentV1Scorer:
     """One case's fixed set of declared leaves, plus the scorers for them.
 
     Mirrors ``tau3_retail``'s ``Tau3RetailScorer``: ``environment.py``'s
-    ``build_scorer`` hook returns one of these; the current kernel does not
-    yet invoke ``build_scorer`` itself or attach ``ScoreEnvelope``s to
-    ``CellExecution``, so the ``score_*`` methods below are also exercised
-    directly by tests today.
+    ``build_scorer`` hook returns one of these. ``__call__`` (spec section 1)
+    is the seam ``task.evaluation.finalize_family_execution`` calls directly
+    (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``); the ``score_*`` methods
+    below remain exercised directly by ``tests/test_econagent_measurement.py``'s
+    goldens too, exactly as before this migration.
     """
 
     scenario: Mapping[str, Any]
     pins: Mapping[str, Any]
     leaves: tuple[MeasurementLeafSpec, ...]
+    # A live, stateless ``EconAgentBridge`` factory for ``__call__``'s
+    # ``econagent_tax_bracket_arithmetic`` leaf (``recompute_tax`` is a pure
+    # function of the pinned config, never of any particular episode -- see
+    # that method's own docstring, and R2's guarantee that no LIVE EPISODE
+    # is ever reachable here: this is a fresh reference computation, not a
+    # second episode and not the live in-memory ``EpisodeResult``).
+    # ``EconAgentV1Plugin.build_scorer`` always supplies its own
+    # ``self._bridge_factory``; ``None`` only serves direct construction in
+    # tests that never call ``__call__``.
+    bridge_factory: Callable[[], Any] | None = None
 
     @property
     def budget_identity_leaf(self) -> MeasurementLeafSpec:
@@ -817,6 +905,79 @@ class EconAgentV1Scorer:
     @property
     def macro_trajectory_leaf(self) -> MeasurementLeafSpec:
         return self.leaves[2]
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Returns every one of this family's three declared finalize-time
+        leaves (spec section 5) -- a thin wrapper composing the three
+        existing named ``score_*`` methods (this module has no
+        ``score_all``); no new scoring logic is written here. All three
+        leaves are declared ``input_scope="trajectory"``
+        (docs/econagent_migration_plan.md's leaf table), so every one reads
+        its dense-log/month-action/interest-rate input off
+        ``scoring_input.phase_instances`` via
+        ``_terminal_fields_from_phase_instances``, never off
+        ``scoring_input.outcome`` (which never carries them -- see that
+        function's own docstring).
+
+        ``econagent_budget_identity`` is this family's primary leaf;
+        ``econagent_budget_identity`` and ``econagent_tax_bracket_arithmetic``
+        (the two ``rule_constraint`` leaves) gate admission;
+        ``econagent_macro_trajectory`` (comparative, descriptive-only) does
+        not -- see ``docs/econagent_adapter_status.md``'s "Leaf policy"
+        section for why.
+        """
+        fields = _terminal_fields_from_phase_instances(scoring_input.phase_instances)
+        dense_log = fields.get("dense_log")
+        n_agents = fields.get("n_agents") or 0
+        world_period = fields.get("world_period") or 0
+        month_actions = fields.get("month_actions") or ()
+        world_interest_rate_by_month = fields.get("world_interest_rate_by_month") or ()
+
+        budget_identity = self.score_budget_identity(
+            dense_log=dense_log,
+            n_agents=n_agents,
+            world_period=world_period,
+            month_actions=month_actions,
+            world_interest_rate_by_month=world_interest_rate_by_month,
+            evidence_refs=evidence_refs,
+        )
+        tax_bracket = self.score_tax_bracket_arithmetic(
+            dense_log=dense_log,
+            n_agents=n_agents,
+            bridge=self._require_bridge() if dense_log is not None else None,
+            evidence_refs=evidence_refs,
+        )
+        macro_trajectory = self.score_macro_trajectory(
+            dense_log=dense_log,
+            n_agents=n_agents,
+            month_actions=month_actions,
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.budget_identity_leaf.leaf_id,
+            scores=(budget_identity, tax_bracket, macro_trajectory),
+            admission_leaf_ids=(
+                self.budget_identity_leaf.leaf_id,
+                self.tax_bracket_leaf.leaf_id,
+            ),
+        )
+
+    def _require_bridge(self) -> Any:
+        if self.bridge_factory is None:
+            raise ValueError(
+                "EconAgentV1Scorer.bridge_factory is required to call __call__ on a "
+                "usable dense_log; build_scorer is normally invoked through "
+                "EconAgentV1Plugin.build_scorer, which always supplies one"
+            )
+        return self.bridge_factory()
 
     def score_budget_identity(
         self,
@@ -871,21 +1032,46 @@ class EconAgentV1Scorer:
         )
 
 
-def build_scorer(scenario: Mapping[str, Any], pins: Mapping[str, Any]) -> EconAgentV1Scorer:
-    """Build the one ``EconAgentV1Scorer`` for a case's ``family_case``."""
-    return EconAgentV1Scorer(scenario=scenario, pins=pins, leaves=build_leaves(pins))
+def build_scorer(
+    scenario: Mapping[str, Any],
+    pins: Mapping[str, Any],
+    *,
+    bridge_factory: Callable[[], Any] | None = None,
+) -> EconAgentV1Scorer:
+    """Build the one ``EconAgentV1Scorer`` for a case's ``family_case``.
+
+    ``bridge_factory`` -- when supplied -- mints a fresh, stateless
+    ``EconAgentBridge`` for ``__call__``'s ``econagent_tax_bracket_arithmetic``
+    leaf. ``EconAgentV1Plugin.build_scorer`` always passes its own
+    ``self._bridge_factory``; the default of ``None`` here only serves
+    direct construction in tests that never call ``__call__`` on a usable
+    ``dense_log``.
+    """
+    return EconAgentV1Scorer(
+        scenario=scenario,
+        pins=pins,
+        leaves=build_leaves(pins),
+        bridge_factory=bridge_factory,
+    )
 
 
 __all__ = [
     "BUDGET_IDENTITY_ESTIMAND_ID",
     "BUDGET_IDENTITY_LEAF_ID",
+    "BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID",
+    "BUDGET_IDENTITY_SCORER_ID",
     "BudgetIdentityResidual",
+    "DOMAIN_PREDICATE_ID",
     "EconAgentV1Scorer",
     "MACRO_TRAJECTORY_ESTIMAND_ID",
     "MACRO_TRAJECTORY_LEAF_ID",
+    "MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID",
+    "MACRO_TRAJECTORY_SCORER_ID",
     "MacroTrajectory",
     "TAX_BRACKET_ESTIMAND_ID",
     "TAX_BRACKET_LEAF_ID",
+    "TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID",
+    "TAX_BRACKET_SCORER_ID",
     "build_budget_identity_leaf",
     "build_leaves",
     "build_macro_trajectory_leaf",
