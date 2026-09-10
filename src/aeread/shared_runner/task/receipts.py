@@ -114,22 +114,30 @@ class EvaluationFailure:
 class EvaluationReceipt:
     """Final immutable admission record for one planned episode attempt."""
 
-    # Ruling R13 (kernel_scoring_contract_spec.md): ``inapplicable_leaf_ids``
-    # is added after receipts with an empty (or absent) leaf policy were
-    # already being sealed and replayed -- the same "additive field must not
-    # perturb existing digests" principle rulings R1/R9/R12 apply to
-    # ``schemas.py``'s manifest fields (``run.resolver._canonical_value``
-    # reads this ``ClassVar`` off ``type(value)`` for ANY dataclass it
-    # canonicalizes, not only manifest ones). A receipt that never declares
-    # a case_conditional leaf hashes exactly as it did before this field
-    # existed. ``deferred_leaf_ids`` is NOT in this set -- it predates this
-    # change and is unconditionally serialized already; adding it here now
-    # would itself be a digest-perturbing change, which is exactly what this
-    # mechanism exists to avoid. See ``_receipt_content_sha256`` for the
-    # matching fix that keeps ``receipt_sha256`` itself consistent with this
-    # omission.
+    # Additive fields must not perturb existing digests: the principle
+    # rulings R1/R9/R12 apply to ``schemas.py``'s manifest fields applies
+    # here too, because ``run.resolver._canonical_value`` reads this
+    # ``ClassVar`` off ``type(value)`` for ANY dataclass it canonicalizes.
+    # Two receipt fields opt in.
+    #
+    # ``deferred_leaf_ids`` (ruling R1, incident D-20): added on 2026-09-04
+    # after receipts had already been sealed into published evidence, and for
+    # four days serialized unconditionally, so every receipt sealed before it
+    # existed failed the dataclass digest while still passing the bytes
+    # digest. With it in this set, a receipt that declares no deferred leaf
+    # hashes byte for byte as it did before the field existed; receipts
+    # sealed inside that four-day window are still accepted through the
+    # transitional preimage in ``_accepted_content_digests``.
+    #
+    # ``inapplicable_leaf_ids`` (ruling R13): added after receipts with an
+    # empty or absent leaf policy were already being sealed and replayed. A
+    # receipt that never declares a case_conditional leaf hashes exactly as
+    # it did before this field existed.
+    #
+    # ``_receipt_content_sha256`` computes the digest from the canonical
+    # serialization itself, so this omission can never be bypassed there.
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
-        {"inapplicable_leaf_ids"}
+        {"deferred_leaf_ids", "inapplicable_leaf_ids"}
     )
 
     spec_version: str
@@ -172,7 +180,12 @@ class EvaluationReceipt:
     # a valid deferred leaf apart from one a scorer silently forgot. Empty
     # for every family that declares no leaf policy at all (the common case
     # today -- see ``FinalizeTimeLeafPolicy``).
-    deferred_leaf_ids: tuple[str, ...] = field(default_factory=tuple)
+    #
+    # Ruling R1: the default is a literal ``()`` rather than a factory because
+    # ``_CANONICAL_OMIT_IF_DEFAULT`` compares against ``field.default``, which
+    # is ``MISSING`` for a ``default_factory`` field and would never match.
+    # See the class-level note on why this field is digest-neutral when empty.
+    deferred_leaf_ids: tuple[str, ...] = ()
     # Ruling R13: a declared case_conditional leaf that does not apply to
     # this execution's case (the plugin's inapplicable_leaf_ids(family_case)
     # hook -- task/evaluation.py's _inapplicable_leaf_ids). Disjoint from
@@ -181,14 +194,8 @@ class EvaluationReceipt:
     # deferred is declared-and-inapplicable on a case where it does not
     # apply, declared-and-deferred otherwise), so every declared leaf has
     # exactly one disposition on every receipt. Empty for every family that
-    # declares no case_conditional leaf at all (every family today).
-    # A plain ``()`` default, not ``field(default_factory=tuple)`` like
-    # ``deferred_leaf_ids`` above -- ``_CANONICAL_OMIT_IF_DEFAULT`` (both
-    # here and in ``run.resolver._canonical_value``) compares against
-    # ``dataclasses.Field.default``, which is ``MISSING`` for a
-    # ``default_factory`` field and would therefore never match, silently
-    # defeating the omission for every receipt regardless of this field's
-    # actual value.
+    # declares no case_conditional leaf at all (every family today). A plain
+    # ``()`` default for the same reason as ``deferred_leaf_ids`` above.
     inapplicable_leaf_ids: tuple[str, ...] = ()
 
     SPEC_VERSION = "aeread.receipt/0.1"
@@ -481,29 +488,77 @@ class EvaluationReceipt:
         _require_sha256(self.evidence.artifact_root_sha256, "artifact_root_sha256")
 
 
+def _content_digest(payload: Mapping[str, Any]) -> str:
+    content = dict(payload)
+    content.pop("receipt_sha256", None)
+    return hashlib.sha256(canonical_json_bytes(content)).hexdigest()
+
+
+CANONICAL_PREIMAGE = "canonical"
+TRANSITIONAL_PREIMAGE = "transitional_empty_deferred_leaf_ids_2026_09_04"
+
+
+def _accepted_content_digests(payload: Mapping[str, Any]) -> dict[str, str]:
+    """Every preimage a serialized receipt may legitimately have been sealed under.
+
+    ``canonical`` is the digest of the receipt's canonical serialization,
+    where an empty ``deferred_leaf_ids`` is absent. ``transitional`` is the
+    preimage used between 2026-09-04 and the digest-neutral opt-in, where the
+    same empty field was written as ``[]``. Both are exact functions of the
+    same content and differ only by an information-free empty list, so any
+    change to a real field fails both. When the field is non-empty the two
+    coincide and only ``canonical`` is reported.
+
+    This is the single computation behind the dataclass path
+    (``verify_evaluation_receipt``) and the bytes path
+    (``verify_serialized_evaluation_receipt``); they cannot drift apart again.
+    """
+
+    canonical = dict(payload)
+    if canonical.get("deferred_leaf_ids") == []:
+        canonical.pop("deferred_leaf_ids")
+    digests = {CANONICAL_PREIMAGE: _content_digest(canonical)}
+    transitional = dict(payload)
+    if transitional.get("deferred_leaf_ids", []) == []:
+        transitional["deferred_leaf_ids"] = []
+        digests[TRANSITIONAL_PREIMAGE] = _content_digest(transitional)
+    return digests
+
+
+def _serialized_preimage_kind(payload: Mapping[str, Any]) -> str | None:
+    digest = payload.get("receipt_sha256")
+    for kind, expected in _accepted_content_digests(payload).items():
+        if digest == expected:
+            return kind
+    return None
+
+
+def receipt_preimage_kind(value: EvaluationReceipt | Mapping[str, Any]) -> str:
+    """Which preimage a sealed receipt's digest matches, for audit trails.
+
+    A verified receipt does not otherwise say whether it passed through the
+    canonical digest or the transitional compatibility path, so anything that
+    publishes or audits receipts can record this next to the digest.
+    """
+
+    payload = (
+        json.loads(canonical_json_bytes(value))
+        if isinstance(value, EvaluationReceipt)
+        else dict(value)
+    )
+    kind = _serialized_preimage_kind(payload)
+    if kind is None:
+        raise MeasurementContractError("receipt_sha256 does not match receipt content")
+    return kind
+
+
 def _receipt_content_sha256(receipt: EvaluationReceipt) -> str:
-    # Ruling R13: this payload is a plain dict, not the ``receipt`` dataclass
-    # itself, so it bypasses ``run.resolver._canonical_value``'s own
-    # ``_CANONICAL_OMIT_IF_DEFAULT`` recursion (that recursion only fires
-    # when it encounters a dataclass INSTANCE; a dict built by hand from
-    # every field, as this always has, is not one). ``write_evaluation_receipt``
-    # persists ``canonical_json_bytes(receipt)`` -- the dataclass itself,
-    # which DOES honour the omission -- so without this same omission here,
-    # a receipt whose ``inapplicable_leaf_ids`` holds its default would seal
-    # under a digest computed WITH that key present, then persist bytes
-    # WITHOUT it, and fail its own round-trip verification on every family
-    # that has never declared a case_conditional leaf (every family today).
-    omit_if_default = getattr(type(receipt), "_CANONICAL_OMIT_IF_DEFAULT", frozenset())
-    payload = {
-        item.name: getattr(receipt, item.name)
-        for item in dataclasses.fields(receipt)
-        if item.name != "receipt_sha256"
-        and not (
-            item.name in omit_if_default
-            and getattr(receipt, item.name) == item.default
-        )
-    }
-    return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    # The dataclass digest is defined as the digest of the receipt's canonical
+    # serialization, so it is the same computation the bytes path performs.
+    # Building a field dict by hand here once bypassed
+    # ``_CANONICAL_OMIT_IF_DEFAULT`` and let the two paths disagree.
+    serialized = json.loads(canonical_json_bytes(receipt))
+    return _accepted_content_digests(serialized)[CANONICAL_PREIMAGE]
 
 
 def seal_evaluation_receipt(receipt: EvaluationReceipt) -> EvaluationReceipt:
@@ -523,9 +578,7 @@ def verify_evaluation_receipt(receipt: EvaluationReceipt) -> EvaluationReceipt:
         raise MeasurementContractError("receipt must be an EvaluationReceipt")
     if receipt.receipt_sha256 is None:
         raise MeasurementContractError("receipt_sha256 is missing")
-    expected = _receipt_content_sha256(receipt)
-    if receipt.receipt_sha256 != expected:
-        raise MeasurementContractError("receipt_sha256 does not match receipt content")
+    receipt_preimage_kind(receipt)
     return receipt
 
 
@@ -543,7 +596,22 @@ def write_evaluation_receipt(
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
-        if not path.is_file() or path.read_bytes() != payload:
+        # The same receipt may already be on disk in a different but
+        # content-equivalent serialization: a transitional-window file
+        # carries ``"deferred_leaf_ids":[]`` where the canonical form omits
+        # it. Compare verified content and the sealed digest rather than raw
+        # bytes, and leave the existing file untouched either way.
+        if not path.is_file():
+            raise MeasurementContractError(
+                "refusing to overwrite a different evaluation receipt"
+            )
+        try:
+            existing = read_evaluation_receipt(path)
+        except MeasurementContractError as error:
+            raise MeasurementContractError(
+                "refusing to overwrite a different evaluation receipt"
+            ) from error
+        if existing.get("receipt_sha256") != receipt.receipt_sha256:
             raise MeasurementContractError(
                 "refusing to overwrite a different evaluation receipt"
             )
@@ -576,10 +644,9 @@ def verify_serialized_evaluation_receipt(
     payload = dict(value)
     if payload.get("spec_version") != EvaluationReceipt.SPEC_VERSION:
         raise MeasurementContractError("serialized receipt spec_version is unsupported")
-    digest = payload.pop("receipt_sha256", None)
+    digest = payload.get("receipt_sha256")
     _require_sha256(digest, "receipt_sha256")
-    expected = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
-    if digest != expected:
+    if _serialized_preimage_kind(payload) is None:
         raise MeasurementContractError(
             "serialized receipt_sha256 does not match receipt content"
         )
@@ -605,6 +672,7 @@ __all__ = [
     "EvaluationFailure",
     "EvaluationReceipt",
     "seal_evaluation_receipt",
+    "receipt_preimage_kind",
     "read_evaluation_receipt",
     "verify_evaluation_receipt",
     "verify_serialized_evaluation_receipt",
