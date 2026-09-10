@@ -12,7 +12,7 @@ path. Per-attempt operational detail is in the campaign documents.
 | `dialogue_v2` | 002 | killed mid-run by the operator | 0.0065 | discarded: the dialogue was fake, see G-J-01 |
 | `dialogue_v2` | 003 | 3/3 included, publish refused | 0.0407 | sealed; superseded by the v2 identity, see G-D-01 |
 | `dialogue_v2` | 001 | 3/3 included, sealed | 0.0397 | not publishable: its plan pins the pre-fix `environment.py`, see G-D-02 |
-| `dialogue_v3` | 001 | running (2026-09-09) | -- | the same design under `main`'s source |
+| `dialogue_v3` | 001 | 3/3 included, published | 0.0408 | stands, as the **dialogue** panel: v1 and v3 read side by side |
 
 ## D — Design defects
 
