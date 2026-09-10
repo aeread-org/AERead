@@ -1551,6 +1551,48 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    The opponent seat, by contrast, moves the score by `0.033`, as large as the
    whole baseline gap (D-26).
 
+### The subject seat explains none of the score
+
+The decomposition that matters is not of the shortfall but of the variance,
+and it is the strongest finding in this line of work. Across all 717
+completed cells:
+
+| source | share of score variance |
+|---|---|
+| the case, world by configuration | `0.428` |
+| the opponent, within a fixed case | `0.564` of the remainder |
+| the subject, within a fixed case | `0.067` of the remainder |
+| the subject, of the total | `0.000` |
+
+What a one-line heuristic scores on a case predicts the models' score there
+at `r = 0.81`. The primary contrast by configuration runs `+0.024`, `-0.015`,
+`+0.011`, changing sign. So the confirmatory null was a null because the
+estimand carries almost no agent signal, not because two models are equal.
+
+The cause is price invariance seen from the design side (D-16). The tenant
+seat's main lever is what it agrees to pay; welfare cancels every rent; the
+seat under test was therefore placed in the one channel the metric cannot
+see, while the landlord seat, which gates whether a lease happens at all,
+carries most of the agent variance the score does register.
+
+The environment is not the problem. Recomputing the same cells against tenant
+surplus share:
+
+| metric | subject share, within case | contrast by difficulty (`cw` 0.45 / 0.70 / 0.95) |
+|---|---|---|
+| welfare, the current primary | `0.067` | `+0.024`, `-0.015`, `+0.011` |
+| tenant surplus share | `0.267` | `+0.141`, `+0.296`, `+0.867` |
+
+The subject's leverage quadruples and the contrast becomes monotone in
+difficulty, rising sixfold. That dose-response is what a capability measure
+should show and what the welfare metric never showed at any difficulty.
+
+One caveat governs its use. Mean tenant surplus exceeds `1.0`, because
+landlords signing below their own cost subsidise tenants, so on its own this
+metric scores exploitation of a broken counterparty as skill. It is
+meaningful only under D-23's rent floor and D-24's subject-IR gate, which is
+why those land together (D-27).
+
 ### Individual rationality is a validity constraint, not a metric
 
 The finding shows a design that treats a validity constraint as a metric. A
