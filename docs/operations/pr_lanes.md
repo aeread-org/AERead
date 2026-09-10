@@ -134,3 +134,30 @@ git commit --allow-empty -m "chore: trigger lane check" && git push
 
 The PR is labelled and checked within about a minute. Do this right before
 merging a stale PR rather than for every open PR at once.
+
+## 8. A kernel PR stays BLOCKED although it is approved and every check is green
+
+Symptom: `gh pr view N --json mergeStateStatus` says `BLOCKED`, the review
+decision is `APPROVED`, and every check reads `SUCCESS`. Looking at the rollup
+shows `kernel-review` **twice on the same head**, once `FAILURE` and once
+`SUCCESS`. That is the normal shape when the check ran before the approval
+existed and again after it: the first run failed honestly, and the failed run
+stays attached to the head.
+
+**Do not reach for section 7's empty commit here.** A push moves the head, and
+a kernel-lane approval is pinned to the head SHA — `pr-lanes.yml` selects
+reviews with `.state == "APPROVED" and .commit_id == "$HEAD_SHA"`. Pushing
+anything, empty commit included, discards the approval you just obtained and
+costs your reviewer a second round.
+
+Re-run the failed run instead. The SHA does not change, so the approval
+survives:
+
+```bash
+gh run list --repo aeread-org/AERead --branch <branch> \
+  --workflow pr-lanes.yml --json databaseId,conclusion,headSha
+gh run rerun <databaseId of the FAILURE run>
+```
+
+Observed on #158: approved and green, `BLOCKED` until the pre-approval
+`kernel-review` run was re-run in place.
