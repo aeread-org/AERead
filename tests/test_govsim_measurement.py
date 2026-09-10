@@ -347,6 +347,50 @@ def test_every_scorer_returns_invalid_measurement_never_a_zero_on_operational_fa
 
 
 # ---------------------------------------------------------------------------
+# A comparative leaf with no baseline is unmeasured, never fabricated --
+# ruling on issue #141 ("govsim: declare the five-leaf policy").
+# ---------------------------------------------------------------------------
+
+
+_MISSING_BASELINE_CASES = [
+    pytest.param(
+        m.build_total_harvest_leaf,
+        m.score_total_harvest,
+        "baseline_total_harvest",
+        {"num_agents": 5},
+        id="total_harvest",
+    ),
+    pytest.param(
+        m.build_equality_gini_leaf,
+        m.score_equality_gini,
+        "baseline_gini",
+        {"num_agents": 5},
+        id="equality_gini",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "build_leaf, score_fn, baseline_kwarg, extra_kwargs", _MISSING_BASELINE_CASES
+)
+def test_comparative_scorer_returns_invalid_measurement_never_omitted_with_no_baseline(
+    build_leaf, score_fn, baseline_kwarg, extra_kwargs
+) -> None:
+    leaf = build_leaf()
+    terminal = _terminal_stub("max_num_rounds")
+
+    envelope = score_fn(
+        leaf, terminal=terminal, **{baseline_kwarg: None}, **extra_kwargs
+    )
+
+    assert envelope.status == "invalid_measurement"
+    assert envelope.primary is None
+    assert envelope.validity.status == "invalid"
+    assert envelope.validity.reasons
+    assert "baseline" in envelope.validity.reasons[0]
+
+
+# ---------------------------------------------------------------------------
 # GovsimScorer.score_recorded_outcome -- the OLD finalizer seam.
 # ``finalize_family_execution`` once executed
 # ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``.
@@ -786,8 +830,12 @@ def test_call_surfaces_every_leaf_when_baselines_are_present() -> None:
     assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
 
 
-def test_call_omits_the_comparative_leaves_rather_than_inventing_a_baseline() -> None:
-    """Without reference values, report less -- never fabricate a comparison."""
+def test_call_reports_the_comparatives_as_invalid_measurement_rather_than_omitting_them() -> None:
+    """Per the benchmark owner's ruling on issue #141: a baseline-free run
+    still returns all five declared leaves. The two comparatives that need a
+    baseline (``govsim_total_harvest``/``govsim_equality_gini``) come back
+    present, typed ``invalid_measurement``, with a reason naming the absent
+    baseline -- never silently dropped from the returned set."""
     import aeread_families.govsim.measurement as m
 
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
@@ -796,12 +844,27 @@ def test_call_omits_the_comparative_leaves_rather_than_inventing_a_baseline() ->
         family_case, terminal_builder=lambda state: terminal, baselines=None
     )
     result = scorer(_scoring_input({"any": "state"}))
-    leaf_ids = {score.leaf.leaf_id for score in result.scores}
-    assert m.TOTAL_HARVEST_LEAF_ID not in leaf_ids
-    assert m.EQUALITY_GINI_LEAF_ID not in leaf_ids
-    # The family's declared primary estimand is always present, so an
-    # included receipt always carries the leaf the family is defined by.
+    assert len(result.scores) == 5
+    by_leaf_id = {score.leaf.leaf_id: score for score in result.scores}
+    assert set(by_leaf_id) == {
+        m.NO_COLLAPSE_LEAF_ID,
+        m.THRESHOLD_ADHERENCE_LEAF_ID,
+        m.SURVIVAL_MONTHS_LEAF_ID,
+        m.TOTAL_HARVEST_LEAF_ID,
+        m.EQUALITY_GINI_LEAF_ID,
+    }
+    for leaf_id in (m.TOTAL_HARVEST_LEAF_ID, m.EQUALITY_GINI_LEAF_ID):
+        comparative = by_leaf_id[leaf_id]
+        assert comparative.status == "invalid_measurement"
+        assert comparative.primary is None
+        assert comparative.validity.status == "invalid"
+        assert comparative.validity.reasons
+        assert "baseline" in comparative.validity.reasons[0]
+    # The family's declared primary estimand is always present and scored,
+    # so an included receipt always carries the leaf the family is defined
+    # by, regardless of whether a baseline was supplied.
     assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert by_leaf_id[m.SURVIVAL_MONTHS_LEAF_ID].status == "ok"
 
 
 def test_call_refuses_a_scoring_input_with_no_replayed_state() -> None:

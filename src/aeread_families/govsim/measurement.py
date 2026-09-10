@@ -502,6 +502,40 @@ def _operational_failure_envelope(
     )
 
 
+def _missing_baseline_envelope(
+    leaf: MeasurementLeafSpec, evidence_refs: tuple[str, ...]
+) -> ScoreEnvelope:
+    """The typed, never-omitted result for a comparative leaf with no baseline.
+
+    Per the benchmark owner's ruling on issue #141 (govsim: declare the
+    five-leaf policy): "A run without baselines showing the comparatives as
+    invalid_measurement is correct, not a regression: a comparative without
+    its baseline is unmeasured." This module never fabricates a reference
+    value (this module's own docstring); when no baseline reaches
+    ``score_total_harvest``/``score_equality_gini``, the leaf still appears
+    in the receipt -- exactly like ``_operational_failure_envelope`` above,
+    never silently dropped from the returned set -- with this typed reason
+    in place of a scored value.
+    """
+    return ScoreEnvelope(
+        status="invalid_measurement",
+        leaf=leaf,
+        primary=None,
+        metrics={},
+        reference_values={},
+        validity=ValidityReport(
+            "invalid",
+            reasons=(
+                "no comparative baseline is available for this leaf: this "
+                "module never re-runs a baseline episode itself, and none "
+                "was supplied to this evaluation, so the comparison is "
+                "unmeasured rather than fabricated",
+            ),
+        ),
+        evidence_refs=evidence_refs,
+    )
+
+
 def score_no_collapse(
     leaf: MeasurementLeafSpec,
     *,
@@ -640,7 +674,7 @@ def score_total_harvest(
     leaf: MeasurementLeafSpec,
     *,
     terminal: Mapping[str, Any],
-    baseline_total_harvest: float,
+    baseline_total_harvest: float | None,
     num_agents: int,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
@@ -651,9 +685,17 @@ def score_total_harvest(
     episode (``concurrent_env.py``'s ``_assign_resource``:
     ``collected_resource[agent] += res`` every round; never reset until the
     next episode), never re-derived from a per-round trace.
+
+    ``baseline_total_harvest`` is ``None`` when no caller supplied one (this
+    module never re-runs a baseline episode itself). Per the benchmark
+    owner's ruling on issue #141, a comparative leaf with no baseline is
+    unmeasured, not omitted: this returns ``_missing_baseline_envelope``
+    rather than a scored value with no comparison.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
+    if baseline_total_harvest is None:
+        return _missing_baseline_envelope(leaf, evidence_refs)
     collected = terminal["collected_resource"]
     total = float(sum(collected.values()))
     delta = total - float(baseline_total_harvest)
@@ -683,7 +725,7 @@ def score_equality_gini(
     leaf: MeasurementLeafSpec,
     *,
     terminal: Mapping[str, Any],
-    baseline_gini: float,
+    baseline_gini: float | None,
     num_agents: int,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
@@ -696,9 +738,17 @@ def score_equality_gini(
     flags this explicitly rather than silently reporting a "perfectly
     equal" verdict for a case with no peer to be unequal against (spec
     section 4's degenerate-reference golden).
+
+    ``baseline_gini`` is ``None`` when no caller supplied one (this module
+    never re-runs a baseline episode itself). Per the benchmark owner's
+    ruling on issue #141, a comparative leaf with no baseline is unmeasured,
+    not omitted: this returns ``_missing_baseline_envelope`` rather than a
+    scored value with no comparison.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
+    if baseline_gini is None:
+        return _missing_baseline_envelope(leaf, evidence_refs)
     collected = terminal["collected_resource"]
     values = np.array(
         [float(quantity) for _agent_id, quantity in sorted(collected.items())],
@@ -782,12 +832,19 @@ class GovsimScorer:
     ) -> FamilyScoreSet:
         """The kernel's once-per-episode scoring hook (issue #76).
 
-        ``evaluation.py`` passes a ``FamilyScoringInput`` and expects every
-        declared leaf. This surfaces all five when the comparative baselines
-        are available and the three baseline-free ones when they are not,
-        rather than fabricating a reference: ``govsim_survival_months`` is
-        this family's declared primary estimand and is always present, so an
-        included receipt always carries the leaf the family is defined by.
+        ``evaluation.py`` passes a ``FamilyScoringInput`` and
+        ``environment.py``'s ``family_manifest()`` now declares the full
+        five-leaf policy (ruling on issue #141), so this always surfaces all
+        five: the three baseline-free leaves as ``ok``, and
+        ``govsim_total_harvest``/``govsim_equality_gini`` as
+        ``invalid_measurement`` (never omitted) when ``self.baselines`` is
+        absent -- "a comparative without its baseline is unmeasured,"
+        exactly what ``_enforce_declared_leaf_policy`` requires once a leaf
+        policy is declared: the produced leaf set must equal the declared
+        set, not a data-dependent subset of it. ``govsim_survival_months``
+        is this family's declared primary estimand and is always scored
+        ``ok`` regardless of ``self.baselines``, so an included receipt
+        always carries the leaf the family is defined by.
 
         The terminal mapping comes from the last transition of the verified
         re-execution, never from the live episode.
@@ -822,22 +879,21 @@ class GovsimScorer:
                 ),
                 evidence_refs=evidence_refs,
             ),
+            self.score_total_harvest(
+                terminal=terminal,
+                baseline_total_harvest=(
+                    self.baselines.get("total_harvest") if self.baselines else None
+                ),
+                evidence_refs=evidence_refs,
+            ),
+            self.score_equality_gini(
+                terminal=terminal,
+                baseline_gini=(
+                    self.baselines.get("gini") if self.baselines else None
+                ),
+                evidence_refs=evidence_refs,
+            ),
         ]
-        if self.baselines is not None:
-            scores.append(
-                self.score_total_harvest(
-                    terminal=terminal,
-                    baseline_total_harvest=float(self.baselines["total_harvest"]),
-                    evidence_refs=evidence_refs,
-                )
-            )
-            scores.append(
-                self.score_equality_gini(
-                    terminal=terminal,
-                    baseline_gini=float(self.baselines["gini"]),
-                    evidence_refs=evidence_refs,
-                )
-            )
         return FamilyScoreSet(
             primary_leaf_id=self.survival_months_leaf.leaf_id,
             scores=tuple(scores),
@@ -914,7 +970,7 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_total_harvest: float,
+        baseline_total_harvest: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_total_harvest(
@@ -929,7 +985,7 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_gini: float,
+        baseline_gini: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_equality_gini(
