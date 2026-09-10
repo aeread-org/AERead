@@ -580,6 +580,25 @@ class TermsBenchPlugin:
 
     # -- build_scorer / build_reference_providers / generator -------------------
 
+    COUNTERPART_POLICY_ID = "termsbench_counterpart_kernel_v1"
+
+    def scripted_response(self, policy_id: str, request: Any, *, world_seed: int) -> dict[str, Any]:
+        """The kernel's scripted-seat hook (docs/kernel_scripted_seats_design.md).
+
+        The counterpart is not a model: it is this family's own seeded kernel.
+        The live path could not express that -- every seat needed a model
+        profile, and a harness answering without a model call is refused --
+        so the family's live panel was blocked (#92). Now the plan declares
+        the counterpart as a scripted seat and the kernel asks here for its
+        turn: a pure function of the observation and the world seed, which
+        replay recomputes and holds against the sealed response.
+        """
+        if policy_id != self.COUNTERPART_POLICY_ID:
+            raise ValueError(f"termsbench has no scripted policy {policy_id!r}")
+        from .harness import resolve_counterpart_response
+
+        return resolve_counterpart_response(request.observation, world_seed=world_seed)
+
     def build_scorer(self, family_case: Mapping[str, Any]) -> TermsBenchScorer:
         """Return the declared measurement leaves plus their scorers
         (``measurement.py``, spec section 2): 3 leaves for an Overlap-regime
