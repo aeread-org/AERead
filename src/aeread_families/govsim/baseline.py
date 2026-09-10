@@ -85,7 +85,12 @@ async def compute_baseline_async(
     real scheduler, so the baseline traverses the same environment the live
     episodes do rather than a separate simulation that could drift from it.
     """
-    plugin = GovsimPlugin(upstream_root=upstream_root, bridge=bridge)
+    # The reference policy is the control and is defined as harvesting the
+    # sustainability threshold, so this provider-free episode reveals it
+    # regardless of the arm the tested agent runs under.
+    plugin = GovsimPlugin(
+        upstream_root=upstream_root, bridge=bridge, reveal_sustainability_threshold=True
+    )
     registry = PluginRegistry()
     registry.register_trusted(family_manifest(), plugin)
     family_case = plugin.validate_payload(case.payload)

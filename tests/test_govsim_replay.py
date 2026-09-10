@@ -165,7 +165,7 @@ def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
 
 
 def _resolved_plugin(bridge_instance: GovsimBridge) -> Any:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge_instance)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge_instance, reveal_sustainability_threshold=True)
     registry = PluginRegistry()
     register_plugin(registry, plugin=plugin)
     return registry.resolve_manifest(family_manifest())

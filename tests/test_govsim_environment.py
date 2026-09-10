@@ -119,10 +119,15 @@ class FakeGovsimBridge:
         }
 
 
-def _plugin(*, bridge: FakeGovsimBridge | None = None) -> GovsimPlugin:
+def _plugin(
+    *,
+    bridge: FakeGovsimBridge | None = None,
+    reveal_sustainability_threshold: bool | None = None,
+) -> GovsimPlugin:
     return GovsimPlugin(
         upstream_root=_UNUSED_UPSTREAM_ROOT,
         bridge=bridge if bridge is not None else FakeGovsimBridge(),
+        reveal_sustainability_threshold=reveal_sustainability_threshold,
     )
 
 
@@ -445,16 +450,37 @@ def test_observe_rejects_an_ineligible_seat() -> None:
         plugin.observe(family_case, state, "persona_1", phases[DISCUSS_PHASE])
 
 
-def test_observe_harvest_exposes_pool_and_threshold() -> None:
+def test_observe_harvest_exposes_the_pool_and_follows_the_declared_arm() -> None:
+    """The sustainability threshold is upstream's universalization
+    intervention, not part of the baseline observation: upstream adds it to
+    the agent's context only under `inject_universalization`, and the paper's
+    headline (survival below 54%) is the arm without it. This test used to
+    assert the threshold unconditionally, which is how two published panels
+    ran the intervention while their cases declared the baseline (G-D-03)."""
     plugin = _plugin()
-    family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
-    phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
-    observation = plugin.observe(family_case, state, "persona_0", phases[HARVEST_PHASE])
+    phases = {phase.phase_id: phase for phase in plugin.phases(_family_case(num_agents=5))}
+
+    baseline_case = _family_case(num_agents=5)
+    assert baseline_case["env_cfg"]["inject_universalization"] is False
+    state = plugin.initial_state(baseline_case, cell=None)
+    observation = plugin.observe(baseline_case, state, "persona_0", phases[HARVEST_PHASE])
     assert observation["resource_in_pool"] == 100
-    assert observation["sustainability_threshold"] == 10
     assert observation["num_round"] == 0
     assert observation["num_agents"] == 5
+    assert "sustainability_threshold" not in observation
+
+    universalized = dict(baseline_case)
+    universalized["env_cfg"] = {**baseline_case["env_cfg"], "inject_universalization": True}
+    state = plugin.initial_state(universalized, cell=None)
+    observation = plugin.observe(universalized, state, "persona_0", phases[HARVEST_PHASE])
+    assert observation["sustainability_threshold"] == 10
+
+    # A control -- the scripted reference policy -- is defined as harvesting
+    # the threshold and sees it whatever the arm.
+    control = _plugin(reveal_sustainability_threshold=True)
+    state = control.initial_state(baseline_case, cell=None)
+    observation = control.observe(baseline_case, state, "persona_0", phases[HARVEST_PHASE])
+    assert observation["sustainability_threshold"] == 10
 
 
 def test_parse_action_harvest_requires_a_nonnegative_integer_quantity() -> None:

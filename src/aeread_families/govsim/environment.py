@@ -282,9 +282,17 @@ class GovsimPlugin:
         upstream_root: Path | str,
         bridge: GovsimBridge | None,
         baselines: Mapping[str, float] | None = None,
+        reveal_sustainability_threshold: bool | None = None,
     ) -> None:
         self.upstream_root = Path(upstream_root)
         self.bridge = bridge
+        # Who may see the sustainability threshold. `None` follows the case's
+        # own declared arm (`env_cfg.inject_universalization`), which is what
+        # a tested agent gets. The scripted reference policy
+        # (`govsim_sustainable_v1`) is a control, not a subject, and is
+        # *defined* as harvesting that threshold, so the provider-free
+        # baseline episode passes True here. A subject seat never does.
+        self.reveal_sustainability_threshold = reveal_sustainability_threshold
         # This family is comparative (`bound_status: baseline_only`), so three
         # of its five leaves need reference values. They are produced by
         # running the declared scripted policy (`govsim_sustainable_v1`)
@@ -507,7 +515,25 @@ class GovsimPlugin:
             "num_agents": int(family_case["env_cfg"]["num_agents"]),
             "num_round": projection["num_round"],
             "resource_in_pool": projection["resource_in_pool"],
-            "sustainability_threshold": projection["sustainability_threshold"],
+            # Upstream hands the agent the sustainability threshold ONLY in
+            # the universalization arm (`inject_universalization`, upstream's
+            # `get_universalization_prompt`: "if everyone fishes more than N
+            # every month, the lake will eventually be empty"). That arm is
+            # the paper's moral-reasoning intervention, and the paper's
+            # headline -- highest survival below 54% -- is the baseline arm,
+            # where the agent must infer the threshold from the dynamics.
+            # Every case in this corpus declares `inject_universalization:
+            # false`, so serving the number unconditionally ran the
+            # intervention while the contract said baseline (G-D-03).
+            **(
+                {"sustainability_threshold": projection["sustainability_threshold"]}
+                if (
+                    self.reveal_sustainability_threshold
+                    if self.reveal_sustainability_threshold is not None
+                    else bool(family_case["env_cfg"].get("inject_universalization"))
+                )
+                else {}
+            ),
             # What everyone heard, and what this agent alone remembers.
             "recent_utterances": [
                 dict(entry) for entry in state.get("transcript", [])[-TRANSCRIPT_WINDOW:]

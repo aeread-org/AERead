@@ -266,7 +266,7 @@ def test_no_objective_reference_leaf_is_declared_per_p06() -> None:
 def test_build_scorer_hook_returns_the_same_five_leaves_as_measurement_py() -> None:
     # upstream_root/bridge are never touched by build_scorer (it delegates
     # straight to measurement.py) -- a real checkout is not needed here.
-    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None)
+    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     scorer = plugin.build_scorer(family_case)
@@ -281,7 +281,7 @@ def test_build_scorer_hook_returns_the_same_five_leaves_as_measurement_py() -> N
 
 
 def test_build_scorer_scales_with_num_agents_for_the_degenerate_case() -> None:
-    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None)
+    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
     scorer = plugin.build_scorer(family_case)
     assert scorer.num_agents == 1
@@ -449,7 +449,7 @@ def test_vendored_gini_single_element_is_zero_the_degenerate_case() -> None:
 
 @pytest.fixture(scope="module")
 def baseline_5_agent_fishing(bridge: GovsimBridge) -> dict[str, Any]:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
     return _drive_episode(plugin, family_case)
 
@@ -457,7 +457,7 @@ def baseline_5_agent_fishing(bridge: GovsimBridge) -> dict[str, Any]:
 def test_golden_successful_fishing_sustainable_survives_the_full_horizon(
     bridge: GovsimBridge, baseline_5_agent_fishing: dict[str, Any]
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     terminal = _drive_episode(plugin, family_case)
@@ -488,7 +488,7 @@ def test_golden_successful_fishing_sustainable_survives_the_full_horizon(
 def test_golden_valid_but_poor_fishing_greedy_collapses_before_the_horizon(
     bridge: GovsimBridge, baseline_5_agent_fishing: dict[str, Any]
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "greedy_v1", num_agents=5)
 
     terminal = _drive_episode(plugin, family_case)
@@ -524,7 +524,7 @@ def test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit(
     bridge: GovsimBridge,
 ) -> None:
     counting_bridge = _CountingBridge(bridge)
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     state = plugin.initial_state(family_case, cell=None)
@@ -566,7 +566,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
     bridge: GovsimBridge,
 ) -> None:
     corrupting_bridge = _LocationCorruptingBridge(bridge)
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
 
     state = plugin.initial_state(family_case, cell=None)
@@ -606,7 +606,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
 def test_golden_degenerate_reference_num_agents_1_flags_the_comparison(
     bridge: GovsimBridge,
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
 
     baseline_case = _family_case("fishing", "sustainable_v1", num_agents=1)
     baseline_terminal = _drive_episode(plugin, baseline_case)
@@ -662,7 +662,7 @@ def test_golden_degenerate_reference_num_agents_1_flags_the_comparison(
 def test_sheep_and_pollution_match_fishings_terminal_state_exactly_for_the_same_seed_and_policy(
     bridge: GovsimBridge, scenario: str
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
 
     fishing_sustainable = _drive_episode(
         plugin, _family_case("fishing", "sustainable_v1", num_agents=5)
