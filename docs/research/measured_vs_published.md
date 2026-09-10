@@ -15,8 +15,8 @@ under way, one needs a missing normalizer, and one is not published at all.
 | family | live evidence | comparable to its paper? | what is in the way |
 |---|---|---|---|
 | TERMS-Bench | four panels of 30 cases, 30/30 replayed each (PR #153), **two of them the paper's own agents** | **yes, and checked** | nothing structural: 30 cases against the paper's 1,800 per agent, and 3 of its 6 counterpart families |
-| GovSim | `first_light_v1`, `dialogue_v3` published; `baseline_v4` on PR #159 | **yes, as of `baseline_v4`** | the two published panels ran the paper's *universalization intervention* while their cases declared the baseline (G-D-03); the corrected arm is the comparable one |
-| EconEvals | `panel_v10`, 6 cases, published | **partly** | our objective leaf is raw units plus the exact optimum; the paper normalizes against a uniform-random baseline, which we do not compute |
+| GovSim | four panels published or on PR #169, incl. **two validation models** | **yes, and checked** | none of the paper's own agents is reachable at all; the check runs on the nearest models and says so |
+| EconEvals | `panel_v10`, 6 cases, published | **partly, and more than first thought** | two of three tracks need no normalizer we lack; what differs is *which* attempt is scored — see below |
 | tau3 retail | v9 and v18 on PR #97, unmerged | **no** | not published, and v18 completed 1 of 5 cases |
 | housing, procurement allocation, data-center, commercial-state | published, many campaigns | n/a | our own designs; there is no external paper to compare against |
 
@@ -169,7 +169,37 @@ The v1 → v3 pair remains a result on its own terms: with the threshold
 given, adding dialogue did not change survival and pushed the agents into
 *under*-harvesting, most sharply in fishing (600 → 199).
 
-## EconEvals — complete, and one reference value short of comparable
+## GovSim — the adapter reproduces both ends of the paper's range
+
+Every govsim panel we had run survived 12 of 12 months, which cannot
+distinguish a capable agent from a saturated task. Two more panels settle it.
+
+| | our harness (3 cases, baseline arm) | the paper |
+|---|---|---|
+| `gpt-4o-mini` (not a paper agent) | **1.0 months, collapse in all three**, whole pool taken in round 1 | its eight collapsing agents: 1.0–1.1 months |
+| `gpt-4o-2024-08-06` | 2 of 3 survive, **mean 8.7 months** | GPT-4o: 53.3% survival, **9.3 ± 2.2 months** |
+| GLM 5.3 Flash | 3 of 3 survive, 12 months each | above its best |
+
+The environment produces collapse, at the same figure the paper reports for
+the agents that fail, and GPT-4o's mean survival here falls inside the
+paper's interval for the same model family. GLM 5.3 Flash's 12/12 is
+therefore a fact about a 2026 model rather than an artefact.
+
+Unlike TERMS-Bench, the absolute numbers agree rather than merely the
+ordering — which is what one would expect, because survival months is a
+property of upstream's own environment dynamics, run here through the pinned
+bridge, rather than of a scoring layer we reimplemented.
+
+**None of the paper's agents is reachable**, and the second reason is worth
+recording. Its Anthropic and open-weight rows have no endpoint accepting a
+declared seed (#172). Its OpenAI rows — `gpt-3.5-turbo` and
+`gpt-4o-2024-05-13` — refuse `response_format: json_schema` outright, because
+OpenAI's Structured Outputs arrived with `2024-08-06`: **every agent the 2024
+paper evaluated predates a feature this harness requires**. The models above
+are the nearest reachable stand-ins, not the paper's rows, and the GPT-3.5
+canary caught the difference for $0.00.
+
+## EconEvals — comparable on two tracks; the difference is which attempt is scored
 
 Paper: *EconEvals: Benchmarks and Litmus Tests for LLM Agents in Unknown
 Environments* (arXiv 2503.18825), 100 periods per run, scores normalized so
@@ -187,16 +217,36 @@ feasibility gate valid, every case running the full 100 periods.
 | pricing.basic.0 | 35.09 | 41.66 | 0.842 | best 83.2 (Claude 3.5 Sonnet) |
 | pricing.basic.1 | 13.01 | 26.42 | 0.492 | " |
 
-Scheduling is directly comparable at the extreme and the result is a good
-one: the agent submitted a stable matching — zero blocking pairs, the
+**Correction (2026-09-10).** An earlier version of this page said all three
+tracks normalize against a uniform-random baseline, which we do not compute.
+That is true only of scheduling. Upstream's own scoring notebooks are
+explicit: procurement reports `max_ratio = max_utility / opt_utility`, and
+pricing reports `total_profits / opt_profits` over rounds 50–100, each
+multiplied by 100. Both are plain ratios to the optimum — exactly the
+quantity our leaf already carries as `agent / v_star`. The random baseline
+appears only in scheduling, where the metric is blocking pairs and zero is
+optimal, and upstream computes it in
+`calculate_scheduling_baseline.num_blocking_pairs_in_expectation`, which the
+bridge can call.
+
+What does separate us from the paper on those two tracks is **which attempt
+is scored**. The paper takes the agent's best *feasible* attempt for
+procurement and a 50–100 round window for pricing; our objective leaf is
+declared `input_scope="terminal_state"` and scores the final submission. So
+our procurement figures are a lower bound on the paper's statistic, not a
+different scale, and our pricing figures are a different window rather than
+a different normalization.
+
+That cannot be recovered from `panel_v10`: the bundle records the terminal
+value and `v_star`, not the per-attempt series. Closing it needs the leaf to
+carry the maximum over feasible attempts (procurement) and the windowed sum
+(pricing) as declared metrics, which is provider-free family work and a new
+measurement identity, and then one panel to exercise it.
+
+Scheduling is directly comparable at the extreme already, and the result is
+a good one: the agent submitted a stable matching — zero blocking pairs, the
 optimum — on both cases, which is what the paper's best model scored on that
-tier. The other two tracks are not comparable as written, because our
-`agent / v_star` ratio and the paper's 0–100 score have different zeros:
-ours is a fraction of the optimum, theirs is the position between a
-uniform-random baseline and the optimum. Our objective leaf deliberately
-stores raw units plus `v_star` and leaves ratios to the consumer, so closing
-this needs one new reference value per case — the random-baseline score —
-not a change to what we measure.
+tier.
 
 ## tau3 retail — not published
 
@@ -212,7 +262,7 @@ pass rates yet.
 |---|---|---|
 | GovSim baseline arm | done: `baseline_v4`, PR #159 | $0.04 |
 | EconEvals deliberating arm | one campaign identity with `reasoning_unconstrained_v1` | ~$1 |
-| EconEvals random-baseline normalizer | one reference provider per track, then re-score existing receipts | provider-free |
+| EconEvals: score the statistic the paper scores | procurement's max over feasible attempts and pricing's 50–100 window as declared metrics; scheduling's random baseline from upstream's own `num_blocking_pairs_in_expectation` | provider-free, then one panel |
 | GovSim deliberating arm | ditto; today's `reasoning_low_v1` is a suppressed condition | ~$0.05 |
 | TERMS-Bench interval width | the corpus generator can produce more than 30 cases; 300 would cost ~$1.3 at v3 rates | ~$1.3 |
 | TERMS-Bench, GLM 5.3 Flash under the strict dialect | a like-for-like fourth panel, so all four sit under one schema | ~$0.13 |
