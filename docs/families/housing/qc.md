@@ -1521,6 +1521,23 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
    shows the same pattern in every earlier multi-world campaign that carried
    the fields, and never once under a DeepSeek landlord.
 
+5. **The score measures sorting, not clearing, and both models sit below the
+   naive baseline.** Rent cancels, so a cell can fall short of the oracle in
+   only three ways: a listing the oracle leases stays unleased, a leased
+   listing goes to a lower-value tenant, or a match destroys value.
+   Decomposing all 717 completed cells against the deterministic world
+   generator, the shortfall is 20% unleased listings, 68% lower-value tenants
+   on leased listings, and 12% destroyed value; the number of leases explains
+   none of the between-cell variance. The sorting component is not noise:
+   handing the same leased listings to random tenants scores `0.676`, the
+   models score `0.827`, the best sorting of those same listings `0.944`. It
+   is also not saturated. What the report never said is where the declared
+   comparison baseline sits: the family's own naive scripted market, one bid
+   of ask plus one on the best-gap listing with scripted landlords, scores
+   `0.869`, above both models by `0.04` on every configuration and for both
+   subjects. The confirmatory null is therefore a null between two players
+   that both sort worse than a one-line heuristic (D-25).
+
 ### Individual rationality is a validity constraint, not a metric
 
 The finding shows a design that treats a validity constraint as a metric. A
