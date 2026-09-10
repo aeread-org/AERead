@@ -220,3 +220,61 @@ def test_the_threshold_is_declarable() -> None:
         classify_world_continuous(scores, baselines, minimum_relative_spread=0.30)
         == DEGENERATE
     )
+
+
+# --- a world must let a better decision exist -------------------------------
+#
+# Defect 26. Dispersion alone admits a coin flip: where suppliers are
+# indistinguishable before verification, which ones a policy happens to check
+# decides the outcome and every policy draws from the same urn. Twelve panels
+# failed this way and the earlier rules could not see it.
+
+from aeread_families.procurement_allocation.headroom_screen import (  # noqa: E402
+    COIN_FLIP,
+    classify_world_by_policy_separation,
+)
+
+
+def test_two_policies_separating_in_mean_is_admitted() -> None:
+    assert classify_world_by_policy_separation(
+        {"screener": [2.0, 3.0, 1.0], "blind": [250.0, 260.0, 255.0]}
+    ) == ADMIT
+
+
+def test_wide_dispersion_with_equal_means_is_a_coin_flip() -> None:
+    """The failure the earlier rules admitted: both policies swing, neither wins.
+
+    Each policy scores near-zero on some seeds and near-total-loss on others,
+    which is exactly what luck about which supplier you checked looks like. The
+    continuous rule sees healthy spread and admits it; this one must not.
+    """
+    scores = {"blind": [0.0, 260.0, 0.0, 260.0], "frugal": [260.0, 0.0, 260.0, 0.0]}
+    assert classify_world_by_policy_separation(scores) == COIN_FLIP
+    # The rule it replaces would have admitted the same world.
+    assert classify_world_continuous(
+        scores["blind"], {policy: 300.0 for policy in SCREEN_BASELINES}
+    ) == ADMIT
+
+
+def test_a_single_policy_cannot_establish_separation() -> None:
+    assert classify_world_by_policy_separation({"only": [1.0, 2.0, 3.0]}) == UNMEASURED
+    assert classify_world_by_policy_separation({}) == UNMEASURED
+
+
+def test_an_immaterial_mean_difference_is_a_coin_flip() -> None:
+    assert classify_world_by_policy_separation(
+        {"a": [100.0, 102.0], "b": [101.0, 103.0]}
+    ) == COIN_FLIP
+
+
+def test_separation_is_measured_on_means_not_on_best_cases() -> None:
+    """A policy that wins once must not qualify on that single lucky seed."""
+    assert classify_world_by_policy_separation(
+        {"lucky": [0.0, 260.0, 260.0, 260.0], "steady": [200.0, 200.0, 200.0, 200.0]}
+    ) == COIN_FLIP
+
+
+def test_higher_is_better_separation() -> None:
+    assert classify_world_by_policy_separation(
+        {"good": [90.0, 95.0], "bad": [10.0, 12.0]}, lower_is_better=False
+    ) == ADMIT

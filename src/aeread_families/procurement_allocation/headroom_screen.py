@@ -39,6 +39,12 @@ SCREEN_BASELINES: tuple[str, ...] = (
 #: and saturated tests are claims about a rate.
 MINIMUM_SCREEN_SEEDS = 3
 
+#: A world must let a better decision exist, which is a claim about two policies
+#: and not about one. Dispersion alone admits a coin flip: where suppliers are
+#: indistinguishable before verification, outcomes vary with which ones you
+#: happened to check, and no policy can beat any other.
+COIN_FLIP = "reject: no policy separation"
+
 #: Dispersion must be material, not merely non-zero, as a fraction of the scale
 #: the world is played on. Two worlds were admitted on a $0.25 spread and a $0.35
 #: margin against a $269 baseline: the control failed at every seed and differed
@@ -128,6 +134,43 @@ def classify_world_continuous(
     )
     if margin < material:
         return TRIVIAL
+    return ADMIT
+
+
+def classify_world_by_policy_separation(
+    policy_scores: Mapping[str, Sequence[float]],
+    *,
+    lower_is_better: bool = True,
+    minimum_relative_spread: float = MINIMUM_RELATIVE_SPREAD,
+) -> str:
+    """Admit a world only when two policies differ in *expectation*.
+
+    The rule the other classifiers were missing. A world can show wide dispersion
+    and still be unmeasurable, because the dispersion belongs to luck rather than
+    to judgment: when every supplier looks identical before verification, which
+    ones a policy happens to check decides the outcome, and every policy draws
+    from the same urn. Twelve procurement panels failed this way, and a screen
+    that tested only the control's spread would have admitted the coin flips
+    among them.
+
+    ``policy_scores`` maps at least two structurally different policies to their
+    scores on this world. A world is admitted when the best and worst policy
+    means differ by a material fraction of the scale in play, which is the
+    property that says a better decision exists to be made.
+    """
+    measured = {
+        name: [float(score) for score in scores]
+        for name, scores in policy_scores.items()
+        if scores
+    }
+    if len(measured) < 2:
+        return UNMEASURED
+    means = {name: sum(scores) / len(scores) for name, scores in measured.items()}
+    best = min(means.values()) if lower_is_better else max(means.values())
+    worst = max(means.values()) if lower_is_better else min(means.values())
+    scale = max(abs(best), abs(worst), 1.0)
+    if abs(best - worst) < minimum_relative_spread * scale:
+        return COIN_FLIP
     return ADMIT
 
 
@@ -297,6 +340,7 @@ def screen_baselines(
 
 __all__ = [
     "ADMIT",
+    "COIN_FLIP",
     "DEGENERATE",
     "FLOORED",
     "MINIMUM_RELATIVE_SPREAD",
@@ -306,6 +350,7 @@ __all__ = [
     "TRIVIAL",
     "UNMEASURED",
     "classify_world",
+    "classify_world_by_policy_separation",
     "classify_world_continuous",
     "replay_baseline",
     "replay_best_qualified",

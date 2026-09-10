@@ -862,6 +862,64 @@ That is a sharper target than anything this family has had, and it is
 model-independent across the two tested. It remains one scaffold, two models, 82
 rows and six unadmitted worlds.
 
+## 26. The fix: make choosing whom to verify an inference
+
+Twelve panels failed for one reason. Suppliers were indistinguishable before
+verification, so the only decision was how many to check and the budget already
+fixed that. "Verify what you can afford and award the best" was not a baseline,
+it was optimal, and the gap between the best possible agent and twenty lines of
+code was zero by construction. Every world then landed in one of three useless
+places: everyone wins, nobody wins, or the outcome turns on which suppliers you
+happened to check, which is dispersion without skill.
+
+That third case is the one the screen could not see. A coin-flip world shows
+healthy spread, so `classify_world_continuous` admits it, and no treatment can
+ever move it. `classify_world_by_policy_separation` closes that hole: a world is
+admitted only when two structurally different policies differ **in expectation**
+by a material fraction of the scale in play. That is the property that says a
+better decision exists to be made.
+
+**The panel.** `inference_case_matrix` builds 18 worlds, six signals crossed with
+three binding risks.
+
+In each world one visible attribute genuinely tracks true quality, and which
+attribute and which direction differ between worlds: cheaper is better in some,
+dearer in others, and in the rest the tell is lead time or minimum order. Price
+is deliberately decorrelated from quality wherever it is not itself the signal.
+An earlier version tied every visible attribute to one rank, which made the
+signal always price in disguise and let "buy the dearest" win 9 of 12 worlds.
+
+The binding risk also varies and is never labelled. Quality bites in six worlds,
+delivery timing in six, capacity in six, and a buyer that always samples for
+quality loses the other twelve.
+
+**Measured, offline and free**, with four deterministic policies:
+
+| policy | worlds won of 18 |
+|---|---:|
+| verify dearest first | 9 |
+| verify fastest first | 4 |
+| adaptive: probe, infer the signal, then choose | 3 |
+| verify cheapest first | 2 |
+
+All 18 worlds separate, and no policy wins everywhere. Every one of them is also
+the worst policy in some world, usually by more than $250. That is the signature
+of a task with something to measure, and it is the first time this family has
+had it.
+
+**One leak was caught by its own test.** The product identifier was
+`inference_<slug>`, and the slug names the signal and the binding risk, so the
+objective handed the buyer the answer. That is defect 8 arriving through a new
+door. Identifiers are neutral now, and a test asserts no world's description
+appears anywhere in its payload.
+
+**Still unproven.** No model has played it. Deterministic policies separating is
+necessary and not sufficient, and the panel has not been screened against a
+subject. The known behavioural blocker stands: both models tested so far take one
+reading and commit, and this panel rewards a buyer that probes, infers and then
+chooses. Whether either can do that is the open question, and it is now a
+question the panel can actually answer.
+
 ## Status of the fixes
 
 | defect | state |
@@ -883,6 +941,7 @@ rows and six unadmitted worlds.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
 | 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
 | 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
 | 23 exchangeability broken by a cheap signal | **mechanism landed, effect unproven** — `inquiry_batch` plus slow verification separates three deterministic policies by ~$254; no model has played it and no panel is admitted |
