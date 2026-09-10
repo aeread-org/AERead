@@ -1,0 +1,265 @@
+# Housing v1: what the primary estimand measures
+
+A review of the estimand the Housing family froze, written after the
+confirmatory comparison had been executed and published. It concerns one
+question: does the primary outcome respond to the seat the campaign exists to
+compare? The answer is that it does not, and the review sets out how that was
+established, what the actual mechanism is, and what it costs to detect the
+same problem before spending rather than after.
+
+Every number here is either recomputed from committed evidence, or produced by
+a provider-free control that regenerates byte for byte. Where a result is
+post-hoc or exploratory it is labelled as such. Register rows D-16 and D-24
+through D-27 carry the individual findings; this document is the argument that
+connects them.
+
+## 1. What the campaign reported
+
+`housing_confirmatory_parasail_v2` executed 720 frozen cells against a sealed
+holdout: 30 worlds, three unseen configurations, four subject-opponent
+conditions, two replicates, for `$6.90`. 717 completed with verified routes and
+exact score replay. The primary estimand is the paired world-level contrast of
+GLM 5.3 Flash minus DeepSeek V4 Flash on the subject's normalized welfare
+score, equally weighted across configurations and opponents within a world.
+
+| quantity | value |
+|---|---|
+| paired worlds | 27 |
+| mean contrast | `+0.005` |
+| 95 percent interval | `-0.016` to `+0.025` |
+| declared minimum meaningful effect | `0.05` |
+
+The interval contains zero and lies wholly inside the declared effect in both
+directions. Reported as a null with content: the two models are not
+distinguishable, and the data are precise enough to say the difference is
+smaller than the design was built to detect.
+
+That reading is arithmetically correct. It is also the wrong conclusion to draw
+from it.
+
+## 2. The estimand does not respond to the subject
+
+The score is welfare over the assignment oracle's bound, and welfare is
+
+```
+sum over tenants of (value - rent) + sum over landlords of (rent - cost)
+```
+
+in which every rent cancels exactly. The score therefore moves only through
+which tenant is matched to which listing. It is a measure of allocative
+efficiency and a good one.
+
+The subject of every Housing condition sits in the tenant seats. A tenant's
+levers are which listing it approaches, and what it agrees to pay. The second
+is cancelled by construction. So the design placed the model under test in a
+seat whose principal lever the metric cannot see.
+
+Decomposing the 717 completed cells makes the consequence explicit.
+
+| source | share of score variance |
+|---|---|
+| the case, world by configuration | `0.428` |
+| the opponent, within a fixed case | `0.564` of the remainder |
+| the subject, within a fixed case | `0.067` of the remainder |
+| **the subject, of the total** | **`0.000`** |
+
+Two corroborating readings. Across the 90 world-by-configuration cases, what a
+one-line scripted heuristic scores predicts the models' score at `r = 0.81`.
+And the primary contrast computed per configuration is `+0.024`, `-0.015`,
+`+0.011`: it changes sign.
+
+The confirmatory null was therefore not a finding that two models are equal. It
+was a correct measurement of an estimand that carries almost no agent signal.
+No sample size, sealing discipline or replication would have revealed this,
+because each of those protections assumes the estimand responds to the
+comparison being made.
+
+## 3. The difficulty knob cannot fix it
+
+The natural first response is to re-tune difficulty until the case
+discriminates. The panel already spans a wide range and the data reject that
+route.
+
+| configuration | tenants / listings | common weight | models | naive baseline | gap | model wins |
+|---|---|---|---|---|---|---|
+| mild | 8 / 6 | `0.45` | `0.812` | `0.852` | `-0.041` | 40.6% |
+| moderate | 8 / 5 | `0.70` | `0.816` | `0.858` | `-0.042` | 41.2% |
+| severe | 8 / 4 | `0.95` | `0.854` | `0.896` | `-0.042` | 39.6% |
+
+`common_weight` is the share of a tenant's valuation that is common across
+tenants, so `0.45` to `0.95` moves the idiosyncratic component from 55 percent
+down to 5 percent. That is nearly the whole range over which sorting skill can
+matter. The gap is flat to three decimals and the win rate does not move.
+
+Neither branch of the usual dilemma holds. At the easy end the models do lose
+to the baseline, but by the same margin as at the hard end, so the loss is not
+a property of easy. At the hard end nothing collapses: the models score highest
+of the three. A quantity invariant to the parameter it should depend on is not
+the quantity it is named, and a flat difficulty sweep should be read first as
+evidence about the instrument.
+
+## 4. The scale itself is sound
+
+It is worth separating two things that look alike. The estimand does not
+respond to the subject. The environment and its verifier are fine.
+
+A cell can fall below the oracle in exactly three ways, and the shortfall
+divides as 20 percent listings the oracle leases that stay unleased, 68 percent
+leased listings going to a lower-value tenant, and 12 percent matches that
+destroy value. The lease count explains none of the between-cell variance, so
+this is a sorting metric rather than a market-clearing one, and sorting is
+where judgment lives.
+
+| same leased listings, sorted by | score |
+|---|---|
+| random tenants | `0.676` |
+| the two models | `0.827` |
+| the best possible sorting | `0.944` |
+
+The models sit in the middle of a real ladder, at neither ceiling nor floor.
+The oracle bound is a sound verifier and the scale below it discriminates. The
+problem is confined to which quantity was made primary.
+
+## 5. Welfare inverts the distribution ranking
+
+Gate 3 of the benchmark QC standard now requires a provider-free control before
+an estimand is frozen. Run retrospectively here, it settles the question in a
+way the live evidence cannot, because the policies' ordering is known in
+advance and no model is involved.
+
+The published control at `evidence/housing/estimand_sensitivity_control/`
+scores five tenant policies on the sealed panel: 105 cases, 4200 episodes, no
+provider calls, regenerating byte for byte.
+
+| tenant policy | welfare | tenant surplus |
+|---|---|---|
+| oracle informed | `0.987` | `0.860` |
+| truthful | `0.964` | `0.000` |
+| naive | `0.870` | `0.746` |
+| adaptive | `0.860` | `0.691` |
+| random | `0.774` | `0.647` |
+
+The truthful bidder offers its full valuation on its best listing. It therefore
+wins allocations as readily as a shrewd bidder and captures, by construction,
+exactly none of the surplus. Welfare rates it second best of the five, behind
+only the oracle-informed policy, because bidding full value is precisely what
+makes an allocation efficient.
+
+The paired contrast between the naive and truthful policies is `-0.094` on
+welfare and `+0.746` on surplus, both excluding zero. So welfare does not
+merely fail to separate a good tenant from a self-defeating one. It confidently
+ranks them the wrong way round. A metric that does this cannot be a sole
+primary, and the cheapest possible probe would have exposed it before any
+campaign was designed.
+
+## 6. The mechanism is counterparty brokenness, not counterparty leverage
+
+The decomposition in section 2 shows the opponent explaining more within-case
+variance than the subject, which invites the conclusion that the landlord seat
+simply holds too much leverage. That conclusion is wrong, and the distinction
+matters for what to fix.
+
+Leverage cancels. Each subject faces each opponent equally often, so the
+opponent's main effect enters both arms of the paired contrast identically and
+subtracts out. What does not cancel is a counterparty that violates its own
+participation constraint, because the variance it injects is not symmetric
+between the arms.
+
+Sweeping a concessive landlord as a controlled variable, against a genuine
+skill difference between two scripted policies that differ in no transfer
+behaviour:
+
+| opponent violations, share of cells | contrast spread | detected |
+|---|---|---|
+| 0.0% | `0.019` | yes |
+| 1.2% | `0.105` | yes |
+| 4.4% | `0.139` | yes |
+| 10.7% | `0.322` | no |
+| 20.7% | `0.377` | no |
+| 35.5% | `0.543` | no |
+
+The real signal has a spread of `0.019`. A counterparty failing in one cell in
+ten multiplies it seventeenfold and buries it. Welfare's spread over the same
+sweep is `0.034` at every rate without exception, because the rent being given
+away cancels out of it: a second demonstration of transfer-blindness from the
+opposite direction.
+
+The threshold between 4.4 and 10.7 percent sets the recommended ceiling at 5
+percent, and it matches the live campaign exactly. Under the DeepSeek landlord,
+which violated in 4.7 percent of cells, the distribution-side contrast is
+`+0.186` with an interval of `+0.149` to `+0.222`, decisive at 3.7 times the
+declared minimum effect. Under the GLM landlord, which violated in 59.5 percent
+of cells after signing 264 leases at zero rent, the same contrast spans zero
+with a standard deviation seven times larger.
+
+## 7. What the corrected measurement would look like
+
+Recomputing the frozen estimand structure on tenant surplus over the same
+worlds:
+
+| contrast, GLM minus DeepSeek | n | mean | 95 percent interval | excludes zero |
+|---|---|---|---|---|
+| welfare, the frozen primary | 27 | `+0.005` | `-0.016` to `+0.025` | no |
+| tenant surplus | 27 | `+0.465` | `-0.196` to `+1.126` | no |
+| tenant surplus, less the degenerate world | 26 | `+0.157` | `-0.042` to `+0.357` | no |
+| tenant surplus, versus the sound landlord | 28 | `+0.186` | `+0.149` to `+0.222` | **yes** |
+| tenant surplus, versus the broken landlord | 27 | `+0.135` | `-0.236` to `+0.507` | no |
+
+The metric change alone is necessary and not sufficient: the overall surplus
+contrast still spans zero. Both corrections are required together, which is why
+the rent floor and the individual-rationality gate are preconditions for the
+surplus estimand rather than accounting hygiene beside it.
+
+Under both, the subject's share of within-case variance rises from `0.067` to
+`0.267`, and the contrast by configuration becomes `+0.141`, `+0.296`, `+0.867`
+as `common_weight` rises: monotone, sixfold, the dose-response a capability
+measure should show and which welfare never showed at any difficulty.
+
+## 8. What landed, and what is still owed
+
+Landed, all opt-in per contract so no sealed campaign changes behaviour:
+
+- `controls.minimum_rent` with action schema `housing_actions/2.1` or `2.2`,
+  enforced identically by the schema, the market and profile admission, so a
+  landlord cannot concede a unit at zero (D-23);
+- `controls.prompt_version: housing_prompts/2.0`, prompts that state each
+  seat's payoff and its participation constraint (D-21);
+- `analysis.subject_ir_violation_policy: typed_failure` with
+  `maximum_subject_ir_failure_fraction`, so a subject violating its own payoff
+  is a typed failure rather than a number averaged into the score (D-24);
+- `analysis.co_primary_estimand: subject_surplus_share`, carrying the claim
+  jointly with welfare and requiring
+  `maximum_opponent_ir_violation_fraction`, recommended at `0.05` on the
+  sweep above (D-27);
+- `confirmatory_panel.minimum_upper_bound`, excluding worlds whose normalizer
+  is near zero rather than exactly zero (D-18).
+
+Still owed before another confirmatory comparison:
+
+1. A new sealed panel. The holdout is spent and must not be reused.
+2. The control arm rerun under the rent floor, to confirm the floor alone
+   brings the opponent-violation rate under the declared ceiling. Free.
+3. A variance pilot sized on the surplus estimand. The world count in use was
+   derived from welfare's between-world variance, which is a different
+   quantity's noise.
+4. A like-for-like baseline: the naive tenant policy against the same model
+   landlord, reported beside the primary. The published baseline pairs the
+   naive tenant with a scripted landlord and is not comparable as it stands
+   (D-25).
+
+## 9. What this review does not establish
+
+The confirmatory result stands as what it is: a precise null on allocative
+efficiency, for these two models, these routes and this panel. Nothing here
+overturns it.
+
+The surplus numbers in sections 6 and 7 are post-hoc. They use an estimand that
+was not predeclared, on a holdout that is spent, and the favourable
+counterparty slice was chosen after seeing it. They are a hypothesis for the
+next campaign identity, not a result.
+
+Mean tenant surplus exceeds `1.0` in the live cells, because landlords signing
+below their own cost subsidise tenants. On its own the surplus metric therefore
+scores exploitation of a broken counterparty as skill. Its validity depends
+entirely on the guards listed above being active, which in the published
+evidence they were not.

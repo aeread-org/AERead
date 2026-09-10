@@ -1553,6 +1553,10 @@ say. Each is a numbered row in `docs/operations/incident_log.md`.
 
 ### The subject seat explains none of the score
 
+Argued in full, with method and limits, in the
+[estimand review](estimand_review.md). Summarised here.
+
+
 The decomposition that matters is not of the shortfall but of the variance,
 and it is the strongest finding in this line of work. Across all 717
 completed cells:
