@@ -32,8 +32,10 @@ import asyncio
 import hashlib
 import json
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping
 
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
@@ -67,8 +69,12 @@ from .govsim_bridge import GovsimBridge
 from .live import (
     BASELINE_PROMPT,
     BASELINE_PROMPT_ID,
+    GLM53_FLASH_PARASAIL,
+    GPT35_TURBO_OPENAI,
+    GPT4O_20240513_OPENAI,
     MAX_OUTPUT_TOKENS_UNCONSTRAINED,
     REASONING_UNCONSTRAINED_V1,
+    RouteSpec,
     MODEL,
     PRICING,
     PROVIDER,
@@ -99,15 +105,68 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # false. So v1 and v3 measured the intervention arm and v4 measures the
 # baseline the paper's headline (survival below 54%) refers to. Same design,
 # a corrected control, and therefore a new identity (G-D-03).
-# v5 is v4's baseline arm with one more control changed: the reasoning
-# condition. `reasoning_low_v1` was measured on 2026-09-10 to suppress
-# reasoning to ~13 tokens, and this family's own sealed evidence agrees --
-# 113 of 132 calls in `dialogue_v3`'s fishing case reported zero reasoning
-# tokens. That matters more here than anywhere: the paper's diagnosis is
-# that agents fail because they cannot reason about the long-run
-# equilibrium, so a panel that suppressed reasoning was testing the
-# diagnosis with the faculty removed.
-CAMPAIGN_ID = "govsim_glm53_flash_parasail_baseline_deliberating_v5"
+@dataclass(frozen=True)
+class CampaignSpec:
+    """One frozen panel: an identity, the route it pins and its purpose.
+
+    Panels sit side by side rather than replacing one another, because each
+    is a sealed identity a published bundle refers back to. A campaign is
+    selected by id on the command line and its plan rebuilt from this record.
+    """
+
+    campaign_id: str
+    route: RouteSpec
+    max_trajectory_cost_usd: float
+    hard_total_cost_ceiling_usd: float
+    max_canary_cost_usd: float
+    purpose: str
+
+
+CAMPAIGNS: Mapping[str, CampaignSpec] = MappingProxyType({
+    spec.campaign_id: spec
+    for spec in (
+        # v5 is v4's baseline arm with the reasoning condition changed, and
+        # therefore a new identity: `reasoning_low_v1` was measured on
+        # 2026-09-10 to suppress reasoning to ~13 tokens, and this family's
+        # own sealed evidence agrees -- 113 of 132 calls in `dialogue_v3`'s
+        # fishing case reported zero. That matters most here, because the
+        # paper's diagnosis is that agents fail from an inability to reason
+        # about the long-run equilibrium.
+        CampaignSpec(
+            campaign_id="govsim_glm53_flash_parasail_baseline_deliberating_v5",
+            route=GLM53_FLASH_PARASAIL,
+            max_trajectory_cost_usd=0.40,
+            hard_total_cost_ceiling_usd=1.50,
+            max_canary_cost_usd=0.01,
+            purpose="GLM 5.3 Flash on the baseline arm, allowed to deliberate",
+        ),
+        # The paper's own agents, at opposite ends of its table. Every model
+        # we have run here survives 12/12, and a family where nothing ever
+        # collapses cannot distinguish a saturated task from a capable
+        # agent. GPT-3.5 is the control that settles it: the paper has it
+        # collapsing the commons in 1.1 months with 0% survival. If it
+        # survives in our harness, the environment cannot produce collapse
+        # and our GLM result means much less than it appears to.
+        CampaignSpec(
+            campaign_id="govsim_gpt35_turbo_baseline_v1",
+            route=GPT35_TURBO_OPENAI,
+            max_trajectory_cost_usd=0.40,
+            hard_total_cost_ceiling_usd=1.50,
+            max_canary_cost_usd=0.02,
+            purpose="the paper's collapsing agent: 0% survival, 1.1 months",
+        ),
+        CampaignSpec(
+            campaign_id="govsim_gpt4o_20240513_baseline_v1",
+            route=GPT4O_20240513_OPENAI,
+            max_trajectory_cost_usd=1.20,
+            hard_total_cost_ceiling_usd=4.00,
+            max_canary_cost_usd=0.05,
+            purpose="the paper's best agent: 53.3% survival, 9.3 months",
+        ),
+    )
+})
+
+DEFAULT_CAMPAIGN_ID = "govsim_glm53_flash_parasail_baseline_deliberating_v5"
 REASONING = REASONING_UNCONSTRAINED_V1
 MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS_UNCONSTRAINED
 CANARY_CASE_ID = "govsim.fishing.sustainable.0"
@@ -151,7 +210,7 @@ def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+def build_campaign_plan(*, spec: CampaignSpec, baselines: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     """Freeze the plan. `baselines` is keyed by case id and produced by
     `baseline.compute_baseline`, never entered by hand."""
     cases = [load_case(case_id) for case_id in PANEL_CASE_IDS]
@@ -173,7 +232,8 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
     }
     plan: dict[str, Any] = {
         "schema_version": "aeread.govsim_live_campaign/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
+        "purpose": spec.purpose,
         "arm": {
             "inject_universalization": False,
             "prompt_id": BASELINE_PROMPT_ID,
@@ -190,22 +250,22 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
         },
         "route": {
             "provider": PROVIDER,
-            "model": MODEL,
-            "revision": REVISION,
-            "route_provider": ROUTE_PROVIDER,
-            "quantization": QUANTIZATION,
+            "model": spec.route.model,
+            "revision": spec.route.revision,
+            "route_provider": spec.route.route_provider,
+            "quantization": spec.route.quantization,
             "fallbacks": "disabled",
             "reasoning_effort": "low",
             "route_attestation": "openrouter_provider_order_pinned",
             "provider_cost_status": "response_reported",
             "provider_seed_status": "requested",
-            "pricing_id": PRICING.pricing_id,
-            "pricing_sha256": PRICING.content_sha256(),
+            "pricing_id": spec.route.pricing.pricing_id,
+            "pricing_sha256": spec.route.pricing.content_sha256(),
         },
         "canary": {
             "case_id": CANARY_CASE_ID,
             "scored": False,
-            "max_cost_usd": MAX_CANARY_COST_USD,
+            "max_cost_usd": spec.max_canary_cost_usd,
             "max_output_tokens": MAX_CANARY_OUTPUT_TOKENS,
             "max_probes": MAX_CANARY_PROBES,
             "transient_conditions": list(CANARY_TRANSIENT_CONDITIONS),
@@ -222,7 +282,7 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
                 "max_num_rounds": case.payload["env_cfg"]["max_num_rounds"],
                 "stratum": stratum,
                 "seed": SEED,
-                "max_cost_usd": MAX_TRAJECTORY_COST_USD,
+                "max_cost_usd": spec.max_trajectory_cost_usd,
                 "baseline": dict(baselines[case.case_id]),
             }
             for case, stratum in zip(cases, PANEL_STRATA, strict=True)
@@ -252,9 +312,9 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
             "scored_case_count": len(PANEL_CASE_IDS),
         },
         "budget": {
-            "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
-            "planned_maximum_usd": MAX_CANARY_COST_USD
-            + len(PANEL_CASE_IDS) * MAX_TRAJECTORY_COST_USD,
+            "hard_total_cost_ceiling_usd": spec.hard_total_cost_ceiling_usd,
+            "planned_maximum_usd": spec.max_canary_cost_usd
+            + len(PANEL_CASE_IDS) * spec.max_trajectory_cost_usd,
             "canary_included": True,
         },
         "execution_source_sha256": source_hashes,
@@ -271,13 +331,16 @@ def _verify_plan(value: Mapping[str, Any]) -> None:
     baselines = {
         row["case_id"]: row["baseline"] for row in value.get("panel", [])
     }
-    expected = build_campaign_plan(baselines=baselines)
+    spec = CAMPAIGNS.get(str(value.get("campaign_id")))
+    if spec is None:
+        raise ValueError(f"unknown campaign id {value.get('campaign_id')!r}")
+    expected = build_campaign_plan(spec=spec, baselines=baselines)
     if canonical_json_bytes(value) != canonical_json_bytes(expected):
         raise ValueError("campaign plan differs from the frozen implementation")
 
 
 async def _probe_canary(
-    *, path: Path, plan_sha256: str, ordinal: int
+    *, spec: CampaignSpec, path: Path, plan_sha256: str, ordinal: int
 ) -> dict[str, Any]:
     if path.exists():
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -290,8 +353,8 @@ async def _probe_canary(
         provider_call_id="govsim_first_light_canary",
         provider=PROVIDER,
         base_url="https://openrouter.ai/api/v1",
-        model=MODEL,
-        revision=REVISION,
+        model=spec.route.model,
+        revision=spec.route.revision,
         instructions=BASELINE_PROMPT,
         input_text=canonical_json_bytes(
             {
@@ -307,22 +370,22 @@ async def _probe_canary(
         reasoning_token_budget=REASONING["token_budget"],
         timeout_seconds=180.0,
         request_sha256="",
-        max_cost_usd=MAX_CANARY_COST_USD,
-        output_schema=harvest_output_schema(),
-        provider_metadata=route_metadata(),
+        max_cost_usd=spec.max_canary_cost_usd,
+        output_schema=harvest_output_schema(spec.route),
+        provider_metadata=route_metadata(spec.route),
         seed=SEED,
     ).with_computed_hash()
     record: dict[str, Any] = {
         "schema_version": "aeread.provider_admission_canary/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
         "plan_sha256": plan_sha256,
         "case_id": CANARY_CASE_ID,
         "scored": False,
         "probe_ordinal": ordinal,
         "request_sha256": request.request_sha256,
-        "model": MODEL,
-        "revision": REVISION,
-        "route_provider": ROUTE_PROVIDER,
+        "model": spec.route.model,
+        "revision": spec.route.revision,
+        "route_provider": spec.route.route_provider,
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     result = None
@@ -332,7 +395,7 @@ async def _probe_canary(
         if not isinstance(value.get("quantity"), int):
             raise ValueError("canary did not return the required integer quantity")
         cost = float(result.cost_usd or 0.0)
-        if cost > MAX_CANARY_COST_USD:
+        if cost > spec.max_canary_cost_usd:
             raise ValueError("canary exceeded its cost ceiling")
         record.update(
             {
@@ -360,7 +423,7 @@ async def _probe_canary(
     return record
 
 
-async def run_canary(*, run_root: Path, plan_sha256: str) -> dict[str, Any]:
+async def run_canary(*, spec: CampaignSpec, run_root: Path, plan_sha256: str) -> dict[str, Any]:
     """Admit the route, re-probing only typed transient conditions.
 
     A transient 429 on an unscored, zero-cost probe must not seal the attempt
@@ -371,6 +434,7 @@ async def run_canary(*, run_root: Path, plan_sha256: str) -> dict[str, Any]:
     record: dict[str, Any] = {}
     for ordinal in range(1, MAX_CANARY_PROBES + 1):
         record = await _probe_canary(
+            spec=spec,
             path=directory / f"{ordinal:03d}.json",
             plan_sha256=plan_sha256,
             ordinal=ordinal,
@@ -439,16 +503,16 @@ async def compute_panel_baselines_async(
     }
 
 
-async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
+async def execute_campaign(*, spec: CampaignSpec, run_root: Path, upstream_root: Path) -> None:
     bridge = GovsimBridge.discover(upstream_root=upstream_root)
     baselines = await compute_panel_baselines_async(
         upstream_root=upstream_root, bridge=bridge
     )
     plan_path = run_root / "campaign_plan.json"
-    plan = build_campaign_plan(baselines=baselines)
+    plan = build_campaign_plan(spec=spec, baselines=baselines)
     _write_once_json(plan_path, plan)
     _verify_plan(json.loads(plan_path.read_text(encoding="utf-8")))
-    canary = await run_canary(run_root=run_root, plan_sha256=plan["plan_sha256"])
+    canary = await run_canary(spec=spec, run_root=run_root, plan_sha256=plan["plan_sha256"])
     if canary.get("status") != "admitted":
         raise RuntimeError("govsim canary was rejected; campaign stopped")
     total_cost = float(canary["cost_usd"])
@@ -466,17 +530,18 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 raise RuntimeError("campaign cannot resume from a failed checkpoint")
             total_cost += float(checkpoint["cost_usd"])
             continue
-        if total_cost + MAX_TRAJECTORY_COST_USD > HARD_TOTAL_COST_CEILING_USD:
+        if total_cost + spec.max_trajectory_cost_usd > spec.hard_total_cost_ceiling_usd:
             raise RuntimeError("insufficient campaign budget reserve for the next case")
         setup = build_live_setup(
             reasoning=REASONING,
             max_output_tokens=MAX_OUTPUT_TOKENS,
+            route=spec.route,
             case_id=case_id,
             upstream_root=upstream_root,
             bridge=bridge,
             seed=SEED,
             baselines=baselines_for_scoring(baselines[case_id]),
-            max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
+            max_trajectory_cost_usd=spec.max_trajectory_cost_usd,
         )
         execution_root = run_root / "executions" / case_id
         if execution_root.exists():
@@ -519,12 +584,12 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 raise RuntimeError("receipt replay digest mismatch")
             cost = float(execution.total_cost_usd)
             total_cost += cost
-            if total_cost > HARD_TOTAL_COST_CEILING_USD:
+            if total_cost > spec.hard_total_cost_ceiling_usd:
                 raise RuntimeError("campaign exceeded its hard total cost ceiling")
             receipt_path = execution.evidence.root / "evaluation_receipt.json"
             checkpoint = {
                 "schema_version": "aeread.govsim_checkpoint/0.1",
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": spec.campaign_id,
                 "plan_sha256": plan["plan_sha256"],
                 "ordinal": ordinal,
                 "case_id": case_id,
@@ -548,7 +613,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
         except Exception as error:
             failure = {
                 "schema_version": "aeread.govsim_checkpoint/0.1",
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": spec.campaign_id,
                 "plan_sha256": plan["plan_sha256"],
                 "ordinal": ordinal,
                 "case_id": case_id,
@@ -565,6 +630,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
 def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
     plan = json.loads((run_root / "campaign_plan.json").read_text(encoding="utf-8"))
     _verify_plan(plan)
+    spec = CAMPAIGNS[str(plan["campaign_id"])]
     probes = sorted((run_root / "checkpoints" / "canary_probes").glob("*.json"))
     if not probes:
         raise RuntimeError("cannot publish a campaign with no recorded canary probe")
@@ -616,7 +682,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         float(row["cost_usd"]) for row in trajectory_rows
     )
     summary = {
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
         "plan_sha256": plan["plan_sha256"],
         "canary_status": canary["status"],
         "canary_cost_usd": sum(float(record["cost_usd"]) for record in records),
@@ -631,7 +697,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         ),
         "operational_failures": 0,
         "total_cost_usd": total_cost,
-        "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
+        "hard_total_cost_ceiling_usd": spec.hard_total_cost_ceiling_usd,
         "financial_ceiling_enforcement": "provider_response_reported_cost",
         "route": plan["route"],
         "upstream": plan["upstream"],
@@ -677,8 +743,8 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
     ]
     manifest: dict[str, Any] = {
         "schema_version": "aeread.publication_manifest/0.1",
-        "publication_id": CAMPAIGN_ID,
-        "campaign_id": CAMPAIGN_ID,
+        "publication_id": spec.campaign_id,
+        "campaign_id": spec.campaign_id,
         "plan_sha256": plan["plan_sha256"],
         "publisher_implementation_sha256": hashlib.sha256(
             Path(__file__).read_bytes()
@@ -696,10 +762,17 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", required=True, type=Path)
+    parser.add_argument(
+        "--campaign",
+        default=DEFAULT_CAMPAIGN_ID,
+        choices=sorted(CAMPAIGNS),
+        help="which frozen panel to plan, execute or publish",
+    )
     parser.add_argument("--upstream-root", type=Path, default=None)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--publish-to", type=Path, default=None)
     args = parser.parse_args(argv)
+    spec = CAMPAIGNS[args.campaign]
     upstream_root = args.upstream_root or Path(
         os.environ.get("AEREAD_GOVSIM_UPSTREAM_ROOT", "")
     )
@@ -711,15 +784,17 @@ def main(argv: list[str] | None = None) -> int:
         baselines = compute_panel_baselines(
             upstream_root=upstream_root, bridge=bridge
         )
-        plan = build_campaign_plan(baselines=baselines)
+        plan = build_campaign_plan(spec=spec, baselines=baselines)
         print(
             json.dumps(
-                {"plan_sha256": plan["plan_sha256"], "campaign_id": CAMPAIGN_ID}
+                {"plan_sha256": plan["plan_sha256"], "campaign_id": spec.campaign_id}
             )
         )
         return 0
     asyncio.run(
-        execute_campaign(run_root=args.run_root, upstream_root=upstream_root)
+        execute_campaign(
+            spec=spec, run_root=args.run_root, upstream_root=upstream_root
+        )
     )
     return 0
 
