@@ -24,6 +24,7 @@ from aeread_families.tau3_retail.campaign import (
     _accounted_failure_cost,
     _cap_cost,
     _is_malformed_response,
+    _sealed_successful_provider_cost,
     _provider_failure_condition,
     _digest,
     build_campaign_plan,
@@ -92,6 +93,26 @@ def test_unknown_provider_failure_is_not_treated_as_malformed() -> None:
     )
 
     assert not _is_malformed_response(provider_failure)
+
+
+def test_malformed_response_cost_can_be_recovered_from_sealed_events(tmp_path: Path) -> None:
+    attempt_root = tmp_path / "run" / "attempts" / "one"
+    attempt_root.mkdir(parents=True)
+    payload_path = attempt_root / "artifacts" / "sha256" / "aa" / "payload"
+    payload_path.parent.mkdir(parents=True)
+    payload_path.write_text(json.dumps({"cost_usd": 0.0086}), encoding="utf-8")
+    (attempt_root / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "event_type": "provider_call_succeeded",
+                "payload_ref": "artifacts/sha256/aa/payload",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert _sealed_successful_provider_cost(tmp_path / "run") == pytest.approx(0.0086)
 
 
 def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:

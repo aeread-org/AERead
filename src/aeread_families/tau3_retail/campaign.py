@@ -105,6 +105,23 @@ def _accounted_failure_cost(error: BaseException) -> float:
     )
 
 
+def _sealed_successful_provider_cost(evidence_root: Path) -> float:
+    """Sum costs sealed in successful provider-call response payloads."""
+    total = 0.0
+    for event_path in evidence_root.rglob("events.jsonl"):
+        for line in event_path.read_text(encoding="utf-8").splitlines():
+            event = json.loads(line)
+            if event.get("event_type") != "provider_call_succeeded":
+                continue
+            payload_path = event_path.parent / str(event["payload_ref"])
+            payload = json.loads(payload_path.read_text(encoding="utf-8"))
+            cost = float(payload.get("cost_usd", 0.0))
+            if cost < 0:
+                raise RuntimeError("sealed provider cost cannot be negative")
+            total += cost
+    return total
+
+
 def _provider_failure_condition(error: BaseException) -> str | None:
     current: BaseException | None = error
     while current is not None:
@@ -433,7 +450,10 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                     raise RuntimeError("campaign exceeded its hard total cost ceiling") from error
                 continue
             if _is_malformed_response(error):
-                malformed_cost = _accounted_failure_cost(error)
+                malformed_cost = max(
+                    _accounted_failure_cost(error),
+                    _sealed_successful_provider_cost(execution_root),
+                )
                 checkpoint = {
                     "schema_version": "aeread.tau3_retail_checkpoint/0.1",
                     "campaign_id": CAMPAIGN_ID,
@@ -444,6 +464,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                     "failure_type": type(error).__name__,
                     "failure_condition": "malformed_structured_output",
                     "cost_usd": malformed_cost,
+                    "cost_basis": "sealed_successful_provider_calls_lower_bound",
                     "included": False,
                 }
                 checkpoint["record_sha256"] = _digest(checkpoint)
