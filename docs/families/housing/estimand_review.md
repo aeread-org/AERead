@@ -247,7 +247,68 @@ Still owed before another confirmatory comparison:
    naive tenant with a scripted landlord and is not comparable as it stands
    (D-25).
 
-## 9. What this review does not establish
+## 9. How this was found, and how it should have been
+
+The sequence matters more than the conclusion, because the conclusion is
+specific to Housing and the sequence is not.
+
+Nothing in the pipeline objected. Every campaign gate passed: design,
+provider-free, catalog preflight, profile admission, confirmatory execution.
+Every test passed. The freeze was honoured, the holdout was sealed before any
+outcome existed, the receipts replayed exactly, the digests recompute today.
+The defect was never in whether the checks ran. It was in what they checked.
+
+What actually found it was seven steps, each asking a question the previous
+answer did not settle:
+
+1. **Distrust a clean null.** The reported interval was precise and inside the
+   declared effect. A precise null and a broken instrument produce identical
+   artifacts, so the result was treated as a claim to be attacked rather than
+   a finding to be published.
+2. **Decompose the headline into parts that can disagree.** Splitting the
+   shortfall below the oracle into unleased listings, mis-sorted listings and
+   value-destroying matches showed one world-configuration supplying every
+   negative score in the campaign (D-18).
+3. **Read individual episodes, not aggregates.** Tracing that world's
+   trajectories showed a landlord accepting below its own cost and conceding
+   units at zero rent, which no summary statistic had surfaced (D-21 to D-23).
+4. **Ask whether the anecdote is the pattern.** Sweeping all 720 cells turned
+   one world's oddity into 264 zero-rent leases campaign-wide, and showed the
+   primary outcome could not see any of them because rent cancels (D-16, D-22).
+5. **Test the obvious hypothesis and let it fail.** The natural explanation was
+   difficulty calibration. Sweeping it showed the gap flat to three decimals
+   across nearly the whole idiosyncratic-value range, which eliminated
+   difficulty and pointed at the instrument (D-26).
+6. **Decompose the variance by factor.** This is the step that named the root
+   cause: the case explains 42.8 percent of score variance and the subject
+   0.000. Every earlier step had described symptoms of this one fact (D-27).
+7. **Build a control whose answer is known in advance.** A truthful bidder must
+   capture zero surplus by construction. Scoring it proved welfare inverts the
+   distribution ranking, and sweeping a concessive counterparty separated
+   metric blindness from counterparty brokenness.
+
+Steps 6 and 7 are the only two that identified causes rather than symptoms.
+Both are provider-free. Both could have run before a single model call, on the
+panel as designed, in minutes and for nothing. Instead they ran after ten
+campaigns, a variance pilot, a sealed freeze and 720 executed cells.
+
+That is the reusable lesson, and it is now Gate 3 of the benchmark QC standard:
+decompose the metric's variance across case, opponent and subject, and prove
+sensitivity against known-ordered control policies, before the estimand is
+frozen. If the subject's share is near zero, stop; no sample size, sealing
+discipline or replication recovers a result, because every one of those
+protections assumes the estimand responds to the comparison.
+
+Three intermediate diagnoses written during this investigation were wrong and
+are kept in the register rather than edited away: a hashing drift attributed to
+an un-incremented version field when the repository already had a ruling for it
+(D-20); a claim that both models sort worse than a one-line heuristic, which
+compared them against a baseline facing a different counterparty (D-25); and a
+prescription of measurement hygiene, which would have produced a cleaner
+measurement of nothing. Each was corrected by evidence or by review, which is
+the reason the register keeps wrong hypotheses at the moment they are made.
+
+## 10. What this review does not establish
 
 The confirmatory result stands as what it is: a precise null on allocative
 efficiency, for these two models, these routes and this panel. Nothing here
