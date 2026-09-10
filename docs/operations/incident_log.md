@@ -326,6 +326,47 @@ making 600 sequential calls.
    wrong for 100 sequential calls per case.
 9. **A verifier rejecting the model is not a broken pipeline.** Conflating
    the two makes a panel unable to report the thing it measures.
+10. **Decompose the variance of your metric before you trust a result, and do
+    it before the campaign, not after.** Housing ran ten campaigns, a variance
+    pilot, a sealed freeze and a 720-cell confirmatory comparison for $6.90,
+    and reported a precise null. Decomposing the 717 completed cells
+    afterwards showed the case explained 42.8% of score variance and the
+    subject under test explained 0.000; the opponent explained 56.4% of what
+    remained, and a one-line heuristic predicted the models' score at
+    `r = 0.81`. The interval was correct. It was a correct measurement of
+    almost no agent signal, and no amount of sample size, sealing or
+    replication would have revealed that, because every one of those
+    protections assumes the estimand responds to the thing being compared.
+    The cheap check is a provider-free control arm: score two deliberately
+    different scripted policies and one random policy on the frozen panel and
+    confirm the metric separates them. Had that run, it would have cost
+    nothing and stopped the line before the pilot.
+11. **A metric that cancels a seat's only lever cannot measure that seat.**
+    Housing welfare sums value minus rent plus rent minus cost, so every
+    transfer cancels and the score moves only through the assignment. The
+    tenant seat's lever is what it agrees to pay. The design therefore put the
+    model under test in the one channel its own metric is blind to, while the
+    landlord seat, which gates whether a lease exists at all, carried the agent
+    variance the score did register. Recomputing the same cells against tenant
+    surplus raised the subject's within-case share from 6.7% to 26.7% and
+    turned a sign-flipping contrast into a monotone one, `+0.141`, `+0.296`,
+    `+0.867`, as the case got harder. Before freezing an estimand, name each
+    seat's lever and check the metric is a function of it.
+12. **A flat result across a difficulty sweep is a design signal, not a
+    finding about models.** The Housing model-minus-baseline gap was `-0.041`,
+    `-0.042`, `-0.042` across configurations spanning `common_weight` 0.45 to
+    0.95, nearly the whole range over which sorting skill can matter. A
+    quantity invariant to the parameter it should depend on is not the
+    quantity it is named. Read it as evidence about the instrument first, and
+    only then about the subjects.
+13. **Diagnose the estimand before prescribing hygiene.** Faced with the flat
+    sweep, the first prescription written here was a like-for-like baseline, a
+    controlled opponent seat and fuller reporting. All three are worth doing
+    and none of them was the cure; controlling the opponent would have removed
+    variance from the only agent channel the metric responded to, producing a
+    cleaner measurement of nothing. The user's reading, that a result which
+    does not vary with difficulty means the benchmark is not measuring
+    capability, was the correct one.
 
 
 ---
