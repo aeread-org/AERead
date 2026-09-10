@@ -23,6 +23,7 @@ from aeread_families.tau3_retail.campaign import (
     PANEL_STRATA,
     _accounted_failure_cost,
     _cap_cost,
+    _is_malformed_response,
     _provider_failure_condition,
     _digest,
     build_campaign_plan,
@@ -69,6 +70,28 @@ def test_malformed_failure_preserves_the_accounted_execution_cost() -> None:
 
     assert _provider_failure_condition(scheduler_failure) == "malformed_structured_output"
     assert _accounted_failure_cost(scheduler_failure) == pytest.approx(0.0412)
+
+
+def test_arena_schema_mismatch_is_a_malformed_campaign_response() -> None:
+    provider_failure = ProviderFailure(
+        "provider_contract",
+        "Arena response contains no JSON action matching the schema",
+        retryable=False,
+    )
+    scheduler_failure = RuntimeError("response_source failed")
+    scheduler_failure.__cause__ = provider_failure
+
+    assert _is_malformed_response(scheduler_failure)
+
+
+def test_unknown_provider_failure_is_not_treated_as_malformed() -> None:
+    provider_failure = ProviderFailure(
+        "provider_contract",
+        "Arena request was rejected by the provider",
+        retryable=False,
+    )
+
+    assert not _is_malformed_response(provider_failure)
 
 
 def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:

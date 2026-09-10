@@ -114,6 +114,22 @@ def _provider_failure_condition(error: BaseException) -> str | None:
     return None
 
 
+def _is_malformed_response(error: BaseException) -> bool:
+    """Recognize malformed structured output across the adapter error variants."""
+    current: BaseException | None = error
+    while current is not None:
+        if isinstance(current, ProviderFailure):
+            if current.condition == "malformed_structured_output":
+                return True
+            if (
+                current.condition == "provider_contract"
+                and "no JSON action matching the schema" in str(current)
+            ):
+                return True
+        current = current.__cause__
+    return False
+
+
 def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
     payload = canonical_json_bytes(value) + b"\n"
     if path.exists():
@@ -416,7 +432,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 if total_cost > HARD_TOTAL_COST_CEILING_USD:
                     raise RuntimeError("campaign exceeded its hard total cost ceiling") from error
                 continue
-            if _provider_failure_condition(error) == "malformed_structured_output":
+            if _is_malformed_response(error):
                 malformed_cost = _accounted_failure_cost(error)
                 checkpoint = {
                     "schema_version": "aeread.tau3_retail_checkpoint/0.1",
