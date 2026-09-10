@@ -572,6 +572,39 @@ def test_transitional_receipt_round_trips_through_serialization(tmp_path) -> Non
         write_evaluation_receipt(other, destination)
 
 
+@pytest.mark.parametrize("value", [None, False, 0, "", {}, ["x"]])
+def test_transitional_receipt_rejects_changed_deferred_leaf_ids(tmp_path, value) -> None:
+    transitional = _seal_with_the_transitional_preimage(_receipt())
+    payload = json.loads(canonical_json_bytes(transitional))
+    payload["deferred_leaf_ids"] = value
+    destination = tmp_path / "evaluation_receipt.json"
+    destination.write_bytes(canonical_json_bytes(payload) + b"\n")
+
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        read_evaluation_receipt(destination)
+
+
+@pytest.mark.parametrize("transitional", [False, True])
+def test_durable_write_rejects_noncanonical_existing_bytes(tmp_path, transitional) -> None:
+    receipt = (
+        _seal_with_the_transitional_preimage(_receipt())
+        if transitional
+        else seal_evaluation_receipt(_receipt())
+    )
+    payload = json.loads(canonical_json_bytes(receipt))
+    if transitional:
+        payload["deferred_leaf_ids"] = []
+    raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
+    destination = tmp_path / "evaluation_receipt.json"
+    destination.write_bytes(raw)
+
+    with pytest.raises(MeasurementContractError, match="not canonical"):
+        read_evaluation_receipt(destination)
+    with pytest.raises(MeasurementContractError, match="refusing to overwrite"):
+        write_evaluation_receipt(receipt, destination)
+    assert destination.read_bytes() == raw
+
+
 def test_preimage_kind_makes_the_compatibility_path_visible_to_an_audit() -> None:
     """A verified receipt does not otherwise say which preimage it matched.
     ``receipt_preimage_kind`` names it, so a publisher or audit can record

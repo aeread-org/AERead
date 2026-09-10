@@ -519,7 +519,7 @@ def _accepted_content_digests(payload: Mapping[str, Any]) -> dict[str, str]:
         canonical.pop("deferred_leaf_ids")
     digests = {CANONICAL_PREIMAGE: _content_digest(canonical)}
     transitional = dict(payload)
-    if not transitional.get("deferred_leaf_ids"):
+    if transitional.get("deferred_leaf_ids", []) == []:
         transitional["deferred_leaf_ids"] = []
         digests[TRANSITIONAL_PREIMAGE] = _content_digest(transitional)
     return digests
@@ -606,10 +606,8 @@ def write_evaluation_receipt(
                 "refusing to overwrite a different evaluation receipt"
             )
         try:
-            existing = verify_serialized_evaluation_receipt(
-                json.loads(path.read_bytes())
-            )
-        except (json.JSONDecodeError, MeasurementContractError) as error:
+            existing = read_evaluation_receipt(path)
+        except MeasurementContractError as error:
             raise MeasurementContractError(
                 "refusing to overwrite a different evaluation receipt"
             ) from error
