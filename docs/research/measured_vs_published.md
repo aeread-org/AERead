@@ -7,10 +7,29 @@ number be set next to the number its paper reports — and if not, what exactly
 is in the way.
 
 The short answer is that being *finished* and being *comparable* are
-different properties, and until this week we had conflated them. Four
-families have complete, replayed, digest-bound live evidence. Of those, one
-is comparable today, one is comparable only after a re-run that is already
-under way, one needs a missing normalizer, and one is not published at all.
+different properties, and until this week we had conflated them.
+
+## Verdict
+
+Each of the three families with a source paper has now been run with agents
+from that paper, or the nearest reachable stand-ins, against numbers written
+down beforehand.
+
+| family | verdict | what it rests on |
+|---|---|---|
+| **GovSim** | **reproduces** | Its collapse mode lands on the paper's own figure -- `gpt-4o-mini` at **1.0 months**, against 1.0-1.1 for the eight agents the paper reports failing -- and GPT-4o's mean survival, **8.7 months**, falls inside the paper's **9.3 ± 2.2**. Absolute numbers, not just order. |
+| **TERMS-Bench** | **reproduces the ordering, not the level** | The paper's weakest agent is the only one here that fails to close a feasible deal (`AGR+` **0.80** against 1.00), and the surplus gap between the paper's two ends runs **13×** here against its 3.7×. Every absolute level sits below the paper's, uniformly across all three models -- the signature of a thinner agent scaffold rather than a scoring defect. |
+| **EconEvals** | **does not match, and the check found why** | The paper's own GPT-4o scored `invalid_measurement` against its published **43.8**, because our period accepts a batch of tool calls and the model attached its submission to its queries in **100 of 100 periods**, never reading the menu. Upstream permits one call per turn. That is E-D-16, a fidelity defect in our adapter, and it bears on our own published `panel_v10` figures. |
+
+Read together: where our adapter runs upstream's own environment through the
+pinned bridge, the numbers agree; where we re-implemented the agent's
+scaffold, they diverge, and the size of the divergence tracks how much of the
+scaffold we replaced. That is the most useful thing these three checks say,
+and none of the three could have said it alone.
+
+Four families have complete, replayed, digest-bound live evidence. Of those,
+two are comparable today, one is comparable only after a corrected arm, and
+one is not published at all.
 
 | family | live evidence | comparable to its paper? | what is in the way |
 |---|---|---|---|
