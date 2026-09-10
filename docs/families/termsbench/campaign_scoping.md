@@ -237,3 +237,59 @@ unreachable: none of their OpenRouter endpoints supports a declared seed,
 and this kernel refuses a diagnostic run without one. And GLM-5.1 is
 reachable only through DeepInfra, the sole endpoint offering both a seed and
 structured output, at fp4.
+
+## The check, run (2026-09-10)
+
+Same 30 cases, same scripted counterpart, same reasoning condition, same
+schema dialect for the two paper models; only the model differs.
+
+| | GPT-4o-mini | GLM-5.1 | GLM 5.3 Flash | paper: GPT-4o-mini | paper: GLM-5.1 |
+|---|---:|---:|---:|---|---|
+| `SE+` | **0.035** | **0.458** | 0.533 | 0.189 (its lowest) | — (table's best is 0.694) |
+| `CSE+` | **0.044** | **0.458** | 0.533 | ~0.296 (its lowest) | **0.721 (its best)** |
+| `AGR+` | **0.80** | **1.00** | 1.00 | **0.522 (its lowest)** | frontier 0.934 – 0.999 |
+| `FAGR-` | 0.00 | 0.00 | 0.133 | ~0 | ~0 |
+| `CritViol%` | 0.233 | 0.133 | 0.067 | (band 0 – 0.0206) | 0.0133 |
+| cost / wall | $0.003 / 0.7 min | $0.182 / 30.8 min | $0.134 / 43.5 min | | |
+
+**Prediction 1 — `AGR+` markedly lower for GPT-4o-mini — holds.** It is the
+only model in the set that fails to close a feasible deal, 0.80 against 1.00
+for both others, and the paper's structural claim is exactly that: every
+frontier agent between 0.934 and 0.999, GPT-4o-mini alone at 0.522. It
+rejected 3 of 15 Overlap cases outright, and all 15 No-deal cases, which is
+also why its `FAGR-` is a clean zero.
+
+**Prediction 2 — surplus substantially higher for GLM-5.1 — holds, and by
+more than the paper's margin.** 13× on `SE+` (0.035 against 0.458) where the
+paper separates the same two ends by 3.7×.
+
+**Prediction 3 — GLM-5.1 breaching reservation in No-deal — does not
+reproduce.** One individual-rationality breach in 30 cases, and it is in an
+Overlap case. Fifteen No-deal cases cannot rule the paper's remark out, but
+they did not show it.
+
+**What the check establishes.** This adapter orders the paper's own agents
+the way the paper orders them, on the metric the paper says separates them,
+with the gap in the same direction on every axis. That is the strongest
+available evidence that the environment, the counterpart and the scoring
+measure what they claim to.
+
+**What it does not.** Every absolute number is displaced from the paper's:
+surplus lower, violations higher. The most likely cause is the agent rather
+than the environment -- ours is one JSON call per turn with no memory,
+reflection or planning stage, against the paper's own scaffold -- and that
+displacement is uniform across all three models, which is what one would
+expect of a scaffold effect rather than a scoring defect. Thirty cases
+against 1,800 leaves intervals wide enough to swallow most of the paper's
+column, three of six counterpart families are missing, and GLM-5.1 is served
+here at fp4.
+
+**One number needs decomposing (TB-D-05).** GLM-5.1's `CritViol` of 0.133 is
+4 cases: 1 reservation breach and 3 accepts that echoed the counterpart's
+price. The strict schema declares `price` required while the prompt says not
+to include one for a non-offer; `price: null` satisfies both and GPT-4o-mini
+used it on all 20 of its non-offer turns, but GLM-5.1 resolved the tension
+toward the schema. Its negotiation-conduct violation rate is 1/30, against
+the paper's 1.33% -- close. A strict-dialect prompt should say "set price to
+null", and that is a fix for the next identity, not a reason to reissue this
+one.
