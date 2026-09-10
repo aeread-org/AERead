@@ -171,6 +171,30 @@ REASONING_DECLARATION: dict[str, object] = {
     "rationale_visibility": "hidden",
 }
 
+REASONING_SUPPRESSED_V1 = REASONING_DECLARATION
+
+# The other arm. Probed across families on this route (2026-09-10): a
+# declared `reasoning.max_tokens` suppresses to ~13 reasoning tokens at ANY
+# value -- 1,500 and 8,000 are indistinguishable -- and so does
+# `reasoning.effort: "low"`; declaring no block yields ~260 on a short
+# prompt. So the note above is right that this is a suppressor and not a
+# cap, and the consequence is sharper than it reads: `panel_v10` measured a
+# GLM 5.3 Flash that did not deliberate, and no number in it is a
+# like-for-like against a paper whose agents reason freely.
+#
+# The unconstrained arm HAS been tried here and failed three times -- but at
+# the 4,000-token ceiling below, which is the variable that makes the
+# retry worth doing rather than a repeat. TERMS-Bench ran the same condition
+# at 12,000 across 30 cases with no truncation and no malformed action.
+REASONING_UNCONSTRAINED_V1: dict[str, object] = {
+    "condition_id": "reasoning_unconstrained_v1",
+    "effort": None,
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+MAX_OUTPUT_TOKENS_SUPPRESSED = 4000
+MAX_OUTPUT_TOKENS_UNCONSTRAINED = 12000
+
 def route_metadata() -> dict[str, str]:
     """The exact sealed route the OpenRouter adapter requires -- these five
     fields and no others, or it refuses the call as a provider_contract
@@ -601,11 +625,18 @@ def _profile(
     max_periods: int,
     max_cost_usd: float,
     seed: int,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
-            "profile_id": "econevals_agent_glm53_flash_parasail_v1",
+            # The reasoning condition is part of the agent's identity.
+            "profile_id": (
+                "econevals_agent_glm53_flash_parasail_v1"
+                if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
+                else f"econevals_agent_glm53_flash_parasail_{reasoning['condition_id']}"
+            ),
             "model": {
                 "provider": PROVIDER,
                 "model": MODEL,
@@ -644,7 +675,7 @@ def _profile(
             },
             "tools": list(tools),
             "memory": {"mode": "disabled"},
-            "reasoning": dict(REASONING_DECLARATION),
+            "reasoning": dict(reasoning),
             "sampling": {
                 "temperature": 0.0,
                 # This budget covers REASONING plus the answer, not the
@@ -679,7 +710,7 @@ def _profile(
                 # successes and makes every failure proportionally more
                 # expensive. 4,000 is kept because it is the cheapest way to
                 # fail, not because it works.
-                "max_output_tokens": 4000,
+                "max_output_tokens": max_output_tokens,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.
@@ -716,6 +747,8 @@ def build_live_setup(
     bridge: EconevalsBridge,
     seed: int,
     max_trajectory_cost_usd: float,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
 ) -> EconevalsLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -735,6 +768,8 @@ def build_live_setup(
     # exceeded (SchedulerContractError), not a clean termination, so any
     # smaller number here would turn a finished episode into a failed one.
     profile = _profile(
+        reasoning=reasoning,
+        max_output_tokens=max_output_tokens,
         case_id=case_id,
         tools=tool_names,
         max_periods=int(family_case["pins"]["max_steps"]),
