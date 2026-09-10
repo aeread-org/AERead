@@ -48,6 +48,8 @@ from aeread.shared_runner.schemas import (
     SuiteManifest,
 )
 from aeread.shared_runner.task.evaluation import finalize_family_execution, replay_family_receipt
+from aeread.shared_runner.measurement import MetricValue
+from aeread.shared_runner.task.receipts import seal_evaluation_receipt
 from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
 from aeread_families.termsbench import environment as tb_environment
 from aeread_families.termsbench import measurement as m
@@ -1153,3 +1155,168 @@ def test_finalize_and_replay_reproduce_the_nodeal_receipt(tmp_path: Path) -> Non
         score for score in replayed.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
     )
     assert replayed_no_deal.primary.value == 0.0
+
+
+def test_nodeal_false_agreement_scores_one_when_a_price_is_bound(tmp_path: Path) -> None:
+    """The No-deal companion above only ever exercises ``FAGR- = 0``.
+
+    Cross-model review of this branch caught that the test's own comment
+    claimed more than it delivered: asserting that the *episode* genuinely
+    walked away does not constrain the *scorer*, because 0.0 is the correct
+    answer for a walk-away, so a scorer returning 0.0 unconditionally passes
+    every assertion there. ``_agreement_indicator`` is
+    ``1.0 if outcome["final_price"] is not None else 0.0``, so the case that
+    separates a real scorer from a constant is a No-deal episode that ends
+    WITH a bound price: the agent accepts the counterpart's offer, which is
+    exactly the false agreement ``FAGR-`` exists to count (eq. 60).
+
+    The expected 1.0 is derived from the bound price observed on the live
+    ``EpisodeResult``, never from calling the scorer a second time.
+    """
+    case = _case(NODEAL_CASE_ID)
+    evidence_root = tmp_path / "nodeal_false_agreement"
+    setup = build_termsbench_setup(case, suffix="nodeal_false_agreement")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    # One opening offer, then accept whatever the counterpart put on the
+    # table. u_walkaway=0.0 keeps the counterpart in the room long enough to
+    # make an offer; u_accept=0.999 stops it accepting ours first, so the
+    # binding price is the counterpart's and the agreement is the agent's.
+    script = [
+        {"decision": "offer", "price": float(case.payload["t_b"]["r_b"]) - 90.0, "message": "open"},
+        {"decision": "accept", "price": None, "message": "taking it"},
+    ]
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=draws,
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    # The live episode really did bind a price. This is the precondition the
+    # expected 1.0 is derived from, read off the in-memory EpisodeResult.
+    assert result.terminal["final_price"] is not None
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok"
+    no_deal = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    )
+    assert no_deal.status == "ok"
+    # eq. 60: a bound price on a No-deal case IS the false agreement.
+    assert no_deal.primary.value == 1.0
+
+
+def test_replay_refuses_a_resealed_tamper_of_the_termsbench_receipt(
+    tmp_path: Path,
+) -> None:
+    """``replay_family_receipt`` returns the receipt it was handed, so asserting
+    on its return value proves nothing. This is the negative control that makes
+    the call itself load-bearing.
+
+    Cross-model review of this branch raised the first half and was right about
+    it: the replay tail of the No-deal test re-reads fields it had already
+    asserted, and would still pass if the function were replaced by
+    ``return receipt``. Its conclusion that the replay proof is therefore
+    decoration understates what the function guarantees, which this test pins
+    instead. Three checks stand in front of the admission comparison, and they
+    were established by probing, not read off the source:
+
+    * a receipt whose content is altered fails its own digest
+      (``receipt_sha256 does not match receipt content``), so a naive tamper
+      never reaches the replay at all;
+    * re-sealing the tamper so the digest agrees gets one step further and is
+      refused against the bytes actually written to the attempt directory
+      (``durable family receipt bytes do not match``), which is what this test
+      asserts;
+    * only a receipt that is both self-consistent and the one truly sealed
+      reaches the comparison against the score set re-derived from evidence.
+
+    So the replay cannot be satisfied by handing it a receipt that says what a
+    caller wants it to say, which is the property the returned-value assertions
+    were mistaken for.
+    """
+    case = _case(NODEAL_CASE_ID)
+    r_b = float(case.payload["t_b"]["r_b"])
+    evidence_root = tmp_path / "nodeal_replay_negative"
+    setup = build_termsbench_setup(case, suffix="nodeal_replay_negative")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    script = [{"decision": "offer", "price": max(0.0, r_b - 90.0), "message": "lowball"}] * 6
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=draws,
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    # The untampered receipt replays. Without this the test below could pass
+    # because the replay refuses everything.
+    replay_family_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+
+    # Claim the walk-away was a false agreement, then re-seal so the receipt is
+    # internally consistent and clears the digest gate.
+    falsified = tuple(
+        dataclasses.replace(score, primary=MetricValue(1.0, score.primary.unit))
+        if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID and score.primary is not None
+        else score
+        for score in receipt.scores
+    )
+    resealed = seal_evaluation_receipt(
+        dataclasses.replace(receipt, scores=falsified, receipt_sha256=None)
+    )
+    assert resealed.receipt_sha256 != receipt.receipt_sha256
+
+    with pytest.raises(ValueError, match="durable family receipt bytes"):
+        replay_family_receipt(setup=setup, receipt=resealed, evidence_root=evidence_root)
