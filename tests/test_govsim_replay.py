@@ -35,7 +35,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 import pytest
@@ -1137,43 +1137,30 @@ class EvidenceRecordingGovsimHarness:
     ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
     replay -- ``finalize_family_execution`` calls that replay internally, so
     this class is what makes driving THAT finalizer for this family possible
-    at all. ``policy_assignment`` is exactly the case payload's own field
-    (seat id -> scripted policy id), mirroring ``ScriptedGovsimHarness``'s
-    own per-seat policy lookup for ``harvest``/``discuss``/``reflect``
-    exactly; this class owns only the evidence-recording seam around it,
-    mirroring ``AttemptExecutor``'s own event shapes field-for-field (and
+    at all. ``answer`` supplies the raw scripted decision for one request (a
+    per-``request.phase_id``/``request.seat_id`` dispatch, exactly like
+    ``ScriptedGovsimHarness``'s own); this class owns only the
+    evidence-recording seam around it, mirroring ``AttemptExecutor``'s own
+    event shapes field-for-field (and
     ``tests/test_collusion_replay.py``'s identically-motivated
-    ``EvidenceRecordingCollusionHarness``).
+    ``EvidenceRecordingCollusionHarness``). ``govsim_policy_answer`` below
+    is the ``answer`` this module's own finalize test uses, reproducing
+    ``ScriptedGovsimHarness``'s per-seat policy lookup exactly;
+    ``tests/test_shared_runner_scoring_contract.py``'s govsim fixtures
+    supply their own, varying what ``ScriptedGovsimHarness``/
+    ``govsim_policy_answer`` cannot (a per-fixture discuss message, an
+    off-policy harvest quantity) while both still answer through this one
+    evidence-recording class.
     """
 
     def __init__(
-        self, *, policy_assignment: Mapping[str, str], evidence: EvidenceStore
+        self, *, answer: Callable[[Any], Mapping[str, Any]], evidence: EvidenceStore
     ) -> None:
-        self._policy_assignment = dict(policy_assignment)
+        self._answer = answer
         self._evidence = evidence
 
-    def _answer(self, request: Any) -> dict[str, Any]:
-        if request.phase_id == HARVEST_PHASE:
-            policy_id = self._policy_assignment[request.seat_id]
-            policy = policies.SCRIPTED_POLICIES[policy_id]
-            quantity = policy(request.observation)
-            return {"quantity": int(quantity)}
-        if request.phase_id == DISCUSS_PHASE:
-            policy_id = self._policy_assignment.get(request.seat_id, "sustainable_v1")
-            return {
-                "message": (
-                    f"I am following the {policy_id} policy and will take my "
-                    "share accordingly."
-                )
-            }
-        if request.phase_id == REFLECT_PHASE:
-            return {"reflection": ""}
-        raise RuntimeError(
-            f"EvidenceRecordingGovsimHarness has no response for phase {request.phase_id!r}"
-        )
-
     async def __call__(self, request: Any) -> dict[str, Any]:
-        response = self._answer(request)
+        response = dict(self._answer(request))
         self._evidence.append_event(
             "logical_action_started",
             {"request": request},
@@ -1314,6 +1301,38 @@ class EvidenceRecordingGovsimHarness:
         )
 
 
+def govsim_policy_answer(
+    policy_assignment: Mapping[str, str],
+) -> Callable[[Any], dict[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingGovsimHarness`` that
+    reproduces ``ScriptedGovsimHarness.__call__``'s exact per-seat policy
+    dispatch for ``harvest``/``discuss``/``reflect`` (``policy_assignment``
+    is exactly the case payload's own field, seat id -> scripted policy
+    id)."""
+
+    def answer(request: Any) -> dict[str, Any]:
+        if request.phase_id == HARVEST_PHASE:
+            policy_id = policy_assignment[request.seat_id]
+            policy = policies.SCRIPTED_POLICIES[policy_id]
+            quantity = policy(request.observation)
+            return {"quantity": int(quantity)}
+        if request.phase_id == DISCUSS_PHASE:
+            policy_id = policy_assignment.get(request.seat_id, "sustainable_v1")
+            return {
+                "message": (
+                    f"I am following the {policy_id} policy and will take my "
+                    "share accordingly."
+                )
+            }
+        if request.phase_id == REFLECT_PHASE:
+            return {"reflection": ""}
+        raise RuntimeError(
+            f"govsim_policy_answer has no response for phase {request.phase_id!r}"
+        )
+
+    return answer
+
+
 def test_finalize_wires_govsim_to_the_shared_family_finalizer(
     bridge: GovsimBridge, tmp_path: Path
 ) -> None:
@@ -1360,7 +1379,7 @@ def test_finalize_wires_govsim_to_the_shared_family_finalizer(
         episode_attempt_id="attempt_1",
     )
     harness = EvidenceRecordingGovsimHarness(
-        policy_assignment=case.payload["policy_assignment"], evidence=evidence
+        answer=govsim_policy_answer(case.payload["policy_assignment"]), evidence=evidence
     )
     result = asyncio.run(
         run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
