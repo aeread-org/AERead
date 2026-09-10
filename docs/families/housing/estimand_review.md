@@ -68,6 +68,10 @@ one-line scripted heuristic scores predicts the models' score at `r = 0.81`.
 And the primary contrast computed per configuration is `+0.024`, `-0.015`,
 `+0.011`: it changes sign.
 
+The subject's share of the total is `0.000258`, which the table rounds to
+three decimals. Section 8 gives the reading that matters: it is less than half
+of what a meaningless label captures by chance in the same design.
+
 The confirmatory null was therefore not a finding that two models are equal. It
 was a correct measurement of an estimand that carries almost no agent signal.
 No sample size, sealing discipline or replication would have revealed this,

@@ -4095,3 +4095,53 @@ def test_sensitivity_control_is_reproducible_and_locates_the_measurable_ceiling(
         "excludes_zero"
     ] is False
     assert 0.0 < RECOMMENDED_MAXIMUM_OPPONENT_IR_VIOLATION_FRACTION < 0.107
+
+
+def test_estimand_diagnostics_judge_the_subject_share_against_chance(tmp_path: Path) -> None:
+    """D-27 and D-28. A label splitting a case's cells captures variance even
+    when it means nothing, so a raw share is unreadable on its own. The
+    confirmatory welfare share of 0.067 is below the 0.144 a coin flip returns
+    in the same design, which is the fact an earlier fixed floor of 0.15 would
+    have hidden by passing everything above 0.02."""
+
+    from aeread_families.housing.estimand_diagnostics import (
+        MINIMUM_SIGNAL_TO_NULL_RATIO,
+        decompose,
+        publish,
+    )
+
+    root = CONFIRMATORY_CONTRACT_PATH.parents[1]
+    analysis_root = root / "evidence" / "housing" / "estimand_diagnostics"
+    committed = json.loads((analysis_root / "reports" / "summary.json").read_bytes())
+    assert publish(
+        root / "evidence", root / "configs" / "housing_case_config_sweep_v2.json", tmp_path / "d"
+    ) == committed
+    core = {k: v for k, v in committed.items() if k != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == committed["artifact_sha256"]
+
+    confirmatory = committed["by_campaign"]["housing_confirmatory_parasail_v2"]
+    welfare = confirmatory["within_case_score"]
+    surplus = confirmatory["subject_surplus_share"]
+    # Three ten-thousandths, which rounds to 0.000 in a three-decimal table but
+    # is not exactly zero; the meaningful comparison is against chance below.
+    assert welfare["subject_share_of_total"] < 0.001
+    assert welfare["subject_share_within_case"] < welfare["subject_share_under_null"]
+    assert welfare["subject_signal_above_chance"] is False
+    assert surplus["subject_signal_to_null_ratio"] > MINIMUM_SIGNAL_TO_NULL_RATIO
+    assert surplus["subject_signal_above_chance"] is True
+
+    # D-28: the pilot line and the holdout disagree, in both directions, which
+    # is why the diagnostic has to run on the panel that will be frozen.
+    pilot = committed["by_campaign"]["housing_model_sensitivity_openrouter_parasail_v26"]
+    assert pilot["within_case_score"]["subject_signal_above_chance"] is True
+    assert pilot["subject_surplus_share"]["subject_signal_above_chance"] is False
+
+    # A label that carries no information sits at chance, whatever the metric.
+    rows = [
+        {"world_seed": w, "config_id": "c", "subject": s, "opponent": o,
+         "within_case_score": 0.5 + 0.01 * w, "subject_surplus_share": 0.5}
+        for w in range(6) for s in ("a", "b") for o in ("a", "b")
+    ]
+    flat = decompose(rows, "within_case_score")
+    assert flat["subject_share_within_case"] == 0.0
+    assert flat["subject_signal_above_chance"] is False
