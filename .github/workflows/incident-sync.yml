@@ -1,0 +1,57 @@
+name: incident-sync
+
+# The incident log is the source of truth for what has gone wrong here, and
+# its unresolved rows were invisible: a row whose disposition is `open` is a
+# task nobody is assigned and nobody is notified of. This workflow projects
+# those rows into issues.
+#
+# Two jobs, because they need different permissions and answer different
+# questions. `lint` runs on every pull request that touches a ledger and only
+# checks the convention -- it needs no token and creates nothing. `sync` runs
+# after a merge and is the only thing that writes.
+
+on:
+  pull_request:
+    paths:
+      - "docs/operations/incident_log.md"
+      - "docs/families/*/incidents.md"
+      - "tools/incident_sync.py"
+  push:
+    branches: [main]
+    paths:
+      - "docs/operations/incident_log.md"
+      - "docs/families/*/incidents.md"
+      - "tools/incident_sync.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Every row parses and every unresolved row says so
+        run: python tools/incident_sync.py --lint
+
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The only write this workflow performs, and only after a merge.
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Open an issue for every unresolved row, close the resolved ones
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/incident_sync.py --apply
