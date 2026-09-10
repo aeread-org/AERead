@@ -26,6 +26,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping
 
 from aeread.shared_runner.run.publication import (
@@ -56,8 +57,11 @@ from .live import (
     PROMPT,
     PROVIDER,
     QUANTIZATION,
+    GLM53_FLASH_PARASAIL,
+    GPT4O_20240806_OPENAI,
     MAX_OUTPUT_TOKENS_UNCONSTRAINED,
     REASONING_UNCONSTRAINED_V1,
+    RouteSpec,
     REVISION,
     ROUTE_PROVIDER,
     build_live_setup,
@@ -142,6 +146,22 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v11"
 REASONING_DECLARATION = REASONING_UNCONSTRAINED_V1
 MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS_UNCONSTRAINED
+
+# The panel that checks this adapter against the paper rather than using it.
+# GPT-4o is the only one of the paper's three agents this route can serve,
+# and the paper's Basic-tier scores for it are procurement 43.8, scheduling
+# 37.4 and pricing 76.1 -- targets recorded here before the run.
+#
+# It declares no reasoning block, which for a model without reasoning
+# controls is simply the ordinary request, and the strict schema dialect
+# `gpt-4o` requires: OpenAI's structured outputs cannot express an open
+# argument map, so the tool call carries `arguments_json` instead. Same
+# action space, different wire form.
+PAPER_MODEL_CAMPAIGN_ID = "econevals_gpt4o_20240806_panel_v1"
+PAPER_MODEL_ROUTE = GPT4O_20240806_OPENAI
+PAPER_MODEL_TARGETS = MappingProxyType(
+    {"procurement": 43.8, "scheduling": 37.4, "pricing": 76.1}
+)
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
@@ -214,6 +234,22 @@ def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+ACTIVE_ROUTE: RouteSpec = GLM53_FLASH_PARASAIL
+ACTIVE_CAMPAIGN_ID: str = CAMPAIGN_ID
+
+
+def _use_paper_model() -> None:
+    """Point this module at the paper-model panel.
+
+    econevals keeps one identity per module rather than a registry, so the
+    switch is explicit and total: campaign id, route, and the reasoning
+    condition that goes with an ordinary non-reasoning request.
+    """
+    global ACTIVE_ROUTE, ACTIVE_CAMPAIGN_ID
+    ACTIVE_ROUTE = PAPER_MODEL_ROUTE
+    ACTIVE_CAMPAIGN_ID = PAPER_MODEL_CAMPAIGN_ID
+
+
 def build_campaign_plan() -> dict[str, Any]:
     cases = [load_case(case_id) for case_id in PANEL_CASE_IDS]
     # EXECUTION sources only. campaign.py is deliberately absent: it carries
@@ -237,15 +273,15 @@ def build_campaign_plan() -> dict[str, Any]:
     }
     plan: dict[str, Any] = {
         "schema_version": "aeread.econevals_live_campaign/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": ACTIVE_CAMPAIGN_ID,
         "freeze_status": "first_light_frozen_before_live_execution",
         "upstream": {"repository": UPSTREAM_REPO, "commit": UPSTREAM_COMMIT},
         "route": {
             "provider": PROVIDER,
-            "model": MODEL,
-            "revision": REVISION,
-            "route_provider": ROUTE_PROVIDER,
-            "quantization": QUANTIZATION,
+            "model": ACTIVE_ROUTE.model,
+            "revision": ACTIVE_ROUTE.revision,
+            "route_provider": ACTIVE_ROUTE.route_provider,
+            "quantization": ACTIVE_ROUTE.quantization,
             "fallbacks": "disabled",
             # Derived, never restated. A literal here advertised
             # reasoning_effort "low" into published evidence for a panel that
@@ -256,8 +292,8 @@ def build_campaign_plan() -> dict[str, Any]:
             "route_attestation": "openrouter_provider_order_pinned",
             "provider_cost_status": "response_reported",
             "provider_seed_status": "requested",
-            "pricing_id": PRICING.pricing_id,
-            "pricing_sha256": PRICING.content_sha256(),
+            "pricing_id": ACTIVE_ROUTE.pricing.pricing_id,
+            "pricing_sha256": ACTIVE_ROUTE.pricing.content_sha256(),
         },
         "canary": {
             "case_id": CANARY_CASE_ID,
@@ -332,8 +368,8 @@ async def _probe_canary(
         provider_call_id="econevals_first_light_canary",
         provider=PROVIDER,
         base_url="https://openrouter.ai/api/v1",
-        model=MODEL,
-        revision=REVISION,
+        model=ACTIVE_ROUTE.model,
+        revision=ACTIVE_ROUTE.revision,
         instructions=PROMPT,
         input_text=canonical_json_bytes(
             {
@@ -356,13 +392,13 @@ async def _probe_canary(
         timeout_seconds=180.0,
         request_sha256="",
         max_cost_usd=MAX_CANARY_COST_USD,
-        output_schema=period_output_schema(),
-        provider_metadata=_route_metadata(),
+        output_schema=period_output_schema(ACTIVE_ROUTE.output_schema_dialect),
+        provider_metadata=route_metadata(ACTIVE_ROUTE),
         seed=SEED,
     ).with_computed_hash()
     record: dict[str, Any] = {
         "schema_version": "aeread.provider_admission_canary/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": ACTIVE_CAMPAIGN_ID,
         "plan_sha256": plan_sha256,
         "case_id": CANARY_CASE_ID,
         "scored": False,
@@ -514,6 +550,7 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
             max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
             reasoning=REASONING_DECLARATION,
             max_output_tokens=MAX_OUTPUT_TOKENS,
+            route=ACTIVE_ROUTE,
         )
         execution_root = run_root / "executions" / case_id
         if execution_root.exists():
@@ -566,7 +603,7 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
             receipt_path = execution.evidence.root / "evaluation_receipt.json"
             checkpoint = {
                 "schema_version": "aeread.econevals_checkpoint/0.1",
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": ACTIVE_CAMPAIGN_ID,
                 "plan_sha256": plan["plan_sha256"],
                 "ordinal": ordinal,
                 "case_id": case_id,
@@ -590,7 +627,7 @@ async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> N
         except Exception as error:
             failure = {
                 "schema_version": "aeread.econevals_checkpoint/0.1",
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": ACTIVE_CAMPAIGN_ID,
                 "plan_sha256": plan["plan_sha256"],
                 "ordinal": ordinal,
                 "case_id": case_id,
@@ -679,7 +716,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         float(row["cost_usd"]) for row in trajectory_rows
     )
     summary = {
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": ACTIVE_CAMPAIGN_ID,
         "plan_sha256": plan["plan_sha256"],
         "canary_status": canary["status"],
         "canary_cost_usd": sum(float(record["cost_usd"]) for record in records),
@@ -730,7 +767,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
     manifest: dict[str, Any] = {
         "schema_version": "aeread.publication_manifest/0.1",
         "publication_id": CAMPAIGN_ID,
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": ACTIVE_CAMPAIGN_ID,
         "plan_sha256": plan["plan_sha256"],
         # How the evidence was projected, recorded next to what was executed
         # rather than inside the execution freeze.
@@ -759,6 +796,8 @@ def main(argv: list[str] | None = None) -> int:
         help="stop once this many panel cases are complete (an operator's pause; resumable)",
     )
     args = parser.parse_args(argv)
+    if getattr(args, 'paper_model', False):
+        _use_paper_model()
     # Publish is checked BEFORE the plan-digest branch. It used to come after,
     # so `--publish-to` without `--execute` -- which is exactly how a
     # publish-only invocation is spelled -- printed a plan digest, published
@@ -771,7 +810,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not args.execute:
         plan = build_campaign_plan()
-        print(json.dumps({"plan_sha256": plan["plan_sha256"], "campaign_id": CAMPAIGN_ID}))
+        print(json.dumps({"plan_sha256": plan["plan_sha256"], "campaign_id": ACTIVE_CAMPAIGN_ID}))
         return 0
         return 0
     asyncio.run(execute_campaign(run_root=args.run_root, max_cases=args.max_cases))

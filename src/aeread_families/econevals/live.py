@@ -78,10 +78,65 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CASES_DIR = REPOSITORY_ROOT / "cases" / "econevals"
 
 PROVIDER = "openrouter"
-MODEL = "z-ai/glm-5.3-flash"
-REVISION = "z-ai/glm-5.3-flash-20260826"
-ROUTE_PROVIDER = "Parasail"
-QUANTIZATION = "fp8"
+
+
+@dataclass(frozen=True)
+class RouteSpec:
+    """One pinned serving of one model: the five-field seal, the price book
+    and the structured-output dialect that endpoint accepts."""
+
+    model: str
+    revision: str
+    route_provider: str
+    quantization: str
+    max_prompt_price_per_million: str
+    max_completion_price_per_million: str
+    pricing: TokenPricing
+    profile_suffix: str
+    output_schema_dialect: str = "permissive"
+
+
+GLM53_FLASH_PARASAIL = RouteSpec(
+    model="z-ai/glm-5.3-flash",
+    revision="z-ai/glm-5.3-flash-20260826",
+    route_provider="Parasail",
+    quantization="fp8",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.50",
+    pricing=TokenPricing(
+        input_per_million=0.15,
+        cached_input_per_million=0.03,
+        output_per_million=0.50,
+        pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
+    ),
+    profile_suffix="glm53_flash_parasail",
+)
+
+# The only agent from the EconEvals paper this route can serve: Claude 3.5
+# Sonnet and Gemini 1.5 Pro list no live endpoints at all. `2024-08-06` is
+# the first snapshot with structured outputs, which this harness requires.
+GPT4O_20240806_OPENAI = RouteSpec(
+    model="openai/gpt-4o-2024-08-06",
+    revision="openai/gpt-4o-2024-08-06",
+    route_provider="OpenAI",
+    quantization="unknown",
+    max_prompt_price_per_million="2.50",
+    max_completion_price_per_million="10.00",
+    pricing=TokenPricing(
+        input_per_million=2.50,
+        cached_input_per_million=1.25,
+        output_per_million=10.00,
+        pricing_id="openrouter_2026-09-10_gpt4o_20240806_openai",
+    ),
+    profile_suffix="gpt4o_20240806",
+    output_schema_dialect="strict",
+)
+
+ROUTE = GLM53_FLASH_PARASAIL
+MODEL = ROUTE.model
+REVISION = ROUTE.revision
+ROUTE_PROVIDER = ROUTE.route_provider
+QUANTIZATION = ROUTE.quantization
 # The adapter refuses any route whose advertised price exceeds these caps, so
 # a silent reroute to a pricier backend fails closed instead of billing.
 MAX_ACTION_ATTEMPTS = 10
@@ -107,14 +162,9 @@ RETRYABLE_CONDITIONS = (
     # FIRST-call rejection is untyped by this and still fails fast.
     POST_ADMISSION_REJECTION,
 )
-MAX_PROMPT_PRICE_PER_MILLION = "0.15"
-MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
-PRICING = TokenPricing(
-    input_per_million=0.15,
-    cached_input_per_million=0.03,
-    output_per_million=0.50,
-    pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
-)
+MAX_PROMPT_PRICE_PER_MILLION = ROUTE.max_prompt_price_per_million
+MAX_COMPLETION_PRICE_PER_MILLION = ROUTE.max_completion_price_per_million
+PRICING = ROUTE.pricing
 
 PROMPT_ID = "econevals_period_json_v1"
 PROMPT = """You are running one period of an economic decision task. The observation
@@ -195,20 +245,69 @@ REASONING_UNCONSTRAINED_V1: dict[str, object] = {
 MAX_OUTPUT_TOKENS_SUPPRESSED = 4000
 MAX_OUTPUT_TOKENS_UNCONSTRAINED = 12000
 
-def route_metadata() -> dict[str, str]:
+def route_metadata(route: "RouteSpec" = None) -> dict[str, str]:
     """The exact sealed route the OpenRouter adapter requires -- these five
     fields and no others, or it refuses the call as a provider_contract
     failure."""
+    route = route or ROUTE
     return {
-        "route_provider": ROUTE_PROVIDER,
-        "quantization": QUANTIZATION,
-        "canonical_model": REVISION,
-        "max_prompt_price_per_million": MAX_PROMPT_PRICE_PER_MILLION,
-        "max_completion_price_per_million": MAX_COMPLETION_PRICE_PER_MILLION,
+        "route_provider": route.route_provider,
+        "quantization": route.quantization,
+        "canonical_model": route.revision,
+        "max_prompt_price_per_million": route.max_prompt_price_per_million,
+        "max_completion_price_per_million": route.max_completion_price_per_million,
     }
 
 
-def period_output_schema() -> dict[str, Any]:
+def _call_arguments(call: Mapping[str, Any], index: int) -> tuple[Mapping[str, Any] | None, str]:
+    """The tool call's arguments, in either wire form.
+
+    A permissive-dialect route sends `arguments` as an object. OpenAI's
+    strict structured-output mode cannot express an open map -- every object
+    must close and list every property -- so a strict-dialect route sends
+    `arguments_json`, the same mapping JSON-encoded. The action space is
+    identical; only the wire form differs, and which one a profile asked for
+    is pinned in its `output_schema`.
+    """
+    arguments = call.get("arguments")
+    if isinstance(arguments, Mapping):
+        return arguments, ""
+    encoded = call.get("arguments_json")
+    if isinstance(encoded, str):
+        try:
+            decoded = json.loads(encoded)
+        except json.JSONDecodeError:
+            return None, f"call {index} has arguments_json that is not JSON"
+        if not isinstance(decoded, Mapping):
+            return None, f"call {index} needs arguments_json to encode an object"
+        return decoded, ""
+    return None, f"call {index} needs an arguments object"
+
+
+def period_output_schema(dialect: str = "permissive") -> dict[str, Any]:
+    if dialect == "strict":
+        # OpenAI strict mode: every object closed, every property required,
+        # so the open `arguments` map becomes a JSON-encoded string.
+        return {
+            "type": "object",
+            "properties": {
+                "calls": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "name": {"type": "string"},
+                            "arguments_json": {"type": "string"},
+                        },
+                        "required": ["id", "name", "arguments_json"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "required": ["calls"],
+            "additionalProperties": False,
+        }
     return {
         "type": "object",
         "properties": {
@@ -329,13 +428,13 @@ class EconevalsJsonHarness:
                 return None, f"call {index} must be an object"
             call_id = call.get("id")
             name = call.get("name")
-            arguments = call.get("arguments")
+            arguments, argument_error = _call_arguments(call, index)
             if not isinstance(call_id, str) or not call_id:
                 return None, f"call {index} needs a non-empty string id"
             if not isinstance(name, str) or not name:
                 return None, f"call {index} needs a tool name"
-            if not isinstance(arguments, Mapping):
-                return None, f"call {index} needs an arguments object"
+            if arguments is None:
+                return None, argument_error
             is_last = index == len(calls) - 1
             if is_last and name != submit_tool:
                 return None, (
@@ -377,13 +476,13 @@ class EconevalsJsonHarness:
                 return None, False, f"call {index} must be an object"
             call_id = call.get("id")
             name = call.get("name")
-            arguments = call.get("arguments")
+            arguments, argument_error = _call_arguments(call, index)
             if not isinstance(call_id, str) or not call_id:
                 return None, False, f"call {index} needs a non-empty string id"
             if not isinstance(name, str) or not name:
                 return None, False, f"call {index} needs a tool name"
-            if not isinstance(arguments, Mapping):
-                return None, False, f"call {index} needs an arguments object"
+            if arguments is None:
+                return None, False, argument_error
             if name == submit_tool:
                 if submit_index is not None:
                     # Two submits in one step: the first would sit mid-list in
@@ -627,6 +726,7 @@ def _profile(
     seed: int,
     reasoning: Mapping[str, object] = REASONING_DECLARATION,
     max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
+    route: "RouteSpec" = None,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
@@ -635,21 +735,22 @@ def _profile(
             "profile_id": (
                 "econevals_agent_glm53_flash_parasail_v1"
                 if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
-                else f"econevals_agent_glm53_flash_parasail_{reasoning['condition_id']}"
+                and (route or ROUTE) is GLM53_FLASH_PARASAIL
+                else f"econevals_agent_{(route or ROUTE).profile_suffix}_{reasoning['condition_id']}"
             ),
             "model": {
                 "provider": PROVIDER,
-                "model": MODEL,
-                "revision": REVISION,
+                "model": (route or ROUTE).model,
+                "revision": (route or ROUTE).revision,
                 "base_url": "https://openrouter.ai/api/v1",
             },
             "harness": {
                 "id": EconevalsJsonHarness.id,
                 "version": EconevalsJsonHarness.version,
                 "config": {
-                    "pricing_id": PRICING.pricing_id,
-                    "pricing_sha256": PRICING.content_sha256(),
-                    "output_schema": period_output_schema(),
+                    "pricing_id": (route or ROUTE).pricing.pricing_id,
+                    "pricing_sha256": (route or ROUTE).pricing.content_sha256(),
+                    "output_schema": period_output_schema((route or ROUTE).output_schema_dialect),
                     "max_rounds": 12,
                     # Backoff is opt-in: with no retry_backoff declared the
                     # executor returns without sleeping, so ten attempts fire
@@ -661,7 +762,7 @@ def _profile(
                     "retry_backoff": "exponential_jitter_v1",
                     "retry_base_seconds": 5.0,
                     "retry_after_max_seconds": 60.0,
-                    "provider_metadata": route_metadata(),
+                    "provider_metadata": route_metadata(route),
                 },
             },
             "prompt": {
@@ -749,6 +850,7 @@ def build_live_setup(
     max_trajectory_cost_usd: float,
     reasoning: Mapping[str, object] = REASONING_DECLARATION,
     max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
+    route: "RouteSpec" = None,
 ) -> EconevalsLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -768,6 +870,7 @@ def build_live_setup(
     # exceeded (SchedulerContractError), not a clean termination, so any
     # smaller number here would turn a finished episode into a failed one.
     profile = _profile(
+        route=route,
         reasoning=reasoning,
         max_output_tokens=max_output_tokens,
         case_id=case_id,
@@ -895,7 +998,7 @@ def build_live_setup(
         plan=plan,
         registry=registry,
         prompt_sources={PROMPT_ID: PROMPT},
-        pricing={MODEL: PRICING},
+        pricing={(route or ROUTE).model: (route or ROUTE).pricing},
         case=case,
         harnesses={
             **default_harnesses(),
