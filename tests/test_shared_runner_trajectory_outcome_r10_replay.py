@@ -186,3 +186,106 @@ def test_r10_rejects_two_trajectory_copies_that_currently_pass_outside_protocol_
             seat_context=SeatContext((), {}),
             trajectory_outcome_paths=("/signed_rents",),
         )
+
+
+class _TerminalMutatesStateItWasHandedHousingPlugin:
+    """Delegates every hook to a real HousingV1Plugin, except that terminal()
+    -- which production code calls as ``plugin.terminal(family_case, state)``,
+    handing it the SAME mutable ``state`` mapping the replay is still holding
+    a reference to -- mutates that mapping in place to match a trimmed copy
+    of signed_rents, immediately before returning the genuine, uncorrupted
+    terminal result. outcome() separately drops the first signed_rents entry,
+    exactly like ``_CorruptedSignedRentsHousingPlugin`` above. Every sealed
+    boundary (transition, terminal, outcome) still agrees with itself, because
+    each was sealed by this SAME pair of hooks. Only a check that reads the
+    declared path from a snapshot of `state` taken BEFORE terminal() ran can
+    tell the two trimmed copies apart from the genuine untrimmed trajectory."""
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    def terminal(self, case, state):
+        result = self._inner.terminal(case, state)
+        if result is not None:
+            state["signed_rents"] = list(result["signed_rents"])[1:]
+        return result
+
+    def outcome(self, case, terminal):
+        real = dict(self._inner.outcome(case, terminal))
+        real["signed_rents"] = tuple(real["signed_rents"])[1:]
+        return real
+
+
+class _OutcomeMutatesStateItWasHandedHousingPlugin:
+    """Delegates every hook to a real HousingV1Plugin. terminal() is handed
+    the final replayed ``state`` mapping directly and stashes that SAME
+    object on ``self`` -- a plugin instance persists across every hook call
+    in one replay, so nothing stops it reaching back into a mapping it saw
+    earlier. outcome() then both drops the first signed_rents entry from the
+    result it returns AND mutates that stashed ``state`` object in place to
+    match, from inside the very call production code treats as read-only.
+    As with the terminal-mutating variant above, every sealed boundary still
+    agrees with itself; only a pre-terminal() snapshot of `state` defeats the
+    corruption."""
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+        self._last_state: Any = None
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    def terminal(self, case, state):
+        self._last_state = state
+        return self._inner.terminal(case, state)
+
+    def outcome(self, case, terminal):
+        real = dict(self._inner.outcome(case, terminal))
+        real["signed_rents"] = tuple(real["signed_rents"])[1:]
+        if self._last_state is not None and "signed_rents" in self._last_state:
+            self._last_state["signed_rents"] = list(real["signed_rents"])
+        return real
+
+
+@pytest.mark.parametrize(
+    "corrupted_plugin_cls",
+    [
+        _TerminalMutatesStateItWasHandedHousingPlugin,
+        _OutcomeMutatesStateItWasHandedHousingPlugin,
+    ],
+)
+def test_r10_is_not_defeated_by_a_hook_mutating_the_state_it_was_handed(
+    tmp_path, corrupted_plugin_cls
+) -> None:
+    """A plugin whose outcome() mis-copies its own trajectory must not be
+    able to launder that mismatch by also editing the final replayed `state`
+    object -- via terminal()'s direct parameter, or via a reference a hook
+    stashed earlier -- to match. R10 must compare against the state the
+    replay actually produced, frozen before either hook ran, not whatever
+    `state` holds once both have had a chance to mutate it."""
+    base_setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    manifest = base_setup.plan.families[0]
+    real_plugin = base_setup.registry.resolve_manifest(manifest)
+    registry = PluginRegistry()
+    registry.register_trusted(manifest, corrupted_plugin_cls(real_plugin))
+
+    _setup, execution, plugin, family_case, cell = _run_housing_episode(
+        tmp_path, registry=registry
+    )
+
+    with pytest.raises(AssertionError, match="does not match the same pointer read"):
+        replay_family_scoring_input(
+            plugin=plugin,
+            family_case=family_case,
+            evidence=execution.evidence,
+            cell=cell,
+            seat_context=SeatContext((), {}),
+            trajectory_outcome_paths=("/signed_rents",),
+        )

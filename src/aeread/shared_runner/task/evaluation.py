@@ -602,6 +602,18 @@ def _replay_family_trajectory(
     )
     if len(terminal_events) != 1 or len(outcome_events) != 1:
         raise ValueError("family replay lacks one terminal outcome boundary")
+    # Ruling R10 is defined over the final REPLAYED state, not whatever
+    # `state` happens to hold once terminal() and outcome() have both run.
+    # terminal() is handed this same mutable mapping directly, and one
+    # plugin instance serves the whole replay, so a hook can also stash it
+    # and mutate it later from inside outcome() -- either way, a plugin
+    # whose outcome() mis-copies its own trajectory could paper over the
+    # mismatch by also editing `state` to match, defeating the very check
+    # R10 exists to run. Freeze a detached snapshot now, before either hook
+    # executes, so neither can reach it. Only pay for the copy when there is
+    # a declared path to check at all -- a family declaring `()` pays
+    # nothing (see ``_assert_trajectory_outcome_paths_are_consistent``).
+    final_replayed_state = _freeze(state) if trajectory_outcome_paths else state
     terminal = plugin.terminal(family_case, state)
     terminal_payload = evidence.read_event_payload(terminal_events[0])
     outcome_payload = evidence.read_event_payload(outcome_events[0])
@@ -617,7 +629,7 @@ def _replay_family_trajectory(
         raise ValueError("family replay family outcome differs from sealed evidence")
     _use(outcome_events[0])
     _assert_trajectory_outcome_paths_are_consistent(
-        outcome, state, trajectory_outcome_paths
+        outcome, final_replayed_state, trajectory_outcome_paths
     )
     return (
         _freeze(outcome),
