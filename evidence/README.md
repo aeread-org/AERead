@@ -45,6 +45,11 @@ Derived analyses, per project:
   landlord seat, aggregated from published per-trajectory rows the primary
   outcome cannot see because welfare cancels rent; rebuild with
   `python -m aeread_families.housing.seat_accounting`.
+- `housing/estimand_sensitivity_control/`: Gate 3's provider-free proof that
+  an estimand responds to the seat under test. Five known-ordered tenant
+  policies on the sealed panel, sweeping a counterparty that violates its own
+  participation constraint. 105 cases, 4200 episodes, no provider calls;
+  rebuild with `python -m aeread_families.housing.sensitivity_control`.
 
 Current campaign directories include:
 
