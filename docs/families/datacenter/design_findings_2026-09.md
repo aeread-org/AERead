@@ -441,6 +441,52 @@ The trade result is unchanged and now rests on 76 completed power agreements:
 75 accepted the counterparty's opening package and one did anything else. None
 traded.
 
+## Reference wrong answers
+
+Four mechanisms were declared and shipped without anything checking they
+constrained the agent. The counter was the optimal answer. The covenant cliff
+could not be built from leverage. The bankability threshold was cleared by
+market convention. And adopting every counter, then sizing the connection to
+the lease, solved 19 of 24 worlds.
+
+The common cause is one habit. Verification checked two points the author had
+constructed, the feasible path and the trap, and treated that as proof the
+mechanism discriminated. It never checked the space between them, which is
+where the agent operates. There was a reference right answer, the scripted
+developer, and no reference wrong answers. An answer key working says nothing
+about whether the question is hard.
+
+Two gates now sit inside world generation, so a world that fails either is
+never emitted.
+
+**Naive strategies.** A world must defeat every answer reachable without
+reasoning about the deal.
+
+| Strategy | Before | After |
+|---|---:|---:|
+| Adopt every counter | 0 of 24 | 0 of 24 |
+| Propose the market-convention lease | 0 of 24 | 0 of 24 |
+| Adopt every counter, then size the connection to the lease | **19 of 24** | **0 of 24** |
+
+Closing the third required a second defect that one visible correction cannot
+reach: the landowner now quotes the cheaper, shorter tenure and volunteers no
+extension, so site control lapses before the campus can be brought into
+service. Seeing that means reading the construction schedule against the lease
+term, not inspecting one field.
+
+Stated plainly, because it is the ceiling of the current task: a developer who
+adopts every counter, sizes the connection to the lease, *and* fixes site
+control reaches an admissible stack in 20 of 24 worlds. The task is two
+structural corrections, and four worlds need more. That is better than one
+correction, and it is not yet deep.
+
+**Declared levers.** Each stratum names the lever it claims, in data rather
+than in a comment, and generation refuses a stratum whose lever leaves the
+outcome unchanged across its admissible range. The covenant stratum once
+passed every check while leverage produced byte-identical results from 50 to 80
+percent loan-to-cost, because the commitment cap bound first. All six levers
+now respond.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

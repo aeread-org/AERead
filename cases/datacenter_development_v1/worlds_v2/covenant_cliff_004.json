@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
-  "content_sha256": "eedbf76b6ec568043d2d94f2844d7f766f757469c6c884b2880b192939dc881f",
+  "content_sha256": "08bd1d23fb4e73edcb55ef0629a79b0ef591f83f605cf49e169783dbc352b0a3",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -91,22 +91,23 @@
           "conditions_precedent": [
             "zoning_approval"
           ],
-          "extension_option_months": 6,
-          "extension_price_cents": 200000000,
+          "extension_option_months": 0,
+          "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 5000000000,
-          "site_control_expiry_month": 30,
+          "purchase_price_cents": 4250000000,
+          "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
           "extension_price_cents": 200000000,
+          "purchase_price_cents": 5000000000,
           "site_control_expiry_month": 30
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 5000000000
+          "purchase_price_cents": 4250000000
         },
         "required_conditions": [
           "zoning_approval"
@@ -118,22 +119,23 @@
           "conditions_precedent": [
             "zoning_approval"
           ],
-          "extension_option_months": 6,
-          "extension_price_cents": 200000000,
+          "extension_option_months": 0,
+          "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 5000000000,
-          "site_control_expiry_month": 33,
+          "purchase_price_cents": 4250000000,
+          "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
           "extension_price_cents": 200000000,
+          "purchase_price_cents": 5000000000,
           "site_control_expiry_month": 33
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 5000000000
+          "purchase_price_cents": 4250000000
         },
         "required_conditions": [
           "zoning_approval"

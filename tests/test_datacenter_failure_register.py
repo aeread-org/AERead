@@ -27,7 +27,9 @@ def test_register_accounts_for_every_incident() -> None:
     incidents = register["incidents"]
 
     assert register["total_incidents"] == len(incidents) > 0
-    assert register["total_cells"] >= register["total_incidents"]
+    # A cell can contribute several incidents once it has been re-executed,
+    # because the archived attempts are counted too.
+    assert register["total_incidents"] <= sum(run["attempts"] for run in register["runs"])
     assert sum(register["by_class"].values()) == len(incidents)
     assert sum(register["by_attribution_as_recorded"].values()) == len(incidents)
     assert sum(register["by_attribution_corrected"].values()) == len(incidents)
@@ -129,7 +131,7 @@ def test_superseded_runs_are_marked_so_stale_results_are_not_reused() -> None:
 
     assert len(current) == 1, "exactly one run is the current one"
     assert superseded, "the aborted and pre-fix runs must stay visible"
-    assert all(run["incidents"] <= run["cells"] for run in register["runs"])
+    assert all(run["incidents"] <= run["attempts"] for run in register["runs"])
 
 
 def test_rendered_register_reports_attribution_and_open_defects() -> None:

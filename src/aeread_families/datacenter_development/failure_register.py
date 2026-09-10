@@ -255,6 +255,31 @@ KNOWN_DEFECTS = (
         ),
     },
     {
+        "id": "mechanisms-shipped-without-checking-they-bind",
+        "summary": (
+            "Four mechanisms were declared and shipped without anything "
+            "checking they constrained the agent: the counter was the optimal "
+            "answer, the covenant cliff could not be built from leverage, the "
+            "bankability threshold was cleared by market convention, and "
+            "adopting every counter then sizing the connection to the lease "
+            "solved 19 of 24 worlds. The common cause is that verification "
+            "tested two points the author constructed, the feasible path and "
+            "the trap, and never the strategies an agent would actually try. "
+            "There was a reference right answer and no reference wrong answers."
+        ),
+        "detected_by": "running naive strategies against the pack",
+        "severity": "mechanism_does_not_bind",
+        "status": "fixed",
+        "fix": (
+            "world generation now refuses to emit a world any naive strategy "
+            "solves, and refuses a stratum whose declared lever changes nothing"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_no_world_survives_a_naive_strategy_or_an_inert_lever"
+        ),
+    },
+    {
         "id": "primary-metric-is-survivorship-biased",
         "summary": (
             "Mean developer NPV is averaged over admitted stacks and declared "

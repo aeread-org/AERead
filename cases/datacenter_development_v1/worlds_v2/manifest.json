@@ -1,7 +1,7 @@
 {
-  "artifact_sha256": "979f1bee46738362a14c17e4870933e54e1de326126705a482d2778eeb38e020",
+  "artifact_sha256": "70ab360c0ae6126856edf0501e226d1853fcdc827d8f742ba273d9a0783824f2",
   "generator_id": "datacenter_v2_world_generator",
-  "generator_sha256": "55be92b0d773dded2a2518b0db8602a75bf904a4c2014c018fdb293b5b404455",
+  "generator_sha256": "a9d43d8396b85b769daaee466eb631028c76a5c04be12c6a40f69cb8edd1e752",
   "generator_version": "1.0.0",
   "master_seed": 20260903,
   "pack_id": "datacenter_development_v2_worlds_v1",
@@ -20,7 +20,7 @@
   "worlds": [
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-      "content_sha256": "c5f9a480fef221d2bb497ecf7750a722242969d5a5bb6730b330ec9306cef157",
+      "content_sha256": "f81e98a1bba2f60a8bad333e27da39b2f2cb353400ac3a93f13731735e65090b",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_001.json",
       "knobs": {
@@ -32,6 +32,15 @@
         "lender_minimum_take_or_pay_bps": 9500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "take_or_pay_bps",
+        "values": [
+          8000,
+          9500,
+          10000
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -76,7 +85,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
-      "content_sha256": "a206a0e8a11c9a284c3ed2cac241c69d51d2db9c9f13ae63be10f56d85a1feb5",
+      "content_sha256": "58217625b37e83f78ccbd5cd30714fe6a9890ea953da463f2064609d1ef74c87",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_002.json",
       "knobs": {
@@ -88,6 +97,15 @@
         "lender_minimum_take_or_pay_bps": 8500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "take_or_pay_bps",
+        "values": [
+          7000,
+          8500,
+          10000
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -132,7 +150,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
-      "content_sha256": "c1349c9f5f1be6a2388b09937162002a185439838cdc059f678eaca12a931936",
+      "content_sha256": "11a6eb4a3f8156c42ad2a1a190d43692b499e2009a7f87e2e968fce8b52ca958",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_003.json",
       "knobs": {
@@ -144,6 +162,15 @@
         "lender_minimum_take_or_pay_bps": 8500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "take_or_pay_bps",
+        "values": [
+          7000,
+          8500,
+          10000
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -188,7 +215,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
-      "content_sha256": "2851421d561b9e285f646ac5af3cbdb29bf7c58a18ce9b7c8fb8b4abbae1a61e",
+      "content_sha256": "8478a9b5625f275158945dd75ffda1b463f2dff14b9fd03716e90debb9c726de",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_004.json",
       "knobs": {
@@ -200,6 +227,15 @@
         "lender_minimum_take_or_pay_bps": 8500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "take_or_pay_bps",
+        "values": [
+          7000,
+          8500,
+          10000
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -244,7 +280,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
-      "content_sha256": "e18c3781643c6f4bc8d0898a7a820ba6fb9ce33f9572eda9d71a047a45823d19",
+      "content_sha256": "b8b91e6b40533e5736e2e890ba722559911680dcac48b6e5c7c980be692a548d",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_001.json",
       "knobs": {
@@ -256,6 +292,15 @@
         "physical_ready_month": 26,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "maturity_month",
+        "values": [
+          26,
+          29,
+          36
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -300,7 +345,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
-      "content_sha256": "7e59155dbbca166fadaf576a3d3a805d4871186de9b57cc22bc7e60aaf59521b",
+      "content_sha256": "95d8d1789d35a5f3827a893f16955a7072ac42021969eb862346fde81148de90",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_002.json",
       "knobs": {
@@ -312,6 +357,15 @@
         "physical_ready_month": 30,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "maturity_month",
+        "values": [
+          30,
+          33,
+          36
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -356,7 +410,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
-      "content_sha256": "7720f4ae87e29ca619ac948c3908593deb2a7bacd84741ce2ff789c5a3af39b7",
+      "content_sha256": "97b2c158286b231c560df5b8e0b968c1430fb10b64659cb6252f07e5abe6f1a2",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_003.json",
       "knobs": {
@@ -368,6 +422,15 @@
         "physical_ready_month": 28,
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "maturity_month",
+        "values": [
+          28,
+          31,
+          36
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -412,7 +475,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
-      "content_sha256": "edc46627b4eff091026e23c07382eb2ceea8415324acc70506ca8784b33ddc95",
+      "content_sha256": "25b8b8bff585269a474bcc4c2f273658d4336df572b22dfb01d27e658d6b096c",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_004.json",
       "knobs": {
@@ -424,6 +487,15 @@
         "physical_ready_month": 30,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "maturity_month",
+        "values": [
+          30,
+          33,
+          36
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -469,7 +541,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
-      "content_sha256": "2e49bc8c3b688df1fe196b09f7742bb9a342fd4964a20bae8b9952cbf63171a7",
+      "content_sha256": "84f8e697ba717365d45983f562ed89a4f5952fe48a142f0822ee7eb5b436a7e8",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_001.json",
       "knobs": {
@@ -482,6 +554,15 @@
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 3000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          3000,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -526,7 +607,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-      "content_sha256": "d62a47bf672606420ba38d8cb7c0f64bee66b73aee5ccec145f74f2efdbf072e",
+      "content_sha256": "a977815d24897919683506de6b819bd4cca4c407591e862f2e03e338999a101e",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_002.json",
       "knobs": {
@@ -539,6 +620,15 @@
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 3000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          3000,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -583,7 +673,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
-      "content_sha256": "82eb9fbada90d146932a169bea55f338d31a9b2de06cf6af1af2ea70e590e427",
+      "content_sha256": "99c529189dc9fedd9e6b86382f67df9f697dbb641cbba5b0a39ef20bca8b1d9f",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_003.json",
       "knobs": {
@@ -596,6 +686,15 @@
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 3500
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          3500,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -640,7 +739,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
-      "content_sha256": "a85317631538da709f0112347c1fa47b14919dc9b5f5fdbc93a7f6cf82668d7d",
+      "content_sha256": "423e2d5940cc7ad1ad4fbc3a72838954a559fadcd5150fe57c2678df439841e6",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_004.json",
       "knobs": {
@@ -653,6 +752,15 @@
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 3000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          3000,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -697,7 +805,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
-      "content_sha256": "292bb946ade35d6b95e8ea4e0b65a7d7a6bbb94e5302283b866ef761d9c84b1a",
+      "content_sha256": "ef8e379a00e7d455ed0c5b52c8835dd559ff353acd6e4c35d3a8ec0bc4c8edee",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_001.json",
       "knobs": {
@@ -710,6 +818,15 @@
         "premium_price_cents_per_kw": 20500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "monthly_capacity_charge_cents_per_kw",
+        "values": [
+          16500,
+          18500,
+          20500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -754,7 +871,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-      "content_sha256": "64c272296e6e4056984887fa971a3795b2fb0ebb83f525bcf18e577c0948d747",
+      "content_sha256": "ffa674e29c2df8364b4d4335ad5f4f2fb75c244d3105860c65143ce6d687ba5f",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_002.json",
       "knobs": {
@@ -767,6 +884,15 @@
         "premium_price_cents_per_kw": 20500,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "monthly_capacity_charge_cents_per_kw",
+        "values": [
+          16500,
+          18500,
+          20500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -811,7 +937,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
-      "content_sha256": "8abfd8b2247aee4d3cb148cc1726ffa6d49aafd3c42d972cc47126cb165920a8",
+      "content_sha256": "84cd757d87f8200c48966956bb8fd15dd80b89876ba141be658000c02fd15c62",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_003.json",
       "knobs": {
@@ -824,6 +950,15 @@
         "premium_price_cents_per_kw": 20500,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "monthly_capacity_charge_cents_per_kw",
+        "values": [
+          16500,
+          18500,
+          20500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -868,7 +1003,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
-      "content_sha256": "eedbf76b6ec568043d2d94f2844d7f766f757469c6c884b2880b192939dc881f",
+      "content_sha256": "08bd1d23fb4e73edcb55ef0629a79b0ef591f83f605cf49e169783dbc352b0a3",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_004.json",
       "knobs": {
@@ -881,6 +1016,15 @@
         "premium_price_cents_per_kw": 20500,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "monthly_capacity_charge_cents_per_kw",
+        "values": [
+          16500,
+          18500,
+          20500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -925,7 +1069,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-      "content_sha256": "6dc785ef50ba5f5528ec9e450eedf8fe4f39ee4b09a7028a383825222ba15167",
+      "content_sha256": "0dc516fe33982f70c072db3099d54ff07c076d6997d3242d71075ab5e1a809e3",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_001.json",
       "knobs": {
@@ -937,6 +1081,15 @@
         "premium_price_cents_per_kw": 27500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "service_commencement_month",
+        "values": [
+          22,
+          28,
+          30
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -981,7 +1134,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
-      "content_sha256": "3c9e3dbb659555344cb3a4b9a80d2d89f9e99aeeea7c548c5237f18a595fcf50",
+      "content_sha256": "649fddd9cc22c3d3e63cb16ebe585d0d58515afc683016a5b1ae5d68be9c209f",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_002.json",
       "knobs": {
@@ -993,6 +1146,15 @@
         "premium_price_cents_per_kw": 24500,
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "service_commencement_month",
+        "values": [
+          22,
+          28,
+          30
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1037,7 +1199,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
-      "content_sha256": "0011d6fcd6d72191ba170997f6c9b65d37be99a089f58c4edcee6cf4aa9a1ce5",
+      "content_sha256": "de1d39e2d7c165c4d750498f0d9162372b9671ff6630dc14f1bb4497f25f5d81",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_003.json",
       "knobs": {
@@ -1049,6 +1211,15 @@
         "premium_price_cents_per_kw": 24000,
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "service_commencement_month",
+        "values": [
+          22,
+          28,
+          30
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1094,7 +1265,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
-      "content_sha256": "e5d838fdcc796a95cd058a23e76e4db1c6463fd0c66f71d2fae00b577875e5ce",
+      "content_sha256": "a2c9341c35d143a622ca9630b79482b309f29426db904fb6545ac19cb063a23f",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_004.json",
       "knobs": {
@@ -1106,6 +1277,15 @@
         "premium_price_cents_per_kw": 27500,
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000
+      },
+      "lever": {
+        "agreement": "service",
+        "field": "service_commencement_month",
+        "values": [
+          22,
+          28,
+          30
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1150,7 +1330,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
-      "content_sha256": "3182f2eea0d55baa58f163774b8ee3261647c03d6f9bde0a5cccceed1472f9fb",
+      "content_sha256": "2db106d33191513a410c09a778fb7d523681dd2276403e40162901ba6ba20f32",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_001.json",
       "knobs": {
@@ -1162,6 +1342,15 @@
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 2500
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          2500,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1206,7 +1395,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
-      "content_sha256": "89a2d0e3622c8a01b70a215dc210a10ba1ae8619f8d48928a9ae05be954c4caa",
+      "content_sha256": "2d911974cdb43906d6a65b9328d9ca36c0260a3050778d88212332c87e0b7449",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_002.json",
       "knobs": {
@@ -1218,6 +1407,15 @@
         "sunk_cents": 1100000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 2500
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          2500,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1262,7 +1460,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
-      "content_sha256": "300208bf70ef41ed932c5d11caa33ed2383fde2d834b587a96d14502ac79ca34",
+      "content_sha256": "70aa3808228acba2f2b62da96629dfecf2270af53c88e9433baab8a6aa8e88ea",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_003.json",
       "knobs": {
@@ -1274,6 +1472,15 @@
         "sunk_cents": 1500000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 2000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          2000,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {
@@ -1318,7 +1525,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
-      "content_sha256": "e19f4eea2b81d1fe1e55c1a07c6b1261ffed8221ce7cb0181897f8370aa7a0c9",
+      "content_sha256": "62fb33329e4253ca9e5fbbbd7b6ed79f9ebfeb54f3ed66cb4065f908b4d482d9",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_004.json",
       "knobs": {
@@ -1330,6 +1537,15 @@
         "sunk_cents": 800000000,
         "tenant_requirement_kw": 50000,
         "trap_advance_rate_bps": 2000
+      },
+      "lever": {
+        "agreement": "loan",
+        "field": "advance_rate_bps",
+        "values": [
+          2000,
+          5000,
+          6500
+        ]
       },
       "mechanism": {
         "attractive_path": {

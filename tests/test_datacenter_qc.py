@@ -350,6 +350,16 @@ def test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative() -> No
 
         insisted = copy.deepcopy(counters)
         insisted["power"]["contracted_capacity_kw"] = required
+        # Capacity is no longer the only defect in the counter package: the
+        # landowner also quotes tenure that lapses before the campus can be
+        # brought into service, so a reachable solution fixes both.
+        for key in ("land", "land_amendment"):
+            insisted[key]["site_control_expiry_month"] = payload[
+                "scripted_developer"
+            ][key + "_terms"]["site_control_expiry_month"]
+            insisted[key]["extension_option_months"] = payload["scripted_developer"][
+                key + "_terms"
+            ]["extension_option_months"]
         assert terms_acceptable(
             TERM_PARSER_BY_TYPE["power"](insisted["power"]),
             payload["policies"]["power"],
@@ -730,3 +740,39 @@ def test_the_sequencing_diagnostic_records_discovery_and_its_payoff() -> None:
     assert _outcome_for(file_name, mutate=unbankable)["sequencing"][
         "executed_lease_meets_lender_minimums"
     ] is False
+
+
+# ------------------------------------------------------- reference wrong answers
+
+
+def test_no_world_survives_a_naive_strategy_or_an_inert_lever() -> None:
+    """The gate that would have caught four shipped mechanisms that did nothing.
+
+    Every earlier defect of that kind passed verification because verification
+    checked two points the author had constructed, the feasible path and the
+    trap, and never the strategies an agent would actually reach for. A
+    reference right answer is not enough; the world has to defeat reference
+    wrong answers too, and every declared lever has to move the outcome.
+    """
+    from aeread_families.datacenter_development.stack_worlds import (
+        NAIVE_STRATEGIES,
+        lever_is_inert,
+        solved_by_naive_strategy,
+    )
+
+    manifest = load_pack_manifest()
+    assert len(NAIVE_STRATEGIES) >= 3
+
+    for world in manifest["worlds"]:
+        payload = _payload(world["file"])
+        name = world["file"]
+        solved = solved_by_naive_strategy(payload["project_facts"], payload["policies"])
+        assert solved is None, f"{name}: solved by {solved}"
+
+        lever = world.get("lever")
+        assert lever, f"{name}: every stratum must declare the lever it claims"
+        assert not lever_is_inert(
+            payload["project_facts"],
+            _stack(payload, "scripted"),
+            lever,
+        ), f"{name}: lever {lever['agreement']}.{lever['field']} changes nothing"

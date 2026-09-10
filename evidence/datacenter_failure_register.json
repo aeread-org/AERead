@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "c9bc5f41dc5d768412c64aafa05bcb024817c2cbbbafe07ab8398d0973fcaa99",
+  "artifact_sha256": "bf6a99df32ca343e2838f7edab30bc0843abb190cfbefdb90740e642bc82a3bc",
   "by_attribution_as_recorded": {
     "budget": 5,
     "environment": 10,
@@ -110,6 +110,15 @@
       "severity": "under-tests_declared_capability",
       "status": "fixed",
       "summary": "Price negotiation cannot break the structural plan: in 19 of 24 worlds both adopting every counter and negotiating every price to the floor are structurally valid. The counter package is internally consistent, so cross-agreement planning is solved for free and the sequence order is fixed rather than chosen. The family currently measures distributive pricing and schema compliance far more than it measures planning."
+    },
+    {
+      "detected_by": "running naive strategies against the pack",
+      "fix": "world generation now refuses to emit a world any naive strategy solves, and refuses a stratum whose declared lever changes nothing",
+      "id": "mechanisms-shipped-without-checking-they-bind",
+      "regression_test": "tests/test_datacenter_qc.py::test_no_world_survives_a_naive_strategy_or_an_inert_lever",
+      "severity": "mechanism_does_not_bind",
+      "status": "fixed",
+      "summary": "Four mechanisms were declared and shipped without anything checking they constrained the agent: the counter was the optimal answer, the covenant cliff could not be built from leverage, the bankability threshold was cleared by market convention, and adopting every counter then sizing the connection to the lease solved 19 of 24 worlds. The common cause is that verification tested two points the author constructed, the feasible path and the trap, and never the strategies an agent would actually try. There was a reference right answer and no reference wrong answers."
     },
     {
       "detected_by": "reading the completed panel",

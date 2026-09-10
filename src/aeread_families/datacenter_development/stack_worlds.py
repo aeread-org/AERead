@@ -392,26 +392,37 @@ def _power_utility(
 def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     """Two-sided acceptance bands with real width, opened per stratum."""
 
+    epc = terms["epc"]
     land = terms["land"]
     amendment = terms["land_amendment"]
     power = terms["power"]
-    epc = terms["epc"]
     service = terms["service"]
     loan = terms["loan"]
     return {
         "land": {
             "minimums": {
-                "purchase_price_cents": land["purchase_price_cents"],
+                "purchase_price_cents": _floor(land["purchase_price_cents"]),
                 "permitted_use_capacity_kw": CAPACITY_KW,
             },
             "maximums": {
                 "closing_month": land["closing_month"],
                 "site_control_expiry_month": land["site_control_expiry_month"],
+                "purchase_price_cents": land["purchase_price_cents"],
                 "extension_option_months": land["extension_option_months"],
                 "extension_price_cents": land["extension_price_cents"],
             },
             "required_conditions": ["zoning_approval"],
-            "counter_terms": copy.deepcopy(land),
+            # The landowner quotes the cheaper, shorter tenure and volunteers no
+            # extension. Adopting it strands the project, because site control
+            # lapses before the campus can be brought into service. Reading that
+            # requires the construction schedule, not one field.
+            "counter_terms": {
+                **copy.deepcopy(land),
+                "site_control_expiry_month": epc["guaranteed_completion_month"] - 2,
+                "extension_option_months": 0,
+                "extension_price_cents": 0,
+                "purchase_price_cents": _floor(land["purchase_price_cents"]),
+            },
         },
         "power": {
             # Two-sided bands: the utility will not supply below its own cost,
@@ -505,17 +516,25 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         },
         "land_amendment": {
             "minimums": {
-                "purchase_price_cents": amendment["purchase_price_cents"],
+                "purchase_price_cents": _floor(amendment["purchase_price_cents"]),
                 "permitted_use_capacity_kw": CAPACITY_KW,
             },
             "maximums": {
                 "closing_month": amendment["closing_month"],
                 "site_control_expiry_month": amendment["site_control_expiry_month"],
+                "purchase_price_cents": amendment["purchase_price_cents"],
                 "extension_option_months": amendment["extension_option_months"],
                 "extension_price_cents": amendment["extension_price_cents"],
             },
             "required_conditions": ["zoning_approval"],
-            "counter_terms": copy.deepcopy(amendment),
+            # Nor will it volunteer the extension at the amendment either.
+            "counter_terms": {
+                **copy.deepcopy(amendment),
+                "site_control_expiry_month": epc["guaranteed_completion_month"] - 2,
+                "extension_option_months": 0,
+                "extension_price_cents": 0,
+                "purchase_price_cents": _floor(amendment["purchase_price_cents"]),
+            },
         },
         "loan": {
             "minimums": {
@@ -573,6 +592,11 @@ def _stratum_revenue_without_bankability(world: dict[str, Any], rng: random.Rand
             "lender_minimum_take_or_pay_bps": minimum_take_or_pay,
             "lender_minimum_credit_support_cents": minimum_credit,
         },
+        "lever": {
+            "agreement": "service",
+            "field": "take_or_pay_bps",
+            "values": [minimum_take_or_pay - 1500, minimum_take_or_pay, 10_000],
+        },
         "expected_failure": "loan_never_funds",
         "explanation": (
             "The customer accepts a weaker take-or-pay and credit-support "
@@ -619,6 +643,11 @@ def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[
         "feasible": terms,
         "trap": trap,
         "knobs": {"physical_ready_month": ready_month, "lender_spread_bps": spread_bps},
+        "lever": {
+            "agreement": "loan",
+            "field": "maturity_month",
+            "values": [ready_month, ready_month + 3, HORIZON],
+        },
         "expected_failure": "maturity_nonpayment",
         "explanation": (
             "Revenue only begins once construction and energization land in "
@@ -653,6 +682,11 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
             "origination_fee_bps": origination_fee_bps,
             "trap_advance_rate_bps": trap_advance,
             "developer_equity_budget_cents": equity_budget,
+        },
+        "lever": {
+            "agreement": "loan",
+            "field": "advance_rate_bps",
+            "values": [trap_advance, 5_000, 6_500],
         },
         "expected_failure": "funding_shortfall",
         "explanation": (
@@ -696,6 +730,11 @@ def _stratum_covenant_cliff(world: dict[str, Any], rng: random.Random) -> dict[s
             "minimum_dscr_bps": minimum_dscr,
             "premium_price_cents_per_kw": premium,
             "operating_cost_cents_per_kw_month": operating_cost,
+        },
+        "lever": {
+            "agreement": "service",
+            "field": "monthly_capacity_charge_cents_per_kw",
+            "values": [premium - 4_000, terms["service"]["monthly_capacity_charge_cents_per_kw"], premium],
         },
         "expected_failure": "minimum_dscr_breach",
         "explanation": (
@@ -760,6 +799,11 @@ def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> di
             "premium_price_cents_per_kw": premium_price,
             "delay_damages_cents_per_month": delay_damages,
         },
+        "lever": {
+            "agreement": "service",
+            "field": "service_commencement_month",
+            "values": [terms["power"]["energization_month"], late_month, late_month + 2],
+        },
         "expected_failure": "minimum_dscr_breach",
         "explanation": (
             "Construction lands several months after energization. The customer "
@@ -799,6 +843,11 @@ def _stratum_verbal_written_divergence(world: dict[str, Any], rng: random.Random
             "origination_fee_bps": origination_fee_bps,
         },
         "undisclosed_counter_fields": {"loan": list(built_undisclosed)},
+        "lever": {
+            "agreement": "loan",
+            "field": "advance_rate_bps",
+            "values": [trap_advance, 5_000, terms["loan"]["advance_rate_bps"]],
+        },
         "expected_failure": "funding_shortfall",
         "explanation": (
             "A fee-free loan offer is countered with a message that claims "
@@ -824,6 +873,95 @@ STRATUM_BUILDERS = {
 # --------------------------------------------------------------------------
 
 
+# Answers a developer could reach without reasoning about the deal. A world any
+# of these solves is not testing anything, so generation refuses to emit it.
+def _adopt_every_counter(policies: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: copy.deepcopy(policies[key]["counter_terms"]) for key in SEQUENCE}
+
+
+def _market_convention(policies: Mapping[str, Any]) -> dict[str, Any]:
+    """The standard lease: full take-or-pay, six months of rent as security."""
+
+    terms = _adopt_every_counter(policies)
+    service = terms["service"]
+    service["take_or_pay_bps"] = 10_000
+    service["credit_support_cents"] = (
+        service["committed_capacity_kw"]
+        * service["monthly_capacity_charge_cents_per_kw"]
+        * 6
+    )
+    return terms
+
+
+def _adopt_and_size_supply(policies: Mapping[str, Any]) -> dict[str, Any]:
+    """Take every offer, then make the supply agreements cover the lease.
+
+    One visible correction, no reasoning about schedule, financing or price.
+    """
+
+    terms = _adopt_every_counter(policies)
+    required = terms["service"]["committed_capacity_kw"]
+    terms["power"]["contracted_capacity_kw"] = required
+    terms["epc"]["guaranteed_capacity_kw"] = max(
+        terms["epc"]["guaranteed_capacity_kw"], required
+    )
+    return terms
+
+
+NAIVE_STRATEGIES = {
+    "adopt_every_counter": _adopt_every_counter,
+    "market_convention_lease": _market_convention,
+    "adopt_and_size_supply": _adopt_and_size_supply,
+}
+
+
+def solved_by_naive_strategy(
+    facts: Mapping[str, Any], policies: Mapping[str, Any]
+) -> str | None:
+    """The first naive strategy that yields an admissible stack, if any."""
+
+    for name, build in NAIVE_STRATEGIES.items():
+        try:
+            outcome = evaluate_stack(facts, build(policies))
+        except Exception:
+            continue
+        if outcome["constraints_satisfied"]:
+            return name
+    return None
+
+
+def lever_is_inert(
+    facts: Mapping[str, Any], terms: Mapping[str, Any], lever: Mapping[str, Any]
+) -> bool:
+    """True when moving a stratum's declared lever changes nothing at all.
+
+    A mechanism that names a lever and does not respond to it is not testing
+    what it claims. The covenant stratum once passed every check while its
+    declared lever, leverage, produced byte-identical outcomes across its whole
+    admissible range, because a different limit bound first.
+    """
+
+    seen = set()
+    for value in lever["values"]:
+        candidate = copy.deepcopy(dict(terms))
+        candidate[lever["agreement"]] = {
+            **candidate[lever["agreement"]],
+            lever["field"]: value,
+        }
+        try:
+            outcome = evaluate_stack(facts, candidate)
+        except Exception:
+            continue
+        seen.add(
+            (
+                outcome["constraints_satisfied"],
+                outcome["developer_equity_npv_cents"],
+                outcome["minimum_dscr_bps"],
+            )
+        )
+    return len(seen) <= 1
+
+
 def _assert_accepted(terms_by_key: Mapping[str, Any], policies: Mapping[str, Any], label: str) -> None:
     for key in SEQUENCE:
         parsed = TERM_PARSER_BY_TYPE[AGREEMENT_TYPE_BY_KEY[key]](terms_by_key[key])
@@ -839,6 +977,14 @@ def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
     outside = world["outside_option"]
     _assert_accepted(world["feasible"], policies, "feasible path")
     _assert_accepted(world["trap"], policies, "trap path")
+    solved = solved_by_naive_strategy(facts, policies)
+    if solved is not None:
+        raise ValueError(f"world is solved by the naive strategy {solved}")
+    lever = world.get("lever")
+    if lever is not None and lever_is_inert(facts, world["feasible"], lever):
+        raise ValueError(
+            f"declared lever {lever['agreement']}.{lever['field']} changes nothing"
+        )
     if not feasible["constraints_satisfied"] or not feasible["financing_succeeded"]:
         raise ValueError(f"feasible path fails admission: {feasible}")
     if feasible["developer_equity_npv_cents"] <= outside["developer_equity_npv_cents"]:
@@ -925,6 +1071,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "expected_failure": built["expected_failure"],
         "explanation": built["explanation"],
         "undisclosed_counter_fields": undisclosed,
+        "lever": built.get("lever"),
     }
     assembled["mechanism"] = _verify_world(assembled)
     return assembled
@@ -1018,6 +1165,7 @@ def generate_pack(master_seed: int = MASTER_SEED) -> dict[str, Any]:
                     "variant": variant,
                     "knobs": world["knobs"],
                     "mechanism": world["mechanism"],
+                    "lever": world["lever"],
                     "explanation": world["explanation"],
                 }
             )
