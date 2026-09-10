@@ -2351,7 +2351,9 @@ def _steer_fixture_pair(
     plan, registry, prompt_sources, pricing = _build_steer_pair_plan(family, case, cache_root)
     plugin = registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
-    cell_id = plan.cells[0].cell_id
+    # #135 A1: the fixture carries the executed PlanCell, not just its id.
+    cell = plan.cells[0]
+    cell_id = cell.cell_id
     options_count = len(row["options"])
 
     def _run(option_id: int, suffix: str) -> FamilyScoringFixture:
@@ -2370,7 +2372,11 @@ def _steer_fixture_pair(
                 pricing=pricing,
             )
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=execution.evidence,
+            cell=cell,
+        )
 
     left = _run(options_count, "left")
     right = _run(options_count + 3, "right")
@@ -2477,7 +2483,9 @@ def _collusion_episode_fixture(
     return (
         family,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        ),
     )
 
 
@@ -3081,6 +3089,7 @@ def _agenticpay_registration_and_pairs(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=_AGENTICPAY_SUBJECT_SEATS,
             profile_by_seat=_AGENTICPAY_PROFILE_BY_SEAT,
         )
@@ -4081,8 +4090,12 @@ def _econagent_fixture(
     # second time, is what lets replay's bridge_session_id fallback (see
     # EconAgentV1Plugin._mint_session_id) resolve correctly.
     (registration,) = setup.registry.registrations()
+    # #135 A1: the fixture carries the executed PlanCell.
+    cell = setup.plan.cells[0]
     return registration, (
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        ),
     )
 
 
@@ -4288,6 +4301,7 @@ def _alympics_kernel_contract_fixtures(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=("alex",),
             profile_by_seat=cell.profile_by_seat,
         )
@@ -6299,7 +6313,9 @@ def _aucarena_fixtures(
         asyncio.run(
             run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        )
 
     short_fixture = _run(short_path_answer, "short")
     long_fixture = _run(long_path_answer, "long")
@@ -6529,6 +6545,7 @@ def _amazonbarg_fixtures(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=("buyer",),
             profile_by_seat=cell.profile_by_seat,
         )
