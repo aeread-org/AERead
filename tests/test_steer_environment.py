@@ -20,6 +20,7 @@ from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.steer import cases as steer_cases
+from aeread_families.steer import measurement
 from aeread_families.steer.environment import SteerPlugin, family_manifest, register_plugin
 
 
@@ -120,6 +121,24 @@ def test_family_manifest_declares_mode_a_single_phase() -> None:
     assert manifest.environment.needs_tools is False
     assert manifest.environment.needs_sandbox is False
     assert manifest.measurement.direction == "maximize"
+
+
+def test_family_manifest_declares_the_one_leaf_with_answer_key_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3 (migration milestone 2 of
+    3): the manifest, not the scorer or a test fixture, is the one source of
+    the leaf set, the primary, and admission membership. See
+    docs/steer_adapter_status.md's "Leaf policy" section for why
+    ``steer_answer_key`` is primary and why it alone gates admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert declared.leaf_ids == (measurement.ANSWER_KEY_LEAF_ID,)
+    assert declared.primary_leaf_id == measurement.ANSWER_KEY_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.ANSWER_KEY_LEAF_ID,)
+    # The one leaf does not wait on a judge verdict or any other
+    # not-yet-existing artifact -- it is deterministic and computable at
+    # finalize time (spec section 4); it is not `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
 
 
 def test_phases_is_one_phase_one_logical_action_no_next_phase() -> None:
