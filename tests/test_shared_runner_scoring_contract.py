@@ -206,6 +206,16 @@ from tests.test_aucarena_replay import (
     long_path_answer,
     short_path_answer,
 )
+from aeread.shared_runner import episode_id_for_cell, run_episode
+from tests.test_amazonbarg_replay import (
+    GOLDEN_1_PAIRED_HISTORY_SCRIPT as _AMAZONBARG_RIGHT_SCRIPT,
+    GOLDEN_1_SCRIPT as _AMAZONBARG_LEFT_SCRIPT,
+    GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT as _AMAZONBARG_WITNESS_SCRIPT,
+    EvidenceRecordingAmazonbargHarness,
+    _case as _amazonbarg_case,
+    amazonbarg_script_answer,
+    build_amazonbarg_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -3106,7 +3116,6 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # of the families still listed above has a FamilyScoringInput-contract
         # fixture yet; each migrates under its own per-adapter follow-up, not
         # as part of this kernel change.
-        ("amazonbarg.bilateral", "0.1.0"),
 
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
@@ -3155,6 +3164,7 @@ _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset
     {
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
+        ("amazonbarg.bilateral", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("steer", "0.1.0"),
     }
@@ -6060,3 +6070,113 @@ def _aucarena_fixtures(
     long_fixture = _run(long_path_answer, "long")
     illegal_fixture = _run(illegal_bid_answer, "illegal")
     return family, plugin, (short_fixture, long_fixture, illegal_fixture)
+
+
+def _require_amazonbarg_upstream() -> Path:
+    """Skip with the SAME reason text ``conftest.py``'s own
+    ``pytest_collection_modifyitems`` hook uses for every other
+    ``test_amazonbarg_*`` module, so ``AEREAD_AMAZONBARG_BRIDGE_REQUIRED``
+    (below) can turn this skip into a failure for a certifying run. This
+    module's own filename does not match that hook's ``test_amazonbarg_``
+    prefix, so the skip must be raised explicitly here.
+    """
+    root = Path(
+        os.environ.get(
+            "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
+            "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
+        )
+    )
+    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
+    if not marker.is_file():
+        pytest.skip(
+            "pinned upstream AmazonPriceHistory checkout not found at "
+            f"{root} (set AEREAD_AMAZONBARG_UPSTREAM_ROOT)"
+        )
+    return root
+
+
+def _amazonbarg_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    """Three fixtures, all for the SAME case (home-kitchen_2): the first
+    two are the paired-history pair (byte-identical $135-deal outcome,
+    genuinely differing trajectory -- ruling R7's contrapositive for the
+    two forced-terminal_state bound leaves); the third is a genuinely
+    different outcome (a malformed buyer action, no deal) that witnesses
+    ruling R9(b)'s sensitivity requirement for the three trajectory-scoped
+    leaves, which the first two alone cannot (see
+    ``GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT``'s own comment in
+    tests/test_amazonbarg_replay.py for why)."""
+    _require_amazonbarg_upstream()
+    case = _amazonbarg_case("home-kitchen_2")
+    # Ruling R12 (kernel_scoring_contract_spec.md): build_amazonbarg_setup's
+    # default subject_seats=("buyer",) puts the tested profile in that one
+    # seat via the plan's evaluation block, so amazonbarg_bargained_ratio
+    # (seat_scope="subject_seat") resolves and comes back "ok" through the
+    # protocol path below, exactly as it does through finalize_family_execution
+    # (tests/test_amazonbarg_replay.py's
+    # test_finalize_wires_amazonbarg_to_the_shared_family_finalizer).
+    setup = build_amazonbarg_setup(case, suffix="scoring_contract_pair")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(script: list[Any], suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"amazonbarg_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingAmazonbargHarness(
+            answer=amazonbarg_script_answer(list(script)),
+            evidence=evidence,
+        )
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            subject_seats=("buyer",),
+            profile_by_seat=cell.profile_by_seat,
+        )
+
+    left = _run(_AMAZONBARG_LEFT_SCRIPT, "left")
+    right = _run(_AMAZONBARG_RIGHT_SCRIPT, "right")
+    witness = _run(_AMAZONBARG_WITNESS_SCRIPT, "witness")
+    return family, plugin, (left, right, witness)
+
+
+def test_amazonbarg_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """amazonbarg's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the real, pinned upstream
+    AmazonPriceHistory checkout, which every OTHER family this suite
+    verifies deliberately does not, so folding it into that always-on test
+    would make THEIR coverage newly skip too whenever the checkout is
+    unavailable. Per-test skip only, never module-level (mirrors
+    ``tests/test_amazonbarg_replay.py``'s own documented convention).
+
+    Runs the identical protocol check (``_assert_family_obeys_the_scoring_contract``)
+    against amazonbarg's own registry registration and its two paired
+    fixtures (``_amazonbarg_fixtures`` -- byte-identical terminal
+    outcome, genuinely differing trajectory, verified constructible against
+    the real pinned upstream checkout before being wired in here), covering
+    this family's three genuine trajectory-scoped leaves
+    (``amazonbarg_deal_authenticity``, ``amazonbarg_zopa_membership``,
+    ``amazonbarg_bargained_ratio``) and ruling R7's contrapositive for its
+    two terminal_state-scoped leaves (``amazonbarg_deal_lower_bound``,
+    ``amazonbarg_deal_upper_bound``).
+    """
+    registry = PluginRegistry()
+    manifest, plugin, fixture_pair = _amazonbarg_fixtures(tmp_path)
+    registry.register_trusted(manifest, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("amazonbarg.bilateral", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
