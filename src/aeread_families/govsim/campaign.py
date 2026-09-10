@@ -65,9 +65,10 @@ from .baseline import (
 )
 from .govsim_bridge import GovsimBridge
 from .live import (
+    BASELINE_PROMPT,
+    BASELINE_PROMPT_ID,
     MODEL,
     PRICING,
-    PROMPT,
     PROVIDER,
     QUANTIZATION,
     REVISION,
@@ -89,7 +90,14 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # environment.py at the digest that preceded the `.get("message", "")`
 # fix, and a plan `main` cannot rebuild from its own source is not
 # publishable under that identity (G-D-02 in the family's incident ledger).
-CAMPAIGN_ID = "govsim_glm53_flash_parasail_dialogue_v3"
+# v4 runs the arm the corpus has declared all along. v1 and v3 served the
+# agent `sustainability_threshold` on every observation, which upstream does
+# only under `inject_universalization` -- the paper's moral-reasoning
+# intervention -- while every case in this corpus declares that control
+# false. So v1 and v3 measured the intervention arm and v4 measures the
+# baseline the paper's headline (survival below 54%) refers to. Same design,
+# a corrected control, and therefore a new identity (G-D-03).
+CAMPAIGN_ID = "govsim_glm53_flash_parasail_baseline_v4"
 CANARY_CASE_ID = "govsim.fishing.sustainable.0"
 # One per scenario; see the module docstring on why not all nine.
 PANEL_CASE_IDS = (
@@ -151,6 +159,14 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
     plan: dict[str, Any] = {
         "schema_version": "aeread.govsim_live_campaign/0.1",
         "campaign_id": CAMPAIGN_ID,
+        "arm": {
+            "inject_universalization": False,
+            "prompt_id": BASELINE_PROMPT_ID,
+            "note": (
+                "upstream's baseline: the agent is not told the sustainability "
+                "threshold and must infer it from the pool's dynamics"
+            ),
+        },
         "freeze_status": "first_light_frozen_before_live_execution",
         "upstream": {
             "repository": cases[0].payload["upstream_repo"],
@@ -260,7 +276,7 @@ async def _probe_canary(
         base_url="https://openrouter.ai/api/v1",
         model=MODEL,
         revision=REVISION,
-        instructions=PROMPT,
+        instructions=BASELINE_PROMPT,
         input_text=canonical_json_bytes(
             {
                 "phase_id": "route_admission",

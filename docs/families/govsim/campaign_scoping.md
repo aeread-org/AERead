@@ -222,3 +222,49 @@ v1 (communication removed) with v3 has the pair the family was scoped for.
 v2's completed attempt is not published: its plan pinned `environment.py`
 before the `.get("message", "")` fix (G-D-02), and the source it pinned is on
 no pushed branch. v3 is that design re-run from `main`.
+
+## Baseline arm published (2026-09-10): the model does not collapse the commons
+
+`govsim_glm53_flash_parasail_baseline_v4`, at
+`evidence/govsim_glm53_flash_parasail_baseline_v4/`: canary admitted, 3/3
+included, all three receipts replayed through the pinned upstream bridge,
+$0.0392. All 132 sealed agent observations were checked to confirm the
+sustainability threshold never reached the agent.
+
+This is the arm the paper's headline refers to, and it is the first of our
+panels that can be set beside it. The paper (arXiv 2404.16698) reports that
+all but the strongest 2024 models fail to sustain the resource, with the
+highest survival rate below 54%.
+
+| arm | threshold given | dialogue | survival | total harvest (fishing / pollution / sheep, sustainable = 600) |
+|---|---|---|---|---|
+| `first_light_v1` | yes (intervention) | removed | 12/12 × 3 | 560 / 600 / 592 |
+| `dialogue_v3` | yes (intervention) | present | 12/12 × 3 | 199 / 521 / 594 |
+| **`baseline_v4`** | **no** | present | **12/12 × 3** | **237 / 401 / 182** |
+
+GLM 5.3 Flash never collapses the pool, in any arm, in any scenario. The
+2024 failure mode the paper diagnoses -- agents unable to reason about the
+long-run equilibrium and drawing the resource down -- does not reproduce on
+this model two years later, and survival is saturated for it: three cases
+cannot tell 100% from 95%, but they can tell it from below 54%.
+
+What the baseline arm costs the agent is yield. Told the threshold, the
+agents harvest at or near it (v1: 560/600/592 of a sustainable 600). Not
+told it, they take 30-67% of what the commons could sustain -- they buy
+survival with caution rather than with an estimate of the regeneration rate.
+Equality moves the same way: Gini rises from 0.007-0.011 in v1 to
+0.040-0.142 in v4, because agents that are guessing do not guess alike.
+
+Two readings a reader should not take from this. Survival at 3/3 is not
+"100% survival" for the family: one case per scenario, one seed, one route.
+And the model here is a *non-deliberating* GLM 5.3 Flash -- `reasoning_low_v1`
+was measured on 2026-09-10 to suppress reasoning to ~13 tokens (R-D-01) --
+so the deliberating arm is still owed and would be the fair comparison
+against the paper's freely-reasoning agents.
+
+A note for anyone replaying the earlier bundles: this change edits
+`environment.py` and `live.py`, both pinned by digest in every campaign
+plan, so `first_light_v1` and `dialogue_v3` no longer rebuild or replay from
+current source. They remain self-verifying by their own manifest and receipt
+digests; replaying them needs the commit their plans pinned (`3cc8bc53`,
+the merge of #157).
