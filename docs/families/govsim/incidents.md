@@ -14,6 +14,7 @@ path. Per-attempt operational detail is in the campaign documents.
 | `dialogue_v2` | 001 | 3/3 included, sealed | 0.0397 | not publishable: its plan pins the pre-fix `environment.py`, see G-D-02 |
 | `dialogue_v3` | 001 | 3/3 included, published | 0.0408 | stands, as the **dialogue** panel: v1 and v3 read side by side |
 | `baseline_v4` | 001 | 3/3 included, published | 0.0392 | stands, as the **baseline** arm: the paper-comparable panel |
+| `baseline_deliberating_v5` | 001 | killed by the host mid-case, then could not resume | 0.1657 | sealed; re-attempted as 002 after the supersede fix, see G-O-01 |
 
 ## D — Design defects
 
@@ -35,3 +36,9 @@ G-J-01 and G-J-02 share a cause worth naming: every check was on shape, and
 none on content. `count == 12` was true of both the fabricated transcript and
 the real one; only `distinct == 12` told them apart. A first light should
 read what the model actually said, not just whether the fields were filled.
+
+### O — Operational failures
+
+| id | what happened | detection | cost | disposition |
+|---|---|---|---|---|
+| G-O-01 | `baseline_deliberating_v5` attempt 001 was killed mid-case by the host's memory pressure (an unrelated 2.2 GB application), and the resume then failed with `EvidenceIntegrityError: refusing to append to an existing event log without resume=True`. The kernel is right to refuse. What was missing is on this side: econevals and termsbench both rename an existing execution root to `<case_id>.superseded_<timestamp>` before re-running, and this family never did, so an interrupted case could not be re-run at all -- the campaign could only ever go forward from a clean tree | the resume's own error | $0.1657, recovered from the sealed tree by `_sealed_spend`, and one attempt of the identity | the supersede is added here, matching its siblings; the partial tree is kept rather than deleted, because partial evidence of a paid attempt is still evidence. Attempt 002 runs the same identity. Worth noting for the family's cost model: that one partial case cost 13x a complete v4 case, which is the deliberating condition showing up in the bill |

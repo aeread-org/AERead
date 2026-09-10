@@ -479,6 +479,20 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
             max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
         )
         execution_root = run_root / "executions" / case_id
+        if execution_root.exists():
+            # A case whose previous attempt was interrupted -- the host killed
+            # the process, the operator stopped it -- leaves a partial event
+            # log, and the kernel rightly refuses to append to one
+            # (`EvidenceIntegrityError`). Set it aside under a timestamp
+            # rather than deleting it: partial evidence of a paid attempt is
+            # still evidence. econevals and termsbench already did this; this
+            # family did not, so an interrupted case could not be re-run at
+            # all (G-O-01).
+            superseded = run_root / "executions" / (
+                f"{case_id}.superseded_"
+                f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+            )
+            execution_root.rename(superseded)
         try:
             execution = await execute_plan_cell(
                 plan=setup.plan,
