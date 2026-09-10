@@ -67,6 +67,8 @@ from .govsim_bridge import GovsimBridge
 from .live import (
     BASELINE_PROMPT,
     BASELINE_PROMPT_ID,
+    MAX_OUTPUT_TOKENS_UNCONSTRAINED,
+    REASONING_UNCONSTRAINED_V1,
     MODEL,
     PRICING,
     PROVIDER,
@@ -97,7 +99,17 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # false. So v1 and v3 measured the intervention arm and v4 measures the
 # baseline the paper's headline (survival below 54%) refers to. Same design,
 # a corrected control, and therefore a new identity (G-D-03).
-CAMPAIGN_ID = "govsim_glm53_flash_parasail_baseline_v4"
+# v5 is v4's baseline arm with one more control changed: the reasoning
+# condition. `reasoning_low_v1` was measured on 2026-09-10 to suppress
+# reasoning to ~13 tokens, and this family's own sealed evidence agrees --
+# 113 of 132 calls in `dialogue_v3`'s fishing case reported zero reasoning
+# tokens. That matters more here than anywhere: the paper's diagnosis is
+# that agents fail because they cannot reason about the long-run
+# equilibrium, so a panel that suppressed reasoning was testing the
+# diagnosis with the faculty removed.
+CAMPAIGN_ID = "govsim_glm53_flash_parasail_baseline_deliberating_v5"
+REASONING = REASONING_UNCONSTRAINED_V1
+MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS_UNCONSTRAINED
 CANARY_CASE_ID = "govsim.fishing.sustainable.0"
 # One per scenario; see the module docstring on why not all nine.
 PANEL_CASE_IDS = (
@@ -110,8 +122,11 @@ SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.01
 MAX_CANARY_OUTPUT_TOKENS = 128
-MAX_TRAJECTORY_COST_USD = 0.12
-HARD_TOTAL_COST_CEILING_USD = 0.40
+# The rationale is emitted inside the completion budget, so a deliberating
+# episode costs several times v4's; both limits rise to keep the cap above
+# the worst case.
+MAX_TRAJECTORY_COST_USD = 0.40
+HARD_TOTAL_COST_CEILING_USD = 1.50
 CANARY_TRANSIENT_CONDITIONS = ("rate_limit", "provider_5xx", "timeout")
 MAX_CANARY_PROBES = 6
 CANARY_RETRY_BASE_SECONDS = 15.0
@@ -162,6 +177,7 @@ def build_campaign_plan(*, baselines: Mapping[str, Mapping[str, Any]]) -> dict[s
         "arm": {
             "inject_universalization": False,
             "prompt_id": BASELINE_PROMPT_ID,
+            "reasoning_condition_id": REASONING["condition_id"],
             "note": (
                 "upstream's baseline: the agent is not told the sustainability "
                 "threshold and must infer it from the pool's dynamics"
@@ -286,9 +302,9 @@ async def _probe_canary(
         ).decode("utf-8"),
         temperature=0.0,
         top_p=None,
-        max_output_tokens=MAX_CANARY_OUTPUT_TOKENS,
-        reasoning_effort="low",
-        reasoning_token_budget=None,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+        reasoning_effort=REASONING["effort"],
+        reasoning_token_budget=REASONING["token_budget"],
         timeout_seconds=180.0,
         request_sha256="",
         max_cost_usd=MAX_CANARY_COST_USD,
@@ -453,6 +469,8 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
         if total_cost + MAX_TRAJECTORY_COST_USD > HARD_TOTAL_COST_CEILING_USD:
             raise RuntimeError("insufficient campaign budget reserve for the next case")
         setup = build_live_setup(
+            reasoning=REASONING,
+            max_output_tokens=MAX_OUTPUT_TOKENS,
             case_id=case_id,
             upstream_root=upstream_root,
             bridge=bridge,

@@ -141,6 +141,40 @@ Return only a JSON object, and answer the phase named in the observation:
 """
 
 
+# Two measured reasoning conditions on this route, not one preference.
+#
+# Probed 2026-09-10 with one call per condition on an identical prompt:
+# `reasoning.effort: "low"` returns ~13 reasoning tokens, as does
+# `reasoning.max_tokens` at any value (1,500 and 8,000 are
+# indistinguishable), while declaring no block at all returns ~260. Checked
+# against this family's own sealed evidence: of 132 model calls in
+# `dialogue_v3`'s fishing case, 113 reported ZERO reasoning tokens and none
+# exceeded 25. So `reasoning_low_v1` is a suppressed condition under a name
+# that does not say so, and all three published govsim panels measure a GLM
+# 5.3 Flash that did not deliberate -- which matters here, because the
+# paper's diagnosis is that agents fail from an inability to reason about
+# the long-run equilibrium.
+REASONING_SUPPRESSED_V1: dict[str, object] = {
+    "condition_id": "reasoning_low_v1",
+    "effort": "low",
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+REASONING_UNCONSTRAINED_V1: dict[str, object] = {
+    "condition_id": "reasoning_unconstrained_v1",
+    "effort": None,
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+REASONING_DECLARATION = REASONING_SUPPRESSED_V1
+
+# The rationale is emitted inside the completion budget, so the deliberating
+# arm needs headroom the suppressed one never did: 256 tokens holds
+# `{"quantity": n}` and nothing else.
+MAX_OUTPUT_TOKENS_SUPPRESSED = 256
+MAX_OUTPUT_TOKENS_UNCONSTRAINED = 4000
+
+
 def route_metadata() -> dict[str, str]:
     """The exact sealed route the OpenRouter adapter requires -- these five
     fields and no others."""
@@ -387,14 +421,24 @@ def _profile(
     max_cost_usd: float,
     prompt_id: str,
     prompt: str,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
             "profile_id": (
-                "govsim_persona_glm53_flash_parasail_v1"
-                if prompt_id == UNIVERSALIZATION_PROMPT_ID
-                else "govsim_persona_glm53_flash_parasail_baseline_v1"
+                (
+                    "govsim_persona_glm53_flash_parasail_v1"
+                    if prompt_id == UNIVERSALIZATION_PROMPT_ID
+                    else "govsim_persona_glm53_flash_parasail_baseline_v1"
+                )
+                if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
+                else (
+                    f"govsim_persona_glm53_flash_parasail_"
+                    f"{'universalization' if prompt_id == UNIVERSALIZATION_PROMPT_ID else 'baseline'}_"
+                    f"{reasoning['condition_id']}"
+                )
             ),
             "model": {
                 "provider": PROVIDER,
@@ -429,15 +473,10 @@ def _profile(
             },
             "tools": [],
             "memory": {"mode": "disabled"},
-            "reasoning": {
-                "condition_id": "reasoning_low_v1",
-                "effort": "low",
-                "token_budget": None,
-                "rationale_visibility": "hidden",
-            },
+            "reasoning": dict(reasoning),
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 256,
+                "max_output_tokens": max_output_tokens,
                 # Declared: the adapter refuses a diagnostic run whose seed is
                 # not stated.
                 "seed": seed,
@@ -470,6 +509,8 @@ def build_live_setup(
     seed: int,
     baselines: Mapping[str, float] | None,
     max_trajectory_cost_usd: float,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
 ) -> GovsimLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -489,6 +530,8 @@ def build_live_setup(
     prompt_id = UNIVERSALIZATION_PROMPT_ID if universalization else BASELINE_PROMPT_ID
     prompt = UNIVERSALIZATION_PROMPT if universalization else BASELINE_PROMPT
     profile = _profile(
+        reasoning=reasoning,
+        max_output_tokens=max_output_tokens,
         seed=seed,
         max_logical_actions=max_logical_actions,
         max_cost_usd=max_trajectory_cost_usd,
