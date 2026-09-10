@@ -99,12 +99,105 @@ AGENT_SEAT = "agent"
 COUNTERPART_SEAT = "counterpart"
 
 PROVIDER = "openrouter"
-MODEL = "z-ai/glm-5.3-flash"
-REVISION = "z-ai/glm-5.3-flash-20260826"
-ROUTE_PROVIDER = "Parasail"
-QUANTIZATION = "fp8"
-MAX_PROMPT_PRICE_PER_MILLION = "0.15"
-MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
+
+
+@dataclass(frozen=True)
+class RouteSpec:
+    """One pinned serving of one model: the five-field route seal, the price
+    book, and the structured-output dialect that endpoint accepts.
+
+    A route is part of the agent's identity, so it carries the suffix that
+    distinguishes its profile id. `revision` is the endpoint's own dated
+    model id (`"<Provider> | <revision>"` in OpenRouter's endpoint listing),
+    which the kernel checks against the selected endpoint -- the undated
+    slug is rejected.
+    """
+
+    model: str
+    revision: str
+    route_provider: str
+    quantization: str
+    max_prompt_price_per_million: str
+    max_completion_price_per_million: str
+    pricing: TokenPricing
+    profile_suffix: str
+    # OpenAI's strict structured-output mode requires every property in
+    # `required` and expresses a conditional field as a nullable type rather
+    # than an absent key; `gpt-4o-mini` refuses the permissive schema with a
+    # 400. The family parses both identically -- `null` and absent are both
+    # "no price" -- so this is a dialect, not a change to the action space.
+    output_schema_dialect: str = "permissive"
+
+
+GLM53_FLASH_PARASAIL = RouteSpec(
+    model="z-ai/glm-5.3-flash",
+    revision="z-ai/glm-5.3-flash-20260826",
+    route_provider="Parasail",
+    quantization="fp8",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.50",
+    pricing=TokenPricing(
+        input_per_million=0.15,
+        cached_input_per_million=0.03,
+        output_per_million=0.50,
+        pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
+    ),
+    profile_suffix="glm53_flash_parasail_v1",
+)
+
+# The two models below are agents the TERMS-Bench paper itself evaluated, at
+# opposite ends of its table (`SE+` 0.189 for GPT-4o-mini, best `CSE+` 0.721
+# for GLM-5.1). They are here so our numbers can be checked against the
+# paper's own, which is a stronger test of this adapter than any number we
+# produce for a model the paper never ran.
+GPT4O_MINI_OPENAI = RouteSpec(
+    model="openai/gpt-4o-mini-2024-07-18",
+    revision="openai/gpt-4o-mini-2024-07-18",
+    route_provider="OpenAI",
+    quantization="unknown",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.60",
+    pricing=TokenPricing(
+        input_per_million=0.15,
+        cached_input_per_million=0.075,
+        output_per_million=0.60,
+        pricing_id="openrouter_2026-09-10_gpt4o_mini_openai",
+    ),
+    profile_suffix="gpt4o_mini_v1",
+    output_schema_dialect="strict",
+)
+
+# fp4 on DeepInfra, and that is not a detail to skip past: it is the only
+# GLM-5.1 endpoint that supports both a declared seed and structured output
+# (StreamLake and SiliconFlow refuse a seed, Chutes is unhealthy), so the
+# comparison against the paper's GLM-5.1 row runs at a lower precision than
+# the paper's own serving. The seal records it.
+GLM51_DEEPINFRA = RouteSpec(
+    model="z-ai/glm-5.1",
+    revision="z-ai/glm-5.1-20260406",
+    route_provider="DeepInfra",
+    quantization="fp4",
+    max_prompt_price_per_million="1.05",
+    max_completion_price_per_million="3.50",
+    pricing=TokenPricing(
+        input_per_million=1.05,
+        cached_input_per_million=1.05,
+        output_per_million=3.50,
+        pricing_id="openrouter_2026-09-10_glm51_deepinfra",
+    ),
+    profile_suffix="glm51_v1",
+    # Strict here too, though this endpoint accepts the permissive schema:
+    # the two paper-model panels must differ in the model and nothing else.
+    output_schema_dialect="strict",
+)
+
+ROUTE = GLM53_FLASH_PARASAIL
+MODEL = ROUTE.model
+REVISION = ROUTE.revision
+ROUTE_PROVIDER = ROUTE.route_provider
+QUANTIZATION = ROUTE.quantization
+MAX_PROMPT_PRICE_PER_MILLION = ROUTE.max_prompt_price_per_million
+MAX_COMPLETION_PRICE_PER_MILLION = ROUTE.max_completion_price_per_million
 
 MAX_ACTION_ATTEMPTS = 10
 RETRYABLE_CONDITIONS = (
@@ -115,12 +208,7 @@ RETRYABLE_CONDITIONS = (
     "empty_response",
     POST_ADMISSION_REJECTION,
 )
-PRICING = TokenPricing(
-    input_per_million=0.15,
-    cached_input_per_million=0.03,
-    output_per_million=0.50,
-    pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
-)
+PRICING = ROUTE.pricing
 
 # One model call per logical action. The harness never re-prompts on a
 # malformed move (see the module docstring), so a larger budget here would
@@ -183,27 +271,44 @@ Return only a JSON object for your move this round:
 """
 
 
-def route_metadata() -> dict[str, str]:
+def route_metadata(route: RouteSpec = ROUTE) -> dict[str, str]:
     """The five-field route seal the kernel requires: exactly these fields
     and no others."""
     return {
-        "route_provider": ROUTE_PROVIDER,
-        "quantization": QUANTIZATION,
-        "canonical_model": REVISION,
-        "max_prompt_price_per_million": MAX_PROMPT_PRICE_PER_MILLION,
-        "max_completion_price_per_million": MAX_COMPLETION_PRICE_PER_MILLION,
+        "route_provider": route.route_provider,
+        "quantization": route.quantization,
+        "canonical_model": route.revision,
+        "max_prompt_price_per_million": route.max_prompt_price_per_million,
+        "max_completion_price_per_million": route.max_completion_price_per_million,
     }
 
 
-def agent_output_schema() -> dict[str, Any]:
+def agent_output_schema(route: RouteSpec = ROUTE) -> dict[str, Any]:
     """The structured-output schema for the agent's move.
 
-    Nothing is `required` and `price` is not conditioned on `decision`:
-    the family's `parse_action` decides whether a price is required or
-    forbidden for the chosen decision, and a schema that pre-empted it
-    would move that judgment out of the measured family and into the
-    profile.
+    In the permissive dialect nothing is `required` and `price` is not
+    conditioned on `decision`: the family's `parse_action` decides whether a
+    price is required or forbidden for the chosen decision, and a schema that
+    pre-empted it would move that judgment out of the measured family and
+    into the profile.
+
+    OpenAI's strict mode refuses that schema (400: `'required' is required`),
+    so a strict-dialect route lists every property and makes `price`
+    nullable. The family reads `null` and absent identically, so the two
+    dialects admit the same moves; only the declaration differs, and it is
+    part of the profile digest either way.
     """
+    if route.output_schema_dialect == "strict":
+        return {
+            "type": "object",
+            "properties": {
+                "decision": {"type": "string", "enum": ["offer", "accept", "reject"]},
+                "price": {"type": ["number", "null"]},
+                "message": {"type": "string"},
+            },
+            "required": ["decision", "price", "message"],
+            "additionalProperties": False,
+        }
     return {
         "type": "object",
         "properties": {
@@ -351,6 +456,7 @@ def _profile(
     max_cost_usd: float,
     reasoning: Mapping[str, object] = REASONING_DECLARATION,
     max_output_tokens: int = MAX_OUTPUT_TOKENS,
+    route: RouteSpec = ROUTE,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
@@ -358,29 +464,32 @@ def _profile(
             # The reasoning condition is part of the agent's identity: two
             # profiles differing only in it are two agents, not one agent
             # twice.
+            # Route and reasoning condition are both part of the agent's
+            # identity: two profiles differing in either are two agents.
             "profile_id": (
-                "termsbench_agent_glm53_flash_parasail_v1"
+                f"termsbench_agent_{route.profile_suffix}"
                 if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
-                else f"termsbench_agent_glm53_flash_parasail_{reasoning['condition_id']}"
+                and route is GLM53_FLASH_PARASAIL
+                else f"termsbench_agent_{route.profile_suffix}_{reasoning['condition_id']}"
             ),
             "model": {
                 "provider": PROVIDER,
-                "model": MODEL,
-                "revision": REVISION,
+                "model": route.model,
+                "revision": route.revision,
                 "base_url": "https://openrouter.ai/api/v1",
             },
             "harness": {
                 "id": TermsBenchJsonHarness.id,
                 "version": TermsBenchJsonHarness.version,
                 "config": {
-                    "pricing_id": PRICING.pricing_id,
-                    "pricing_sha256": PRICING.content_sha256(),
-                    "output_schema": agent_output_schema(),
+                    "pricing_id": route.pricing.pricing_id,
+                    "pricing_sha256": route.pricing.content_sha256(),
+                    "output_schema": agent_output_schema(route),
                     "max_rounds": MAX_ROUNDS,
                     "retry_backoff": "exponential_jitter_v1",
                     "retry_base_seconds": 5.0,
                     "retry_after_max_seconds": 60.0,
-                    "provider_metadata": route_metadata(),
+                    "provider_metadata": route_metadata(route),
                 },
             },
             "prompt": {
@@ -423,6 +532,7 @@ def build_live_setup(
     max_trajectory_cost_usd: float,
     reasoning: Mapping[str, object] = REASONING_DECLARATION,
     max_output_tokens: int = MAX_OUTPUT_TOKENS,
+    route: RouteSpec = ROUTE,
 ) -> TermsBenchLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -443,6 +553,7 @@ def build_live_setup(
         max_cost_usd=max_trajectory_cost_usd,
         reasoning=reasoning,
         max_output_tokens=max_output_tokens,
+        route=route,
     )
     suffix = case_id.replace(".", "_")
     sampling = SamplingPlan.from_dict(
@@ -571,7 +682,7 @@ def build_live_setup(
         plan=plan,
         registry=registry,
         prompt_sources={PROMPT_ID: PROMPT},
-        pricing={MODEL: PRICING},
+        pricing={route.model: route.pricing},
         case=case,
         harnesses={
             **default_harnesses(),
@@ -596,6 +707,11 @@ __all__ = [
     "REASONING_DECLARATION",
     "REASONING_SUPPRESSED_V1",
     "REASONING_UNCONSTRAINED_V1",
+    "ROUTE",
+    "RouteSpec",
+    "GLM53_FLASH_PARASAIL",
+    "GLM51_DEEPINFRA",
+    "GPT4O_MINI_OPENAI",
     "REVISION",
     "ROUTE_PROVIDER",
     "TermsBenchJsonHarness",

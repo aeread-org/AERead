@@ -20,15 +20,21 @@ from aeread.shared_runner.task.evaluation import finalize_family_execution
 from aeread.shared_runner.task.execution import ProviderFailure, execute_plan_cell
 from aeread_families.termsbench import campaign as module
 from aeread_families.termsbench.campaign import (
-    CAMPAIGN_ID,
-    HARD_TOTAL_COST_CEILING_USD,
-    MAX_CANARY_COST_USD,
+    CAMPAIGNS,
+    DEFAULT_CAMPAIGN_ID,
     MAX_SERIAL_WALL_SECONDS,
-    MAX_TRAJECTORY_COST_USD,
     PANEL_CASE_IDS,
     _verify_plan,
     build_campaign_plan,
 )
+
+# The panel these tests exercise; the registry's other entries are covered by
+# `test_every_registered_campaign_is_a_distinct_verifiable_identity`.
+SPEC = CAMPAIGNS[DEFAULT_CAMPAIGN_ID]
+CAMPAIGN_ID = SPEC.campaign_id
+MAX_CANARY_COST_USD = SPEC.max_canary_cost_usd
+MAX_TRAJECTORY_COST_USD = SPEC.max_trajectory_cost_usd
+HARD_TOTAL_COST_CEILING_USD = SPEC.hard_total_cost_ceiling_usd
 from aeread_families.termsbench.live import (
     CASES_DIR,
     MODEL,
@@ -41,7 +47,7 @@ from tests.test_termsbench_live import OVERLAP_CASE_ID, _ScriptedRoute
 
 
 def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     assert plan["campaign_id"] == CAMPAIGN_ID
     assert plan["route"]["provider"] == PROVIDER
     assert plan["route"]["model"] == MODEL
@@ -74,8 +80,8 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
 
 
 def test_campaign_plan_digest_is_stable_and_tamper_evident() -> None:
-    first = build_campaign_plan()
-    second = build_campaign_plan()
+    first = build_campaign_plan(SPEC)
+    second = build_campaign_plan(SPEC)
     assert canonical_json_bytes(first) == canonical_json_bytes(second)
     tampered = dict(first)
     tampered["panel"] = list(reversed(first["panel"]))
@@ -85,7 +91,7 @@ def test_campaign_plan_digest_is_stable_and_tamper_evident() -> None:
 
 def test_panel_cases_are_the_pinned_corpus_cases_unmodified() -> None:
     manifest = json.loads((CASES_DIR / "pilot_manifest.json").read_text(encoding="utf-8"))
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     assert plan["corpus"]["pilot_manifest_sha256"] == manifest["content_sha256"]
     for row in plan["panel"]:
         on_disk = json.loads((CASES_DIR / f"{row['case_id']}.json").read_text(encoding="utf-8"))
@@ -96,7 +102,7 @@ def test_panel_cases_are_the_pinned_corpus_cases_unmodified() -> None:
 
 
 def test_plan_declares_the_canary_reprobe_budget() -> None:
-    canary = build_campaign_plan()["canary"]
+    canary = build_campaign_plan(SPEC)["canary"]
     assert canary["scored"] is False
     assert canary["max_probes"] >= 2
     assert "rate_limit" in canary["transient_conditions"]
@@ -106,7 +112,7 @@ def test_plan_declares_the_canary_reprobe_budget() -> None:
 def test_canary_reprobes_a_transient_rejection_then_admits(tmp_path, monkeypatch) -> None:
     attempts: list[int] = []
 
-    async def fake_probe(*, path, plan_sha256, ordinal):
+    async def fake_probe(*, spec, path, plan_sha256, ordinal):
         attempts.append(ordinal)
         if ordinal < 3:
             return {"status": "rejected", "failure_condition": "rate_limit", "cost_usd": 0.0}
@@ -117,7 +123,7 @@ def test_canary_reprobes_a_transient_rejection_then_admits(tmp_path, monkeypatch
 
     monkeypatch.setattr(module, "_probe_canary", fake_probe)
     monkeypatch.setattr(module.asyncio, "sleep", no_sleep)
-    record = asyncio.run(module.run_canary(run_root=tmp_path, plan_sha256="x"))
+    record = asyncio.run(module.run_canary(spec=SPEC, run_root=tmp_path, plan_sha256="x"))
     assert record["status"] == "admitted"
     assert attempts == [1, 2, 3]
 
@@ -125,12 +131,12 @@ def test_canary_reprobes_a_transient_rejection_then_admits(tmp_path, monkeypatch
 def test_canary_stops_immediately_on_a_non_transient_rejection(tmp_path, monkeypatch) -> None:
     attempts: list[int] = []
 
-    async def fake_probe(*, path, plan_sha256, ordinal):
+    async def fake_probe(*, spec, path, plan_sha256, ordinal):
         attempts.append(ordinal)
         return {"status": "rejected", "failure_condition": "provider_contract", "cost_usd": 0.0}
 
     monkeypatch.setattr(module, "_probe_canary", fake_probe)
-    record = asyncio.run(module.run_canary(run_root=tmp_path, plan_sha256="x"))
+    record = asyncio.run(module.run_canary(spec=SPEC, run_root=tmp_path, plan_sha256="x"))
     assert record["status"] == "rejected"
     assert attempts == [1]
 
@@ -226,7 +232,7 @@ def _complete_checkpoint(root: Path, plan: dict, *, ordinal: int, case_id: str,
 
 def test_publish_projects_every_case_per_regime_and_names_the_publisher(tmp_path) -> None:
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     module._write_once_json(root / "campaign_plan.json", plan)
     _admitted_probe(root, plan)
     statuses = ["ok"] * (len(PANEL_CASE_IDS) - 1) + ["invalid_measurement"]
@@ -265,7 +271,7 @@ def test_the_wall_time_gate_stops_the_campaign_before_the_second_case(tmp_path) 
     is a frozen control: a projection over the limit stops the campaign
     before another provider call is made."""
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     module._write_once_json(root / "campaign_plan.json", plan)
     _admitted_probe(root, plan)
     too_slow = MAX_SERIAL_WALL_SECONDS / len(PANEL_CASE_IDS) + 1.0
@@ -273,7 +279,7 @@ def test_the_wall_time_gate_stops_the_campaign_before_the_second_case(tmp_path) 
                          receipt=_sealed_receipt(tmp_path, PANEL_CASE_IDS[0]),
                          status="ok", elapsed=too_slow)
     with pytest.raises(RuntimeError, match="wall-time gate"):
-        asyncio.run(module.execute_campaign(run_root=root))
+        asyncio.run(module.execute_campaign(spec=SPEC, run_root=root))
     # Nothing was executed for the second case.
     assert not (root / "executions").exists()
 
@@ -292,7 +298,7 @@ def test_sealed_spend_counts_calls_a_failed_case_already_paid_for(tmp_path) -> N
 
 def test_publish_refuses_a_receipt_that_names_another_case(tmp_path) -> None:
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     module._write_once_json(root / "campaign_plan.json", plan)
     _admitted_probe(root, plan)
     wrong = _sealed_receipt(tmp_path, OVERLAP_CASE_ID)
@@ -307,19 +313,19 @@ def test_max_cases_pauses_after_complete_checkpoints_without_touching_the_route(
     """The operator's pause: with the first case already complete, a
     `max_cases=1` resume returns before the second case needs a provider."""
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
     module._write_once_json(root / "campaign_plan.json", plan)
     _admitted_probe(root, plan)
     _complete_checkpoint(root, plan, ordinal=0, case_id=PANEL_CASE_IDS[0],
                          receipt=_sealed_receipt(tmp_path, PANEL_CASE_IDS[0]),
                          status="ok", elapsed=1.0)
-    asyncio.run(module.execute_campaign(run_root=root, max_cases=1))
+    asyncio.run(module.execute_campaign(spec=SPEC, run_root=root, max_cases=1))
     assert not (root / "executions").exists()
     assert sorted(p.name for p in (root / "checkpoints").glob("*.json")) == [
         f"00_{PANEL_CASE_IDS[0]}.json"
     ]
     with pytest.raises(ValueError):
-        asyncio.run(module.execute_campaign(run_root=root, max_cases=0))
+        asyncio.run(module.execute_campaign(spec=SPEC, run_root=root, max_cases=0))
 
 
 class _FailingThenScriptedRoute(_ScriptedRoute):
@@ -352,9 +358,9 @@ def test_a_cell_that_fails_inside_the_kernel_is_sealed_and_the_campaign_continue
     """v1 aborted the panel on one cell (TB-O-01). v2 seals the cell as a
     typed exclusion receipt and runs the next case."""
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
 
-    async def admitted(*, path, plan_sha256, ordinal):
+    async def admitted(*, spec, path, plan_sha256, ordinal):
         record = {"status": "admitted", "cost_usd": 0.0, "plan_sha256": plan_sha256,
                   "probe_ordinal": ordinal}
         record["record_sha256"] = module._digest(record)
@@ -364,7 +370,7 @@ def test_a_cell_that_fails_inside_the_kernel_is_sealed_and_the_campaign_continue
     route = _FailingThenScriptedRoute(_agreeing_moves(PANEL_CASE_IDS[1]))
     monkeypatch.setattr(module, "_probe_canary", admitted)
     monkeypatch.setattr(module, "OpenRouterChatClient", lambda: route)
-    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    asyncio.run(module.execute_campaign(spec=SPEC, run_root=root, max_cases=2))
     first = json.loads((root / "checkpoints" / f"00_{PANEL_CASE_IDS[0]}.json").read_text())
     second = json.loads((root / "checkpoints" / f"01_{PANEL_CASE_IDS[1]}.json").read_text())
     assert first["status"] == "failed"
@@ -375,15 +381,15 @@ def test_a_cell_that_fails_inside_the_kernel_is_sealed_and_the_campaign_continue
     assert (root / first["receipt_path"]).exists()
     assert second["status"] == "complete"
     # A resume never reruns the failed cell.
-    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    asyncio.run(module.execute_campaign(spec=SPEC, run_root=root, max_cases=2))
     assert json.loads((root / "checkpoints" / f"00_{PANEL_CASE_IDS[0]}.json").read_text()) == first
 
 
 def test_publish_carries_a_failed_cell_as_typed_missingness(tmp_path, monkeypatch) -> None:
     root = tmp_path / "attempt"
-    plan = build_campaign_plan()
+    plan = build_campaign_plan(SPEC)
 
-    async def admitted(*, path, plan_sha256, ordinal):
+    async def admitted(*, spec, path, plan_sha256, ordinal):
         record = {"status": "admitted", "cost_usd": 0.0, "plan_sha256": plan_sha256,
                   "probe_ordinal": ordinal}
         record["record_sha256"] = module._digest(record)
@@ -393,7 +399,7 @@ def test_publish_carries_a_failed_cell_as_typed_missingness(tmp_path, monkeypatc
     route = _FailingThenScriptedRoute(_agreeing_moves(PANEL_CASE_IDS[1]))
     monkeypatch.setattr(module, "_probe_canary", admitted)
     monkeypatch.setattr(module, "OpenRouterChatClient", lambda: route)
-    asyncio.run(module.execute_campaign(run_root=root, max_cases=2))
+    asyncio.run(module.execute_campaign(spec=SPEC, run_root=root, max_cases=2))
     for ordinal, case_id in list(enumerate(PANEL_CASE_IDS))[2:]:
         _complete_checkpoint(root, plan, ordinal=ordinal, case_id=case_id,
                              receipt=_sealed_receipt(tmp_path, case_id), status="ok", elapsed=1.0)
@@ -408,3 +414,36 @@ def test_publish_carries_a_failed_cell_as_typed_missingness(tmp_path, monkeypatc
     failed = [row for row in rows if row["cell_status"] == "failed"]
     assert len(failed) == 1 and failed[0]["case_id"] == PANEL_CASE_IDS[0]
     assert failed[0]["termination_reason"] is None and failed[0]["protocol_compliance_value"] is None
+
+
+def test_every_registered_campaign_is_a_distinct_verifiable_identity() -> None:
+    """Panels live side by side because each is a sealed identity a bundle
+    refers back to. Every one must rebuild from its own record, and no two
+    may share a plan digest -- a panel that silently reused another's
+    identity would overwrite published evidence."""
+    digests = {}
+    for campaign_id, spec in CAMPAIGNS.items():
+        plan = build_campaign_plan(spec)
+        assert plan["campaign_id"] == campaign_id
+        _verify_plan(plan)
+        assert plan["budget"]["planned_maximum_usd"] <= plan["budget"]["hard_total_cost_ceiling_usd"]
+        assert plan["route"]["revision"] == spec.route.revision
+        digests[campaign_id] = plan["plan_sha256"]
+    assert len(set(digests.values())) == len(CAMPAIGNS)
+
+
+def test_the_two_paper_model_panels_differ_only_in_the_model() -> None:
+    """They exist to be compared with each other and with the paper's own
+    table, so every control except the model is held equal: same corpus,
+    same reasoning condition, same completion budget, same schema dialect."""
+    gpt = build_campaign_plan(CAMPAIGNS["termsbench_gpt4o_mini_pilot_v1"])
+    glm = build_campaign_plan(CAMPAIGNS["termsbench_glm51_pilot_v1"])
+    assert gpt["corpus"] == glm["corpus"]
+    assert [row["case_id"] for row in gpt["panel"]] == [row["case_id"] for row in glm["panel"]]
+    for key in ("reasoning_condition_id", "reasoning_effort", "reasoning_token_budget",
+                "reasoning_declared_block"):
+        assert gpt["route"][key] == glm["route"][key]
+    assert gpt["canary"]["max_output_tokens"] == glm["canary"]["max_output_tokens"]
+    assert gpt["route"]["revision"] != glm["route"]["revision"]
+    # Both are agents the paper evaluated, at opposite ends of its table.
+    assert "0.189" in gpt["purpose"] and "0.721" in glm["purpose"]

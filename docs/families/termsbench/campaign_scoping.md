@@ -194,3 +194,46 @@ muted (taciturn); v3 is ordered that way and v2 was not, but five overlap
 cases per family cannot support the comparison.
 
 Neither arm produced a malformed action. v1's degeneration has not recurred.
+
+## Checking the adapter against the paper's own agents (2026-09-10)
+
+Every number above is for a model the paper never ran, which makes it a
+measurement and not a check. Two of the paper's thirteen agents are
+reachable on our route, and they sit at opposite ends of its table, so
+running the same 30 cases through them tests whether this adapter
+discriminates the way the paper's does.
+
+| panel | model | route | what the paper reports |
+|---|---|---|---|
+| `termsbench_gpt4o_mini_pilot_v1` | `openai/gpt-4o-mini-2024-07-18` | OpenAI | its **weakest** agent: `SE+` 0.189 ± 0.013, `AGR+` 52.2 ± 2.8% -- the only model below the frontier band of 93.4-99.9% |
+| `termsbench_glm51_pilot_v1` | `z-ai/glm-5.1-20260406` | DeepInfra, fp4 | its **best conditional surplus**: `CSE+` 0.721 ± 0.014, `CritViol%` 1.33 ± 0.53%, and the remark that it "anchors strongly in overlap yet breaches reservation in no-deal" |
+
+Both panels declare the same reasoning condition, the same completion
+budget, the same schema dialect and the same corpus: they differ in the
+model and nothing else.
+
+**Recorded before the runs, so the check cannot be read backwards.** If this
+adapter measures what the paper measures, then:
+
+1. `AGR+` is markedly lower for GPT-4o-mini than for GLM-5.1. This is the
+   sharpest prediction, because the paper separates them by ~40 points on a
+   metric that saturates for everyone else.
+2. `SE+` and `CSE+` are substantially higher for GLM-5.1.
+3. GLM-5.1 shows individual-rationality breaches concentrated in the No-deal
+   regime, which is the paper's own remark about this model rather than a
+   number.
+
+What the check cannot settle: absolute agreement with the paper's table. Our
+agent is one JSON call per turn against a scripted counterpart, while the
+paper's agents run its own scaffold; 30 cases against 1,800 leaves wide
+intervals; three of six counterpart families are missing; and GLM-5.1 is
+served here at fp4, which the paper's serving was probably not. A
+reproduction of the *ordering* is the strongest evidence available at this
+scale, and a failure to reproduce it would be evidence of a defect.
+
+**Two caveats on the route, recorded because they bound what can ever be
+checked here.** Claude Opus 4.6 and 4.7 -- the paper's best `SE+` -- are
+unreachable: none of their OpenRouter endpoints supports a declared seed,
+and this kernel refuses a diagnostic run without one. And GLM-5.1 is
+reachable only through DeepInfra, the sole endpoint offering both a seed and
+structured output, at fp4.
