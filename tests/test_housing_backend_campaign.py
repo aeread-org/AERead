@@ -3967,3 +3967,131 @@ def test_a_route_that_answers_null_is_refused_at_admission_as_a_route_fault(
         "structured_output_unsupported"
     }
     assert len(calls) == len(set(calls)) == 18
+
+
+def test_co_primary_estimand_requires_the_opponent_ir_ceiling_and_gates_on_it() -> None:
+    """D-27. Welfare is blind to every transfer, so a seat whose lever is the
+    transfer needs a distribution-side co-primary. The opponent seat does not
+    bias the paired contrast, but past a few percent of cells its own
+    participation-constraint violations bury the signal, so a co-primary
+    requires a declared ceiling and the decision is withheld above it."""
+
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract, worlds, configs = _analysis_contract(
+        co_primary_estimand="subject_surplus_share",
+        maximum_opponent_ir_violation_fraction=0.05,
+    )
+    clean = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.85, deepseek_score=0.70),
+        glm_share=0.45, deepseek_share=0.30,
+    )
+    result = confirmatory_analysis(clean, contract)
+    assert result["co_primary_estimand"] == "subject_surplus_share"
+    assert result["secondary"]["interval"]["mean"] == pytest.approx(0.15)
+    assert result["opponent_ir_violation_fraction"] == 0.0
+    assert result["opponent_ir_violation_above_ceiling"] is False
+    assert result["decision_supported"] is True
+
+    # A counterparty violating its own constraint in more than the declared
+    # share of cells withholds the decision, whatever the interval says.
+    contaminated = _with_seat_accounting(
+        _confirmatory_rows(worlds, configs, glm_score=0.85, deepseek_score=0.70),
+        opponent_ir={(seed, config, "deepseek_v4_flash__vs__glm_53_flash")
+                     for seed in worlds for config in configs},
+        glm_share=0.45, deepseek_share=0.30,
+    )
+    gated = confirmatory_analysis(contaminated, contract)
+    assert gated["opponent_ir_violation_fraction"] > 0.05
+    assert gated["opponent_ir_violation_above_ceiling"] is True
+    assert gated["decision_supported"] is False
+    assert gated["ranking_allowed"] is False
+
+    # A co-primary without a declared ceiling is refused outright.
+    no_ceiling, _, _ = _analysis_contract(co_primary_estimand="subject_surplus_share")
+    with pytest.raises(ValueError, match="maximum_opponent_ir_violation_fraction"):
+        confirmatory_analysis(clean, no_ceiling)
+
+    # Co-primary and secondary are alternatives, not both.
+    both, _, _ = _analysis_contract(
+        co_primary_estimand="subject_surplus_share",
+        secondary_estimand="subject_surplus_share",
+        maximum_opponent_ir_violation_fraction=0.05,
+    )
+    with pytest.raises(ValueError, match="co-primary or secondary"):
+        confirmatory_analysis(clean, both)
+
+    # The legacy contract, declaring neither, is unaffected.
+    legacy, _, _ = _analysis_contract()
+    plain = confirmatory_analysis(clean, legacy)
+    assert plain["co_primary_estimand"] is None
+    assert plain["maximum_opponent_ir_violation_fraction"] is None
+    assert plain["decision_supported"] is True
+
+
+def test_sensitivity_control_shows_welfare_inverts_the_distribution_ranking() -> None:
+    """Gate 3's provider-free proof. A truthful bidder offers its full value,
+    so it wins allocations like a shrewd bidder and captures nothing. Welfare
+    does not merely fail to separate the two: it rates the truthful bidder
+    higher, because bidding full value makes the allocation efficient. Any
+    metric that does this cannot be a sole primary."""
+
+    from aeread_families.housing import environment as hz
+    from aeread_families.housing.sensitivity_control import play
+
+    world = hz.make_bid_world(8, 5, seed=369623215, common_weight=0.7)
+    truthful = play(world, rounds=3, tenant_policy="truthful", seed=1)
+    naive = play(world, rounds=3, tenant_policy="naive", seed=1)
+
+    assert truthful["tenant_surplus"] == pytest.approx(0.0, abs=1e-9)
+    assert naive["tenant_surplus"] > 0.4
+    # Welfare ranks the policy that captures nothing above the one that does.
+    assert truthful["welfare"] > naive["welfare"]
+
+
+def test_sensitivity_control_is_reproducible_and_locates_the_measurable_ceiling(
+    tmp_path: Path,
+) -> None:
+    """The published control regenerates byte for byte, and its concession
+    sweep is what justifies the recommended opponent-IR ceiling."""
+
+    from aeread_families.housing.sensitivity_control import (
+        RECOMMENDED_MAXIMUM_OPPONENT_IR_VIOLATION_FRACTION,
+        publish,
+    )
+
+    root = CONFIRMATORY_CONTRACT_PATH.parents[1]
+    control_root = root / "evidence" / "housing" / "estimand_sensitivity_control"
+    committed = json.loads((control_root / "reports" / "summary.json").read_bytes())
+    assert publish(root / "configs" / "housing_case_config_sweep_v2.json", tmp_path / "c") == (
+        committed
+    )
+    core = {k: v for k, v in committed.items() if k != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == committed["artifact_sha256"]
+
+    clean = committed["by_concession_rate"]["0.0"]
+    # Welfare is blind to the transfer in both directions: it rates the
+    # truthful bidder above the shrewd one, and its spread does not move at all
+    # as the counterparty starts giving units away.
+    assert clean["policy_means"]["truthful"]["tenant_surplus"] == 0.0
+    assert clean["policy_means"]["truthful"]["welfare"] > clean["policy_means"]["naive"]["welfare"]
+    assert clean["naive_minus_truthful"]["welfare"]["mean"] < 0
+    assert clean["naive_minus_truthful"]["tenant_surplus"]["mean"] > 0.5
+
+    spreads = {
+        rate: block["adaptive_minus_naive"]["tenant_surplus"]["standard_deviation"]
+        for rate, block in committed["by_concession_rate"].items()
+    }
+    welfare_spreads = {
+        block["adaptive_minus_naive"]["welfare"]["standard_deviation"]
+        for block in committed["by_concession_rate"].values()
+    }
+    assert len(welfare_spreads) == 1, "welfare cannot see the counterparty at all"
+    assert spreads["0.0"] < spreads["0.4"] / 10, "surplus can, and the noise dominates"
+    assert committed["by_concession_rate"]["0.0"]["adaptive_minus_naive"]["tenant_surplus"][
+        "excludes_zero"
+    ] is True
+    assert committed["by_concession_rate"]["0.4"]["adaptive_minus_naive"]["tenant_surplus"][
+        "excludes_zero"
+    ] is False
+    assert 0.0 < RECOMMENDED_MAXIMUM_OPPONENT_IR_VIOLATION_FRACTION < 0.107

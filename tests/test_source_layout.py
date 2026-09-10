@@ -75,6 +75,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "qc_bundle.py",
         "runner.py",
         "seat_accounting.py",
+        "sensitivity_control.py",
     }
 
 

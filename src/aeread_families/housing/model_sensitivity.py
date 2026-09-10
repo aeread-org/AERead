@@ -1283,6 +1283,12 @@ SUBJECT_IR_POLICIES = ("averaged", "typed_failure")
 SECONDARY_ESTIMANDS = ("subject_surplus_share",)
 WINNER_CLAIM_RULES = ("primary_only", "primary_and_secondary_consistent")
 
+#: Read from the provider-free control arm, which is where the sweep
+#: justifying it lives: `evidence/housing/estimand_sensitivity_control/`.
+from .sensitivity_control import (  # noqa: E402
+    RECOMMENDED_MAXIMUM_OPPONENT_IR_VIOLATION_FRACTION,
+)
+
 
 def seat_accounting_fields(outcome: Mapping[str, Any]) -> dict[str, Any]:
     """Per-seat individual-rationality counts and the subject's surplus share.
@@ -1459,9 +1465,18 @@ def confirmatory_analysis(
 
     ir_policy = _subject_ir_policy(analysis)
     valid = lambda row: _economically_valid(row, ir_policy)  # noqa: E731
+    # A co-primary carries the claim jointly with welfare; a secondary is
+    # reported only. Welfare answers "was the right allocation found" and is
+    # blind to every transfer, so it cannot on its own measure a seat whose
+    # lever is the transfer (D-27).
+    co_primary_estimand = analysis.get("co_primary_estimand")
     secondary_estimand = analysis.get("secondary_estimand")
-    if secondary_estimand is not None and secondary_estimand not in SECONDARY_ESTIMANDS:
-        raise ValueError(f"unknown secondary_estimand: {secondary_estimand!r}")
+    if co_primary_estimand is not None and secondary_estimand is not None:
+        raise ValueError("declare an estimand as co-primary or secondary, not both")
+    reported_estimand = co_primary_estimand or secondary_estimand
+    if reported_estimand is not None and reported_estimand not in SECONDARY_ESTIMANDS:
+        raise ValueError(f"unknown estimand: {reported_estimand!r}")
+    secondary_estimand = reported_estimand
     winner_rule = analysis.get("winner_claim_rule", "primary_only")
     if winner_rule not in WINNER_CLAIM_RULES:
         raise ValueError(f"unknown winner_claim_rule: {winner_rule!r}")
@@ -1516,12 +1531,29 @@ def confirmatory_analysis(
     opponent_ir_cells = sum(
         1 for row in completed if int(row.get("opponent_seat_ir_violations") or 0) > 0
     )
+
     ir_ceiling = analysis.get("maximum_subject_ir_failure_fraction")
     if ir_policy == "typed_failure" and ir_ceiling is None:
         raise ValueError("typed_failure policy needs maximum_subject_ir_failure_fraction")
     subject_ir_fraction = len(subject_ir_failures) / len(rows) if rows else 0.0
     subject_ir_above_ceiling = bool(
         ir_ceiling is not None and subject_ir_fraction > float(ir_ceiling) + 1e-12
+    )
+    # The opponent seat does not bias the paired contrast, since the design
+    # balances it and its main effect cancels. What it does is inject variance
+    # the pairing cannot remove, and past a few percent of cells that variance
+    # buries a real difference on the distribution side. So this is a ceiling
+    # on measurability, not on fairness.
+    opponent_ir_ceiling = analysis.get("maximum_opponent_ir_violation_fraction")
+    if co_primary_estimand is not None and opponent_ir_ceiling is None:
+        raise ValueError(
+            "a distribution-side co-primary needs "
+            "maximum_opponent_ir_violation_fraction"
+        )
+    opponent_ir_fraction = opponent_ir_cells / len(completed) if completed else 0.0
+    opponent_ir_above_ceiling = bool(
+        opponent_ir_ceiling is not None
+        and opponent_ir_fraction > float(opponent_ir_ceiling) + 1e-12
     )
     condition_means = {}
     for condition in contract["conditions"]:
@@ -1558,11 +1590,17 @@ def confirmatory_analysis(
     planned = len(world_seeds) * len(configs) * len(contract["conditions"]) * replicates
     minimum_paired = analysis.get("minimum_paired_worlds_for_decision")
     paired = primary["paired_world_count"]
+    co_primary_estimable = bool(
+        co_primary_estimand is None
+        or (secondary is not None and secondary["interval"]["mean"] is not None)
+    )
     decision_supported = bool(
         minimum_paired is not None
         and paired >= int(minimum_paired)
         and len(rows) == planned
         and not subject_ir_above_ceiling
+        and not opponent_ir_above_ceiling
+        and co_primary_estimable
     )
     # A winner claim needs the efficiency interval to exclude zero. Under the
     # consistency rule the surplus interval may not exclude zero in the
@@ -1612,6 +1650,10 @@ def confirmatory_analysis(
             "maximum_subject_ir_failure_fraction": ir_ceiling,
             "subject_ir_failure_above_ceiling": subject_ir_above_ceiling,
             "opponent_seat_ir_violation_cells": opponent_ir_cells,
+            "opponent_ir_violation_fraction": round(opponent_ir_fraction, 9),
+            "maximum_opponent_ir_violation_fraction": opponent_ir_ceiling,
+            "opponent_ir_violation_above_ceiling": opponent_ir_above_ceiling,
+            "co_primary_estimand": co_primary_estimand,
             "secondary": secondary,
             "winner_claim_rule": winner_rule,
             "winner_claim_allowed": winner_claim_allowed,
