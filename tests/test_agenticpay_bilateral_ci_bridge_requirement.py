@@ -14,6 +14,20 @@ every agenticpay upstream-fidelity test (``test_agenticpay_bilateral_cases.py``,
 measurement.py``, ``test_agenticpay_bilateral_replay.py``) silently skipped for want
 of a provisioned bridge.
 
+Migration review finding 2 (docs/agenticpay_migration_review.md) extends this list:
+``tests/test_shared_runner_scoring_contract.py::test_agenticpay_obeys_the_scoring_contract``
+is also a genuine AgenticPay upstream-fidelity test -- it drives the real bridge to
+prove the family's leaf set, its ruling-R13 case-conditional leaf, and its
+trajectory-sensitivity witnesses -- but lived outside this job's file list, so it
+only ever ran in the ``test`` job above, which never provisions any bridge and never
+sets any ``*_BRIDGE_REQUIRED`` flag. The always-on
+``test_every_registered_family_obeys_the_scoring_contract`` test in that same file
+treats AgenticPay as enrolled via ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` without
+ever invoking its scorer, so nothing in the ``test`` job's own coverage compensates:
+a full green CI run could report success while AgenticPay's scoring-contract
+behavior never actually executed. It is added to this job's file list below for the
+same reason the original four are here.
+
 This test never actually runs GitHub Actions (this suite is provider-free/offline,
 and there is no local runner for it) -- it inspects the checked-in workflow text
 directly, so it cannot prove the job it finds actually succeeds end to end. What it
@@ -34,6 +48,7 @@ _FIDELITY_TEST_FILES = (
     "tests/test_agenticpay_bilateral_environment.py",
     "tests/test_agenticpay_bilateral_measurement.py",
     "tests/test_agenticpay_bilateral_replay.py",
+    "tests/test_shared_runner_scoring_contract.py",
 )
 
 
