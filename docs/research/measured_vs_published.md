@@ -14,7 +14,7 @@ under way, one needs a missing normalizer, and one is not published at all.
 
 | family | live evidence | comparable to its paper? | what is in the way |
 |---|---|---|---|
-| TERMS-Bench | pilot v2 + v3, 30 cases each, 30/30 replayed (PR #153) | **yes**, with a stated `n` caveat | nothing structural: 30 cases against the paper's 1,800 per agent, and 3 of its 6 counterpart families |
+| TERMS-Bench | four panels of 30 cases, 30/30 replayed each (PR #153), **two of them the paper's own agents** | **yes, and checked** | nothing structural: 30 cases against the paper's 1,800 per agent, and 3 of its 6 counterpart families |
 | GovSim | `first_light_v1`, `dialogue_v3` published; `baseline_v4` on PR #159 | **yes, as of `baseline_v4`** | the two published panels ran the paper's *universalization intervention* while their cases declared the baseline (G-D-03); the corrected arm is the comparable one |
 | EconEvals | `panel_v10`, 6 cases, published | **partly** | our objective leaf is raw units plus the exact optimum; the paper normalizes against a uniform-random baseline, which we do not compute |
 | tau3 retail | v9 and v18 on PR #97, unmerged | **no** | not published, and v18 completed 1 of 5 cases |
@@ -42,7 +42,56 @@ declaration standard in [reasoning condition and diagnostics](reasoning_conditio
 required the condition to be named and versioned, which it was — what it
 could not require is that the name describe what the route does with it.
 
-## TERMS-Bench — comparable, and the reasoning condition explains the gap
+## TERMS-Bench — checked against the paper's own agents
+
+Two of the paper's thirteen agents are reachable on our route and sit at
+opposite ends of its table, so the same 30 cases were run through both. The
+predictions were written into the family's scoping note *before* the runs.
+This is the only family where we can check the adapter rather than only use
+it.
+
+| | GPT-4o-mini | GLM-5.1 | GLM 5.3 Flash | paper: GPT-4o-mini | paper: GLM-5.1 |
+|---|---:|---:|---:|---|---|
+| `SE+` | **0.035** | **0.458** | 0.533 | 0.189 (its lowest) | — (table's best is 0.694) |
+| `CSE+` | **0.044** | **0.458** | 0.533 | ~0.296 (its lowest) | **0.721 (its best)** |
+| `AGR+` | **0.80** | **1.00** | 1.00 | **0.522 (its lowest)** | frontier 0.934 – 0.999 |
+| `FAGR-` | 0.00 | 0.00 | 0.133 | ~0 | ~0 |
+| `CritViol%` | 0.233 | 0.133 | 0.067 | band 0 – 0.0206 | 0.0133 |
+| cost / wall | $0.003 / 0.7 min | $0.182 / 30.8 min | $0.134 / 43.5 min | | |
+
+**The ordering reproduces.** GPT-4o-mini is the only agent in the set that
+fails to close a feasible deal (`AGR+` 0.80 against 1.00), which is the
+paper's own structural claim — every frontier agent between 0.934 and 0.999,
+GPT-4o-mini alone at 0.522. On surplus the same two ends separate by 13×
+here against the paper's 3.7×. The paper's third claim about GLM-5.1,
+breaching its reservation in No-deal, did not reproduce: one breach in 30
+cases, in an Overlap case.
+
+**Every absolute level is displaced the same way** — lower surplus, higher
+violations, for all three models. That is what a thinner agent scaffold
+looks like: ours is one JSON call per turn with no memory, reflection or
+planning stage, against the paper's own scaffold. A scoring defect would not
+be expected to displace three different models uniformly while preserving
+their order.
+
+**One number needed decomposing, and the cause was ours** (TB-D-05).
+GLM-5.1's `CritViol` of 0.133 is four cases: one reservation breach and
+three accepts that echoed the counterpart's price. The strict schema that
+`gpt-4o-mini` requires declares `price` **required** while the prompt says
+not to include one for a non-offer; `price: null` satisfies both, and
+GPT-4o-mini used it on all twenty of its non-offer turns. GLM-5.1 resolved
+the contradiction toward the schema. Its negotiation-conduct violation rate
+is 1/30, against the paper's 1.33% — close. The lesson generalises: when the
+schema and the prompt disagree, the panel measures how the model resolves
+your contradiction.
+
+**Two limits on what can ever be checked here.** Claude Opus 4.6 and 4.7 —
+the paper's best `SE+` — are unreachable: no OpenRouter endpoint for either
+supports a declared seed, and this kernel refuses a diagnostic run without
+one. GLM-5.1 is reachable only through DeepInfra, the sole endpoint offering
+both a seed and structured output, at fp4.
+
+## TERMS-Bench — the reasoning condition explains most of the compliance gap
 
 Paper: *TERMS-Bench: Diagnosing LLM Negotiation Agents Beyond Deal Rate*
 (arXiv 2605.13909v2), 13 agents, 1,800 seeded episodes each, 3 regimes × 6
@@ -166,5 +215,7 @@ pass rates yet.
 | EconEvals random-baseline normalizer | one reference provider per track, then re-score existing receipts | provider-free |
 | GovSim deliberating arm | ditto; today's `reasoning_low_v1` is a suppressed condition | ~$0.05 |
 | TERMS-Bench interval width | the corpus generator can produce more than 30 cases; 300 would cost ~$1.3 at v3 rates | ~$1.3 |
+| TERMS-Bench, GLM 5.3 Flash under the strict dialect | a like-for-like fourth panel, so all four sit under one schema | ~$0.13 |
+| TERMS-Bench, a strict-dialect prompt that says "set price to null" | removes the schema/prompt contradiction (TB-D-05) | next identity |
 | TERMS-Bench stress families | Strategic, Stochastic and Adversarial presets are not implemented | family work |
 | tau3 | PR #97's split, then a panel that completes | see #97 |
