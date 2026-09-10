@@ -228,6 +228,13 @@ from tests.test_amazonbarg_replay import (
     amazonbarg_script_answer,
     build_amazonbarg_setup,
 )
+from aeread_families.termsbench import measurement as _tb_measurement
+from tests.test_termsbench_replay import (
+    OVERLAP_CASE_ID as _TERMSBENCH_OVERLAP_CASE_ID,
+    EvidenceRecordingTermsBenchHarness,
+    _case as _termsbench_case,
+    build_termsbench_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2471,6 +2478,11 @@ def _build_protocol_test_registry_and_fixtures(
     fixtures[(aucarena_manifest.family.id, aucarena_manifest.family.version)] = (
         aucarena_fixtures
     )
+    termsbench_manifest, termsbench_plugin, termsbench_fixtures = _termsbench_fixtures(tmp_path)
+    registry.register_trusted(termsbench_manifest, termsbench_plugin)
+    fixtures[(termsbench_manifest.family.id, termsbench_manifest.family.version)] = (
+        termsbench_fixtures
+    )
 
     return registry, fixtures
 
@@ -3127,11 +3139,14 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # (PRs #28-#38), landed on main after this branch forked. None of
         # of the families still listed above has a FamilyScoringInput-contract
         # fixture yet; each migrates under its own per-adapter follow-up, not
-        # as part of this kernel change.
+        # as part of this kernel change. ``termsbench`` is no longer one of
+        # them: issue #75's ruling (protocol_compliance stays the
+        # unconditional admission leaf, admission does not move) is enrolled
+        # directly in _build_protocol_test_registry_and_fixtures like
+        # collusion/aucarena above (see ``_termsbench_fixtures``).
 
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
-        ("termsbench", "0.1.0"),
     }
 )
 
@@ -6171,6 +6186,160 @@ def _aucarena_fixtures(
     long_fixture = _run(long_path_answer, "long")
     illegal_fixture = _run(illegal_bid_answer, "illegal")
     return family, plugin, (short_fixture, long_fixture, illegal_fixture)
+
+
+# ---------------------------------------------------------------------------
+# termsbench (issue #75): a real, provider-free family whose production
+# manifest (``family_manifest()``) has not yet migrated to declare a leaf
+# policy -- the same situation as housing/procurement_allocation/
+# procurement_grounding/commercial_state_calibration above, so the resolved
+# manifest is copied through ``_with_declared_leaf_policy`` exactly as
+# theirs is, rather than read off the plugin unchanged like collusion/
+# aucarena. Unlike those four single-leaf families, termsbench declares 3
+# leaves for an Overlap-regime case (``termsbench_surplus_efficiency_leaf``/
+# ``termsbench_feasible_agreement_leaf``, both ``input_scope="terminal_state"``,
+# plus ``termsbench_protocol_compliance_leaf``, ``input_scope="trajectory"``
+# and this family's sole primary/admission leaf -- ruling R13 on issue #141,
+# "protocol_compliance stays the always-scorable admission leaf"), so it
+# needs a genuine, multi-fixture paired-history check rather than the single
+# fixture those four use.
+#
+# Every one of these 3 leaves scores from ``TermsBenchPlugin.outcome()``'s
+# dict alone (measurement.py's module docstring); that dict never carries
+# the agent's free-text ``message`` field (``environment.py``'s
+# ``terminal()``/``outcome()`` read only ``termination_reason``,
+# ``final_price``, ``rounds_used``, the two violation dicts, and
+# ``malformed_action_schema``). Two fixtures built from the IDENTICAL
+# Overlap case and the IDENTICAL scripted decision/price, differing only in
+# the agent's one-round ``message`` text, therefore produce a byte-identical
+# ``outcome`` (the paired-history precondition, ruling R9 -- termsbench
+# declares no ``trajectory_outcome_paths``, so the precondition is on the
+# whole outcome) while genuinely differing ``phase_instances`` (the
+# message text is folded into ``state["transcript"]``, which the real
+# scheduler hashes into each round's ``post_state_sha256``). This witnesses
+# ruling R7's contrapositive for the two terminal_state leaves.
+#
+# A third fixture -- golden 3's AgreementViolation (an unauthorized Accept
+# with no counterpart offer observed yet, mirroring
+# ``tests/test_termsbench_replay.py``'s own
+# ``_run_live_overlap_agreement_violation``) -- sets
+# ``critical_violations.invalid_action`` instead, giving
+# ``termsbench_protocol_compliance_leaf`` (``1.0`` here vs ``0.0`` on the
+# first two) the genuine cross-fixture change ruling R9(b)'s sensitivity
+# witness requires for a trajectory-scoped leaf. It is a *valid* measurement
+# for the two value-axis leaves too (not ``invalid_measurement`` --
+# ``measurement.py``'s ``_value_axis_validity`` only gates on
+# ``malformed_action_schema``, which an unauthorized-but-well-formed Accept
+# never sets), scoring the well-defined 0-credit values
+# (``_agent_utility``/``_agreement_indicator`` both read ``final_price is
+# None``) the spec's golden 3 assigns it.
+#
+# All 3 fixtures share the SAME Overlap case, so none of termsbench's
+# regime-conditional leaves needs ``case_conditional`` declared here: the
+# No-deal regime's distinct leaf set
+# (``termsbench_no_deal_agreement_leaf``/``termsbench_protocol_compliance_leaf``)
+# is exercised end to end instead by
+# ``tests/test_termsbench_replay.py``'s
+# ``test_finalize_and_replay_reproduce_the_nodeal_receipt``, through the
+# real finalizer and a later ``replay_family_receipt`` call.
+# ---------------------------------------------------------------------------
+
+_TERMSBENCH_LEAF_POLICY: dict[str, Any] = {
+    "leaves": (
+        LeafPolicyDeclaration(_tb_measurement.SURPLUS_EFFICIENCY_LEAF_ID, "finalize_time", None),
+        LeafPolicyDeclaration(_tb_measurement.FEASIBLE_AGREEMENT_LEAF_ID, "finalize_time", None),
+        LeafPolicyDeclaration(_tb_measurement.PROTOCOL_COMPLIANCE_LEAF_ID, "finalize_time", None),
+    ),
+    "primary_leaf_id": _tb_measurement.PROTOCOL_COMPLIANCE_LEAF_ID,
+    "admission_leaf_ids": (_tb_measurement.PROTOCOL_COMPLIANCE_LEAF_ID,),
+}
+
+# Golden 1's own opening price (spec section 4): within price_bounds and
+# individually rational for this buyer-role case's r_a, so an immediate
+# counterpart accept (``u_accept=0.0`` below) binds here with no violation
+# -- the same one-round scenario
+# ``tests/test_termsbench_replay.py``'s
+# ``test_finalize_wires_termsbench_to_the_shared_family_finalizer`` already
+# proved reaches the real finalizer cleanly.
+_TERMSBENCH_FIXTURE_PRICE = 165.0
+_TERMSBENCH_FIXTURE_DRAWS = {
+    1: {"u_accept": 0.0, "opening_noise": 0.0, "sentiment_noise": 0.0}
+}
+
+
+def _termsbench_episode_fixture(
+    *,
+    tmp_path: Path,
+    suffix: str,
+    script: list[Mapping[str, Any]],
+    draws: Mapping[int, Mapping[str, float]] | None,
+) -> tuple[FamilyManifest, Any, FamilyScoringFixture]:
+    case = _termsbench_case(_TERMSBENCH_OVERLAP_CASE_ID)
+    setup = build_termsbench_setup(case, suffix=suffix)
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    evidence = EvidenceStore(
+        tmp_path / f"termsbench_{suffix}",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=draws,
+        evidence=evidence,
+    )
+    asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    manifest = _with_declared_leaf_policy(family, **_TERMSBENCH_LEAF_POLICY)
+    return (
+        manifest,
+        plugin,
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+    )
+
+
+def _termsbench_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    left_manifest, left_plugin, left_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_scoring_left",
+        script=[
+            {
+                "decision": "offer",
+                "price": _TERMSBENCH_FIXTURE_PRICE,
+                "message": "opening",
+            }
+        ],
+        draws=_TERMSBENCH_FIXTURE_DRAWS,
+    )
+    _right_manifest, _right_plugin, right_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_scoring_right",
+        script=[
+            {
+                "decision": "offer",
+                "price": _TERMSBENCH_FIXTURE_PRICE,
+                "message": "a much longer and entirely different opening message",
+            }
+        ],
+        draws=_TERMSBENCH_FIXTURE_DRAWS,
+    )
+    _violation_manifest, _violation_plugin, violation_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_scoring_violation",
+        script=[{"decision": "accept", "price": None, "message": "premature"}],
+        draws=None,
+    )
+    return (
+        left_manifest,
+        left_plugin,
+        (left_fixture, right_fixture, violation_fixture),
+    )
 
 
 def _require_amazonbarg_upstream() -> Path:

@@ -5,22 +5,61 @@ convention of not importing another test module's helpers): builds its own
 cell/harness/evidence around the same two real pilot cases exercised by
 ``tests/test_termsbench_harness.py``, then replays what those live runs
 produced with **zero random draws and zero provider calls**.
+
+Also drives this family through the shared kernel finalizer (issue #75):
+``EvidenceRecordingTermsBenchHarness``/``build_termsbench_setup`` below give
+``task.evaluation.finalize_family_execution``/``replay_family_receipt`` the
+full generic evidence trail they need, which
+``ScriptedTermsBenchHarness``'s own two convenience events never produced --
+mirroring ``tests/test_aucarena_replay.py``'s/``tests/test_collusion_replay.py``'s
+identically-motivated fixtures for those two families.
 """
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import hashlib
 import json
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
-from aeread_families.termsbench.environment import TermsBenchPlugin, register_plugin
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import finalize_family_execution, replay_family_receipt
+from aeread.shared_runner.measurement import MetricValue
+from aeread.shared_runner.task.receipts import seal_evaluation_receipt
+from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
+from aeread_families.termsbench import environment as tb_environment
+from aeread_families.termsbench import measurement as m
+from aeread_families.termsbench.environment import (
+    PLUGIN_ID,
+    SCORER_ID,
+    TermsBenchPlugin,
+    family_manifest,
+    register_plugin,
+)
 from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
 from aeread_families.termsbench.measurement import build_scorer
 from aeread_families.termsbench.replay import (
@@ -531,3 +570,753 @@ def test_replay_raises_when_the_record_is_truncated(tmp_path: Path) -> None:
 
     with pytest.raises(SchedulerContractError, match="exhausted"):
         asyncio.run(replay_episode(cell=cell, case=case, plugin=plugin, recorded=truncated))
+
+
+# ---------------------------------------------------------------------------
+# Issue #75: driving this family through the shared kernel finalizer
+# (``task.evaluation.finalize_family_execution``/``replay_family_receipt``)
+# for the first time. ``ScriptedTermsBenchHarness`` (above) writes only its
+# own two convenience events (``termsbench_agent_response``/
+# ``termsbench_counterpart_draws``) and has never produced the full generic
+# evidence trail ``finalize_family_execution``'s internal
+# ``replay_family_scoring_input`` call needs
+# (``logical_action_started``, ``action_attempt_succeeded``,
+# ``action_parsed``, ``action_legality_checked``, ``logical_action_succeeded``,
+# ``phase_instance_started``, ``transition_applied``,
+# ``phase_instance_succeeded``, ``episode_terminated``,
+# ``family_outcome_recorded``) -- exactly the event vocabulary
+# ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+# ``AttemptExecutor`` write for every LLM-harness-backed family's own
+# evidence, reproduced here without any of that class's provider/retry/cost
+# machinery. ``EvidenceRecordingTermsBenchHarness`` below WRAPS
+# ``ScriptedTermsBenchHarness``'s own real response logic (the agent's
+# script, the counterpart's real stochastic kernel) rather than a single
+# scripted-answer callback, unlike
+# ``tests/test_aucarena_replay.py``'s/``tests/test_collusion_replay.py``'s
+# identically-motivated ``EvidenceRecordingAucArenaHarness``/
+# ``EvidenceRecordingCollusionHarness`` -- termsbench's counterpart seat is
+# never a scripted answer, so there is no single ``answer`` callback to
+# wrap; only the agent side is scripted, and the counterpart side is still
+# the real kernel, exactly as in the live runs above.
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingTermsBenchHarness(ScriptedTermsBenchHarness):
+    """``ScriptedTermsBenchHarness`` plus the full generic replay-required
+    evidence trail layered on top of its own two convenience events.
+    ``evidence`` is required (never optional) here: this class exists only
+    to drive ``finalize_family_execution`` for the first time, so a caller
+    with no evidence store to write through would defeat its purpose."""
+
+    def __init__(
+        self,
+        *,
+        world_seed: int,
+        script: list[Mapping[str, Any]],
+        evidence: EvidenceStore,
+        counterpart_draws_by_round: Mapping[int, Mapping[str, float]] | None = None,
+    ) -> None:
+        super().__init__(
+            world_seed=world_seed,
+            script=script,
+            counterpart_draws_by_round=counterpart_draws_by_round,
+            evidence=evidence,
+        )
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        self.evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # The real response -- agent script or counterpart kernel -- comes
+        # from the parent class unchanged; this class only adds the generic
+        # evidence seam around it.
+        response = await super().__call__(request)
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self.evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self.evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self.evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self.evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self.evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self.evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self.evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self.evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self.evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self.evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class TermsBenchSetup:
+    """A resolved, provider-free ``RunPlan`` for one termsbench case.
+
+    Unlike a real LLM-harness-backed family, this family's real runtime
+    never goes through ``execute_plan_cell``'s harness/provider stack at
+    all -- every seat is answered directly through ``run_episode``'s
+    ``response_source`` (``ScriptedTermsBenchHarness``/
+    ``EvidenceRecordingTermsBenchHarness`` above), matching
+    ``tests/test_aucarena_replay.py``'s identically-shaped
+    ``AucArenaSetup``. The declared ``minimal_chat`` harness and fixture
+    provider below exist purely to satisfy ``resolve_run_plan``'s
+    structural pin/capability checks and are never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: Mapping[str, str]
+    pricing: Mapping[str, Any]
+
+
+_TERMSBENCH_FIXTURE_PROFILE_ID = "termsbench_unused_fixture_profile_v1"
+_TERMSBENCH_FIXTURE_PROVIDER_ID = "termsbench_unused_fixture_provider"
+_TERMSBENCH_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_termsbench_setup(case: CaseManifest, *, suffix: str) -> TermsBenchSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every seat shares one placeholder agent profile: this family's real
+    runtime never invokes it (see ``TermsBenchSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks. ``subject_seats=("agent",)``
+    -- only the agent seat is testable (``family_manifest()``'s
+    ``roles.counterpart.testable == False``); the counterpart seat is this
+    family's own simulator, never the tested subject.
+    """
+    family = family_manifest()
+    seat_ids = [seat.id for seat in case.seats]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"termsbench_{suffix}_sample_v1",
+            "estimand": "fixed_termsbench_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"termsbench_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": ["agent"],
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"termsbench_{suffix}_analysis_v1",
+            # The manifest's declared primary_estimand is fixed regardless
+            # of case regime (measurement.py's own TermsBenchScorer.__call__
+            # docstring flags this as issue #112's separate, not-fixed-here
+            # inconsistency) -- resolve_run_plan's own missing_estimands
+            # check requires this AnalysisPlan to name it for every case,
+            # including a No-deal one that never emits this leaf.
+            "estimands": [m.SURPLUS_EFFICIENCY_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"termsbench_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _TERMSBENCH_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _TERMSBENCH_FIXTURE_PROVIDER_ID,
+                "model": "termsbench_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {"id": "minimal_chat", "version": "1.0", "config": {}},
+            "prompt": {
+                "prompt_id": f"termsbench_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"termsbench scripted negotiator: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _TERMSBENCH_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "termsbench_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"termsbench_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(tb_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+    # measurement.py declares each of its 4 leaves' validity-domain
+    # predicate, reference implementation, and scorer under its own
+    # component id (see environment.py's family_manifest() docstring on
+    # scoring.reference_provider_ids); every one of
+    # declared_reference_provider_ids()'s 5 distinct ids must be pinned
+    # here, or EvaluationReceipt._validate_and_freeze_plan_pins rejects the
+    # sealed receipt as missing implementations.
+    pins = (
+        _pin(PLUGIN_ID, "family_plugin", environment_path),
+        _pin(SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_TERMSBENCH_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        _pin("termsbench_environment_domain_predicate", "reference", environment_path),
+        _pin(m.FEASIBLE_AGREEMENT_SCORER_ID, "reference", measurement_path),
+        _pin(m.NO_DEAL_AGREEMENT_SCORER_ID, "reference", measurement_path),
+        _pin(m.PROTOCOL_COMPLIANCE_SCORER_ID, "reference", measurement_path),
+        _pin(m.SURPLUS_EFFICIENCY_SCORER_ID, "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _TERMSBENCH_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return TermsBenchSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
+
+
+def test_finalize_wires_termsbench_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt`` (issue #75).
+
+    Drives one small, real, provider-free Overlap-regime episode (an
+    immediate agent-offer accept, mirroring
+    ``_run_live_overlap_immediate_accept`` above) end to end through the
+    real finalizer and asserts a receipt comes back carrying EXACTLY this
+    regime's declared leaf ids (``surplus_efficiency``/
+    ``feasible_agreement``/``protocol_compliance``, never
+    ``no_deal_agreement``) and the declared ``primary_leaf_id`` -- not
+    merely that a receipt came back."""
+    case = _case(OVERLAP_CASE_ID)
+    setup = build_termsbench_setup(case, suffix="finalize_receipt")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    price = 165.0
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "offer", "price": price, "message": "opening"}],
+        counterpart_draws_by_round={
+            1: {"u_accept": 0.0, "opening_noise": 0.0, "sentiment_noise": 0.0}
+        },
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    declared_leaf_ids = {
+        m.SURPLUS_EFFICIENCY_LEAF_ID,
+        m.FEASIBLE_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    }
+    assert {score.leaf.leaf_id for score in receipt.scores} == declared_leaf_ids
+    # protocol_compliance is both the primary and the sole admission leaf
+    # (measurement.py's TermsBenchScorer.__call__, ruling R13): it is the
+    # only leaf both regimes declare, so it alone can be aggregated across
+    # a mixed-regime corpus.
+    assert receipt.primary_leaf_id == m.PROTOCOL_COMPLIANCE_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+
+    surplus = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.SURPLUS_EFFICIENCY_LEAF_ID
+    )
+    assert surplus.status == "ok"
+    r_a = float(case.payload["agent"]["r_a"])
+    r_b = float(case.payload["t_b"]["r_b"])
+    assert case.payload["agent"]["role"] == "buyer"
+    # eq. 56, re-derived directly from the case's own numbers rather than
+    # by calling score_surplus_efficiency a second time.
+    assert surplus.primary.value == pytest.approx((r_a - price) / (r_a - r_b))
+
+
+def test_finalize_and_replay_reproduce_the_nodeal_receipt(tmp_path: Path) -> None:
+    """Companion to the test above for the No-deal regime's distinct
+    declared leaf set (``no_deal_agreement``/``protocol_compliance``, never
+    ``surplus_efficiency``/``feasible_agreement``) -- and the first time
+    this family's receipt is driven through a LATER
+    ``replay_family_receipt`` call against the same sealed evidence
+    directory, proving the shared finalizer's replay guarantee (ruling R2)
+    for termsbench specifically, not only the scorer in isolation
+    (``tests/test_aucarena_replay.py``'s
+    ``test_frozen_field_case_is_included_with_the_declared_relative_profit``
+    is the identically-shaped reference for this end-to-end
+    finalize-then-replay pattern)."""
+    case = _case(NODEAL_CASE_ID)
+    r_a = float(case.payload["agent"]["r_a"])
+    r_b = float(case.payload["t_b"]["r_b"])
+    evidence_root = tmp_path / "nodeal_finalize"
+    setup = build_termsbench_setup(case, suffix="nodeal_finalize")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    # finalize_family_execution + a later replay_family_receipt need the
+    # SAME sealed evidence directory, resolved the same way
+    # replay_family_receipt itself resolves it (mirrors
+    # tests/test_aucarena_replay.py's
+    # _run_and_finalize_through_evidence_root).
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    lowball = max(0.0, r_b - 90.0)
+    assert lowball < r_a
+    script = [{"decision": "offer", "price": lowball, "message": "lowball"}] * 6
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.case_id == case.case_id
+    assert receipt.case_sha256 == case.content_sha256
+    declared_leaf_ids = {m.NO_DEAL_AGREEMENT_LEAF_ID, m.PROTOCOL_COMPLIANCE_LEAF_ID}
+    assert {score.leaf.leaf_id for score in receipt.scores} == declared_leaf_ids
+    assert receipt.primary_leaf_id == m.PROTOCOL_COMPLIANCE_LEAF_ID
+
+    # The live episode genuinely walked away (no bound price) -- checked
+    # against the real, in-memory ``EpisodeResult``, not the receipt under
+    # test, so a scorer that silently always returned 0 regardless of the
+    # outcome would not pass this unnoticed.
+    assert result.terminal["reason"] == "counterpart_walk_away"
+    assert result.terminal["final_price"] is None
+
+    no_deal = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    )
+    assert no_deal.status == "ok"
+    # eq. 60: a walk-away binds no price, so the false-agreement indicator
+    # is 0 -- re-derived from the genuine walk-away outcome above, not by
+    # calling score_no_deal_agreement a second time.
+    assert no_deal.primary.value == 0.0
+
+    replayed = replay_family_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+    assert replayed.status == "ok"
+    assert replayed.inclusion_status == "included"
+    replayed_no_deal = next(
+        score for score in replayed.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    )
+    assert replayed_no_deal.primary.value == 0.0
+
+
+def test_nodeal_false_agreement_scores_one_when_a_price_is_bound(tmp_path: Path) -> None:
+    """The No-deal companion above only ever exercises ``FAGR- = 0``.
+
+    Cross-model review of this branch caught that the test's own comment
+    claimed more than it delivered: asserting that the *episode* genuinely
+    walked away does not constrain the *scorer*, because 0.0 is the correct
+    answer for a walk-away, so a scorer returning 0.0 unconditionally passes
+    every assertion there. ``_agreement_indicator`` is
+    ``1.0 if outcome["final_price"] is not None else 0.0``, so the case that
+    separates a real scorer from a constant is a No-deal episode that ends
+    WITH a bound price: the agent accepts the counterpart's offer, which is
+    exactly the false agreement ``FAGR-`` exists to count (eq. 60).
+
+    The expected 1.0 is derived from the bound price observed on the live
+    ``EpisodeResult``, never from calling the scorer a second time.
+    """
+    case = _case(NODEAL_CASE_ID)
+    evidence_root = tmp_path / "nodeal_false_agreement"
+    setup = build_termsbench_setup(case, suffix="nodeal_false_agreement")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    # One opening offer, then accept whatever the counterpart put on the
+    # table. u_walkaway=0.0 keeps the counterpart in the room long enough to
+    # make an offer; u_accept=0.999 stops it accepting ours first, so the
+    # binding price is the counterpart's and the agreement is the agent's.
+    script = [
+        {"decision": "offer", "price": float(case.payload["t_b"]["r_b"]) - 90.0, "message": "open"},
+        {"decision": "accept", "price": None, "message": "taking it"},
+    ]
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=draws,
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    # The live episode really did bind a price. This is the precondition the
+    # expected 1.0 is derived from, read off the in-memory EpisodeResult.
+    assert result.terminal["final_price"] is not None
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok"
+    no_deal = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    )
+    assert no_deal.status == "ok"
+    # eq. 60: a bound price on a No-deal case IS the false agreement.
+    assert no_deal.primary.value == 1.0
+
+
+def test_replay_refuses_a_resealed_tamper_of_the_termsbench_receipt(
+    tmp_path: Path,
+) -> None:
+    """``replay_family_receipt`` returns the receipt it was handed, so asserting
+    on its return value proves nothing. This is the negative control that makes
+    the call itself load-bearing.
+
+    Cross-model review of this branch raised the first half and was right about
+    it: the replay tail of the No-deal test re-reads fields it had already
+    asserted, and would still pass if the function were replaced by
+    ``return receipt``. Its conclusion that the replay proof is therefore
+    decoration understates what the function guarantees, which this test pins
+    instead. Three checks stand in front of the admission comparison, and they
+    were established by probing, not read off the source:
+
+    * a receipt whose content is altered fails its own digest
+      (``receipt_sha256 does not match receipt content``), so a naive tamper
+      never reaches the replay at all;
+    * re-sealing the tamper so the digest agrees gets one step further and is
+      refused against the bytes actually written to the attempt directory
+      (``durable family receipt bytes do not match``), which is what this test
+      asserts;
+    * only a receipt that is both self-consistent and the one truly sealed
+      reaches the comparison against the score set re-derived from evidence.
+
+    So the replay cannot be satisfied by handing it a receipt that says what a
+    caller wants it to say, which is the property the returned-value assertions
+    were mistaken for.
+    """
+    case = _case(NODEAL_CASE_ID)
+    r_b = float(case.payload["t_b"]["r_b"])
+    evidence_root = tmp_path / "nodeal_replay_negative"
+    setup = build_termsbench_setup(case, suffix="nodeal_replay_negative")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    script = [{"decision": "offer", "price": max(0.0, r_b - 90.0), "message": "lowball"}] * 6
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=draws,
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    # The untampered receipt replays. Without this the test below could pass
+    # because the replay refuses everything.
+    replay_family_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+
+    # Claim the walk-away was a false agreement, then re-seal so the receipt is
+    # internally consistent and clears the digest gate.
+    falsified = tuple(
+        dataclasses.replace(score, primary=MetricValue(1.0, score.primary.unit))
+        if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID and score.primary is not None
+        else score
+        for score in receipt.scores
+    )
+    resealed = seal_evaluation_receipt(
+        dataclasses.replace(receipt, scores=falsified, receipt_sha256=None)
+    )
+    assert resealed.receipt_sha256 != receipt.receipt_sha256
+
+    with pytest.raises(ValueError, match="durable family receipt bytes"):
+        replay_family_receipt(setup=setup, receipt=resealed, evidence_root=evidence_root)
