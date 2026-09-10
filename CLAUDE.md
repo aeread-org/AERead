@@ -24,10 +24,14 @@ cause. Log it at the moment it occurs, with the wrong hypothesis included.
 The register has two tiers and they are not interchangeable.
 
 **Tier 1, the machine register.** One per family, at
-`evidence/<family>_failure_register/`, derived only from published evidence
+`evidence/<family>/failure_register/`, derived only from published evidence
 so every row traces to a committed artifact by digest. It is generated, never
 edited: regenerating it must reproduce the committed bytes. For Housing:
-`python -m aeread_families.housing.failure_register`.
+`python -m aeread_families.housing.failure_register`. Other derived analyses
+follow the same rule and the same per-project layout, for example
+`evidence/housing/landlord_seat_accounting/` from
+`python -m aeread_families.housing.seat_accounting`. Sealed campaign bundles
+stay at the path they were published under; see `evidence/README.md`.
 
 **Tier 2, the judgment log.** [`docs/operations/incident_log.md`](docs/operations/incident_log.md).
 Everything a machine cannot derive: design defects, operational stops,

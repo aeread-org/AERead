@@ -63,14 +63,20 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "backend_publication.py",
         "case_sweep.py",
         "environment.py",
+        "estimand_diagnostics.py",
+        "failure_register.py",
         "harness_bakeoff.py",
         "harness_leaderboard.py",
         "model_sensitivity.py",
         "population_campaign.py",
+        "provider_concurrency.py",
+        "provider_cooldown.py",
         "provider_pacing.py",
         "qc.py",
         "qc_bundle.py",
         "runner.py",
+        "seat_accounting.py",
+        "sensitivity_control.py",
     }
 
 
@@ -121,7 +127,8 @@ def test_evidence_bundles_use_the_standard_publication_categories() -> None:
     assert {path.name for path in EVIDENCE_ROOT.iterdir() if path.is_file()} == {
         "README.md"
     }
-    for bundle in (path for path in EVIDENCE_ROOT.iterdir() if path.is_dir()):
+
+    def check_bundle(bundle: Path) -> None:
         unexpected_files = {
             path.name
             for path in bundle.iterdir()
@@ -134,3 +141,18 @@ def test_evidence_bundles_use_the_standard_publication_categories() -> None:
         }
         assert not unexpected_files, (bundle.name, unexpected_files)
         assert not unexpected_directories, (bundle.name, unexpected_directories)
+
+    for entry in (path for path in EVIDENCE_ROOT.iterdir() if path.is_dir()):
+        children = list(entry.iterdir())
+        is_project_folder = children and all(
+            child.is_dir() and child.name not in allowed_categories
+            for child in children
+        )
+        if is_project_folder:
+            # evidence/<project>/<analysis>/: derived analyses and registers
+            # grouped per project (evidence/README.md). Each analysis is a
+            # bundle in its own right and keeps the standard categories.
+            for analysis in children:
+                check_bundle(analysis)
+        else:
+            check_bundle(entry)

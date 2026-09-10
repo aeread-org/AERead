@@ -224,6 +224,131 @@ HOUSING_LANDLORD_PROMPT = """You are a deterministic controlled landlord.
 Respond only to offers in your private inbox and create at most one binding hold.
 Return exactly one JSON object for housing_respond_v1."""
 
+# Version 2 prompts state each seat's objective. The version 1 landlord prompt
+# above names the model a "deterministic controlled landlord" and states no
+# goal; one model read that as "accept the best offer" and accepted below its
+# own cost (incident D-21). Version 1 stays verbatim because it is part of the
+# implementation digest every earlier campaign was sealed under.
+HOUSING_TENANT_PROMPT_V2 = """You are one tenant in a scarce housing market.
+Your payoff is your private value for the listing you sign minus the rent you
+pay; an unsigned tenant earns zero. Never offer or sign above your private
+value for that listing. Use only your private observation and the public board.
+Other tenants' values and landlords' reservation costs are private. Return
+exactly one JSON object for the declared action schema. In housing_contact_v1,
+either offer one open listing at a rent you can justify or pass. In
+housing_commit_v1, sign or walk only the exact immutable hold_id shown in
+active_hold; pass when no hold exists. Do not add markdown or explanation."""
+
+HOUSING_LANDLORD_PROMPT_V2 = """You are the landlord of one listing with a private
+reservation cost. Your payoff is the signed rent minus your private cost; an
+unleased listing earns zero. Never accept or counter below your private cost;
+choose reject_all when every offer in your inbox is below it. Accept commits you
+to the offered rent; counter creates one binding hold at your counter_rent.
+Respond only to offers in your private inbox and create at most one binding
+hold. Return exactly one JSON object for housing_respond_v1. Do not add markdown
+or explanation."""
+
+PROMPT_VERSIONS: dict[str, dict[str, tuple[str, str]]] = {
+    "housing_prompts/1.0": {
+        "tenant": ("housing_tenant_v1", HOUSING_TENANT_PROMPT),
+        "landlord": ("housing_landlord_v1", HOUSING_LANDLORD_PROMPT),
+    },
+    "housing_prompts/2.0": {
+        "tenant": ("housing_tenant_v2", HOUSING_TENANT_PROMPT_V2),
+        "landlord": ("housing_landlord_v2", HOUSING_LANDLORD_PROMPT_V2),
+    },
+}
+DEFAULT_PROMPT_VERSION = "housing_prompts/1.0"
+
+
+def _with_rent_floor(schema: Mapping[str, Any], minimum_rent: float) -> dict[str, Any]:
+    """Return a copy of a schema with every rent minimum raised.
+
+    Works on both shapes: the version 2 union of branch objects, and the
+    flat object whose rent fields are nullable numbers. A ``minimum`` on a
+    nullable number constrains the number case only, which is what a floor
+    should do.
+    """
+
+    copied = json.loads(json.dumps(schema))
+    objects = list(copied.get("oneOf", [])) or [copied]
+    for obj in objects:
+        for field in ("rent", "counter_rent"):
+            spec = obj.get("properties", {}).get(field)
+            if not isinstance(spec, dict):
+                continue
+            declared = spec.get("type")
+            types = declared if isinstance(declared, list) else [declared]
+            if "number" in types:
+                spec["minimum"] = minimum_rent
+    return copied
+
+
+def output_schemas_for(
+    action_schema_version: str | None, minimum_rent: float = 0.0
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Tenant and landlord harness output schemas for a declared version.
+
+    ``housing_actions/2.0`` is the sealed version 2 shape with rent minimums
+    of zero, which is how a landlord could counter at rent 0.0 and have the
+    tenant sign a free lease (incident D-22, D-23). ``housing_actions/2.1``
+    keeps the same shape and raises every rent minimum to the campaign's
+    ``minimum_rent``, the same floor the environment enforces, so a zero
+    counter is malformed at the schema, invalid at admission and illegal in
+    the market, three layers that agree instead of none. ``None`` means the
+    version 1 schemas a smoke setup carries by default.
+    """
+
+    if action_schema_version is None:
+        return None, None
+    if action_schema_version == "housing_actions/2.0":
+        tenant = {
+            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+        }
+        landlord = {"housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2}
+        return tenant, landlord
+    if action_schema_version == "housing_actions/2.2":
+        # The portable shape. Version 2's union of branch objects is refused
+        # outright by at least one route: Gemini 3.7 Flash on Google AI
+        # Studio answers the JSON literal null to any top-level oneOf or
+        # anyOf, whatever the branches contain (incident O-12). This version
+        # keeps the flat version 1 object, which that route honours, and
+        # carries the same rent floor, so the coupling between a decision
+        # and its fields is enforced by the environment and by admission
+        # rather than by the grammar. One schema version per campaign,
+        # declared for every seat.
+        if not _finite_number(minimum_rent) or float(minimum_rent) <= 0.0:
+            raise ValueError("housing_actions/2.2 requires a positive minimum_rent")
+        tenant = {
+            "housing_contact_v1": _with_rent_floor(
+                HOUSING_CONTACT_OUTPUT_SCHEMA, float(minimum_rent)
+            ),
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+        }
+        landlord = {
+            "housing_respond_v1": _with_rent_floor(
+                HOUSING_RESPOND_OUTPUT_SCHEMA, float(minimum_rent)
+            )
+        }
+        return tenant, landlord
+    if action_schema_version == "housing_actions/2.1":
+        if not _finite_number(minimum_rent) or float(minimum_rent) <= 0.0:
+            raise ValueError("housing_actions/2.1 requires a positive minimum_rent")
+        tenant = {
+            "housing_contact_v1": _with_rent_floor(
+                HOUSING_CONTACT_OUTPUT_SCHEMA_V2, float(minimum_rent)
+            ),
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+        }
+        landlord = {
+            "housing_respond_v1": _with_rent_floor(
+                HOUSING_RESPOND_OUTPUT_SCHEMA_V2, float(minimum_rent)
+            )
+        }
+        return tenant, landlord
+    raise ValueError(f"unknown action schema version: {action_schema_version!r}")
+
 
 def _seat_index(seat_id: str, prefix: str) -> int:
     marker = prefix + "_"
@@ -519,7 +644,11 @@ def _snapshot_market(market: hz.HousingMarket) -> dict[str, Any]:
 def _restore_market(
     family_case: Mapping[str, Any], state: Mapping[str, Any]
 ) -> hz.HousingMarket:
-    market = hz.HousingMarket(family_case["world"], rounds=family_case["rounds"])
+    market = hz.HousingMarket(
+        family_case["world"],
+        rounds=family_case["rounds"],
+        minimum_rent=family_case.get("minimum_rent", 0.0),
+    )
     market.round_index = int(state["round_index"])
     market.phase = str(state["phase"])
     market.pairs = [tuple(pair) for pair in state["pairs"]]
@@ -579,10 +708,15 @@ class HousingV1Plugin:
             "rounds",
             "common_weight",
         }
-        if set(payload) != expected:
+        if not expected <= set(payload) <= expected | {"minimum_rent"}:
             raise ValueError("housing payload fields are incomplete or unexpected")
         if payload["world_kind"] != "bid":
             raise ValueError("only the pinned bid world is supported")
+        minimum_rent = payload.get("minimum_rent", 0.0)
+        if not _finite_number(minimum_rent) or float(minimum_rent) < 0.0:
+            raise ValueError("minimum_rent must be a finite non-negative number")
+        if "minimum_rent" in payload and float(minimum_rent) <= 0.0:
+            raise ValueError("minimum_rent is declared only when positive")
         integers: dict[str, int] = {}
         for field, minimum in (
             ("world_seed", 0),
@@ -603,10 +737,21 @@ class HousingV1Plugin:
             seed=integers["world_seed"],
             common_weight=float(common_weight),
         )
-        return {**integers, "common_weight": float(common_weight), "world": world}
+        return {
+            **integers,
+            "common_weight": float(common_weight),
+            "minimum_rent": float(minimum_rent),
+            "world": world,
+        }
 
     def initial_state(self, case: Mapping[str, Any], run: Any) -> dict[str, Any]:
-        return _snapshot_market(hz.HousingMarket(case["world"], rounds=case["rounds"]))
+        return _snapshot_market(
+            hz.HousingMarket(
+                case["world"],
+                rounds=case["rounds"],
+                minimum_rent=case.get("minimum_rent", 0.0),
+            )
+        )
 
     def phases(self, case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
         tenant_budget = case["num_tenants"] * case["rounds"]
@@ -677,6 +822,12 @@ class HousingV1Plugin:
             value = json.loads(response.text)
         except (TypeError, json.JSONDecodeError):
             return ParseResult.failure("malformed_json")
+        if value is None:
+            # The JSON literal null is not a model that wrote a bad action;
+            # it is a route that could not satisfy the declared schema at all
+            # (incident O-12). Typed apart so it is never read as the model's
+            # fault, and so admission can refuse the seat for the right reason.
+            return ParseResult.failure("structured_output_unsupported")
         if not isinstance(value, dict):
             return ParseResult.failure("malformed_action")
 
@@ -1160,6 +1311,7 @@ def _profile(
     timeout_seconds: float | None = None,
     max_action_attempts: int | None = None,
     retryable_conditions: Sequence[str] | None = None,
+    max_cost_usd: float | None = None,
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
     harness_id: str = "minimal_chat",
     harness_version: str = "1.0",
@@ -1241,7 +1393,11 @@ def _profile(
                 "timeout_seconds": (
                     timeout_seconds if timeout_seconds is not None else 30.0
                 ),
-                "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
+                "max_cost_usd": (
+                    max_cost_usd
+                    if max_cost_usd is not None
+                    else (0.01 if provider == "openrouter" else 0.001)
+                ),
             },
             "retry_policy": {
                 "max_action_attempts": (
@@ -1294,9 +1450,12 @@ def build_housing_smoke(
     max_output_tokens_override: int | None = None,
     timeout_seconds_override: float | None = None,
     max_action_attempts_override: int | None = None,
+    max_cost_usd_override: float | None = None,
     retryable_conditions_override: Sequence[str] | None = None,
     implementation_digest_overrides: Mapping[str, str] | None = None,
     evaluation_kind: str = "controlled",
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+    minimum_rent: float = 0.0,
 ) -> HousingSmokeSetup:
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
     if not selected_world_seeds:
@@ -1318,6 +1477,12 @@ def build_housing_smoke(
             raise ValueError(f"{field} must be a positive integer")
     if evaluation_kind not in {"controlled", "cross_play", "self_play"}:
         raise ValueError("evaluation_kind must be controlled, cross_play, or self_play")
+    if prompt_version not in PROMPT_VERSIONS:
+        raise ValueError(f"unknown prompt version: {prompt_version!r}")
+    if not _finite_number(minimum_rent) or float(minimum_rent) < 0.0:
+        raise ValueError("minimum_rent must be a finite non-negative number")
+    tenant_prompt_id, tenant_prompt = PROMPT_VERSIONS[prompt_version]["tenant"]
+    landlord_prompt_id, landlord_prompt = PROMPT_VERSIONS[prompt_version]["landlord"]
     digest_overrides = dict(implementation_digest_overrides or {})
     allowed_digest_overrides = {
         "housing",
@@ -1448,6 +1613,7 @@ def build_housing_smoke(
                 "num_listings": num_listings,
                 "rounds": rounds,
                 "common_weight": common_weight,
+                **({"minimum_rent": float(minimum_rent)} if float(minimum_rent) > 0.0 else {}),
             },
             "provenance": {
                 "generator_id": "housing_generator_v1",
@@ -1520,8 +1686,8 @@ def build_housing_smoke(
         provider=tenant_provider,
         model=tenant_model,
         revision=tenant_revision,
-        prompt_id="housing_tenant_v1",
-        prompt=HOUSING_TENANT_PROMPT,
+        prompt_id=tenant_prompt_id,
+        prompt=tenant_prompt,
         output_schemas={
             "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
             "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
@@ -1559,6 +1725,11 @@ def build_housing_smoke(
             if tenant_provider == "openrouter" and experiment_mode
             else None
         ),
+        max_cost_usd=(
+            max_cost_usd_override
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
+        ),
         retryable_conditions=(
             retryable_conditions_override
             if tenant_provider == "openrouter" and experiment_mode
@@ -1574,8 +1745,8 @@ def build_housing_smoke(
         provider=landlord_provider,
         model=landlord_model,
         revision=landlord_revision,
-        prompt_id="housing_landlord_v1",
-        prompt=HOUSING_LANDLORD_PROMPT,
+        prompt_id=landlord_prompt_id,
+        prompt=landlord_prompt,
         output_schemas={"housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA},
         pricing=landlord_pricing,
         max_logical_actions=(
@@ -1610,6 +1781,11 @@ def build_housing_smoke(
         ),
         max_action_attempts=(
             max_action_attempts_override
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        max_cost_usd=(
+            max_cost_usd_override
             if landlord_provider == "openrouter" and experiment_mode
             else None
         ),
@@ -1838,8 +2014,8 @@ def build_housing_smoke(
         plan=plan,
         registry=registry,
         prompt_sources={
-            "housing_tenant_v1": HOUSING_TENANT_PROMPT,
-            "housing_landlord_v1": HOUSING_LANDLORD_PROMPT,
+            tenant_prompt_id: tenant_prompt,
+            landlord_prompt_id: landlord_prompt,
         },
         pricing={
             tenant_model: tenant_pricing,
@@ -1937,6 +2113,11 @@ __all__ = [
     "HOUSING_CONTACT_OUTPUT_SCHEMA_V2",
     "HOUSING_RESPOND_OUTPUT_SCHEMA",
     "HOUSING_RESPOND_OUTPUT_SCHEMA_V2",
+    "HOUSING_TENANT_PROMPT_V2",
+    "HOUSING_LANDLORD_PROMPT_V2",
+    "PROMPT_VERSIONS",
+    "DEFAULT_PROMPT_VERSION",
+    "output_schemas_for",
     "HousingScriptedLandlordProvider",
     "HousingScriptedTenantProvider",
     "HousingSmokeSetup",

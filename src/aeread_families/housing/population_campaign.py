@@ -568,12 +568,30 @@ def _admission_observations(seed: int) -> dict[str, Mapping[str, Any]]:
     }
 
 
+class StructuredOutputUnsupported(ValueError):
+    """The route answered the JSON literal null to a structured-output request.
+
+    A model that writes a bad action is a model fault. A route that returns
+    null to the schema itself is a route fault, and admission must refuse the
+    seat with that reason rather than record an invalid action against the
+    model (incident O-12).
+    """
+
+    condition = "structured_output_unsupported"
+
+
 def _validate_admission_action(
     action_schema: str,
     output_text: str,
     observation: Mapping[str, Any],
+    *,
+    minimum_rent: float = 0.0,
 ) -> dict[str, Any]:
     value = json.loads(output_text)
+    if value is None:
+        raise StructuredOutputUnsupported(
+            "route returned null instead of an object for the declared schema"
+        )
     if not isinstance(value, dict):
         raise ValueError("admission output is not an object")
     if action_schema == "housing_contact_v1":
@@ -593,7 +611,7 @@ def _validate_admission_action(
                 and isinstance(value["rent"], (int, float))
                 and not isinstance(value["rent"], bool)
                 and math.isfinite(float(value["rent"]))
-                and float(value["rent"]) >= 0.0
+                and float(value["rent"]) >= minimum_rent
             )
     elif action_schema == "housing_respond_v1":
         if set(value) != {"decision", "offer_id", "counter_rent"}:
@@ -610,6 +628,7 @@ def _validate_admission_action(
                 and isinstance(value["counter_rent"], (int, float))
                 and not isinstance(value["counter_rent"], bool)
                 and math.isfinite(float(value["counter_rent"]))
+                and float(value["counter_rent"]) >= minimum_rent
             )
     elif action_schema == "housing_commit_v1":
         if set(value) != {"decision", "hold_id"}:

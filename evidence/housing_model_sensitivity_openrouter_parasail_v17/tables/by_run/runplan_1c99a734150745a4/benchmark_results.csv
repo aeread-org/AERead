@@ -1,0 +1,1 @@
+fact_id,run_id,task_id,case_id,family_id,block_id,episode_attempt_id,receipt_sha256,inclusion_status,leaf_id,leaf_version,estimand_id,estimand_version,metric_role,metric_name,seat_id,value,unit,metric_metadata,score_status,validity_status,validity_reasons,evidence_refs,source_kind,source_id,source_sha256,reportable

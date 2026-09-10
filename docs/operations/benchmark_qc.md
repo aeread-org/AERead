@@ -278,6 +278,83 @@ Stop when stronger and weaker policies are indistinguishable under the declared
 rule, performance is driven by a shortcut, or the metric hides a critical
 validity or component failure.
 
+**A single efficiency metric is never sufficient on its own, and a
+transfer-cancelling one cannot measure a seat whose lever is the transfer.**
+Twice now a family has run a full campaign against a metric that was
+structurally incapable of responding to the agent under test. In procurement,
+award feasibility is a deterministic step in the action budget, so three
+panels were rejected for what looked like calibration. In Housing, social
+welfare sums value minus rent plus rent minus cost, so every transfer cancels
+exactly; the tenant seat's only lever is the price it agrees to; and a sealed
+720-cell confirmatory comparison reported a precise null in which the subject
+under test explained 0.000 of score variance. Both metrics were correct. Both
+were blind to the thing the campaign existed to compare.
+
+Before freezing an estimand, therefore:
+
+- **Name each seat's levers and check the primary metric is a function of
+  them.** Efficiency metrics answer "was the right allocation found". They do
+  not answer "who captured the value", and a seat that only moves the second
+  is invisible to the first. Declare a distribution-side estimand, such as the
+  subject's realized surplus normalized to the same bound, co-primary rather
+  than as a secondary slice.
+- **Prove sensitivity provider-free, before spending.** Score the declared
+  control ladder on the frozen panel and confirm the primary separates it. A
+  truthful-bidding policy is the sharpest probe available here: it wins
+  allocations as often as a shrewd one and captures nothing, so any metric
+  that rates the two alike is transfer-blind and must not be the sole primary.
+- **Decompose the metric's variance across case, opponent and subject.** If
+  the subject's share is near zero, no sample size, sealing or replication
+  will recover a result; those protections all assume the estimand responds to
+  the comparison.
+- **A distribution-side metric requires the validity guards.** Surplus
+  measured against a counterparty that violates its own participation
+  constraint scores exploitation rather than skill, so it is only meaningful
+  under a reservation floor and a typed individual-rationality gate.
+
+**Detecting a blind estimand after the fact.** A campaign whose estimand does
+not respond to the subject produces artifacts indistinguishable, to every gate
+above, from one that found a genuine null: the freeze holds, the holdout stays
+sealed, receipts replay, digests recompute, tests pass. The Housing family
+passed all five gates while its subject explained `0.000` of score variance.
+When a result must be audited after execution, the following order isolates the
+cause, and the two steps that identify causes rather than symptoms are the last
+two:
+
+1. Treat a clean null as a claim to attack. A precise interval inside the
+   declared effect is either a finding or a blind instrument.
+2. Decompose the headline into components that can disagree with each other,
+   and check whether one case, world or configuration supplies most of a tail.
+3. Read individual episodes for the extreme cases. Summary statistics do not
+   show an agent violating its own payoff.
+4. Ask whether the anecdote is the pattern by sweeping every cell for the same
+   behaviour.
+5. Test the calibration hypothesis and let it fail. A contrast invariant across
+   a difficulty sweep is evidence about the instrument, not the subjects.
+6. **Decompose the metric's variance by factor: case, opponent, subject, on
+   the panel that will actually be frozen.** This is the step that names the
+   cause. Judge the subject's share against chance, not against zero: a
+   meaningless label splitting `n` cells into `k` groups still explains
+   `(k-1)/(n-1)` in expectation. If the subject's share does not exceed that,
+   no sample size, sealing discipline or replication recovers a result. Run it
+   on the confirmatory panel and not only on the pilot's: Housing's subject
+   share was twice chance on the pilot panel and half chance on the holdout,
+   so the pilot could not have revealed the problem it was meant to size.
+7. **Score control policies whose ordering is known before the run, and sweep
+   the counterparty as a controlled variable.** This is the step that proves
+   the mechanism, and separates a metric that cannot see the subject from a
+   counterparty whose own failures bury it.
+
+Steps 6 and 7 require no provider. Run them before the freeze, where they cost
+nothing, rather than after execution, where they cost the campaign.
+
+**Record wrong hypotheses at the moment they are made.** An investigation of
+this kind produces intermediate diagnoses that later prove wrong, and they
+carry the reasoning that made them plausible. Log them under the incident
+standard rather than editing them away once the cause is known; see the
+Housing estimand review for a worked instance, including three such
+corrections.
+
 ### Gate 4: Attribution and experimental controls
 
 **Purpose:** ensure that each result supports its claimed level of attribution.
@@ -379,6 +456,15 @@ reconstructed from canonical facts.
 
 Campaign records reference QC artifacts rather than duplicating them. If a
 referenced QC digest changes, the consuming campaign gate must be retried.
+
+## 3a. Incident recording
+
+Record every failure when it happens, not when it is understood. A failure
+written down only after diagnosis loses the state that made it worth
+recording. Two tiers, described in the repository working rules: a derived
+per-family machine register under `evidence/<family>_failure_register/`, and
+the judgment log at `docs/operations/incident_log.md`. Rows are never deleted;
+only their disposition changes.
 
 ## 4. Change invalidation
 

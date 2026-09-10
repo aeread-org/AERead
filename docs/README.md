@@ -60,7 +60,9 @@ not intended as a second reading order.
 
 ## Benchmark families
 
-- Housing: [case contract](families/housing/case.md) and [QC profile](families/housing/qc.md)
+- Housing: [case contract](families/housing/case.md), [QC profile](families/housing/qc.md),
+  and the [estimand review](families/housing/estimand_review.md), which asks whether the
+  primary outcome responds to the seat under test and finds that it does not
 - Procurement allocation: [case and campaign design](families/procurement-allocation/campaign.md)
 - Tau3 retail: [adapter specification](families/tau3-retail/adapter_spec.md), [implementation status](families/tau3-retail/adapter_status.md), and [refund integration plan](families/tau3-retail/refund_external_benchmark_integration.md)
 - Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md)
@@ -135,6 +137,8 @@ documents so they survive moves.
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
+- [AERead environment paper draft](research/aeread_environment_paper_draft.md)
+- [Environment-paper structure review](research/environment_paper_structure_review.md)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

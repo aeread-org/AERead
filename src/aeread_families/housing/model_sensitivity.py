@@ -12,7 +12,7 @@ import os
 import statistics
 import time
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner.task.execution import (
@@ -30,9 +30,11 @@ from .runner import (
     DEEPINFRA_HOUSING_ROUTE,
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
+    DEFAULT_PROMPT_VERSION,
     HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
     HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
     HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+    output_schemas_for,
     OpenRouterRoutePin,
     build_housing_smoke,
     finalize_housing_execution,
@@ -46,6 +48,8 @@ from .population_campaign import (
     _role_metrics,
 )
 from .qc import audit_bid_world
+from .provider_concurrency import BoundedConcurrencyProviderClient
+from .provider_cooldown import CooldownProviderClient
 from .provider_pacing import PacedProviderClient
 
 
@@ -68,6 +72,153 @@ _ROOT_FIELDS = {
     "stopping_rule",
 }
 _HISTORICAL_IMPLEMENTATION_DIGESTS = {
+    "housing_model_sensitivity_openrouter_alt_v2": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v3": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v4": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v5": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v6": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v7": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_alt_v9": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_morph_v10": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v19": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v21": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v25": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_v1": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_population_crossplay_v0": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v18": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v20": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v22": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v23": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v24": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v26": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_confirmatory_parasail_v1": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_confirmatory_parasail_v2": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "fe1341d799328abaf3b3ff5a601588f5b39435acc134ee9488f37a5c46e75090",
+        "combined": "e09a34cb315a6afdbddc0ce69e29fc9aec091865f28fca59c9267be9ffac0b29",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
     "housing_model_sensitivity_openrouter_alt_v8": {
         "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
         "bridge": "2cc022fc87fd49e5ed4d38391bd5af30de90be41eaced2086a81b75e51119cc5",
@@ -87,6 +238,41 @@ _HISTORICAL_IMPLEMENTATION_DIGESTS = {
         "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
         "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
         "execution": "7b963ccc739e007504c4df5f6abce1748c295b20e2b6887599b88ee0108f7f7f",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_friendli_v13": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_friendli_v14": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_friendli_v15": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v16": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v17": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
         "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
     },
 }
@@ -332,7 +518,122 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     return value
 
 
+CONFIRMATORY_CONFIG_FIELDS = (
+    "config_id",
+    "difficulty_stratum",
+    "tenants",
+    "listings",
+    "rounds",
+    "common_weight",
+)
+
+
+def confirmatory_panel(contract: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Return the verified holdout panel a confirmatory contract declares.
+
+    The panel inlines the sealed holdout configurations and world seeds so the
+    freeze can hash them before any outcome exists. The sweep contract that
+    sealed them is digest-checked here, and the inlined values must match it
+    exactly, so a confirmatory campaign cannot quietly widen its own panel.
+    """
+
+    panel = contract.get("confirmatory_panel")
+    if panel is None:
+        return None
+    sweep_path = _source_path(panel["sweep_contract_path"])
+    if _file_sha256(sweep_path) != panel["sweep_contract_file_sha256"]:
+        raise ValueError("confirmatory sweep contract digest drifted")
+    sweep = json.loads(sweep_path.read_bytes())
+    holdout = sweep["confirmatory_holdout"]
+    if holdout["status"] != "sealed_not_executed":
+        raise ValueError("confirmatory holdout is no longer sealed")
+    if holdout["access_rule"] != "new_campaign_id_after_confirmatory_freeze":
+        raise ValueError("confirmatory holdout access rule drifted")
+    sealed_configs = [
+        {key: config[key] for key in CONFIRMATORY_CONFIG_FIELDS}
+        for config in holdout["parameter_combinations"]
+    ]
+    if panel["configs"] != sealed_configs:
+        raise ValueError("confirmatory panel configurations differ from the sweep")
+    if panel["world_seeds"] != holdout["world_seeds"]:
+        raise ValueError("confirmatory panel world seeds differ from the sweep")
+    development = set(sweep["development"]["world_seeds"])
+    if development & set(panel["world_seeds"]):
+        raise ValueError("confirmatory panel overlaps the development split")
+    excluded = panel.get("excluded_world_seeds", {})
+    admitted = [seed for seed in panel["world_seeds"] if str(seed) not in excluded]
+    if panel.get("admitted_world_seeds", admitted) != admitted:
+        raise ValueError("confirmatory admitted seeds do not match the exclusions")
+    # An exclusion is only legitimate when the environment itself forces it,
+    # so every declared reason is re-derived here rather than trusted.
+    #
+    # Two reasons exist. ``degenerate_upper_bound`` is a bound of exactly zero:
+    # the world carries no normalized score at all. ``below_upper_bound_floor``
+    # is a bound below the panel's declared ``minimum_upper_bound``: the score
+    # exists but its denominator is so small that ordinary mistakes become
+    # scores of minus two and one world-configuration supplies most of a
+    # slice's variance (incident D-18: a bound of 56 against a median of
+    # 1828). A panel that declares no floor keeps the zero rule only, so
+    # every sealed panel verifies exactly as before.
+    floor = panel.get("minimum_upper_bound", 0.0)
+    if (
+        isinstance(floor, bool)
+        or not isinstance(floor, (int, float))
+        or not math.isfinite(float(floor))
+        or float(floor) < 0.0
+    ):
+        raise ValueError("confirmatory minimum_upper_bound must be finite and non-negative")
+    floor = float(floor)
+
+    def _bounds(seed_text: str) -> list[float]:
+        return [
+            float(
+                audit_bid_world(
+                    tenants=config["tenants"],
+                    listings=config["listings"],
+                    rounds=config["rounds"],
+                    common_weight=config["common_weight"],
+                    world_seed=int(seed_text),
+                )["oracle_total"]
+            )
+            for config in sealed_configs
+        ]
+
+    for seed_text, reason in excluded.items():
+        if reason == "degenerate_upper_bound":
+            justified = any(bound <= 0 for bound in _bounds(seed_text))
+        elif reason == "below_upper_bound_floor":
+            justified = floor > 0.0 and any(bound < floor for bound in _bounds(seed_text))
+        else:
+            raise ValueError(f"unsupported confirmatory exclusion reason: {reason!r}")
+        if not justified:
+            raise ValueError(
+                f"confirmatory exclusion is not justified for seed {seed_text}"
+            )
+    if floor > 0.0:
+        # A declared floor must also be applied: a seed it catches cannot be
+        # left admitted.
+        for seed in panel["world_seeds"]:
+            if str(seed) in excluded:
+                continue
+            if any(bound < floor for bound in _bounds(str(seed))):
+                raise ValueError(
+                    f"seed {seed} is below the declared upper-bound floor but not excluded"
+                )
+    return panel
+
+
 def selected_configs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
+    panel = confirmatory_panel(contract)
+    if panel is not None:
+        configs = [dict(config) for config in panel["configs"]]
+        requested = contract["execution"].get("config_ids")
+        if requested is None:
+            return configs
+        filtered = [config for config in configs if config["config_id"] in requested]
+        if {config["config_id"] for config in filtered} != set(requested):
+            raise ValueError("execution references a configuration outside the holdout")
+        return filtered
     selected = _selected_case_artifact(contract)
     configs = [
         {
@@ -383,26 +684,19 @@ def build_setups(
     historical_implementation_digests = _HISTORICAL_IMPLEMENTATION_DIGESTS.get(
         str(contract["campaign_id"])
     )
-    use_action_schemas_v2 = (
-        controls.get("action_schema_version") == "housing_actions/2.0"
+    minimum_rent = float(controls.get("minimum_rent", 0.0))
+    prompt_version = controls.get("prompt_version", DEFAULT_PROMPT_VERSION)
+    tenant_schemas, landlord_schemas = output_schemas_for(
+        controls.get("action_schema_version"), minimum_rent
     )
     tenant_harness_config = (
-        {
-            "output_schema_by_action_schema": {
-                "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
-                "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
-            }
-        }
-        if use_action_schemas_v2
+        {"output_schema_by_action_schema": tenant_schemas}
+        if tenant_schemas is not None
         else None
     )
     landlord_harness_config = (
-        {
-            "output_schema_by_action_schema": {
-                "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
-            }
-        }
-        if use_action_schemas_v2
+        {"output_schema_by_action_schema": landlord_schemas}
+        if landlord_schemas is not None
         else None
     )
     live_profile_controls = (
@@ -415,6 +709,19 @@ def build_setups(
         if controls.get("wire_live_profile_controls") is True
         else {}
     )
+    backoff = controls.get("retry_backoff")
+    if backoff is not None:
+        backoff_config = {
+            "retry_backoff": backoff["policy"],
+            "retry_base_seconds": backoff["retry_base_seconds"],
+            "retry_after_max_seconds": backoff["retry_after_max_seconds"],
+        }
+        tenant_harness_config = {**(tenant_harness_config or {}), **backoff_config}
+        landlord_harness_config = {**(landlord_harness_config or {}), **backoff_config}
+    if live_profile_controls and controls.get("seat_max_cost_usd") is not None:
+        # Only campaigns that freeze a seat budget carry the override, so the
+        # design digests of earlier campaigns are unchanged.
+        live_profile_controls["max_cost_usd_override"] = controls["seat_max_cost_usd"]
     for config in selected_configs(contract):
         for condition in contract["conditions"]:
             subject = contract["models"][condition["subject"]]
@@ -453,6 +760,8 @@ def build_setups(
                     ],
                     tenant_harness_config=tenant_harness_config,
                     landlord_harness_config=landlord_harness_config,
+                    prompt_version=prompt_version,
+                    minimum_rent=minimum_rent,
                     implementation_digest_overrides=(
                         historical_implementation_digests
                     ),
@@ -553,7 +862,95 @@ def design_artifact(
     )
 
 
+
+def _confirmatory_provider_free_artifact(
+    contract: Mapping[str, Any], panel: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Audit the sealed holdout worlds without a development facts table.
+
+    The holdout was deliberately never swept, so there is no published row to
+    cross-check against. The audit still runs -- it is deterministic and needs
+    no provider -- and the resulting world content digests are what the
+    confirmatory freeze seals, which pins exactly which worlds will be run
+    before any model observes one.
+    """
+
+    rows: list[dict[str, Any]] = []
+    for config in selected_configs(contract):
+        # Audit every sealed world, including any the panel excludes.
+        for world_seed in panel["world_seeds"]:
+            facts = audit_bid_world(
+                tenants=config["tenants"],
+                listings=config["listings"],
+                rounds=config["rounds"],
+                common_weight=config["common_weight"],
+                world_seed=world_seed,
+            )
+            if not facts["oracle_crosscheck_passed"]:
+                raise ValueError(
+                    f"holdout world failed its oracle crosscheck: "
+                    f"{config['config_id']}/{world_seed}"
+                )
+            # The QC standard admits a zero upper bound as a labelled world
+            # rather than an error: it carries no normalized score and stays
+            # visible outside normalized-score inference.
+            degenerate = facts["oracle_total"] <= 0
+            below_floor = (
+                not degenerate
+                and float(panel.get("minimum_upper_bound", 0.0)) > 0.0
+                and facts["oracle_total"] < float(panel["minimum_upper_bound"])
+            )
+            rows.append(
+                {
+                    "config_id": config["config_id"],
+                    "world_seed": world_seed,
+                    "world_sha256": facts["world_sha256"],
+                    "case_config_sha256": _sha256(dict(config)),
+                    "admission": (
+                        "degenerate_upper_bound"
+                        if degenerate
+                        else "below_upper_bound_floor"
+                        if below_floor
+                        else "admitted"
+                    ),
+                    "oracle_total": facts["oracle_total"],
+                    "naive_normalized": facts["naive_normalized"],
+                    "oracle_gap_normalized": facts["oracle_minus_naive_normalized"],
+                    "oracle_crosscheck_passed": facts["oracle_crosscheck_passed"],
+                    "oracle_active_ceiling_passed": (
+                        facts["oracle_total"] == facts["oracle_informed_total"]
+                    ),
+                }
+            )
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_model_sensitivity_provider_free/0.1",
+            "campaign_id": contract["campaign_id"],
+            "status": "passed",
+            "provider_calls": 0,
+            "provider_cost_usd": 0.0,
+            "confirmatory_holdout_status": "opened_for_confirmatory_freeze",
+            "admitted_world_count": sum(
+                1 for row in rows if row["admission"] == "admitted"
+            ),
+            "degenerate_world_count": sum(
+                1 for row in rows if row["admission"] == "degenerate_upper_bound"
+            ),
+            "excluded_world_seeds": dict(panel.get("excluded_world_seeds", {})),
+            "executed_world_seeds": list(contract["execution"]["world_seeds"]),
+            "holdout_source": {
+                "sweep_contract_path": panel["sweep_contract_path"],
+                "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
+            },
+            "worlds": rows,
+        }
+    )
+
+
 def provider_free_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
+    panel = confirmatory_panel(contract)
+    if panel is not None:
+        return _confirmatory_provider_free_artifact(contract, panel)
     manifest_path = _source_path(
         contract["source_case_selection"]["fact_manifest_path"]
     )
@@ -645,10 +1042,17 @@ def _exception_attribute(error: BaseException, attribute: str) -> Any | None:
     return None
 
 
+SEAT_COST_BUDGET_MARKER = "cost budget exceeded for profile"
+
+
 def _critical_failure(error: BaseException) -> bool:
     condition = _exception_attribute(error, "condition")
     if condition is not None:
         return condition == "provider_contract"
+    if SEAT_COST_BUDGET_MARKER in str(error):
+        # A seat exhausting its own frozen cost budget is typed cell-level
+        # missingness, not a campaign-level route, replay, or ceiling failure.
+        return False
     if isinstance(error, (EvidenceIntegrityError, SchedulerContractError)):
         return True
     message = str(error).lower()
@@ -807,7 +1211,12 @@ def variance_pilot_analysis(
     attrition_adjusted_worlds: int | None = None
     recommended_worlds: int | None = None
     within_declared_maximum = False
-    if sample_standard_deviation is not None:
+    minimum_paired_worlds = analysis.get("minimum_paired_worlds_for_recommendation")
+    recommendation_suppressed = (
+        minimum_paired_worlds is not None
+        and paired_world_count < int(minimum_paired_worlds)
+    )
+    if sample_standard_deviation is not None and not recommendation_suppressed:
         z_alpha = 1.959963984540054
         z_power = 0.8416212335729143
         raw_required_worlds = math.ceil(
@@ -832,8 +1241,16 @@ def variance_pilot_analysis(
             "schema_version": "aeread.housing_variance_pilot_analysis/0.1",
             "campaign_id": contract["campaign_id"],
             "status": (
-                "estimable" if paired_world_count >= 2 else "insufficient_paired_worlds"
+                "insufficient_paired_worlds"
+                if paired_world_count < 2
+                else (
+                    "variance_only_recommendation_withheld"
+                    if recommendation_suppressed
+                    else "estimable"
+                )
             ),
+            "minimum_paired_worlds_for_recommendation": minimum_paired_worlds,
+            "recommendation_suppressed": recommendation_suppressed,
             "claim_status": contract["claim_status"],
             "ranking_allowed": False,
             "independent_cluster": "world_seed",
@@ -862,6 +1279,428 @@ def variance_pilot_analysis(
     )
 
 
+SUBJECT_IR_POLICIES = ("averaged", "typed_failure")
+SECONDARY_ESTIMANDS = ("subject_surplus_share",)
+WINNER_CLAIM_RULES = ("primary_only", "primary_and_secondary_consistent")
+
+#: Read from the provider-free control arm, which is where the sweep
+#: justifying it lives: `evidence/housing/estimand_sensitivity_control/`.
+from .sensitivity_control import (  # noqa: E402
+    RECOMMENDED_MAXIMUM_OPPONENT_IR_VIOLATION_FRACTION,
+)
+
+
+def seat_accounting_fields(outcome: Mapping[str, Any]) -> dict[str, Any]:
+    """Per-seat individual-rationality counts and the subject's surplus share.
+
+    Welfare cancels every rent, so a landlord that gives a unit away scores
+    the same as one that charges the ask (incident D-16). These fields are
+    what sees that: an IR violation split by the seat that committed it, and
+    the tenants' realized surplus as a share of the oracle bound. The subject
+    of every Housing condition sits in the tenant seats and the opponent in
+    the landlord seats.
+    """
+
+    violations = [str(item) for item in outcome.get("ir_violations", ())]
+    subject = sum(1 for item in violations if item.startswith("tenant:"))
+    opponent = sum(1 for item in violations if item.startswith("landlord:"))
+    oracle = outcome.get("oracle_total")
+    tenant_payoff = sum(float(v) for v in outcome.get("tenant_payoffs", {}).values())
+    share = (
+        round(tenant_payoff / float(oracle), 9)
+        if isinstance(oracle, (int, float)) and not isinstance(oracle, bool) and float(oracle) > 0
+        else None
+    )
+    return {
+        "subject_seat_ir_violations": subject,
+        "opponent_seat_ir_violations": opponent,
+        "subject_surplus_share": share,
+    }
+
+
+def _subject_ir_policy(analysis: Mapping[str, Any]) -> str:
+    policy = analysis.get("subject_ir_violation_policy", "averaged")
+    if policy not in SUBJECT_IR_POLICIES:
+        raise ValueError(f"unknown subject_ir_violation_policy: {policy!r}")
+    return policy
+
+
+def _economically_valid(row: Mapping[str, Any], policy: str) -> bool:
+    """Under ``typed_failure`` a cell whose subject seat violated individual
+    rationality is a typed failure, not a score. Incident D-24: an agent that
+    signs above its own value has not negotiated badly, it has failed to
+    understand its own payoff, which is a capability failure of the same
+    kind as an unparseable action and gets the same treatment."""
+
+    if policy != "typed_failure":
+        return True
+    if "subject_seat_ir_violations" not in row:
+        raise ValueError(
+            "typed_failure policy needs subject_seat_ir_violations on every completed row"
+        )
+    return int(row["subject_seat_ir_violations"]) == 0
+
+
+def _paired_world_means(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    world_seeds: Sequence[int],
+    subjects: Sequence[str],
+    expected_per_subject: int,
+    opponent_filter: Callable[[Mapping[str, Any]], bool] | None = None,
+    metric: str = "within_case_score",
+    eligible_row: Callable[[Mapping[str, Any]], bool] | None = None,
+) -> tuple[list[dict[str, Any]], list[float]]:
+    """Return per-world subject means and the paired contrasts they support.
+
+    A world contributes a contrast only when both subjects completed every
+    expected cell, so a partially delivered world can never tilt the estimate.
+    """
+
+    world_rows: list[dict[str, Any]] = []
+    contrasts: list[float] = []
+    for world_seed in world_seeds:
+        subject_means: dict[str, float] = {}
+        subject_counts: dict[str, int] = {}
+        for subject in sorted(subjects):
+            eligible = [
+                row
+                for row in rows
+                if row["world_seed"] == world_seed
+                and row["subject"] == subject
+                and row["status"] == "completed"
+                and (opponent_filter is None or opponent_filter(row))
+                and (eligible_row is None or eligible_row(row))
+                and row.get(metric) is not None
+            ]
+            subject_counts[subject] = len(eligible)
+            if len(eligible) == expected_per_subject:
+                subject_means[subject] = statistics.fmean(
+                    float(row[metric]) for row in eligible
+                )
+        complete_pair = len(subject_means) == 2
+        contrast = (
+            subject_means["glm_53_flash"] - subject_means["deepseek_v4_flash"]
+            if complete_pair
+            else None
+        )
+        if contrast is not None:
+            contrasts.append(contrast)
+        world_rows.append(
+            {
+                "world_seed": world_seed,
+                "complete_pair": complete_pair,
+                "completed_cells_by_subject": subject_counts,
+                "subject_means": subject_means,
+                "contrast": contrast,
+            }
+        )
+    return world_rows, contrasts
+
+
+def _paired_interval(
+    contrasts: Sequence[float], *, alpha: float
+) -> dict[str, Any]:
+    """Two-sided paired interval over world-level contrasts."""
+
+    count = len(contrasts)
+    if count < 2:
+        return {
+            "paired_world_count": count,
+            "mean": statistics.fmean(contrasts) if contrasts else None,
+            "standard_deviation": None,
+            "standard_error": None,
+            "degrees_of_freedom": max(count - 1, 0),
+            "critical_value": None,
+            "lower": None,
+            "upper": None,
+            "excludes_zero": False,
+        }
+    from scipy import stats
+
+    mean = statistics.fmean(contrasts)
+    deviation = statistics.stdev(contrasts)
+    error = deviation / math.sqrt(count)
+    critical = float(stats.t.ppf(1.0 - alpha / 2.0, count - 1))
+    lower = mean - critical * error
+    upper = mean + critical * error
+    return {
+        "paired_world_count": count,
+        "mean": mean,
+        "standard_deviation": deviation,
+        "standard_error": error,
+        "degrees_of_freedom": count - 1,
+        "critical_value": critical,
+        "lower": lower,
+        "upper": upper,
+        "excludes_zero": lower > 0.0 or upper < 0.0,
+    }
+
+
+def confirmatory_analysis(
+    rows: Sequence[Mapping[str, Any]], contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Paired world-level confirmatory comparison with predeclared slices.
+
+    The primary estimand is the one the variance pilot measured, because the
+    confirmatory world count was derived from that estimand's variance.
+    Changing it here would invalidate the sample size, so the cross-play and
+    self-play breakdowns are reported as predeclared secondary slices rather
+    than as the headline.
+    """
+
+    analysis = contract["analysis"]
+    if analysis.get("aggregation") != (
+        "equal_weight_configs_and_opponents_within_world"
+    ):
+        raise ValueError("contract does not declare the confirmatory estimand")
+    configs = selected_configs(contract)
+    opponents = {condition["opponent"] for condition in contract["conditions"]}
+    subjects = {condition["subject"] for condition in contract["conditions"]}
+    if subjects != {"glm_53_flash", "deepseek_v4_flash"} or opponents != subjects:
+        raise ValueError("confirmatory model panel drifted")
+    replicates = contract["execution"]["replicates"]
+    world_seeds = contract["execution"]["world_seeds"]
+    alpha = analysis["alpha"]
+
+    ir_policy = _subject_ir_policy(analysis)
+    valid = lambda row: _economically_valid(row, ir_policy)  # noqa: E731
+    # A co-primary carries the claim jointly with welfare; a secondary is
+    # reported only. Welfare answers "was the right allocation found" and is
+    # blind to every transfer, so it cannot on its own measure a seat whose
+    # lever is the transfer (D-27).
+    co_primary_estimand = analysis.get("co_primary_estimand")
+    secondary_estimand = analysis.get("secondary_estimand")
+    if co_primary_estimand is not None and secondary_estimand is not None:
+        raise ValueError("declare an estimand as co-primary or secondary, not both")
+    reported_estimand = co_primary_estimand or secondary_estimand
+    if reported_estimand is not None and reported_estimand not in SECONDARY_ESTIMANDS:
+        raise ValueError(f"unknown estimand: {reported_estimand!r}")
+    secondary_estimand = reported_estimand
+    winner_rule = analysis.get("winner_claim_rule", "primary_only")
+    if winner_rule not in WINNER_CLAIM_RULES:
+        raise ValueError(f"unknown winner_claim_rule: {winner_rule!r}")
+    if winner_rule == "primary_and_secondary_consistent" and secondary_estimand is None:
+        raise ValueError("a consistency rule needs a declared secondary_estimand")
+
+    expected_all = len(configs) * len(opponents) * replicates
+    world_rows, contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_all,
+        eligible_row=valid,
+    )
+    primary = _paired_interval(contrasts, alpha=alpha)
+
+    expected_slice = len(configs) * replicates
+    cross_rows, cross_contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_slice,
+        opponent_filter=lambda row: row["opponent"] != row["subject"],
+        eligible_row=valid,
+    )
+    self_rows, self_contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_slice,
+        opponent_filter=lambda row: row["opponent"] == row["subject"],
+        eligible_row=valid,
+    )
+    secondary = None
+    if secondary_estimand is not None:
+        secondary_rows, secondary_contrasts = _paired_world_means(
+            rows,
+            world_seeds=world_seeds,
+            subjects=sorted(subjects),
+            expected_per_subject=expected_all,
+            metric=secondary_estimand,
+            eligible_row=valid,
+        )
+        secondary = {
+            "estimand": secondary_estimand,
+            "interval": _paired_interval(secondary_contrasts, alpha=alpha),
+            "worlds": secondary_rows,
+        }
+
+    completed = [row for row in rows if row["status"] == "completed"]
+    subject_ir_failures = [row for row in completed if not valid(row)]
+    opponent_ir_cells = sum(
+        1 for row in completed if int(row.get("opponent_seat_ir_violations") or 0) > 0
+    )
+
+    ir_ceiling = analysis.get("maximum_subject_ir_failure_fraction")
+    if ir_policy == "typed_failure" and ir_ceiling is None:
+        raise ValueError("typed_failure policy needs maximum_subject_ir_failure_fraction")
+    subject_ir_fraction = len(subject_ir_failures) / len(rows) if rows else 0.0
+    subject_ir_above_ceiling = bool(
+        ir_ceiling is not None and subject_ir_fraction > float(ir_ceiling) + 1e-12
+    )
+    # The opponent seat does not bias the paired contrast, since the design
+    # balances it and its main effect cancels. What it does is inject variance
+    # the pairing cannot remove, and past a few percent of cells that variance
+    # buries a real difference on the distribution side. So this is a ceiling
+    # on measurability, not on fairness.
+    opponent_ir_ceiling = analysis.get("maximum_opponent_ir_violation_fraction")
+    if co_primary_estimand is not None and opponent_ir_ceiling is None:
+        raise ValueError(
+            "a distribution-side co-primary needs "
+            "maximum_opponent_ir_violation_fraction"
+        )
+    opponent_ir_fraction = opponent_ir_cells / len(completed) if completed else 0.0
+    opponent_ir_above_ceiling = bool(
+        opponent_ir_ceiling is not None
+        and opponent_ir_fraction > float(opponent_ir_ceiling) + 1e-12
+    )
+    condition_means = {}
+    for condition in contract["conditions"]:
+        scores = [
+            float(row["within_case_score"])
+            for row in completed
+            if row["condition_id"] == condition["condition_id"]
+        ]
+        condition_means[condition["condition_id"]] = {
+            "completed_cells": len(scores),
+            "mean_within_case_score": statistics.fmean(scores) if scores else None,
+        }
+    worst_opponent = {}
+    for subject in sorted(subjects):
+        per_opponent = {}
+        for opponent in sorted(opponents):
+            scores = [
+                float(row["within_case_score"])
+                for row in completed
+                if row["subject"] == subject and row["opponent"] == opponent
+            ]
+            if scores:
+                per_opponent[opponent] = statistics.fmean(scores)
+        worst_opponent[subject] = (
+            min(per_opponent.items(), key=lambda item: item[1])[0]
+            if per_opponent
+            else None
+        )
+    failures: dict[str, int] = {}
+    for row in rows:
+        if row["status"] != "completed":
+            key = str(row.get("failure_condition") or "unknown")
+            failures[key] = failures.get(key, 0) + 1
+    planned = len(world_seeds) * len(configs) * len(contract["conditions"]) * replicates
+    minimum_paired = analysis.get("minimum_paired_worlds_for_decision")
+    paired = primary["paired_world_count"]
+    co_primary_estimable = bool(
+        co_primary_estimand is None
+        or (secondary is not None and secondary["interval"]["mean"] is not None)
+    )
+    decision_supported = bool(
+        minimum_paired is not None
+        and paired >= int(minimum_paired)
+        and len(rows) == planned
+        and not subject_ir_above_ceiling
+        and not opponent_ir_above_ceiling
+        and co_primary_estimable
+    )
+    # A winner claim needs the efficiency interval to exclude zero. Under the
+    # consistency rule the surplus interval may not exclude zero in the
+    # opposite direction, so a model cannot be declared better at finding
+    # the pie while demonstrably worse at keeping any of it.
+    winner_claim_allowed = bool(decision_supported and primary["excludes_zero"])
+    if winner_claim_allowed and winner_rule == "primary_and_secondary_consistent":
+        interval = secondary["interval"]
+        opposite = bool(
+            interval["excludes_zero"]
+            and interval["mean"] is not None
+            and primary["mean"] is not None
+            and (interval["mean"] > 0) != (primary["mean"] > 0)
+        )
+        winner_claim_allowed = not opposite
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_confirmatory_analysis/0.1",
+            "campaign_id": contract["campaign_id"],
+            "claim_status": contract["claim_status"],
+            "independent_cluster": "world_seed",
+            "primary_contrast": analysis["primary_contrast"],
+            "primary_estimand": analysis["aggregation"],
+            "alpha": alpha,
+            "minimum_meaningful_effect": analysis["minimum_meaningful_effect"],
+            "planned_trajectories": planned,
+            "attempted_trajectories": len(rows),
+            "completed_trajectories": len(completed),
+            "operational_failures": len(rows) - len(completed),
+            "failure_conditions": dict(sorted(failures.items())),
+            "planned_world_count": len(world_seeds),
+            "primary": primary,
+            "worlds": world_rows,
+            "cross_play_slice": {
+                "interval": _paired_interval(cross_contrasts, alpha=alpha),
+                "worlds": cross_rows,
+            },
+            "self_play_slice": {
+                "interval": _paired_interval(self_contrasts, alpha=alpha),
+                "worlds": self_rows,
+            },
+            "condition_means": condition_means,
+            "worst_opponent_by_subject": worst_opponent,
+            "subject_ir_violation_policy": ir_policy,
+            "subject_ir_failures": len(subject_ir_failures),
+            "subject_ir_failure_fraction": round(subject_ir_fraction, 9),
+            "maximum_subject_ir_failure_fraction": ir_ceiling,
+            "subject_ir_failure_above_ceiling": subject_ir_above_ceiling,
+            "opponent_seat_ir_violation_cells": opponent_ir_cells,
+            "opponent_ir_violation_fraction": round(opponent_ir_fraction, 9),
+            "maximum_opponent_ir_violation_fraction": opponent_ir_ceiling,
+            "opponent_ir_violation_above_ceiling": opponent_ir_above_ceiling,
+            "co_primary_estimand": co_primary_estimand,
+            "secondary": secondary,
+            "winner_claim_rule": winner_rule,
+            "winner_claim_allowed": winner_claim_allowed,
+            "minimum_paired_worlds_for_decision": minimum_paired,
+            "decision_supported": decision_supported,
+            "effect_at_least_minimum": bool(
+                primary["mean"] is not None
+                and abs(primary["mean"]) >= analysis["minimum_meaningful_effect"]
+            ),
+            "interval_excludes_zero": primary["excludes_zero"],
+            "ranking_allowed": decision_supported,
+        }
+    )
+
+
+
+def run_status_for(
+    *,
+    attempted: int,
+    completed: int,
+    expected: int,
+    missingness_ceiling: float | None,
+) -> tuple[float, float | None, bool, str]:
+    """Decide a run's status from its delivery, not only from its typing.
+
+    Typing a failure correctly is not the same as tolerating it. This family
+    reported missingness and never gated on the aggregate, so a run that lost
+    a third of its cells still sealed a completed status. When the contract
+    declares a ceiling the breach becomes the status itself.
+    """
+
+    failure_fraction = (attempted - completed) / attempted if attempted else 0.0
+    above = bool(
+        missingness_ceiling is not None
+        and failure_fraction > float(missingness_ceiling) + 1e-12
+    )
+    if above:
+        status = "failed_operational_missingness_above_ceiling"
+    elif completed == expected:
+        status = "completed_with_full_matrix"
+    elif attempted == expected:
+        status = "completed_with_typed_missingness"
+    else:
+        status = "stopped_with_typed_missingness"
+    return failure_fraction, missingness_ceiling, above, status
+
+
 async def run_live(
     contract: Mapping[str, Any],
     *,
@@ -870,8 +1709,10 @@ async def run_live(
     stage_id: str = "live",
     provider_client: Any | None = None,
 ) -> dict[str, Any]:
-    if stage_id not in {"live", "full_trajectory"}:
-        raise ValueError("stage_id must be live or full_trajectory")
+    if stage_id not in {"live", "full_trajectory", "confirmatory_execution"}:
+        raise ValueError(
+            "stage_id must be live, full_trajectory or confirmatory_execution"
+        )
     live_root = output_root / stage_id
     summary_path = live_root / "summary.json"
     if summary_path.exists():
@@ -921,31 +1762,23 @@ async def run_live(
                         raise ValueError("frozen execution cell did not resolve uniquely")
                     ordered_cells.append((config, condition, setup, matches[0]))
 
-    for config, condition, setup, cell in ordered_cells:
+    max_concurrent_cells = int(execution_contract.get("max_concurrent_cells", 1))
+
+    async def _run_cell(config, condition, setup, cell, result_path):
         condition_id = condition["condition_id"]
-        result_path = (
-            live_root
-            / config["config_id"]
-            / condition_id
-            / "results"
-            / f"world_{cell.world_seed}__rep_{cell.replicate_index}.json"
-        )
-        if result_path.exists():
-            rows.append(_read_sealed(result_path))
-            continue
-        cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
-        if (
-            cost_so_far + execution_contract["per_trajectory_cost_reserve_usd"]
-            > execution_contract["cost_ceiling_usd"]
-        ):
-            critical_stop = True
-            stop_reason = "campaign_cost_reserve_reached"
-            break
         evidence_root = live_root / config["config_id"] / condition_id / "evidence"
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, PacedProviderClient)
+            if max_concurrent_cells == 1
+            and isinstance(
+                client,
+                (
+                    PacedProviderClient,
+                    CooldownProviderClient,
+                    BoundedConcurrencyProviderClient,
+                ),
+            )
             else None
         )
         critical_error = False
@@ -988,6 +1821,7 @@ async def run_live(
                 "tenant_payoff": sum(outcome["tenant_payoffs"].values()),
                 "landlord_payoff": sum(outcome["landlord_payoffs"].values()),
                 "ir_violation_count": len(outcome["ir_violations"]),
+                **seat_accounting_fields(outcome),
                 "wasted_contacts": outcome["wasted_contacts"],
                 "logical_action_count": execution.episode_result.logical_action_count,
                 "cost_usd": execution.total_cost_usd,
@@ -1034,7 +1868,12 @@ async def run_live(
                 "status": "operational_failure",
                 "failure_type": type(error).__name__,
                 "failure_condition": (
-                    _exception_attribute(error, "condition") or "execution_error"
+                    _exception_attribute(error, "condition")
+                    or (
+                        "cost_budget_exceeded"
+                        if SEAT_COST_BUDGET_MARKER in str(error)
+                        else "execution_error"
+                    )
                 ),
                 "failure_status_code": _exception_attribute(error, "status_code"),
                 "receipt_sha256": receipt_sha256,
@@ -1051,10 +1890,47 @@ async def run_live(
             )
         sealed_row = _sealed(row)
         _write_json(result_path, sealed_row)
-        rows.append(sealed_row)
-        if critical_error:
+        return sealed_row, critical_error
+
+    pending: list[tuple[Any, Any, Any, Any, Path]] = []
+    for config, condition, setup, cell in ordered_cells:
+        result_path = (
+            live_root
+            / config["config_id"]
+            / condition["condition_id"]
+            / "results"
+            / f"world_{cell.world_seed}__rep_{cell.replicate_index}.json"
+        )
+        if result_path.exists():
+            rows.append(_read_sealed(result_path))
+            continue
+        pending.append((config, condition, setup, cell, result_path))
+
+    # Cells run in bounded batches. The provider pacing policy still governs
+    # every call, so concurrency raises throughput only as far as that policy
+    # allows. The reserve is checked per batch against the worst case that the
+    # batch can add, so the ceiling cannot be crossed by cells already in
+    # flight.
+    for offset in range(0, len(pending), max_concurrent_cells):
+        batch = pending[offset : offset + max_concurrent_cells]
+        cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
+        reserve = execution_contract["per_trajectory_cost_reserve_usd"] * len(batch)
+        if cost_so_far + reserve > execution_contract["cost_ceiling_usd"]:
             critical_stop = True
-            stop_reason = "critical_route_replay_or_cost_failure"
+            stop_reason = "campaign_cost_reserve_reached"
+            break
+        results = await asyncio.gather(
+            *(_run_cell(*entry) for entry in batch), return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, BaseException):
+                raise result
+            sealed_row, critical_error = result
+            rows.append(sealed_row)
+            if critical_error:
+                critical_stop = True
+                stop_reason = "critical_route_replay_or_cost_failure"
+        if critical_stop:
             break
 
     expected = (
@@ -1068,18 +1944,23 @@ async def run_live(
     total_cost = sum(float(row.get("cost_usd", 0.0)) for row in rows)
     if total_cost > execution_contract["cost_ceiling_usd"] + 1e-12:
         raise RuntimeError("model-sensitivity run exceeded its hard cost ceiling")
+    failure_fraction, missingness_ceiling, missingness_above_ceiling, run_status = (
+        run_status_for(
+            attempted=len(rows),
+            completed=len(completed),
+            expected=expected,
+            missingness_ceiling=execution_contract.get(
+                "maximum_operational_failure_fraction"
+            ),
+        )
+    )
     artifact_core: dict[str, Any] = {
         "schema_version": "aeread.housing_model_sensitivity_results/0.1",
         "campaign_id": contract["campaign_id"],
-        "status": (
-            "completed_with_full_matrix"
-            if len(completed) == expected
-            else (
-                "completed_with_typed_missingness"
-                if len(rows) == expected
-                else "stopped_with_typed_missingness"
-            )
-        ),
+        "status": run_status,
+        "operational_failure_fraction": failure_fraction,
+        "maximum_operational_failure_fraction": missingness_ceiling,
+        "operational_missingness_above_ceiling": missingness_above_ceiling,
         "claim_status": contract["claim_status"],
         "winner_claim_allowed": False,
         "ranking_allowed": False,
@@ -1100,8 +1981,25 @@ async def run_live(
     if contract["analysis"].get("aggregation") == (
         "equal_weight_configs_and_opponents_within_world"
     ):
-        artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
-            rows, contract
+        if stage_id == "confirmatory_execution":
+            artifact_core["confirmatory_analysis"] = confirmatory_analysis(
+                rows, contract
+            )
+        else:
+            artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
+                rows, contract
+            )
+    if stage_id == "confirmatory_execution":
+        analysis = artifact_core["confirmatory_analysis"]
+        artifact_core.update(
+            {
+                "gate_id": "confirmatory_execution",
+                "decision_supported": analysis["decision_supported"],
+                "ranking_allowed": analysis["ranking_allowed"],
+                "winner_claim_allowed": analysis.get(
+                    "winner_claim_allowed", analysis["ranking_allowed"]
+                ),
+            }
         )
     if stage_id == "full_trajectory":
         artifact_core.update(
@@ -1118,7 +2016,14 @@ async def run_live(
             **contract["controls"]["call_pacing"],
             "observed": (
                 client.pacing_summary_since(0)
-                if isinstance(client, PacedProviderClient)
+                if isinstance(
+                    client,
+                    (
+                        PacedProviderClient,
+                        CooldownProviderClient,
+                        BoundedConcurrencyProviderClient,
+                    ),
+                )
                 else None
             ),
         }
