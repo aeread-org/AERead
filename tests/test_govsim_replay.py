@@ -61,6 +61,10 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
+import dataclasses
+
+from aeread.shared_runner.measurement import MetricValue
+from aeread.shared_runner.task.receipts import seal_evaluation_receipt
 from aeread.shared_runner.task.evaluation import finalize_family_execution, replay_family_receipt
 from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
 from aeread_families.govsim import environment as govsim_environment
@@ -1421,14 +1425,43 @@ def test_finalize_wires_govsim_to_the_shared_family_finalizer(
     ):
         assert by_leaf_id[leaf_id].status == "ok"
 
-    replayed = replay_family_receipt(
-        setup=setup, receipt=receipt, evidence_root=evidence_root
+    # The untampered receipt replays. Without this the refusal below could pass
+    # because replay refuses everything.
+    replay_family_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+
+    # ``replay_family_receipt`` returns the receipt it was handed, so asserting
+    # on the returned object would be self-satisfying: swap the function for
+    # ``return receipt`` and such assertions still pass. Cross-model review of
+    # this branch raised exactly that. What the call guarantees lives in what it
+    # REFUSES, and probing found three checks in front of its comparison against
+    # the re-derived score set -- an altered receipt fails its own digest, a
+    # re-sealed one is refused against the bytes actually written to the attempt
+    # directory, and only a receipt both self-consistent and truly sealed
+    # reaches the comparison. This asserts the reachable one: claim a comparative
+    # was measured after all, re-seal so the digest agrees, and the replay must
+    # still refuse it.
+    # Tamper a leaf that is ALREADY ok, and only its value: an envelope whose
+    # status flips to "ok" is refused by ScoreEnvelope's own invariant (an ok
+    # score needs a valid primary AND a valid validity report), which would
+    # stop the tamper before the replay ever saw it.
+    survival = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
     )
-    assert replayed.receipt_sha256 == receipt.receipt_sha256
-    assert replayed.status == "ok"
-    assert replayed.inclusion_status == "included"
-    replayed_by_leaf_id = {score.leaf.leaf_id: score for score in replayed.scores}
-    assert {score.leaf.leaf_id for score in replayed.scores} == declared_leaf_ids
-    for leaf_id in (m.TOTAL_HARVEST_LEAF_ID, m.EQUALITY_GINI_LEAF_ID):
-        assert replayed_by_leaf_id[leaf_id].status == "invalid_measurement"
-        assert replayed_by_leaf_id[leaf_id].primary is None
+    assert survival.status == "ok" and survival.primary is not None
+    falsified = tuple(
+        dataclasses.replace(
+            score,
+            primary=MetricValue(survival.primary.value + 1.0, survival.primary.unit),
+        )
+        if score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+        else score
+        for score in receipt.scores
+    )
+    resealed = seal_evaluation_receipt(
+        dataclasses.replace(receipt, scores=falsified, receipt_sha256=None)
+    )
+    assert resealed.receipt_sha256 != receipt.receipt_sha256
+    with pytest.raises(ValueError, match="durable family receipt bytes"):
+        replay_family_receipt(
+            setup=setup, receipt=resealed, evidence_root=evidence_root
+        )
