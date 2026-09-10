@@ -1,7 +1,13 @@
 """Issue #122, requirement 5: trajectory_outcome_paths' declaration must be
 read from the TRUSTED registered manifest by all three production callers
-of replay_family_scoring_input, and a family that declares none must be
-byte-identical, digest-for-digest, to the same family before this change.
+of replay_family_scoring_input, and a family that declares none must produce
+a receipt whose canonical JSON is unchanged by the R10 machinery in every
+field R10 could plausibly touch. (NOT "byte-identical, digest-for-digest, to
+the same family before this change" outright -- Housing's own implementation
+pins hash the kernel source this change edits, so a real run's pins, and
+everything downstream of them, move regardless; see the two digest-oracle
+tests near the bottom of this file and their banners for exactly what is and
+is not proved, and issue #68 / PR #149 for the pin-churn property itself.)
 
 Codex review R1 findings 1 and 3 (see docs/kernel_r9r10_review.md's issue
 #122 section once Task 4 lands): finding 1 requires adversarial coverage at
@@ -18,6 +24,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -395,15 +402,36 @@ def test_audit_passes_when_the_plan_copy_declares_a_failing_path_but_the_trusted
     assert audited["status"] == "ok"
 
 
-# Codex review R1 finding 3: a pinned, pre-change golden oracle, not a
-# two-episode comparison. Re-derived on THIS branch's base
-# (zeyu/issue-135-a1-replay-cell @ b1e3f566, the merge base pinned by the
-# workflow that cut this worktree -- see this plan's own "Deviations" note in
-# the implementation report), via this same file's `_run_housing_episode`
-# fixture helper (Housing's scripted tenant/landlord providers, deterministic
-# given a fixed `world_seed` -- verified empirically: two independent
-# episodes produce byte-identical `episode_result.outcome` and
-# `.phase_instances`).
+# Codex review R1 finding 3 / adversarial review finding 2: a pinned,
+# pre-change golden oracle, not a two-episode comparison. Re-derived on THIS
+# branch's base (zeyu/issue-135-a1-replay-cell @ b1e3f566, the merge base
+# pinned by the workflow that cut this worktree -- see this plan's own
+# "Deviations" note in the implementation report), via this same file's
+# `_run_housing_episode` fixture helper (Housing's scripted tenant/landlord
+# providers, deterministic given a fixed `world_seed` -- verified
+# empirically: two independent episodes produce byte-identical
+# `episode_result.outcome` and `.phase_instances`).
+#
+# WHAT THIS ORACLE PROVES, PRECISELY, AND WHY THE PINS BELOW ARE HELD FIXED:
+# it proves that, GIVEN IDENTICAL IMPLEMENTATION PINS, adding the R10
+# machinery (the `trajectory_outcome_paths` parameter and
+# `_assert_trajectory_outcome_paths_are_consistent`) does not change a
+# single byte of a receipt, or its digest, for a family declaring
+# `trajectory_outcome_paths == ()`. It does NOT prove -- and cannot prove,
+# short of issue #68 / PR #149 landing -- that an ordinary, real Housing run
+# (no override) produces the same receipt bytes before and after this
+# change. Housing's own `build_housing_smoke` hashes `task/evaluation.py`'s
+# raw source bytes into its `bridge_digest` implementation pin (see point 2
+# below), and this very change edits that file, so a real run's pins, and
+# therefore its `run_plan_sha256` and `receipt_sha256`, move on every commit
+# in this series regardless of whether R10 is itself behaviorally a no-op.
+# The `implementation_digest_overrides` override just below is that
+# deliberate control, holding the one pin this change would otherwise move
+# fixed so THIS oracle can isolate R10's own no-op behavior -- it is not a
+# workaround papering over instability, and it is not evidence of real
+# end-to-end digest stability either (see the test below this one for the
+# stronger property that IS available without any override, and the report
+# note on why full digest stability itself remains open on #149).
 #
 # Two sources of incidental churn had to be neutralized to make this oracle
 # reproducible, neither of which ruling R10 itself is responsible for:
@@ -507,14 +535,21 @@ def _freeze_evidence_store_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-def test_finalize_is_digest_neutral_with_no_declared_trajectory_outcome_paths(
+def test_finalize_receipt_bytes_are_unchanged_by_r10_machinery_given_fixed_pins(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """`finalize_family_execution` on a family declaring
-    `trajectory_outcome_paths == ()` must produce these EXACT, pre-change-
-    pinned receipt bytes and this EXACT receipt_sha256 after this change --
-    proving R10's replay-time check is a true no-op for the undeclared case,
-    not merely "close"."""
+    """Precisely: given identical implementation pins (held fixed by the
+    override below -- see the module banner above for why that override is
+    necessary and what it is and is not evidence of), adding the R10
+    machinery does not change a single byte, or the digest, of the receipt
+    `finalize_family_execution` produces for a family declaring
+    `trajectory_outcome_paths == ()`. This is NOT a claim that an ordinary
+    real Housing run's receipt bytes are stable across this change -- they
+    are not, because Housing's own `bridge_digest` pin hashes
+    `task/evaluation.py`'s raw bytes and this change edits that file
+    (tracked by issue #68 / PR #149, "every kernel commit moves every design
+    digest"). See the next test for the stronger property that holds without
+    any override."""
     _freeze_evidence_store_clock(monkeypatch)
     setup, execution = _run_housing_episode_with_pinned_bridge_digest(tmp_path)
     finalize_setup = _FinalizeOnlySetup(
@@ -529,3 +564,112 @@ def test_finalize_is_digest_neutral_with_no_declared_trajectory_outcome_paths(
         hashlib.sha256(canonical_json_bytes(receipt)).hexdigest()
         == _GOLDEN_CANONICAL_BYTES_SHA256
     )
+
+
+# Adversarial review finding 2: the override above is a deliberate control,
+# not proof of real digest stability -- this is the stronger property that
+# IS available without it. A real, un-overridden Housing run declaring
+# `trajectory_outcome_paths == ()` has pin-churn-attributable fields that
+# genuinely differ from the same run before this change (tracked by #68 /
+# #149); this asserts every OTHER field of the receipt's canonical JSON --
+# every key this change could plausibly have added or perturbed -- is
+# unchanged.
+#
+# The set of pin-churn-attributable fields below is not assumed; it was
+# derived empirically by diffing a real (no-override) receipt's canonical
+# JSON, and its full sealed event log, between the A1 base (b1e3f566) and
+# this branch, field by field and event by event:
+#
+# 1. `plan_implementation_pins`, `run_plan_sha256`, and `receipt_sha256` are
+#    directly pin-derived: Housing's `bridge_digest` implementation pin
+#    hashes `task/evaluation.py`'s raw bytes (the file this change edits),
+#    `run_plan_sha256` is `RunPlan.plan_sha256`, which covers
+#    `implementation_pins`, and `receipt_sha256` covers every other field,
+#    including those two.
+# 2. `run_plan_id` is `f"runplan_{plan_sha256[:16]}"` (run/resolver.py) --
+#    also pin-derived, one level removed -- and appears TWICE in a
+#    receipt's canonical JSON: the top-level field, and
+#    `evidence.run_plan_id`. Both are redacted by VALUE (not by key), since
+#    the same string appears at both locations.
+# 3. `evidence.event_root_sha256` was the one surprise: every sealed
+#    `Event` record carries its own `run_plan_id` field
+#    (task/execution.py's `Event` dataclass), which is folded into that
+#    event's `event_hash`, which is folded into `event_root_sha256` --
+#    diffing the full 52-event sealed log between the base commit and this
+#    branch (not committed; a throwaway comparison) showed `run_plan_id` as
+#    the ONLY differing field on every single event: `event_type`,
+#    `event_id`, `cell_id`, `episode_id`, `episode_attempt_id`,
+#    `phase_instance_id`, and every event's full payload were
+#    byte-identical. `event_root_sha256` is therefore pin-churn-attributable
+#    too, transitively, and is the one nested field excluded by key
+#    (`evidence.artifact_root_sha256` and every other `evidence` field are
+#    NOT excluded -- they matched without needing it).
+#
+# With exactly those fields excluded and no override, the remaining
+# canonical payload -- spec_version, status, inclusion_status, every
+# sampling/cluster/pairing field, `implementation_refs` (Housing's OTHER
+# pins, which hash `housing.py` and `runner.py` only, never
+# `evaluation.py`), `scores`, and the rest of `evidence` -- was verified
+# byte-identical between the A1 base and this branch (not committed; the
+# digest below is the one artifact of that comparison kept, via this same
+# file's `_run_housing_episode` and `_freeze_evidence_store_clock`, exactly
+# as the overridden oracle above was derived).
+def _strip_pin_churn_attributable_fields(receipt_payload: dict) -> dict:
+    """Return `receipt_payload` (already `json.loads(canonical_json_bytes(...))`)
+    with every field issue #68 / #149's pin churn can move, and ONLY those,
+    removed or redacted -- see the banner above for how this set was
+    derived."""
+    run_plan_id = receipt_payload["run_plan_id"]
+
+    def _redact(value: Any) -> Any:
+        if isinstance(value, str):
+            return "<RUN_PLAN_ID>" if value == run_plan_id else value
+        if isinstance(value, list):
+            return [_redact(item) for item in value]
+        if isinstance(value, dict):
+            return {key: _redact(item) for key, item in value.items()}
+        return value
+
+    redacted = _redact(receipt_payload)
+    redacted["evidence"] = {
+        key: value
+        for key, value in redacted["evidence"].items()
+        if key != "event_root_sha256"
+    }
+    return {
+        key: value
+        for key, value in redacted.items()
+        if key not in ("plan_implementation_pins", "run_plan_sha256", "receipt_sha256")
+    }
+
+
+_GOLDEN_NON_PIN_PAYLOAD_SHA256 = (
+    "a49ffea5858bdeda69a7fca07fbec668fa761374f0f32eb87f708f3b0afec077"
+)
+
+
+def test_finalize_receipt_has_no_r10_attributable_change_outside_pin_churn(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stronger property available without any digest override (see the
+    banner above this test): on a REAL Housing run -- no
+    `implementation_digest_overrides` -- declaring
+    `trajectory_outcome_paths == ()`, the R10 machinery adds no new key and
+    changes no value in the receipt's canonical JSON, once the fields
+    issue #68 / #149's pin churn can move are excluded. End-to-end digest
+    stability itself (the full, unredacted receipt/`receipt_sha256`) is NOT
+    asserted here and cannot be until #149 settles -- that is exactly what
+    the override-based test above holds fixed instead."""
+    _freeze_evidence_store_clock(monkeypatch)
+    setup, execution = _run_housing_episode(tmp_path)
+    finalize_setup = _FinalizeOnlySetup(
+        plan=setup.plan,
+        registry=setup.registry,
+        prompt_sources=setup.prompt_sources,
+        pricing=setup.pricing,
+    )
+    receipt = finalize_family_execution(setup=finalize_setup, execution=execution)
+    payload = json.loads(canonical_json_bytes(receipt))
+    stripped = _strip_pin_churn_attributable_fields(payload)
+    stripped_sha256 = hashlib.sha256(canonical_json_bytes(stripped)).hexdigest()
+    assert stripped_sha256 == _GOLDEN_NON_PIN_PAYLOAD_SHA256
