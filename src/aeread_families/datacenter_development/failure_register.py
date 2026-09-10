@@ -255,6 +255,26 @@ KNOWN_DEFECTS = (
         ),
     },
     {
+        "id": "primary-metric-is-survivorship-biased",
+        "summary": (
+            "Mean developer NPV is averaged over admitted stacks and declared "
+            "no-agreement episodes only; excluded cells are reported separately "
+            "and contribute nothing. So the headline is computed over whatever "
+            "subset a route happened to succeed on, and is not comparable "
+            "across routes with different failure profiles. The leading route's "
+            "$437.9M is an average over 7 of its 48 cells; scoring a collapsed "
+            "stack at the walk-away it could have taken instead puts it at "
+            "$54.6M. It also rewards failing loudly over failing quietly, since "
+            "an exclusion leaves the mean untouched while a walk-away drags it "
+            "down."
+        ),
+        "detected_by": "reading the completed panel",
+        "severity": "headline_number_not_comparable",
+        "status": "open",
+        "fix": None,
+        "regression_test": None,
+    },
+    {
         "id": "bankability-threshold-never-binds",
         "summary": (
             "The lender's thresholds were meant to make sequencing pay, but the "

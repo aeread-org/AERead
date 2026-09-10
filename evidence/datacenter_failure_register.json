@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "1f62570d4b7b1e378ddd044037ac6d7a1969e96bd1a25a0d75000ce17456b611",
+  "artifact_sha256": "c9bc5f41dc5d768412c64aafa05bcb024817c2cbbbafe07ab8398d0973fcaa99",
   "by_attribution_as_recorded": {
     "budget": 5,
     "environment": 10,
@@ -110,6 +110,15 @@
       "severity": "under-tests_declared_capability",
       "status": "fixed",
       "summary": "Price negotiation cannot break the structural plan: in 19 of 24 worlds both adopting every counter and negotiating every price to the floor are structurally valid. The counter package is internally consistent, so cross-agreement planning is solved for free and the sequence order is fixed rather than chosen. The family currently measures distributive pricing and schema compliance far more than it measures planning."
+    },
+    {
+      "detected_by": "reading the completed panel",
+      "fix": null,
+      "id": "primary-metric-is-survivorship-biased",
+      "regression_test": null,
+      "severity": "headline_number_not_comparable",
+      "status": "open",
+      "summary": "Mean developer NPV is averaged over admitted stacks and declared no-agreement episodes only; excluded cells are reported separately and contribute nothing. So the headline is computed over whatever subset a route happened to succeed on, and is not comparable across routes with different failure profiles. The leading route's $437.9M is an average over 7 of its 48 cells; scoring a collapsed stack at the walk-away it could have taken instead puts it at $54.6M. It also rewards failing loudly over failing quietly, since an exclusion leaves the mean untouched while a walk-away drags it down."
     },
     {
       "detected_by": "the sequencing diagnostic on the first full panel",
@@ -7345,6 +7354,7 @@
     }
   ],
   "open_defects": [
+    "primary-metric-is-survivorship-biased",
     "bankability-threshold-never-binds",
     "sequencing-anchored-by-presentation-order",
     "suite-needs-gitignored-artifacts"

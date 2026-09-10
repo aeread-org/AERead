@@ -41,8 +41,9 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | covenant-cliff-unbuildable-from-leverage | specification_not_realisable | worked_around | `test_every_world_has_feasible_trap_and_walk_away_paths` |
 | traps-unreachable-by-counter-adopters | strata_do_not_test_what_they_claim | fixed | `test_the_task_cannot_be_solved_without_cross_agreement_lookahead` |
 | planning-decoupled-from-negotiation | under-tests_declared_capability | fixed | `test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative` |
+| primary-metric-is-survivorship-biased | headline_number_not_comparable | open | `none` |
 | bankability-threshold-never-binds | mechanism_does_not_bind | open | `none` |
 | sequencing-anchored-by-presentation-order | confounds_a_reported_metric | open | `none` |
 | suite-needs-gitignored-artifacts | blocks_clean_checkout | open | `none` |
 
-Open: bankability-threshold-never-binds, sequencing-anchored-by-presentation-order, suite-needs-gitignored-artifacts.
+Open: primary-metric-is-survivorship-biased, bankability-threshold-never-binds, sequencing-anchored-by-presentation-order, suite-needs-gitignored-artifacts.
