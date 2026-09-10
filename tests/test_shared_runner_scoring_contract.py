@@ -6988,6 +6988,7 @@ def _negarena_fixture_pair(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=(NEGARENA_RED,),
             profile_by_seat=cell.profile_by_seat,
         )
