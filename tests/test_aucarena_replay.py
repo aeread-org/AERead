@@ -58,6 +58,7 @@ from aeread.shared_runner.task.execution import (
 )
 from aeread.shared_runner.model_call.harness import default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.layout import RunLayout
 from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
@@ -74,7 +75,10 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
-from aeread.shared_runner.task.evaluation import finalize_family_execution
+from aeread.shared_runner.task.evaluation import (
+    finalize_family_execution,
+    replay_family_receipt,
+)
 from aeread.shared_runner.task.scheduler import (
     EpisodeResult,
     SchedulerContractError,
@@ -1084,3 +1088,201 @@ def test_finalize_wires_aucarena_to_the_shared_family_finalizer(tmp_path: Path) 
         score for score in receipt.scores if score.leaf.leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
     )
     assert profit.status == "ok"
+
+
+# ---------------------------------------------------------------------------
+# Issue #135 Workstream C (spec section 7): the legacy QC case through the
+# real finalizer/replay must stay invalid/excluded/null, and the new
+# frozen-field measurement case must be included with the declared relative-
+# profit estimate, through the SAME production path
+# (``run_episode -> finalize_family_execution -> replay_family_receipt``)
+# this family actually uses -- not ``execute_plan_cell``'s harness/provider
+# stack, which ``AucArenaSetup``'s own docstring (above) says this family
+# never goes through.
+# ---------------------------------------------------------------------------
+
+
+def withdraw_answer(request: Any) -> str:
+    """Provider-free scripted withdrawal (spec section 7.3): ``agent``
+    always withdraws; ``field_low``/``field_high`` are ``rule`` seats whose
+    raw text is accepted but never inspected (``ScriptedAucArenaHarness``'s
+    own contract, ``harness.py``) -- their real bid is computed internally
+    by the vendored ``bid_rule``."""
+    return "-1" if request.seat_id == "agent" else ""
+
+
+def _run_and_finalize_through_evidence_root(
+    case: CaseManifest, *, suffix: str, evidence_root: Path
+) -> tuple[AucArenaSetup, Any]:
+    """``finalize_family_execution`` + a later ``replay_family_receipt`` need
+    the SAME sealed evidence directory, resolved the same way
+    ``replay_family_receipt`` itself resolves it
+    (``RunLayout(evidence_root, run_plan_id).resolve_attempt_dir(cell_id,
+    attempt_id)``) -- ``execute_plan_cell`` does this internally for every
+    harness/provider-backed family; this family drives ``run_episode``
+    directly, so the attempt directory is built here instead.
+    """
+    setup = build_aucarena_setup(case, suffix=suffix)
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAucArenaHarness(answer=withdraw_answer, evidence=evidence)
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    return setup, receipt
+
+
+def test_frozen_field_case_is_included_with_the_declared_relative_profit(
+    tmp_path: Path,
+) -> None:
+    """New measurement case (spec section 7.3): a provider-free scripted
+    withdrawal leaves ``agent`` and ``field_low`` at zero profit and
+    ``field_high`` (the only seat that bids) winning item 5 at its $5000
+    price against a $10000 true value, for a $5000 profit -- giving the
+    declared primary of ``tested_profit - mean_field_profit`` ==
+    ``0 - 2500`` == ``-2500`` and comparator deltas ``0``/``-5000`` against
+    ``score_profit_vs_field``'s own arithmetic, not a hard-coded number."""
+    case = _case("frozen_field_item5")
+    assert case.case_id == "aucarena.pilot.frozen_field_item5_01"
+    evidence_root = tmp_path / "measurement"
+
+    # Derive the expected per-seat profits from this case's own declared
+    # inputs (``payload["items"][0]``) and the fixed, scripted behavior of
+    # this test's harness (spec section 7.3) -- never from the receipt
+    # under test:
+    #
+    # - ``agent`` (the tested seat) is scripted by ``withdraw_answer`` to
+    #   bid ``-1`` on every request, i.e. always withdraw
+    #   (``vendored.set_withdraw``: a negative bid means withdrawn), so it
+    #   never wins item 5 and its profit stays at the environment's
+    #   zero-initialized value (``environment.py``: every seat starts with
+    #   ``"profit": 0``, mutated only by a *winning* ``win_bid`` call).
+    # - ``field_low`` is a ``rule`` seat with ``max_bid_cnt`` 0 in this
+    #   case's roster, so its vendored ``bid_rule`` never submits a bid
+    #   either, and it also never wins -- profit stays 0.
+    # - ``field_high`` is therefore the auction's only active bidder, so
+    #   the hammer falls on its own opening bid at item 5's starting
+    #   ``price`` (no competing bid ever arrives to raise it). Its profit
+    #   follows the vendored ``win_bid`` formula
+    #   (``_vendored_upstream.py``): ``new_profit = profit + true_value -
+    #   bid``, i.e. ``0 + true_value - price``.
+    item = case.payload["items"][0]
+    tested_profit = 0.0
+    field_low_profit = 0.0
+    field_high_profit = float(item["true_value"] - item["price"])
+
+    # ``score_profit_vs_field``'s own arithmetic (measurement.py:758-775):
+    # ``primary`` is the tested seat's profit minus the *mean* field
+    # profit; each ``delta_vs_<seat_id>`` metric is the tested seat's
+    # profit minus that one seat's own profit.
+    mean_field_profit = (field_low_profit + field_high_profit) / len(
+        (field_low_profit, field_high_profit)
+    )
+    expected_primary = tested_profit - mean_field_profit
+    expected_delta_low = tested_profit - field_low_profit
+    expected_delta_high = tested_profit - field_high_profit
+
+    # Regression pin: with this case's frozen numbers (item 5's price
+    # $5000 vs. true_value $10000, agent scripted to withdraw, field_low's
+    # max_bid_cnt 0) the derivation above always resolves to these
+    # literals. Pinned alongside the derivation so a change to either the
+    # case or the formula shows up as a diff here, not a silent drift.
+    assert expected_primary == -2500.0
+    assert expected_delta_low == 0.0
+    assert expected_delta_high == -5000.0
+
+    setup, receipt = _run_and_finalize_through_evidence_root(
+        case, suffix="frozen_field_receipt", evidence_root=evidence_root
+    )
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.case_id == case.case_id
+    assert receipt.case_sha256 == case.content_sha256
+    assert receipt.primary_leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == receipt.primary_leaf_id
+    )
+    assert primary.status == "ok"
+    assert primary.primary is not None
+    assert primary.primary.unit == "usd"
+    assert primary.primary.value == expected_primary
+    assert primary.reference_values["field_low_profit"].value == field_low_profit
+    assert primary.reference_values["field_high_profit"].value == field_high_profit
+    assert primary.metrics["delta_vs_field_low"].value == expected_delta_low
+    assert primary.metrics["delta_vs_field_high"].value == expected_delta_high
+    assert primary.evidence_refs
+
+    replayed = replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+    assert replayed.status == "ok"
+    assert replayed.inclusion_status == "included"
+    replayed_primary = next(
+        score for score in replayed.scores if score.leaf.leaf_id == replayed.primary_leaf_id
+    )
+    assert replayed_primary.primary.value == expected_primary
+
+
+def test_degenerate_qc_case_through_the_real_finalizer_stays_invalid_excluded_and_null(
+    tmp_path: Path,
+) -> None:
+    """Regression (spec section 7.5): the legacy QC case
+    (``aucarena.pilot.degenerate_reference_01``, kept byte-identical to
+    #111) through the SAME real finalizer/replay path as above must still
+    produce ``invalid_measurement``/``excluded``/a null primary -- an empty
+    comparator population (no frozen field seat in this case's roster) can
+    never silently become a numeric relative score, whether scored directly
+    (``tests/test_aucarena_environment.py``) or through the shared
+    finalizer/replay machinery exercised here for the first time."""
+    case = _case("degenerate_reference")
+    assert case.case_id == "aucarena.pilot.degenerate_reference_01"
+    evidence_root = tmp_path / "qc"
+
+    setup, receipt = _run_and_finalize_through_evidence_root(
+        case, suffix="qc_receipt", evidence_root=evidence_root
+    )
+
+    assert receipt.status == "invalid_measurement"
+    assert receipt.inclusion_status == "excluded"
+    assert receipt.primary_leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == receipt.primary_leaf_id
+    )
+    assert primary.status == "invalid_measurement"
+    assert primary.primary is None
+    assert primary.reference_values == {}
+    assert "empty comparator population" in "; ".join(primary.validity.reasons)
+
+    replayed = replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+    assert replayed.status == "invalid_measurement"
+    assert replayed.inclusion_status == "excluded"
+    replayed_primary = next(
+        score for score in replayed.scores if score.leaf.leaf_id == replayed.primary_leaf_id
+    )
+    assert replayed_primary.primary is None

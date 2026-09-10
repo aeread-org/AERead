@@ -109,15 +109,58 @@ def imported() -> dict[str, dict]:
     return ac_cases.import_all_cases(UPSTREAM_ROOT)
 
 
-def test_five_goldens_produce_five_uniquely_named_cases(imported) -> None:
-    assert len(imported) == 5
+LEGACY_DEGENERATE_BYTES_SHA256 = (
+    "90f1963775cf3ee5194fa0b277baa9f07fdfc2e71b31bb758307a23e03b992dd"
+)
+
+
+def test_curated_scenarios_produce_six_uniquely_named_cases(imported) -> None:
+    assert len(imported) == 6
+    assert len(ac_cases.GOLDENS) == 5
     assert set(imported) == {
         "aucarena.pilot.successful_01",
         "aucarena.pilot.valid_but_poor_01",
         "aucarena.pilot.invalid_unauthorized_01",
         "aucarena.pilot.malformed_operational_01",
         "aucarena.pilot.degenerate_reference_01",
+        "aucarena.pilot.frozen_field_item5_01",
     }
+
+
+def test_import_includes_separate_frozen_field_measurement_case(imported) -> None:
+    case = imported["aucarena.pilot.frozen_field_item5_01"]
+    assert case["split"] == "pilot"
+    assert case["world_seed"] == 1005
+    assert case["payload"]["item_ids"] == [5]
+    roster = {seat["seat_id"]: seat for seat in case["payload"]["roster"]}
+    assert roster == {
+        "agent": {
+            "seat_id": "agent",
+            "model_name": "scripted",
+            "budget": 6000,
+            "max_bid_cnt": 4,
+        },
+        "field_low": {
+            "seat_id": "field_low",
+            "model_name": "rule",
+            "budget": 2000,
+            "max_bid_cnt": 0,
+        },
+        "field_high": {
+            "seat_id": "field_high",
+            "model_name": "rule",
+            "budget": 9000,
+            "max_bid_cnt": 4,
+        },
+    }
+    assert case_content_sha256(case) == case["content_sha256"]
+
+
+def test_checked_in_degenerate_case_bytes_remain_unchanged() -> None:
+    path = Path(
+        "cases/aucarena/pilot/aucarena.pilot.degenerate_reference_01.json"
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == LEGACY_DEGENERATE_BYTES_SHA256
 
 
 def test_case_identity_fields_for_every_golden(imported) -> None:
@@ -255,8 +298,8 @@ def test_importer_is_byte_identical_across_two_runs(tmp_path: Path) -> None:
     files_a = sorted(p.relative_to(out_a) for p in out_a.rglob("*.json"))
     files_b = sorted(p.relative_to(out_b) for p in out_b.rglob("*.json"))
     assert files_a == files_b
-    # 5 case files + provenance.json
-    assert len(files_a) == 6
+    # 6 case files + provenance.json
+    assert len(files_a) == 7
 
     for rel in files_a:
         bytes_a = (out_a / rel).read_bytes()
@@ -264,17 +307,17 @@ def test_importer_is_byte_identical_across_two_runs(tmp_path: Path) -> None:
         assert bytes_a == bytes_b, f"{rel} differs across two importer runs"
 
 
-def test_importer_writes_exactly_5_case_files_plus_provenance(tmp_path: Path) -> None:
+def test_importer_writes_exactly_6_case_files_plus_provenance(tmp_path: Path) -> None:
     out_dir = tmp_path / "run"
     ac_cases.run_import(UPSTREAM_ROOT, out_dir)
 
     case_files = sorted(out_dir.glob("aucarena.pilot.*.json"))
-    assert len(case_files) == 5
+    assert len(case_files) == 6
 
     provenance = json.loads((out_dir / "provenance.json").read_text(encoding="utf-8"))
     assert provenance["item_pool_sha256"] == ac_cases.ITEM_POOL_SHA256
     assert provenance["upstream_commit"] == ac_cases.UPSTREAM_COMMIT
-    assert len(provenance["case_ids"]) == 5
+    assert len(provenance["case_ids"]) == 6
 
 
 def test_checked_in_case_files_match_a_fresh_import(tmp_path: Path) -> None:
@@ -290,3 +333,44 @@ def test_checked_in_case_files_match_a_fresh_import(tmp_path: Path) -> None:
     assert checked_in_files == fresh_files
     for name in checked_in_files:
         assert (checked_in_dir / name).read_bytes() == (fresh_dir / name).read_bytes(), name
+
+
+# ---------------------------------------------------------------------------
+# AucArena campaign policy (spec section 7.2): QC-only case exclusion. The
+# family's live/campaign module does not exist yet (issue #135 Task 2 waits
+# on the Arena campaign foundation), so ``cases.py`` is the one place this
+# closed policy set and its validator live for now.
+# ---------------------------------------------------------------------------
+
+
+def test_qc_only_case_ids_is_exactly_the_degenerate_reference_case() -> None:
+    assert ac_cases.QC_ONLY_CASE_IDS == frozenset(
+        {"aucarena.pilot.degenerate_reference_01"}
+    )
+
+
+def test_validate_measurement_cells_accepts_a_panel_with_no_qc_only_case() -> None:
+    ac_cases.validate_measurement_cells(
+        (
+            ("aucarena.pilot.successful_01", 300),
+            ("aucarena.pilot.frozen_field_item5_01", 300),
+        )
+    )  # must not raise
+
+
+def test_validate_measurement_cells_rejects_an_explicit_qc_cell() -> None:
+    with pytest.raises(ValueError, match="QC-only"):
+        ac_cases.validate_measurement_cells(
+            (("aucarena.pilot.degenerate_reference_01", 300),)
+        )
+
+
+def test_validate_measurement_cells_rejects_a_qc_cell_mixed_into_a_real_panel() -> None:
+    with pytest.raises(ValueError, match="aucarena.pilot.degenerate_reference_01"):
+        ac_cases.validate_measurement_cells(
+            (
+                ("aucarena.pilot.successful_01", 300),
+                ("aucarena.pilot.degenerate_reference_01", 300),
+                ("aucarena.pilot.frozen_field_item5_01", 300),
+            )
+        )

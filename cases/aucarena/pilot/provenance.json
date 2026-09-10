@@ -4,7 +4,8 @@
     "aucarena.pilot.valid_but_poor_01",
     "aucarena.pilot.invalid_unauthorized_01",
     "aucarena.pilot.malformed_operational_01",
-    "aucarena.pilot.degenerate_reference_01"
+    "aucarena.pilot.degenerate_reference_01",
+    "aucarena.pilot.frozen_field_item5_01"
   ],
   "item_pool_count": 26,
   "item_pool_path": "data/pseudo_items.jsonl",
