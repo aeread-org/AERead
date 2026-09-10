@@ -82,7 +82,9 @@ SCORERS = _scorer_builders()
 # an issue.
 KNOWN_UNMIGRATED_SCORERS = {
     # Found by this test, filed from it:
-    "aucarena": "#119",
+    # aucarena was here under #119 until this branch migrated its scorer to
+    # take a FamilyScoringInput; the ratchet below then required the entry to
+    # go, which is the whole point of keeping the list.
     "consent_ir": "#120",
 }
 

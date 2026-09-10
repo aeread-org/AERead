@@ -198,6 +198,14 @@ from tests.test_agenticpay_bilateral_replay import _bridge as _agenticpay_bridge
 from tests.test_agenticpay_bilateral_replay import _case as _agenticpay_case
 from tests.test_agenticpay_bilateral_replay import _cell as _agenticpay_cell
 from tests.test_agenticpay_bilateral_replay import _script as _agenticpay_script
+from tests.test_aucarena_replay import (
+    EvidenceRecordingAucArenaHarness,
+    build_aucarena_setup,
+    illegal_bid_answer,
+    kernel_contract_fixture_case,
+    long_path_answer,
+    short_path_answer,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2436,6 +2444,11 @@ def _build_protocol_test_registry_and_fixtures(
     fixtures[(collusion_manifest.family.id, collusion_manifest.family.version)] = (
         collusion_fixtures
     )
+    aucarena_manifest, aucarena_plugin, aucarena_fixtures = _aucarena_fixtures(tmp_path)
+    registry.register_trusted(aucarena_manifest, aucarena_plugin)
+    fixtures[(aucarena_manifest.family.id, aucarena_manifest.family.version)] = (
+        aucarena_fixtures
+    )
 
     return registry, fixtures
 
@@ -3094,7 +3107,6 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # fixture yet; each migrates under its own per-adapter follow-up, not
         # as part of this kernel change.
         ("amazonbarg.bilateral", "0.1.0"),
-        ("aucarena", "0.1.0"),
 
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
@@ -6018,3 +6030,33 @@ def test_case_conditional_protocol_helper_rejects_an_undeclared_inapplicable_id(
         _assert_family_obeys_the_scoring_contract(
             _CASE_CONDITIONAL_KEY, registration, [fixture]
         )
+
+
+def _aucarena_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    case = kernel_contract_fixture_case(world_seed=0)
+    setup = build_aucarena_setup(case, suffix="scoring_contract_fixtures")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(answer: Any, suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"aucarena_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=f"episode_{cell.cell_id}_{suffix}",
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingAucArenaHarness(answer=answer, evidence=evidence)
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    short_fixture = _run(short_path_answer, "short")
+    long_fixture = _run(long_path_answer, "long")
+    illegal_fixture = _run(illegal_bid_answer, "illegal")
+    return family, plugin, (short_fixture, long_fixture, illegal_fixture)

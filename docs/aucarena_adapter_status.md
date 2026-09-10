@@ -1,8 +1,12 @@
 # aucarena adapter — status
 
-Branch `zeyu/aucarena-adapter`. Last verified 2026-09-02. Milestone 3 of 3 (scripted
-harness + end-to-end + replay); milestones 1-2 (cases/environment/scorer/goldens) landed
-earlier on this branch.
+Branch `zeyu/aucarena-contract-migration`, stacked on `zeyu/kernel-r9r10` (rulings
+R9/R10). Last verified 2026-09-06. Milestone 3 of 3 (scripted harness + end-to-end +
+replay) landed earlier, on `zeyu/aucarena-adapter`; milestones 1-2 of that same earlier
+sequence (cases/environment/scorer/goldens) landed before it. This branch's own migration
+milestone 2 of 3 (`kernel_scoring_contract_spec.md`, `docs/aucarena_migration_plan.md`) is
+the "Leaf policy" section immediately below -- a distinct, later milestone numbering from
+the one in the paragraph above, which predates the scoring-contract migration entirely.
 
 ## What the adapter claims
 
@@ -22,7 +26,7 @@ measurement leaves, never one blended number (`docs/aucarena_adapter_spec.md` se
 | `aucarena_profit_vs_field` | `comparative` | `head_to_head` | terminal_state | always; `invalid_measurement` when the roster's field is empty (golden 5) |
 
 No `objective_reference` leaf is declared: per the P21 row in both
-`docs/verifier_taxonomy.md` §13 and `docs/problem_bound_case_audit.md`, profit and TrueSkill
+`docs/research/verifier_taxonomy.md` §13 and `docs/research/problem_bound_case_audit.md`, profit and TrueSkill
 do not solve the auction policy game, so `aucarena_profit_vs_field` stays a head-to-head
 comparison against a *named, declared* frozen rule-bidder field — never a universal
 auction-skill score.
@@ -43,6 +47,114 @@ Milestone 3 adds two more claims, both new this milestone:
    state matches the original **byte-for-byte** (`canonical_json_bytes` equal), not merely in
    content — stronger than `tau3_retail`'s own replay guarantee, which must specifically
    strip per-message timestamps to compare content only.
+
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf policy
+explicitly (spec section 3), and `AucArenaScorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying every one of the four
+leaves below — the shim that previously returned only `aucarena_profit_vs_field` (see
+the retired "Known limits" entry below) is gone.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `aucarena_budget_invariant_leaf` | `finalize_time` | no | no |
+| `aucarena_bid_legality_leaf` | `finalize_time` | no | no |
+| `aucarena_hammer_rule_leaf` | `finalize_time` | no | no |
+| `aucarena_profit_vs_field_leaf` | `finalize_time` | **yes** | **yes** |
+
+**Why `aucarena_profit_vs_field` is primary.** It is this family's own
+already-declared `primary_estimand` (`family_manifest()`'s `measurement` block,
+present since before this milestone), and it names the estimand of primary interest
+by design: per the P21 row in both `docs/research/verifier_taxonomy.md` §13 and
+`docs/research/problem_bound_case_audit.md`, profit and TrueSkill do not solve the auction
+policy game, so no `objective_reference` leaf is declared at all, and the
+comparative head-to-head leaf is the one this family stakes its headline claim on
+(`measurement.py`'s own module docstring makes the identical statement). It was not
+picked because it was the easiest leaf to compute through the pre-migration seam —
+if anything it is the opposite: `aucarena_profit_vs_field` is this family's only
+*terminal-state-scoped* leaf, and the pre-migration `__call__` could reach it
+directly from a bare `outcome` mapping with zero trajectory reconstruction, while the
+three `rule_constraint` leaves need the full replayed `phase_instances` (and, for
+`aucarena_hammer_rule`, `world_seed`/`enable_discount` read off the last replayed
+transition's own state via `_ScoringInputResult`, since `FamilyScoringInput` carries
+no `final_state` field). The choice tracks the family's own declared estimand and its
+"profit/TrueSkill do not solve the game" design stance, not which leaf was
+convenient under the old signature.
+
+**Why it alone gates admission.** The three `rule_constraint` leaves are
+integrity/parity diagnostics on the environment's own rule application — "the
+component parity check the spec's test plan calls for" (this file's own "What the
+adapter claims" section above) — never competing candidates for the headline result,
+and per `measurement.py`'s own scorers none of them has a real
+`invalid_measurement` path to gate on at all: each of `score_budget_invariant`,
+`score_bid_legality`, and `score_hammer_rule` always returns `status="ok"`; a
+genuine violation is recorded as a `0.0`-valued metric under an otherwise-valid
+envelope (e.g. `score_budget_invariant`'s `primary=MetricValue(0.0 if violations
+else 1.0, "pass")`), and a disagreement between the environment's own recorded
+state/legality/consequences and this module's independent recompute is treated as
+an adapter defect and raises `AucArenaMeasurementError` directly, which aborts
+finalization before admission gating is ever reached. `aucarena_profit_vs_field` is
+the only leaf whose estimand definition requires something that is not always
+present (a non-empty comparator field, golden 5's single-seat roster) and therefore
+the only one with a real `invalid_measurement` path
+(`score_profit_vs_field`'s empty-`field_seats` branch) — the leaf whose exclusion
+behavior actually matters is the one gating admission. This mirrors `govsim`'s own
+admission choice (primary alone; its two `rule_constraint` diagnostics are declared
+but do not gate) for the same underlying reason.
+
+**Deferred leaves: none.** Every leaf in this family is
+`evaluation_class="deterministic"` with no judge, rater, or other not-yet-existing
+artifact anywhere in its verifier declaration (`measurement.py`'s `build_*_leaf`
+functions and its own module docstring: "provider-free and judge-free... all four
+are `deterministic`"); nothing here waits on an artifact that "may not exist yet"
+(spec section 4), so all four are declared `scope="finalize_time"` and none is
+`scope="deferred"`.
+
+`docs/aucarena_migration_plan.md`'s own "Does `outcome()` embed the trajectory?"
+section additionally confirms rulings R9/R10 (`trajectory_outcome_paths`) do not
+apply here: `outcome()` carries no field recording individual bid amounts, rounds,
+or parse/legality determinations — only per-item final dispositions and per-seat
+final tallies — so the whole-outcome paired-history pair is constructible without a
+projection, unlike `collusion`/`datacenter_development`.
+
+## Enrollment and receipt (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+`aucarena` is dropped from `_NOT_YET_MIGRATED_TRUSTED_KEYS` in
+`tests/test_shared_runner_scoring_contract.py` and enrolled with real fixtures
+(`_aucarena_fixtures`) in the always-on
+`test_every_registered_family_obeys_the_scoring_contract` — no bridge-gated test or
+conftest.py gate is needed (unlike `govsim`): this family has no bridge process at all,
+and its scoring-contract fixtures build a small, custom, checked-in-corpus-independent
+case directly (`tests/test_aucarena_replay.py`'s own `kernel_contract_fixture_case`).
+
+Three findings surfaced while implementing this milestone, investigated and fixed before
+enrolling — full disposition, empirical verification, and mutation-test evidence in
+`docs/aucarena_migration_review.md`:
+
+1. `aucarena_budget_invariant_leaf`/`aucarena_hammer_rule_leaf` could not satisfy ruling
+   R9(b)'s sensitivity witness (neither has any way to produce a differing score on a
+   legitimately-scripted episode) — fixed with an additive, violation-arithmetic-untouched
+   diagnostic metric on each.
+2. `aucarena_bid_legality_leaf`'s witness additionally needed a same-case fixture
+   carrying a genuine illegal bid, not just a longer trajectory.
+3. This family had never produced an `EvaluationReceipt` at all: `initial_state`'s second
+   parameter was named `cell` and dereferenced, but replay calls it with `run=None`; fixed
+   by renaming to `run` and making `world_seed` reachable from `family_case` instead
+   (duplicated from the outer `CaseManifest.world_seed`, mirrored into the five checked-in
+   goldens via the real import CLI), plus declaring `scoring.reference_provider_ids` (nine
+   component ids, previously unreferenced by the manifest) so a `RunPlan` pinning them
+   resolves at all.
+
+`tests/test_aucarena_replay.py::test_finalize_wires_aucarena_to_the_shared_family_finalizer`
+drives one real, provider-free episode through `task.evaluation.finalize_family_execution`
+and asserts `status == "ok"`, `inclusion_status == "included"`, exactly the four declared
+finalize-time leaves, and the declared `primary_leaf_id` — the first receipt this family
+has ever produced.
+
+An independent 2026-09-06 review raised two findings on the budget/hammer diagnostic
+metrics; both were refuted against the spec text and the diff
+(`docs/aucarena_migration_review.md`, "Disposition of the 2026-09-06 independent review").
 
 ## Evidence
 
@@ -75,20 +187,44 @@ checkout in CI, a separate, out-of-scope decision this pass does not make.
 
 ```bash
 AEREAD_AUCARENA_UPSTREAM_ROOT=<pinned-checkout> PYTHONPATH=src pytest tests/test_aucarena_*.py -q
-# 100 passed
+# 112 passed, 0 failed, 0 skipped (re-verified 2026-09-06; unchanged with the env
+# var unset too, since this module's own default checkout path already resolves
+# on this machine -- see the "conditional, not unconditional" note above). 109
+# passed before this milestone's leaf-policy/__call__ migration began (the same
+# number `docs/aucarena_migration_plan.md`'s own milestone-0 precondition check
+# recorded), so this milestone's own commits added three tests, not one.
 AEREAD_AUCARENA_QC_GATE_REQUIRED=1 PYTHONPATH=src pytest tests/test_aucarena_cases.py -q
-# fails loudly, with a provisioning hint, if that checkout is absent
+# fails loudly (nonzero exit, though the printed summary line still reads "1
+# skipped"), with a provisioning hint, if that checkout is absent
 ```
 
-**Full repo suite: 826 passed, 31 skipped, 1 xfailed, 0 failed.** The 31 skips are
-pre-existing and unrelated to this family: `rllm` integration tests (`No module named
-'rllm'`) and `tau3_retail` tests gated on a pinned upstream tau2-bench Python interpreter
-(`$AEREAD_TAU2_BRIDGE_PYTHON`). Re-ran with and without this branch's changes to confirm the
-skip set is unchanged by this work.
+**Full repo suite: 826 passed, 31 skipped, 1 xfailed, 0 failed** (pre-migration baseline;
+not re-run whole-repo this milestone, which touched only this family's own files plus the
+shared tests/test_shared_runner_scoring_contract.py, re-run separately below: 31 passed).
+The 31 skips are pre-existing and unrelated to this family: `rllm` integration tests (`No
+module named 'rllm'`) and `tau3_retail` tests gated on a pinned upstream tau2-bench Python
+interpreter (`$AEREAD_TAU2_BRIDGE_PYTHON`). That baseline and its with/without comparison
+were taken on zeyu/aucarena-adapter; the whole-repo suite has not been re-run on this
+branch.
+
+**This milestone's own family suite: 153 passed, 0 failed, 0 skipped** (the seven family
+test files above, plus `tests/test_shared_runner_scoring_contract.py` -- the file this
+milestone's own enrollment commit, `246bd71a`, added this family's fixtures to
+(`_aucarena_fixtures`, exercised by the always-on
+`test_every_registered_family_obeys_the_scoring_contract`) -- plus
+`tests/test_shared_runner_smoke.py`), re-verified both with
+`AEREAD_AUCARENA_UPSTREAM_ROOT` exported and with it unset -- unchanged either way on this
+machine, since `tests/test_aucarena_cases.py`'s own default checkout path (see the
+"conditional, not unconditional" note above) already resolves to a present checkout here,
+and `test_shared_runner_scoring_contract.py`'s own fixtures build a small, checked-in-corpus-
+independent case directly and never touch the upstream checkout at all; the skip this
+family's QC-Gate-1 tests would show on a machine without that checkout, or without the env
+var override, is unaffected by this migration.
 
 ```bash
-PYTHONPATH=src pytest tests/test_shared_runner_smoke.py -q
-# 10 passed
+PYTHONPATH=src pytest tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py -q
+# 31 passed; 10 passed (run separately above; combined with the seven
+# test_aucarena_*.py files above: 153 passed, 0 failed, 0 skipped)
 ```
 
 **Every one of the five goldens replays byte-identically, state and score.**
@@ -146,7 +282,7 @@ nothing left to delegate to a subprocess, and nothing to provision.
   require the `langchain`-chained prompt/parse path this adapter deliberately never imports
   (`docs/aucarena_adapter_spec.md` section 7).
 - **`aucarena_profit_vs_field` is a head-to-head comparison, not a policy optimum.** Per the
-  P21 row in both `docs/verifier_taxonomy.md` and `docs/problem_bound_case_audit.md`, this
+  P21 row in both `docs/research/verifier_taxonomy.md` and `docs/research/problem_bound_case_audit.md`, this
   route is `not_demonstrated` for saturation and must stay that way in any paper claim.
 - **The scenario corpus is AERead-authored, not an upstream-published task list** — upstream
   ships only a raw 26-item pool and a generator, not an enumerable task set
@@ -195,22 +331,35 @@ nothing left to delegate to a subprocess, and nothing to provision.
   and `::test_build_scorer_reference_hash_reflects_the_real_cases_item_order`); the
   `case_id`/`world_seed` half of the pairing is tracked at the outer kernel bookkeeping layer
   instead (`cell_id`/`case_id` already on the receipt).
-- **`AucArenaScorer.__call__` can surface only one of this family's four declared leaves, and
-  must not be read as a working multi-leaf production path.** The shared kernel's real calling
-  convention (`finalize_family_execution`, `aeread/shared_runner/family_evaluation.py`) calls
-  `plugin.build_scorer(family_case)` as a function of `(outcome, evidence_refs=...)` and expects
-  exactly one `ScoreEnvelope` back. `__call__` (added for Finding 1) satisfies that by forwarding
-  only to `score_profit_vs_field` — the sole leaf computable from a bare terminal `outcome` — and
-  has no way to also report `aucarena_budget_invariant`, `aucarena_bid_legality`, or
-  `aucarena_hammer_rule` through this path; those three stay reachable only via their named
-  methods, which every test in this family (and `replay.py`) already uses instead. This is not
-  an aucarena-specific quirk: four other families (`govsim`, `steer`, `negarena`, and this one)
-  independently added the identical shape of `__call__` while closing their own reviews. It is a
-  kernel contract gap under active architecture review, tracked at
-  `runner_defect_ledger.md` entry **D-19** (and its 2026-09-02 addendum, which names exactly
-  this "silently picks one leaf as primary" risk) — not something this adapter can resolve
-  unilaterally, and not live in production today regardless: only `housing.py:940` calls
-  `finalize_family_execution`, and this family is not wired to it.
+- ~~**`AucArenaScorer.__call__` can surface only one of this family's four declared leaves...**~~
+  **Retired 2026-09-06.** `AucArenaScorer.__call__` now takes a `FamilyScoringInput` and returns
+  a `FamilyScoreSet` carrying all four declared leaves (see "Leaf policy" above) — the kernel
+  contract gap this entry described (`runner_defect_ledger.md` entry **D-15**) is resolved for
+  this family by the `kernel_scoring_contract_spec.md` migration; whether the other three
+  families D-15's 2026-09-02 census named (`govsim`, `steer`, `negarena`) have migrated is
+  tracked in their own status docs, not here.
+- **A single-seat-roster case's receipt is always excluded, not merely flagged on one leaf.**
+  `aucarena_profit_vs_field_leaf` is this family's sole admission leaf
+  (`AucArenaScorer.__call__`'s `admission_leaf_ids=(profit_vs_field_leaf_id,)`, "Leaf policy"
+  above), and `score_profit_vs_field`'s empty-`field_seats` branch (`measurement.py`) returns
+  `status="invalid_measurement"` unconditionally whenever `build_scorer` finds no roster seat
+  other than the tested one — golden 5's `degenerate_reference` shape, and any future case
+  authored the same way, every time, not just occasionally. Per `task.evaluation`'s generic
+  `_score_admission` rule (an invalid admission leaf excludes the whole receipt, never only
+  that leaf), every such case's receipt comes back `status="invalid_measurement"`,
+  `inclusion_status="excluded"` regardless of how the three `rule_constraint` diagnostics or
+  the tested seat's own play went — confirmed at the `FamilyScoreSet` level by
+  `tests/test_aucarena_measurement.py::test_scorer_call_reports_invalid_measurement_on_the_primary_leaf_alone_for_golden_5`
+  (`score_set.invalid_admission_leaf_ids == (PROFIT_VS_FIELD_LEAF_ID,)`). No test in this
+  family currently drives a single-seat-roster case through `finalize_family_execution`
+  itself to pin the resulting receipt's `status`/`inclusion_status` directly — the one
+  finalizer test, `test_finalize_wires_aucarena_to_the_shared_family_finalizer`, uses the
+  two-seat `short_path_answer` fixture — so the receipt-level consequence above is read off
+  the kernel's own generic admission code, not off a family-specific test asserting it end to
+  end. This is a structural consequence of the estimand's own frozen-field design (spec
+  section 2), not a bug, but it means a single-seat-roster scenario can never contribute an
+  included score to any benchmark aggregate, which matters if the corpus is ever grown to add
+  more single-seat scenarios expecting them to score normally.
 - **Two Finding-5/Finding-2 codex-review findings are confirmed but not auto-fixed this pass**
   (see `docs/aucarena_review_disposition.md`'s "Codex-review findings" section for the full
   reasoning): whether a malformed/illegal bid should still terminate a round with no retry
@@ -226,10 +375,55 @@ nothing left to delegate to a subprocess, and nothing to provision.
   `::test_golden_1_profit_vs_field_is_finite_and_mixed_sign` pins the exact unweighted-mean
   formula (Finding 5) — a future silent change to either behavior breaks a named test instead of
   slipping through unremarked.
+- **`payload.world_seed` duplicates `CaseManifest.world_seed` (`b3a800f4`) and nothing checks
+  they agree**: `validate_payload` sees only the payload and the scheduler compares only
+  `PlanCell.world_seed` to `CaseManifest.world_seed`; a hand-authored mismatch would seed the
+  episode from the payload while cell/case bookkeeping carries the manifest value.
+  `build_case` writes them equal and `content_sha256` pins both; all five goldens verified
+  consistent.
+- **`aucarena_budget_invariant`'s and `aucarena_hammer_rule`'s R9(b) witness is satisfied by
+  check-extent, not by verdict variation — stated plainly, not softened.** Both leaves are
+  declared `input_scope="trajectory"`. `checked_transitions_count`/`replayed_rounds_count`
+  (`24f07c4c`) are the *only* thing that ever differs across this family's own same-`family_case`
+  fixture pairs; neither leaf's `status`/`primary` can vary on any trajectory this family can
+  seal:
+  - `aucarena_budget_invariant`'s only violation path is `budget < 0` at a recorded post-round
+    state. `envelope.valid` — the sole gate through which a bid can ever reach `step()`'s state
+    mutation — is computed by the shared kernel scheduler itself
+    (`task/scheduler.py`: `valid = parsed.ok and legality is not None and legality.legal`, not
+    by this family's own code), and `AucArenaPlugin.legal()` calls the same
+    `vendored.bid_sanity_check` that already rejects `bid_price > budget`; `step()` never folds
+    an invalid action into `round_bids` (`if not envelope.valid: continue`). By induction over
+    every item a seat bids on — each `win_bid` call only ever subtracts an already-legal,
+    budget-bounded amount from that seat's *current* (possibly already-reduced-by-a-prior-win)
+    budget — no sequence of raw scripted responses, adversarial or malformed included, driven
+    through the real scheduler can ever produce a negative recorded budget. This is a structural
+    property of the kernel's own `valid` computation, not an untried case; the only way around it
+    is to fabricate `TransitionResult.state` directly instead of deriving it from a live episode,
+    which would not be a sealed fixture in the sense this family's other witnesses are, and was
+    rejected rather than done.
+  - `aucarena_hammer_rule`'s only disagreement path — its independent `record_bid`/
+    `check_hammer` replay disagreeing with the environment's own recorded consequences — raises
+    `AucArenaMeasurementError` immediately instead of returning a differing `ScoreEnvelope`; a
+    disagreement, if one were ever reachable, aborts finalization rather than scoring
+    differently. On every successful (non-raising) replay this leaf's `status`/`primary` is
+    unconditionally `("ok", 1.0)` regardless of how the auction played out.
+  - The 2026-09-06 second independent review's failure scenario is accurate and is recorded
+    here rather than argued away: deleting the budget inspection body (`measurement.py`
+    ~443-455) or the hammer recomputation/comparison (~661-706) while leaving the counters in
+    place would still pass `_assert_trajectory_leaves_are_witnessed` — the witness cannot detect
+    that regression, because it is a same-case-pair check over `ScoreEnvelope` content and the
+    counters are the only content that varies. This is disclosed, not fixed: no sealable
+    same-`family_case` fixture can make either leaf's real verdict vary (see above), and
+    fabricating one would misrepresent what was actually checked. Full disposition, including
+    why the collusion-family precedent (a malformed-round fixture that changes the leaf's own
+    verdict) does not transfer here, is in `docs/aucarena_migration_review.md`'s "Second
+    independent review" section.
 
 ## Ledger
 
-No new kernel/runner defect found this milestone. Three pre-existing entries from earlier
-milestones remain open in `ledger_entries/aucarena.md` (missing `docs/benchmark_qc.md`;
-`build_scorer` receiving no seed-bearing object, worked around by this family persisting
-`world_seed` in its own state) — unchanged by this work, not re-litigated here.
+No new kernel/runner defect found this milestone. Three pre-existing entries in `econ
+benchmark/ledger_entries/aucarena.md` (outside this repo): the benchmark_qc.md gap (folded
+into master D-10), the P21 taxonomy confirmation (informational, no action), and
+`build_scorer`'s missing seed route (master D-12; this branch additionally duplicates
+`world_seed` into `payload`) — unchanged by this work, not re-litigated here.

@@ -34,6 +34,7 @@ from aeread.shared_runner.task.scheduler import (
 )
 
 from . import _vendored_upstream as vendored
+from . import measurement
 from .cases import (
     FAMILY_ID,
     FAMILY_VERSION,
@@ -54,6 +55,7 @@ _REQUIRED_PAYLOAD_KEYS = {
     "roster",
     "min_markup_pct",
     "enable_discount",
+    "world_seed",
 }
 _REQUIRED_ITEM_KEYS = {"id", "name", "price", "desc", "true_value"}
 _REQUIRED_ROSTER_KEYS = {"seat_id", "model_name", "budget", "max_bid_cnt"}
@@ -88,8 +90,49 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
                 "outcome_support": "case_specific",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from `build_scorer`
+                # or a test fixture. All four are `scope="finalize_time"`:
+                # every leaf in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater, or
+                # other not-yet-existing artifact dependency (spec section
+                # 4), so none is `deferred`. See
+                # docs/aucarena_adapter_status.md's "Leaf policy" section for
+                # why `aucarena_profit_vs_field` is primary and why it alone
+                # gates admission.
+                "leaves": [
+                    {
+                        "leaf_id": measurement.BUDGET_INVARIANT_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {"leaf_id": measurement.BID_LEGALITY_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.HAMMER_RULE_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.PROFIT_VS_FIELD_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                ],
+                "primary_leaf_id": measurement.PROFIT_VS_FIELD_LEAF_ID,
+                "admission_leaf_ids": [measurement.PROFIT_VS_FIELD_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # Every distinct implementation component id this family's
+                # four leaves pin (measurement.py's own
+                # REFERENCE_PROVIDER_IDS docstring) -- required for
+                # resolve_run_plan to accept a plan pin for any of them
+                # (resolver.py's _required_pin_kinds/_check_pins rejects an
+                # "unreferenced" pin not named here). Without this,
+                # finalize_family_execution can never seal a real
+                # EvaluationReceipt for this family: EvaluationReceipt's own
+                # _validate_and_freeze_plan_pins requires every leaf's
+                # validity-domain predicate, verifier reference, and scorer
+                # to be pinned, and resolve_run_plan requires every pin to be
+                # named as "required" first.
+                "reference_provider_ids": list(measurement.REFERENCE_PROVIDER_IDS),
+            },
         }
     )
 
@@ -195,9 +238,32 @@ class AucArenaPlugin:
                 "enable_discount must be False -- the price-cut path is out of "
                 "this adapter's scope (docs/aucarena_adapter_spec.md section 7)"
             )
+        world_seed = data["world_seed"]
+        if (
+            not isinstance(world_seed, int)
+            or isinstance(world_seed, bool)
+            or world_seed < 0
+        ):
+            raise ValueError("payload.world_seed must be a non-negative int")
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other migrated family's own ``initial_state`` hook -- required
+        because ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here. ``world_seed`` is read from ``family_case``
+        (declared in ``payload.world_seed``, validated above) rather than
+        from this parameter, since replay supplies ``None`` here and this
+        family's ``score_hammer_rule`` needs the SAME world_seed the live
+        episode used, byte for byte, to reproduce its RNG tie-break stream.
+        """
+        del run
         seat_order = [seat["seat_id"] for seat in family_case["roster"]]
         seats = {
             seat["seat_id"]: {
@@ -212,7 +278,7 @@ class AucArenaPlugin:
             for seat in family_case["roster"]
         }
         return {
-            "world_seed": int(cell.world_seed),
+            "world_seed": int(family_case["world_seed"]),
             "items": [dict(item) for item in family_case["items"]],
             "min_markup_pct": family_case["min_markup_pct"],
             "enable_discount": family_case["enable_discount"],
@@ -554,14 +620,16 @@ class AucArenaPlugin:
         See ``measurement.py`` (spec section 2): ``aucarena_budget_invariant``,
         ``aucarena_bid_legality``, ``aucarena_hammer_rule``, and
         ``aucarena_profit_vs_field`` are declared for every case -- no
-        ``objective_reference`` leaf, no scalar collapse. The returned
-        ``AucArenaScorer`` is itself callable (``__call__(outcome,
-        evidence_refs=...)``) -- the shared kernel's real calling convention
-        (``finalize_family_execution`` in
-        ``aeread/shared_runner/family_evaluation.py`` already calls whatever
-        this method returns as a function; see ``AucArenaScorer.__call__``'s
-        own docstring for exactly which one of the four leaves that
-        convention can reach).
+        ``objective_reference`` leaf, no scalar collapse.
+        ``task.evaluation.finalize_family_execution`` calls the returned
+        ``AucArenaScorer`` directly (``plugin.build_scorer(family_case)(
+        scoring_input, evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``measurement.py``'s
+        ``AucArenaScorer.__call__`` is the seam that satisfies that call and
+        returns every one of this family's four declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        method is still exercised directly by every golden-by-golden test in
+        this family.
         """
         return build_measurement_scorer(family_case)
 
