@@ -58,3 +58,17 @@ def test_1n_denial_requires_explicit_none_method() -> None:
 
     assert outcome.policy_compliant is False
     assert "policy_terms_mismatch" in outcome.verifier_reasons
+
+
+def test_1n_scripted_customer_reveals_facts_in_bounded_turns() -> None:
+    state, outcome = run_scripted_1n(build_1n_case(5, positive=True))
+
+    customer_reveals = [
+        message["revealed_fields"]
+        for message in state.transcript
+        if message["speaker"] == "customer"
+    ]
+    assert customer_reveals[0] == {}
+    assert customer_reveals[1] == ["condition", "issue_type", "evidence_provided"]
+    assert customer_reveals[2] == ["return_received"]
+    assert outcome.policy_compliant is True

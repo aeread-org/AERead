@@ -16,19 +16,20 @@ from typing import Any
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import ArenaChatClient, ProviderFailure, ProviderRequest
 
-from .environment import build_1n_case, run_1n_with_policy_proposal
+from .environment import build_1n_case, run_1n_with_policy_turns
 
 
 OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "decision": {"type": "string", "enum": ["approve_direct", "deny"]},
+        "decision": {"type": "string", "enum": ["request_facts", "approve_direct", "deny"]},
         "amount": {"type": "number"},
         "method": {"type": ["string", "null"]},
         "reason": {"type": ["string", "null"]},
         "proposal_id": {"type": "string"},
+        "requested_fields": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["decision", "amount", "method", "reason", "proposal_id"],
+    "required": ["decision"],
     "additionalProperties": False,
 }
 
@@ -46,7 +47,7 @@ def _load_env(path: Path) -> None:
         os.environ.setdefault(key, value)
 
 
-def _request(case: Any, *, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, seed: int) -> ProviderRequest:
+def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, seed: int, turn: int) -> ProviderRequest:
     public_case = {
         "case_id": case.case_id,
         "world_seed": case.world_seed,
@@ -54,18 +55,21 @@ def _request(case: Any, *, model: str, revision: str | None, reasoning_effort: s
         "price": case.price,
         "days_since_delivery": case.days_since_delivery,
         "public_claim": case.public_claim,
-        "revealed_facts": {field: case.private_facts[field] for field in case.required_facts},
-        "handoff": {"from": "intake", "to": "policy", "required_facts": list(case.required_facts)},
+        "revealed_facts": revealed_facts,
+        "available_fact_ids": [field for field in case.required_facts if field not in revealed_facts],
+        "handoff": {"from": "intake" if turn == 0 else "customer", "to": "policy"},
     }
     instructions = (
         "You are the policy agent in a refund benchmark. Decide only from the "
         "public case and facts revealed by intake. Do not invent undisclosed facts. "
-        "Approve exactly the authorized refund when the disclosed facts support it; "
+        "If a required fact is missing, return decision request_facts and request at "
+        "no more than three available_fact_ids. Do not decide before the needed facts "
+        "are disclosed. Approve exactly the authorized refund when the disclosed facts support it; "
         "otherwise deny. For approval use method original_payment; for denial use "
         "amount 0 and method none. Return only JSON matching the supplied schema."
     )
     return ProviderRequest(
-        provider_call_id=f"refund-v2-policy-{case.world_seed}",
+        provider_call_id=f"refund-v2-policy-{case.world_seed}-{turn}",
         provider="arena",
         base_url="https://api.preview.arena.ai/v1",
         model=model,
@@ -111,20 +115,39 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                 "content_sha256": case.content_sha256,
             }
             try:
-                result = await client.complete(_request(
-                    case,
-                    model=model,
-                    revision=revision,
-                    reasoning_effort=reasoning_effort,
-                    max_output_tokens=max_output_tokens,
-                    timeout=timeout,
-                    seed=seed,
-                ))
-                proposal = json.loads(result.output_text)
-                state, outcome = run_1n_with_policy_proposal(case, proposal)
+                revealed_facts: dict[str, Any] = {}
+                turns: list[dict[str, Any]] = []
+                provider_results = []
+                for turn in range(4):
+                    result = await client.complete(_request(
+                        case,
+                        revealed_facts,
+                        model=model,
+                        revision=revision,
+                        reasoning_effort=reasoning_effort,
+                        max_output_tokens=max_output_tokens,
+                        timeout=timeout,
+                        seed=seed,
+                        turn=turn,
+                    ))
+                    provider_results.append(result)
+                    action = json.loads(result.output_text)
+                    turns.append(action)
+                    if action.get("decision") != "request_facts":
+                        break
+                    requested = action.get("requested_fields", [])
+                    if not isinstance(requested, list):
+                        break
+                    for field in requested[:3]:
+                        if field in case.required_facts and field not in revealed_facts:
+                            revealed_facts[field] = case.private_facts[field]
+                state, outcome = run_1n_with_policy_turns(case, turns)
+                result = provider_results[-1]
+                proposal = turns[-1] if turns and turns[-1].get("decision") in {"approve_direct", "deny"} else None
                 row.update({
                     "status": "completed",
                     "proposal": proposal,
+                    "policy_turns": turns,
                     "transcript": state.transcript,
                     "outcome": {
                         "decision": outcome.decision,
