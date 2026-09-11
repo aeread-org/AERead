@@ -1,8 +1,11 @@
 from aeread_families.refund.v2_environment import (
     build_1n_case,
+    build_1n_panel,
     run_1n_with_policy_proposal,
     run_scripted_1n,
 )
+from aeread_families.refund.v2_experiment import run as run_v21_experiment
+from aeread.shared_runner.task.execution import EvidenceStore
 
 
 def test_1n_positive_path_requires_payments_agent_execution() -> None:
@@ -72,3 +75,47 @@ def test_1n_scripted_customer_reveals_facts_in_bounded_turns() -> None:
     assert customer_reveals[1] == ["condition", "issue_type", "evidence_provided"]
     assert customer_reveals[2] == ["return_received"]
     assert outcome.policy_compliant is True
+
+
+def test_1n_panel_covers_v21_scenarios_and_product_categories() -> None:
+    panel = build_1n_panel(7)
+
+    assert len(panel) == 6
+    assert {case.scenario for case in panel} == {
+        "full_refund",
+        "liquid_damage_denial",
+        "partial_software",
+        "boundary_window",
+        "conflicting_claim",
+        "missing_evidence",
+    }
+    assert {case.product_category for case in panel} == {
+        "apparel",
+        "consumer_electronics",
+        "software",
+        "perishable_goods",
+    }
+
+
+def test_1n_scripted_partial_refund_executes_exact_amount() -> None:
+    case = build_1n_panel(8)[2]
+    state, outcome = run_scripted_1n(case)
+
+    assert outcome.policy_compliant is True
+    assert state.transactions == [{
+        "agent": "payments",
+        "proposal_id": "proposal_1",
+        "amount": 90.0,
+        "method": "original_payment",
+    }]
+
+
+def test_v21_experiment_writes_auditable_trajectory_evidence(tmp_path) -> None:
+    report = run_v21_experiment((9,), tmp_path)
+
+    assert report["planned_cases"] == 6
+    assert (tmp_path / "evidence_manifest.json").exists()
+    roots = sorted((tmp_path / "evidence" / "trajectories").iterdir())
+    assert len(roots) == 6
+    audited = EvidenceStore.audit_existing(roots[0])
+    audited.close()

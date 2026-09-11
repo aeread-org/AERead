@@ -1,4 +1,4 @@
-"""Run a Refund V2 1:N panel with an active Arena policy agent.
+"""Run a Refund V2.1 1:N panel with an active Arena policy agent.
 
 The intake, customer, and payments seats remain deterministic. Only the policy
 seat is supplied by the model, so the report separates policy behavior from
@@ -16,9 +16,9 @@ from pathlib import Path
 from typing import Any
 
 from aeread.shared_runner.run.resolver import canonical_json_bytes
-from aeread.shared_runner.task.execution import ArenaChatClient, ProviderFailure, ProviderRequest
+from aeread.shared_runner.task.execution import ArenaChatClient, EvidenceStore, ProviderFailure, ProviderRequest
 
-from .v2_environment import build_1n_case, run_1n_with_policy_turns
+from .v2_environment import build_1n_panel, run_1n_with_policy_turns
 
 
 OUTPUT_SCHEMA = {
@@ -56,41 +56,59 @@ def _report_filename(model: str) -> str:
 
 def _write_trajectory_evidence(output: Path, rows: list[dict[str, Any]]) -> None:
     evidence_dir = output / "evidence"
-    evidence_dir.mkdir(parents=True, exist_ok=True)
+    trajectories_dir = evidence_dir / "trajectories"
+    trajectories_dir.mkdir(parents=True, exist_ok=True)
     manifest: list[dict[str, Any]] = []
     for ordinal, row in enumerate(rows, start=1):
-        label = "positive" if row["positive"] else "denial"
+        label = row.get("scenario", "positive" if row["positive"] else "denial")
         filename = f"{ordinal:03d}_seed_{row['world_seed']:06d}_{label}.json"
         payload = {
             "schema_version": "aeread.refund_v2.trajectory_evidence/1.0",
             "family_id": "refund_v2",
-            "family_version": "2.0.0",
+            "family_version": "2.1.0",
             "model": row.get("provider", {}).get("resolved_model"),
             "case_id": row["case_id"],
             "world_seed": row["world_seed"],
             "positive": row["positive"],
+            "scenario": row.get("scenario"),
             "content_sha256": row["content_sha256"],
             "policy_turns": row.get("policy_turns", []),
             "transcript": row.get("transcript", []),
+            "handoffs": row.get("handoffs", []),
+            "proposals": row.get("proposals", []),
+            "confirmations": row.get("confirmations", []),
+            "transactions": row.get("transactions", []),
+            "invalid_fact_requests": row.get("invalid_fact_requests", []),
             "outcome": row.get("outcome"),
             "provider": row.get("provider"),
         }
         data = canonical_json_bytes(payload) + b"\n"
-        path = evidence_dir / filename
+        trajectory_dir = trajectories_dir / filename.removesuffix(".json")
+        trajectory_dir.mkdir(parents=True, exist_ok=True)
+        path = trajectory_dir / "trajectory.json"
         path.write_bytes(data)
+        with EvidenceStore(
+            trajectory_dir,
+            run_plan_id="refund_v2_1n",
+            cell_id=f"cell_{ordinal:04d}",
+            episode_id=row["case_id"],
+            episode_attempt_id=f"attempt_{ordinal:04d}",
+        ) as store:
+            store.append_event("trajectory_recorded", payload)
+            store.seal()
         manifest.append({
             "case_id": row["case_id"],
             "world_seed": row["world_seed"],
             "positive": row["positive"],
-            "relative_path": f"evidence/{filename}",
+            "relative_path": f"evidence/trajectories/{filename.removesuffix('.json')}/trajectory.json",
+            "evidence_root": f"evidence/trajectories/{filename.removesuffix('.json')}",
             "sha256": hashlib.sha256(data).hexdigest(),
         })
     (evidence_dir / "README.md").write_text(
         "# Refund V2 trajectory evidence\n\n"
-        "Each JSON file contains one complete recorded policy trajectory, "
-        "including policy turns, customer disclosures, transcript, provider "
-        "metadata, and verifier outcomes. The manifest binds each file to its "
-        "case and content digest.\n",
+        "Each trajectory directory contains a human-readable trajectory.json "
+        "and a sealed EvidenceStore event chain with content-addressed artifacts. "
+        "The manifest binds each trajectory to its case and content digest.\n",
         encoding="utf-8",
     )
     (output / "evidence_manifest.json").write_bytes(canonical_json_bytes({"trajectories": manifest}) + b"\n")
@@ -104,6 +122,8 @@ def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision:
         "price": case.price,
         "days_since_delivery": case.days_since_delivery,
         "public_claim": case.public_claim,
+        "scenario": case.scenario,
+        "policy_summary": case.policy_summary,
         "revealed_facts": revealed_facts,
         "available_fact_ids": [field for field in case.required_facts if field not in revealed_facts],
         "handoff": {"from": "intake" if turn == 0 else "customer", "to": "policy"},
@@ -154,13 +174,13 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
     ))
     semaphore = asyncio.Semaphore(4)
 
-    async def run_one(seed: int, positive: bool) -> dict[str, Any]:
+    async def run_one(seed: int, case: Any) -> dict[str, Any]:
         async with semaphore:
-            case = build_1n_case(seed, positive=positive)
             row: dict[str, Any] = {
                 "case_id": case.case_id,
                 "world_seed": seed,
-                "positive": positive,
+                "scenario": case.scenario,
+                "positive": case.authorized_refund_amount > 0,
                 "content_sha256": case.content_sha256,
             }
             try:
@@ -187,9 +207,12 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                     requested = action.get("requested_fields", [])
                     if not isinstance(requested, list):
                         break
+                    previous_fact_count = len(revealed_facts)
                     for field in requested[:3]:
                         if field in case.required_facts and field not in revealed_facts:
                             revealed_facts[field] = case.private_facts[field]
+                    if len(revealed_facts) == previous_fact_count:
+                        break
                 state, outcome = run_1n_with_policy_turns(case, turns)
                 result = provider_results[-1]
                 proposal = turns[-1] if turns and turns[-1].get("decision") in {"approve_direct", "deny"} else None
@@ -198,6 +221,11 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                     "proposal": proposal,
                     "policy_turns": turns,
                     "transcript": state.transcript,
+                    "handoffs": state.handoffs,
+                    "proposals": state.proposals,
+                    "confirmations": state.confirmations,
+                    "transactions": state.transactions,
+                    "invalid_fact_requests": state.invalid_fact_requests,
                     "outcome": {
                         "decision": outcome.decision,
                         "utility_score": outcome.utility_score,
@@ -220,15 +248,15 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                 row.update({"status": "failed", "failure": str(error)})
             return row
 
-    rows = list(await asyncio.gather(*(run_one(seed, positive) for seed in seeds for positive in (True, False))))
+    rows = list(await asyncio.gather(*(run_one(seed, case) for seed in seeds for case in build_1n_panel(seed))))
     _write_trajectory_evidence(output, rows)
     for ordinal, row in enumerate(rows, start=1):
-        label = "positive" if row["positive"] else "denial"
-        row["evidence_path"] = f"evidence/{ordinal:03d}_seed_{row['world_seed']:06d}_{label}.json"
+        label = row.get("scenario", "positive" if row["positive"] else "denial")
+        row["evidence_path"] = f"evidence/trajectories/{ordinal:03d}_seed_{row['world_seed']:06d}_{label}/trajectory.json"
     completed = [row for row in rows if row["status"] == "completed"]
     report = {
         "family_id": "refund_v2",
-        "family_version": "2.0.0",
+        "family_version": "2.1.0",
         "topology": "1:N",
         "active_agent": "policy",
         "scripted_agents": ["intake", "customer", "payments"],
@@ -236,6 +264,7 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
         "revision": revision,
         "reasoning_effort": reasoning_effort,
         "seeds": seeds,
+        "scenarios": sorted({row["scenario"] for row in rows}),
         "planned_cases": len(rows),
         "completed_cases": len(completed),
         "operational_failures": len(rows) - len(completed),

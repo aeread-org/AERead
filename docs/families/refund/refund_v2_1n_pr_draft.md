@@ -1,11 +1,12 @@
-# Draft PR: Refund V2 1:N Active-Policy Pilot
+# Draft PR: Refund V2.1 1:N Active-Policy Pilot
 
 ## Summary
 
-This PR adds an isolated Refund V2 1:N pilot on top of the current main-compatible
+This PR adds an isolated Refund V2.1 1:N pilot on top of the current main-compatible
 shared-runner layout. It does not modify shared-runner kernel files or existing
-Refund V1.3 behavior. Each seed produces two cases: one positive apparel refund
-and one liquid-damage denial, for 40 planned trajectories across 20 seeds.
+Refund V1.3 behavior. Each seed produces six cases spanning positive, partial,
+boundary, conflict, and evidence-gated denial scenarios, for 120 planned
+trajectories across 20 seeds.
 
 The customer begins with only a public claim. The policy agent must request
 missing facts in bounded batches before deciding. Intake, customer, and payments
@@ -13,12 +14,12 @@ remain scripted in the model comparison, so the experiment isolates the active
 policy seat. Payments executes only a confirmed current proposal and is checked
 for exactly-once execution, amount, method, and denial invariants.
 
-## Model comparison
+## Existing model baseline
 
-All models used the same 20 seeds, two cases per seed, gradual-disclosure
-protocol, and Arena route. The results below are fixed-panel diagnostics, not a
-claim that the models are directly interchangeable under identical provider
-availability.
+The table below records the earlier V2.0 two-case baseline. It is retained for
+historical context only; it is not a V2.1 result because V2.1 now has six cases
+per seed. New model runs must use the 120-case V2.1 panel before making model
+comparisons.
 
 | Model | Completed | Operational failures | Policy compliance | Utility | Transaction | Coordination |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -35,7 +36,9 @@ cases and should not be treated as a final model ranking.
 
 The experiment runner writes a model-specific summary file plus an `evidence/`
 directory. Every case has one trajectory JSON containing policy turns, customer
-disclosures, transcript, provider metadata, and verifier outcomes. The
+disclosures, transcript, handoffs, proposals, confirmations, transactions,
+provider metadata, and verifier outcomes. Each trajectory directory also has a
+sealed EvidenceStore event chain and content-addressed artifacts. The
 `evidence_manifest.json` records the relative path and SHA-256 digest of every
 trajectory. This makes the V2 output auditable in the same spirit as the V1.3
 evidence workflow, while keeping the implementation isolated from the kernel.
