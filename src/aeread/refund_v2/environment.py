@@ -224,7 +224,7 @@ def verify_1n_trajectory(case: RefundV2Case, state: RefundV2State) -> RefundV2Ou
                 reasons.append("unauthorized_transaction_actor")
             if transaction.get("amount") != case.authorized_refund_amount or transaction.get("method") != case.authorized_refund_method:
                 reasons.append("transaction_terms_mismatch")
-        if state.confirmations != [str(proposal.get("proposal_id"))]:
+        if proposal is not None and state.confirmations != [str(proposal.get("proposal_id"))]:
             reasons.append("missing_customer_confirmation")
     elif state.transactions:
         reasons.append("mutation_on_denial")

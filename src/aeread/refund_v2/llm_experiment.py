@@ -167,7 +167,7 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                         "cost_usd": result.cost_usd,
                     },
                 })
-            except (ProviderFailure, json.JSONDecodeError, TypeError, ValueError) as error:
+            except (ProviderFailure, json.JSONDecodeError, TypeError, ValueError, KeyError, AttributeError, OverflowError) as error:
                 row.update({"status": "failed", "failure": str(error)})
             return row
 
