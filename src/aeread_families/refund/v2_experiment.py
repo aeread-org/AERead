@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .environment import build_1n_case, run_scripted_1n
+from .v2_environment import build_1n_case, run_scripted_1n
 
 
 def run(seeds: tuple[int, ...], output: Path) -> dict:

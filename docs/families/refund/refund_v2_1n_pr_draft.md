@@ -49,7 +49,7 @@ The latest evidence-complete reruns are stored locally at:
 
 ## Rebase and scope
 
-The V2 files are isolated under `src/aeread/refund_v2/`, with focused tests and
+The V2 files are isolated under `src/aeread_families/refund/`, with focused tests and
 family documentation. No shared-runner kernel files are changed. The branch can
 therefore be rebased onto `origin/main`; after rebasing, rerun the focused V2
 tests and regenerate the provider evidence because report digests depend on the

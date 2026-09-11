@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 
-from aeread.shared_runner.refund_experiment import analyze_paired_results
+from aeread_families.refund.experiment import analyze_paired_results
 
 
 def _row(condition: str, world_seed: int, replicate: int, utility: float, *, status: str = "included"):
@@ -42,7 +42,7 @@ def test_refund_analysis_reports_incomplete_world_without_imputing_zero() -> Non
 def test_refund_experiment_cli_emits_housing_style_report_sections(tmp_path) -> None:
     output = tmp_path / "report"
     completed = subprocess.run(
-        [sys.executable, "-m", "aeread.shared_runner.refund_experiment",
+            [sys.executable, "-m", "aeread_families.refund.experiment",
          "--provider", "fake", "--model", "refund-fixed-v1", "--revision", "1.0.0",
          "--world-seeds", "41001,41002", "--admission-world-seeds", "40999",
          "--replicates", "1", "--bootstrap-draws", "100", "--output", str(output)],

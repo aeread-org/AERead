@@ -18,7 +18,7 @@ from typing import Any
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import ArenaChatClient, ProviderFailure, ProviderRequest
 
-from .environment import build_1n_case, run_1n_with_policy_turns
+from .v2_environment import build_1n_case, run_1n_with_policy_turns
 
 
 OUTPUT_SCHEMA = {

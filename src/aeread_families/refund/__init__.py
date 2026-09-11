@@ -1,6 +1,7 @@
-"""Refund V2 multi-agent pilot environments."""
+"""Refund V1.3 and V2 benchmark family implementations."""
 
-from .environment import (
+from . import environment, measurement
+from .v2_environment import (
     RefundV2Case,
     RefundV2Outcome,
     RefundV2State,
@@ -13,6 +14,8 @@ from .environment import (
 )
 
 __all__ = [
+    "environment",
+    "measurement",
     "RefundV2Case",
     "RefundV2Outcome",
     "RefundV2State",

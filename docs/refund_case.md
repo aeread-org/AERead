@@ -86,7 +86,7 @@ underpayment, and compliance penalties.
 
 ## 3. LLM API Path
 
-`aeread.shared_runner.refund.RefundV1Plugin` exposes the family to the shared
+`aeread_families.refund.runner.RefundV1Plugin` exposes the family to the shared
 scheduler.  It parses `CanonicalResponse` JSON emitted by API clients and uses
 the same observation/action path for tests and live runs.
 
@@ -96,8 +96,8 @@ Vertex environment variables.  The same plugin can also be used with the
 shared-runner OpenAI/OpenRouter clients by assigning compatible `AgentProfile`s
 and structured-output schemas:
 
-- customer prompt: `aeread.shared_runner.refund.CUSTOMER_PROMPT`;
-- support prompt: `aeread.shared_runner.refund.SUPPORT_PROMPT`;
+- customer prompt: `aeread_families.refund.runner.CUSTOMER_PROMPT`;
+- support prompt: `aeread_families.refund.runner.SUPPORT_PROMPT`;
 - customer schema: `CUSTOMER_OUTPUT_SCHEMA`;
 - support schema: `SUPPORT_OUTPUT_SCHEMA`.
 
@@ -260,7 +260,7 @@ Unlike curated cases, generated cases are not written to disk by default; they
 are generated deterministically inside the sealed run plan.
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider fake \
   --world-seeds 41001,41002,41003 \
   --output /tmp/aeread_refund_seeded
@@ -273,14 +273,14 @@ Each seed produces one generated refund case and one plan cell.
 Regenerate the curated manifests:
 
 ```bash
-PYTHONPATH=src python -c 'from pathlib import Path; from aeread.refund_v1.environment import write_curated_cases; write_curated_cases(Path("cases/refund_v1"))'
+PYTHONPATH=src python -c 'from pathlib import Path; from aeread_families.refund.environment import write_curated_cases; write_curated_cases(Path("cases/refund_v1"))'
 ```
 
 Run a provider-free smoke episode through the same shared-runner path used by
 API-backed runs:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider fake \
   --case-id refund_v1.curated.000001 \
   --output /tmp/aeread_refund_smoke
@@ -297,7 +297,7 @@ model and case fixed and executing all three declared customer scripts:
 
 ```bash
 for profile in minimal cooperative resistant; do
-  PYTHONPATH=src python -m aeread.shared_runner.refund \
+  PYTHONPATH=src python -m aeread_families.refund.runner \
     --provider fake --customer-script "$profile" \
     --case-id refund_v1.curated.000009 \
     --output "/tmp/aeread_refund_${profile}"
@@ -324,7 +324,7 @@ export ARENA_API_KEY="..."
 Gemini:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider gemini \
   --model gemini-3.5-flash \
   --case-id refund_v1.curated.000001 \
@@ -334,7 +334,7 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
 OpenAI:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider openai \
   --model gpt-5-nano-2025-08-07 \
   --case-id refund_v1.curated.000001 \
@@ -344,7 +344,7 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
 DeepSeek through OpenRouter:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider openrouter \
   --model deepseek/deepseek-v4-flash-0731 \
   --revision deepseek/deepseek-v4-flash-20260731 \
@@ -355,7 +355,7 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
 Arena:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider arena \
   --model claude-sonnet-4-6 \
   --max-output-tokens 4096 \
@@ -373,7 +373,7 @@ profile. To run two LLM seats, set `--customer-provider` and, when
 needed, `--customer-model` and `--customer-revision`:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --provider openai --support-model gpt-5-nano-2025-08-07 \
   --customer-provider gemini --customer-model gemini-3.5-flash \
   --case-id refund_v1.curated.000001 \
@@ -383,7 +383,7 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
 To evaluate an active customer against the deterministic support policy:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --evaluation-kind controlled_customer \
   --provider scripted_support \
   --customer-provider arena \
@@ -397,7 +397,7 @@ To run same-model self-play, provide one model and omit the customer provider;
 the runner assigns that provider, model, and revision to both roles:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund \
+PYTHONPATH=src python -m aeread_families.refund.runner \
   --evaluation-kind same_model_self_play \
   --provider arena \
   --model deepseek-v4-flash-0731 \

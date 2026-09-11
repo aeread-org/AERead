@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 from types import MappingProxyType
 
-from aeread import refund_env as rf
+from aeread_families.refund import environment as rf
 from aeread.shared_runner.task.execution import CanonicalResponse, execute_plan_cell
 from aeread.shared_runner.measurement import MeasurementLeafSpec, ScoreEnvelope
-from aeread.shared_runner import refund as refund_runner
-from aeread.shared_runner.refund import (
+from aeread_families.refund import runner as refund_runner
+from aeread_families.refund.runner import (
     FixedRefundProvider,
     RefundV1Plugin,
     ScriptedRefundCustomerProvider,
@@ -1092,7 +1092,7 @@ def test_refund_cli_fake_provider_runs(tmp_path) -> None:
         [
             sys.executable,
             "-m",
-            "aeread.shared_runner.refund",
+        "aeread_families.refund.runner",
             "--provider",
             "fake",
             "--case-id",
@@ -1138,7 +1138,7 @@ def test_refund_cli_fake_provider_runs_seeded_panel(tmp_path) -> None:
         [
             sys.executable,
             "-m",
-            "aeread.shared_runner.refund",
+            "aeread_families.refund.runner",
             "--provider",
             "fake",
             "--world-seeds",

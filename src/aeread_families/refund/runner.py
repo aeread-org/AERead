@@ -16,10 +16,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from aeread import gemini_llm
-from aeread.refund_v1 import environment as rf
-from aeread.refund_v1 import measurement as refund_measurement
+from aeread_families.refund import environment as rf
+from aeread_families.refund import measurement as refund_measurement
 
-from .task.execution import (
+from aeread.shared_runner.task.execution import (
     ArenaChatClient,
     CanonicalResponse,
     OpenAIResponsesClient,
@@ -30,24 +30,24 @@ from .task.execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .model_call.harness import default_harnesses
-from .quality import (
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.quality import (
     FamilyContribution,
     HumanQCApproval,
     QCCoverage,
     QCEvidenceRef,
     ResourceLimits,
 )
-from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities, family_contribution_sha256
-from .run.resolver import (
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities, family_contribution_sha256
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
     resolve_run_plan,
 )
-from .task.scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
-from .schemas import (
+from aeread.shared_runner.task.scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
+from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
     CaseManifest,
@@ -1228,7 +1228,9 @@ def build_refund_run(
     refund_source_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     env_source_sha256 = hashlib.sha256(Path(rf.__file__).read_bytes()).hexdigest()
     execution_source_sha256 = hashlib.sha256(
-        Path(__file__).with_name("task").joinpath("execution.py").read_bytes()
+        Path(__file__).resolve().parents[2]
+        .joinpath("aeread", "shared_runner", "task", "execution.py")
+        .read_bytes()
     ).hexdigest()
     generator_id = "refund_seeded_generator_v1" if generated_panel else "refund_curated_generator_v1"
     measurement_pins = _measurement_pins(plugin.validate_payload(cases[0].payload))

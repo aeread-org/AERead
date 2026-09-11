@@ -1,6 +1,6 @@
 # Refund reasoning experiment
 
-`aeread.shared_runner.refund_experiment` is the Refund analogue of the
+`aeread_families.refund.experiment` is the Refund analogue of the
 Housing reporting controller. It fixes the panel before execution, uses
 `world_seed` as the independent cluster, nests repeated episodes within each
 seed, and writes every planned cell as either `included` or an explicit
@@ -9,7 +9,7 @@ seed, and writes every planned cell as either `included` or an explicit
 Run a provider-free rehearsal:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund_experiment \
+PYTHONPATH=src python -m aeread_families.refund.experiment \
   --provider fake --model refund-fixed-v1 --revision 1.0.0 \
   --conditions none,low --world-seeds 41001,41002,41003 \
   --replicates 3 --output /tmp/aeread_refund_experiment
@@ -28,7 +28,7 @@ small run is an admission/rehearsal, not a confirmatory population estimate.
 Use a disjoint admission panel for live measurements:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.refund_experiment \
+PYTHONPATH=src python -m aeread_families.refund.experiment \
   --provider arena --model deepseek-v4-flash-0731 \
   --revision deepseek-v4-flash-0731 --max-output-tokens 4096 \
   --admission-world-seeds 40001,40002,40003 \

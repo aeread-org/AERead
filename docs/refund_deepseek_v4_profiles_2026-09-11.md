@@ -28,4 +28,4 @@ Among the 14 completed cases, mean utility was `-54.12`, mean transaction score 
 - Controlled-support aggregate: `/tmp/aeread_refund_deepseek_v4_profiles_final/aggregate.json`
 - Controlled-customer aggregate: `/tmp/aeread_refund_deepseek_v4_controlled_customer_fixed/summary.json`
 
-The scheduler fix in `aeread.shared_runner.refund.RefundV1Plugin` selects actors from the active phase rather than stale family state and declares schemas for both roles in both phases. This prevents support turns from being routed to the scripted customer provider.
+The scheduler fix in `aeread_families.refund.runner.RefundV1Plugin` selects actors from the active phase rather than stale family state and declares schemas for both roles in both phases. This prevents support turns from being routed to the scripted customer provider.
