@@ -250,6 +250,20 @@ from tests.test_termsbench_replay import (
     _case as _termsbench_case,
     build_termsbench_setup,
 )
+from tests.test_govsim_replay import (
+    UPSTREAM_ROOT as _GOVSIM_UPSTREAM_ROOT,
+    EvidenceRecordingGovsimHarness,
+    _bridge as _govsim_bridge,
+    _case as _govsim_case,
+    build_govsim_finalize_setup,
+    govsim_policy_answer,
+)
+from aeread_families.govsim import policies as govsim_policies
+from aeread_families.govsim.environment import (
+    DISCUSS_PHASE as GOVSIM_DISCUSS_PHASE,
+    HARVEST_PHASE as GOVSIM_HARVEST_PHASE,
+    REFLECT_PHASE as GOVSIM_REFLECT_PHASE,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -3121,12 +3135,13 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently. ``econagent_v1``, ``steer``, ``collusion``, ``alympics.wac`` and
-# ``agenticpay.bilateral`` are deliberately NOT here: all five ARE migrated.
-# econagent_v1, steer, alympics.wac and agenticpay.bilateral are accounted for
-# by _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below (their fixtures need an
-# out-of-repo bridge or corpus); collusion is enrolled directly in
-# _build_protocol_test_registry_and_fixtures like every other real fixture.
+# silently. ``econagent_v1``, ``steer``, ``collusion``, ``alympics.wac``,
+# ``agenticpay.bilateral`` and ``govsim`` are deliberately NOT here: all six
+# ARE migrated. econagent_v1, steer, alympics.wac, agenticpay.bilateral and
+# govsim are accounted for by _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below
+# (their fixtures need an out-of-repo bridge or corpus); collusion is
+# enrolled directly in _build_protocol_test_registry_and_fixtures like every
+# other real fixture.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -3160,7 +3175,11 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # directly in _build_protocol_test_registry_and_fixtures like
         # collusion/aucarena above (see ``_termsbench_fixtures``).
 
-        ("govsim", "0.1.0"),
+        # as part of this kernel change. ``govsim`` migrated under issue #76
+        # (ruling on #141's five-leaf policy) and is accounted for by
+        # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below instead -- see this
+        # set's own comment above.
+
     }
 )
 
@@ -3200,6 +3219,12 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
 # subprocess executing the pinned upstream negotiation environment), so it
 # too is verified in its own per-test-skippable test rather than folded into
 # the always-on one.
+#
+# govsim is here for the same reason, with its own out-of-repo dependency:
+# its fixtures need the provisioned govsim bridge (a subprocess executing
+# the pinned upstream checkout), so it too is verified in its own
+# per-test-skippable test (test_govsim_obeys_the_scoring_contract) rather
+# than folded into the always-on one.
 _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("agenticpay.bilateral", "0.1.0"),
@@ -3207,6 +3232,7 @@ _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset
         ("amazonbarg.bilateral", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
+        ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
     }
@@ -7102,5 +7128,180 @@ def test_econevals_obeys_the_scoring_contract(tmp_path: Path) -> None:
     (registration,) = registry.registrations()
     key = (registration.family_id, registration.family_version)
     assert key == ("econevals", "0.1.0")
+
+
+# govsim: a real, bridge-backed family declaring the full five-leaf policy
+# (ruling on issue #141, environment.py's family_manifest()) -- two genuine
+# trajectory-scoped leaves (govsim_no_collapse, govsim_threshold_adherence)
+# and three terminal_state-scoped ones (govsim_survival_months,
+# govsim_total_harvest, govsim_equality_gini).
+#
+# Three fixtures, all for the SAME case (govsim.fishing.sustainable.0, all
+# five personas nominally scripted sustainable_v1 -- though this section
+# drives its own decisions directly through the harness, never reading that
+# nominal assignment for the witness fixture below), through the real
+# scheduler via EvidenceRecordingGovsimHarness (tests/test_govsim_replay.py
+# -- the only response source for this family that writes evidence
+# replay_family_scoring_input can replay):
+#
+# * left/right -- the paired-history pair. Identical harvest decisions
+#   every round (govsim_policy_answer's sustainable_v1 dispatch for every
+#   persona), so num_round/collected_resource/resource_in_pool -- govsim's
+#   own outcome(), which never carries round_trace at all -- are
+#   byte-identical; only the discuss phase's scripted message text differs
+#   between the two. environment.py's own DISCUSS_PHASE branch in step()
+#   submits a "chat" action to the upstream bridge carrying only
+#   {"kind": "chat", "agent_id": spokesperson} -- no message field -- so
+#   varying the message changes phase_instances (a genuinely differing
+#   trajectory) without moving the environment's resource state at all.
+# * witness -- the SAME case, but every persona harvests the entire pool
+#   every round (policies.greedy_v1) instead of the advisory threshold,
+#   reproducing the checked-in govsim.fishing.greedy.0 golden's own
+#   proven-valid all-greedy behaviour (identical env_cfg/world_seed/
+#   num_agents, only the in-memory scripted decisions differ) without
+#   changing family_case. The episode collapses within the first few
+#   rounds rather than reaching the 12-round horizon, and every persona's
+#   round-0 wanted_resource exceeds the threshold. This is the only way to
+#   witness govsim_no_collapse (collapse_round/rounds_completed genuinely
+#   changes) and govsim_threshold_adherence (all_within flips to 0.0) --
+#   see _assert_trajectory_leaves_are_witnessed's own docstring for why
+#   left/right alone, sharing a byte-identical outcome, can never witness
+#   either leaf (govsim's own num_round IS the collapse signal, so two
+#   fixtures that share it always score no_collapse identically). It is
+#   not part of the paired-history pair itself (only
+#   produced_by_case[:2] -- left/right -- is used for that comparison); it
+#   only needs to be a genuine, correctly produced third fixture, which the
+#   sensitivity witness's itertools.combinations over every supplied
+#   fixture then picks up.
+# ---------------------------------------------------------------------------
+
+
+def _govsim_left_right_answer(
+    policy_assignment: Mapping[str, str], *, discuss_text: str
+) -> Callable[[Any], dict[str, Any]]:
+    """``govsim_policy_answer``'s identical harvest/reflect decisions, with
+    one distinct scripted discuss message (never read by ``step()``'s own
+    call into the upstream bridge -- see this section's own comment)."""
+    base = govsim_policy_answer(policy_assignment)
+
+    def answer(request: Any) -> dict[str, Any]:
+        if request.phase_id == GOVSIM_DISCUSS_PHASE:
+            return {"message": discuss_text}
+        return base(request)
+
+    return answer
+
+
+def _govsim_all_greedy_answer(request: Any) -> dict[str, Any]:
+    """Every persona harvests the entire pool every round
+    (``policies.greedy_v1``), regardless of the case's own nominal
+    ``policy_assignment`` -- the SAME case
+    (``govsim.fishing.sustainable.0``), a genuinely different in-memory
+    scripted decision sequence reproducing the checked-in
+    ``govsim.fishing.greedy.0`` golden's own proven-valid all-greedy
+    behaviour, without changing ``family_case``."""
+    if request.phase_id == GOVSIM_HARVEST_PHASE:
+        return {"quantity": int(govsim_policies.greedy_v1(request.observation))}
+    if request.phase_id == GOVSIM_DISCUSS_PHASE:
+        return {"message": "witness discussion"}
+    if request.phase_id == GOVSIM_REFLECT_PHASE:
+        return {"reflection": ""}
+    raise RuntimeError(f"_govsim_all_greedy_answer has no response for phase {request.phase_id!r}")
+
+
+def _govsim_episode_fixture(
+    *,
+    bridge_instance: Any,
+    case: CaseManifest,
+    tmp_path: Path,
+    suffix: str,
+    answer: Callable[[Any], dict[str, Any]],
+) -> tuple[FamilyManifest, Any, FamilyScoringFixture]:
+    setup = build_govsim_finalize_setup(
+        bridge_instance, case, suffix=suffix, baselines=None
+    )
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    evidence = EvidenceStore(
+        tmp_path / f"govsim_{suffix}",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=episode_id_for_cell(cell),
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingGovsimHarness(answer=answer, evidence=evidence)
+    asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    return (
+        family,
+        plugin,
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+    )
+
+
+def _govsim_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, ...]]:
+    bridge_instance = _govsim_bridge()
+    case = _govsim_case("govsim.fishing.sustainable.0")
+    policy_assignment = dict(case.payload["policy_assignment"])
+
+    left_family, left_plugin, left_fixture = _govsim_episode_fixture(
+        bridge_instance=bridge_instance,
+        case=case,
+        tmp_path=tmp_path,
+        suffix="scoring_left",
+        answer=_govsim_left_right_answer(policy_assignment, discuss_text="left discussion"),
+    )
+    _right_family, _right_plugin, right_fixture = _govsim_episode_fixture(
+        bridge_instance=bridge_instance,
+        case=case,
+        tmp_path=tmp_path,
+        suffix="scoring_right",
+        answer=_govsim_left_right_answer(policy_assignment, discuss_text="right discussion"),
+    )
+    _witness_family, _witness_plugin, witness_fixture = _govsim_episode_fixture(
+        bridge_instance=bridge_instance,
+        case=case,
+        tmp_path=tmp_path,
+        suffix="scoring_witness",
+        answer=_govsim_all_greedy_answer,
+    )
+    return (
+        left_family,
+        left_plugin,
+        (left_fixture, right_fixture, witness_fixture),
+    )
+
+
+def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """govsim's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the real, provisioned govsim bridge (a
+    subprocess executing the pinned upstream checkout), which every OTHER
+    family this suite verifies deliberately does not, so folding it into
+    that always-on test would make THEIR coverage newly skip too whenever
+    the bridge is unavailable. Per-test skip only, never module-level
+    (mirrors ``tests/test_govsim_replay.py``'s own documented convention).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against govsim's own
+    registry registration and its three fixtures (``_govsim_fixtures`` --
+    a byte-identical-outcome, differing-trajectory paired-history pair plus
+    a genuinely different-outcome witness fixture, verified constructible
+    against the real bridge before being wired in here), covering this
+    family's two genuine trajectory-scoped leaves (``govsim_no_collapse``,
+    ``govsim_threshold_adherence``) and ruling R7's contrapositive for its
+    three terminal_state-scoped leaves (``govsim_survival_months``,
+    ``govsim_total_harvest``, ``govsim_equality_gini``).
+    """
+    registry = PluginRegistry()
+    family, plugin, fixture_pair = _govsim_fixtures(tmp_path)
+    registry.register_trusted(family, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("govsim", "0.1.0")
 
     _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)

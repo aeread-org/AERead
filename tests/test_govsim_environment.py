@@ -24,6 +24,7 @@ from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import environment
+from aeread_families.govsim import measurement
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
@@ -165,6 +166,19 @@ def test_family_manifest_round_trips_through_the_strict_grammar() -> None:
     assert manifest.measurement.measurement_kind == "comparative_or_human_judged"
     assert manifest.measurement.bound_status == "baseline_only"
     assert manifest.measurement.optimum_upper_bound is None
+    # Ruling on issue #141 ("govsim: declare the five-leaf policy"): the
+    # manifest declares the full finalize-time leaf policy, not just
+    # primary_estimand -- matching measurement.py's build_leaves() exactly.
+    declared = manifest.measurement.finalize_time_leaf_policy()
+    assert set(declared.leaf_ids) == {
+        measurement.NO_COLLAPSE_LEAF_ID,
+        measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+        measurement.SURVIVAL_MONTHS_LEAF_ID,
+        measurement.TOTAL_HARVEST_LEAF_ID,
+        measurement.EQUALITY_GINI_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.SURVIVAL_MONTHS_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.SURVIVAL_MONTHS_LEAF_ID,)
 
 
 def test_register_plugin_succeeds_with_every_required_hook() -> None:
