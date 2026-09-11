@@ -15,6 +15,16 @@ if _src.is_dir() and str(_src) not in sys.path:
 # (required-env-var, provisioning hint, skip-message markers). Both ways a
 # gated test can go unrun belong in one family's markers tuple: no interpreter
 # that can import upstream, and (where applicable) no upstream checkout at all.
+#
+# A third way, and the most likely one once a bridge has been provisioned
+# successfully at least once: $AEREAD_<FAM>_BRIDGE_PYTHON is exported but
+# points at a path that no longer exists. discover_bridge_python raises a
+# differently worded error for that case, and the families whose tests pass
+# its text through unwrapped -- tau3_retail, econevals, agenticpay_bilateral,
+# econagent_v1, govsim -- therefore need its marker too, or a moved venv
+# skips every fidelity test while this gate stays quiet. negarena needs no
+# such marker: its tests wrap the error in a constant prefix the first
+# marker already matches, which is the more robust shape.
 _BRIDGE_FAMILIES = (
     (
         "AEREAD_TAU2_BRIDGE_REQUIRED",
@@ -27,6 +37,7 @@ _BRIDGE_FAMILIES = (
         (
             "upstream tau2-bench Python interpreter",
             "upstream tau2-bench checkout not found",
+            "$AEREAD_TAU2_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -41,6 +52,7 @@ _BRIDGE_FAMILIES = (
         (
             "pinned upstream econ-evals Python interpreter",
             "pinned upstream econ-evals checkout not found",
+            "$AEREAD_ECONEVALS_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -79,6 +91,7 @@ _BRIDGE_FAMILIES = (
         (
             "upstream AgenticPay Python interpreter",
             "upstream AgenticPay checkout not found",
+            "$AEREAD_AGENTICPAY_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -101,6 +114,7 @@ _BRIDGE_FAMILIES = (
         (
             "pinned upstream EconAgent Python interpreter",
             "pinned upstream EconAgent checkout not found",
+            "$AEREAD_ECONAGENT_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -135,6 +149,7 @@ _BRIDGE_FAMILIES = (
         (
             "no pinned upstream govsim Python interpreter found",
             "pinned upstream govsim checkout not found",
+            "$AEREAD_GOVSIM_BRIDGE_PYTHON is set to",
         ),
     ),
 )
