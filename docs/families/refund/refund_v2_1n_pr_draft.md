@@ -22,14 +22,14 @@ availability.
 
 | Model | Completed | Operational failures | Policy compliance | Utility | Transaction | Coordination |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| DeepSeek V4 Flash 0731 | 13/40 | 27 | 0.0%* | -2.62* | 1.00* | 1.00* |
-| Gemini 2.5 Flash Lite | 40/40 | 0 | 0.0% | -10.00 | 0.50 | 0.05 |
-| GPT-5.6 Luna | 40/40 | 0 | 47.5% | -4.80 | 0.975 | 0.875 |
-| Grok 4.3 | 39/40 | 1 | 10.3% | -9.18 | 0.487 | 1.00 |
+| DeepSeek V4 Flash 0731 | 14/40 | 26 | 71.4%* | -2.00* | 1.00* | 1.00* |
+| Gemini 2.5 Flash Lite | 40/40 | 0 | 0.0% | -10.00 | 0.50 | 0.025 |
+| GPT-5.6 Luna | 40/40 | 0 | 57.5% | -4.00 | 0.975 | 0.95 |
+| Grok 4.3 | 40/40 | 0 | 5.0% | -9.60 | 0.50 | 1.00 |
 
 `*` DeepSeek's run was affected by repeated empty responses and timeouts during
-the multi-turn rerun; it should be treated as an operationally incomplete
-measurement rather than a final model ranking.
+the multi-turn rerun; its compliance rate is conditional on the 14 completed
+cases and should not be treated as a final model ranking.
 
 ## Evidence
 
@@ -39,6 +39,13 @@ disclosures, transcript, provider metadata, and verifier outcomes. The
 `evidence_manifest.json` records the relative path and SHA-256 digest of every
 trajectory. This makes the V2 output auditable in the same spirit as the V1.3
 evidence workflow, while keeping the implementation isolated from the kernel.
+
+The latest evidence-complete reruns are stored locally at:
+
+- `/tmp/aeread_refund_v2_1n_deepseek_20_evidence`
+- `/tmp/aeread_refund_v2_1n_gemini_20_evidence`
+- `/tmp/aeread_refund_v2_1n_gpt_5_6_luna_20_evidence`
+- `/tmp/aeread_refund_v2_1n_grok_4_3_20_evidence`
 
 ## Rebase and scope
 
