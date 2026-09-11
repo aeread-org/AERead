@@ -190,7 +190,7 @@ def test_public_glm_transfer_summary_applies_frozen_decision_rule() -> None:
 
 def test_public_glm_transfer_publication_is_sealed_and_preserves_missingness() -> None:
     root = Path(__file__).resolve().parents[1]
-    publication = root / "evidence/datacenter_development_terms_public_glm_transfer_v1"
+    publication = root / "evidence/datacenter_development_terms/datacenter_development_terms_public_glm_transfer_v1"
     manifest = json.loads((publication / "publication_manifest.json").read_text())
     core = {key: value for key, value in manifest.items() if key != "artifact_sha256"}
     publisher_hash = hashlib.sha256(

@@ -88,6 +88,20 @@ V12_CONTRACT_PATH = (
 )
 
 
+
+def _table_in_bundle(bundle_root: Path, recorded_path: str) -> Path:
+    """Locate a manifest's table inside its own bundle.
+
+    A fact manifest records the table's path as it stood when the manifest was
+    sealed, which is a historical record and not where the bundle lives now
+    (campaigns are filed per family; see evidence/README.md). Resolve the tail
+    after the campaign id against the bundle root, which no relayout changes.
+    """
+
+    parts = Path(recorded_path).parts
+    tail = parts[2:] if parts[:1] == ("evidence",) else parts
+    return bundle_root.joinpath(*tail)
+
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
     contract = load_contract(CONTRACT_PATH)
     routes = route_table(contract)
@@ -414,7 +428,7 @@ def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_deepinfra_v12"
+        /"housing" / "housing_model_sensitivity_openrouter_deepinfra_v12"
     )
     qualification = json.loads(
         (evidence_root / "reports" / "qualification.json").read_bytes()
@@ -558,7 +572,7 @@ def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
         (
             V8_CONTRACT_PATH.parents[1]
             / "evidence"
-            / contract["campaign_id"]
+            / "housing" / contract["campaign_id"]
             / "reports"
             / "qualification.json"
         ).read_bytes()
@@ -919,7 +933,7 @@ def test_published_backend_qualification_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v2"
+        / "housing" / "housing_model_sensitivity_openrouter_alt_v2"
         / "reports"
         / "qualification.json"
     )
@@ -942,7 +956,7 @@ def test_published_v3_qualification_is_digest_bound_and_has_no_scores() -> None:
     path = (
         V3_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v3"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v3"
         / "reports"
         / "qualification.json"
     )
@@ -963,7 +977,7 @@ def test_published_v4_qualification_is_digest_bound_and_blocks_live() -> None:
     path = (
         V4_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v4"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v4"
         / "reports"
         / "qualification.json"
     )
@@ -1008,7 +1022,7 @@ def test_published_recent_qualifications_are_digest_bound(
     path = (
         contract_path.parents[1]
         / "evidence"
-        / campaign_id
+        / "housing" / campaign_id
         / "reports"
         / "qualification.json"
     )
@@ -1031,7 +1045,7 @@ def test_published_v7_trajectories_are_digest_bound_and_non_rankable() -> None:
     path = (
         V7_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v7"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v7"
         / "trajectories"
         / "selected.json"
     )
@@ -1060,7 +1074,7 @@ def test_published_v8_qualification_and_attempts_are_digest_bound() -> None:
     root = (
         V8_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v8"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v8"
     )
     qualification = json.loads(
         (root / "reports" / "qualification.json").read_bytes()
@@ -1111,7 +1125,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
     root = (
         V9_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v9"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v9"
     )
     qualification = json.loads(
         (root / "reports" / "qualification.json").read_bytes()
@@ -1149,7 +1163,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
     assert trajectories["trajectories"] == []
 
     for table in manifest["artifacts"].values():
-        path = V9_CONTRACT_PATH.parents[1] / table["path"]
+        path = _table_in_bundle(root, table["path"])
         assert hashlib.sha256(path.read_bytes()).hexdigest() == table["sha256"]
         with path.open(newline="", encoding="utf-8") as handle:
             assert len(list(csv.DictReader(handle))) == table["row_count"]
@@ -1163,7 +1177,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
 
 def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
     repository_root = V10_CONTRACT_PATH.parents[1]
-    root = repository_root / "evidence" / (
+    root = repository_root / "evidence" / "housing" / (
         "housing_model_sensitivity_openrouter_morph_v10"
     )
     qualification = json.loads(
@@ -1248,7 +1262,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
     assert len(index["runs"]) == 12
     assert all(row["receipt_count"] == 4 for row in index["runs"])
     for run in index["runs"]:
-        manifest_path = repository_root / run["fact_manifest_path"]
+        manifest_path = _table_in_bundle(root, run["fact_manifest_path"])
         manifest_bytes = manifest_path.read_bytes()
         assert hashlib.sha256(manifest_bytes).hexdigest() == run[
             "fact_manifest_file_sha256"
@@ -1270,7 +1284,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
                 assert len(list(csv.DictReader(handle))) == table["row_count"]
 
     contrast = index["paired_world_contrasts"]
-    contrast_path = repository_root / contrast["path"]
+    contrast_path = _table_in_bundle(root, contrast["path"])
     assert hashlib.sha256(contrast_path.read_bytes()).hexdigest() == contrast[
         "sha256"
     ]
@@ -1290,7 +1304,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
 
 def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     repository_root = V11_CONTRACT_PATH.parents[1]
-    root = repository_root / "evidence" / (
+    root = repository_root / "evidence" / "housing" / (
         "housing_model_sensitivity_openrouter_deepinfra_v11"
     )
     qualification = json.loads(
@@ -1347,7 +1361,7 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert trajectories["trajectories"] == []
 
     for table in manifest["artifacts"].values():
-        table_path = repository_root / table["path"]
+        table_path = _table_in_bundle(root, table["path"])
         assert hashlib.sha256(table_path.read_bytes()).hexdigest() == table["sha256"]
         with table_path.open(newline="", encoding="utf-8") as handle:
             assert len(list(csv.DictReader(handle))) == table["row_count"]

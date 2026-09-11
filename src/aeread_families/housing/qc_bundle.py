@@ -393,7 +393,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--run-root", type=Path, default=Path("runs/housing_qc_goldens_v1")
     )
     parser.add_argument(
-        "--publish-root", type=Path, default=Path("evidence/housing_qc_goldens_v1")
+        "--publish-root", type=Path, default=Path("evidence/housing/housing_qc_goldens_v1")
     )
     arguments = parser.parse_args(argv)
     result = asyncio.run(

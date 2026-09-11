@@ -58,12 +58,12 @@ COMPONENT_NAMES = (
 )
 BASELINE_PUBLICATIONS = {
     "public_two_model": (
-        REPOSITORY_ROOT / "evidence" / "datacenter_development_terms_public_v1"
+        REPOSITORY_ROOT / "evidence" / "datacenter_development_terms" / "datacenter_development_terms_public_v1"
     ),
     "gptoss_addon": (
         REPOSITORY_ROOT
         / "evidence"
-        / "datacenter_development_terms_public_gptoss_v1"
+        / "datacenter_development_terms" / "datacenter_development_terms_public_gptoss_v1"
     ),
 }
 

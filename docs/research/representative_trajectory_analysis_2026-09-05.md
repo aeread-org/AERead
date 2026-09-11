@@ -32,16 +32,16 @@ Claims below are consequently labeled as **observed**, **candidate interpretatio
 
 Primary files:
 
-- [Housing population selected trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json)
-- [Housing V7 selected trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
-- [Housing V8 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
-- [Housing Morph V10 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json)
+- [Housing population selected trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json)
+- [Housing V7 selected trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
+- [Housing V8 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
+- [Housing Morph V10 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json)
 - [Housing V12 PR](https://github.com/aeread-org/AERead/pull/61)
 - [Procurement kernel trajectory-grain example from merged #136](https://github.com/aeread-org/AERead/tree/main/evidence/procurement_allocation_glm_morph_case_variance_v2/trajectories)
 - [Housing V13 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v13/trajectories/attempted.json)
 - [Housing V14 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v14/trajectories/attempted.json)
 - [Housing V15 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v15/trajectories/attempted.json)
-- [Commercial-state sanitized trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/commercial_state_openweight_variance_v1/trajectories/sanitized.jsonl)
+- [Commercial-state sanitized trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/commercial_state_calibration/commercial_state_openweight_variance_v1/trajectories/sanitized.jsonl)
 
 ## Why these examples are designed and selected
 

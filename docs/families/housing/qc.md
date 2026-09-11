@@ -266,7 +266,7 @@ choice without text and triggered the provider-contract stop. Zero trajectories
 completed, nine were never started, and recorded cost was $0. This is a failed
 integration/reliability gate, not evidence of Housing performance and not a
 model ranking. The sanitized record is
-[`qualification.json`](../../../evidence/housing_model_sensitivity_v1/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_v1/reports/qualification.json).
 
 Because only one world cluster was planned, even a complete run would remain a
 descriptive integration slice with no estimable uncertainty. A variance pilot
@@ -296,7 +296,7 @@ claimed.
 The failed admission automatically blocked all 12 Housing trajectories. This
 is backend qualification evidence, not a Housing score or model comparison.
 See the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v2/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v2/reports/qualification.json).
 
 The next attempt remains on OpenRouter and uses a new campaign identity, a fresh
 catalog query, new route-bound profile hashes, and the same
@@ -342,7 +342,7 @@ probes plus the one billed invalid response reported `$0.0019847322`; the three
 The failed admission blocked all 12 Housing trajectories with zero additional
 provider calls. This remains backend reliability evidence, not a Housing score
 or model comparison. Do not selectively retry V3. See the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v3/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v3/reports/qualification.json).
 
 For review without publishing raw model reasoning, the repository also keeps a
 digest-bound set of three V0 trajectory examples: the upper and lower observed
@@ -350,7 +350,7 @@ completed live-opponent cross-play cells and the shortest operational failure.
 The export includes event-seal roots, receipt identities, action summaries,
 outcomes, costs, and limitations, while the complete provider responses remain
 under ignored local `runs/`. See
-[`selected_2026-09-02.json`](../../../evidence/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json).
+[`selected_2026-09-02.json`](../../../evidence/housing/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json).
 
 ## 11. V4 strict-output OpenRouter qualification
 
@@ -374,7 +374,7 @@ claimed.
 The failed joint admission blocked all 12 Housing trajectories with zero
 additional provider calls. This is profile and backend qualification evidence,
 not a Housing score or comparison. See the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v4/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v4/reports/qualification.json).
 
 Do not selectively rerun V4 or interpret DeepSeek's admission success as a
 Housing result. The next experiment should diagnose GLM's action-contract
@@ -392,14 +392,14 @@ GLM self-play trajectory completed with a descriptive within-case score of
 `0.8879703073`. The next cross-play trajectory returned an OpenRouter choice
 without text after eight provider calls. V5 classified that as a
 `provider_contract` failure, stopped the matrix, and left ten cells unstarted.
-See its tracked [`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v5/reports/qualification.json).
+See its tracked [`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v5/reports/qualification.json).
 
 V6 made null or blank provider content a receipt-visible `empty_response` so
 the application retry policy, rather than the adapter, owns retry decisions.
 Admission then exposed a separate semantic hole in the V1 commit schema:
 DeepSeek returned `decision=pass` with a non-null `hold_id`. Seventeen of 18
 probes passed, and the failed gate blocked live execution. See its tracked
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v6/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v6/reports/qualification.json).
 
 V7 binds conditional `oneOf` schemas that enforce decision-dependent fields
 and explicitly wires timeout, output-token, attempt, and retry controls into
@@ -413,9 +413,9 @@ present; the fourth moderate cell and all four severe cells remain unstarted.
 The observed V7 scores range from `0.7917117782` to `0.9926657320`, but this is
 not a leaderboard: the condition-by-configuration matrix is incomplete and has
 only one world cluster. The digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v7/reports/qualification.json)
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v7/reports/qualification.json)
 records the gates and stop. The separate
-[`selected.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
+[`selected.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
 publishes parsed action counts, assignments, rents, welfare, latency, cost,
 retry counts, and receipt/event digests for all seven completed trajectories;
 raw provider responses and hidden reasoning remain under ignored local
@@ -497,7 +497,7 @@ invalidation, but the pinned DeepInfra GLM route then exhausted all four visible
 attempts on the first tenant-contact admission probe. No Housing trajectory was
 started, and the variance pilot remains blocked. The sanitized, digest-bound
 record is
-[`requalification_2026-09-02.json`](../../../evidence/housing_population_crossplay_v0/reports/requalification_2026-09-02.json).
+[`requalification_2026-09-02.json`](../../../evidence/housing/housing_population_crossplay_v0/reports/requalification_2026-09-02.json).
 
 Apply the campaign SOP's backend-escalation instruction before the variance
 pilot. OpenRouter remains the backend; any provider-route change requires a new
@@ -518,13 +518,13 @@ Run and publish it without a provider key:
 PYTHONPATH=src python -m aeread_families.housing.qc_bundle \
   --contract configs/housing_qc_goldens_v1.json \
   --run-root runs/housing_qc_goldens_v1 \
-  --publish-root evidence/housing_qc_goldens_v1
+  --publish-root evidence/housing/housing_qc_goldens_v1
 ```
 
 All five valid receipts replay state and score exactly; the provider-failure
 receipt has `replay_level=none`. The bundle made zero external calls and cost
 `$0.00`. Review the digest-bound
-[`qc_bundle.json`](../../../evidence/housing_qc_goldens_v1/reports/qc_bundle.json)
+[`qc_bundle.json`](../../../evidence/housing/housing_qc_goldens_v1/reports/qc_bundle.json)
 and its six sanitized receipt projections.
 
 ## 15. V8 complete-attempt model-to-model integration slice
@@ -549,9 +549,9 @@ missing score. The next gate is a newly frozen multi-world variance pilot; do
 not selectively rerun or impute the V8 timeout.
 
 The digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v8/reports/qualification.json)
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v8/reports/qualification.json)
 records every gate. The
-[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
+[`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
 projection retains all 12 attempts in frozen order, including parsed action
 counts, outcomes, assignments, rents, role usage, costs, latency, failure
 usage, and receipt/event digests. Raw provider responses and reasoning remain
@@ -582,11 +582,11 @@ identity after reviewing the route failure; do not rerun or impute the failed
 V9 probe.
 
 Review the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/reports/qualification.json),
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v9/reports/qualification.json),
 the explicit zero-attempt
-[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/trajectories/attempted.json),
+[`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v9/trajectories/attempted.json),
 and the canonical
-[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/tables/fact_manifest.json).
+[`fact_manifest.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_alt_v9/tables/fact_manifest.json).
 The fact manifest binds two reusable tables: frozen model/profile features and
 all 18 sanitized admission outcomes. Raw provider responses remain only in the
 ignored local run directory.
@@ -623,11 +623,11 @@ the four subject-opponent conditions on the selected routes. Only that gate may
 promote the design to a newly frozen variance pilot.
 
 Review the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/reports/qualification.json),
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_morph_v10/reports/qualification.json),
 all-attempt
-[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json),
+[`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json),
 and the
-[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/tables/canonical_fact_index.json).
+[`canonical_fact_index.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_morph_v10/tables/canonical_fact_index.json).
 The index binds 12 run-level `profiles.csv`, `model_features.csv`, and
 `benchmark_results.csv` projections plus an explicit four-row paired-world
 table. Raw provider payloads and reasoning remain only under ignored local
@@ -660,11 +660,11 @@ Admission therefore blocked all four full trajectories with zero trajectory
 provider calls. Do not rerun only the three failed probes or add pacing inside
 V11. Any admission-pacing or route change requires a new campaign identity and
 fresh profile hashes. Review the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/reports/qualification.json),
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v11/reports/qualification.json),
 the explicit zero-attempt
-[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/trajectories/attempted.json),
+[`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v11/trajectories/attempted.json),
 and the reusable admission
-[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/tables/fact_manifest.json).
+[`fact_manifest.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v11/tables/fact_manifest.json).
 
 ## 19. V12 preregistered paced full-trajectory gate
 
@@ -708,8 +708,8 @@ therefore blocked with zero trajectory provider calls. Do not amend or retry
 V12. A new campaign must freeze a completion-to-next-start cooldown and enforce
 the same wall-time timeout semantics in admission and trajectory execution.
 Review the digest-bound
-[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/reports/qualification.json),
+[`qualification.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/reports/qualification.json),
 the zero-attempt
-[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
+[`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
 and the pacing-aware canonical
-[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).
+[`fact_manifest.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).

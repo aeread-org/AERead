@@ -380,7 +380,7 @@ def test_published_adoption_campaigns_are_sealed_and_sanitized() -> None:
     }
     for version, interpretation in interpretations.items():
         publication = (
-            root / "evidence" / f"datacenter_counteroffer_adoption_{version}"
+            root / "evidence" / "datacenter_development" / f"datacenter_counteroffer_adoption_{version}"
         )
         manifest = json.loads(
             (publication / "publication_manifest.json").read_text()
@@ -416,7 +416,7 @@ def test_published_adoption_campaigns_are_sealed_and_sanitized() -> None:
 def test_v3_publication_records_real_counteroffer_opportunities() -> None:
     path = (
         Path(__file__).resolve().parents[1]
-        / "evidence/datacenter_counteroffer_adoption_v3/trajectories/sanitized.jsonl"
+        / "evidence/datacenter_development/datacenter_counteroffer_adoption_v3/trajectories/sanitized.jsonl"
     )
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     included = [row for row in rows if row["inclusion_status"] == "included"]

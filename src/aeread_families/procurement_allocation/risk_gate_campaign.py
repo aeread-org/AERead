@@ -1246,8 +1246,8 @@ def _verified_canary(path: Path, *, condition: str) -> dict[str, Any]:
 def publish_risk_gate_campaign(
     *, run_root: Path, publication_root: Path
 ) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     comparison = build_risk_gate_comparison(run_root=run_root)
     if not comparison["readiness"]["adaptive_evidence_qualified"]:
         raise ValueError("risk-gate evidence is not qualified")

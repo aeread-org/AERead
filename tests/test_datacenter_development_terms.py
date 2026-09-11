@@ -38,9 +38,9 @@ from aeread_families.datacenter_development.objective_openrouter import (
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "datacenter_development_terms"
-PUBLICATION = ROOT / "evidence" / "datacenter_development_terms_probe_2026-09-03"
+PUBLICATION = ROOT / "evidence" /"datacenter_development_terms" / "datacenter_development_terms_probe_2026-09-03"
 RELIABILITY_PUBLICATION = (
-    ROOT / "evidence" / "datacenter_development_terms_reliability_v1"
+    ROOT / "evidence" /"datacenter_development_terms" / "datacenter_development_terms_reliability_v1"
 )
 
 

@@ -66,7 +66,7 @@ GLM_ROUTE = OpenRouterRoute(
 
 ROOT = Path(__file__).resolve().parents[1]
 INTERACTION_PUBLICATION = (
-    ROOT / "evidence" / "datacenter_development_v2_interaction_v1"
+    ROOT / "evidence" /"datacenter_development" / "datacenter_development_v2_interaction_v1"
 )
 
 

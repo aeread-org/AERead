@@ -186,7 +186,7 @@ def test_published_qualification_record_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_v1"
+        /"housing" / "housing_model_sensitivity_v1"
         / "reports"
         / "qualification.json"
     )

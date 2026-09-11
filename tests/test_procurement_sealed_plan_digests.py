@@ -23,7 +23,14 @@ import pytest
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 EVIDENCE = Path(__file__).resolve().parents[1] / "evidence"
-SEALED = sorted(EVIDENCE.glob("procurement_allocation*/reports/campaign_plan.json"))
+# Campaigns are filed per family (evidence/<family>/<campaign_id>/), except the
+# ones a frozen control names by path, which stayed where they were sealed.
+SEALED = sorted(
+    {
+        *EVIDENCE.glob("procurement_allocation*/reports/campaign_plan.json"),
+        *EVIDENCE.glob("*/procurement_allocation*/reports/campaign_plan.json"),
+    }
+)
 
 #: Every sealed procurement plan digest, as published. Values are recorded so a
 #: bundle cannot be quietly rewritten together with its own digest.

@@ -554,7 +554,7 @@ unchanged and remains the family's real constraint.
 
 ## v10 attempt_022 — published, 6/6
 
-`evidence/econevals_glm53_flash_parasail_panel_v10/`, plan
+`evidence/econevals/econevals_glm53_flash_parasail_panel_v10/`, plan
 `193b8e10167d0e28`, publication `d3504e43e85f31af`. Six planned, six completed,
 six included, zero excluded, zero operational failures, canary admitted.
 $0.4276 against a $1.30 ceiling.
