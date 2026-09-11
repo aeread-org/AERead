@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -51,6 +52,48 @@ def _load_env(path: Path) -> None:
 def _report_filename(model: str) -> str:
     label = re.sub(r"[^a-z0-9]+", "_", model.lower()).strip("_")
     return f"refund_v2_1n_{label}_summary.json"
+
+
+def _write_trajectory_evidence(output: Path, rows: list[dict[str, Any]]) -> None:
+    evidence_dir = output / "evidence"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    manifest: list[dict[str, Any]] = []
+    for ordinal, row in enumerate(rows, start=1):
+        label = "positive" if row["positive"] else "denial"
+        filename = f"{ordinal:03d}_seed_{row['world_seed']:06d}_{label}.json"
+        payload = {
+            "schema_version": "aeread.refund_v2.trajectory_evidence/1.0",
+            "family_id": "refund_v2",
+            "family_version": "2.0.0",
+            "model": row.get("provider", {}).get("resolved_model"),
+            "case_id": row["case_id"],
+            "world_seed": row["world_seed"],
+            "positive": row["positive"],
+            "content_sha256": row["content_sha256"],
+            "policy_turns": row.get("policy_turns", []),
+            "transcript": row.get("transcript", []),
+            "outcome": row.get("outcome"),
+            "provider": row.get("provider"),
+        }
+        data = canonical_json_bytes(payload) + b"\n"
+        path = evidence_dir / filename
+        path.write_bytes(data)
+        manifest.append({
+            "case_id": row["case_id"],
+            "world_seed": row["world_seed"],
+            "positive": row["positive"],
+            "relative_path": f"evidence/{filename}",
+            "sha256": hashlib.sha256(data).hexdigest(),
+        })
+    (evidence_dir / "README.md").write_text(
+        "# Refund V2 trajectory evidence\n\n"
+        "Each JSON file contains one complete recorded policy trajectory, "
+        "including policy turns, customer disclosures, transcript, provider "
+        "metadata, and verifier outcomes. The manifest binds each file to its "
+        "case and content digest.\n",
+        encoding="utf-8",
+    )
+    (output / "evidence_manifest.json").write_bytes(canonical_json_bytes({"trajectories": manifest}) + b"\n")
 
 
 def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, seed: int, turn: int) -> ProviderRequest:
@@ -178,6 +221,10 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
             return row
 
     rows = list(await asyncio.gather(*(run_one(seed, positive) for seed in seeds for positive in (True, False))))
+    _write_trajectory_evidence(output, rows)
+    for ordinal, row in enumerate(rows, start=1):
+        label = "positive" if row["positive"] else "denial"
+        row["evidence_path"] = f"evidence/{ordinal:03d}_seed_{row['world_seed']:06d}_{label}.json"
     completed = [row for row in rows if row["status"] == "completed"]
     report = {
         "family_id": "refund_v2",
