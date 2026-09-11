@@ -157,10 +157,36 @@ def run_scripted_1n(case: RefundV2Case) -> tuple[RefundV2State, RefundV2Outcome]
     return state, outcome
 
 
+def run_1n_with_policy_proposal(
+    case: RefundV2Case, proposal: Mapping[str, Any]
+) -> tuple[RefundV2State, RefundV2Outcome]:
+    state = initial_state()
+    _record(state, "customer", case.public_claim)
+    _record(state, "intake", "I will collect the minimum facts and route the case.", requested_fields=list(case.required_facts))
+    state.revealed_facts.update({field: case.private_facts[field] for field in case.required_facts})
+    state.handoffs.append({"from": "intake", "to": "policy", "case_id": case.case_id, "facts": list(state.revealed_facts)})
+    state.active_agent = "policy"
+    state.proposals.append(dict(proposal))
+    _record(state, "policy", "I recorded the proposed resolution.", proposal_id=proposal.get("proposal_id"))
+    _record(state, "customer", "I confirm the resolution.", proposal_id=proposal.get("proposal_id"))
+    state.confirmations.append(str(proposal.get("proposal_id")))
+    state.handoffs.append({"from": "policy", "to": "payments", "case_id": case.case_id, "proposal_id": proposal.get("proposal_id")})
+    state.active_agent = "payments"
+    if float(proposal.get("amount", 0.0)) > 0:
+        state.transactions.append({"agent": "payments", "proposal_id": proposal.get("proposal_id"), "amount": proposal.get("amount"), "method": proposal.get("method")})
+        _record(state, "payments", "The confirmed refund was executed exactly once.", proposal_id=proposal.get("proposal_id"))
+    else:
+        _record(state, "payments", "No payment mutation is required for this resolution.")
+    state.phase = "finished"
+    state.done = True
+    return state, verify_1n_trajectory(case, state)
+
+
 def verify_1n_trajectory(case: RefundV2Case, state: RefundV2State) -> RefundV2Outcome:
     reasons: list[str] = []
     expected_transaction = case.authorized_refund_amount > 0
     proposal = state.proposals[-1] if state.proposals else None
+    expected_decision = "approve_direct" if expected_transaction else "deny"
     if proposal is None:
         reasons.append("missing_proposal")
     if len(state.handoffs) != 2:
@@ -174,20 +200,28 @@ def verify_1n_trajectory(case: RefundV2Case, state: RefundV2State) -> RefundV2Ou
                 reasons.append("unauthorized_transaction_actor")
             if transaction.get("amount") != case.authorized_refund_amount or transaction.get("method") != case.authorized_refund_method:
                 reasons.append("transaction_terms_mismatch")
-        if state.confirmations != ["proposal_1"]:
+        if state.confirmations != [str(proposal.get("proposal_id"))]:
             reasons.append("missing_customer_confirmation")
     elif state.transactions:
         reasons.append("mutation_on_denial")
     if any(field not in state.revealed_facts for field in case.required_facts):
         reasons.append("required_facts_missing")
-    policy_compliant = not reasons and proposal is not None and proposal["amount"] == case.authorized_refund_amount
+    policy_compliant = (
+        not reasons
+        and proposal is not None
+        and proposal.get("decision") == expected_decision
+        and proposal.get("amount") == case.authorized_refund_amount
+        and proposal.get("method") == case.authorized_refund_method
+    )
+    if proposal is not None and not policy_compliant:
+        reasons.append("policy_terms_mismatch")
     transaction_score = 1.0 if not any(reason.startswith("transaction_") or reason in {"unauthorized_transaction_actor", "mutation_on_denial", "missing_customer_confirmation"} for reason in reasons) else 0.0
     coordination_score = 1.0 if not any(reason in {"invalid_handoff_chain", "missing_proposal"} for reason in reasons) else 0.0
     utility_score = 2.0 if policy_compliant and expected_transaction else (-2.0 if policy_compliant else -10.0)
     return RefundV2Outcome(
         decision=proposal["decision"] if proposal else "invalid",
-        refund_amount=case.authorized_refund_amount if proposal else 0.0,
-        refund_method=case.authorized_refund_method if proposal else "none",
+        refund_amount=float(proposal.get("amount", 0.0)) if proposal else 0.0,
+        refund_method=str(proposal.get("method", "none")) if proposal else "none",
         utility_score=utility_score,
         transaction_score=transaction_score,
         coordination_score=coordination_score,
