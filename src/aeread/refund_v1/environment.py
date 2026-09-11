@@ -302,7 +302,7 @@ def canonical_json_bytes(value: Any) -> bytes:
 
 
 def case_content_sha256(value: Mapping[str, Any]) -> str:
-    from aeread.shared_runner.resolver import case_content_sha256 as shared_case_hash
+    from aeread.shared_runner.run.resolver import case_content_sha256 as shared_case_hash
 
     return shared_case_hash(value)
 

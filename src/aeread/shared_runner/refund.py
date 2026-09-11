@@ -19,7 +19,7 @@ from aeread import gemini_llm
 from aeread.refund_v1 import environment as rf
 from aeread.refund_v1 import measurement as refund_measurement
 
-from .execution import (
+from .task.execution import (
     ArenaChatClient,
     CanonicalResponse,
     OpenAIResponsesClient,
@@ -30,16 +30,23 @@ from .execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .harness import default_harnesses
-from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from .resolver import (
+from .model_call.harness import default_harnesses
+from .quality import (
+    FamilyContribution,
+    HumanQCApproval,
+    QCCoverage,
+    QCEvidenceRef,
+    ResourceLimits,
+)
+from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities, family_contribution_sha256
+from .run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
     resolve_run_plan,
 )
-from .scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
+from .task.scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
 from .schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -885,7 +892,7 @@ def _profile(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -1212,11 +1219,16 @@ def build_refund_run(
     )
     plugin = RefundV1Plugin()
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register(
+        family,
+        plugin,
+        contribution=_refund_contribution(),
+        evidence_root=Path("cases/refund_v1"),
+    )
     refund_source_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     env_source_sha256 = hashlib.sha256(Path(rf.__file__).read_bytes()).hexdigest()
     execution_source_sha256 = hashlib.sha256(
-        Path(__file__).with_name("execution.py").read_bytes()
+        Path(__file__).with_name("task").joinpath("execution.py").read_bytes()
     ).hexdigest()
     generator_id = "refund_seeded_generator_v1" if generated_panel else "refund_curated_generator_v1"
     measurement_pins = _measurement_pins(plugin.validate_payload(cases[0].payload))
@@ -1225,7 +1237,7 @@ def build_refund_run(
         _pin(generator_id, "generator", source_sha256=env_source_sha256),
         _pin("minimal_chat", "harness", source_sha256=execution_source_sha256, version="1.0"),
         _pin(
-            "aeread.shared_runner.execution",
+            "aeread.shared_runner.task.execution",
             "runtime",
             source_sha256=execution_source_sha256,
             version="0.1.0",
@@ -1374,6 +1386,80 @@ def _parse_world_seeds(raw: str | None) -> tuple[int, ...] | None:
     if len(seeds) != len(set(seeds)):
         raise ValueError("--world-seeds must not contain duplicates")
     return tuple(seeds)
+
+
+def _refund_contribution() -> FamilyContribution:
+    evidence_root = Path("cases/refund_v1")
+    coverage = QCCoverage(
+        coverage_id="provider_free_validation",
+        required_ids=("refund_v1",),
+        observed_ids=("refund_v1",),
+    )
+    provider_evidence = QCEvidenceRef(
+        artifact_type="provider_free_conformance",
+        path="qc/provider_free.json",
+        sha256=hashlib.sha256((evidence_root / "qc/provider_free.json").read_bytes()).hexdigest(),
+        family_id=rf.FAMILY_ID,
+        family_version="1.3.0",
+        profile_id=rf.FAMILY_ID,
+        coverage=(coverage,),
+    )
+    human_evidence = QCEvidenceRef(
+        artifact_type="human_qc_approval",
+        path="qc/human_qc.json",
+        sha256=hashlib.sha256((evidence_root / "qc/human_qc.json").read_bytes()).hexdigest(),
+        family_id=rf.FAMILY_ID,
+        family_version="1.3.0",
+        profile_id=rf.FAMILY_ID,
+        coverage=(
+            QCCoverage(
+                coverage_id="human_qc",
+                required_ids=("refund_v1",),
+                observed_ids=("refund_v1",),
+            ),
+        ),
+    )
+    contribution = FamilyContribution(
+        family_id=rf.FAMILY_ID,
+        family_version="1.3.0",
+        plugin_id="aeread.refund_v1",
+        registry_namespace="contributed.refund_v1.1.3",
+        action_schema={
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False,
+        },
+        observation_schema={
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False,
+        },
+        provider_free_evidence=provider_evidence,
+        resource_limits=ResourceLimits(
+            max_wall_seconds=120.0,
+            max_logical_actions=10,
+            max_provider_calls=10,
+            max_input_tokens=200_000,
+            max_output_tokens=100_000,
+            max_cost_usd=100.0,
+        ),
+        human_qc_approval=HumanQCApproval(
+            reviewer_id="refund-v1-maintainers",
+            decision="approved",
+            contribution_sha256="0" * 64,
+            evidence=human_evidence,
+        ),
+    )
+    digest = family_contribution_sha256(contribution)
+    return replace(
+        contribution,
+        human_qc_approval=replace(
+            contribution.human_qc_approval,
+            contribution_sha256=digest,
+        ),
+    )
 
 
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:

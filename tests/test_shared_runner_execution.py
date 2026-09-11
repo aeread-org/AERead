@@ -9,7 +9,7 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     ArenaChatClient,
     CanonicalResponse,
     ClaudeCodePrintClient,
@@ -27,9 +27,9 @@ from aeread.shared_runner.execution import (
     ToolExecutor,
     ToolFailure,
 )
-from aeread.shared_runner.harness import CanonicalMessage, NativeToolCall, ToolSchema
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.model_call.harness import CanonicalMessage, NativeToolCall, ToolSchema
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import (
     DecisionRequest,
     LegalityResult,
     ParseResult,
@@ -84,7 +84,7 @@ def _profile(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -626,6 +626,531 @@ def test_declared_read_only_tool_cannot_silently_mutate_observed_state(tmp_path)
     evidence.audit_reconciliation(entity_types=("tool_invocation",))
 
 
+def _reader_failing_after_first_call(state, failures: dict):
+    calls = {"count": 0}
+
+    def reader():
+        calls["count"] += 1
+        if calls["count"] > 1:
+            error = RuntimeError("state snapshot io failure")
+            failures["bookkeeping"] = error
+            raise error
+        return dict(state)
+
+    return reader
+
+
+def test_snapshot_failure_in_failure_handler_preserves_the_original_tool_failure(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="a" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert captured.value.__context__ is failures["bookkeeping"]
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def _exception_chain(root: BaseException):
+    """Yield *root* and every exception reachable from it by following
+    ``__context__``/``__cause__``, with cycle protection.
+
+    Why this walk instead of a single ``__context__`` hop: ``asyncio.run``
+    drives the coroutine through an ``asyncio.Task``, and when a
+    ``CancelledError`` escapes the coroutine, the Task/Future layer that
+    turns the finished Task into a raised exception may itself construct a
+    *new* ``CancelledError`` rather than propagate the original object.
+    CPython's ``Future._make_cancelled_error`` picked up this
+    "wrap the saved cancellation in a fresh CancelledError" behaviour on
+    3.10 (fixed to return the saved exception directly on 3.11+, per
+    https://github.com/python/cpython/blob/v3.10.9/Lib/asyncio/futures.py#L129-L142
+    vs.
+    https://github.com/python/cpython/blob/v3.11.3/Lib/asyncio/futures.py#L126-L144).
+    On 3.10 the caught exception is therefore
+    ``asyncio-wrapper CancelledError -> implementation CancelledError ->
+    bookkeeping error`` (three hops), while on 3.11+ it is
+    ``implementation CancelledError -> bookkeeping error`` (one hop). Both
+    shapes satisfy the same production guarantee — the bookkeeping error is
+    never lost and never hides the cancellation — so the test must find the
+    bookkeeping error anywhere in the chain, not assert a fixed depth.
+    """
+    pending = [root]
+    seen: set[int] = set()
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        yield error
+        if error.__context__ is not None:
+            pending.append(error.__context__)
+        if error.__cause__ is not None:
+            pending.append(error.__cause__)
+
+
+def test_snapshot_failure_during_cancellation_preserves_the_cancellation(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def cancelled_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise asyncio.CancelledError()
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=cancelled_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="b" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    chain = list(_exception_chain(captured.value))
+    assert any(error is failures["bookkeeping"] for error in chain)
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def test_snapshot_failure_after_unexpected_error_preserves_the_original_error(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def crashing_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise ValueError("implementation bug")
+
+    with pytest.raises(ValueError, match="implementation bug") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=crashing_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="c" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def _fail_append_for(evidence, event_type: str, failures: dict) -> None:
+    original_append = evidence.append_event
+
+    def failing_append(kind, payload, **kwargs):
+        if kind == event_type:
+            error = RuntimeError("evidence write failure")
+            failures["bookkeeping"] = error
+            raise error
+        return original_append(kind, payload, **kwargs)
+
+    evidence.append_event = failing_append
+
+
+def test_failed_event_write_failure_preserves_the_original_tool_failure(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_failed", failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="d" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_unknown_event_write_failure_preserves_the_cancellation(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def cancelled_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise asyncio.CancelledError()
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=cancelled_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="e" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    chain = list(_exception_chain(captured.value))
+    assert any(error is failures["bookkeeping"] for error in chain)
+
+
+def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def crashing_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise ValueError("implementation bug")
+
+    with pytest.raises(ValueError, match="implementation bug") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=crashing_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="f" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_composed_snapshot_and_event_write_failure_still_preserves_the_original(
+    tmp_path,
+) -> None:
+    """Both bookkeeping layers fail: the post-effect snapshot raises AND the
+    outcome_unknown event write raises. The caller must still see the tool's
+    own failure, never either bookkeeping error."""
+
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    reader_failures: dict = {}
+    append_failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", append_failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="9" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, reader_failures),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert "bookkeeping" in append_failures, "the unknown-event write must have failed"
+
+
+def test_stub_state_reader_on_a_nonidempotent_mutation_leaves_a_typed_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: {"balance": 100},
+        )
+    )
+
+    assert record.status == "succeeded"
+    assert record.state_changed is False
+    events = evidence.read_events()
+    unobserved = [
+        event
+        for event in events
+        if event.event_type == "tool_invocation_mutation_unobserved"
+    ]
+    assert len(unobserved) == 1
+    assert unobserved[0].tool_invocation_id == record.tool_invocation_id
+    payload = json.loads(evidence._read_artifact(unobserved[0].payload_ref))
+    assert payload["condition"] == "mutation_unobserved"
+    assert payload["tool_id"] == "debit_account"
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_an_observed_change_or_declared_idempotency_leaves_no_unobserved_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    async def idempotent_noop(_arguments):
+        return {"already": "cancelled"}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="cancel_order",
+            tool_version="1.0.0",
+            arguments={"order_id": "order_1"},
+            implementation=idempotent_noop,
+            idempotency_supported=True,
+            effect="mutating",
+            tool_schema_sha256="b" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    event_types = {event.event_type for event in evidence.read_events()}
+    assert "tool_invocation_mutation_unobserved" not in event_types
+
+
+async def _echo_tool(arguments):
+    return {"echo": arguments.get("value")}
+
+
+def _minted_invocation_id(tools: ToolExecutor, value: int) -> str:
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="echo",
+            tool_version="1.0.0",
+            arguments={"value": value},
+            implementation=_echo_tool,
+            idempotency_supported=True,
+            effect="read_only",
+            tool_schema_sha256="a" * 64,
+        )
+    )
+    return record.tool_invocation_id
+
+
+def test_resumed_executor_never_reuses_a_minted_tool_invocation_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_id = _minted_invocation_id(ToolExecutor(evidence), value=1)
+    evidence.close()
+
+    resumed = _resume_evidence(tmp_path)
+    second_id = _minted_invocation_id(ToolExecutor(resumed), value=2)
+
+    assert first_id != second_id
+    resumed.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_two_live_executors_over_one_store_never_mint_the_same_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_executor = ToolExecutor(evidence)
+    second_executor = ToolExecutor(evidence)
+
+    first_id = _minted_invocation_id(first_executor, value=1)
+    second_id = _minted_invocation_id(second_executor, value=2)
+
+    assert first_id != second_id
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_legacy_ids_are_resume_stable_when_mixed_with_explicit_id_traffic(
+    tmp_path,
+) -> None:
+    """KernelToolPort passes explicit ids; those invocations append started
+    events too. A legacy mint after explicit traffic must produce the same id
+    whether the run was uninterrupted or resumed past the explicit call."""
+
+    def explicit_invocation(tools: ToolExecutor) -> None:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="echo",
+                tool_version="1.0.0",
+                arguments={"value": 0},
+                implementation=_echo_tool,
+                idempotency_supported=True,
+                effect="read_only",
+                tool_schema_sha256="a" * 64,
+                tool_invocation_id="tool_invocation_explicit_0",
+            )
+        )
+
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    explicit_invocation(tools)
+    expected = _minted_invocation_id(tools, value=1)
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    explicit_invocation(ToolExecutor(interrupted))
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    actual = _minted_invocation_id(ToolExecutor(resumed), value=1)
+    resumed.close()
+
+    assert actual == expected
+
+
+def test_resumed_executor_reproduces_the_uninterrupted_id_sequence(tmp_path) -> None:
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    expected = [_minted_invocation_id(tools, value=1), _minted_invocation_id(tools, value=2)]
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    first = _minted_invocation_id(ToolExecutor(interrupted), value=1)
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    second = _minted_invocation_id(ToolExecutor(resumed), value=2)
+    resumed.close()
+
+    assert [first, second] == expected
+
+
 class FakeResponsesAPI:
     def __init__(self) -> None:
         self.kwargs = None
@@ -740,11 +1265,13 @@ class FakeOpenRouterCompletions:
         selected_provider: str = "DeepInfra",
         attempt: int = 1,
         include_attempts: bool = True,
+        content: object = '{"offer":7}',
     ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
         self.attempt = attempt
         self.include_attempts = include_attempts
+        self.content = content
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
@@ -781,7 +1308,7 @@ class FakeOpenRouterCompletions:
                 {
                     "index": 0,
                     "finish_reason": "stop",
-                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                    "message": {"role": "assistant", "content": self.content},
                 }
             ],
             "usage": {
@@ -898,135 +1425,122 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     assert result.cost_usd == pytest.approx(0.00001726)
 
 
-class FakeArenaCompletions:
-    def __init__(
-        self,
-        content: str = '{"offer":7}',
-        *,
-        finish_reason: str = "stop",
-        reasoning_content: str | None = None,
-    ) -> None:
-        self.kwargs = None
-        self.content = content
-        self.finish_reason = finish_reason
-        self.reasoning_content = reasoning_content
-
-    async def create(self, **kwargs):
-        self.kwargs = kwargs
-        message = {"role": "assistant", "content": self.content}
-        if self.reasoning_content is not None:
-            message["reasoning_content"] = self.reasoning_content
-        raw = {
-            "id": "arena_fixture",
-            "model": "claude-sonnet-4-6",
+def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
+    response = SimpleNamespace(
+        model_dump=lambda mode: {
+            "id": "arena-response",
+            "model": "glm-5p2",
             "choices": [
                 {
-                    "finish_reason": self.finish_reason,
-                    "message": message,
+                    "message": {"content": 'Result: {"offer":7}'},
+                    "finish_reason": "stop",
                 }
             ],
-            "usage": {"prompt_tokens": 100, "completion_tokens": 10},
+            "usage": {
+                "prompt_tokens": 21,
+                "completion_tokens": 8,
+                "prompt_tokens_details": {"cached_tokens": 3},
+                "completion_tokens_details": {"reasoning_tokens": 5},
+                "cost": 0.00042,
+            },
         }
-        return SimpleNamespace(model_dump=lambda mode: raw)
-
-
-def test_arena_adapter_uses_compatible_chat_completions_and_parses_json() -> None:
-    completions = FakeArenaCompletions()
-    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
-    client = ArenaChatClient(sdk_client=sdk)
-    request = replace(
-        _openrouter_request(),
-        provider="arena",
-        base_url="https://api.preview.arena.ai/v1",
-        model="claude-sonnet-4-6",
-        revision="claude-sonnet-4-6",
-        top_p=None,
-        seed=None,
-        provider_metadata=None,
-    ).with_computed_hash()
-
-    result = asyncio.run(client.complete(request))
-
-    assert completions.kwargs["model"] == "claude-sonnet-4-6"
-    assert "Return only JSON matching this schema" in completions.kwargs["messages"][0][
-        "content"
-    ]
-    assert "response_format" not in completions.kwargs
-    assert result.output_text == '{"offer":7}'
-    assert result.input_tokens == 100
-    assert result.output_tokens == 10
-    assert result.cost_usd is None
-
-
-def test_arena_adapter_transmits_reasoning_effort() -> None:
-    completions = FakeArenaCompletions()
-    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
-    client = ArenaChatClient(sdk_client=sdk)
-    request = replace(
-        _openrouter_request(),
-        provider="arena",
-        base_url="https://api.preview.arena.ai/v1",
-        model="deepseek-v4-flash-0731",
-        revision="deepseek-v4-flash-0731",
-        reasoning_effort="low",
-        top_p=None,
-        seed=None,
-        provider_metadata=None,
-    ).with_computed_hash()
-
-    asyncio.run(client.complete(request))
-
-    assert completions.kwargs["reasoning_effort"] == "low"
-
-
-@pytest.mark.parametrize(
-    "content",
-    [
-        '```json\n{"offer":7}\n```',
-        '<think>I should return the required object.</think>\n{"offer":7}',
-    ],
-)
-def test_arena_adapter_extracts_json_from_model_wrappers(content: str) -> None:
-    completions = FakeArenaCompletions(content)
-    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
-    client = ArenaChatClient(sdk_client=sdk)
-    request = replace(
-        _openrouter_request(),
-        provider="arena",
-        base_url="https://api.preview.arena.ai/v1",
-        model="deepseek-v4-flash-0731",
-        revision="deepseek-v4-flash-0731",
-        top_p=None,
-        seed=None,
-        provider_metadata=None,
-    ).with_computed_hash()
-
-    result = asyncio.run(client.complete(request))
-
-    assert result.output_text == '{"offer":7}'
-
-
-def test_arena_adapter_identifies_reasoning_budget_exhaustion() -> None:
-    completions = FakeArenaCompletions(
-        "", finish_reason="length", reasoning_content="unfinished reasoning"
     )
+
+    class Completions:
+        kwargs = None
+
+        async def create(self, **kwargs):
+            self.kwargs = kwargs
+            return response
+
+    completions = Completions()
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
     client = ArenaChatClient(sdk_client=sdk)
-    request = replace(
-        _openrouter_request(),
+    request = ProviderRequest(
+        provider_call_id="arena-call",
         provider="arena",
         base_url="https://api.preview.arena.ai/v1",
-        model="deepseek-v4-flash-0731",
-        revision="deepseek-v4-flash-0731",
+        model="glm-5p2",
+        revision="glm-5p2",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{}}',
+        temperature=0.0,
         top_p=None,
-        seed=None,
-        provider_metadata=None,
+        max_output_tokens=512,
+        reasoning_effort="low",
+        timeout_seconds=120.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {"offer": {"type": "integer"}},
+            "required": ["offer"],
+        },
     ).with_computed_hash()
 
-    with pytest.raises(ProviderFailure, match="increase --max-output-tokens") as raised:
+    result = asyncio.run(client.complete(request))
+
+    assert completions.kwargs["model"] == "glm-5p2"
+    assert completions.kwargs["reasoning_effort"] == "low"
+    assert result.output_text == '{"offer":7}'
+    assert result.resolved_model == "glm-5p2"
+    assert result.input_tokens == 21
+    assert result.cached_input_tokens == 3
+    assert result.output_tokens == 8
+    assert result.cost_usd == pytest.approx(0.00042)
+    assert result.reasoning_tokens == 5
+
+
+def test_arena_adapter_classifies_truncated_json_as_length() -> None:
+    response = SimpleNamespace(
+        model_dump=lambda mode: {
+            "id": "arena-truncated",
+            "model": "glm-5p2",
+            "choices": [
+                {
+                    "message": {"content": '{"kind":"reply","text":"Hello'},
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {"completion_tokens": 80, "prompt_tokens": 128},
+        }
+    )
+
+    class Completions:
+        async def create(self, **kwargs):
+            return response
+
+    client = ArenaChatClient(
+        sdk_client=SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    )
+    request = ProviderRequest(
+        provider_call_id="arena-truncated-call",
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="glm-5p2",
+        revision="glm-5p2",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{}}',
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=80,
+        reasoning_effort="low",
+        timeout_seconds=120.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string"},
+                "text": {"type": "string"},
+            },
+            "required": ["kind", "text"],
+        },
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure, match="truncated") as captured:
         asyncio.run(client.complete(request))
 
-    assert raised.value.condition == "length"
+    assert captured.value.condition == "length"
+    assert captured.value.retryable is True
 
 
 def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
@@ -1057,6 +1571,60 @@ def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
     json.dumps(completions.kwargs)
 
 
+def test_openrouter_adapter_preserves_empty_completion_for_visible_retry() -> None:
+    completions = FakeOpenRouterCompletions(content=None)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == ""
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+
+
+def test_openrouter_adapter_preserves_malformed_model_output_and_exact_usage() -> None:
+    completions = FakeOpenRouterCompletions(content='{"offer":')
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == '{"offer":'
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.cached_input_tokens == 7
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+    assert result.raw_response["choices"][0]["message"]["content"] == '{"offer":'
+
+
+def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(_openrouter_request(), temperature=None, top_p=None).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "temperature" not in completions.kwargs
+    assert "top_p" not in completions.kwargs
+
+
+def test_openrouter_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(_openrouter_request(), reasoning_effort=None).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
+
+
 def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
     completions = FakeOpenRouterCompletions(selected_provider="OpenInference")
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
@@ -1073,6 +1641,65 @@ def test_openrouter_adapter_rejects_a_later_route_attempt_without_attempt_detail
 
     with pytest.raises(ProviderFailure, match="fallback"):
         asyncio.run(client.complete(_openrouter_request()))
+
+
+def test_openrouter_adapter_rejects_choice_level_provider_error() -> None:
+    class ChoiceErrorCompletions:
+        async def create(self, **_kwargs):
+            raw = {
+                "id": "gen_choice_error",
+                "model": "deepseek/deepseek-v4-flash-0731",
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "error",
+                        "error": {
+                            "code": 502,
+                            "message": "upstream JSON generation failed",
+                        },
+                        "message": {"role": "assistant", "content": "1.0"},
+                    }
+                ],
+            }
+            return SimpleNamespace(model_dump=lambda mode: raw)
+
+    sdk = SimpleNamespace(
+        chat=SimpleNamespace(completions=ChoiceErrorCompletions())
+    )
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="upstream JSON generation failed") as caught:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert caught.value.condition == "provider_5xx"
+    assert caught.value.retryable is True
+
+
+def test_openrouter_adapter_classifies_embedded_429_as_retryable_rate_limit() -> None:
+    class RateLimitedCompletions:
+        async def create(self, **_kwargs):
+            raw = {
+                "error": {
+                    "code": 429,
+                    "message": "upstream provider shared pool is busy",
+                    "metadata": {
+                        "retry_after_seconds": 30,
+                        "headers": {"Retry-After": "30"},
+                    },
+                }
+            }
+            return SimpleNamespace(model_dump=lambda mode: raw)
+
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=RateLimitedCompletions()))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="shared pool") as caught:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert caught.value.condition == "rate_limit"
+    assert caught.value.retryable is True
+    assert caught.value.status_code == 429
+    assert caught.value.retry_after_seconds == 30
 
 
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
@@ -1225,6 +1852,24 @@ def test_openrouter_adapter_translates_native_messages_and_tools_preserving_call
     assert result.output_text == ""
     assert result.finish_reason == "tool_calls"
     assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_openrouter_native_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterNativeCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        output_schema=None,
+        messages=(CanonicalMessage(role="user", content="please act"),),
+        tools=(),
+        reasoning_effort=None,
+    ).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
 
 
 def test_openrouter_adapter_leaves_the_text_path_untouched_when_messages_is_none() -> None:
@@ -1579,7 +2224,7 @@ def test_a_declared_reasoning_budget_reaches_the_wire() -> None:
     another -- the shape of a treatment that silently fails to be delivered.
     """
 
-    from aeread.shared_runner.execution import _reasoning_block
+    from aeread.shared_runner.task.execution import _reasoning_block
 
     declared = ProviderRequest(
         provider_call_id="provider_call_fixture",
@@ -1611,7 +2256,7 @@ def test_native_request_fields_bind_the_request_hash() -> None:
     text-only requests must still hash exactly as before.
     """
 
-    from aeread.shared_runner.harness import CanonicalMessage
+    from aeread.shared_runner.model_call.harness import CanonicalMessage
 
     def _request(**overrides):
         base = dict(
@@ -1661,7 +2306,7 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
     measured baseline and any accidental drift fails here first.
     """
 
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     result = ProviderResult(
         response_id="response_fixture",
@@ -1682,3 +2327,182 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
             f"{field} must serialize explicitly; if this changes, the canonical "
             "encoding has been versioned and the golden vectors must be updated"
         )
+
+
+def _second_decision() -> DecisionRequest:
+    return DecisionRequest(
+        episode_id="episode_fixture",
+        phase_instance_id="phase_instance_fixture",
+        logical_action_id="logical_action_second",
+        cell_id="cell_fixture",
+        case_id="fixture_case",
+        phase_id="offer",
+        seat_id="buyer",
+        role="buyer",
+        profile_id="subject_model_v1",
+        observation_schema="private_value_v1",
+        action_schema="offer_v1",
+        observation={"private_value": 11},
+    )
+
+
+def test_a_401_after_the_route_answered_is_not_promoted_to_a_retry(tmp_path) -> None:
+    """Only a 404 becomes provider_rejected_after_route_proven. A 401 after
+    a success is a revoked credential; retrying it is more 401s (#125
+    review finding 2). Production path: real executor, real classifier."""
+    from aeread.shared_runner.task.execution import POST_ADMISSION_REJECTION
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [
+            _success_result(),
+            ProviderFailure("provider_rejected", "401 unauthorized", retryable=False, status_code=401),
+            _success_result(),
+        ],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=3, retryable_conditions=(POST_ADMISSION_REJECTION,)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    with pytest.raises(ProviderFailure, match="401"):
+        asyncio.run(executor(_second_decision()))
+    assert len(provider.requests) == 2, "the 401 must not be retried"
+    assert executor.execution_for("logical_action_second").status == "failed"
+    evidence.audit_reconciliation()
+
+
+def test_an_arena_length_failure_grows_the_next_request_budget(tmp_path) -> None:
+    """Arena converts a truncated structured response straight into
+    ProviderFailure("length"). That path used to retry at the same limit
+    (#125 review finding 4); it must grow like the ProviderResult path."""
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [ProviderFailure("length", "truncated at the output-token limit", retryable=True), _success_result()],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=2, retryable_conditions=("length",)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    first, second = provider.requests
+    assert second.max_output_tokens == first.max_output_tokens * 2
+    execution = executor.execution_for(_decision().logical_action_id)
+    assert execution.attempts[1].retry_reason == "length"
+    evidence.audit_reconciliation()
+
+
+def test_a_round_that_answered_proves_the_route_before_the_attempt_completes(tmp_path) -> None:
+    """Multi-round attempts: round 1 succeeds, round 2 returns 404. Proof used
+    to be recorded only when the whole attempt returned, so the 404 escaped
+    untyped and unretried (#125 review finding 1). This drives the real
+    failure-recording method on a fresh executor whose only evidence of the
+    route is the settled prior round."""
+    from aeread.shared_runner.task.execution import (
+        POST_ADMISSION_REJECTION,
+        EvidenceStore,
+        ProviderCallRecord,
+    )
+
+    # A real ProviderRequest, obtained the way the executor builds one.
+    donor_evidence = EvidenceStore(
+        tmp_path / "donor",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    donor = InspectingProvider(donor_evidence.events_path, [_success_result()])
+    asyncio.run(_executor(tmp_path, donor, evidence=donor_evidence)(_decision()))
+    request = donor.requests[0]
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(evidence.events_path, [])
+    profile = _profile(max_action_attempts=3, retryable_conditions=(POST_ADMISSION_REJECTION,))
+    executor = _executor(tmp_path, provider, evidence=evidence, profile=profile)
+    assert not executor._routes_proven, "a fresh executor has proven nothing"
+
+    settled_round = ProviderCallRecord(
+        provider_call_id="round_0_call",
+        action_attempt_id="attempt_multi",
+        status="succeeded",
+        request_sha256=request.request_sha256,
+        requested_model=request.model,
+        resolved_model=request.model,
+        response_id="resp_0",
+        finish_reason="stop",
+        input_tokens=10,
+        cached_input_tokens=0,
+        output_tokens=5,
+        cost_usd=0.0,
+        failure_condition=None,
+    )
+    failure = ProviderFailure("provider_rejected", "404 not found", retryable=False, status_code=404)
+    should_retry, condition = executor._record_provider_failure(
+        _decision(), profile, request, "attempt_multi", 0, None, [], failure,
+        prior_rounds=(settled_round,), pending=None,
+    )
+    assert should_retry is True
+    assert condition == POST_ADMISSION_REJECTION
+    assert executor._route_key(profile) in executor._routes_proven
+    execution = executor.execution_for(_decision().logical_action_id)
+    assert execution.status == "retrying"
+    assert execution.failure_code == POST_ADMISSION_REJECTION
+    assert execution.attempts[0].provider_calls[-1].failure_condition == POST_ADMISSION_REJECTION
+
+
+def test_a_404_after_the_route_answered_is_sealed_under_its_typed_condition(tmp_path) -> None:
+    """The effective condition must be computed before anything is written.
+    It used to be computed after the provider record and both events were
+    sealed under the raw condition, so nothing durable ever said
+    provider_rejected_after_route_proven and the finalizer could not see it
+    (#125 review finding 3). This reads the sealed payloads back."""
+    import json as _json
+
+    from aeread.shared_runner.task.execution import POST_ADMISSION_REJECTION
+
+    evidence = _evidence(tmp_path)
+    provider = InspectingProvider(
+        evidence.events_path,
+        [
+            _success_result(),
+            ProviderFailure("provider_rejected", "404 not found", retryable=False, status_code=404),
+            _success_result(),
+        ],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=2, retryable_conditions=(POST_ADMISSION_REJECTION,)),
+    )
+    asyncio.run(executor(_decision()))
+    executor.finalize_logical_action(_decision().logical_action_id, valid=True, failure_code=None)
+    response = asyncio.run(executor(_second_decision()))
+    executor.finalize_logical_action("logical_action_second", valid=True, failure_code=None)
+    assert response.text == '{"offer":7}'
+    assert len(provider.requests) == 3, "the 404 after proof is retried once"
+
+    execution = executor.execution_for("logical_action_second")
+    assert [a.status for a in execution.attempts] == ["failed", "succeeded"]
+    assert execution.attempts[0].provider_calls[-1].failure_condition == POST_ADMISSION_REJECTION
+    assert execution.attempts[1].retry_reason == POST_ADMISSION_REJECTION
+
+    sealed = {}
+    for event in evidence.read_events():
+        if event.event_type in {"provider_call_failed", "action_attempt_failed"}:
+            payload = _json.loads((tmp_path / "evidence" / event.payload_ref).read_text())
+            sealed[event.event_type] = payload["failure_condition"]
+    assert sealed == {
+        "provider_call_failed": POST_ADMISSION_REJECTION,
+        "action_attempt_failed": POST_ADMISSION_REJECTION,
+    }, sealed
+    evidence.audit_reconciliation()

@@ -14,9 +14,9 @@ from typing import Any
 
 import numpy as np
 
-from .execution import EvidenceStore, execute_plan_cell
+from .task.execution import EvidenceStore, execute_plan_cell
 from .refund import RefundV1Plugin, _provider_client, build_refund_run
-from .resolver import canonical_json_bytes
+from .run.resolver import canonical_json_bytes
 
 
 CONTROL = "none"
