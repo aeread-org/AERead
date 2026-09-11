@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,11 @@ def _load_env(path: Path) -> None:
         os.environ.setdefault(key, value)
 
 
+def _report_filename(model: str) -> str:
+    label = re.sub(r"[^a-z0-9]+", "_", model.lower()).strip("_")
+    return f"refund_v2_1n_{label}_summary.json"
+
+
 def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, seed: int, turn: int) -> ProviderRequest:
     public_case = {
         "case_id": case.case_id,
@@ -76,7 +82,7 @@ def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision:
         revision=revision,
         instructions=instructions,
         input_text=canonical_json_bytes(public_case).decode("utf-8"),
-        temperature=0.0,
+        temperature=None if model.startswith("gpt-5.6") else 0.0,
         top_p=None,
         max_output_tokens=max_output_tokens,
         reasoning_effort=reasoning_effort,
@@ -194,7 +200,7 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
         "results": rows,
     }
     output.mkdir(parents=True, exist_ok=True)
-    (output / "refund_v2_1n_deepseek_summary.json").write_bytes(canonical_json_bytes(report) + b"\n")
+    (output / _report_filename(model)).write_bytes(canonical_json_bytes(report) + b"\n")
     return report
 
 
