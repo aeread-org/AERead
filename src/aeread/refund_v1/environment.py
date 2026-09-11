@@ -94,6 +94,12 @@ class RefundCase:
     expected_resolution: Mapping[str, Any] | None = None
     accepted_resolutions: tuple[Mapping[str, Any], ...] = ()
     review_status: str = "generated"
+    authorized_remedies: tuple[Mapping[str, Any], ...] = ()
+    accepted_remedy_ids: tuple[str, ...] = ()
+    customer_reaction_rules: tuple[Mapping[str, Any], ...] = ()
+    customer_default_response: Mapping[str, Any] | None = None
+    max_negotiation_rounds: int = 1
+    reference_minimum_negotiation_rounds: int = 0
 
 
 @dataclass(frozen=True)
@@ -540,12 +546,55 @@ def _decision_from_resolution(
 
 def accepted_decisions(case: RefundCase) -> tuple[RefundDecision, ...]:
     """Return the versioned accepted set, with the canonical resolution first."""
+    if case.authorized_remedies and case.accepted_remedy_ids:
+        accepted = tuple(
+            decision
+            for remedy_id in case.accepted_remedy_ids
+            if (decision := decision_from_remedy(case, remedy_id)) is not None
+        )
+        if accepted:
+            return accepted
     primary = evaluate_refund(case)
     alternatives = tuple(
         _decision_from_resolution(case, resolution)
         for resolution in case.accepted_resolutions
     )
     return (primary, *alternatives)
+
+
+def authorized_remedies(case: RefundCase) -> tuple[Mapping[str, Any], ...]:
+    if case.authorized_remedies:
+        return case.authorized_remedies
+    return tuple(
+        {
+            "remedy_id": f"accepted_remedy_{index}",
+            "decision": decision.decision,
+            "refund_amount": decision.refund_amount,
+            "refund_method": decision.refund_method,
+            "credit_amount": decision.credit_amount,
+            "service_action": decision.service_action,
+            "requires_human_review": decision.requires_human_review,
+            "reason_codes": list(decision.reason_codes),
+            "required_fact_ids": list(required_information(case)),
+        }
+        for index, decision in enumerate(accepted_decisions(case))
+    )
+
+
+def remedy_by_id(case: RefundCase, remedy_id: str) -> Mapping[str, Any] | None:
+    return next(
+        (
+            remedy
+            for remedy in authorized_remedies(case)
+            if remedy.get("remedy_id") == remedy_id
+        ),
+        None,
+    )
+
+
+def decision_from_remedy(case: RefundCase, remedy_id: str) -> RefundDecision | None:
+    remedy = remedy_by_id(case, remedy_id)
+    return _decision_from_resolution(case, remedy) if remedy is not None else None
 
 
 def eligible_refund_amount(case: RefundCase) -> float:
@@ -922,6 +971,13 @@ def initial_negotiation_state(case: RefundCase) -> dict[str, Any]:
         "revealed_private_fields": {},
         "requested_customer_fields": [],
         "pending_offer": None,
+        "pending_offer_id": None,
+        "offer_history": [],
+        "accepted_offer_id": None,
+        "executed_offer_id": None,
+        "last_rejected_offer_id": None,
+        "negotiation_rounds": 0,
+        "customer_reaction_counts": {},
         "pending_confirmation": None,
         "confirmed_refund": None,
         "decision_revealed_fields": None,
@@ -932,7 +988,7 @@ def initial_negotiation_state(case: RefundCase) -> dict[str, Any]:
         "order_state": dict(order_state),
         "final_decision": None,
         "done": False,
-        "max_rounds": 4,
+        "max_rounds": max(4, case.max_negotiation_rounds + 3),
     }
 
 
@@ -965,7 +1021,7 @@ def private_customer_truth(case: RefundCase) -> dict[str, Any]:
 
 
 def customer_observation(case: RefundCase, state: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    observation = {
         "role": "customer",
         "round_index": state["round_index"],
         "public_order": public_order(case),
@@ -973,13 +1029,20 @@ def customer_observation(case: RefundCase, state: Mapping[str, Any]) -> dict[str
         "claim_text": case.claim_text,
         "requested_info": list(state.get("requested_customer_fields", ())),
         "pending_offer": state.get("pending_offer"),
+        "pending_offer_id": state.get("pending_offer_id"),
         "pending_confirmation": state.get("pending_confirmation"),
         "transcript": list(state["transcript"]),
     }
+    if case.authorized_remedies:
+        observation["customer_reaction_rules"] = list(case.customer_reaction_rules)
+        observation["customer_default_response"] = dict(
+            case.customer_default_response or {"kind": "accept"}
+        )
+    return observation
 
 
 def support_observation(case: RefundCase, state: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    observation = {
         "role": "support_agent",
         "round_index": state["round_index"],
         "policy": policy_document(),
@@ -990,14 +1053,231 @@ def support_observation(case: RefundCase, state: Mapping[str, Any]) -> dict[str,
             "scenario_id": "unknown",
         },
         "pending_offer": state.get("pending_offer"),
+        "pending_offer_id": state.get("pending_offer_id"),
         "confirmed_refund": state.get("confirmed_refund"),
         "transcript": list(state["transcript"]),
     }
+    if case.authorized_remedies:
+        observation.update(
+            {
+                "authorized_remedies": list(case.authorized_remedies),
+                "offer_history": list(state.get("offer_history", ())),
+                "last_rejected_offer_id": state.get("last_rejected_offer_id"),
+                "accepted_offer_id": state.get("accepted_offer_id"),
+                "max_negotiation_rounds": case.max_negotiation_rounds,
+            }
+        )
+    return observation
+
+
+def _v13_terminal(
+    state: Mapping[str, Any], reason: str, decision: RefundDecision | None = None
+) -> dict[str, Any]:
+    next_state = dict(state)
+    if decision is None:
+        decision = RefundDecision(
+            decision="deny",
+            refund_amount=0.0,
+            refund_method="none",
+            automatic_threshold=0.0,
+            maximum_refund_limit=0.0,
+            requires_human_review=False,
+            reason_codes=(reason,),
+        )
+    next_state["final_decision"] = asdict(decision)
+    next_state["decision_revealed_fields"] = dict(
+        state.get("revealed_private_fields", {})
+    )
+    next_state["terminal_reason"] = reason
+    next_state["done"] = True
+    next_state["phase"] = "finished"
+    return next_state
+
+
+def _v13_offer_decision(case: RefundCase, offer: Mapping[str, Any]) -> RefundDecision:
+    decision = decision_from_remedy(case, str(offer["remedy_id"]))
+    if decision is None:
+        raise ValueError("unknown authorized remedy")
+    return decision
+
+
+def _apply_v13_customer_action(
+    case: RefundCase, state: Mapping[str, Any], action: Mapping[str, Any]
+) -> dict[str, Any]:
+    next_state = dict(state)
+    message = action.get("message")
+    message = message if isinstance(message, str) and message.strip() else "Customer response."
+    reveal_fields = action.get("reveal_fields", ())
+    if not isinstance(reveal_fields, (list, tuple)):
+        return _v13_terminal(state, "invalid_operation")
+    requested = set(state.get("requested_customer_fields", ()))
+    truth = private_customer_truth(case)
+    current_reveal = {
+        field: truth[field]
+        for field in reveal_fields[:3]
+        if field in requested and field in truth
+    }
+    if len(reveal_fields) > 3 or any(field not in requested for field in reveal_fields):
+        return _v13_terminal(state, "invalid_operation")
+    next_state["revealed_private_fields"] = {
+        **dict(state.get("revealed_private_fields", {})), **current_reveal
+    }
+    next_state["customer_disclosures"] = [
+        *state.get("customer_disclosures", ()),
+        {
+            "revealed_fields": sorted(current_reveal),
+            "requested_fields": sorted(requested),
+            "voluntary_fields": [],
+        },
+    ]
+    next_state["requested_customer_fields"] = []
+    next_state["transcript"] = [
+        *state["transcript"], asdict(RefundMessage("customer", message, current_reveal))
+    ]
+    decision = action.get("decision")
+    pending_id = state.get("pending_offer_id")
+    pending_offer = state.get("pending_offer")
+    supplied_id = action.get("offer_id")
+    if decision in {"state_request", "provide_info"} and pending_offer is None:
+        next_state["phase"] = "support_response"
+        return next_state
+    if not isinstance(pending_offer, Mapping) or supplied_id != pending_id:
+        return _v13_terminal(next_state, "invalid_operation")
+    history = [dict(offer) for offer in state.get("offer_history", ())]
+    offer_index = next(
+        (index for index, offer in enumerate(history) if offer.get("offer_id") == pending_id),
+        None,
+    )
+    if offer_index is None or history[offer_index].get("status") != "pending":
+        return _v13_terminal(next_state, "invalid_operation")
+    if decision in {"accept_offer", "confirm_resolution"}:
+        history[offer_index]["status"] = "accepted"
+        next_state["offer_history"] = history
+        next_state["accepted_offer_id"] = pending_id
+        next_state["pending_offer"] = None
+        next_state["pending_offer_id"] = None
+        next_state["pending_confirmation"] = _v13_offer_decision(case, history[offer_index]).__dict__
+        next_state["transaction_events"] = [
+            *state.get("transaction_events", ()),
+            {"event": "customer_confirmed", "actor": "customer", "sequence": len(state.get("transaction_events", ())), "offer_id": pending_id},
+        ]
+        next_state["phase"] = "support_response"
+        return next_state
+    if decision in {"push_back", "reject_offer", "reject_and_escalate", "abandon"}:
+        history[offer_index]["status"] = "rejected"
+        next_state["offer_history"] = history
+        next_state["pending_offer"] = None
+        next_state["pending_offer_id"] = None
+        next_state["last_rejected_offer_id"] = pending_id
+        next_state["negotiation_rounds"] = int(state.get("negotiation_rounds", 0)) + 1
+        if decision == "reject_and_escalate":
+            return _v13_terminal(next_state, "escalated")
+        if decision == "abandon":
+            return _v13_terminal(next_state, "abandoned")
+        if next_state["negotiation_rounds"] >= case.max_negotiation_rounds:
+            return _v13_terminal(next_state, "round_limit_reached")
+        next_state["phase"] = "support_response"
+        return next_state
+    return _v13_terminal(next_state, "invalid_operation")
+
+
+def _apply_v13_support_action(
+    case: RefundCase, state: Mapping[str, Any], action: Mapping[str, Any]
+) -> dict[str, Any]:
+    next_state = dict(state)
+    decision = action.get("decision")
+    message = action.get("message")
+    message = message if isinstance(message, str) and message.strip() else "Support response."
+    next_state["transcript"] = [
+        *state["transcript"], asdict(RefundMessage("support_agent", message, {}))
+    ]
+    if decision in {"request_facts", "ask_info", "verify_identity", "request_evidence"}:
+        requested = action.get("requested_info", action.get("fact_ids", ()))
+        if not isinstance(requested, (list, tuple)) or len(requested) > 3:
+            return _v13_terminal(next_state, "invalid_operation")
+        revealed = state.get("revealed_private_fields", {})
+        requested = list(dict.fromkeys(
+            field for field in requested
+            if field in CUSTOMER_REVEAL_FIELDS and field not in revealed
+        ))
+        next_state["requested_customer_fields"] = requested
+        next_state["support_requests"] = [
+            *state.get("support_requests", ()), {"decision": decision, "requested_info": requested}
+        ]
+        next_state["phase"] = "customer_message"
+        return next_state
+    if decision in {"propose", "offer", "counter"}:
+        remedy_id = action.get("remedy_id")
+        remedy = remedy_by_id(case, str(remedy_id)) if isinstance(remedy_id, str) else None
+        if remedy is None:
+            return _v13_terminal(next_state, "invalid_operation")
+        required = set(remedy.get("required_fact_ids", ()))
+        if not required <= set(state.get("revealed_private_fields", {})):
+            return _v13_terminal(next_state, "invalid_operation")
+        supersedes = action.get("supersedes_offer_id")
+        history = [dict(offer) for offer in state.get("offer_history", ())]
+        if decision == "counter":
+            if supersedes != state.get("last_rejected_offer_id"):
+                return _v13_terminal(next_state, "invalid_operation")
+            old_index = next((index for index, offer in enumerate(history) if offer.get("offer_id") == supersedes), None)
+            if old_index is None or history[old_index].get("status") != "rejected":
+                return _v13_terminal(next_state, "invalid_operation")
+            history[old_index]["status"] = "superseded"
+        elif history and state.get("last_rejected_offer_id") is not None:
+            return _v13_terminal(next_state, "invalid_operation")
+        offer_id = action.get("offer_id")
+        if not isinstance(offer_id, str) or not offer_id or any(offer.get("offer_id") == offer_id for offer in history):
+            return _v13_terminal(next_state, "invalid_operation")
+        offer = {"offer_id": offer_id, "remedy_id": remedy_id, "actor_id": "support_agent", "round_number": int(state.get("negotiation_rounds", 0)) + 1, "status": "pending"}
+        history.append(offer)
+        next_state["offer_history"] = history
+        next_state["pending_offer"] = {**dict(remedy), "offer_id": offer_id}
+        next_state["pending_offer_id"] = offer_id
+        next_state["decision_revealed_fields"] = dict(state.get("revealed_private_fields", {}))
+        next_state["transaction_events"] = [
+            *state.get("transaction_events", ()), {"event": "refund_proposed", "actor": "support_agent", "sequence": len(state.get("transaction_events", ())), "offer_id": offer_id, "refund_amount": remedy["refund_amount"], "refund_method": remedy["refund_method"], "credit_amount": remedy.get("credit_amount", 0.0), "service_action": remedy.get("service_action", "none")},
+        ]
+        next_state["phase"] = "customer_message"
+        return next_state
+    if decision == "hold":
+        rounds = int(state.get("negotiation_rounds", 0)) + 1
+        next_state["negotiation_rounds"] = rounds
+        if rounds >= case.max_negotiation_rounds:
+            return _v13_terminal(next_state, "round_limit_reached")
+        next_state["phase"] = "support_response"
+        return next_state
+    if decision == "execute_refund":
+        offer_id = action.get("offer_id")
+        if offer_id != state.get("accepted_offer_id") or state.get("executed_offer_id") is not None:
+            return _v13_terminal(next_state, "invalid_operation")
+        offer = next((offer for offer in state.get("offer_history", ()) if offer.get("offer_id") == offer_id), None)
+        if not isinstance(offer, Mapping) or offer.get("status") != "accepted":
+            return _v13_terminal(next_state, "invalid_operation")
+        final = _v13_offer_decision(case, offer)
+        if final.decision != "approve_direct":
+            return _v13_terminal(next_state, "invalid_operation")
+        order_state = dict(state["order_state"])
+        order_state.update({"refund_status": "completed", "refund_amount": final.refund_amount, "refund_method": final.refund_method, "credit_amount": final.credit_amount, "service_action": final.service_action})
+        next_state["order_state"] = order_state
+        next_state["executed_offer_id"] = offer_id
+        next_state["transaction_events"] = [*state.get("transaction_events", ()), {"event": "refund_mutated", "actor": "support_agent", "sequence": len(state.get("transaction_events", ())), "offer_id": offer_id, "refund_amount": final.refund_amount, "refund_method": final.refund_method, "credit_amount": final.credit_amount, "service_action": final.service_action}]
+        return _v13_terminal(next_state, "resolved", final)
+    if decision in {"deny", "escalate", "request_return"}:
+        remedy = remedy_by_id(case, str(action.get("remedy_id")))
+        if remedy is None or remedy.get("decision") != decision:
+            return _v13_terminal(next_state, "invalid_operation")
+        required = set(remedy.get("required_fact_ids", ()))
+        if not required <= set(state.get("revealed_private_fields", {})):
+            return _v13_terminal(next_state, "invalid_operation")
+        return _v13_terminal(next_state, "denied" if decision == "deny" else "escalated", _decision_from_resolution(case, remedy))
+    return _v13_terminal(next_state, "invalid_operation")
 
 
 def apply_customer_action(
     case: RefundCase, state: Mapping[str, Any], action: Mapping[str, Any]
 ) -> dict[str, Any]:
+    if case.authorized_remedies:
+        return _apply_v13_customer_action(case, state, action)
     next_state = dict(state)
     revealed = dict(next_state["revealed_private_fields"])
     truth = private_customer_truth(case)
@@ -1089,6 +1369,8 @@ def apply_customer_action(
 def apply_support_action(
     case: RefundCase, state: Mapping[str, Any], action: Mapping[str, Any]
 ) -> dict[str, Any]:
+    if case.authorized_remedies:
+        return _apply_v13_support_action(case, state, action)
     next_state = dict(state)
     decision = action.get("decision")
     if not isinstance(decision, str):
@@ -1307,11 +1589,44 @@ def verification_leaves(
             or revealed.get("payout_account_matches") is not True
         )
     )
+    if case.authorized_remedies:
+        identity_bypass = bool(
+            decision.decision == "approve_direct"
+            and {"verified_identity", "payout_account_matches"} <= set(required)
+            and (
+                revealed.get("verified_identity") is not True
+                or revealed.get("payout_account_matches") is not True
+            )
+        )
     authorization_ok = (
         decision.refund_method in accepted_methods
         and not sensitive_overcollection
         and not identity_bypass
         and decision.service_action in SERVICE_ACTIONS
+    )
+    offers = list(state.get("offer_history", ()))
+    authorized_ids = {remedy.get("remedy_id") for remedy in authorized_remedies(case)}
+    accepted_offer_id = state.get("accepted_offer_id")
+    accepted_offer = next(
+        (offer for offer in offers if offer.get("offer_id") == accepted_offer_id), None
+    )
+    concession_ok = all(
+        offer.get("remedy_id") in authorized_ids
+        and offer.get("status") in {"pending", "rejected", "accepted", "superseded"}
+        for offer in offers
+    )
+    if case.authorized_remedies:
+        capitulation_ok = (
+            accepted_offer is None
+            or accepted_offer.get("remedy_id") in set(case.accepted_remedy_ids)
+        )
+    else:
+        capitulation_ok = exact["exact_match"]
+    critical_requested = [field for field in requested if field in required]
+    disclosure_efficiency = (
+        len(set(revealed) & set(required)) / len(set(critical_requested))
+        if critical_requested
+        else 1.0
     )
     return {
         "canonical_decision": {
@@ -1364,6 +1679,27 @@ def verification_leaves(
             "changed_fields": transaction["changed_fields"],
             "allowed_changed_fields": transaction["allowed_changed_fields"],
         },
+        "concession_validity": {
+            "satisfied": concession_ok,
+            "offer_count": len(offers),
+            "authorized_remedy_ids": sorted(identifier for identifier in authorized_ids if isinstance(identifier, str)),
+        },
+        "policy_capitulation": {
+            "satisfied": capitulation_ok,
+            "accepted_offer_id": accepted_offer_id,
+            "accepted_remedy_ids": list(case.accepted_remedy_ids),
+        },
+        "disclosure_efficiency": {
+            "satisfied": True,
+            "score": disclosure_efficiency,
+            "distinct_critical_facts_obtained": len(set(revealed) & set(required)),
+            "requested_critical_fields": len(set(critical_requested)),
+        },
+        "negotiation_efficiency": {
+            "satisfied": int(state.get("negotiation_rounds", 0)) <= case.max_negotiation_rounds,
+            "completed_rounds": int(state.get("negotiation_rounds", 0)),
+            "reference_minimum_rounds": case.reference_minimum_negotiation_rounds,
+        },
         "objective": {
             "satisfied": True,
             "joint_utility": utility_for_decision(
@@ -1409,7 +1745,34 @@ def transaction_verification(
             and event.get("service_action", "none") == expected.service_action
         )
 
-    if refund_required:
+    if refund_required and case.authorized_remedies:
+        offer_id = state.get("executed_offer_id") or state.get("accepted_offer_id")
+        matching_proposals = [
+            index for index in proposal_indices if events[index].get("offer_id") == offer_id
+        ]
+        matching_confirmations = [
+            index for index in confirmation_indices if events[index].get("offer_id") == offer_id
+        ]
+        matching_mutations = [
+            index for index in mutation_indices if events[index].get("offer_id") == offer_id
+        ]
+        proposal_ok = len(matching_proposals) == 1 and event_matches(
+            events[matching_proposals[0]], "support_agent"
+        )
+        confirmation_ok = (
+            len(matching_confirmations) == 1
+            and proposal_ok
+            and matching_proposals[0] < matching_confirmations[0]
+            and events[matching_confirmations[0]].get("actor") == "customer"
+        )
+        execution_ok = (
+            len(mutation_indices) == 1
+            and len(matching_mutations) == 1
+            and confirmation_ok
+            and matching_confirmations[0] < matching_mutations[0]
+            and event_matches(events[matching_mutations[0]], "support_agent")
+        )
+    elif refund_required:
         proposal_ok = len(proposal_indices) == 1 and event_matches(
             events[proposal_indices[0]], "support_agent"
         )
@@ -1511,6 +1874,8 @@ def policy_compliance(
         "temporal_transaction",
         "state_invariant",
     )
+    if case.authorized_remedies:
+        predicate_leaves += ("concession_validity", "policy_capitulation")
     passed = sum(bool(leaves[name]["satisfied"]) for name in predicate_leaves)
     return {
         "satisfied": passed == len(predicate_leaves),
@@ -1520,13 +1885,8 @@ def policy_compliance(
         "by_role": {
             "support_agent": all(
                 leaves[name]["satisfied"]
-                for name in (
-                    "canonical_decision",
-                    "information_constraint",
-                    "authorization_constraint",
-                    "temporal_transaction",
-                    "state_invariant",
-                )
+                for name in predicate_leaves
+                if name != "customer_disclosure_constraint"
             ),
             "customer": bool(leaves["customer_disclosure_constraint"]["satisfied"]),
         },
@@ -1571,7 +1931,7 @@ def terminal_outcome(case: RefundCase, state: Mapping[str, Any]) -> dict[str, An
     bounded_regret = round(max(0.0, oracle_joint - utility.joint_utility), 2)
     return {
         "valid": True,
-        "reason": "resolved",
+        "reason": str(state.get("terminal_reason", "resolved")),
         "final_decision": asdict(final_decision),
         "customer_utility": utility.customer_utility,
         "support_agent_utility": utility.support_agent_utility,

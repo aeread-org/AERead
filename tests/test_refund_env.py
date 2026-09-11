@@ -12,10 +12,12 @@ from types import MappingProxyType
 from aeread import refund_env as rf
 from aeread.shared_runner.execution import CanonicalResponse, execute_plan_cell
 from aeread.shared_runner.measurement import MeasurementLeafSpec, ScoreEnvelope
+from aeread.shared_runner import refund as refund_runner
 from aeread.shared_runner.refund import (
     FixedRefundProvider,
     RefundV1Plugin,
     ScriptedRefundCustomerProvider,
+    ScriptedRefundSupportProvider,
     build_refund_run,
 )
 from aeread.shared_runner.resolver import PlanCell, case_content_sha256
@@ -269,9 +271,125 @@ def test_checked_in_v13_manifests_match_the_runtime_generator() -> None:
         **{f"{case['case_id']}.json": case for case in cases},
     }
 
-    assert {path.name for path in case_directory.glob("*.json")} == set(expected)
+    runtime_manifest_files = {
+        path.name
+        for path in case_directory.glob("*.json")
+        if path.name != "refund_negotiation_case.schema.json"
+    }
+    assert runtime_manifest_files == set(expected)
     for filename, payload in expected.items():
         assert json.loads((case_directory / filename).read_text()) == payload
+
+
+def test_v13_development_fixtures_run_through_the_negotiation_protocol(tmp_path) -> None:
+    expected = {
+        "refund_v1.dev.clean.001": ("resolved", "approve_direct", 1.0),
+        "refund_v1.dev.counter.001": ("resolved", "approve_direct", 1.0),
+        "refund_v1.dev.denial.001": ("denied", "deny", 1.0),
+    }
+    for case_id, (reason, decision, transaction_score) in expected.items():
+        plan, registry, prompts, pricing = build_refund_run(
+            provider="fake",
+            customer_model="refund-fixed-v1",
+            customer_revision="1.0.0",
+            support_model="refund-fixed-v1",
+            support_revision="1.0.0",
+            case_id=case_id,
+        )
+        execution = asyncio.run(
+            execute_plan_cell(
+                plan=plan,
+                cell_id=plan.cells[0].cell_id,
+                registry=registry,
+                evidence_root=tmp_path / case_id,
+                prompt_sources=prompts,
+                providers={
+                    "fake": FixedRefundProvider(),
+                    "scripted": ScriptedRefundCustomerProvider(),
+                },
+                pricing=pricing,
+            )
+        )
+        outcome = execution.episode_result.outcome
+        assert outcome["reason"] == reason
+        assert outcome["final_decision"]["decision"] == decision
+        assert outcome["transaction_score"] == transaction_score
+
+
+def test_v13_counter_supersedes_the_rejected_offer(tmp_path) -> None:
+    plan, registry, prompts, pricing = build_refund_run(
+        provider="fake",
+        customer_model="refund-fixed-v1",
+        customer_revision="1.0.0",
+        support_model="refund-fixed-v1",
+        support_revision="1.0.0",
+        case_id="refund_v1.dev.counter.001",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=plan,
+            cell_id=plan.cells[0].cell_id,
+            registry=registry,
+            evidence_root=tmp_path,
+            prompt_sources=prompts,
+            providers={"fake": FixedRefundProvider(), "scripted": ScriptedRefundCustomerProvider()},
+            pricing=pricing,
+        )
+    )
+    offers = execution.episode_result.final_state["offer_history"]
+    assert [offer["status"] for offer in offers] == ["superseded", "accepted"]
+    assert execution.episode_result.final_state["executed_offer_id"] == "offer_2"
+
+
+def test_v13_rejects_execution_of_a_stale_offer() -> None:
+    payload = json.loads(
+        (Path(__file__).parents[1] / "cases" / "refund_v1" / "dev" / "refund_v1.dev.counter.001.json").read_text()
+    )["payload"]
+    case = refund_runner._case_from_payload(payload)
+    state = rf.initial_negotiation_state(case)
+    state = rf.apply_support_action(case, state, {
+        "decision": "request_facts",
+        "message": "Please provide the required facts.",
+        "requested_info": ["condition", "issue_type", "return_received"],
+    })
+    state = rf.apply_customer_action(case, state, {
+        "decision": "provide_info",
+        "message": "Here are the requested facts.",
+        "reveal_fields": ["condition", "issue_type", "return_received"],
+    })
+    state = rf.apply_support_action(case, state, {
+        "decision": "request_facts",
+        "message": "Please provide the remaining fact.",
+        "requested_info": ["liquid_damage"],
+    })
+    state = rf.apply_customer_action(case, state, {
+        "decision": "provide_info",
+        "message": "Here is the remaining fact.",
+        "reveal_fields": ["liquid_damage"],
+    })
+    state = rf.apply_support_action(case, state, {
+        "decision": "propose",
+        "message": "I can offer a partial refund.",
+        "offer_id": "offer_1",
+        "remedy_id": "partial_refund_cash",
+    })
+    state = rf.apply_customer_action(case, state, {
+        "decision": "push_back",
+        "message": "Please reconsider.",
+        "offer_id": "offer_1",
+        "target": "full_refund",
+        "reveal_fields": [],
+    })
+    state = rf.apply_support_action(case, state, {
+        "decision": "execute_refund",
+        "message": "I executed the old offer.",
+        "offer_id": "offer_1",
+    })
+    assert state["done"] is True
+    assert state["terminal_reason"] == "invalid_operation"
+    assert [event["event"] for event in state["transaction_events"]] == [
+        "refund_proposed"
+    ]
 
 
 def test_generated_case_manifests_follow_world_seeds() -> None:
@@ -840,6 +958,80 @@ def test_refund_run_supports_dual_llm_cross_play(tmp_path) -> None:
     assert profiles["refund_customer_profile_v1"].model.provider == "fake"
     assert profiles["refund_support_profile_v1"].model.provider == "fake"
     assert block.kind == "cross_play"
+    assert block.subject_seats == ("customer", "support_agent")
+    assert dict(block.controlled_profiles) == {}
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=plan,
+            cell_id=plan.cells[0].cell_id,
+            registry=registry,
+            evidence_root=tmp_path,
+            prompt_sources=prompts,
+            providers={"fake": FixedRefundProvider()},
+            pricing=pricing,
+        )
+    )
+    assert execution.episode_result.outcome["valid"] is True
+
+
+def test_refund_run_supports_controlled_customer_with_scripted_support(tmp_path) -> None:
+    plan, registry, prompts, pricing = build_refund_run(
+        provider="scripted_support",
+        customer_provider="fake",
+        customer_model="refund-fixed-v1",
+        customer_revision="1.0.0",
+        support_model="ignored",
+        support_revision="ignored",
+        evaluation_kind="controlled_customer",
+        case_id="refund_v1.curated.000001",
+    )
+
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    block = plan.evaluation_blocks[0]
+    assert profiles["refund_customer_active_profile_v1_3"].model.provider == "fake"
+    assert profiles["refund_support_scripted_profile_v1_3"].model.provider == "scripted_support"
+    assert block.kind == "controlled"
+    assert block.subject_seats == ("customer",)
+    assert dict(block.controlled_profiles) == {
+        "support_agent": "refund_support_scripted_profile_v1_3"
+    }
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=plan,
+            cell_id=plan.cells[0].cell_id,
+            registry=registry,
+            evidence_root=tmp_path,
+            prompt_sources=prompts,
+            providers={
+                "fake": FixedRefundProvider(),
+                "scripted_support": ScriptedRefundSupportProvider(),
+            },
+            pricing=pricing,
+        )
+    )
+    assert execution.episode_result.outcome["valid"] is True
+
+
+def test_refund_run_supports_same_model_self_play(tmp_path) -> None:
+    plan, registry, prompts, pricing = build_refund_run(
+        provider="fake",
+        customer_provider="fake",
+        customer_model="refund-fixed-v1",
+        customer_revision="1.0.0",
+        support_model="refund-fixed-v1",
+        support_revision="1.0.0",
+        evaluation_kind="same_model_self_play",
+        case_id="refund_v1.curated.000001",
+    )
+
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    block = plan.evaluation_blocks[0]
+    assert profiles["refund_customer_self_play_profile_v1_3"].model == profiles[
+        "refund_support_self_play_profile_v1_3"
+    ].model
+    assert block.kind == "self_play"
     assert block.subject_seats == ("customer", "support_agent")
     assert dict(block.controlled_profiles) == {}
 

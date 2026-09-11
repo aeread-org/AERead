@@ -1,0 +1,51 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "refund_v1.dev.denial.001",
+  "family_id": "refund_v1",
+  "family_version": "1.3.0",
+  "split": "development",
+  "world_seed": 130003,
+  "seats": [
+    {"id": "customer", "role": "customer"},
+    {"id": "support_agent", "role": "support_agent"}
+  ],
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": ["resolved", "denied", "abandoned", "invalid_operation", "round_limit_reached"]
+  },
+  "visibility_policy": "refund_gradual_disclosure_v1_3",
+  "payload": {
+    "schema_version": "aeread.refund.negotiation-case/1.3.0",
+    "public_order": {
+      "claim_text": "I want a refund for my subscription.",
+      "customer": {"customer_id": "cust_dev_denial", "loyalty_tier": "standard"},
+      "product": {"category": "software", "name": "design software", "price": 120.0, "days_since_delivery": 45},
+      "requested_amount": 120.0
+    },
+    "private_facts": [
+      {"fact_id": "activated", "truth": true, "relevance": "context", "requestable": true},
+      {"fact_id": "usage_minutes", "truth": 240, "relevance": "context", "requestable": true},
+      {"fact_id": "subscription_days_used", "truth": 45, "relevance": "context", "requestable": true},
+      {"fact_id": "issue_type", "truth": "no_longer_needed", "relevance": "decision_critical", "requestable": true}
+    ],
+    "disclosure_contract": {
+      "max_fields_per_turn": 3,
+      "decision_critical_fact_ids": ["issue_type"]
+    },
+    "authorized_remedies": [
+      {"remedy_id": "deny_outside_window", "decision": "deny", "refund_amount": 0.0, "refund_method": "none", "conditions": ["software request outside refund window"], "required_fact_ids": ["issue_type"]},
+      {"remedy_id": "deny_no_value", "decision": "deny", "refund_amount": 0.0, "refund_method": "none", "conditions": ["no eligible refund"], "required_fact_ids": ["issue_type"]}
+    ],
+    "customer_script": {
+      "max_negotiation_rounds": 1,
+      "reaction_rules": [],
+      "default_response": {"kind": "accept"}
+    },
+    "evaluation_contract": {
+      "reference_minimum_negotiation_rounds": 0,
+      "accepted_remedy_ids": ["deny_outside_window"]
+    }
+  },
+  "provenance": {"generator_id": "refund_v1_3_worked_fixture", "generator_version": "1.3.0", "review_status": "reviewed"},
+  "content_sha256": "010f48ca28332718405ce82d365889b44fa96972fdc555c1a79c474570b6595d"
+}

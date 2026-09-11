@@ -43,6 +43,23 @@ runner declares a separate `cross_play` robustness block with customer and
 support as subject seats. Cross-play results are not pooled with controlled
 support-agent comparisons.
 
+Refund V1.3 exposes four separate evaluation blocks:
+
+| block | active subject seat(s) | frozen counterpart |
+|---|---|---|
+| `controlled_support` | `support_agent` | scripted customer panel |
+| `controlled_customer` | `customer` | deterministic scripted support policy |
+| `cross_play` | `customer`, `support_agent` | none |
+| `same_model_self_play` | `customer`, `support_agent` | none; the same model is assigned to both roles |
+
+The controlled support panel varies the frozen customer across the `minimal`,
+`cooperative`, and `resistant` scripts. These are separate runs, not hidden
+replicates, and their profile IDs and block IDs are recorded in the `RunPlan`.
+The controlled customer block uses the same policy implementation as the
+provider-free support fixture, but exposes it as the explicitly named
+`refund-scripted-support-policy-v1-3` counterpart. Cross-play and self-play
+must be reported separately from either controlled block.
+
 The maximum episode length is eight logical actions, enough for four
 customer/support turns.  Invalid JSON is handled as an in-world invalid
 operation, so model failures are counted rather than dropped.
@@ -361,6 +378,32 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
   --customer-provider gemini --customer-model gemini-3.5-flash \
   --case-id refund_v1.curated.000001 \
   --output /tmp/aeread_refund_cross_play
+```
+
+To evaluate an active customer against the deterministic support policy:
+
+```bash
+PYTHONPATH=src python -m aeread.shared_runner.refund \
+  --evaluation-kind controlled_customer \
+  --provider scripted_support \
+  --customer-provider arena \
+  --customer-model deepseek-v4-flash-0731 \
+  --customer-revision deepseek-v4-flash-0731 \
+  --world-seeds 24 \
+  --output /tmp/aeread_refund_controlled_customer
+```
+
+To run same-model self-play, provide one model and omit the customer provider;
+the runner assigns that provider, model, and revision to both roles:
+
+```bash
+PYTHONPATH=src python -m aeread.shared_runner.refund \
+  --evaluation-kind same_model_self_play \
+  --provider arena \
+  --model deepseek-v4-flash-0731 \
+  --revision deepseek-v4-flash-0731 \
+  --world-seeds 24 \
+  --output /tmp/aeread_refund_same_model_self_play
 ```
 
 ## 11. Relationship to AER and adjacent benchmarks
