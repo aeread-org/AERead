@@ -17,7 +17,7 @@ from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 EVIDENCE = Path(__file__).parents[1] / "evidence"
-PUBLICATION = EVIDENCE / "housing_open_harness_2026-08-31"
+PUBLICATION = EVIDENCE / "housing" / "housing_open_harness_2026-08-31"
 BAKEOFF = PUBLICATION / "reports" / "bakeoff.json"
 ADMISSION = PUBLICATION / "qc" / "admission.json"
 

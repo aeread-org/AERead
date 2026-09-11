@@ -121,7 +121,18 @@ def test_evidence_bundles_use_the_standard_publication_categories() -> None:
     assert {path.name for path in EVIDENCE_ROOT.iterdir() if path.is_file()} == {
         "README.md"
     }
-    for bundle in (path for path in EVIDENCE_ROOT.iterdir() if path.is_dir()):
+    # Campaigns are filed per family, evidence/<family>/<campaign_id>/, except
+    # for campaigns a frozen contract or another campaign's sealed artifact
+    # names by path: moving those would change a frozen control, so they stay
+    # where they were sealed. See evidence/README.md.
+    families = {path.name for path in (ROOT / "src" / "aeread_families").iterdir() if path.is_dir()}
+    families.add("shared_runner")
+    top = [path for path in EVIDENCE_ROOT.iterdir() if path.is_dir()]
+    family_dirs = [path for path in top if path.name in families]
+    assert family_dirs, "no family directories under evidence/"
+    bundles = [b for family in family_dirs for b in family.iterdir() if b.is_dir()]
+    bundles += [path for path in top if path.name not in families]
+    for bundle in bundles:
         unexpected_files = {
             path.name
             for path in bundle.iterdir()

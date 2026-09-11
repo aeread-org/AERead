@@ -864,8 +864,8 @@ def publish_policy_baselines(
     publication_root: Path,
     model_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     raw_bytes = (run_root / "summary.json").read_bytes()
     raw = json.loads(raw_bytes)
     recorded_sha = raw.get("artifact_sha256")

@@ -1,6 +1,6 @@
 """Tier 1 failure register for the econevals family.
 
-Builds `evidence/econevals_failure_register/` from sealed run evidence: one
+Builds `evidence/econevals/econevals_failure_register/` from sealed run evidence: one
 row per failed canary probe and per failed case, each carrying the artifact
 it came from and that artifact's digest, so every row can be traced back
 without trusting this script. Regenerated, never hand-edited -- see

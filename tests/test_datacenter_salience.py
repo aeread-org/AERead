@@ -216,7 +216,7 @@ def test_paired_transition_summary_requires_both_included_conditions() -> None:
 
 def test_published_salience_campaign_is_sealed_complete_and_sanitized() -> None:
     root = Path(__file__).resolve().parents[1]
-    publication = root / "evidence/datacenter_counteroffer_salience_v1"
+    publication = root / "evidence/datacenter_development/datacenter_counteroffer_salience_v1"
     publisher_hash = hashlib.sha256(
         (
             root
@@ -249,7 +249,7 @@ def test_published_salience_campaign_is_sealed_complete_and_sanitized() -> None:
 def test_published_salience_results_retain_all_pairs_and_claim_boundaries() -> None:
     publication = (
         Path(__file__).resolve().parents[1]
-        / "evidence/datacenter_counteroffer_salience_v1"
+        / "evidence/datacenter_development/datacenter_counteroffer_salience_v1"
     )
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [

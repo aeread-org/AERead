@@ -201,7 +201,7 @@ econevals' first light showed what contention on it costs.
 ## Dialogue panel published (2026-09-10)
 
 `govsim_glm53_flash_parasail_dialogue_v3`, attempt 001, at
-`evidence/govsim_glm53_flash_parasail_dialogue_v3/`: canary admitted, 3/3
+`evidence/govsim/govsim_glm53_flash_parasail_dialogue_v3/`: canary admitted, 3/3
 cases included, every receipt replayed through the pinned upstream bridge
 (commit `1d11adf0`), $0.0408, 14.5 minutes serial. Verification (manifest
 seal, six artifact digests, campaign-plan digest, three replays, prohibited-
@@ -226,7 +226,7 @@ no pushed branch. v3 is that design re-run from `main`.
 ## Baseline arm published (2026-09-10): the model does not collapse the commons
 
 `govsim_glm53_flash_parasail_baseline_v4`, at
-`evidence/govsim_glm53_flash_parasail_baseline_v4/`: canary admitted, 3/3
+`evidence/govsim/govsim_glm53_flash_parasail_baseline_v4/`: canary admitted, 3/3
 included, all three receipts replayed through the pinned upstream bridge,
 $0.0392. All 132 sealed agent observations were checked to confirm the
 sustainability threshold never reached the agent.

@@ -484,7 +484,7 @@ show positive regret. The model and route changed together after inspecting Qwen
 so this remains an adaptive
 transfer diagnostic on six targeted worlds rather than a checkpoint causal effect,
 confirmatory evidence, or model ranking. The tracked bundle is
-`evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
+`evidence/procurement_allocation/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
 
 ## Public-observation policy controls
 

@@ -290,7 +290,7 @@ def test_published_action_schema_campaigns_are_sealed_and_sanitized() -> None:
 
     for version in ("v1", "v2"):
         publication = (
-            root / f"evidence/datacenter_counteroffer_action_schema_{version}"
+            root / f"evidence/datacenter_development/datacenter_counteroffer_action_schema_{version}"
         )
         manifest = json.loads(
             (publication / "publication_manifest.json").read_text()
@@ -340,7 +340,7 @@ def test_published_action_schema_campaigns_are_sealed_and_sanitized() -> None:
 def test_published_action_schema_v1_preserves_instrumentation_failure() -> None:
     publication = (
         Path(__file__).resolve().parents[1]
-        / "evidence/datacenter_counteroffer_action_schema_v1"
+        / "evidence/datacenter_development/datacenter_counteroffer_action_schema_v1"
     )
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [
@@ -421,7 +421,7 @@ def test_published_action_schema_v1_preserves_instrumentation_failure() -> None:
 def test_published_action_schema_v2_preserves_qualified_null_result() -> None:
     publication = (
         Path(__file__).resolve().parents[1]
-        / "evidence/datacenter_counteroffer_action_schema_v2"
+        / "evidence/datacenter_development/datacenter_counteroffer_action_schema_v2"
     )
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [

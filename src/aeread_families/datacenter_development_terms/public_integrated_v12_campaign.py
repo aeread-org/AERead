@@ -59,13 +59,13 @@ PREDECESSOR_RUN_ROOT = (
     REPOSITORY_ROOT / "runs" / "datacenter_development_terms_public_integrated_v11"
 )
 PREDECESSOR_PUBLICATION_ROOT = (
-    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms_public_integrated_v11"
+    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms" / "datacenter_development_terms_public_integrated_v11"
 )
 GPTOSS_HISTORY_RUN_ROOT = (
-    REPOSITORY_ROOT / "runs" / "datacenter_development_terms_public_gptoss_v1"
+    REPOSITORY_ROOT / "runs" / "datacenter_development_terms" / "datacenter_development_terms_public_gptoss_v1"
 )
 GPTOSS_HISTORY_PUBLICATION_ROOT = (
-    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms_public_gptoss_v1"
+    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms" / "datacenter_development_terms_public_gptoss_v1"
 )
 MODEL_ORDER = ("gptoss120b_coreweave", "qwen3_235b_google")
 
