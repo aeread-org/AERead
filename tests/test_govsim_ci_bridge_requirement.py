@@ -71,14 +71,36 @@ def _workflow_code() -> str:
     return "\n".join(lines)
 
 
-def test_ci_sets_the_govsim_bridge_required_switch() -> None:
+def _govsim_job_code() -> str:
+    """Only the ``govsim-fidelity`` job's lines, comments stripped.
+
+    The agenticpay and amazonbarg wiring tests search the whole workflow. That
+    was sufficient while one job listed ``tests/test_shared_runner_scoring_
+    contract.py``; it is not now that three do. Dropping that file from this
+    job alone left a whole-file search green, because agenticpay's job still
+    names it -- observed while writing this test. So every assertion below is
+    scoped to this job's block: from the ``govsim-fidelity:`` key to the next
+    top-level job key, or the end of the file.
+    """
+
     text = _workflow_code()
+    match = re.search(
+        r"^  govsim-fidelity:\n(?P<body>(?:(?!^  [A-Za-z0-9_-]+:\n).*\n?)*)",
+        text,
+        re.MULTILINE,
+    )
+    assert match, "ci.yml defines no `govsim-fidelity` job (#179)"
+    return match.group("body")
+
+
+def test_ci_sets_the_govsim_bridge_required_switch() -> None:
+    text = _govsim_job_code()
     assert re.search(
         r"^\s*AEREAD_GOVSIM_BRIDGE_REQUIRED\s*:\s*[\"']?1[\"']?\s*$",
         text,
         re.MULTILINE,
     ), (
-        "no CI step sets AEREAD_GOVSIM_BRIDGE_REQUIRED: without it, "
+        "the govsim-fidelity job does not set AEREAD_GOVSIM_BRIDGE_REQUIRED: without it, "
         "conftest.py's skip-to-failure hook stays off by default, and CI can go "
         "green while every govsim upstream-fidelity assertion silently skipped "
         "(#179)"
@@ -86,9 +108,9 @@ def test_ci_sets_the_govsim_bridge_required_switch() -> None:
 
 
 def test_ci_actually_runs_every_govsim_fidelity_test_file_under_the_bridge_gate() -> None:
-    text = _workflow_code()
+    text = _govsim_job_code()
     for test_file in _FIDELITY_TEST_FILES:
         assert test_file in text, (
-            f"no CI job invokes {test_file}; requiring the bridge is meaningless if "
+            f"the govsim-fidelity job does not invoke {test_file}; requiring the bridge is meaningless if "
             "the gated job never actually runs this family's fidelity tests"
         )
