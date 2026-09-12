@@ -23,7 +23,7 @@ Examples:
 - `--active-agents intake,customer,policy` — all three decision seats active.
 - `--active-agents customer` — active disclosure behavior with scripted intake and policy.
 
-## Five-model policy-seat panel
+## Latest canonical policy-seat panel
 
 The primary V2.1 comparison uses 20 fixed world seeds and six scenarios per
 seed, for 120 planned trajectories per model. Only `policy` is active in this
@@ -33,18 +33,18 @@ them.
 
 | Model | Completed | Operational failures | Policy compliance | Utility | Transaction | Coordination |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| DeepSeek V4 Flash 0731 | 120/120 | 0 | 30.0% | -6.400 | 0.950 | 1.000 |
-| Gemini 2.5 Flash Lite | 120/120 | 0 | 0.8% | -9.900 | 0.517 | 0.992 |
-| GPT-5.6 Luna | 119/120 | 1 | 16.0% | -8.084 | 0.782 | 0.924 |
+| DeepSeek V4 Flash 0731 | 120/120 | 0 | 50.0% | -4.000 | 1.000 | 0.558 |
+| Gemini 2.5 Flash Lite | 120/120 | 0 | 1.7% | -9.800 | 0.517 | 0.183 |
+| GPT-5.6 Luna | 120/120 | 0 | 79.2% | -1.833 | 0.958 | 0.792 |
 | Grok 4.3 | 120/120 | 0 | 52.5% | -3.833 | 0.992 | 0.708 |
-| Claude Haiku 4.5 | 120/120 | 0 | 33.3% | -6.000 | 1.000 | 1.000 |
 
 The table is a completed policy-seat pilot, not a claim that the models are
-ranked by utility alone. The verifier was hardened to treat null optional
-refund amounts as invalid zero-amount proposals; DeepSeek and Claude were
-rerun after that change. The Grok row was regenerated on 2026-09-12 with the
-current shared-runner publication path. The reported means are conditional on
-completed trajectories.
+ranked by utility alone. All four rows use the current canonical shared-runner
+publication path, the same 120-cell fixed panel, and zero operational
+exclusions. The verifier treats null optional refund amounts as invalid
+zero-amount proposals. The reported means are conditional on included cells.
+Claude Haiku 4.5 remains in the earlier historical five-model bundle and was
+not regenerated in this update.
 
 ## Evidence
 
@@ -62,6 +62,11 @@ and five-model bundles remain historical publications.
 The latest Grok 4.3 publication is under
 `evidence/refund/refund_v2_1_grok43_controlled_2026-09-12/`; it contains the
 same canonical artifact family and 820 sanitized logical-action rows.
+The corresponding Gemini, GPT, and DeepSeek publications are under
+`evidence/refund/refund_v2_1_gemini25flashlite_controlled_2026-09-12/`,
+`evidence/refund/refund_v2_1_gpt56luna_controlled_2026-09-12/`, and
+`evidence/refund/refund_v2_1_deepseekv4flash_controlled_2026-09-12/`.
+They contain 568, 872, and 748 sanitized logical-action rows respectively.
 
 ## Rebase and scope
 
@@ -73,5 +78,5 @@ exact code and provider responses.
 
 ## Validation
 
-- `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 61 passed.
+- `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 61 passed before the provider reruns.
 - Provider runs use the same 120-case V2.1 panel per model and model-specific report files.
