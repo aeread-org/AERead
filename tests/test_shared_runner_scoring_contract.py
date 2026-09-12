@@ -233,7 +233,7 @@ from tests.test_aucarena_replay import (
     long_path_answer,
     short_path_answer,
 )
-from aeread.shared_runner import episode_id_for_cell, run_episode
+from aeread.shared_runner import episode_id_for_cell
 from tests.test_amazonbarg_replay import (
     GOLDEN_1_PAIRED_HISTORY_SCRIPT as _AMAZONBARG_RIGHT_SCRIPT,
     GOLDEN_1_SCRIPT as _AMAZONBARG_LEFT_SCRIPT,

@@ -68,6 +68,28 @@ any family module, so this particular shape cannot merge silently again. The
 rule stays anyway: the test catches duplicate definitions, not two definitions
 that were merged into one wrong one.
 
+For each conflicted registration file, run the structural checks before
+committing the resolution, from the scratch worktree:
+
+```bash
+python tools/check_registration_merge.py tests/test_shared_runner_scoring_contract.py --ours HEAD --theirs MERGE_HEAD
+python tools/check_registration_merge.py src/aeread/shared_runner/registry.py --ours HEAD --theirs MERGE_HEAD
+python tools/check_registration_merge.py conftest.py --ours HEAD --theirs MERGE_HEAD
+pytest tests/test_shared_runner_scoring_contract.py -q
+```
+
+For a rebase, pass the corresponding two parent revisions explicitly. The
+checker includes imports and aliases in the bound-name comparison, rejects
+new duplicate bindings, preserves the intersection of migration exemptions
+and the union of bridge enrollment, and flags annotated helpers that may
+return no value. Its return analysis is conservative, not a Python type
+checker; known non-returning pytest skip/fail/exit calls are recognized.
+An ambiguous result requires inspection, never deleting a parent block to
+make the check green. Scorer behavior still needs the test on the resolved
+tree. The repository-wide duplicate-binding guard also checks imports,
+while allowing ordinary sibling namespace imports such as `urllib.error`
+and `urllib.request`.
+
 ## 4. Limits
 
 - **Work in progress:** at most **3 ready-for-review PRs per worker**. Drafts
@@ -150,8 +172,25 @@ reviews with `.state == "APPROVED" and .commit_id == "$HEAD_SHA"`. Pushing
 anything, empty commit included, discards the approval you just obtained and
 costs your reviewer a second round.
 
-Re-run the failed run instead. The SHA does not change, so the approval
-survives:
+`kernel-review-reconcile.yml` checks for this after each `pr-lanes` run
+finishes. It reads the live PR head, changed files, and formal reviews,
+then re-runs older failed or cancelled **whole workflows** on that same
+head. It does not set checks to success or merge anything. Drafts, changed
+heads, absent approvals, incomplete file listings, and failures outside
+`kernel-review` do not qualify. After three workflow attempts it stops for
+manual inspection. Review comments do not revoke a formal approval;
+changes-requested and dismissed reviews do.
+
+For inspection or recovery before that workflow is deployed, use:
+
+```bash
+python tools/ci/reconcile_kernel_review.py --repo aeread-org/AERead --sha <full-head-sha>
+# Add --apply only after inspecting the reported candidates.
+```
+
+Or re-run the failed run directly. The SHA does not change, so the approval
+survives. Use a full rerun, not `--failed`: the partial rerun on #176 left a
+cancelled gate instance attached to the head.
 
 ```bash
 gh run list --repo aeread-org/AERead --branch <branch> \
@@ -161,3 +200,17 @@ gh run rerun <databaseId of the FAILURE run>
 
 Observed on #158: approved and green, `BLOCKED` until the pre-approval
 `kernel-review` run was re-run in place.
+
+## 9. Repository automation and test timings
+
+Auto-merge, deletion of merged branches, and the Update branch button are
+enabled at repository level. Auto-merge is selected per PR after its scope
+and landing order are settled; it still waits for the required checks.
+Updating a kernel PR changes its head and requires a fresh non-author
+approval. Branch deletion does not replace rebase and combined-tree checks
+for dependent PRs.
+
+The provider-free CI jobs print their 30 slowest tests and retain JUnit XML
+as `test-results-python-<version>` artifacts, including on failures. The
+pytest command's exit status is preserved directly. Use these timings to
+identify long individual tests that more xdist workers cannot split.
