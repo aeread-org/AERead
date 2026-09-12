@@ -1,4 +1,4 @@
-# Draft PR: Refund V2.1 1:N Active-Policy Pilot
+# Draft PR: Refund V2.1 1:N Selectable-Agent Pilot
 
 ## Summary
 
@@ -8,29 +8,43 @@ Refund V1.3 behavior. Each seed produces six cases spanning positive, partial,
 boundary, conflict, and evidence-gated denial scenarios, for 120 planned
 trajectories across 20 seeds.
 
-The customer begins with only a public claim. The policy agent must request
-missing facts in bounded batches before deciding. Intake, customer, and payments
-remain scripted in the model comparison, so the experiment isolates the active
-policy seat. Payments executes only a confirmed current proposal and is checked
-for exactly-once execution, amount, method, and denial invariants.
+The customer begins with only a public claim. Facts are disclosed gradually in
+bounded batches of at most three fields. The `intake`, `customer`, and `policy`
+seats are independently selectable with `--active-agents`; unselected seats use
+deterministic counterparts. This supports controlled comparisons of one active
+LLM, any pair, or all three active LLM seats without changing the case panel.
+Payments remains scripted and verifier-protected: it executes only a confirmed
+current proposal and is checked for exactly-once execution, amount, method, and
+denial invariants.
 
-## Existing model baseline
+Examples:
 
-The table below records the earlier V2.0 two-case baseline. It is retained for
-historical context only; it is not a V2.1 result because V2.1 now has six cases
-per seed. New model runs must use the 120-case V2.1 panel before making model
-comparisons.
+- `--active-agents policy` — backward-compatible policy-agent pilot.
+- `--active-agents intake,customer,policy` — all three decision seats active.
+- `--active-agents customer` — active disclosure behavior with scripted intake and policy.
+
+## Five-model policy-seat panel
+
+The primary V2.1 comparison uses 20 fixed world seeds and six scenarios per
+seed, for 120 planned trajectories per model. Only `policy` is active in this
+block; intake, customer, and payments are scripted. These results are
+descriptive and preserve operational failures rather than silently dropping
+them.
 
 | Model | Completed | Operational failures | Policy compliance | Utility | Transaction | Coordination |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| DeepSeek V4 Flash 0731 | 14/40 | 26 | 71.4%* | -2.00* | 1.00* | 1.00* |
-| Gemini 2.5 Flash Lite | 40/40 | 0 | 0.0% | -10.00 | 0.50 | 0.025 |
-| GPT-5.6 Luna | 40/40 | 0 | 57.5% | -4.00 | 0.975 | 0.95 |
-| Grok 4.3 | 40/40 | 0 | 5.0% | -9.60 | 0.50 | 1.00 |
+| DeepSeek V4 Flash 0731 | 112/120 | 8 | 26.8% | -6.786 | 0.911 | 1.000 |
+| Gemini 2.5 Flash Lite | 120/120 | 0 | 0.8% | -9.900 | 0.517 | 0.992 |
+| GPT-5.6 Luna | 119/120 | 1 | 16.0% | -8.084 | 0.782 | 0.924 |
+| Grok 4.3 | 120/120 | 0 | 25.0% | -7.000 | 0.817 | 1.000 |
+| Claude Haiku 4.5 | 76/120 | 44 | 52.6% | -3.684 | 1.000 | 1.000 |
 
-`*` DeepSeek's run was affected by repeated empty responses and timeouts during
-the multi-turn rerun; its compliance rate is conditional on the 14 completed
-cases and should not be treated as a final model ranking.
+The table is a completed policy-seat pilot, not a claim that the models are
+ranked by utility alone. DeepSeek and Claude had operational failures caused by
+provider outputs with null optional refund amounts; the verifier was hardened
+to treat such proposals as invalid zero-amount proposals, and the affected
+models should be rerun before a final comparative claim. The reported means are
+conditional on completed trajectories.
 
 ## Evidence
 
@@ -45,10 +59,11 @@ evidence workflow, while keeping the implementation isolated from the kernel.
 
 The latest evidence-complete reruns are stored locally at:
 
-- `/tmp/aeread_refund_v2_1n_deepseek_20_evidence`
-- `/tmp/aeread_refund_v2_1n_gemini_20_evidence`
-- `/tmp/aeread_refund_v2_1n_gpt_5_6_luna_20_evidence`
-- `/tmp/aeread_refund_v2_1n_grok_4_3_20_evidence`
+- `/tmp/refund_v21_deepseek_policy_retry`
+- `/tmp/refund_v21_gemini_policy_retry`
+- `/tmp/refund_v21_gpt_5_6_luna_policy_retry`
+- `/tmp/refund_v21_grok_4_3_policy_retry`
+- `/tmp/refund_v21_claude_haiku_4_5_policy_retry`
 
 ## Rebase and scope
 
@@ -60,5 +75,5 @@ exact code and provider responses.
 
 ## Validation
 
-- `pytest -q tests/test_refund_v2.py` — 6 passed.
+- `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 61 passed.
 - Provider runs use the same 40-case panel and model-specific report filenames.

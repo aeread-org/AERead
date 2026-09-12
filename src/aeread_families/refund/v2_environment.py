@@ -15,6 +15,7 @@ from typing import Any, Mapping
 FAMILY_ID = "refund_v2"
 FAMILY_VERSION = "2.1.0"
 AGENTS = ("intake", "policy", "payments")
+OPTIONAL_ACTIVE_AGENTS = ("intake", "customer", "policy")
 REVEALABLE_FIELDS = ("condition", "issue_type", "evidence_provided", "return_received")
 
 
@@ -78,6 +79,21 @@ class RefundV2Outcome:
     coordination_score: float
     policy_compliant: bool
     verifier_reasons: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class AgentActivationConfig:
+    active_agents: tuple[str, ...] = ("policy",)
+
+    def __post_init__(self) -> None:
+        validate_active_agents(self.active_agents)
+
+
+def validate_active_agents(active_agents: tuple[str, ...]) -> tuple[str, ...]:
+    normalized = tuple(dict.fromkeys(active_agents))
+    if any(agent not in OPTIONAL_ACTIVE_AGENTS for agent in normalized):
+        raise ValueError(f"active agents must be selected from {OPTIONAL_ACTIVE_AGENTS}")
+    return normalized
 
 
 def build_1n_case(
@@ -210,10 +226,10 @@ def _record(state: RefundV2State, speaker: str, message: str, **extra: Any) -> N
     state.transcript.append({"speaker": speaker, "message": message, **extra})
 
 
-def _start_1n(case: RefundV2Case) -> RefundV2State:
+def _start_1n(case: RefundV2Case, *, intake_requested: list[str] | None = None) -> RefundV2State:
     state = initial_state()
     _record(state, "customer", case.public_claim, revealed_fields={})
-    _record(state, "intake", "I will collect the minimum facts and route the case.", requested_fields=list(case.required_facts))
+    _record(state, "intake", "I will collect the minimum facts and route the case.", requested_fields=intake_requested if intake_requested is not None else list(case.required_facts))
     state.handoffs.append({"from": "intake", "to": "policy", "case_id": case.case_id, "facts": []})
     state.active_agent = "policy"
     return state
@@ -235,13 +251,16 @@ def _reveal_customer_facts(case: RefundV2Case, state: RefundV2State, requested: 
 def _finish_1n(case: RefundV2Case, state: RefundV2State, proposal: Mapping[str, Any]) -> tuple[RefundV2State, RefundV2Outcome]:
     state.proposals.append(dict(proposal))
     proposal_id = proposal.get("proposal_id")
+    proposal_amount = proposal.get("amount", 0.0)
+    if proposal_amount is None:
+        proposal_amount = 0.0
     _record(state, "policy", "I recorded the proposed resolution.", proposal_id=proposal_id)
     _record(state, "customer", "I confirm the resolution.", proposal_id=proposal_id, revealed_fields=[])
     state.confirmations.append(str(proposal_id))
     state.handoffs.append({"from": "policy", "to": "payments", "case_id": case.case_id, "proposal_id": proposal_id})
     state.active_agent = "payments"
-    if float(proposal.get("amount", 0.0)) > 0:
-        state.transactions.append({"agent": "payments", "proposal_id": proposal_id, "amount": proposal.get("amount"), "method": proposal.get("method")})
+    if float(proposal_amount) > 0:
+        state.transactions.append({"agent": "payments", "proposal_id": proposal_id, "amount": proposal_amount, "method": proposal.get("method")})
         _record(state, "payments", "The confirmed refund was executed exactly once.", proposal_id=proposal_id)
     else:
         _record(state, "payments", "No payment mutation is required for this resolution.")
@@ -300,10 +319,62 @@ def run_1n_with_policy_turns(
     return state, verify_1n_trajectory(case, state)
 
 
+def run_1n_with_role_actions(
+    case: RefundV2Case,
+    *,
+    intake_action: Mapping[str, Any],
+    initial_customer_action: Mapping[str, Any],
+    policy_turns: list[Mapping[str, Any]],
+    customer_actions: list[Mapping[str, Any]],
+) -> tuple[RefundV2State, RefundV2Outcome]:
+    """Replay a trajectory with independently controlled intake/customer/policy seats."""
+    requested = intake_action.get("requested_fields", [])
+    requested = requested if isinstance(requested, list) else []
+    state = _start_1n(case, intake_requested=requested[:3])
+    revealed = initial_customer_action.get("reveal_fields", [])
+    revealed = revealed if isinstance(revealed, list) else []
+    if len(requested) > 3:
+        state.invalid_fact_requests.append("intake_requested_too_many_facts")
+    if any(field not in case.required_facts for field in requested):
+        state.invalid_fact_requests.append("unknown_fact")
+    if any(field not in requested[:3] for field in revealed):
+        state.invalid_fact_requests.append("customer_disclosed_unrequested_fact")
+    _reveal_customer_facts(case, state, [field for field in revealed if field in requested[:3]])
+    customer_index = 0
+    for turn in policy_turns:
+        if turn.get("decision") == "request_facts":
+            requested = turn.get("requested_fields", [])
+            requested = requested if isinstance(requested, list) else []
+            if len(requested) > 3:
+                state.invalid_fact_requests.append("too_many_facts")
+            if any(field not in case.required_facts for field in requested):
+                state.invalid_fact_requests.append("unknown_fact")
+            if any(field in state.revealed_facts for field in requested):
+                state.invalid_fact_requests.append("repeated_fact")
+            _record(state, "policy", "Please provide the facts needed to assess this request.", requested_fields=requested[:3])
+            action = customer_actions[customer_index] if customer_index < len(customer_actions) else {}
+            customer_index += 1
+            revealed = action.get("reveal_fields", [])
+            revealed = revealed if isinstance(revealed, list) else []
+            if any(field not in requested[:3] for field in revealed):
+                state.invalid_fact_requests.append("customer_disclosed_unrequested_fact")
+            _reveal_customer_facts(case, state, [field for field in revealed if field in requested[:3]])
+            continue
+        if turn.get("decision") in {"approve_direct", "deny"}:
+            return _finish_1n(case, state, turn)
+        break
+    state.phase = "finished"
+    state.done = True
+    return state, verify_1n_trajectory(case, state)
+
+
 def verify_1n_trajectory(case: RefundV2Case, state: RefundV2State) -> RefundV2Outcome:
     reasons: list[str] = []
     expected_transaction = case.authorized_refund_amount > 0
     proposal = state.proposals[-1] if state.proposals else None
+    proposal_amount = proposal.get("amount", 0.0) if proposal else 0.0
+    if proposal_amount is None:
+        proposal_amount = 0.0
     expected_decision = "approve_direct" if expected_transaction else "deny"
     if proposal is None:
         reasons.append("missing_proposal")
@@ -340,7 +411,7 @@ def verify_1n_trajectory(case: RefundV2Case, state: RefundV2State) -> RefundV2Ou
     utility_score = 2.0 if policy_compliant and expected_transaction else (-2.0 if policy_compliant else -10.0)
     return RefundV2Outcome(
         decision=proposal["decision"] if proposal else "invalid",
-        refund_amount=float(proposal.get("amount", 0.0)) if proposal else 0.0,
+        refund_amount=float(proposal_amount),
         refund_method=str(proposal.get("method", "none")) if proposal else "none",
         utility_score=utility_score,
         transaction_score=transaction_score,

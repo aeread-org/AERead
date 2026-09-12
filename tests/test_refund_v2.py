@@ -1,8 +1,11 @@
 from aeread_families.refund.v2_environment import (
+    AgentActivationConfig,
     build_1n_case,
     build_1n_panel,
     run_1n_with_policy_proposal,
+    run_1n_with_role_actions,
     run_scripted_1n,
+    validate_active_agents,
 )
 from aeread_families.refund.v2_experiment import run as run_v21_experiment
 from aeread.shared_runner.task.execution import EvidenceStore
@@ -108,6 +111,27 @@ def test_1n_scripted_partial_refund_executes_exact_amount() -> None:
         "amount": 90.0,
         "method": "original_payment",
     }]
+
+
+def test_v21_active_seats_are_independently_selectable() -> None:
+    assert validate_active_agents(("policy", "customer", "policy")) == ("policy", "customer")
+    assert AgentActivationConfig(("intake", "customer", "policy")).active_agents == (
+        "intake", "customer", "policy"
+    )
+
+
+def test_v21_customer_cannot_disclose_unrequested_facts() -> None:
+    case = build_1n_case(10, positive=True)
+    state, outcome = run_1n_with_role_actions(
+        case,
+        intake_action={"decision": "request_facts", "requested_fields": ["condition"]},
+        initial_customer_action={"decision": "provide_info", "reveal_fields": ["condition", "issue_type"]},
+        policy_turns=[{"decision": "deny", "amount": 0.0, "method": "none", "proposal_id": "proposal_bad"}],
+        customer_actions=[],
+    )
+
+    assert "customer_disclosed_unrequested_fact" in state.invalid_fact_requests
+    assert outcome.policy_compliant is False
 
 
 def test_v21_experiment_writes_auditable_trajectory_evidence(tmp_path) -> None:

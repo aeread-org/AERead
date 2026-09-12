@@ -18,8 +18,14 @@ gradual disclosure: the customer begins with only a generic claim, and the polic
 agent must request bounded fact batches before resolving the case.
 
 The deterministic baseline and provider-backed runner write one trajectory JSON
-per case plus a manifest with content digests. The next experiment replaces one
-scripted seat at a time with an LLM while keeping the remaining seats scripted.
-This isolates coordination failures from model-model interaction effects. N:1
+per case plus a manifest with content digests. The provider-backed runner
+accepts `--active-agents` to replace any subset of the intake, customer, and
+policy seats with LLMs while keeping the remaining seats scripted. The default
+is `policy`, preserving the original V2.1 pilot; single-seat, pairwise, and
+all-three-active configurations are available under the same cases and seeds.
+The customer LLM receives private facts, but the verifier only accepts fields
+explicitly requested by intake or policy, preserving gradual disclosure.
+Payments remains scripted and cannot be replaced by this version. This isolates
+seat-specific behavior before studying model-model interaction effects. N:1
 and N:M remain deferred until capacity, matching, shared waiting costs, and a
 global welfare oracle are specified.

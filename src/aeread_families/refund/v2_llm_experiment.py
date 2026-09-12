@@ -1,8 +1,8 @@
-"""Run a Refund V2.1 1:N panel with an active Arena policy agent.
+"""Run a Refund V2.1 1:N panel with independently selectable active seats.
 
-The intake, customer, and payments seats remain deterministic. Only the policy
-seat is supplied by the model, so the report separates policy behavior from
-transaction and coordination behavior.
+The intake, customer, and policy seats can each be supplied by Arena. Any seat
+not selected by ``--active-agents`` uses its deterministic counterpart, while
+payments remains scripted and verifier-protected.
 """
 from __future__ import annotations
 
@@ -18,7 +18,13 @@ from typing import Any
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import ArenaChatClient, EvidenceStore, ProviderFailure, ProviderRequest
 
-from .v2_environment import build_1n_panel, run_1n_with_policy_turns
+from .v2_environment import (
+    AgentActivationConfig,
+    build_1n_panel,
+    run_1n_with_policy_turns,
+    run_1n_with_role_actions,
+    validate_active_agents,
+)
 
 
 OUTPUT_SCHEMA = {
@@ -33,6 +39,24 @@ OUTPUT_SCHEMA = {
     },
     "required": ["decision"],
     "additionalProperties": False,
+}
+
+INTAKE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "decision": {"type": "string", "enum": ["request_facts"]},
+        "requested_fields": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["decision", "requested_fields"],
+}
+
+CUSTOMER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "decision": {"type": "string", "enum": ["provide_info", "state_request"]},
+        "reveal_fields": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["decision", "reveal_fields"],
 }
 
 
@@ -80,7 +104,10 @@ def _write_trajectory_evidence(output: Path, rows: list[dict[str, Any]]) -> None
             "transactions": row.get("transactions", []),
             "invalid_fact_requests": row.get("invalid_fact_requests", []),
             "outcome": row.get("outcome"),
+            "failure": row.get("failure"),
             "provider": row.get("provider"),
+            "active_agents": row.get("active_agents", []),
+            "scripted_agents": row.get("scripted_agents", []),
         }
         data = canonical_json_bytes(payload) + b"\n"
         trajectory_dir = trajectories_dir / filename.removesuffix(".json")
@@ -156,7 +183,72 @@ def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision:
     ).with_computed_hash()
 
 
-async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, env_file: Path | None) -> dict[str, Any]:
+def _seat_request(
+    case: Any,
+    role: str,
+    payload: dict[str, Any],
+    *,
+    model: str,
+    revision: str | None,
+    reasoning_effort: str | None,
+    max_output_tokens: int,
+    timeout: float,
+    seed: int,
+    turn: int,
+) -> ProviderRequest:
+    if role == "intake":
+        instructions = "You are the intake agent. Request at most three available fact IDs and return only JSON."
+        schema = INTAKE_SCHEMA
+    elif role == "customer":
+        instructions = "You are the customer. Reveal only requested fact IDs from your private facts and return only JSON."
+        schema = CUSTOMER_SCHEMA
+    else:
+        instructions = "You are the policy agent. Follow the disclosed policy and return only JSON."
+        schema = OUTPUT_SCHEMA
+    return ProviderRequest(
+        provider_call_id=f"refund-v21-{role}-{case.case_id}-{turn}",
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model=model,
+        revision=revision,
+        instructions=instructions,
+        input_text=canonical_json_bytes(payload).decode("utf-8"),
+        temperature=None if model.startswith("gpt-5.6") else 0.0,
+        top_p=None,
+        max_output_tokens=max_output_tokens,
+        reasoning_effort=reasoning_effort,
+        timeout_seconds=timeout,
+        request_sha256="",
+        output_schema=schema,
+        seed=seed,
+    ).with_computed_hash()
+
+
+def _scripted_intake(case: Any) -> dict[str, Any]:
+    return {"decision": "request_facts", "requested_fields": list(case.required_facts[:3])}
+
+
+def _scripted_customer(requested_fields: list[str]) -> dict[str, Any]:
+    return {"decision": "provide_info", "reveal_fields": list(requested_fields[:3])}
+
+
+def _scripted_policy(case: Any, revealed_facts: dict[str, Any], turn: int) -> dict[str, Any]:
+    missing = [field for field in case.required_facts if field not in revealed_facts]
+    if missing:
+        return {"decision": "request_facts", "requested_fields": missing[:3]}
+    return {
+        "decision": "approve_direct" if case.authorized_refund_amount else "deny",
+        "amount": case.authorized_refund_amount,
+        "method": case.authorized_refund_method,
+        "reason": case.denial_reason,
+        "proposal_id": f"proposal_{turn + 1}",
+    }
+
+
+async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str | None,
+              reasoning_effort: str | None, max_output_tokens: int, timeout: float,
+              env_file: Path | None, active_agents: tuple[str, ...] = ("policy",)) -> dict[str, Any]:
+    active_agents = validate_active_agents(active_agents)
     if env_file is not None:
         _load_env(env_file)
     try:
@@ -182,39 +274,116 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                 "scenario": case.scenario,
                 "positive": case.authorized_refund_amount > 0,
                 "content_sha256": case.content_sha256,
+                "active_agents": list(active_agents),
+                "scripted_agents": [agent for agent in ("intake", "customer", "policy", "payments") if agent not in active_agents],
             }
             try:
-                revealed_facts: dict[str, Any] = {}
-                turns: list[dict[str, Any]] = []
-                provider_results = []
-                for turn in range(4):
-                    result = await client.complete(_request(
-                        case,
-                        revealed_facts,
-                        model=model,
-                        revision=revision,
-                        reasoning_effort=reasoning_effort,
-                        max_output_tokens=max_output_tokens,
-                        timeout=timeout,
-                        seed=seed,
-                        turn=turn,
+                provider_results: list[Any] = []
+                intake_payload = {
+                    "case_id": case.case_id,
+                    "public_claim": case.public_claim,
+                    "product_category": case.product_category,
+                    "price": case.price,
+                    "days_since_delivery": case.days_since_delivery,
+                    "available_fact_ids": list(case.required_facts),
+                }
+                if "intake" in active_agents:
+                    result = await client.complete(_seat_request(
+                        case, "intake", intake_payload, model=model, revision=revision,
+                        reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
+                        timeout=timeout, seed=seed, turn=0,
                     ))
                     provider_results.append(result)
-                    action = json.loads(result.output_text)
+                    intake_action = json.loads(result.output_text)
+                else:
+                    intake_action = _scripted_intake(case)
+
+                requested = intake_action.get("requested_fields", [])
+                requested = requested if isinstance(requested, list) else []
+                customer_payload = {
+                    "case_id": case.case_id,
+                    "requested_fields": requested[:3],
+                    "private_facts": dict(case.private_facts),
+                    "instruction": "Reveal only requested fields; never reveal any other field.",
+                }
+                if "customer" in active_agents:
+                    result = await client.complete(_seat_request(
+                        case, "customer", customer_payload, model=model, revision=revision,
+                        reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
+                        timeout=timeout, seed=seed, turn=0,
+                    ))
+                    provider_results.append(result)
+                    initial_customer_action = json.loads(result.output_text)
+                else:
+                    initial_customer_action = _scripted_customer(requested)
+
+                revealed_facts: dict[str, Any] = {}
+                initial_revealed = initial_customer_action.get("reveal_fields", [])
+                if isinstance(initial_revealed, list):
+                    for field in initial_revealed:
+                        if field in requested[:3] and field in case.required_facts:
+                            revealed_facts[field] = case.private_facts[field]
+                turns: list[dict[str, Any]] = []
+                customer_actions: list[dict[str, Any]] = []
+                for turn in range(6):
+                    policy_payload = {
+                        "case_id": case.case_id,
+                        "world_seed": case.world_seed,
+                        "product_category": case.product_category,
+                        "price": case.price,
+                        "days_since_delivery": case.days_since_delivery,
+                        "public_claim": case.public_claim,
+                        "scenario": case.scenario,
+                        "policy_summary": case.policy_summary,
+                        "revealed_facts": revealed_facts,
+                        "available_fact_ids": [field for field in case.required_facts if field not in revealed_facts],
+                    }
+                    if "policy" in active_agents:
+                        result = await client.complete(_seat_request(
+                            case, "policy", policy_payload, model=model, revision=revision,
+                            reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
+                            timeout=timeout, seed=seed, turn=turn,
+                        ))
+                        provider_results.append(result)
+                        action = json.loads(result.output_text)
+                    else:
+                        action = _scripted_policy(case, revealed_facts, turn)
                     turns.append(action)
                     if action.get("decision") != "request_facts":
                         break
                     requested = action.get("requested_fields", [])
-                    if not isinstance(requested, list):
-                        break
-                    previous_fact_count = len(revealed_facts)
-                    for field in requested[:3]:
-                        if field in case.required_facts and field not in revealed_facts:
-                            revealed_facts[field] = case.private_facts[field]
-                    if len(revealed_facts) == previous_fact_count:
-                        break
-                state, outcome = run_1n_with_policy_turns(case, turns)
-                result = provider_results[-1]
+                    requested = requested if isinstance(requested, list) else []
+                    customer_payload = {
+                        "case_id": case.case_id,
+                        "requested_fields": requested[:3],
+                        "private_facts": dict(case.private_facts),
+                        "instruction": "Reveal only requested fields; never reveal any other field.",
+                    }
+                    if "customer" in active_agents:
+                        result = await client.complete(_seat_request(
+                            case, "customer", customer_payload, model=model, revision=revision,
+                            reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
+                            timeout=timeout, seed=seed, turn=turn + 1,
+                        ))
+                        provider_results.append(result)
+                        customer_action = json.loads(result.output_text)
+                    else:
+                        customer_action = _scripted_customer(requested)
+                    customer_actions.append(customer_action)
+                    revealed = customer_action.get("reveal_fields", [])
+                    if isinstance(revealed, list):
+                        for field in revealed:
+                            if field in requested[:3] and field in case.required_facts and field not in revealed_facts:
+                                revealed_facts[field] = case.private_facts[field]
+
+                state, outcome = run_1n_with_role_actions(
+                    case,
+                    intake_action=intake_action,
+                    initial_customer_action=initial_customer_action,
+                    policy_turns=turns,
+                    customer_actions=customer_actions,
+                )
+                result = provider_results[-1] if provider_results else None
                 proposal = turns[-1] if turns and turns[-1].get("decision") in {"approve_direct", "deny"} else None
                 row.update({
                     "status": "completed",
@@ -235,13 +404,13 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                         "verifier_reasons": list(outcome.verifier_reasons),
                     },
                     "provider": {
-                        "response_id": result.response_id,
-                        "resolved_model": result.resolved_model,
-                        "finish_reason": result.finish_reason,
-                        "input_tokens": result.input_tokens,
-                        "output_tokens": result.output_tokens,
-                        "reasoning_tokens": result.reasoning_tokens,
-                        "cost_usd": result.cost_usd,
+                        "response_id": result.response_id if result else None,
+                        "resolved_model": result.resolved_model if result else None,
+                        "finish_reason": result.finish_reason if result else None,
+                        "input_tokens": sum(getattr(item, "input_tokens", 0) or 0 for item in provider_results),
+                        "output_tokens": sum(getattr(item, "output_tokens", 0) or 0 for item in provider_results),
+                        "reasoning_tokens": sum(getattr(item, "reasoning_tokens", 0) or 0 for item in provider_results),
+                        "cost_usd": sum(getattr(item, "cost_usd", 0.0) or 0.0 for item in provider_results),
                     },
                 })
             except (ProviderFailure, json.JSONDecodeError, TypeError, ValueError, KeyError, AttributeError, OverflowError) as error:
@@ -258,8 +427,8 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
         "family_id": "refund_v2",
         "family_version": "2.1.0",
         "topology": "1:N",
-        "active_agent": "policy",
-        "scripted_agents": ["intake", "customer", "payments"],
+        "active_agents": list(active_agents),
+        "scripted_agents": [agent for agent in ("intake", "customer", "policy", "payments") if agent not in active_agents],
         "model": model,
         "revision": revision,
         "reasoning_effort": reasoning_effort,
@@ -289,6 +458,8 @@ def main() -> int:
     parser.add_argument("--max-output-tokens", type=int, default=1024)
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--active-agents", default="policy",
+                        help="comma-separated active seats: intake,customer,policy")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     seeds = tuple(int(item.strip()) for item in args.world_seeds.split(",") if item.strip())
@@ -301,6 +472,7 @@ def main() -> int:
         max_output_tokens=args.max_output_tokens,
         timeout=args.timeout,
         env_file=args.env_file,
+        active_agents=validate_active_agents(tuple(item.strip() for item in args.active_agents.split(",") if item.strip())),
     ))
     print(json.dumps({key: report[key] for key in ("planned_cases", "completed_cases", "operational_failures", "means", "policy_compliance_rate")}, indent=2))
     return 0
