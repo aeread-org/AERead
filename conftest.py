@@ -15,6 +15,16 @@ if _src.is_dir() and str(_src) not in sys.path:
 # (required-env-var, provisioning hint, skip-message markers). Both ways a
 # gated test can go unrun belong in one family's markers tuple: no interpreter
 # that can import upstream, and (where applicable) no upstream checkout at all.
+#
+# A third way, and the most likely one once a bridge has been provisioned
+# successfully at least once: $AEREAD_<FAM>_BRIDGE_PYTHON is exported but
+# points at a path that no longer exists. discover_bridge_python raises a
+# differently worded error for that case, and the families whose tests pass
+# its text through unwrapped -- tau3_retail, econevals, agenticpay_bilateral,
+# econagent_v1, govsim, steer -- therefore need its marker too, or a moved venv
+# skips every fidelity test while this gate stays quiet. negarena needs no
+# such marker: its tests wrap the error in a constant prefix the first
+# marker already matches, which is the more robust shape.
 _BRIDGE_FAMILIES = (
     (
         "AEREAD_TAU2_BRIDGE_REQUIRED",
@@ -27,6 +37,7 @@ _BRIDGE_FAMILIES = (
         (
             "upstream tau2-bench Python interpreter",
             "upstream tau2-bench checkout not found",
+            "$AEREAD_TAU2_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -41,6 +52,7 @@ _BRIDGE_FAMILIES = (
         (
             "pinned upstream econ-evals Python interpreter",
             "pinned upstream econ-evals checkout not found",
+            "$AEREAD_ECONEVALS_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -58,6 +70,7 @@ _BRIDGE_FAMILIES = (
             "pinned upstream STEER checkout not found at",
             "cached STEER corpus bytes not found at",
             "no pandas-capable Python interpreter found for the steer bridge",
+            "$AEREAD_STEER_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -79,6 +92,7 @@ _BRIDGE_FAMILIES = (
         (
             "upstream AgenticPay Python interpreter",
             "upstream AgenticPay checkout not found",
+            "$AEREAD_AGENTICPAY_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -101,6 +115,7 @@ _BRIDGE_FAMILIES = (
         (
             "pinned upstream EconAgent Python interpreter",
             "pinned upstream EconAgent checkout not found",
+            "$AEREAD_ECONAGENT_BRIDGE_PYTHON is set to",
         ),
     ),
     (
@@ -124,6 +139,20 @@ _BRIDGE_FAMILIES = (
             "pinned upstream NegotiationArena checkout not found",
         ),
     ),
+    (
+        "AEREAD_GOVSIM_BRIDGE_REQUIRED",
+        (
+            "Provide the pinned upstream checkout (AEREAD_GOVSIM_UPSTREAM_ROOT) "
+            "and an interpreter for it (tools/govsim_bridge/provision.sh, then "
+            "export $AEREAD_GOVSIM_BRIDGE_PYTHON), or unset "
+            "$AEREAD_GOVSIM_BRIDGE_REQUIRED to allow skipping."
+        ),
+        (
+            "no pinned upstream govsim Python interpreter found",
+            "pinned upstream govsim checkout not found",
+            "$AEREAD_GOVSIM_BRIDGE_PYTHON is set to",
+        ),
+    ),
 )
 
 
@@ -139,6 +168,7 @@ _BRIDGE_FAMILY_DISPLAY = {
     "AEREAD_ECONAGENT_BRIDGE_REQUIRED": {"family": "EconAgent (econagent_v1 adapter)", "title": "upstream bridge required: EconAgent (econagent_v1 adapter)", "note_when_unenforced": False},
     "AEREAD_AMAZONBARG_BRIDGE_REQUIRED": {"family": "AmazonPriceHistory (amazonbarg.bilateral adapter)", "title": "upstream bridge required: AmazonPriceHistory (amazonbarg.bilateral adapter)", "note_when_unenforced": False},
     "AEREAD_NEGARENA_BRIDGE_REQUIRED": {"family": "NegotiationArena (negarena adapter)", "title": "upstream bridge required: NegotiationArena (negarena adapter)", "note_when_unenforced": False},
+    "AEREAD_GOVSIM_BRIDGE_REQUIRED": {"family": "GovSim (govsim adapter)", "title": "upstream bridge required: GovSim (govsim adapter)", "note_when_unenforced": False},
 }
 
 

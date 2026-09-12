@@ -145,10 +145,12 @@ as work to verify.
   literals, and keep every removal from `_NOT_YET_MIGRATED_TRUSTED_KEYS`.
   Never drop another family's block to resolve a conflict.
 - **Prove nothing was dropped, then run the fast test.** After each conflicted
-  merge, with the merge still in progress, check that the resolved file's
-  module-level bound names (imports and aliases, defs, classes, assignments,
-  parsed with `ast`) are a superset of both parents' — a `grep` for `def`
-  cannot see dropped imports, which is exactly what got dropped. Then run
+  merge, with the merge still in progress, run
+  `python tools/check_registration_merge.py <resolved-file> --ours HEAD --theirs MERGE_HEAD`
+  for each registration file. It checks imports/aliases, definitions,
+  duplicate bindings, migration-exemption intersection, bridge-enrollment
+  union, and helper returns. A `grep` for `def` cannot see dropped imports,
+  which is exactly what got dropped. Then run
   `pytest tests/test_shared_runner_scoring_contract.py -q` with no bridges
   exported (under a minute; bridge-gated tests skip). Both green, then merge.
 - **Any other conflict is a stop, not a resolve.** A conflict in

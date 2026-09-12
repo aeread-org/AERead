@@ -487,3 +487,11 @@ digest and not a claim.
 | id | defect | detection | cost | disposition |
 |---|---|---|---|---|
 | PR151-D-01 | the transitional digest candidate coerced five falsy JSON values to `[]`; the idempotent writer accepted pretty-printed bytes that its reader rejected | independent review, then seven failing regression cases before the production fix | no provider spend; digest verification accepted altered field bytes and publication could report success over unreadable receipts | exact absent-or-empty-list compatibility and shared read-back validation implemented; 188 focused checks pass |
+
+## 2026-09-11 — tooling: review checks and registration merges did not converge automatically
+
+| id | defect | detection | cost | disposition |
+|---|---|---|---|---|
+| INF-T-01 | approval left older failed/cancelled `kernel-review` instances on the same head; partial workflow reruns could preserve the block | #176 operator report and workflow inspection | manual full reruns and delayed merges | automatic full-workflow repair implemented with current-head approval checks and a three-attempt limit; deployment pending |
+| INF-T-02 | merge-time registration checks were prose and duplicate-binding checks omitted imports | #178; AST inventory found redundant imports in the scoring-contract and receipt tests | repeated manual scripts and risk of silently dropping enrollment | shared structural checker and import-aware regression guard implemented; focused validation passes |
+| INF-T-03 | the new return checker initially treated a bridge's `pytest.skip` exception path as a missing return | running the checker against the existing scoring-contract file | one false-positive local check; no source or evidence loss | known non-returning pytest calls recognized and covered by a regression |

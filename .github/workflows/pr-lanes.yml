@@ -23,9 +23,9 @@ permissions:
   pull-requests: write
   issues: write
 
-concurrency:
-  group: pr-lanes-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# Do not cancel an earlier gate when a review arrives: its cancelled check
+# would remain attached to the same head. kernel-review-reconcile repairs
+# completed stale failures after checking the live approval and head.
 
 jobs:
   kernel-review:
@@ -69,9 +69,13 @@ jobs:
             echo "draft; the review gate applies once it is marked ready"
             exit 0
           fi
-          # Latest review per reviewer, on the current head, excluding the author.
-          approvals=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
-            --jq "[ .[] | select(.user.login != \"$AUTHOR\") ]
+          # Latest formal review per reviewer, on the current head, excluding
+          # the author. Flatten all pages before counting; comments do not
+          # revoke an approval, but changes-requested and dismissals do.
+          approvals=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --slurp \
+            --jq "[ .[][] | select(.user.login != \"$AUTHOR\")
+                           | select(.state == \"APPROVED\" or .state == \"CHANGES_REQUESTED\" or .state == \"DISMISSED\") ]
+                  | sort_by(.id)
                   | group_by(.user.login) | map(.[-1])
                   | map(select(.state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\"))
                   | length")

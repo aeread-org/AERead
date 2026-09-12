@@ -7,8 +7,6 @@ from pathlib import Path
 
 import pytest
 
-import hashlib
-
 from aeread.shared_runner import (
     EvaluationFailure,
     EvaluationReceipt,
@@ -32,7 +30,6 @@ from aeread.shared_runner import (
     write_evaluation_receipt,
 )
 from aeread.shared_runner.analysis.research import deserialize_evaluation_receipt
-from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 def _implementation(identifier: str, marker: str) -> MeasurementImplementationRef:
