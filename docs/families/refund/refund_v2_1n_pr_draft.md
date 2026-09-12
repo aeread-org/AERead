@@ -50,10 +50,13 @@ trajectories.
 The published V2.1 evidence is committed under the family-owned bundles
 `evidence/refund/refund_v2_1_deterministic_2026-09-12/` and
 `evidence/refund/refund_v2_1_policy_panel_2026-09-12/`. Each bundle contains
-reports, canonical benchmark tables, and a sealed `publication_manifest.json`
-whose digests bind the files used for the claims above. Raw prompts, raw
-provider responses, and undisclosed private fields are excluded from the
-publication boundary.
+reports, canonical benchmark tables, Procurement-style per-logical-action
+trajectory rows, and a sealed `publication_manifest.json` whose digests bind
+the files used for the claims above. `receipts/projections.jsonl` contains
+Refund-family receipt projections, explicitly not kernel `EvaluationReceipt`
+objects, because this isolated family runner does not emit shared-runner
+receipts. Raw prompts, raw provider responses, and undisclosed private fields
+are excluded from the publication boundary.
 
 ## Rebase and scope
 

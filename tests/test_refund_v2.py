@@ -1,3 +1,5 @@
+import json
+
 from aeread_families.refund.v2_environment import (
     AgentActivationConfig,
     build_1n_case,
@@ -8,6 +10,7 @@ from aeread_families.refund.v2_environment import (
     validate_active_agents,
 )
 from aeread_families.refund.v2_experiment import run as run_v21_experiment
+from aeread_families.refund.v2_llm_experiment import _write_standard_publication
 from aeread.shared_runner.task.execution import EvidenceStore
 
 
@@ -143,3 +146,60 @@ def test_v21_experiment_writes_auditable_trajectory_evidence(tmp_path) -> None:
     assert len(roots) == 6
     audited = EvidenceStore.audit_existing(roots[0])
     audited.close()
+    trajectory_lines = (tmp_path / "trajectories" / "sanitized.jsonl").read_text().splitlines()
+    receipt_lines = (tmp_path / "receipts" / "projections.jsonl").read_text().splitlines()
+    assert trajectory_lines
+    assert len(receipt_lines) == 6
+    assert {json.loads(line)["schema_version"] for line in trajectory_lines} == {
+        "aeread.sanitized_trajectory_row/0.1"
+    }
+
+
+def test_v21_llm_publication_uses_unique_receipts_and_model_attempts(tmp_path) -> None:
+    rows = [
+        {
+            "case_id": "refund_v2.1n.full_refund.000001",
+            "world_seed": 1,
+            "scenario": "full_refund",
+            "content_sha256": "case-digest",
+            "status": "completed",
+            "active_agents": ["policy"],
+            "provider": {"resolved_model": "test-model"},
+            "provider_attempts": [{
+                "role": "policy",
+                "provider_call_id": "call-1",
+                "request_sha256": "request-1",
+                "requested_model": "test-model",
+                "resolved_model": "test-model",
+                "response_id": "response-1",
+                "finish_reason": "stop",
+                "input_tokens": 10,
+                "cached_input_tokens": 0,
+                "output_tokens": 5,
+                "reasoning_tokens": None,
+                "visible_output_tokens": 5,
+                "cost_usd": 0.0,
+                "max_output_tokens": 100,
+            }],
+            "transcript": [
+                {"speaker": "customer", "message": "claim", "revealed_fields": {}},
+                {"speaker": "policy", "message": "resolution", "revealed_fields": {}},
+            ],
+            "outcome": {
+                "utility_score": 2.0,
+                "transaction_score": 1.0,
+                "coordination_score": 1.0,
+                "policy_compliant": True,
+            },
+        }
+    ]
+    _write_standard_publication(tmp_path, rows + rows)
+
+    trajectories = [json.loads(line) for line in (tmp_path / "trajectories" / "sanitized.jsonl").read_text().splitlines()]
+    receipts = [json.loads(line) for line in (tmp_path / "receipts" / "projections.jsonl").read_text().splitlines()]
+    assert len({receipt["source_receipt_sha256"] for receipt in receipts}) == 2
+    policy_row = next(row for row in trajectories if row["seat_id"] == "policy")
+    assert policy_row["case_id"] == "refund_v2.1n.full_refund.000001"
+    assert policy_row["episode_id"] == "episode_0001"
+    assert policy_row["profile_id"] == "test-model"
+    assert policy_row["attempts"][0]["provider_calls"][0]["request_sha256"] == "request-1"

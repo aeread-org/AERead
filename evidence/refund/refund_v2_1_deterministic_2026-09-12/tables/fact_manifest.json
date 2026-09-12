@@ -39,5 +39,7 @@
     "transaction_score",
     "coordination_score",
     "policy_compliant"
-  ]
+  ],
+  "trajectory_row_count": 1080,
+  "receipt_row_count": 120
 }

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.run.publication import sanitized_trajectory_jsonl
 from aeread.shared_runner.task.execution import ArenaChatClient, EvidenceStore, ProviderFailure, ProviderRequest
 
 from .v2_environment import (
@@ -139,6 +140,157 @@ def _write_trajectory_evidence(output: Path, rows: list[dict[str, Any]]) -> None
         encoding="utf-8",
     )
     (output / "evidence_manifest.json").write_bytes(canonical_json_bytes({"trajectories": manifest}) + b"\n")
+    _write_standard_publication(output, rows)
+
+
+def _write_standard_publication(output: Path, rows: list[dict[str, Any]]) -> None:
+    trajectory_rows: list[dict[str, Any]] = []
+    receipt_rows: list[dict[str, Any]] = []
+    for ordinal, row in enumerate(rows, start=1):
+        case_id = row["case_id"]
+        episode_attempt_id = f"attempt_{ordinal:04d}"
+        resolved_model = row.get("provider", {}).get("resolved_model")
+        run_plan_sha256 = hashlib.sha256(canonical_json_bytes({
+            "family_id": "refund_v2",
+            "family_version": "2.1.0",
+            "topology": "1:N",
+            "model": resolved_model,
+            "active_agents": row.get("active_agents", []),
+        })).hexdigest()
+        receipt_basis = {
+            "publication_ordinal": ordinal,
+            "case_id": case_id,
+            "content_sha256": row["content_sha256"],
+            "provider": row.get("provider"),
+            "active_agents": row.get("active_agents", []),
+            "transcript": row.get("transcript", []),
+            "outcome": row.get("outcome"),
+            "status": row.get("status", "completed"),
+        }
+        receipt_sha256 = hashlib.sha256(canonical_json_bytes(receipt_basis)).hexdigest()
+        transcript = row.get("transcript", [])
+        provider_attempts = row.get("provider_attempts", [])
+        attempts_by_role: dict[str, list[dict[str, Any]]] = {}
+        for provider_attempt in provider_attempts:
+            if isinstance(provider_attempt, dict):
+                attempts_by_role.setdefault(provider_attempt.get("role", ""), []).append(provider_attempt)
+        role_indices: dict[str, int] = {}
+        episode_id = f"episode_{ordinal:04d}"
+        for step_index, event in enumerate(transcript):
+            speaker = event.get("speaker", "unknown") if isinstance(event, dict) else "unknown"
+            action = dict(event) if isinstance(event, dict) else {"message": str(event)}
+            role_index = role_indices.get(speaker, 0)
+            role_indices[speaker] = role_index + 1
+            provider_attempt = (
+                attempts_by_role.get(speaker, [])[role_index]
+                if role_index < len(attempts_by_role.get(speaker, []))
+                else None
+            )
+            attempts = []
+            if provider_attempt is not None:
+                action_attempt_id = f"action_attempt_{ordinal:04d}_{step_index:04d}"
+                attempts = [{
+                    "action_attempt_id": action_attempt_id,
+                    "failure_condition": None,
+                    "max_output_tokens": provider_attempt["max_output_tokens"],
+                    "ordinal": 0,
+                    "provider_calls": [{
+                        key: provider_attempt[key]
+                        for key in (
+                            "provider_call_id", "request_sha256", "requested_model",
+                            "resolved_model", "response_id", "finish_reason",
+                            "input_tokens", "cached_input_tokens", "output_tokens",
+                            "reasoning_tokens", "visible_output_tokens", "cost_usd",
+                        )
+                    }],
+                    "response": {
+                        "cached_input_tokens": provider_attempt["cached_input_tokens"],
+                        "cost_usd": provider_attempt["cost_usd"],
+                        "empty": False,
+                        "finish_reason": provider_attempt["finish_reason"],
+                        "input_tokens": provider_attempt["input_tokens"],
+                        "output_tokens": provider_attempt["output_tokens"],
+                        "provider_call_ids": [provider_attempt["provider_call_id"]],
+                        "tool_invocation_ids": [],
+                        "truncated": provider_attempt["finish_reason"] == "length",
+                    },
+                    "retry_reason": None,
+                    "session_mode": "restart",
+                    "status": "succeeded",
+                }]
+            active_agents = row.get("active_agents", [])
+            profile_id = (
+                resolved_model
+                if speaker in active_agents
+                else "scripted"
+            )
+            trajectory_rows.append({
+                "schema_version": "aeread.sanitized_trajectory_row/0.1",
+                "source_receipt_sha256": receipt_sha256,
+                "run_plan_id": "refund_v2_1n",
+                "run_plan_sha256": run_plan_sha256,
+                "cell_id": f"cell_{ordinal:04d}",
+                "case_id": case_id,
+                "episode_id": episode_id,
+                "episode_attempt_id": episode_attempt_id,
+                "step_index": step_index,
+                "logical_action_id": f"logical_action_{ordinal:04d}_{step_index:04d}",
+                "phase_id": "refund_v2_1n",
+                "phase_instance_id": f"phase_{ordinal:04d}",
+                "seat_id": speaker,
+                "role": speaker,
+                "profile_id": profile_id,
+                "attempts": attempts,
+                "parse": {"ok": True, "error_code": None},
+                "action": action,
+                "legality": {"legal": not bool(row.get("invalid_fact_requests")), "reason": None},
+                "outcome": {
+                    "status": "succeeded" if step_index == len(transcript) - 1 and row.get("status") == "completed" else "in_progress",
+                    "valid": row.get("outcome", {}).get("policy_compliant") if step_index == len(transcript) - 1 else None,
+                    "failure_code": row.get("failure") if step_index == len(transcript) - 1 else None,
+                },
+                "tools": [],
+            })
+        outcome = row.get("outcome") or {}
+        receipt_rows.append({
+            "source_receipt_sha256": receipt_sha256,
+            "spec_version": "aeread.refund_v2.receipt/1.0",
+            "status": "succeeded" if row.get("status") == "completed" else "failed",
+            "inclusion_status": "included" if row.get("status") == "completed" else "excluded",
+            "run_plan_id": "refund_v2_1n",
+            "run_plan_sha256": run_plan_sha256,
+            "cell_id": f"cell_{ordinal:04d}",
+            "case_id": case_id,
+            "case_sha256": row["content_sha256"],
+            "episode_id": episode_id,
+            "episode_attempt_id": episode_attempt_id,
+            "cluster_id": str(row["world_seed"]),
+            "cluster_level": "world_seed",
+            "primary_leaf_id": "utility_score",
+            "deferred_leaf_ids": [],
+            "replay_level": "family_state_and_score",
+            "evidence": {"trajectory_row_count": len(transcript)},
+            "failure": {"condition": "provider_failure", "failure_class": "operational"} if row.get("failure") else None,
+            "scores": {
+                "utility_score": outcome.get("utility_score"),
+                "transaction_score": outcome.get("transaction_score"),
+                "coordination_score": outcome.get("coordination_score"),
+                "policy_compliant": outcome.get("policy_compliant"),
+            },
+            "observability_limits": ["raw prompts and provider responses are excluded"],
+            "campaign_cell_key": (
+                f"{resolved_model or 'scripted'}__"
+                f"{row.get('scenario', 'unknown')}__seed_{row['world_seed']}"
+            ),
+        })
+    trajectories_dir = output / "trajectories"
+    receipts_dir = output / "receipts"
+    trajectories_dir.mkdir(parents=True, exist_ok=True)
+    receipts_dir.mkdir(parents=True, exist_ok=True)
+    (trajectories_dir / "sanitized.jsonl").write_bytes(sanitized_trajectory_jsonl(trajectory_rows))
+    (receipts_dir / "projections.jsonl").write_bytes(
+        b"".join(canonical_json_bytes(receipt) + b"\n" for receipt in receipt_rows)
+    )
 
 
 def _request(case: Any, revealed_facts: dict[str, Any], *, model: str, revision: str | None, reasoning_effort: str | None, max_output_tokens: int, timeout: float, seed: int, turn: int) -> ProviderRequest:
@@ -245,6 +397,26 @@ def _scripted_policy(case: Any, revealed_facts: dict[str, Any], turn: int) -> di
     }
 
 
+def _provider_attempt_record(role: str, request: ProviderRequest, result: Any) -> dict[str, Any]:
+    return {
+        "role": role,
+        "provider": request.provider,
+        "provider_call_id": request.provider_call_id,
+        "request_sha256": request.request_sha256,
+        "requested_model": result.requested_model,
+        "resolved_model": result.resolved_model,
+        "response_id": result.response_id,
+        "finish_reason": result.finish_reason,
+        "input_tokens": result.input_tokens,
+        "cached_input_tokens": result.cached_input_tokens,
+        "output_tokens": result.output_tokens,
+        "reasoning_tokens": result.reasoning_tokens,
+        "visible_output_tokens": result.visible_output_tokens,
+        "cost_usd": result.cost_usd or 0.0,
+        "max_output_tokens": request.max_output_tokens,
+    }
+
+
 async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str | None,
               reasoning_effort: str | None, max_output_tokens: int, timeout: float,
               env_file: Path | None, active_agents: tuple[str, ...] = ("policy",)) -> dict[str, Any]:
@@ -279,6 +451,7 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
             }
             try:
                 provider_results: list[Any] = []
+                provider_attempts: list[dict[str, Any]] = []
                 intake_payload = {
                     "case_id": case.case_id,
                     "public_claim": case.public_claim,
@@ -288,12 +461,14 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                     "available_fact_ids": list(case.required_facts),
                 }
                 if "intake" in active_agents:
-                    result = await client.complete(_seat_request(
+                    request = _seat_request(
                         case, "intake", intake_payload, model=model, revision=revision,
                         reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
                         timeout=timeout, seed=seed, turn=0,
-                    ))
+                    )
+                    result = await client.complete(request)
                     provider_results.append(result)
+                    provider_attempts.append(_provider_attempt_record("intake", request, result))
                     intake_action = json.loads(result.output_text)
                 else:
                     intake_action = _scripted_intake(case)
@@ -307,12 +482,14 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                     "instruction": "Reveal only requested fields; never reveal any other field.",
                 }
                 if "customer" in active_agents:
-                    result = await client.complete(_seat_request(
+                    request = _seat_request(
                         case, "customer", customer_payload, model=model, revision=revision,
                         reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
                         timeout=timeout, seed=seed, turn=0,
-                    ))
+                    )
+                    result = await client.complete(request)
                     provider_results.append(result)
+                    provider_attempts.append(_provider_attempt_record("customer", request, result))
                     initial_customer_action = json.loads(result.output_text)
                 else:
                     initial_customer_action = _scripted_customer(requested)
@@ -339,12 +516,14 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                         "available_fact_ids": [field for field in case.required_facts if field not in revealed_facts],
                     }
                     if "policy" in active_agents:
-                        result = await client.complete(_seat_request(
+                        request = _seat_request(
                             case, "policy", policy_payload, model=model, revision=revision,
                             reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
                             timeout=timeout, seed=seed, turn=turn,
-                        ))
+                        )
+                        result = await client.complete(request)
                         provider_results.append(result)
+                        provider_attempts.append(_provider_attempt_record("policy", request, result))
                         action = json.loads(result.output_text)
                     else:
                         action = _scripted_policy(case, revealed_facts, turn)
@@ -360,12 +539,14 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                         "instruction": "Reveal only requested fields; never reveal any other field.",
                     }
                     if "customer" in active_agents:
-                        result = await client.complete(_seat_request(
+                        request = _seat_request(
                             case, "customer", customer_payload, model=model, revision=revision,
                             reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens,
                             timeout=timeout, seed=seed, turn=turn + 1,
-                        ))
+                        )
+                        result = await client.complete(request)
                         provider_results.append(result)
+                        provider_attempts.append(_provider_attempt_record("customer", request, result))
                         customer_action = json.loads(result.output_text)
                     else:
                         customer_action = _scripted_customer(requested)
@@ -412,6 +593,7 @@ async def run(*, seeds: tuple[int, ...], output: Path, model: str, revision: str
                         "reasoning_tokens": sum(getattr(item, "reasoning_tokens", 0) or 0 for item in provider_results),
                         "cost_usd": sum(getattr(item, "cost_usd", 0.0) or 0.0 for item in provider_results),
                     },
+                    "provider_attempts": provider_attempts,
                 })
             except (ProviderFailure, json.JSONDecodeError, TypeError, ValueError, KeyError, AttributeError, OverflowError) as error:
                 row.update({"status": "failed", "failure": str(error)})
