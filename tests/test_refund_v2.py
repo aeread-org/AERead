@@ -1,4 +1,4 @@
-import json
+import pytest
 
 from aeread_families.refund.v2_environment import (
     AgentActivationConfig,
@@ -10,7 +10,8 @@ from aeread_families.refund.v2_environment import (
     validate_active_agents,
 )
 from aeread_families.refund.v2_experiment import run as run_v21_experiment
-from aeread_families.refund.v2_llm_experiment import _write_standard_publication
+from aeread_families.refund.v2_runner import RefundV21Plugin, build_refund_v21_run
+from aeread_families.refund.v2_publication import publish_refund_v21
 from aeread.shared_runner.task.execution import EvidenceStore
 
 
@@ -141,65 +142,83 @@ def test_v21_experiment_writes_auditable_trajectory_evidence(tmp_path) -> None:
     report = run_v21_experiment((9,), tmp_path)
 
     assert report["planned_cases"] == 6
-    assert (tmp_path / "evidence_manifest.json").exists()
-    roots = sorted((tmp_path / "evidence" / "trajectories").iterdir())
-    assert len(roots) == 6
-    audited = EvidenceStore.audit_existing(roots[0])
+    assert report["completed_cases"] == 6
+    run_plan = next(tmp_path.glob("runplan_*/run_plan.json"))
+    assert run_plan.exists()
+    receipts = list(tmp_path.glob("runplan_*/tasks/*/attempts/*/evaluation_receipt.json"))
+    assert len(receipts) == 6
+    audited = EvidenceStore.audit_existing(receipts[0].parent)
     audited.close()
-    trajectory_lines = (tmp_path / "trajectories" / "sanitized.jsonl").read_text().splitlines()
-    receipt_lines = (tmp_path / "receipts" / "projections.jsonl").read_text().splitlines()
-    assert trajectory_lines
-    assert len(receipt_lines) == 6
-    assert {json.loads(line)["schema_version"] for line in trajectory_lines} == {
-        "aeread.sanitized_trajectory_row/0.1"
+
+
+def test_v21_plan_declares_all_shared_runner_seats() -> None:
+    setup = build_refund_v21_run(world_seeds=(1,))
+    assert len(setup.plan.cells) == 6
+    assert set(setup.plan.cells[0].profile_by_seat) == {
+        "customer",
+        "intake",
+        "policy",
+        "payments",
     }
+    block = setup.plan.evaluation_blocks[0]
+    assert block.kind == "controlled"
+    assert block.subject_seats == ("policy",)
+    assert set(block.controlled_profiles) == {"customer", "intake", "payments"}
 
 
-def test_v21_llm_publication_uses_unique_receipts_and_model_attempts(tmp_path) -> None:
-    rows = [
-        {
-            "case_id": "refund_v2.1n.full_refund.000001",
-            "world_seed": 1,
-            "scenario": "full_refund",
-            "content_sha256": "case-digest",
-            "status": "completed",
-            "active_agents": ["policy"],
-            "provider": {"resolved_model": "test-model"},
-            "provider_attempts": [{
-                "role": "policy",
-                "provider_call_id": "call-1",
-                "request_sha256": "request-1",
-                "requested_model": "test-model",
-                "resolved_model": "test-model",
-                "response_id": "response-1",
-                "finish_reason": "stop",
-                "input_tokens": 10,
-                "cached_input_tokens": 0,
-                "output_tokens": 5,
-                "reasoning_tokens": None,
-                "visible_output_tokens": 5,
-                "cost_usd": 0.0,
-                "max_output_tokens": 100,
-            }],
-            "transcript": [
-                {"speaker": "customer", "message": "claim", "revealed_fields": {}},
-                {"speaker": "policy", "message": "resolution", "revealed_fields": {}},
-            ],
-            "outcome": {
-                "utility_score": 2.0,
-                "transaction_score": 1.0,
-                "coordination_score": 1.0,
-                "policy_compliant": True,
-            },
-        }
-    ]
-    _write_standard_publication(tmp_path, rows + rows)
+def test_v21_fixed_seed_panel_has_six_cells_per_seed() -> None:
+    seeds = (0, 9, 17, 24, 27, 1, 4, 8, 15, 20, 2, 10, 14, 19, 28, 5, 7, 13, 16, 23)
+    setup = build_refund_v21_run(world_seeds=seeds)
+    assert len(setup.plan.cells) == 120
+    assert {cell.world_seed for cell in setup.plan.cells} == set(seeds)
 
-    trajectories = [json.loads(line) for line in (tmp_path / "trajectories" / "sanitized.jsonl").read_text().splitlines()]
-    receipts = [json.loads(line) for line in (tmp_path / "receipts" / "projections.jsonl").read_text().splitlines()]
-    assert len({receipt["source_receipt_sha256"] for receipt in receipts}) == 2
-    policy_row = next(row for row in trajectories if row["seat_id"] == "policy")
-    assert policy_row["case_id"] == "refund_v2.1n.full_refund.000001"
-    assert policy_row["episode_id"] == "episode_0001"
-    assert policy_row["profile_id"] == "test-model"
-    assert policy_row["attempts"][0]["provider_calls"][0]["request_sha256"] == "request-1"
+
+def test_v21_self_play_is_explicit() -> None:
+    setup = build_refund_v21_run(
+        world_seeds=(1,),
+        active_agents=("customer", "intake", "policy"),
+        evaluation_kind="self_play",
+    )
+
+    block = setup.plan.evaluation_blocks[0]
+    assert block.kind == "self_play"
+    assert block.controlled_profiles == {}
+
+
+def test_v21_policy_observation_does_not_expose_authorized_resolution() -> None:
+    setup = build_refund_v21_run(world_seeds=(1,))
+    plugin = RefundV21Plugin()
+    case = build_1n_case(1, scenario="full_refund")
+    observation = plugin.observe(case, plugin.initial_state(case, None), "policy", plugin.phases(case)[3])
+    assert "authorized_resolution" not in observation
+    assert "scenario" not in observation
+    assert "case_id" not in observation
+
+
+def test_v21_publication_is_reproducible(tmp_path) -> None:
+    report = run_v21_experiment((9,), tmp_path / "run")
+    publication = tmp_path / "publication"
+    result = publish_refund_v21(run_root=tmp_path / "run", publication_root=publication)
+    assert result["receipt_count"] == report["completed_cases"]
+    assert (publication / "receipts" / "projections.jsonl").exists()
+    assert (publication / "tables" / "benchmark_results.csv").exists()
+    assert (publication / "tables" / "refund_results_by_scenario.csv").exists()
+    assert (publication / "reports" / "summary.json").exists()
+    assert (publication / "reports" / "qualification.json").exists()
+    assert (publication / "README.md").exists()
+    assert (publication / "trajectories" / "sanitized.jsonl").exists()
+    assert (publication / "publication_manifest.json").exists()
+    assert not (publication / "trajectories" / "archive.jsonl").exists()
+    repeated = publish_refund_v21(run_root=tmp_path / "run", publication_root=publication)
+    assert repeated["manifest_sha256"] == result["manifest_sha256"]
+
+
+def test_v21_publication_rejects_a_shared_analysis_and_publication_directory(tmp_path) -> None:
+    run_v21_experiment((9,), tmp_path / "run")
+    shared = tmp_path / "shared"
+    with pytest.raises(ValueError, match="separate directories"):
+        publish_refund_v21(
+            run_root=tmp_path / "run",
+            analysis_root=shared,
+            publication_root=shared,
+        )

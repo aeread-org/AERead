@@ -36,27 +36,32 @@ them.
 | DeepSeek V4 Flash 0731 | 120/120 | 0 | 30.0% | -6.400 | 0.950 | 1.000 |
 | Gemini 2.5 Flash Lite | 120/120 | 0 | 0.8% | -9.900 | 0.517 | 0.992 |
 | GPT-5.6 Luna | 119/120 | 1 | 16.0% | -8.084 | 0.782 | 0.924 |
-| Grok 4.3 | 120/120 | 0 | 25.0% | -7.000 | 0.817 | 1.000 |
+| Grok 4.3 | 120/120 | 0 | 52.5% | -3.833 | 0.992 | 0.708 |
 | Claude Haiku 4.5 | 120/120 | 0 | 33.3% | -6.000 | 1.000 | 1.000 |
 
 The table is a completed policy-seat pilot, not a claim that the models are
 ranked by utility alone. The verifier was hardened to treat null optional
 refund amounts as invalid zero-amount proposals; DeepSeek and Claude were
-rerun after that change. The reported means are conditional on completed
-trajectories.
+rerun after that change. The Grok row was regenerated on 2026-09-12 with the
+current shared-runner publication path. The reported means are conditional on
+completed trajectories.
 
 ## Evidence
 
-The published V2.1 evidence is committed under the family-owned bundles
-`evidence/refund/refund_v2_1_deterministic_2026-09-12/` and
-`evidence/refund/refund_v2_1_policy_panel_2026-09-12/`. Each bundle contains
-reports, canonical benchmark tables, Procurement-style per-logical-action
-trajectory rows, and a sealed `publication_manifest.json` whose digests bind
-the files used for the claims above. `receipts/projections.jsonl` contains
-Refund-family receipt projections, explicitly not kernel `EvaluationReceipt`
-objects, because this isolated family runner does not emit shared-runner
-receipts. Raw prompts, raw provider responses, and undisclosed private fields
-are excluded from the publication boundary.
+The canonical shared-runner publication is generated under
+`evidence/refund/refund_v2_1_canonical_scripted_20_2026-09-12/`. It contains
+`README.md`, `reports/summary.json`, `reports/qualification.json`, canonical
+benchmark tables, a Refund-specific scenario result table, sealed receipt
+projections, the kernel `aeread.sanitized_trajectory_row/0.1` grain, and a
+sealed `publication_manifest.json`. The manifest digests bind every published
+file to the shared-runner `RunPlan`, sealed `EvaluationReceipt`s, and source
+run. Raw prompts, raw provider responses, hidden facts, complete receipts, and
+reasoning are excluded from the publication boundary. The earlier deterministic
+and five-model bundles remain historical publications.
+
+The latest Grok 4.3 publication is under
+`evidence/refund/refund_v2_1_grok43_controlled_2026-09-12/`; it contains the
+same canonical artifact family and 820 sanitized logical-action rows.
 
 ## Rebase and scope
 
