@@ -93,6 +93,7 @@ from aeread.shared_runner.registry import (
 )
 from aeread.shared_runner.run.resolver import (
     ImplementationPin,
+    PlanCell,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
@@ -1675,10 +1676,16 @@ class FamilyScoringFixture:
     empty -- a seat-insensitive family's fixtures pass nothing here and its
     scorer sees the same empty ``SeatContext`` it always has; only the
     synthetic per-seat fixture below sets them.
+
+    #135 A1: ``cell`` is the actual executed ``PlanCell`` for this fixture's
+    ``sealed_evidence`` (its identity is checked against the seal before the
+    plugin is invoked) -- every fixture builder below resolves it from its
+    own setup, never from a reconstructed look-alike.
     """
 
     family_case: Mapping[str, Any]
     sealed_evidence: EvidenceStore
+    cell: PlanCell
     subject_seats: tuple[str, ...] = ()
     profile_by_seat: Mapping[str, str] = dataclasses.field(
         default_factory=lambda: MappingProxyType({})
@@ -1750,6 +1757,7 @@ def _housing_fixture(tmp_path: Path) -> tuple[FamilyManifest, Any, FamilyScoring
             episode_attempt_ordinal=0,
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
@@ -1758,7 +1766,9 @@ def _housing_fixture(tmp_path: Path) -> tuple[FamilyManifest, Any, FamilyScoring
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+        ),
     )
 
 
@@ -1822,6 +1832,7 @@ def _procurement_allocation_fixture(
         )
     )
     assert provider.exhausted
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
@@ -1831,7 +1842,9 @@ def _procurement_allocation_fixture(
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+        ),
     )
 
 
@@ -1851,6 +1864,7 @@ def _procurement_grounding_fixture(
             harnesses=setup.harnesses,
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
@@ -1860,7 +1874,9 @@ def _procurement_grounding_fixture(
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+        ),
     )
 
 
@@ -1880,6 +1896,7 @@ def _commercial_state_fixture(
             harnesses=setup.harnesses,
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
@@ -1889,7 +1906,9 @@ def _commercial_state_fixture(
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+        ),
     )
 
 
@@ -1899,8 +1918,14 @@ def _reference_fixtures(
     left_setup, left_execution = asyncio.run(
         _run_reference_episode(("x", "y"), evidence_root=tmp_path / "reference_left")
     )
-    _right_setup, right_execution = asyncio.run(
+    right_setup, right_execution = asyncio.run(
         _run_reference_episode(("y", "x"), evidence_root=tmp_path / "reference_right")
+    )
+    left_cell = next(
+        item for item in left_setup.plan.cells if item.cell_id == left_execution.cell_id
+    )
+    right_cell = next(
+        item for item in right_setup.plan.cells if item.cell_id == right_execution.cell_id
     )
     case = left_setup.plan.cases[0]
     family = left_setup.plan.families[0]
@@ -1911,10 +1936,14 @@ def _reference_fixtures(
         plugin,
         (
             FamilyScoringFixture(
-                family_case=family_case, sealed_evidence=left_execution.evidence
+                family_case=family_case,
+                sealed_evidence=left_execution.evidence,
+                cell=left_cell,
             ),
             FamilyScoringFixture(
-                family_case=family_case, sealed_evidence=right_execution.evidence
+                family_case=family_case,
+                sealed_evidence=right_execution.evidence,
+                cell=right_cell,
             ),
         ),
     )
@@ -1972,8 +2001,14 @@ def _embedding_fixtures(
         trajectory_outcome_paths=trajectory_outcome_paths,
     )
     fixtures = tuple(
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
-        for _setup, execution in setups_and_executions
+        FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=execution.evidence,
+            cell=next(
+                item for item in setup.plan.cells if item.cell_id == execution.cell_id
+            ),
+        )
+        for setup, execution in setups_and_executions
     )
     return manifest, plugin, fixtures
 
@@ -2316,7 +2351,9 @@ def _steer_fixture_pair(
     plan, registry, prompt_sources, pricing = _build_steer_pair_plan(family, case, cache_root)
     plugin = registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
-    cell_id = plan.cells[0].cell_id
+    # #135 A1: the fixture carries the executed PlanCell, not just its id.
+    cell = plan.cells[0]
+    cell_id = cell.cell_id
     options_count = len(row["options"])
 
     def _run(option_id: int, suffix: str) -> FamilyScoringFixture:
@@ -2335,7 +2372,11 @@ def _steer_fixture_pair(
                 pricing=pricing,
             )
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=execution.evidence,
+            cell=cell,
+        )
 
     left = _run(options_count, "left")
     right = _run(options_count + 3, "right")
@@ -2442,7 +2483,9 @@ def _collusion_episode_fixture(
     return (
         family,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        ),
     )
 
 
@@ -3046,6 +3089,7 @@ def _agenticpay_registration_and_pairs(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=_AGENTICPAY_SUBJECT_SEATS,
             profile_by_seat=_AGENTICPAY_PROFILE_BY_SEAT,
         )
@@ -3731,6 +3775,7 @@ def _assert_family_obeys_the_scoring_contract(
                 subject_seats=case.subject_seats,
                 profile_by_seat=case.profile_by_seat,
             ),
+            cell=case.cell,
         )
         # Ruling R10: this fixture's OWN outcome must agree with its OWN
         # phase_instances at every declared path -- independent of any
@@ -4045,8 +4090,12 @@ def _econagent_fixture(
     # second time, is what lets replay's bridge_session_id fallback (see
     # EconAgentV1Plugin._mint_session_id) resolve correctly.
     (registration,) = setup.registry.registrations()
+    # #135 A1: the fixture carries the executed PlanCell.
+    cell = setup.plan.cells[0]
     return registration, (
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        ),
     )
 
 
@@ -4252,6 +4301,7 @@ def _alympics_kernel_contract_fixtures(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=("alex",),
             profile_by_seat=cell.profile_by_seat,
         )
@@ -4459,12 +4509,18 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
             plugin_factory=_CallParityAdversarialPlugin,
         )
     )
-    _right_setup, right_execution = asyncio.run(
+    right_setup, right_execution = asyncio.run(
         _run_reference_episode(
             ("y", "x"),
             evidence_root=tmp_path / "adversary_right",
             plugin_factory=_CallParityAdversarialPlugin,
         )
+    )
+    left_cell = next(
+        item for item in left_setup.plan.cells if item.cell_id == left_execution.cell_id
+    )
+    right_cell = next(
+        item for item in right_setup.plan.cells if item.cell_id == right_execution.cell_id
     )
     plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
     family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
@@ -4474,12 +4530,14 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
         family_case=family_case,
         evidence=left_execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=left_cell,
     )
     right_scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=right_execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=right_cell,
     )
     # Sanity: this really is a byte-identical-outcome, differing-trajectory
     # pair, exactly what the main protocol test requires for the pairing.
@@ -4653,8 +4711,14 @@ def test_r9_no_paths_accepts_an_empty_outcome_through_the_protocol_path(
         manifest.family.id, manifest.family.version, manifest.family.plugin_id
     )
     fixtures = tuple(
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
-        for _setup, execution in setups_and_executions
+        FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=execution.evidence,
+            cell=next(
+                item for item in setup.plan.cells if item.cell_id == execution.cell_id
+            ),
+        )
+        for setup, execution in setups_and_executions
     )
 
     result = _assert_family_obeys_the_scoring_contract(
@@ -4716,12 +4780,18 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
             plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
         )
     )
-    _right_setup, right_execution = asyncio.run(
+    right_setup, right_execution = asyncio.run(
         _run_reference_episode(
             ("y", "x"),
             evidence_root=tmp_path / "overbroad_right",
             plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
         )
+    )
+    left_cell = next(
+        item for item in left_setup.plan.cells if item.cell_id == left_execution.cell_id
+    )
+    right_cell = next(
+        item for item in right_setup.plan.cells if item.cell_id == right_execution.cell_id
     )
     case = left_setup.plan.cases[0]
     family = left_setup.plan.families[0]
@@ -4742,8 +4812,12 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
     )
     key = (manifest.family.id, manifest.family.version)
     fixtures = (
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=left_execution.evidence),
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=right_execution.evidence),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=left_execution.evidence, cell=left_cell
+        ),
+        FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=right_execution.evidence, cell=right_cell
+        ),
     )
 
     with pytest.raises(AssertionError, match="vacuous"):
@@ -4770,12 +4844,18 @@ def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independentl
             plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
         )
     )
-    _right_setup, right_execution = asyncio.run(
+    right_setup, right_execution = asyncio.run(
         _run_reference_episode(
             ("y", "x"),
             evidence_root=tmp_path / "overbroad_independent_right",
             plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
         )
+    )
+    left_cell = next(
+        item for item in left_setup.plan.cells if item.cell_id == left_execution.cell_id
+    )
+    right_cell = next(
+        item for item in right_setup.plan.cells if item.cell_id == right_execution.cell_id
     )
     plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
     family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
@@ -4784,12 +4864,14 @@ def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independentl
         family_case=family_case,
         evidence=left_execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=left_cell,
     )
     right_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=right_execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=right_cell,
     )
 
     over_broad_paths = ("/labels",)
@@ -5403,6 +5485,7 @@ def test_seat_scoped_singleton_subject_seat_primary_passes_the_protocol_path(
     fixture = FamilyScoringFixture(
         family_case=family_case,
         sealed_evidence=execution.evidence,
+        cell=cell,
         subject_seats=("x",),
         profile_by_seat=cell.profile_by_seat,
     )
@@ -5683,13 +5766,16 @@ def test_case_conditional_applicable_case_returns_both_leaves_through_the_protoc
             mode="contract",
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     registration = setup.registry.resolve_registration(
         family.family.id, family.family.version, family.family.plugin_id
     )
     family_case = registration.plugin.validate_payload(case.payload)
-    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+    fixture = FamilyScoringFixture(
+        family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+    )
 
     result = _assert_family_obeys_the_scoring_contract(
         _CASE_CONDITIONAL_KEY, registration, [fixture]
@@ -5715,13 +5801,16 @@ def test_case_conditional_inapplicable_case_omits_the_diagnostic_leaf_through_th
             mode="basic",
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     registration = setup.registry.resolve_registration(
         family.family.id, family.family.version, family.family.plugin_id
     )
     family_case = registration.plugin.validate_payload(case.payload)
-    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+    fixture = FamilyScoringFixture(
+        family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+    )
 
     result = _assert_family_obeys_the_scoring_contract(
         _CASE_CONDITIONAL_KEY, registration, [fixture]
@@ -6185,13 +6274,16 @@ def test_case_conditional_protocol_helper_rejects_an_undeclared_inapplicable_id(
             plugin_mode="hook_returns_a_typo",
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     registration = setup.registry.resolve_registration(
         family.family.id, family.family.version, family.family.plugin_id
     )
     family_case = registration.plugin.validate_payload(case.payload)
-    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+    fixture = FamilyScoringFixture(
+        family_case=family_case, sealed_evidence=execution.evidence, cell=cell
+    )
 
     with pytest.raises(AssertionError, match="not declared case_conditional"):
         _assert_family_obeys_the_scoring_contract(
@@ -6221,7 +6313,9 @@ def _aucarena_fixtures(
         asyncio.run(
             run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(
+            family_case=family_case, sealed_evidence=evidence, cell=cell
+        )
 
     short_fixture = _run(short_path_answer, "short")
     long_fixture = _run(long_path_answer, "long")
@@ -6339,7 +6433,7 @@ def _termsbench_episode_fixture(
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell),
     )
 
 
@@ -6451,6 +6545,7 @@ def _amazonbarg_fixtures(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=("buyer",),
             profile_by_seat=cell.profile_by_seat,
         )
@@ -6893,6 +6988,7 @@ def _negarena_fixture_pair(
         return FamilyScoringFixture(
             family_case=family_case,
             sealed_evidence=evidence,
+            cell=cell,
             subject_seats=(NEGARENA_RED,),
             profile_by_seat=cell.profile_by_seat,
         )
@@ -7097,7 +7193,7 @@ def _econevals_fixture_pair(
             )
         )
         evidence.seal()
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell)
 
     left = _run(_ECONEVALS_LEFT_PRICES_BY_PERIOD, "left")
     right = _run(_ECONEVALS_RIGHT_PRICES_BY_PERIOD, "right")
@@ -7236,7 +7332,7 @@ def _govsim_episode_fixture(
     return (
         family,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell),
     )
 
 

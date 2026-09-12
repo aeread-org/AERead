@@ -1172,6 +1172,7 @@ def test_call_reports_typed_invalid_reasons_for_zero_and_unknown_subject_seats(
         plugin=plugin,
         family_case=family_case,
         evidence=evidence,
+        cell=cell,
         seat_context=SeatContext((), {}),
     )
     zero_seats_score_set = scorer(
@@ -1192,6 +1193,7 @@ def test_call_reports_typed_invalid_reasons_for_zero_and_unknown_subject_seats(
         plugin=plugin,
         family_case=family_case,
         evidence=evidence,
+        cell=cell,
         seat_context=SeatContext(("frank",), {}),
     )
     unknown_seat_score_set = scorer(
