@@ -173,7 +173,13 @@ jobs:
           path: upstream-govsim
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          # Exact patch, not "3.11": cases/govsim/v1/pins.json seals
+          # bridge_versions.python_version = "3.11.3" and environment.py
+          # compares the bridge's reported version to it key by key, so a
+          # runner that resolved "3.11" to 3.11.16 would fail every gated
+          # test with `python_version mismatch`. The wiring test below
+          # asserts this value equals the sealed one.
+          python-version: "3.11.3"
       - name: Install AERead
         run: pip install -e '.[dev]'
       - name: Provision the govsim bridge interpreter

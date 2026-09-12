@@ -30,13 +30,30 @@ can and does prove is that the opt-in switch is wired on for this family and tha
 the fidelity test files are actually invoked under it, so this protection cannot
 silently regress (e.g. someone deleting the job, or the job drifting to run a
 different, non-fidelity test selection) without this test failing first.
+
+Unlike the agenticpay and amazonbarg wiring tests, this one parses the workflow
+as YAML and asserts on the ``pytest`` step itself. A substring search over the
+job text cannot tell which step an ``env`` block belongs to, and GitHub scopes a
+step's ``env`` to that step: a job that set ``AEREAD_GOVSIM_BRIDGE_REQUIRED`` on
+the provisioning step and ran ``echo <the seven paths>`` in the next step passed
+the substring version of this test (cross-model review of #179). It also asserts
+the job's ``python-version`` equals the patch version sealed in
+``cases/govsim/v1/pins.json``: ``environment.py`` compares the bridge's reported
+``python_version`` to that pin exactly, so a floating ``"3.11"`` that resolved to
+3.11.16 on the runner would fail every gated test with ``python_version mismatch``.
 """
 from __future__ import annotations
 
-import re
+import json
+import shlex
 from pathlib import Path
 
-_CI_WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
+import yaml
+
+_ROOT = Path(__file__).resolve().parent.parent
+_CI_WORKFLOW = _ROOT / ".github" / "workflows" / "ci.yml"
+_GOVSIM_PINS = _ROOT / "cases" / "govsim" / "v1" / "pins.json"
+_JOB = "govsim-fidelity"
 
 _FIDELITY_TEST_FILES = (
     "tests/test_govsim_bridge_driver.py",
@@ -49,68 +66,74 @@ _FIDELITY_TEST_FILES = (
 )
 
 
-def _workflow_text() -> str:
+def _job() -> dict:
     assert _CI_WORKFLOW.is_file(), f"CI workflow not found at {_CI_WORKFLOW}"
-    return _CI_WORKFLOW.read_text(encoding="utf-8")
+    workflow = yaml.safe_load(_CI_WORKFLOW.read_text(encoding="utf-8"))
+    jobs = workflow.get("jobs") or {}
+    assert _JOB in jobs, f"ci.yml defines no `{_JOB}` job (#179); jobs: {sorted(jobs)}"
+    return jobs[_JOB]
 
 
-def _workflow_code() -> str:
-    """The workflow with comments stripped.
-
-    The variable's name also appears in a comment explaining why the switch
-    exists, so a substring search over the raw file passes even when the
-    operative assignment is deleted -- the comment alone keeps it green.
-    Everything asserted below reads this instead.
-    """
-
-    lines = []
-    for line in _workflow_text().splitlines():
-        code = line.split("#", 1)[0]
-        if code.strip():
-            lines.append(code)
-    return "\n".join(lines)
+def _steps_running(executable: str) -> list[dict]:
+    found = []
+    for step in _job().get("steps") or []:
+        run = step.get("run")
+        if not isinstance(run, str):
+            continue
+        argv = shlex.split(run)
+        if argv and Path(argv[0]).name == executable:
+            found.append(step)
+    return found
 
 
-def _govsim_job_code() -> str:
-    """Only the ``govsim-fidelity`` job's lines, comments stripped.
-
-    The agenticpay and amazonbarg wiring tests search the whole workflow. That
-    was sufficient while one job listed ``tests/test_shared_runner_scoring_
-    contract.py``; it is not now that three do. Dropping that file from this
-    job alone left a whole-file search green, because agenticpay's job still
-    names it -- observed while writing this test. So every assertion below is
-    scoped to this job's block: from the ``govsim-fidelity:`` key to the next
-    top-level job key, or the end of the file.
-    """
-
-    text = _workflow_code()
-    match = re.search(
-        r"^  govsim-fidelity:\n(?P<body>(?:(?!^  [A-Za-z0-9_-]+:\n).*\n?)*)",
-        text,
-        re.MULTILINE,
+def _pytest_step() -> dict:
+    steps = _steps_running("pytest")
+    assert len(steps) == 1, (
+        f"expected exactly one `pytest` step in the `{_JOB}` job, found {len(steps)}; "
+        "requiring the bridge is meaningless if the gated job never runs pytest"
     )
-    assert match, "ci.yml defines no `govsim-fidelity` job (#179)"
-    return match.group("body")
+    return steps[0]
 
 
-def test_ci_sets_the_govsim_bridge_required_switch() -> None:
-    text = _govsim_job_code()
-    assert re.search(
-        r"^\s*AEREAD_GOVSIM_BRIDGE_REQUIRED\s*:\s*[\"']?1[\"']?\s*$",
-        text,
-        re.MULTILINE,
-    ), (
-        "the govsim-fidelity job does not set AEREAD_GOVSIM_BRIDGE_REQUIRED: without it, "
-        "conftest.py's skip-to-failure hook stays off by default, and CI can go "
-        "green while every govsim upstream-fidelity assertion silently skipped "
-        "(#179)"
+def test_the_pytest_step_itself_sets_the_bridge_required_switch() -> None:
+    env = _pytest_step().get("env") or {}
+    assert str(env.get("AEREAD_GOVSIM_BRIDGE_REQUIRED", "")).strip() == "1", (
+        f"the `{_JOB}` job's pytest step does not set AEREAD_GOVSIM_BRIDGE_REQUIRED=1 "
+        "in its own env. GitHub scopes a step's env to that step, so setting it on the "
+        "provisioning step leaves conftest.py's skip-to-failure hook off while pytest "
+        f"runs (#179). Step env: {sorted(env)}"
     )
-
-
-def test_ci_actually_runs_every_govsim_fidelity_test_file_under_the_bridge_gate() -> None:
-    text = _govsim_job_code()
-    for test_file in _FIDELITY_TEST_FILES:
-        assert test_file in text, (
-            f"the govsim-fidelity job does not invoke {test_file}; requiring the bridge is meaningless if "
-            "the gated job never actually runs this family's fidelity tests"
+    for var in ("AEREAD_GOVSIM_UPSTREAM_ROOT", "AEREAD_GOVSIM_BRIDGE_PYTHON"):
+        assert str(env.get(var, "")).strip(), (
+            f"the pytest step does not set {var}; without it the bridge-gated tests "
+            "skip (and, with the switch set, fail) instead of running"
         )
+
+
+def test_the_pytest_step_runs_every_govsim_fidelity_test_file() -> None:
+    step = _pytest_step()
+    argv = shlex.split(step["run"])
+    for test_file in _FIDELITY_TEST_FILES:
+        assert test_file in argv, (
+            f"the `{_JOB}` job's pytest step does not invoke {test_file}; requiring the "
+            "bridge is meaningless if the gated job never runs this family's fidelity tests"
+        )
+    assert "if" not in step and not step.get("continue-on-error"), (
+        "the pytest step must run unconditionally and its failure must fail the job"
+    )
+
+
+def test_the_job_pins_the_python_patch_the_corpus_sealed() -> None:
+    pinned = json.loads(_GOVSIM_PINS.read_text(encoding="utf-8"))["bridge_versions"]["python_version"]
+    setup_steps = [
+        step for step in _job().get("steps") or []
+        if str(step.get("uses", "")).startswith("actions/setup-python@")
+    ]
+    assert len(setup_steps) == 1, f"expected one setup-python step, found {len(setup_steps)}"
+    requested = str((setup_steps[0].get("with") or {}).get("python-version", "")).strip()
+    assert requested == pinned, (
+        f"the `{_JOB}` job requests python-version {requested!r} but "
+        f"cases/govsim/v1/pins.json seals python_version {pinned!r}; environment.py compares "
+        "the bridge's reported version to the pin exactly, so anything but the sealed patch "
+        "fails every gated test with `python_version mismatch`"
+    )
