@@ -1,0 +1,22 @@
+{
+  "register_id": "tau3_retail_failure_register",
+  "schema_version": "aeread.failure_register/0.1",
+  "failure_count": 13,
+  "campaigns": [
+    "tau3_retail_glm5p2_arena_pipeline_proof_v14",
+    "tau3_retail_glm5p2_arena_pipeline_proof_v15",
+    "tau3_retail_glm5p2_arena_pipeline_proof_v16",
+    "tau3_retail_glm5p2_arena_pipeline_proof_v17",
+    "tau3_retail_glm5p2_arena_pipeline_proof_v18",
+    "tau3_retail_glm5p2_arena_pipeline_proof_v19"
+  ],
+  "counts_by_condition": {
+    "execution_failure": 4,
+    "combined_cost_budget_exceeded": 3,
+    "malformed_structured_output": 6,
+    "canary_rejected": 0
+  },
+  "rows_sha256": "da204c79607b3492cff787099b2202a012b3308597b7bf1b540a540685c75b87",
+  "artifact_sha256": "b49a3db9fa939a8ef8723d5de94ffab9cf2ed21333358fd2cb6efa0078c7c4ab",
+  "source": "sealed checkpoint roots runs/tau3_retail_glm5p2_arena_pipeline_proof_v14 through v19-paid4"
+}
