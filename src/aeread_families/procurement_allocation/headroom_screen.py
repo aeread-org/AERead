@@ -39,6 +39,21 @@ SCREEN_BASELINES: tuple[str, ...] = (
 #: and saturated tests are claims about a rate.
 MINIMUM_SCREEN_SEEDS = 3
 
+#: A world must let a better decision exist, which is a claim about two policies
+#: and not about one. Dispersion alone admits a coin flip: where suppliers are
+#: indistinguishable before verification, outcomes vary with which ones you
+#: happened to check, and no policy can beat any other.
+COIN_FLIP = "reject: no policy separation"
+
+#: Dispersion must be material, not merely non-zero, as a fraction of the scale
+#: the world is played on. Two worlds were admitted on a $0.25 spread and a $0.35
+#: margin against a $269 baseline: the control failed at every seed and differed
+#: only in what it spent on information. "Not all identical" is not headroom.
+MINIMUM_RELATIVE_SPREAD = 0.05
+
+#: Continuous-metric verdict: the control scores identically at every seed, so
+#: the world cannot express a difference however large its scores are.
+DEGENERATE = "reject: degenerate"
 TRIVIAL = "reject: trivial"
 FLOORED = "reject: floored"
 SATURATED = "reject: saturated"
@@ -74,7 +89,92 @@ def classify_world(
     return ADMIT
 
 
-def within_world_variance(control_outcomes: Sequence[bool]) -> float:
+def classify_world_continuous(
+    control_scores: Sequence[float],
+    baseline_scores: Mapping[str, float | None],
+    *,
+    lower_is_better: bool = True,
+    minimum_relative_spread: float = MINIMUM_RELATIVE_SPREAD,
+) -> str:
+    """Admission verdict for a world scored on a continuous metric.
+
+    `classify_world` decides on a binary success, which for this family is a
+    threshold on a continuous quantity, and a threshold discards exactly the
+    information a panel needs. Measured on the noisy candidate panel, award
+    feasibility was 100% at every seed of every world with zero variance, while
+    regret to the full-information bound ranged from $8.04 to $64.82 and varied
+    within four of six worlds. The same rows were uninformative read one way and
+    informative read the other.
+
+    So the grounds are restated for a continuous score. A world is *degenerate*
+    when the control scores identically at every seed, which subsumes both
+    floored and saturated: there is no dispersion for a treatment to move. It is
+    *trivial* when a deterministic public-observation policy already matches the
+    control's best score, since verification then buys nothing.
+    """
+    if not control_scores or len(control_scores) < MINIMUM_SCREEN_SEEDS:
+        return UNMEASURED
+    if not baseline_scores or all(
+        score is None for score in baseline_scores.values()
+    ):
+        return UNMEASURED
+    measured = [score for score in baseline_scores.values() if score is not None]
+    best_control = min(control_scores) if lower_is_better else max(control_scores)
+    best_baseline = min(measured) if lower_is_better else max(measured)
+
+    # Both remaining tests are comparisons of a difference against a scale, so
+    # the scale is derived once from the magnitudes actually in play.
+    scale = max(abs(best_baseline), abs(best_control), 1.0)
+    material = minimum_relative_spread * scale
+
+    if max(control_scores) - min(control_scores) < material:
+        return DEGENERATE
+    margin = (
+        best_baseline - best_control if lower_is_better else best_control - best_baseline
+    )
+    if margin < material:
+        return TRIVIAL
+    return ADMIT
+
+
+def classify_world_by_policy_separation(
+    policy_scores: Mapping[str, Sequence[float]],
+    *,
+    lower_is_better: bool = True,
+    minimum_relative_spread: float = MINIMUM_RELATIVE_SPREAD,
+) -> str:
+    """Admit a world only when two policies differ in *expectation*.
+
+    The rule the other classifiers were missing. A world can show wide dispersion
+    and still be unmeasurable, because the dispersion belongs to luck rather than
+    to judgment: when every supplier looks identical before verification, which
+    ones a policy happens to check decides the outcome, and every policy draws
+    from the same urn. Twelve procurement panels failed this way, and a screen
+    that tested only the control's spread would have admitted the coin flips
+    among them.
+
+    ``policy_scores`` maps at least two structurally different policies to their
+    scores on this world. A world is admitted when the best and worst policy
+    means differ by a material fraction of the scale in play, which is the
+    property that says a better decision exists to be made.
+    """
+    measured = {
+        name: [float(score) for score in scores]
+        for name, scores in policy_scores.items()
+        if scores
+    }
+    if len(measured) < 2:
+        return UNMEASURED
+    means = {name: sum(scores) / len(scores) for name, scores in measured.items()}
+    best = min(means.values()) if lower_is_better else max(means.values())
+    worst = max(means.values()) if lower_is_better else min(means.values())
+    scale = max(abs(best), abs(worst), 1.0)
+    if abs(best - worst) < minimum_relative_spread * scale:
+        return COIN_FLIP
+    return ADMIT
+
+
+def within_world_variance(control_outcomes: Sequence[float]) -> float:
     """Sample variance of a world's control outcomes.
 
     Reported rather than thresholded. Zero is a finding: it means the seeds are
@@ -84,8 +184,9 @@ def within_world_variance(control_outcomes: Sequence[bool]) -> float:
     count = len(control_outcomes)
     if count < 2:
         return 0.0
-    mean = sum(bool(o) for o in control_outcomes) / count
-    return sum((bool(o) - mean) ** 2 for o in control_outcomes) / (count - 1)
+    values = [float(outcome) for outcome in control_outcomes]
+    mean = sum(values) / count
+    return sum((value - mean) ** 2 for value in values) / (count - 1)
 
 
 def replay_baseline(payload: Mapping[str, Any], policy_id: str) -> bool | None:
@@ -129,6 +230,107 @@ def replay_baseline(payload: Mapping[str, Any], policy_id: str) -> bool | None:
     return bool(plugin.outcome(family_case, terminal)["feasible_award"])
 
 
+def replay_best_qualified(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    """A stronger screening reference: qualify what fits, then award the best of it.
+
+    The declared policy baselines defer when they cannot qualify another
+    supplier, so on a panel where covering the target needs more qualifications
+    than the action budget allows, they lose without ever placing an award. A
+    subject that beats *that* has beaten a stopping rule, not a market.
+
+    This reference removes the excuse. It qualifies the cheapest listing in each
+    component, spends any spare actions on the component whose evidence looks
+    worst, and then awards the best supplier it has rather than deferring. It is
+    screen-only and deliberately not added to ``POLICY_IDS``: that tuple is
+    pinned by a published plan, and extending it would re-date sealed campaign
+    identities for the second time (defect 19).
+    """
+    plugin = ProcurementAllocationPlugin()
+    case = plugin.validate_payload(payload)
+    phase = plugin.phases(case)[0]
+    state = plugin.initial_state(case, None)
+    budget = int(case["interaction"]["max_actions"])
+
+    def play(action: Mapping[str, Any]) -> bool:
+        nonlocal state
+        parsed = plugin.parse_action(case, state, "buyer", phase, dict(action))
+        if not parsed.ok:
+            return False
+        legality = plugin.legal(case, state, "buyer", phase, parsed.action)
+        state = plugin.step(
+            case, state, phase,
+            {"buyer": ActionEnvelope("buyer", legality.legal, parsed.action, parsed, legality)},
+        ).state
+        return True
+
+    by_component: dict[str, list[Mapping[str, Any]]] = {}
+    for supplier in case["suppliers"]:
+        by_component.setdefault(supplier["component"], []).append(supplier)
+    for suppliers in by_component.values():
+        suppliers.sort(key=lambda s: float(s["private_terms"]["base_unit_price_usd"]))
+
+    def evidenced(supplier_id: str) -> float:
+        record = state["quality_evidence"].get(supplier_id) or {}
+        if "verified_yield_rate" in record:
+            return float(record["verified_yield_rate"])
+        return float(record.get("observed_yield_rate", 0.0))
+
+    def qualify(supplier: Mapping[str, Any]) -> bool:
+        supplier_id = str(supplier["supplier_id"])
+        for action in ("request_quote", "request_sample"):
+            if state["done"] or not play(
+                {"action": action, "supplier_id": supplier_id, "message": action}
+            ):
+                return False
+        return True
+
+    # Cheapest in each component first, because that is the cheapest way to have
+    # something awardable everywhere.
+    qualified: dict[str, list[str]] = {component: [] for component in by_component}
+    for component, suppliers in by_component.items():
+        if qualify(suppliers[0]):
+            qualified[component].append(str(suppliers[0]["supplier_id"]))
+
+    # Then spend spare actions where the evidence is worst, not by index order.
+    # Choosing by position instead would make a world look hard whenever the
+    # trap happened to sit in the component this loop reached second.
+    while (int(case["interaction"]["max_actions"]) - state["actions_used"]) >= 3:
+        worst = min(
+            by_component,
+            key=lambda component: max(
+                (evidenced(s) for s in qualified[component]), default=0.0
+            ),
+        )
+        remaining = [
+            supplier
+            for supplier in by_component[worst]
+            if str(supplier["supplier_id"]) not in qualified[worst]
+        ]
+        if not remaining or not qualify(remaining[0]):
+            break
+        qualified[worst].append(str(remaining[0]["supplier_id"]))
+
+    lines = []
+    for component, suppliers in by_component.items():
+        offers = [
+            offer for offer in state["offers"].values()
+            if offer["component"] == component
+            and str(offer["supplier_id"]) in state["quality_evidence"]
+        ]
+        if not offers:
+            continue
+        best = max(offers, key=lambda o: evidenced(str(o["supplier_id"])))
+        lines.append({"offer_id": best["offer_id"], "quantity": int(best["capacity"])})
+
+    if len(lines) == len(by_component):
+        play({"action": "submit_award", "award_lines": lines, "reason": None})
+    elif not state["done"]:
+        play({"action": "defer", "reason": "no qualified supplier for every component"})
+
+    terminal = plugin.terminal(case, state)
+    return plugin.outcome(case, terminal) if terminal is not None else None
+
+
 def screen_baselines(
     payload: Mapping[str, Any], policies: Iterable[str] = SCREEN_BASELINES
 ) -> dict[str, bool | None]:
@@ -138,14 +340,20 @@ def screen_baselines(
 
 __all__ = [
     "ADMIT",
+    "COIN_FLIP",
+    "DEGENERATE",
     "FLOORED",
+    "MINIMUM_RELATIVE_SPREAD",
     "MINIMUM_SCREEN_SEEDS",
     "SATURATED",
     "SCREEN_BASELINES",
     "TRIVIAL",
     "UNMEASURED",
     "classify_world",
+    "classify_world_by_policy_separation",
+    "classify_world_continuous",
     "replay_baseline",
+    "replay_best_qualified",
     "screen_baselines",
     "within_world_variance",
 ]

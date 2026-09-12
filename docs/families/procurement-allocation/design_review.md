@@ -551,6 +551,375 @@ of assertion, and are now labelled as such in place: they pin what current sourc
 produces, and they will move again for the same reason until the plan schema
 separates its two parameter classes.
 
+## 20. Sampling noise, and what it does not yet prove
+
+Defects 17 and 18 both reduce to one property: a sample returns ground truth, so
+one draw settles a supplier. There is nothing to accumulate, no reason to take a
+second draw, and therefore no stopping decision. The outcome is then a
+deterministic function of the world and the action budget, which is why every
+cell of the budget sweep was 0/3 or 3/3.
+
+`interaction.sample_noise` changes that, and is opt-in:
+
+```json
+"sample_noise": {"model": "binomial", "seed": 20260906}
+```
+
+A case that omits the block keeps perfect verification, so no sealed panel moves
+and no published digest is re-dated. This is deliberate: defect 19 is what
+happens when an environment change reaches cases it was not about.
+
+With the block declared, each `request_sample` inspects a fresh batch of
+`sample_size` units and observes a binomial draw of defects at the supplier's
+true defect rate. Draws accumulate per supplier, so the record carries cumulative
+inspected units, cumulative defects, a draw count, and a running
+`observed_yield_rate`. It no longer carries `verified_yield_rate`. The buyer
+holds an estimate, and a second draw tightens it.
+
+Two properties make the noise admissible as evidence rather than merely present.
+The draw is counter-based on the declared seed, the supplier, the draw index and
+the unit, so it is a pure function of the contract and a receipt replays offline
+with no RNG carried through state. And **the award is scored on the supplier's
+true yield, never on the buyer's estimate**, so a lucky draw cannot make a bad
+supplier profitable. Sampling more buys a truer number, not a flattering one.
+
+**What this does not establish.** No panel has been built on it and none has been
+screened. The measurement that would matter is a budget sweep on a noisy panel
+showing cells that are neither 0/3 nor 3/3, which is exactly the within-world
+interior defects 17 and 18 say is missing today. Until that exists, the honest
+status is that the mechanism blocking the interior has been removed and the
+interior has not been demonstrated. Two calibration facts are already known and
+constrain that panel:
+
+- Batch size drives the noise. At the corpus's usual `sample_size` of 100 and
+  yields near 0.99 a single draw nearly resolves a supplier, so a panel wanting a
+  stopping problem must declare small batches.
+- The legality rule bites hard. Lowering every yield in an existing world below
+  0.95 makes the world illegal, because its full-information optimum stops
+  beating deferring. Defect 17 constrains the noisy panel too, and the panel must
+  be built with that in mind rather than by degrading an existing one.
+
+## 21. The binary metric was the constraint, not the worlds
+
+The noisy panel was built, generated six legal worlds, and was rejected 6 of 6
+by the Gate 1 screen as **trivial**: a deterministic public-observation policy
+won every world. That is the opposite failure to the previous panel, and the two
+together locate the real constraint.
+
+Reaching legality at lower yields required generous economics, and generous
+economics mean a mediocre supplier still clears the service threshold. Tight
+economics make the trap matter and make the world illegal or floored. There is
+no setting of the worlds that escapes this, because `feasible_award` is a
+threshold on the service level: either the threshold is reachable whatever the
+buyer picks, or it is unreachable without picking perfectly.
+
+The same 23 rows say the constraint is the threshold and not the worlds:
+
+| metric | dispersion within a world |
+|---|---|
+| `feasible_award` | zero in every world, at every seed, across three runs |
+| `regret_to_upper_bound_usd` | non-zero in four of six worlds |
+
+| world | regret min | regret max | within-world stdev |
+|---|---:|---:|---:|
+| noisy_trap_cheapest | 8.04 | 8.04 | 0.000 |
+| noisy_all_middling | 18.87 | 19.22 | 0.175 |
+| noisy_trap_midpriced | 19.82 | 20.07 | 0.144 |
+| noisy_trap_priciest | 18.87 | 20.85 | 0.991 |
+| noisy_trap_and_decoys | 18.32 | 29.32 | 5.443 |
+| noisy_two_traps | 64.82 | 64.82 | 0.000 |
+
+Across the panel regret runs from $8.04 to $64.82, with 10 distinct margins over
+23 rows. Read as a binary the panel is uninformative; read on its own scored
+quantity it discriminates. Defect 18 is therefore a property of the metric rather
+than of the environment, and it is resolved by scoring on regret with sampling
+noise present.
+
+The screen inherited the same mistake, since it classified on a binary rate.
+`classify_world_continuous` restates the grounds for a continuous score. A world
+is **degenerate** when the control scores identically at every seed, which
+subsumes floored and saturated because in both cases there is no dispersion to
+move. It is **trivial** when a deterministic policy already matches the control's
+best score. Both grounds are mutation-verified.
+
+**What remains unproven.** Dispersion is necessary for a treatment effect and is
+not the same as one. No treatment has been compared on this panel, and the panel
+is still a scratch artifact rather than a committed generator, deliberately: it
+should be promoted only once it passes admission under the continuous rule. The
+next measurement is that admission, then a two-arm comparison scored on regret.
+
+## 22. Difficulty is quantized in recoveries, and the reference performs them too
+
+Three panel shapes were built and screened on 2026-09-08, at a total of $0.34.
+Together they close the question of whether the panel problem is solvable by
+building better worlds. It is not.
+
+Recovering from a trap costs exactly two actions, a quote and a sample. At a
+seven-action budget a buyer can afford one recovery and not two, so a world
+needs zero, one, or two of them, and all three cases fail for different reasons.
+
+| shape | declared baselines | strong reference | control | verdict |
+|---|---|---|---|---|
+| trap outside the cheapest tier | lose | **win**, regret $4.72 to $11.52 | 0 to 267, bimodal | trivial |
+| trap cheapest in one component | lose | win | wins every seed | trivial |
+| trap cheapest in both components | lose | lose | fails 47 of 48 rows | floored |
+
+The middle row is the one that matters. A world needing exactly one recovery is
+solved by a deterministic policy that samples the cheapest listing in each
+component and awards the best it holds, because that policy performs the
+recovery too. Raising the budget adds recoveries to the subject and to the
+reference alike, so the quantization does not go away by spending actions.
+
+**An eight-world panel was admitted and then withdrawn.** It passed screening
+against the declared baselines, which lose these worlds without ever awarding:
+they spend all seven actions qualifying three suppliers and then defer, because
+their stopping rule requires covering the full target rather than the service
+minimum. A subject that beats that has beaten a stopping rule, not a market.
+Adding a stronger screening reference showed it solving 8 of 8 at regret $4.72
+to $11.52, better than the subject's average. The panel and its generator were
+removed rather than published.
+
+**What this means.** The panel problem is not a panel-construction problem, and
+no further world tuning should be attempted against the current environment. For
+a subject to be distinguishable it must be able to do something the reference
+cannot, and with homogeneous sample costs, identical listing claims and a single
+scalar quality signal, it cannot. The environment needs a mechanism that rewards
+choosing *what* to inspect, not merely inspecting and then awarding. Candidates,
+none yet evaluated: heterogeneous sample costs and lead times so the choice of
+what to verify carries a real price; cheap partial signals a fixed policy would
+not know how to weigh; and enough suppliers that search order matters
+combinatorially rather than by a two-way tie-break.
+
+**What is kept from the attempt.** The screening machinery, which is now
+sharper: a materiality threshold, so dispersion must be a real fraction of the
+scale in play rather than merely non-zero, and `replay_best_qualified`, a
+screening-only reference that awards what it has rather than deferring. Both are
+mutation-verified. The reference is deliberately absent from `POLICY_IDS`,
+because that tuple is pinned by a published plan and extending it would re-date
+sealed campaign identities a second time (defect 19).
+
+## 23. Breaking exchangeability: a cheap signal, and verification that costs time
+
+Defect 22 said the panel problem is not a panel problem. This is the diagnosis
+stated plainly and the first mechanism against it.
+
+**Why the family was unmeasurable.** Every supplier was exchangeable. All
+listings claimed the same yield, every check cost the same two actions, and every
+check revealed the same amount. When candidates are exchangeable there is nothing
+to be smart about: the only decision left is *how many* to check, and the budget
+fixes that. So the optimal policy is "check what you can afford, award the best",
+which is twenty lines of deterministic code, and an agent can only fall short of
+it. The quantization in defect 22 is the symptom, not the disease.
+
+**The mechanism.** `interaction.sample_noise` gains an optional `inquiry_batch`.
+When declared, an `inquire` on `quality` returns a reading from a small inspected
+batch, drawn from a stream separate from the sample stream. It costs one action
+against a sample's two and inspects fewer units. It remains a **verbal claim**,
+so only a sample still authorises an award: the evidence hierarchy is untouched
+and what changes is the cost of looking.
+
+**On its own it is worthless, and that is the point.** A sample gives 8 units for
+2 actions and an inquiry 2 units for 1, so screening is the less efficient way to
+buy evidence and no sensible policy would use it. It becomes valuable only when
+verification is *slow* and a deadline binds, because then the scarce resource is
+days rather than actions, and a cheap fast reading can aim expensive slow
+verification. That is candidate one and candidate two working together; neither
+does anything alone.
+
+Measured offline across four layouts, at a four-day sample lead time, a nine
+action budget and a twenty-two day deadline:
+
+| policy | trap cheapest in A | traps spread across both |
+|---|---:|---:|
+| blind: verify in price order until the budget runs out | $269.42 | $254.70 |
+| frugal: verify only the cheapest in each component | $268.72 | $254.00 |
+| screen cheaply, then verify the best screened | **$0.20** | **$2.69** |
+
+Three policies, three outcomes, and the ordering is not a ranking of effort.
+Over-verifying misses the deadline and under-verifying buys the trap; both cost
+about $254 to $269. Only aiming slow verification with a cheap reading wins. The
+frugal control matters most: it is exactly as fast as the screener and takes no
+reading, so the screener's margin over it is information rather than time. That
+control exists because an earlier version of this probe credited the mechanism
+for what was really a baseline's weakness, which is defect 22's J-10 in
+miniature.
+
+**What is still unproven.** No model has played these worlds. Deterministic
+policies separating is a necessary condition for a measurable family and is not
+the same as a subject demonstrating skill, and a panel built on this must still
+pass Gate 1 admission on regret. The third candidate from defect 22, enough
+suppliers that search order matters combinatorially, is untouched: it is
+generator work and only becomes meaningful once screening is cheap, since it is
+screening that makes a wide field affordable to survey.
+
+## 24. The cheap-information channel is unreachable, even when the prompt names it
+
+Defect 23 landed a mechanism that makes screening worth $254 a world to a
+deterministic policy. This is what happened when a model played the same worlds.
+
+**Control screen, six worlds, six seeds, 35 completed rows.**
+
+| action | count |
+|---|---:|
+| `request_quote` | 119 |
+| `request_sample` | 116 |
+| `submit_award` | 32 |
+| `counter_offer` | 9 |
+| `defer` | 3 |
+| **`inquire`** | **0** |
+
+Zero. The subject never buys the cheap reading, so the mechanism was inert and
+the four worlds that screened as admissible were separating on deadline
+accidents rather than on screening skill.
+
+**So the prompt was told about it.** A two-arm run on the same six worlds, five
+seeds each, identical supplier populations, differing in one added paragraph that
+names the `inquire` action, states that it costs one action against a sample's
+two, states that it returns a small inspected batch insufficient to award, and
+says that samples cost days against a real deadline.
+
+| arm | rows | rows that screened | inquiries | mean regret | median | wins |
+|---|---:|---:|---:|---:|---:|---:|
+| control, frozen V4 | 29 | 0 | 0 | $164.32 | $254.70 | 11 |
+| screening guidance added | 30 | 0 | 0 | $176.39 | $262.83 | 10 |
+
+**Still zero.** The regret difference is noise between two arms doing the same
+thing, and must not be read as a treatment effect.
+
+This is not an environment fault, and that was checked rather than assumed. On
+these exact case files the action parses, is legal, returns a reading of
+`screened_units: 6, screened_defects: 1, screened_yield_rate: 0.833`, and that
+reading appears in the buyer's observation. The channel is open. The subject does
+not enter it.
+
+**What this measures.** On these worlds a deterministic policy that screens
+before verifying scores $0.20 to $2.69 in regret. The subject averages $164 to
+$176. The gap is attributable to one behaviour: it never buys cheap information,
+and telling it to does not change that. That is the first capability gap this
+family has produced that is large, specific and mechanism-backed rather than a
+threshold artifact.
+
+It is also, deliberately, not a result yet. One model, one scaffold, 59 rows,
+six worlds, no admitted panel, and prompt wording is a weak instrument for a
+behaviour this stable. What it does establish is that **the fix for defect 15 was
+aimed at the wrong layer**. Information a subject will not buy cannot be made
+relevant by making it cheaper, more accurate, or better advertised. The next
+change has to make the direct path unavailable or costly enough that the
+procedure itself must branch: for example removing `request_sample` as a
+first-contact action, or pricing the first sample of an unscreened supplier at
+two actions rather than one.
+
+## 25. Not a model quirk: both models take one reading and commit
+
+Defect 24 recorded zero `inquire` actions from GLM 5.3 Flash across 59 rows. The
+obvious question is whether that is one model's habit. It is not.
+
+**Gemini 3.8 Flash, same six worlds, same two prompts, same harness, 23 rows.**
+
+| arm | rows | rows that screened | mean regret | median | wins |
+|---|---:|---:|---:|---:|---:|
+| control, frozen V4 | 12 | 0 | $134.20 | $254.00 | 6 |
+| screening guidance added | 11 | 0 | $100.45 | $11.17 | 7 |
+
+Zero again, in both arms, from a different model family. The cheap channel is not
+a GLM blind spot. Gemini is the stronger buyer overall, winning 13 of 23 against
+GLM's 21 of 59, but it screens exactly as often: never.
+
+**What they do instead.** The behaviour is identical across both models and is
+not about the price of information at all.
+
+| | GLM 5.3 Flash | Gemini 3.8 Flash |
+|---|---|---|
+| samples taken per supplier | 184 single draws, 3 doubles | 52 single draws, 0 doubles |
+| rows that ever re-sampled anyone | 3 of 59 | 0 of 23 |
+| unused actions at termination, median | 2 of 9 | 4 of 9 |
+| rows that missed the deadline | 22 of 59 | 0 of 23 |
+
+Both take exactly one reading per supplier, commit, and hand back unused budget.
+Gemini hands back nearly half. In worlds where the reading is deliberately noisy
+and a trap shows a clean batch about a fifth of the time, the second draw is the
+whole game, and neither model takes it.
+
+**A first analysis of this was wrong and is worth recording.** Comparing awarded
+suppliers against their *hidden* yields suggested both models were routinely
+awarding a supplier they had already seen was worse: 17 of 17 failing GLM rows
+and 5 of 7 for Gemini. Reconstructing what the buyer actually saw, from the
+declared noise seed, gives 10 of 57 for GLM and **0 of 20** for Gemini. The
+models were mostly not contradicting their evidence; their evidence was thin,
+because one draw of eight units cannot separate a 0.82 supplier from a 0.985 one.
+Judging a decision against information the decider did not have is how a
+stopping-rule problem gets mistaken for a reasoning problem.
+
+**What this changes.** Defect 23's cheap signal targets the wrong bottleneck.
+Making information cheaper does not help an agent that already stops buying it
+while holding spare budget. The measurable behaviour here is the stopping rule,
+which is question two of the [positioning note](positioning.md) and the one part
+of this family with no competitor in the suite. A panel should be built so that a
+single reading is demonstrably insufficient and a second is affordable, and
+scored on whether the buyer takes it.
+
+That is a sharper target than anything this family has had, and it is
+model-independent across the two tested. It remains one scaffold, two models, 82
+rows and six unadmitted worlds.
+
+## 26. The fix: make choosing whom to verify an inference
+
+Twelve panels failed for one reason. Suppliers were indistinguishable before
+verification, so the only decision was how many to check and the budget already
+fixed that. "Verify what you can afford and award the best" was not a baseline,
+it was optimal, and the gap between the best possible agent and twenty lines of
+code was zero by construction. Every world then landed in one of three useless
+places: everyone wins, nobody wins, or the outcome turns on which suppliers you
+happened to check, which is dispersion without skill.
+
+That third case is the one the screen could not see. A coin-flip world shows
+healthy spread, so `classify_world_continuous` admits it, and no treatment can
+ever move it. `classify_world_by_policy_separation` closes that hole: a world is
+admitted only when two structurally different policies differ **in expectation**
+by a material fraction of the scale in play. That is the property that says a
+better decision exists to be made.
+
+**The panel.** `inference_case_matrix` builds 18 worlds, six signals crossed with
+three binding risks.
+
+In each world one visible attribute genuinely tracks true quality, and which
+attribute and which direction differ between worlds: cheaper is better in some,
+dearer in others, and in the rest the tell is lead time or minimum order. Price
+is deliberately decorrelated from quality wherever it is not itself the signal.
+An earlier version tied every visible attribute to one rank, which made the
+signal always price in disguise and let "buy the dearest" win 9 of 12 worlds.
+
+The binding risk also varies and is never labelled. Quality bites in six worlds,
+delivery timing in six, capacity in six, and a buyer that always samples for
+quality loses the other twelve.
+
+**Measured, offline and free**, with four deterministic policies:
+
+| policy | worlds won of 18 |
+|---|---:|
+| verify dearest first | 9 |
+| verify fastest first | 4 |
+| adaptive: probe, infer the signal, then choose | 3 |
+| verify cheapest first | 2 |
+
+All 18 worlds separate, and no policy wins everywhere. Every one of them is also
+the worst policy in some world, usually by more than $250. That is the signature
+of a task with something to measure, and it is the first time this family has
+had it.
+
+**One leak was caught by its own test.** The product identifier was
+`inference_<slug>`, and the slug names the signal and the binding risk, so the
+objective handed the buyer the answer. That is defect 8 arriving through a new
+door. Identifiers are neutral now, and a test asserts no world's description
+appears anywhere in its payload.
+
+**Still unproven.** No model has played it. Deterministic policies separating is
+necessary and not sufficient, and the panel has not been screened against a
+subject. The known behavioural blocker stands: both models tested so far take one
+reading and commit, and this panel rewards a buyer that probes, infers and then
+chooses. Whether either can do that is the open question, and it is now a
+question the panel can actually answer.
+
 ## Status of the fixes
 
 | defect | state |
@@ -570,10 +939,17 @@ separates its two parameter classes.
 | 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
-| 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
-| 17 validity and difficulty are the same knob | open, and it subsumes 14 and 16; a budget sweep found every world at 0/3 or 3/3, so the panel-level 50% at budget 6 is a mixture and not headroom |
+| 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
+| 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
+| 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
+| 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
+| 23 exchangeability broken by a cheap signal | **mechanism landed, effect unproven** — `inquiry_batch` plus slow verification separates three deterministic policies by ~$254; no model has played it and no panel is admitted |
+| 22 difficulty is quantized in recoveries | open, and it supersedes the panel work; three shapes screened at $0.34 show trivial, trivial and floored with nothing between, so the next change is to the environment and not to any panel |
+| 21 the binary metric was the constraint | **evidenced** — the noisy panel is uninformative on `feasible_award` and discriminating on regret over the same 23 rows; `classify_world_continuous` added and mutation-verified, admission not yet re-run |
+| 20 sampling noise landed opt-in | mechanism only; a case without the declared block keeps perfect verification, so nothing sealed moves |
 | 19 environment change re-dates every sealed campaign identity | open; ten frozen digests across seven tests moved for changes unrelated to any of those campaigns, and the sealed bundles still self-verify |
-| 18 no seed variance within a world | open; margin, regret and action count are identical at every seed across two independent runs, so seeds are repeats and not replicates |
+| 18 no seed variance within a world | **resolved by the metric** — with noise declared, regret varies within four of six worlds; the zero variance was `feasible_award` thresholding it away (defect 21) |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work, and defects 17
 and 18 reorder it. Defect 17 is now the most urgent, because it explains why 14
