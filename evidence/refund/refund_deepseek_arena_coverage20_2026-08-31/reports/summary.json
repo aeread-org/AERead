@@ -131,11 +131,11 @@
     }
   },
   "raw_evidence": {
-    "local_path": "/private/tmp/aeread_refund_deepseek_coverage20",
     "size": "27M",
     "event_logs": 120,
     "source_experiment_summary_sha256": "700e5c543206de8a10dbfea65b21db1707299e979a1084abd8a7310dc64345d1",
-    "contains_uncommitted_prompts_and_responses": true
+    "contains_uncommitted_prompts_and_responses": true,
+    "recorded_location": "runs/refund/refund_deepseek_arena_coverage20_2026-08-31/"
   },
   "claim_boundaries": [
     "This is an instrumentation and behavioral-coverage pilot, not a confirmatory population estimate.",

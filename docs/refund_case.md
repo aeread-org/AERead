@@ -461,7 +461,7 @@ tokens.  Only eight worlds had all three valid replicates in both labels, and
 the diagnostic paired interval included zero.  The selected panel was
 oracle-stratified rather than sampled outcome-blind, so it does not support a
 population claim.  The compact report is
-[`evidence/refund_deepseek_arena_coverage20_2026-08-31.json`](evidence/refund_deepseek_arena_coverage20_2026-08-31.json).
+[`evidence/refund/refund_deepseek_arena_coverage20_2026-08-31/reports/summary.json`](../evidence/refund/refund_deepseek_arena_coverage20_2026-08-31/reports/summary.json).
 
 If a live provider returns a `Retry-After` rate-limit signal, wait that many
 seconds and rerun, or lower the number of `--world-seeds` in the batch.  The

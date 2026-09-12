@@ -1,0 +1,55 @@
+{
+  "model": "gemini-2.5-flash-lite",
+  "revision": "gemini-2.5-flash-lite",
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "active_agents": [
+    "policy"
+  ],
+  "scripted_agents": [
+    "intake",
+    "customer",
+    "payments"
+  ],
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "planned_cases": 120,
+  "completed_cases": 120,
+  "operational_failures": 0,
+  "means": {
+    "coordination_score": 1.0,
+    "transaction_score": 0.5166666666666667,
+    "utility_score": -9.9
+  },
+  "policy_compliance_rate": 0.008333333333333333,
+  "source_summary_sha256": "04bd74f4feb3536ae9710e9b5d53f9bd8afa3aba61e3c2e5596736582655751a"
+}

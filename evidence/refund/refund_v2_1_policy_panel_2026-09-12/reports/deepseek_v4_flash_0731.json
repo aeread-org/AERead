@@ -1,0 +1,55 @@
+{
+  "model": "deepseek-v4-flash-0731",
+  "revision": "deepseek-v4-flash-0731",
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "active_agents": [
+    "policy"
+  ],
+  "scripted_agents": [
+    "intake",
+    "customer",
+    "payments"
+  ],
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "planned_cases": 120,
+  "completed_cases": 120,
+  "operational_failures": 0,
+  "means": {
+    "coordination_score": 1.0,
+    "transaction_score": 0.95,
+    "utility_score": -6.4
+  },
+  "policy_compliance_rate": 0.3,
+  "source_summary_sha256": "c4ed63c7c3fe1a6ee76638978feb6aafc7c9b3e1bf55be8f452508247b9b34ba"
+}

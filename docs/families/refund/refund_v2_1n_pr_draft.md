@@ -47,22 +47,13 @@ trajectories.
 
 ## Evidence
 
-The experiment runner writes a model-specific summary file plus an `evidence/`
-directory. Every case has one trajectory JSON containing policy turns, customer
-disclosures, transcript, handoffs, proposals, confirmations, transactions,
-provider metadata, and verifier outcomes. Each trajectory directory also has a
-sealed EvidenceStore event chain and content-addressed artifacts. The
-`evidence_manifest.json` records the relative path and SHA-256 digest of every
-trajectory. This makes the V2 output auditable in the same spirit as the V1.3
-evidence workflow, while keeping the implementation isolated from the kernel.
-
-The latest evidence-complete reruns are stored locally at:
-
-- `/tmp/refund_v21_deepseek_policy_final`
-- `/tmp/refund_v21_gemini_policy_retry`
-- `/tmp/refund_v21_gpt_5_6_luna_policy_retry`
-- `/tmp/refund_v21_grok_4_3_policy_retry`
-- `/tmp/refund_v21_claude_haiku_4_5_policy_final`
+The published V2.1 evidence is committed under the family-owned bundles
+`evidence/refund/refund_v2_1_deterministic_2026-09-12/` and
+`evidence/refund/refund_v2_1_policy_panel_2026-09-12/`. Each bundle contains
+reports, canonical benchmark tables, and a sealed `publication_manifest.json`
+whose digests bind the files used for the claims above. Raw prompts, raw
+provider responses, and undisclosed private fields are excluded from the
+publication boundary.
 
 ## Rebase and scope
 
@@ -75,4 +66,4 @@ exact code and provider responses.
 ## Validation
 
 - `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 61 passed.
-- Provider runs use the same 40-case panel and model-specific report filenames.
+- Provider runs use the same 120-case V2.1 panel per model and model-specific report files.

@@ -48,7 +48,7 @@ therefore explicitly marked descriptive and treatment-unverified.
 ## Live coverage pilot
 
 The first 20-world Arena run is summarized in
-[`evidence/refund_deepseek_arena_coverage20_2026-08-31.json`](evidence/refund_deepseek_arena_coverage20_2026-08-31.json).
+[`evidence/refund/refund_deepseek_arena_coverage20_2026-08-31/reports/summary.json`](../evidence/refund/refund_deepseek_arena_coverage20_2026-08-31/reports/summary.json).
 It is a fixed-case instrumentation and behavioral-coverage pilot. It must not be
 reported as a `none` versus `low` reasoning effect: both labels returned
 reasoning tokens, 20 of 120 trajectories were operational exclusions, no

@@ -1,0 +1,43 @@
+{
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "case_count": 120,
+  "source_summary_sha256": "8eecd355be9f38a64fa623c01747200ded8145db0c871c734f698a93460b0a65",
+  "metrics": [
+    "utility_score",
+    "transaction_score",
+    "coordination_score",
+    "policy_compliant"
+  ]
+}
