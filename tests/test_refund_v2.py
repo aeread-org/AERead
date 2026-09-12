@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 
 from aeread_families.refund.v2_environment import (
@@ -13,6 +16,9 @@ from aeread_families.refund.v2_experiment import run as run_v21_experiment
 from aeread_families.refund.v2_runner import RefundV21Plugin, build_refund_v21_run
 from aeread_families.refund.v2_publication import publish_refund_v21
 from aeread.shared_runner.task.execution import EvidenceStore
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_1n_positive_path_requires_payments_agent_execution() -> None:
@@ -222,3 +228,25 @@ def test_v21_publication_rejects_a_shared_analysis_and_publication_directory(tmp
             analysis_root=shared,
             publication_root=shared,
         )
+
+
+def test_committed_refund_kernel_trajectory_grains_use_terminal_action_statuses() -> None:
+    allowed_statuses = {
+        "succeeded",
+        "failed",
+        "outcome_unknown",
+        "agent_action_failure",
+    }
+    trajectory_files = sorted(
+        (REPOSITORY_ROOT / "evidence" / "refund").glob("*/trajectories/*.jsonl")
+    )
+
+    assert trajectory_files
+    for trajectory_file in trajectory_files:
+        for line_number, line in enumerate(trajectory_file.read_text(encoding="utf-8").splitlines(), 1):
+            row = json.loads(line)
+            if row.get("schema_version") != "aeread.sanitized_trajectory_row/0.1":
+                continue
+            assert row["outcome"]["status"] in allowed_statuses, (
+                f"{trajectory_file}:{line_number} uses a non-terminal action status"
+            )
