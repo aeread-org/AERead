@@ -19,7 +19,14 @@ jobs:
       - name: Install
         run: pip install -e '.[dev]'
       - name: Tests (provider-free)
-        run: pytest tests/ -q -n auto
+        run: pytest tests/ -q -n auto --durations=30 --junitxml=test-results.xml
+      - name: Retain test timings and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-python-${{ matrix.python-version }}
+          path: test-results.xml
+          if-no-files-found: warn
 
   # Bridge-gated upstream-fidelity certification for the agenticpay.bilateral
   # adapter. Kept separate from the `test` job above (which never provisions any

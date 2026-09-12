@@ -30,6 +30,8 @@ from pathlib import Path
 
 import pytest
 
+from tools.check_registration_merge import module_bindings
+
 ROOT = Path(__file__).resolve().parents[1]
 # ``tests`` is in scope deliberately. The file two family branches conflict in
 # on every single merge is tests/test_shared_runner_scoring_contract.py, and the
@@ -191,27 +193,9 @@ def test_the_guard_ignores_typing_overloads() -> None:
 # ALL_CAPS or a dunder such as ``__all__``. Rebinding a lower-case module
 # variable on purpose is legal and occasionally deliberate, while rebinding a
 # constant is the shape that silently drops whatever the first one declared.
-def _is_constant_name(name: str) -> bool:
-    return name.isupper() or (name.startswith("__") and name.endswith("__"))
-
-
 def duplicate_module_bindings(source: str, filename: str = "<memory>") -> list[str]:
-    """Every module-level name bound more than once by a definition or constant."""
-    tree = ast.parse(source, filename=filename)
-    definitions: dict[str, list[ast.stmt]] = collections.defaultdict(list)
-    for statement in tree.body:
-        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            definitions[statement.name].append(statement)
-        elif isinstance(statement, ast.Assign):
-            for target in statement.targets:
-                if isinstance(target, ast.Name) and _is_constant_name(target.id):
-                    definitions[target.id].append(statement)
-        elif (
-            isinstance(statement, ast.AnnAssign)
-            and isinstance(statement.target, ast.Name)
-            and _is_constant_name(statement.target.id)
-        ):
-            definitions[statement.target.id].append(statement)
+    """Repeated module-level imports, definitions, and constants."""
+    definitions = module_bindings(source, mutable=False, allow_star_imports=True)
     offences: list[str] = []
     for name, statements in definitions.items():
         if len(statements) < 2:
@@ -303,3 +287,16 @@ def test_the_module_guard_ignores_conditional_imports() -> None:
 
 def test_the_module_guard_ignores_a_rebound_lower_case_variable() -> None:
     assert duplicate_module_bindings(_REBOUND_LOWER_CASE) == []
+
+
+def test_the_module_guard_catches_import_aliases_that_shadow_each_other() -> None:
+    offences = duplicate_module_bindings("from first import value as alias\nfrom second import value as alias\n")
+    assert offences and "alias bound 2 times" in offences[0]
+
+
+def test_the_module_guard_catches_repeated_identical_imports() -> None:
+    assert duplicate_module_bindings("import hashlib\nimport hashlib\n")
+
+
+def test_the_module_guard_allows_sibling_namespace_imports() -> None:
+    assert duplicate_module_bindings("import urllib.error\nimport urllib.request\n") == []
