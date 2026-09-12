@@ -495,3 +495,9 @@ digest and not a claim.
 | INF-T-01 | approval left older failed/cancelled `kernel-review` instances on the same head; partial workflow reruns could preserve the block | #176 operator report and workflow inspection | manual full reruns and delayed merges | automatic full-workflow repair implemented with current-head approval checks and a three-attempt limit; deployment pending |
 | INF-T-02 | merge-time registration checks were prose and duplicate-binding checks omitted imports | #178; AST inventory found redundant imports in the scoring-contract and receipt tests | repeated manual scripts and risk of silently dropping enrollment | shared structural checker and import-aware regression guard implemented; focused validation passes |
 | INF-T-03 | the new return checker initially treated a bridge's `pytest.skip` exception path as a missing return | running the checker against the existing scoring-contract file | one false-positive local check; no source or evidence loss | known non-returning pytest calls recognized and covered by a regression |
+
+## 2026-09-12 — operational: the evidence index still described the pre-move layout
+
+| id | defect | detection | cost | disposition |
+|---|---|---|---|---|
+| EVID-O-01 | after 59 campaign directories moved under benchmark families, the evidence README still listed the old flat paths and the layout guide still prescribed them; the 17 frozen-path exceptions had no grouped index | compared the live working branch with `main@13935585`, then checked tracked paths and frozen references | misleading navigation and uncertainty about which paths could move | benchmark index covers all 76 directories and labels all 17 preserved paths; canonical layout and documentation entry point updated; 91 links and anchors checked, all 35 existing campaign descriptions retained, all 540 published files byte-identical, and 7 layout tests pass |
