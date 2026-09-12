@@ -33,18 +33,17 @@ them.
 
 | Model | Completed | Operational failures | Policy compliance | Utility | Transaction | Coordination |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| DeepSeek V4 Flash 0731 | 112/120 | 8 | 26.8% | -6.786 | 0.911 | 1.000 |
+| DeepSeek V4 Flash 0731 | 120/120 | 0 | 30.0% | -6.400 | 0.950 | 1.000 |
 | Gemini 2.5 Flash Lite | 120/120 | 0 | 0.8% | -9.900 | 0.517 | 0.992 |
 | GPT-5.6 Luna | 119/120 | 1 | 16.0% | -8.084 | 0.782 | 0.924 |
 | Grok 4.3 | 120/120 | 0 | 25.0% | -7.000 | 0.817 | 1.000 |
-| Claude Haiku 4.5 | 76/120 | 44 | 52.6% | -3.684 | 1.000 | 1.000 |
+| Claude Haiku 4.5 | 120/120 | 0 | 33.3% | -6.000 | 1.000 | 1.000 |
 
 The table is a completed policy-seat pilot, not a claim that the models are
-ranked by utility alone. DeepSeek and Claude had operational failures caused by
-provider outputs with null optional refund amounts; the verifier was hardened
-to treat such proposals as invalid zero-amount proposals, and the affected
-models should be rerun before a final comparative claim. The reported means are
-conditional on completed trajectories.
+ranked by utility alone. The verifier was hardened to treat null optional
+refund amounts as invalid zero-amount proposals; DeepSeek and Claude were
+rerun after that change. The reported means are conditional on completed
+trajectories.
 
 ## Evidence
 
@@ -59,11 +58,11 @@ evidence workflow, while keeping the implementation isolated from the kernel.
 
 The latest evidence-complete reruns are stored locally at:
 
-- `/tmp/refund_v21_deepseek_policy_retry`
+- `/tmp/refund_v21_deepseek_policy_final`
 - `/tmp/refund_v21_gemini_policy_retry`
 - `/tmp/refund_v21_gpt_5_6_luna_policy_retry`
 - `/tmp/refund_v21_grok_4_3_policy_retry`
-- `/tmp/refund_v21_claude_haiku_4_5_policy_retry`
+- `/tmp/refund_v21_claude_haiku_4_5_policy_final`
 
 ## Rebase and scope
 
