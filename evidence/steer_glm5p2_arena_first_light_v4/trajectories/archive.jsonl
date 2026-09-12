@@ -1,0 +1,2 @@
+{"case_id":"steer.transitivity.0_0","cost_usd":0.00041220000000000004,"inclusion_status":"included","primary":1.0,"receipt_replayed":true,"receipt_sha256":"77e544916d6dbae0e6d80c20bc9016f0f546e0663fb3a6f4362f32a440ccbd99","status":"ok"}
+{"case_id":"steer.certainty_effect.0_0","failure_condition":"execution_failure","failure_type":"SchedulerContractError","status":"operational_failure"}

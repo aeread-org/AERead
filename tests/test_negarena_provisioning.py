@@ -67,8 +67,14 @@ def _ancestor_named(path: Path, name: str) -> Path:
 # like ``default_upstream_root()`` computes it from ``provision.sh``'s own
 # location -- both walk up to the ancestor named "AERead", then descend into
 # "upstream-negarena" next to it.
+try:
+    _documented_repo_root = _ancestor_named(REPO_ROOT, "AERead")
+except AssertionError:
+    # Saved-project checkouts may use a different directory name. The
+    # provisioning script falls back to git's common directory in that case.
+    _documented_repo_root = REPO_ROOT
 DOCUMENTED_SIBLING_CHECKOUT = str(
-    _ancestor_named(REPO_ROOT, "AERead").parent / "upstream-negarena"
+    _documented_repo_root.parent / "upstream-negarena"
 )
 
 

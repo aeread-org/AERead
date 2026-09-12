@@ -71,6 +71,9 @@ from typing import Any, Callable, Mapping, Sequence
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread_families.negarena import environment as negarena_environment_module
+from aeread_families.negarena import measurement as negarena_measurement
+from aeread_families.negarena.cases import BLUE as NEGARENA_BLUE, RED as NEGARENA_RED
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
@@ -3641,8 +3644,6 @@ def _leaf_spec_stability_violation(
                 "rest of its reference, must stay fixed"
             )
     return None
-
-
 def _hook_inapplicable_leaf_ids(
     plugin: Any, family_case: Mapping[str, Any]
 ) -> "frozenset[str]":
@@ -5655,8 +5656,6 @@ def test_cell_scoped_leaf_identity_varying_across_fixtures_still_fails() -> None
     )
     assert second is not None
     assert "declared identity must be stable" in second
-
-
 # Ruling R13: the synthetic case-conditional family (``_CaseConditionalPlugin``/
 # ``_CaseConditionalScorer``, defined alongside ``_ReferencePlugin`` above)
 # exercises rule 3's enforcement -- both case kinds through the protocol
