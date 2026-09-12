@@ -1,4 +1,4 @@
-# Draft PR: Refund V2.1 1:N Selectable-Agent Pilot
+# Refund V2.1 1:N Selectable-Agent Pilot
 
 ## Summary
 
@@ -57,7 +57,9 @@ sealed `publication_manifest.json`. The manifest digests bind every published
 file to the shared-runner `RunPlan`, sealed `EvaluationReceipt`s, and source
 run. Raw prompts, raw provider responses, hidden facts, complete receipts, and
 reasoning are excluded from the publication boundary. The earlier deterministic
-and five-model bundles remain historical publications.
+and five-model bundles remain historical summary publications; their legacy
+trajectory grains were removed because they did not use the kernel's
+per-logical-action outcome semantics.
 
 The latest Grok 4.3 publication is under
 `evidence/refund/refund_v2_1_grok43_controlled_2026-09-12/`; it contains the
@@ -71,12 +73,12 @@ They contain 568, 872, and 748 sanitized logical-action rows respectively.
 ## Rebase and scope
 
 The V2 files are isolated under `src/aeread_families/refund/`, with focused tests and
-family documentation. No shared-runner kernel files are changed. The branch can
-therefore be rebased onto `origin/main`; after rebasing, rerun the focused V2
-tests and regenerate the provider evidence because report digests depend on the
-exact code and provider responses.
+family documentation. No shared-runner kernel files are changed. The branch
+includes the current `origin/main` through merge commit `9e2a3637`. A future
+rebase must rerun the focused V2 tests; provider evidence only needs regeneration
+if Refund execution, scoring, or publication source bytes change.
 
 ## Validation
 
-- `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 61 passed before the provider reruns.
+- `pytest -q tests/test_refund_v2.py tests/test_refund_env.py tests/test_refund_experiment.py tests/test_source_layout.py` — 68 passed.
 - Provider runs use the same 120-case V2.1 panel per model and model-specific report files.
