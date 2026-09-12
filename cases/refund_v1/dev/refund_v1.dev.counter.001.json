@@ -1,0 +1,55 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "refund_v1.dev.counter.001",
+  "family_id": "refund_v1",
+  "family_version": "1.3.0",
+  "split": "development",
+  "world_seed": 130002,
+  "seats": [
+    {"id": "customer", "role": "customer"},
+    {"id": "support_agent", "role": "support_agent"}
+  ],
+  "episode": {
+    "max_logical_actions": 16,
+    "termination": ["resolved", "denied", "abandoned", "invalid_operation", "round_limit_reached"]
+  },
+  "visibility_policy": "refund_gradual_disclosure_v1_3",
+  "payload": {
+    "schema_version": "aeread.refund.negotiation-case/1.3.0",
+    "public_order": {
+      "claim_text": "One earbud stopped working after delivery.",
+      "customer": {"customer_id": "cust_dev_counter", "loyalty_tier": "gold"},
+      "product": {"category": "consumer_electronics", "name": "wireless earbuds", "price": 180.0, "days_since_delivery": 12},
+      "requested_amount": 180.0
+    },
+    "private_facts": [
+      {"fact_id": "condition", "truth": "opened_good", "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "issue_type", "truth": "defective", "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "return_received", "truth": true, "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "liquid_damage", "truth": false, "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "impact_damage", "truth": false, "relevance": "context", "requestable": true}
+    ],
+    "disclosure_contract": {
+      "max_fields_per_turn": 3,
+      "decision_critical_fact_ids": ["condition", "issue_type", "return_received", "liquid_damage"]
+    },
+    "authorized_remedies": [
+      {"remedy_id": "partial_refund_cash", "decision": "approve_direct", "refund_amount": 120.0, "refund_method": "original_payment", "conditions": ["verified defect with partial remedy accepted"], "required_fact_ids": ["condition", "issue_type", "return_received", "liquid_damage"]},
+      {"remedy_id": "full_refund_cash", "decision": "approve_direct", "refund_amount": 180.0, "refund_method": "original_payment", "conditions": ["verified defect", "return received", "no liquid damage"], "required_fact_ids": ["condition", "issue_type", "return_received", "liquid_damage"]},
+      {"remedy_id": "deny_no_value", "decision": "deny", "refund_amount": 0.0, "refund_method": "none", "conditions": ["customer-caused damage"], "required_fact_ids": ["condition", "issue_type", "return_received", "liquid_damage"]}
+    ],
+    "customer_script": {
+      "max_negotiation_rounds": 3,
+      "reaction_rules": [
+        {"on_remedy_id": "partial_refund_cash", "response": {"kind": "push_back", "target": "full_refund"}, "max_occurrences": 1}
+      ],
+      "default_response": {"kind": "accept"}
+    },
+    "evaluation_contract": {
+      "reference_minimum_negotiation_rounds": 2,
+      "accepted_remedy_ids": ["full_refund_cash"]
+    }
+  },
+  "provenance": {"generator_id": "refund_v1_3_worked_fixture", "generator_version": "1.3.0", "review_status": "reviewed"},
+  "content_sha256": "1abb6964334c9a14c84fedf555748c19be89b24f1d3febea70c75e75b623f8aa"
+}

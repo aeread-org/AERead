@@ -1,0 +1,55 @@
+{
+  "model": "grok-4.3",
+  "revision": "grok-4.3",
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "active_agents": [
+    "policy"
+  ],
+  "scripted_agents": [
+    "intake",
+    "customer",
+    "payments"
+  ],
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "planned_cases": 120,
+  "completed_cases": 120,
+  "operational_failures": 0,
+  "means": {
+    "coordination_score": 1.0,
+    "transaction_score": 0.8333333333333334,
+    "utility_score": -6.6
+  },
+  "policy_compliance_rate": 0.2833333333333333,
+  "source_summary_sha256": "8d5706e9611fb36a35cd4a6ab025fe460f41341ae8f710872b048b7bf5c8da0b"
+}
