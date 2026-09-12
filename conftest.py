@@ -21,7 +21,7 @@ if _src.is_dir() and str(_src) not in sys.path:
 # points at a path that no longer exists. discover_bridge_python raises a
 # differently worded error for that case, and the families whose tests pass
 # its text through unwrapped -- tau3_retail, econevals, agenticpay_bilateral,
-# econagent_v1, govsim -- therefore need its marker too, or a moved venv
+# econagent_v1, govsim, steer -- therefore need its marker too, or a moved venv
 # skips every fidelity test while this gate stays quiet. negarena needs no
 # such marker: its tests wrap the error in a constant prefix the first
 # marker already matches, which is the more robust shape.
@@ -70,6 +70,7 @@ _BRIDGE_FAMILIES = (
             "pinned upstream STEER checkout not found at",
             "cached STEER corpus bytes not found at",
             "no pandas-capable Python interpreter found for the steer bridge",
+            "$AEREAD_STEER_BRIDGE_PYTHON is set to",
         ),
     ),
     (
