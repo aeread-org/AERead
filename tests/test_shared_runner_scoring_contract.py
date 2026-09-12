@@ -6433,7 +6433,7 @@ def _termsbench_episode_fixture(
     return (
         manifest,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell),
     )
 
 
@@ -7193,7 +7193,7 @@ def _econevals_fixture_pair(
             )
         )
         evidence.seal()
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell)
 
     left = _run(_ECONEVALS_LEFT_PRICES_BY_PERIOD, "left")
     right = _run(_ECONEVALS_RIGHT_PRICES_BY_PERIOD, "right")
@@ -7332,7 +7332,7 @@ def _govsim_episode_fixture(
     return (
         family,
         plugin,
-        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence, cell=cell),
     )
 
 
