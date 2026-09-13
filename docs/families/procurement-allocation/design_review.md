@@ -953,7 +953,34 @@ is learnable within the episode, this model does not learn it, and scores where 
 one-line heuristic scores. The panel can tell those apart, which is the property
 twelve earlier panels lacked.
 
-**What it does not establish.** One model, one scaffold, 60 rows. Completion was
+**A second model settles the open question.** Gemini 3.8 Flash played the same
+eighteen worlds, two seeds a world, 35 of 36 rows completing, for $0.5582.
+
+| policy | worlds solved of 18 |
+|---|---:|
+| **Gemini 3.8 Flash** | **11** |
+| verify dearest first | 9 |
+| verify fastest first | 9 |
+| verify smallest minimum-order first | 9 |
+| GLM 5.3 Flash | 8 |
+| verify cheapest first | 5 |
+
+Gemini clears the fixed-rule ceiling. That matters more than the ranking,
+because it is the first evidence that the panel is beatable by something other
+than luck: nine is the most any rule committed to one direction can take, and a
+subject above it must be reading the world rather than applying a prior.
+
+Where it clears the ceiling is specific. It solves both capacity worlds whose
+good supplier sits at the dear or high-minimum end, `price_high_is_good__capacity`
+at zero regret and `moq_high_is_good__capacity` at $5.20, which no cheap-and-fast
+prior reaches. It still loses all three lead-time-long worlds and the high-end
+timing and yield worlds, so the lean is real and only partly overcome.
+
+So the family now separates three things it could never separate before: a fixed
+rule at nine, a subject that applies a prior at eight, and a subject that reads
+the world at eleven. That is a working measurement.
+
+**What it does not establish.** Two models, one scaffold, 95 rows between them. Completion was
 uneven: several worlds returned one or two rows rather than four, so per-world
 means are thin and the panel-level count is the reliable figure. No treatment has
 been compared, and an agent that does infer has not been shown to exist. The
@@ -980,7 +1007,7 @@ sensible next step is a second model rather than a second panel.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
-| 27 the subject scores like a one-line rule | **measured** — 8 of 18 worlds against a fixed-rule ceiling of 9, solving exactly the half where cheap and fast is good; the family now measures a subject rather than a panel |
+| 27 subjects now separate from fixed rules | **measured** — Gemini 3.8 Flash 11 of 18, above the fixed-rule ceiling of 9; GLM 5.3 Flash 8, below it ; the family now measures a subject rather than a panel |
 | 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
 | 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
 | 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
