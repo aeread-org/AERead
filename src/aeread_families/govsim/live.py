@@ -80,12 +80,113 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CASES_DIR = REPOSITORY_ROOT / "cases" / "govsim" / "v1"
 
 PROVIDER = "openrouter"
-MODEL = "z-ai/glm-5.3-flash"
-REVISION = "z-ai/glm-5.3-flash-20260826"
-ROUTE_PROVIDER = "Parasail"
-QUANTIZATION = "fp8"
-MAX_PROMPT_PRICE_PER_MILLION = "0.15"
-MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
+
+
+@dataclass(frozen=True)
+class RouteSpec:
+    """One pinned serving of one model: the five-field route seal, the price
+    book, and the structured-output dialect that endpoint accepts.
+
+    `revision` is the endpoint's own dated model id, which the kernel checks
+    against the selected endpoint; the undated slug is rejected.
+    """
+
+    model: str
+    revision: str
+    route_provider: str
+    quantization: str
+    max_prompt_price_per_million: str
+    max_completion_price_per_million: str
+    pricing: TokenPricing
+    profile_suffix: str
+    output_schema_dialect: str = "permissive"
+
+
+GLM53_FLASH_PARASAIL = RouteSpec(
+    model="z-ai/glm-5.3-flash",
+    revision="z-ai/glm-5.3-flash-20260826",
+    route_provider="Parasail",
+    quantization="fp8",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.50",
+    pricing=TokenPricing(
+        input_per_million=0.15,
+        cached_input_per_million=0.03,
+        output_per_million=0.50,
+        pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
+    ),
+    profile_suffix="glm53_flash_parasail",
+)
+
+# Two agents the GovSim paper itself evaluated, at opposite ends of its
+# table: GPT-3.5 collapses the commons (0% survival, 1.1 +/- 0.20 months)
+# and GPT-4o is its best performer (53.3% survival, 9.3 +/- 2.20 months).
+# They are here because a family where every model we have run survives
+# 12/12 cannot tell a saturated task from a capable agent, and the paper's
+# own collapsing model is the control that settles it.
+#
+# Every other agent in that paper -- Claude-3 Opus/Sonnet/Haiku, Llama-3,
+# Mistral, Mixtral, Qwen -- is unreachable under this kernel's declared-seed
+# requirement (#172), so these two are what the comparison can have.
+# NOT a model the paper evaluated, and it is here for a different job. The
+# paper's collapsing agents -- GPT-3.5, Claude-3 Haiku/Sonnet, Llama-3,
+# Mistral, Qwen-72B, all at 0% survival -- are every one of them unreachable:
+# the Anthropic and open-weight endpoints refuse a declared seed, and
+# `gpt-3.5-turbo` refuses `json_schema` outright. So no paper agent can play
+# the control. `gpt-4o-mini` is the weakest agent this harness can reach, and
+# it was the weakest of the three in the TERMS-Bench panels by a wide margin;
+# the question it answers is not "does our number match the paper's" but the
+# one underneath it: can this environment produce a collapse at all, or does
+# every model it can run survive?
+GPT4O_MINI_OPENAI = RouteSpec(
+    model="openai/gpt-4o-mini-2024-07-18",
+    revision="openai/gpt-4o-mini-2024-07-18",
+    route_provider="OpenAI",
+    quantization="unknown",
+    max_prompt_price_per_million="0.15",
+    max_completion_price_per_million="0.60",
+    pricing=TokenPricing(
+        input_per_million=0.15,
+        cached_input_per_million=0.075,
+        output_per_million=0.60,
+        pricing_id="openrouter_2026-09-10_gpt4o_mini_openai",
+    ),
+    profile_suffix="gpt4o_mini",
+    output_schema_dialect="strict",
+)
+
+# The nearest reachable snapshot to the paper's best agent, and NOT the one
+# it ran. `gpt-4o-2024-05-13` -- the snapshot current when the paper was
+# written -- refuses our request: "'response_format' of type 'json_schema'
+# is not supported with this model". OpenAI's Structured Outputs arrived
+# with `2024-08-06`, so every model the 2024 paper evaluated predates the
+# feature this harness requires, and `gpt-3.5-turbo` never gained it at all.
+# Three months of model separate this route from the paper's row, and that
+# is a caveat on the comparison rather than a detail (#172).
+GPT4O_20240806_OPENAI = RouteSpec(
+    model="openai/gpt-4o-2024-08-06",
+    revision="openai/gpt-4o-2024-08-06",
+    route_provider="OpenAI",
+    quantization="unknown",
+    max_prompt_price_per_million="2.50",
+    max_completion_price_per_million="10.00",
+    pricing=TokenPricing(
+        input_per_million=2.50,
+        cached_input_per_million=1.25,
+        output_per_million=10.00,
+        pricing_id="openrouter_2026-09-10_gpt4o_20240806_openai",
+    ),
+    profile_suffix="gpt4o_20240806",
+    output_schema_dialect="strict",
+)
+
+ROUTE = GLM53_FLASH_PARASAIL
+MODEL = ROUTE.model
+REVISION = ROUTE.revision
+ROUTE_PROVIDER = ROUTE.route_provider
+QUANTIZATION = ROUTE.quantization
+MAX_PROMPT_PRICE_PER_MILLION = ROUTE.max_prompt_price_per_million
+MAX_COMPLETION_PRICE_PER_MILLION = ROUTE.max_completion_price_per_million
 MAX_ACTION_ATTEMPTS = 10
 RETRYABLE_CONDITIONS = (
     "rate_limit",
@@ -95,12 +196,7 @@ RETRYABLE_CONDITIONS = (
     "empty_response",
     POST_ADMISSION_REJECTION,
 )
-PRICING = TokenPricing(
-    input_per_million=0.15,
-    cached_input_per_million=0.03,
-    output_per_million=0.50,
-    pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
-)
+PRICING = ROUTE.pricing
 
 # Two prompts, one per upstream arm, because the observation differs between
 # them: the baseline agent is not told the sustainability threshold and must
@@ -141,19 +237,54 @@ Return only a JSON object, and answer the phase named in the observation:
 """
 
 
-def route_metadata() -> dict[str, str]:
-    """The exact sealed route the OpenRouter adapter requires -- these five
-    fields and no others."""
+# Two measured reasoning conditions on this route, not one preference.
+#
+# Probed 2026-09-10 with one call per condition on an identical prompt:
+# `reasoning.effort: "low"` returns ~13 reasoning tokens, as does
+# `reasoning.max_tokens` at any value (1,500 and 8,000 are
+# indistinguishable), while declaring no block at all returns ~260. Checked
+# against this family's own sealed evidence: of 132 model calls in
+# `dialogue_v3`'s fishing case, 113 reported ZERO reasoning tokens and none
+# exceeded 25. So `reasoning_low_v1` is a suppressed condition under a name
+# that does not say so, and all three published govsim panels measure a GLM
+# 5.3 Flash that did not deliberate -- which matters here, because the
+# paper's diagnosis is that agents fail from an inability to reason about
+# the long-run equilibrium.
+REASONING_SUPPRESSED_V1: dict[str, object] = {
+    "condition_id": "reasoning_low_v1",
+    "effort": "low",
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+REASONING_UNCONSTRAINED_V1: dict[str, object] = {
+    "condition_id": "reasoning_unconstrained_v1",
+    "effort": None,
+    "token_budget": None,
+    "rationale_visibility": "hidden",
+}
+REASONING_DECLARATION = REASONING_SUPPRESSED_V1
+
+# The rationale is emitted inside the completion budget, so the deliberating
+# arm needs headroom the suppressed one never did: 256 tokens holds
+# `{"quantity": n}` and nothing else.
+MAX_OUTPUT_TOKENS_SUPPRESSED = 256
+MAX_OUTPUT_TOKENS_UNCONSTRAINED = 4000
+
+
+def route_metadata(route: "RouteSpec" = None) -> dict[str, str]:
+    """The five-field route seal the kernel requires: exactly these fields
+    and no others."""
+    route = route or ROUTE
     return {
-        "route_provider": ROUTE_PROVIDER,
-        "quantization": QUANTIZATION,
-        "canonical_model": REVISION,
-        "max_prompt_price_per_million": MAX_PROMPT_PRICE_PER_MILLION,
-        "max_completion_price_per_million": MAX_COMPLETION_PRICE_PER_MILLION,
+        "route_provider": route.route_provider,
+        "quantization": route.quantization,
+        "canonical_model": route.revision,
+        "max_prompt_price_per_million": route.max_prompt_price_per_million,
+        "max_completion_price_per_million": route.max_completion_price_per_million,
     }
 
 
-def harvest_output_schema() -> dict[str, Any]:
+def harvest_output_schema(route: "RouteSpec" = None) -> dict[str, Any]:
     """The structured-output schema for the WHOLE episode.
 
     `output_schema` is a profile-level setting, not a per-call one, so one
@@ -164,6 +295,21 @@ def harvest_output_schema() -> dict[str, Any]:
     Nothing is `required`: the prompt says which field belongs to which
     phase, and the harness rejects the wrong one for the phase it is in.
     """
+    if (route or ROUTE).output_schema_dialect == "strict":
+        # OpenAI's strict mode requires every property in `required`, so the
+        # fields belonging to the other phases are nullable rather than
+        # absent. The harness reads the field its phase expects and ignores
+        # the rest, so the admissible answers are unchanged.
+        return {
+            "type": "object",
+            "properties": {
+                "quantity": {"type": ["integer", "null"]},
+                "message": {"type": ["string", "null"]},
+                "reflection": {"type": ["string", "null"]},
+            },
+            "required": ["quantity", "message", "reflection"],
+            "additionalProperties": False,
+        }
     return {
         "type": "object",
         "properties": {
@@ -175,7 +321,7 @@ def harvest_output_schema() -> dict[str, Any]:
     }
 
 
-def utterance_output_schema() -> dict[str, Any]:
+def utterance_output_schema(route: "RouteSpec" = None) -> dict[str, Any]:
     """The discuss/reflect turn: one short piece of text.
 
     These phases used to accept `{}` and carry nothing, which made a live
@@ -183,6 +329,16 @@ def utterance_output_schema() -> dict[str, Any]:
     is public and reaches every agent's next observation; the reflection is
     private to its author.
     """
+    if (route or ROUTE).output_schema_dialect == "strict":
+        return {
+            "type": "object",
+            "properties": {
+                "message": {"type": ["string", "null"]},
+                "reflection": {"type": ["string", "null"]},
+            },
+            "required": ["message", "reflection"],
+            "additionalProperties": False,
+        }
     return {
         "type": "object",
         "properties": {
@@ -387,35 +543,46 @@ def _profile(
     max_cost_usd: float,
     prompt_id: str,
     prompt: str,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
+    route: "RouteSpec" = None,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
             "profile_id": (
-                "govsim_persona_glm53_flash_parasail_v1"
-                if prompt_id == UNIVERSALIZATION_PROMPT_ID
-                else "govsim_persona_glm53_flash_parasail_baseline_v1"
+                (
+                    f"govsim_persona_{(route or ROUTE).profile_suffix}_v1"
+                    if prompt_id == UNIVERSALIZATION_PROMPT_ID
+                    else f"govsim_persona_{(route or ROUTE).profile_suffix}_baseline_v1"
+                )
+                if reasoning["condition_id"] == REASONING_SUPPRESSED_V1["condition_id"]
+                else (
+                    f"govsim_persona_{(route or ROUTE).profile_suffix}_"
+                    f"{'universalization' if prompt_id == UNIVERSALIZATION_PROMPT_ID else 'baseline'}_"
+                    f"{reasoning['condition_id']}"
+                )
             ),
             "model": {
                 "provider": PROVIDER,
-                "model": MODEL,
-                "revision": REVISION,
+                "model": (route or ROUTE).model,
+                "revision": (route or ROUTE).revision,
                 "base_url": "https://openrouter.ai/api/v1",
             },
             "harness": {
                 "id": GovsimJsonHarness.id,
                 "version": GovsimJsonHarness.version,
                 "config": {
-                    "pricing_id": PRICING.pricing_id,
-                    "pricing_sha256": PRICING.content_sha256(),
-                    "output_schema": harvest_output_schema(),
+                    "pricing_id": (route or ROUTE).pricing.pricing_id,
+                    "pricing_sha256": (route or ROUTE).pricing.content_sha256(),
+                    "output_schema": harvest_output_schema(route),
                     "max_rounds": 5,
                     # Backoff is opt-in; without it N attempts are N instant
                     # retries into the same burst.
                     "retry_backoff": "exponential_jitter_v1",
                     "retry_base_seconds": 5.0,
                     "retry_after_max_seconds": 60.0,
-                    "provider_metadata": route_metadata(),
+                    "provider_metadata": route_metadata(route),
                 },
             },
             "prompt": {
@@ -429,15 +596,10 @@ def _profile(
             },
             "tools": [],
             "memory": {"mode": "disabled"},
-            "reasoning": {
-                "condition_id": "reasoning_low_v1",
-                "effort": "low",
-                "token_budget": None,
-                "rationale_visibility": "hidden",
-            },
+            "reasoning": dict(reasoning),
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 256,
+                "max_output_tokens": max_output_tokens,
                 # Declared: the adapter refuses a diagnostic run whose seed is
                 # not stated.
                 "seed": seed,
@@ -470,6 +632,9 @@ def build_live_setup(
     seed: int,
     baselines: Mapping[str, float] | None,
     max_trajectory_cost_usd: float,
+    reasoning: Mapping[str, object] = REASONING_DECLARATION,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS_SUPPRESSED,
+    route: "RouteSpec" = None,
 ) -> GovsimLiveSetup:
     case = load_case(case_id)
     family = family_manifest()
@@ -489,6 +654,9 @@ def build_live_setup(
     prompt_id = UNIVERSALIZATION_PROMPT_ID if universalization else BASELINE_PROMPT_ID
     prompt = UNIVERSALIZATION_PROMPT if universalization else BASELINE_PROMPT
     profile = _profile(
+        route=route,
+        reasoning=reasoning,
+        max_output_tokens=max_output_tokens,
         seed=seed,
         max_logical_actions=max_logical_actions,
         max_cost_usd=max_trajectory_cost_usd,
@@ -608,7 +776,7 @@ def build_live_setup(
         plan=plan,
         registry=registry,
         prompt_sources={prompt_id: prompt},
-        pricing={MODEL: PRICING},
+        pricing={(route or ROUTE).model: (route or ROUTE).pricing},
         case=case,
         harnesses={
             **default_harnesses(),
@@ -621,6 +789,15 @@ def build_live_setup(
 __all__ = [
     "MODEL",
     "PRICING",
+    "ROUTE",
+    "RouteSpec",
+    "GLM53_FLASH_PARASAIL",
+    "GPT4O_MINI_OPENAI",
+    "GPT4O_20240806_OPENAI",
+    "REASONING_SUPPRESSED_V1",
+    "REASONING_UNCONSTRAINED_V1",
+    "MAX_OUTPUT_TOKENS_SUPPRESSED",
+    "MAX_OUTPUT_TOKENS_UNCONSTRAINED",
     "BASELINE_PROMPT",
     "BASELINE_PROMPT_ID",
     "UNIVERSALIZATION_PROMPT",
