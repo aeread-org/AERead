@@ -4151,3 +4151,66 @@ def test_estimand_diagnostics_judge_the_subject_share_against_chance(tmp_path: P
     assert flat["subject_share_within_case"] == 0.0
     assert flat["subject_signal_above_chance"] is False
     assert flat["subject_permutation_p"] > 0.05
+
+
+def test_failure_taxonomy_is_reproducible_and_separates_schema_artifacts(
+    tmp_path: Path,
+) -> None:
+    """The taxonomy counts failures inside trajectories that completed, which
+    the primary outcome cannot see. Class A attributes to the seat that agreed
+    to the terms, and the two models' profiles are nearly disjoint: every
+    zero-rent signing is under a GLM landlord, and tenant overpayment is
+    mostly DeepSeek."""
+
+    from aeread_families.housing.failure_taxonomy import CLASSES, classify, publish
+    from aeread_families.housing import environment as hz
+
+    root = CONFIRMATORY_CONTRACT_PATH.parents[1]
+    sweeps = [
+        root / "configs" / "housing_case_config_sweep_v2.json",
+        root / "configs" / "housing_case_config_sweep_v1.json",
+    ]
+    analysis_root = root / "evidence" / "housing" / "failure_taxonomy"
+    committed = json.loads((analysis_root / "reports" / "summary.json").read_bytes())
+    assert publish(root / "evidence", sweeps, tmp_path / "t") == committed
+    core = {k: v for k, v in committed.items() if k != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == committed["artifact_sha256"]
+
+    # Every class carries a description, and every counted class is declared.
+    assert set(committed["occurrences"]) <= set(CLASSES)
+    assert committed["completed_trajectories_not_reconstructible"] == 0
+
+    seat = committed["attributable_by_seat_model"]
+    assert seat["A2_landlord_signed_at_zero_rent"] == {"glm_53_flash": 362}
+    assert seat["A1_tenant_signed_above_own_value"]["deepseek_v4_flash"] > (
+        seat["A1_tenant_signed_above_own_value"]["glm_53_flash"]
+    )
+
+    # A synthetic cell exercises both directions of the participation classes.
+    world = hz.make_bid_world(4, 2, seed=41001, common_weight=0.5)
+    config = {"tenants": 4, "listings": 2, "common_weight": 0.5}
+    free = classify(
+        {
+            "signed_rents": [{"tenant_id": 0, "rent": 0.0}],
+            "assignment_pairs": [[0, 0]],
+            "wasted_contacts": 0,
+            "action_outcomes": {},
+        },
+        config,
+        world,
+    )
+    assert free["A2_landlord_signed_at_zero_rent"] == 1
+    assert "A1_tenant_signed_above_own_value" not in free
+
+    overpaid = classify(
+        {
+            "signed_rents": [{"tenant_id": 0, "rent": world.values[0][0] + 1.0}],
+            "assignment_pairs": [[0, 0]],
+            "wasted_contacts": 0,
+            "action_outcomes": {},
+        },
+        config,
+        world,
+    )
+    assert overpaid["A1_tenant_signed_above_own_value"] == 1
+    assert "A2_landlord_signed_at_zero_rent" not in overpaid

@@ -45,6 +45,11 @@ Derived analyses, per project:
   landlord seat, aggregated from published per-trajectory rows the primary
   outcome cannot see because welfare cancels rent; rebuild with
   `python -m aeread_families.housing.seat_accounting`.
+- `housing/failure_taxonomy/`: typed failures inside trajectories that
+  completed, which the primary outcome cannot see because welfare cancels
+  every transfer; participation-constraint violations, allocative shortfalls
+  and process signatures, with class A attributed to the seat that agreed;
+  rebuild with `python -m aeread_families.housing.failure_taxonomy`.
 - `housing/estimand_diagnostics/`: whether a published estimand responds to the
   seat the campaign compares, attributing each metric's variance to case,
   opponent and subject and judging the subject's share against what a

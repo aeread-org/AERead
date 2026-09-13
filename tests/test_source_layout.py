@@ -65,6 +65,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "environment.py",
         "estimand_diagnostics.py",
         "failure_register.py",
+        "failure_taxonomy.py",
         "harness_bakeoff.py",
         "harness_leaderboard.py",
         "model_sensitivity.py",

@@ -10,8 +10,9 @@ same problem before spending rather than after.
 Every number here is either recomputed from committed evidence, or produced by
 a provider-free control that regenerates byte for byte. Where a result is
 post-hoc or exploratory it is labelled as such. Register rows D-16 and D-24
-through D-27 carry the individual findings; this document is the argument that
-connects them.
+through D-28 carry the individual findings; this document is the argument that
+connects them, and the [failure taxonomy](failure_taxonomy.md) counts the
+failures it leaves invisible.
 
 ## 1. What the campaign reported
 
