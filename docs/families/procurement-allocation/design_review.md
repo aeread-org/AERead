@@ -920,6 +920,45 @@ reading and commit, and this panel rewards a buyer that probes, infers and then
 chooses. Whether either can do that is the open question, and it is now a
 question the panel can actually answer.
 
+## 27. The first real measurement: the subject scores like a one-line rule
+
+The inference panel was played by GLM 5.3 Flash, four seeds a world, 60 of 72
+rows completing, for $0.1945. It is the first procurement result that measures
+what the family claims to measure, and the answer is negative.
+
+| policy | worlds solved of 18 |
+|---|---:|
+| verify dearest first | 9 |
+| verify fastest first | 9 |
+| verify smallest minimum-order first | 9 |
+| **the subject** | **8** |
+| verify cheapest first | 5 |
+
+Nine is the ceiling for any fixed rule here by construction, because each signal
+appears in both directions and a rule committed to one direction wins half the
+panel. The subject sits at eight. Three separate one-line heuristics beat it.
+
+The per-world pattern says why, and it is not subtle. The subject solves the
+worlds where the cheap, fast, low-minimum supplier is the good one, and fails the
+worlds where the dear, slow, high-minimum one is. Those are exactly the two
+halves of the panel. It is applying a fixed prior about what a good supplier
+looks like, and the prior is right half the time.
+
+It never inquired, in any row, which is now the third model-prompt combination to
+record zero on that channel.
+
+**Why this is worth having.** Every earlier result was a statement about a panel.
+This is a statement about a subject: on worlds where the right rule differs and
+is learnable within the episode, this model does not learn it, and scores where a
+one-line heuristic scores. The panel can tell those apart, which is the property
+twelve earlier panels lacked.
+
+**What it does not establish.** One model, one scaffold, 60 rows. Completion was
+uneven: several worlds returned one or two rows rather than four, so per-world
+means are thin and the panel-level count is the reliable figure. No treatment has
+been compared, and an agent that does infer has not been shown to exist. The
+sensible next step is a second model rather than a second panel.
+
 ## Status of the fixes
 
 | defect | state |
@@ -941,6 +980,7 @@ question the panel can actually answer.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 27 the subject scores like a one-line rule | **measured** — 8 of 18 worlds against a fixed-rule ceiling of 9, solving exactly the half where cheap and fast is good; the family now measures a subject rather than a panel |
 | 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
 | 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
 | 24 the cheap channel is unreachable by prompting | open, and it blocks 23; zero `inquire` actions in 59 rows across two arms, with the action verified available, legal and visible |
