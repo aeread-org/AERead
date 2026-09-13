@@ -24,6 +24,7 @@ from ..measurement import (
 from ..registry import PluginRegistry
 from ..run.resolver import (
     ImplementationPin,
+    PlanCell,
     PlanResolutionError,
     RunPlan,
     canonical_json_bytes,
@@ -241,9 +242,16 @@ def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
 
 
 def _replay_family_trajectory(
-    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+    *,
+    plugin: Any,
+    family_case: Mapping[str, Any],
+    evidence: EvidenceStore,
+    cell: PlanCell,
 ) -> tuple[Mapping[str, Any], tuple[PhaseInstance, ...], Any, tuple[str, ...]]:
     """Re-execute the pinned case once, cross-checking every step against the seal.
+
+    #135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked.
 
     Ruling R2 (kernel_scoring_contract_spec.md): this is a verified
     deterministic re-execution, not a pure read-back of durable evidence --
@@ -260,14 +268,31 @@ def _replay_family_trajectory(
     evidence raises immediately -- there is no partial result to fall back
     to.
     """
+    if not isinstance(cell, PlanCell):
+        raise TypeError("cell must be a PlanCell")
     events = evidence.read_events()
+    if not events:
+        raise ValueError("family replay contains no identity-bearing event")
+    # #135 A1 fix: ``evidence.cell_id`` is a plain assignable attribute
+    # (execution.py's ``self.cell_id = cell_id``), so comparing ``cell``
+    # against it proves nothing -- both sides can be reassigned to the same
+    # wrong value and the comparison still passes. ``events[0].cell_id`` is
+    # durable: it was stamped into the first event's hash-chained payload at
+    # append time and is read back from the evidence log itself, so it
+    # cannot be altered by mutating the live ``EvidenceStore`` object after
+    # the fact. ``evidence.seal()`` was considered and rejected here: calling
+    # it before ``score_recorded`` is appended seals the store early, and
+    # ``finalize_family_execution``'s subsequent ``append_event`` then raises
+    # ``EvidenceSealedError`` -- replay must not have that side effect.
+    if cell.cell_id != events[0].cell_id:
+        raise ValueError("replay cell identity does not match sealed evidence")
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     # Positional, matching scheduler.py's own call site. The hook's second
     # parameter is named `cell` by every external adapter and `run` by the
     # natively-built families; a keyword call here silently admitted the
     # latter and TypeError'd the former, so no external adapter could ever
     # produce a replayed receipt.
-    state = plugin.initial_state(family_case, None)
+    state = plugin.initial_state(family_case, cell)
     phase_events = tuple(
         event for event in events if event.event_type == "phase_instance_started"
     )
@@ -550,11 +575,17 @@ def _replay_family_trajectory(
 
 
 def replay_family_state(
-    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+    *,
+    plugin: Any,
+    family_case: Mapping[str, Any],
+    evidence: EvidenceStore,
+    cell: PlanCell,
 ) -> tuple[Mapping[str, Any], Any]:
+    """#135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked."""
     outcome, _phase_instances, outcome_event, _evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence
+            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
         )
     )
     return outcome, outcome_event
@@ -606,8 +637,12 @@ def replay_family_scoring_input(
     family_case: Mapping[str, Any],
     evidence: EvidenceStore,
     seat_context: SeatContext,
+    cell: PlanCell,
 ) -> FamilyScoringInput:
     """Produce one family's scoring input by verified deterministic re-execution.
+
+    #135 A1: certified replay receives the executed PlanCell; its identity
+    is checked against the seal before the plugin is invoked.
 
     Ruling R2: this re-executes the pinned case deterministically and
     cross-checks every phase boundary, action, and terminal state against the
@@ -625,7 +660,7 @@ def replay_family_scoring_input(
     """
     outcome, phase_instances, _outcome_event, evidence_refs = (
         _replay_family_trajectory(
-            plugin=plugin, family_case=family_case, evidence=evidence
+            plugin=plugin, family_case=family_case, evidence=evidence, cell=cell
         )
     )
     return FamilyScoringInput(
@@ -969,6 +1004,7 @@ def finalize_family_execution(
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=seat_context,
+        cell=cell,
     )
     if canonical_json_bytes(scoring_input.outcome) != canonical_json_bytes(
         execution.episode_result.outcome
@@ -1254,6 +1290,7 @@ def replay_family_receipt(
         family_case=family_case,
         evidence=evidence,
         seat_context=seat_context,
+        cell=cell,
     )
     replayed_score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
@@ -1434,6 +1471,7 @@ def audit_family_receipt(
             family_case=family_case,
             evidence=evidence,
             seat_context=seat_context,
+            cell=cell,
         )
         score_set = normalize_family_score_set(
             plugin.build_scorer(family_case)(
