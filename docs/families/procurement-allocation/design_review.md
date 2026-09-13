@@ -986,6 +986,49 @@ means are thin and the panel-level count is the reliable figure. No treatment ha
 been compared, and an agent that does infer has not been shown to exist. The
 sensible next step is a second model rather than a second panel.
 
+## 28. A failure taxonomy, derived rather than asserted
+
+Every failing trajectory on the inference panel is assigned the first mode that
+applies, so the counts partition the failures instead of overlapping. The modes
+are ordered from the most specific claim about the decision to the least.
+
+| mode | GLM 5.3 Flash | Gemini 3.8 Flash |
+|---|---:|---:|
+| solved | 34 | 22 |
+| one draw per supplier, then committed | 14 | 0 |
+| stopped early: budget left, the good supplier never checked | 7 | 7 |
+| awarded a supplier it never verified | 3 | 0 |
+| never awarded: deferred or ran out | 1 | 1 |
+| failed with the field exhausted | 1 | 0 |
+| malformed action wasted the budget | 0 | 5 |
+| provider or harness failure, not a decision | 12 | 1 |
+| **rows** | **72** | **36** |
+
+The taxonomy earns its place by discriminating. The two models do not fail the
+same way, and the difference is not a matter of degree.
+
+**GLM fails on process.** Fourteen rows take one draw of a supplier and commit,
+three award a supplier they never verified at all, and one never awards. Those
+are not wrong judgments about where to look; they are the procedure coming apart.
+
+**Gemini fails on search.** Every one of its decision failures is the same mode:
+it had budget left and never checked the good supplier. It never awarded an
+unverified supplier, never contradicted its own evidence, and never committed
+after a single draw. It looked in the wrong place and stopped, which is precisely
+the inference failure the panel was built to expose, and it is the only failure
+mode a subject can have once the procedure is sound.
+
+Two operational readings fall out of the same table. GLM lost 12 of 72 rows to
+provider or harness failures against Gemini's 1 of 36, and Gemini wasted five
+rows on malformed actions against GLM's none. Those belong in the route and
+scaffold discussion rather than in any claim about buyer competence, and they are
+counted separately here so they cannot be mistaken for one.
+
+The mode to watch is the shared row. Both models stopped early exactly seven
+times, with budget in hand. That is the behaviour defects 24 and 25 recorded
+before this panel existed, and it survives into a panel where checking one more
+supplier is affordable and decisive.
+
 ## Status of the fixes
 
 | defect | state |
@@ -1007,6 +1050,7 @@ sensible next step is a second model rather than a second panel.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 28 failure taxonomy derived from trajectories | **available** — seven decision modes partitioned across 108 rows; GLM fails on process, Gemini fails on search, and both stop early with budget left |
 | 27 subjects now separate from fixed rules | **measured** — Gemini 3.8 Flash 11 of 18, above the fixed-rule ceiling of 9; GLM 5.3 Flash 8, below it ; the family now measures a subject rather than a panel |
 | 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
 | 25 both models take one reading and commit | open, and it redirects 23 and 24; zero re-sampling in 82 rows across two model families, with a median of 2 and 4 unused actions |
