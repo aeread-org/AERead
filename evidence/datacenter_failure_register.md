@@ -1,31 +1,23 @@
 # Data-center family failure register
 
-583 incidents across 576 cells in 8 runs of `datacenter_development_v2_world_panel_v1`.
+183 incidents across 192 cells in 1 runs of `datacenter_development_v2_world_panel_v1`.
 
 Attribution answers the question worth asking later: whose fault was it? Anything a model can trigger is the model's, never the provider's.
 
 | Attribution | As recorded | After reclassification |
 |---|---:|---:|
-| budget | 5 | 7 |
-| environment | 10 | 8 |
-| model | 215 | 230 |
-| negotiation | 206 | 206 |
-| provider | 147 | 132 |
+| environment | 1 | 1 |
+| model | 141 | 141 |
+| negotiation | 7 | 7 |
+| provider | 34 | 34 |
 
-17 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
+0 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
 
 ## Runs
 
 | Run | Cells | Incidents | Superseded |
 |---|---:|---:|---|
-| `datacenter_development_v2_world_panel_v1` | 192 | 234 | no |
-| `datacenter_development_v2_world_panel_v1_run3_partial_predegeneracy_fix_20260904` | 4 | 4 | yes |
-| `datacenter_development_v2_world_panel_v1_run4_phasegraph_bug_20260904` | 25 | 25 | yes |
-| `datacenter_development_v2_world_panel_v1_run5_precalibration_20260905` | 96 | 83 | yes |
-| `datacenter_development_v2_world_panel_v1_run6_preplanning_20260906` | 96 | 79 | yes |
-| `datacenter_development_v2_world_panel_v1_run7_action_budget_bug_20260906` | 33 | 32 | yes |
-| `datacenter_development_v2_world_panel_v1_run8_cost_cap_too_tight_20260906` | 34 | 34 | yes |
-| `datacenter_development_v2_world_panel_v1_run9_planning_only_20260907` | 96 | 92 | yes |
+| `datacenter_development_v2_world_panel_v1` | 192 | 183 | no |
 
 ## Defects
 

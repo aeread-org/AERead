@@ -791,3 +791,33 @@ def test_no_world_survives_a_naive_strategy_or_an_inert_lever() -> None:
             _stack(payload, "scripted"),
             lever,
         ), f"{name}: lever {lever['agreement']}.{lever['field']} changes nothing"
+
+
+def test_an_invented_condition_precedent_is_an_illegal_action() -> None:
+    """A condition the world never heard of is the model's error, not ours.
+
+    The ledger raises on an unknown condition identifier, and that exception
+    surfaced as an environment failure, so a model's invention was charged to
+    the environment. It is an illegal action.
+    """
+    from aeread_families.datacenter_development.stack_environment import (
+        DataCenterStackPlugin,
+    )
+
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(_payload("covenant_cliff_001.json"))
+    state = plugin.initial_state(case, None)
+    phase = next(p for p in plugin.phases(case) if p.phase_id == "service_developer_offer")
+    terms = dict(case["scripted_developer"]["service_terms"])
+
+    invented = dict(terms)
+    invented["conditions_precedent"] = ["service_agreement"]
+    verdict = plugin.legal(
+        case, state, "developer", phase, {"decision": "offer", "message": "m", "terms": invented}
+    )
+    assert not verdict.legal and verdict.reason == "unknown_condition_precedent"
+
+    # The real conditions still pass.
+    assert plugin.legal(
+        case, state, "developer", phase, {"decision": "offer", "message": "m", "terms": terms}
+    ).legal

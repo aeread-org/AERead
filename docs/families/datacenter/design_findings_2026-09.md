@@ -487,6 +487,48 @@ passed every check while leverage produced byte-identical results from 50 to 80
 percent loan-to-cost, because the commitment cap bound first. All six levers
 now respond.
 
+### Letting trajectories reach the mechanisms
+
+The completed panel produced 41 substantive failures and every one died the
+same way, on undersized power, after signing exactly five agreements. Forty-six
+more stalled at the second of six negotiations. None of the six strata had ever
+been met by a live model.
+
+Three changes: the counterparty now says what it needs rather than repeating
+its package; the undersized quote is drawn per world instead of applied to all;
+and the outcome carries the constraint vector and the agreements executed
+rather than only the conjunction.
+
+| | before | after |
+|---|---:|---:|
+| Substantive deal failures | 41 | 61 |
+| Distinct causes among them | 1 | 5 |
+| Rounds-exhausted stalls | 46 | 7 |
+| Admitted | 7 | 9 |
+| Discarded | 75 | 114 |
+
+The failures are now diagnosable rather than identical: site control 51,
+financing 21, no-default 21, EPC conditions 17, capacity 15, many failing on
+several at once. Depth spread from bimodal at 1 and 5 to a real distribution
+across 0 to 6.
+
+**Schema compliance is now the binding constraint, and it was previously
+masked.** Malformed actions rose from 38 to 79. Two hypotheses were wrong and
+worth recording as wrong. It is not context length: failing cells carry *fewer*
+input tokens per call, 1,607 against 2,616, because they are shallower. It is
+not the richer counter messages: only 11 percent of malformed actions follow a
+counter. Forty-two follow a signature and twenty-seven follow a decline, which
+is to say they occur when the developer must open a *new* agreement and emit a
+complete term set for the first time. That is the hardest action in the family,
+and models now attempt it far more often because the negotiation wall no longer
+stops them at the second agreement. The increase is a consequence of progress,
+not a regression.
+
+A defect of the familiar kind surfaced too: a model invented a condition
+precedent, `service_agreement`, the ledger raised on the unknown identifier,
+and the cell was recorded as an environment failure. Unknown conditions are now
+illegal actions, attributed to the model.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

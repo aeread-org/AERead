@@ -783,6 +783,17 @@ class DataCenterStackPlugin:
         if action["decision"] == "walk":
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_offer"):
+            if action["decision"] == "offer":
+                known = {
+                    item["condition_id"]
+                    for item in family_case["project_facts"]["condition_satisfaction"]
+                }
+                proposed = set(action["terms"].get("conditions_precedent", ()))
+                if not proposed.issubset(known):
+                    # A condition the world has never heard of. The ledger
+                    # raises on it, which would charge a model's invention to
+                    # the environment; it is an illegal action.
+                    return LegalityResult.illegal("unknown_condition_precedent")
             if action["decision"] == "decline":
                 if key not in OPTIONAL_AGREEMENT_KEYS:
                     return LegalityResult.illegal("agreement_is_not_optional")
