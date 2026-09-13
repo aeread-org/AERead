@@ -1,0 +1,55 @@
+{
+  "model": "gpt-5.6-luna",
+  "revision": "gpt-5.6-luna",
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "active_agents": [
+    "policy"
+  ],
+  "scripted_agents": [
+    "intake",
+    "customer",
+    "payments"
+  ],
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "planned_cases": 120,
+  "completed_cases": 120,
+  "operational_failures": 0,
+  "means": {
+    "coordination_score": 0.9083333333333333,
+    "transaction_score": 0.7416666666666667,
+    "utility_score": -8.6
+  },
+  "policy_compliance_rate": 0.11666666666666667,
+  "source_summary_sha256": "8d7c3f536ab1efa6ea155732ea282eaf751ef05ddecb51eb0e0bee9018c55301"
+}

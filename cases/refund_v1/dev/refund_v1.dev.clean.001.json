@@ -1,0 +1,51 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "refund_v1.dev.clean.001",
+  "family_id": "refund_v1",
+  "family_version": "1.3.0",
+  "split": "development",
+  "world_seed": 130001,
+  "seats": [
+    {"id": "customer", "role": "customer"},
+    {"id": "support_agent", "role": "support_agent"}
+  ],
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": ["resolved", "denied", "abandoned", "invalid_operation", "round_limit_reached"]
+  },
+  "visibility_policy": "refund_gradual_disclosure_v1_3",
+  "payload": {
+    "schema_version": "aeread.refund.negotiation-case/1.3.0",
+    "public_order": {
+      "claim_text": "The shirt arrived with a torn seam.",
+      "customer": {"customer_id": "cust_dev_clean", "loyalty_tier": "silver"},
+      "product": {"category": "apparel", "name": "linen shirt", "price": 60.0, "days_since_delivery": 8},
+      "requested_amount": 60.0
+    },
+    "private_facts": [
+      {"fact_id": "condition", "truth": "damaged", "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "issue_type", "truth": "defective", "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "return_received", "truth": true, "relevance": "decision_critical", "requestable": true},
+      {"fact_id": "emotional_urgency", "truth": "ordinary", "relevance": "context", "requestable": true}
+    ],
+    "disclosure_contract": {
+      "max_fields_per_turn": 3,
+      "decision_critical_fact_ids": ["condition", "issue_type", "return_received"]
+    },
+    "authorized_remedies": [
+      {"remedy_id": "full_refund_cash", "decision": "approve_direct", "refund_amount": 60.0, "refund_method": "original_payment", "conditions": ["verified apparel defect", "return received"], "required_fact_ids": ["condition", "issue_type", "return_received"]},
+      {"remedy_id": "deny_no_value", "decision": "deny", "refund_amount": 0.0, "refund_method": "none", "conditions": ["claim not verified"], "required_fact_ids": ["condition", "issue_type", "return_received"]}
+    ],
+    "customer_script": {
+      "max_negotiation_rounds": 2,
+      "reaction_rules": [],
+      "default_response": {"kind": "accept"}
+    },
+    "evaluation_contract": {
+      "reference_minimum_negotiation_rounds": 1,
+      "accepted_remedy_ids": ["full_refund_cash"]
+    }
+  },
+  "provenance": {"generator_id": "refund_v1_3_worked_fixture", "generator_version": "1.3.0", "review_status": "reviewed"},
+  "content_sha256": "47c4f5eebb753c1e80fd137edffafb8e688aa35ee92278a11a19c1a2edddec53"
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeread.org/schemas/refund_negotiation_case/1.3.0",
+  "title": "AERead Refund V1.3 disclosure and negotiation case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec_version", "case_id", "family_id", "family_version", "split", "world_seed", "seats", "episode", "visibility_policy", "payload", "provenance", "content_sha256"],
+  "properties": {
+    "spec_version": {"const": "aeread.case/0.1"},
+    "case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*[a-z0-9]$"},
+    "family_id": {"const": "refund_v1"},
+    "family_version": {"const": "1.3.0"},
+    "split": {"enum": ["development", "curated", "evaluation", "holdout"]},
+    "world_seed": {"type": "integer", "minimum": 0},
+    "seats": {"type": "array", "minItems": 2, "items": {"type": "object", "additionalProperties": false, "required": ["id", "role"], "properties": {"id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"}, "role": {"enum": ["customer", "support_agent", "intake_agent", "specialist_agent"]}}}},
+    "episode": {"type": "object", "additionalProperties": false, "required": ["max_logical_actions", "termination"], "properties": {"max_logical_actions": {"type": "integer", "minimum": 1}, "termination": {"type": "array", "minItems": 1, "items": {"enum": ["resolved", "escalated", "denied", "abandoned", "invalid_operation", "round_limit_reached"]}}}},
+    "visibility_policy": {"const": "refund_gradual_disclosure_v1_3"},
+    "payload": {"$ref": "#/$defs/payload"},
+    "provenance": {"type": "object", "additionalProperties": false, "required": ["generator_id", "generator_version", "review_status"], "properties": {"generator_id": {"type": "string", "minLength": 1}, "generator_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}, "review_status": {"enum": ["generated", "reviewed", "curated", "upstream_pinned"]}}},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "upstream_task_id": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "fact": {"type": "object", "additionalProperties": false, "required": ["fact_id", "truth", "relevance", "requestable"], "properties": {"fact_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "truth": {}, "relevance": {"enum": ["decision_critical", "context", "irrelevant"]}, "requestable": {"type": "boolean"}}},
+    "remedy": {"type": "object", "additionalProperties": false, "required": ["remedy_id", "decision", "refund_amount", "refund_method", "conditions", "required_fact_ids"], "properties": {"remedy_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "decision": {"enum": ["approve_direct", "request_return", "escalate", "deny"]}, "refund_amount": {"type": "number", "minimum": 0}, "refund_method": {"enum": ["none", "original_payment", "store_credit", "pending_original_payment"]}, "conditions": {"type": "array", "items": {"type": "string"}}, "required_fact_ids": {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}}}},
+    "customer_response": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"enum": ["accept", "push_back", "reject_and_escalate", "abandon"]}, "target": {"enum": ["cash", "full_refund", "no_return", "alternate_remedy"]}}, "allOf": [{"if": {"properties": {"kind": {"const": "push_back"}}}, "then": {"required": ["target"]}, "else": {"not": {"required": ["target"]}}}]},
+    "reaction_rule": {"type": "object", "additionalProperties": false, "required": ["on_remedy_id", "response", "max_occurrences"], "properties": {"on_remedy_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "response": {"$ref": "#/$defs/customer_response"}, "max_occurrences": {"type": "integer", "minimum": 1}}},
+    "payload": {"type": "object", "additionalProperties": false, "required": ["schema_version", "public_order", "private_facts", "disclosure_contract", "authorized_remedies", "customer_script", "evaluation_contract"], "properties": {"schema_version": {"const": "aeread.refund.negotiation-case/1.3.0"}, "public_order": {"type": "object"}, "private_facts": {"type": "array", "items": {"$ref": "#/$defs/fact"}}, "disclosure_contract": {"type": "object", "additionalProperties": false, "required": ["max_fields_per_turn", "decision_critical_fact_ids"], "properties": {"max_fields_per_turn": {"const": 3}, "decision_critical_fact_ids": {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}}}}, "authorized_remedies": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/remedy"}}, "customer_script": {"type": "object", "additionalProperties": false, "required": ["max_negotiation_rounds", "reaction_rules", "default_response"], "properties": {"max_negotiation_rounds": {"type": "integer", "minimum": 1}, "reaction_rules": {"type": "array", "items": {"$ref": "#/$defs/reaction_rule"}}, "default_response": {"$ref": "#/$defs/customer_response"}}}, "evaluation_contract": {"type": "object", "additionalProperties": false, "required": ["reference_minimum_negotiation_rounds", "accepted_remedy_ids"], "properties": {"reference_minimum_negotiation_rounds": {"type": "integer", "minimum": 0}, "accepted_remedy_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}}}}}}
+  }
+}
