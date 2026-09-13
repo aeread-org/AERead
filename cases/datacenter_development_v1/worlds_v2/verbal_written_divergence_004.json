@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
-  "content_sha256": "62fb33329e4253ca9e5fbbbd7b6ed79f9ebfeb54f3ed66cb4065f908b4d482d9",
+  "content_sha256": "cfaab07c25217bb81ddd3066e8d576a00f681b22f1275dea56d7b0636dc24fe5",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 1225157738,
-      "developer_equity_npv_cents": 57441547444,
-      "lender_npv_cents": 316430225,
-      "total_project_npv_cents": 58983135407
+      "developer_equity_npv_cents": 55729802082,
+      "lender_npv_cents": 289880560,
+      "total_project_npv_cents": 57244840380
     },
     "diagnostics": {
       "undisclosed_counter_fields": {
@@ -102,20 +102,20 @@
           "extension_option_months": 0,
           "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 4250000000,
+          "purchase_price_cents": 5950000000,
           "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
-          "extension_price_cents": 200000000,
-          "purchase_price_cents": 5000000000,
+          "extension_price_cents": 280000000,
+          "purchase_price_cents": 7000000000,
           "site_control_expiry_month": 30
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 4250000000
+          "purchase_price_cents": 5950000000
         },
         "required_conditions": [
           "zoning_approval"
@@ -130,20 +130,20 @@
           "extension_option_months": 0,
           "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 4250000000,
+          "purchase_price_cents": 5950000000,
           "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
-          "extension_price_cents": 200000000,
-          "purchase_price_cents": 5000000000,
+          "extension_price_cents": 280000000,
+          "purchase_price_cents": 7000000000,
           "site_control_expiry_month": 33
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 4250000000
+          "purchase_price_cents": 5950000000
         },
         "required_conditions": [
           "zoning_approval"
@@ -152,7 +152,7 @@
       "loan": {
         "counter_message": "We can accept your proposed structure with the origination fee set to 100 bps; the advance rate and all other economics remain exactly as you proposed.",
         "counter_terms": {
-          "advance_rate_bps": 2000,
+          "advance_rate_bps": 3000,
           "base_rate_curve_id": "sofr_forward_2026_v1",
           "completion_guarantee_cents": 0,
           "conditions_precedent": [
@@ -164,7 +164,7 @@
           "interest_reserve_cents": 0,
           "maturity_month": 36,
           "maximum_commitment_cents": 40000000000,
-          "maximum_loan_to_cost_bps": 2000,
+          "maximum_loan_to_cost_bps": 3000,
           "maximum_loan_to_value_bps": 6000,
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
@@ -202,7 +202,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -210,7 +210,7 @@
           "energy_charge_cents_per_kwh": 7,
           "initial_term_months": 180,
           "interconnection_cost_cents": 2000000000,
-          "monthly_demand_charge_cents_per_kw": 1200
+          "monthly_demand_charge_cents_per_kw": 1000
         },
         "maximums": {
           "delay_liquidated_damages_cap_cents": 1000000000,
@@ -219,12 +219,12 @@
           "energization_month": 24,
           "energy_charge_cents_per_kwh": 7,
           "interconnection_cost_cents": 2000000000,
-          "monthly_demand_charge_cents_per_kw": 1200
+          "monthly_demand_charge_cents_per_kw": 1000
         },
         "minimums": {
           "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
-          "monthly_demand_charge_cents_per_kw": 1020
+          "monthly_demand_charge_cents_per_kw": 850
         },
         "required_conditions": [
           "site_control",
@@ -234,11 +234,11 @@
           "reference": {
             "energization_month": 22,
             "interconnection_cost_cents": 2000000000,
-            "monthly_demand_charge_cents_per_kw": 1200
+            "monthly_demand_charge_cents_per_kw": 1000
           },
           "reservation": 0,
           "weights": {
-            "energization_month": 208500000,
+            "energization_month": 198750000,
             "interconnection_cost_cents": 1,
             "monthly_demand_charge_cents_per_kw": 650000
           }
@@ -663,9 +663,9 @@
           "zoning_approval"
         ],
         "extension_option_months": 6,
-        "extension_price_cents": 200000000,
+        "extension_price_cents": 280000000,
         "permitted_use_capacity_kw": 50000,
-        "purchase_price_cents": 5000000000,
+        "purchase_price_cents": 7000000000,
         "site_control_expiry_month": 33,
         "site_control_start_month": 1
       },
@@ -675,9 +675,9 @@
           "zoning_approval"
         ],
         "extension_option_months": 6,
-        "extension_price_cents": 200000000,
+        "extension_price_cents": 280000000,
         "permitted_use_capacity_kw": 50000,
-        "purchase_price_cents": 5000000000,
+        "purchase_price_cents": 7000000000,
         "site_control_expiry_month": 30,
         "site_control_start_month": 1
       },
@@ -717,7 +717,7 @@
         "energy_charge_cents_per_kwh": 7,
         "initial_term_months": 180,
         "interconnection_cost_cents": 1700000000,
-        "monthly_demand_charge_cents_per_kw": 1020
+        "monthly_demand_charge_cents_per_kw": 850
       },
       "service_terms": {
         "committed_capacity_kw": 50000,

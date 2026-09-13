@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
-  "content_sha256": "84f8e697ba717365d45983f562ed89a4f5952fe48a142f0822ee7eb5b436a7e8",
+  "content_sha256": "5c370979eb2ac40e0cefad319367fcf2b71601b0dff7e4e4319c0149567dd036",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 1225157738,
-      "developer_equity_npv_cents": 52710066183,
-      "lender_npv_cents": 459492689,
-      "total_project_npv_cents": 54394716610
+      "developer_equity_npv_cents": 52902262252,
+      "lender_npv_cents": 264092086,
+      "total_project_npv_cents": 54391512076
     },
     "negotiation": {
       "developer_chooses_order": true,
@@ -161,7 +161,7 @@
           "minimum_customer_credit_support_cents": 5550000000,
           "minimum_dscr_bps": 12500,
           "minimum_take_or_pay_bps": 9000,
-          "origination_fee_bps": 150,
+          "origination_fee_bps": 100,
           "spread_bps": 300,
           "unused_commitment_fee_bps_annual": 50
         },
@@ -171,14 +171,14 @@
           "maximum_commitment_cents": 60000000000,
           "maximum_loan_to_cost_bps": 6500,
           "maximum_loan_to_value_bps": 10000,
-          "origination_fee_bps": 150
+          "origination_fee_bps": 100
         },
         "minimums": {
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
           "minimum_dscr_bps": 12500,
           "minimum_take_or_pay_bps": 9000,
-          "origination_fee_bps": 150,
+          "origination_fee_bps": 100,
           "spread_bps": 255,
           "unused_commitment_fee_bps_annual": 42
         },
@@ -691,7 +691,7 @@
         "minimum_customer_credit_support_cents": 5550000000,
         "minimum_dscr_bps": 12500,
         "minimum_take_or_pay_bps": 9000,
-        "origination_fee_bps": 150,
+        "origination_fee_bps": 100,
         "spread_bps": 255,
         "unused_commitment_fee_bps_annual": 42
       },

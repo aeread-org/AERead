@@ -389,7 +389,9 @@ def _power_utility(
     }
 
 
-def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
+def _default_policies(
+    terms: Mapping[str, Mapping[str, Any]], *, undersized_quote: bool = True
+) -> dict[str, dict[str, Any]]:
     """Two-sided acceptance bands with real width, opened per stratum."""
 
     epc = terms["epc"]
@@ -465,7 +467,9 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 # Locally rational for the utility and visibly cheaper: a
                 # smaller connection carries proportionally lower demand
                 # charges. Jointly infeasible with the tenant's requirement.
-                "contracted_capacity_kw": _undersized_capacity(),
+                "contracted_capacity_kw": (
+                    _undersized_capacity() if undersized_quote else CAPACITY_KW
+                ),
             },
         },
         "epc": {
@@ -578,7 +582,7 @@ def _stratum_revenue_without_bankability(world: dict[str, Any], rng: random.Rand
     terms["loan"]["minimum_take_or_pay_bps"] = minimum_take_or_pay
     terms["loan"]["minimum_customer_credit_support_cents"] = minimum_credit
     terms["service"]["credit_support_cents"] = minimum_credit
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     # The customer accepts any weaker take-or-pay or credit support.
     trap = copy.deepcopy(terms)
     terms["service"]["credit_support_cents"] = minimum_credit
@@ -634,7 +638,7 @@ def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[
     terms["land_amendment"]["site_control_expiry_month"] = ready_month + 2
     terms["loan"]["spread_bps"] = spread_bps
     terms["loan"]["minimum_dscr_bps"] = 10_000
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     # The lender accepts any maturity up to the horizon and any spread.
     trap = copy.deepcopy(terms)
     trap["loan"]["maturity_month"] = ready_month
@@ -665,7 +669,7 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
     world["facts"]["developer_equity_budget_cents"] = equity_budget
     terms = world["terms"]
     terms["loan"]["origination_fee_bps"] = origination_fee_bps
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
     policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
     # A larger headline commitment is fine with the lender; draws are what bind.
@@ -711,7 +715,7 @@ def _stratum_covenant_cliff(world: dict[str, Any], rng: random.Random) -> dict[s
         {"month": commencement, "capacity_kw": CAPACITY_KW // 2},
         {"month": commencement + 4, "capacity_kw": CAPACITY_KW},
     ]
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     # The tenant will pay a premium for a slower ramp, and the lender's
     # coverage covenant is what that trade actually spends.
     premium = terms["service"]["monthly_capacity_charge_cents_per_kw"] + 2_000
@@ -771,7 +775,7 @@ def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> di
     ]
     terms["service"]["delay_damages_cents_per_month"] = delay_damages
     terms["service"]["delay_damages_cap_cents"] = 2 * delay_damages
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     policies["service"]["required_conditions"] = ["power_ready"]
     policies["service"]["maximums"]["service_commencement_month"] = late_month
     policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium_price
@@ -821,7 +825,7 @@ def _stratum_verbal_written_divergence(world: dict[str, Any], rng: random.Random
     origination_fee_bps = rng.choice((100, 150))
     terms = world["terms"]
     terms["loan"]["origination_fee_bps"] = origination_fee_bps
-    policies = _default_policies(terms)
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
     policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
     policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
     trap = copy.deepcopy(terms)
@@ -1050,6 +1054,10 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "facts": base["facts"],
         "terms": base["terms"],
     }
+    # Half the worlds carry the undersized quote. Applying it everywhere made
+    # one early error the universal cause of death, so no trajectory ever
+    # reached the mechanism its own stratum exists to test.
+    world["undersized_quote"] = rng.choice((True, False))
     built = STRATUM_BUILDERS[stratum](world, rng)
     built["feasible"] = _drive_to_floor(built["feasible"], built["policies"])
     undisclosed = built.get("undisclosed_counter_fields", {})
@@ -1067,7 +1075,11 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "feasible": built["feasible"],
         "trap": built["trap"],
         "outside_option": outside_option,
-        "knobs": {**base["knobs"], **built["knobs"]},
+        "knobs": {
+            **base["knobs"],
+            **built["knobs"],
+            "undersized_quote": world["undersized_quote"],
+        },
         "expected_failure": built["expected_failure"],
         "explanation": built["explanation"],
         "undisclosed_counter_fields": undisclosed,

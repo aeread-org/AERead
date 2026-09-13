@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-  "content_sha256": "a977815d24897919683506de6b819bd4cca4c407591e862f2e03e338999a101e",
+  "content_sha256": "5d0d5c2851b3d2e1fa8837503206cdb370287c1a7f7c5ea3a8e2afb6f6577f38",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 1225157738,
-      "developer_equity_npv_cents": 41479208476,
-      "lender_npv_cents": 335242723,
-      "total_project_npv_cents": 43039608937
+      "developer_equity_npv_cents": 41575306511,
+      "lender_npv_cents": 237542422,
+      "total_project_npv_cents": 43038006671
     },
     "negotiation": {
       "developer_chooses_order": true,
@@ -161,7 +161,7 @@
           "minimum_customer_credit_support_cents": 5550000000,
           "minimum_dscr_bps": 12500,
           "minimum_take_or_pay_bps": 9000,
-          "origination_fee_bps": 125,
+          "origination_fee_bps": 100,
           "spread_bps": 300,
           "unused_commitment_fee_bps_annual": 50
         },
@@ -171,14 +171,14 @@
           "maximum_commitment_cents": 60000000000,
           "maximum_loan_to_cost_bps": 6500,
           "maximum_loan_to_value_bps": 10000,
-          "origination_fee_bps": 125
+          "origination_fee_bps": 100
         },
         "minimums": {
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
           "minimum_dscr_bps": 12500,
           "minimum_take_or_pay_bps": 9000,
-          "origination_fee_bps": 125,
+          "origination_fee_bps": 100,
           "spread_bps": 255,
           "unused_commitment_fee_bps_annual": 42
         },
@@ -193,7 +193,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -691,7 +691,7 @@
         "minimum_customer_credit_support_cents": 5550000000,
         "minimum_dscr_bps": 12500,
         "minimum_take_or_pay_bps": 9000,
-        "origination_fee_bps": 125,
+        "origination_fee_bps": 100,
         "spread_bps": 255,
         "unused_commitment_fee_bps_annual": 42
       },

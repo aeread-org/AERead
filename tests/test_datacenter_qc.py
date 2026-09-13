@@ -303,13 +303,23 @@ def test_the_task_cannot_be_solved_without_cross_agreement_lookahead() -> None:
                 payload["policies"][key],
             ), f"{name}: {key} counter must be admissible on its own"
 
-        # Jointly they are infeasible, and specifically on capacity.
+        # Jointly they are infeasible. Where the utility undersizes its quote
+        # the capacity chain is what breaks; elsewhere the landowner's short
+        # tenure is. Applying one defect to every world made it the universal
+        # cause of death and nothing downstream was ever reached.
         adopted = _evaluate(payload, counters)
         assert adopted["constraints_satisfied"] is False, name
-        assert (
+        undersized = (
             counters["power"]["contracted_capacity_kw"]
             < counters["service"]["committed_capacity_kw"]
-        ), name
+        )
+        short_tenure = (
+            counters["land_amendment"]["site_control_expiry_month"]
+            < payload["scripted_developer"]["land_amendment_terms"][
+                "site_control_expiry_month"
+            ]
+        )
+        assert undersized or short_tenure, name
 
         # The scripted plan resolves it, so the world remains solvable.
         assert _evaluate(payload, scripted)["constraints_satisfied"] is True, name
@@ -349,7 +359,9 @@ def test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative() -> No
         required = counters["service"]["committed_capacity_kw"]
 
         insisted = copy.deepcopy(counters)
-        insisted["power"]["contracted_capacity_kw"] = required
+        insisted["power"]["contracted_capacity_kw"] = max(
+            required, insisted["power"]["contracted_capacity_kw"]
+        )
         # Capacity is no longer the only defect in the counter package: the
         # landowner also quotes tenure that lapses before the campus can be
         # brought into service, so a reachable solution fixes both.
@@ -375,7 +387,10 @@ def test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative() -> No
 
         # Downsizing the lease to match is not a way out: the tenant's floor is
         # full capacity, so exactly one plan survives.
-        reduced = counters["power"]["contracted_capacity_kw"]
+        reduced = min(
+            counters["power"]["contracted_capacity_kw"],
+            required - 1,
+        )
         shrunk = copy.deepcopy(counters)
         shrunk["service"]["committed_capacity_kw"] = reduced
         shrunk["service"]["ramp_schedule"] = [

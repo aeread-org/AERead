@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
-  "content_sha256": "a2c9341c35d143a622ca9630b79482b309f29426db904fb6545ac19cb063a23f",
+  "content_sha256": "c6fd6d76cd70781cae0f6d924a11f5b6964642836ef6e78e8cfaf53f7ae9e62f",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 909650182,
-      "developer_equity_npv_cents": 70328688833,
-      "lender_npv_cents": 288660383,
-      "total_project_npv_cents": 71526999398
+      "developer_equity_npv_cents": 47321822191,
+      "lender_npv_cents": 231001469,
+      "total_project_npv_cents": 48462473842
     },
     "negotiation": {
       "developer_chooses_order": true,
@@ -39,46 +39,46 @@
     "policies": {
       "epc": {
         "counter_terms": {
-          "completion_guarantee_cents": 4800000000,
+          "completion_guarantee_cents": 5000000000,
           "conditions_precedent": [
             "site_control"
           ],
-          "contract_price_cents": 48000000000,
+          "contract_price_cents": 50000000000,
           "cost_overrun_cap_cents": 0,
-          "delay_liquidated_damages_cap_cents": 3840000000,
-          "delay_liquidated_damages_cents_per_month": 1440000000,
+          "delay_liquidated_damages_cap_cents": 4000000000,
+          "delay_liquidated_damages_cents_per_month": 1500000000,
           "guaranteed_capacity_kw": 50000,
           "guaranteed_completion_month": 24,
           "notice_to_proceed_month": 3,
           "payment_schedule": [
             {
-              "amount_cents": 12000000000,
+              "amount_cents": 12500000000,
               "month": 4
             },
             {
-              "amount_cents": 12000000000,
+              "amount_cents": 12500000000,
               "month": 10
             },
             {
-              "amount_cents": 12000000000,
+              "amount_cents": 12500000000,
               "month": 16
             },
             {
-              "amount_cents": 12000000000,
+              "amount_cents": 12500000000,
               "month": 22
             }
           ]
         },
         "maximums": {
-          "completion_guarantee_cents": 4800000000,
-          "contract_price_cents": 48000000000,
+          "completion_guarantee_cents": 5000000000,
+          "contract_price_cents": 50000000000,
           "cost_overrun_cap_cents": 0,
-          "delay_liquidated_damages_cap_cents": 3840000000,
-          "delay_liquidated_damages_cents_per_month": 1440000000,
+          "delay_liquidated_damages_cap_cents": 4000000000,
+          "delay_liquidated_damages_cents_per_month": 1500000000,
           "guaranteed_completion_month": 24
         },
         "minimums": {
-          "contract_price_cents": 44160000000,
+          "contract_price_cents": 46000000000,
           "guaranteed_capacity_kw": 50000
         },
         "required_conditions": [
@@ -94,20 +94,20 @@
           "extension_option_months": 0,
           "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 3400000000,
+          "purchase_price_cents": 5950000000,
           "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
-          "extension_price_cents": 160000000,
-          "purchase_price_cents": 4000000000,
+          "extension_price_cents": 280000000,
+          "purchase_price_cents": 7000000000,
           "site_control_expiry_month": 30
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 3400000000
+          "purchase_price_cents": 5950000000
         },
         "required_conditions": [
           "zoning_approval"
@@ -122,20 +122,20 @@
           "extension_option_months": 0,
           "extension_price_cents": 0,
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 3400000000,
+          "purchase_price_cents": 5950000000,
           "site_control_expiry_month": 22,
           "site_control_start_month": 1
         },
         "maximums": {
           "closing_month": 2,
           "extension_option_months": 6,
-          "extension_price_cents": 160000000,
-          "purchase_price_cents": 4000000000,
+          "extension_price_cents": 280000000,
+          "purchase_price_cents": 7000000000,
           "site_control_expiry_month": 33
         },
         "minimums": {
           "permitted_use_capacity_kw": 50000,
-          "purchase_price_cents": 3400000000
+          "purchase_price_cents": 5950000000
         },
         "required_conditions": [
           "zoning_approval"
@@ -192,7 +192,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -241,14 +241,14 @@
             "power_ready",
             "construction_complete"
           ],
-          "credit_support_cents": 6450000000,
+          "credit_support_cents": 5550000000,
           "customer_termination_fee_cents": 0,
           "customer_termination_option_month": null,
-          "delay_damages_cap_cents": 100000000,
-          "delay_damages_cents_per_month": 50000000,
+          "delay_damages_cap_cents": 80000000,
+          "delay_damages_cents_per_month": 40000000,
           "energy_pass_through_cents_per_kwh": 7,
           "initial_term_months": 180,
-          "monthly_capacity_charge_cents_per_kw": 21500,
+          "monthly_capacity_charge_cents_per_kw": 18500,
           "ramp_schedule": [
             {
               "capacity_kw": 50000,
@@ -261,11 +261,11 @@
           "take_or_pay_bps": 10000
         },
         "maximums": {
-          "credit_support_cents": 6450000000,
+          "credit_support_cents": 5550000000,
           "customer_termination_fee_cents": 0,
-          "delay_damages_cap_cents": 100000000,
-          "delay_damages_cents_per_month": 50000000,
-          "monthly_capacity_charge_cents_per_kw": 27500,
+          "delay_damages_cap_cents": 80000000,
+          "delay_damages_cents_per_month": 40000000,
+          "monthly_capacity_charge_cents_per_kw": 24500,
           "service_commencement_month": 28,
           "take_or_pay_bps": 10000
         },
@@ -457,7 +457,7 @@
         50000,
         50000
       ],
-      "customer_value_cents_per_kw_month": 27500,
+      "customer_value_cents_per_kw_month": 24500,
       "developer_discount_rate_bps_annual": 1200,
       "developer_equity_budget_cents": 30000000000,
       "development_cost_cents_by_month": [
@@ -616,30 +616,30 @@
         0,
         0
       ],
-      "terminal_value_cents": 150000000000
+      "terminal_value_cents": 124285714285
     },
     "scenario_id": "datacenter_v2_world_liability_transfer_004",
     "scope_version": "v2",
     "scripted_developer": {
       "epc_terms": {
-        "completion_guarantee_cents": 4800000000,
+        "completion_guarantee_cents": 5000000000,
         "conditions_precedent": [
           "site_control"
         ],
-        "contract_price_cents": 44160000000,
+        "contract_price_cents": 46000000000,
         "cost_overrun_cap_cents": 0,
-        "delay_liquidated_damages_cap_cents": 3840000000,
-        "delay_liquidated_damages_cents_per_month": 1440000000,
+        "delay_liquidated_damages_cap_cents": 4000000000,
+        "delay_liquidated_damages_cents_per_month": 1500000000,
         "guaranteed_capacity_kw": 50000,
         "guaranteed_completion_month": 24,
         "notice_to_proceed_month": 3,
         "payment_schedule": [
           {
-            "amount_cents": 22080000000,
+            "amount_cents": 23000000000,
             "month": 4
           },
           {
-            "amount_cents": 22080000000,
+            "amount_cents": 23000000000,
             "month": 22
           }
         ]
@@ -653,9 +653,9 @@
           "zoning_approval"
         ],
         "extension_option_months": 6,
-        "extension_price_cents": 160000000,
+        "extension_price_cents": 280000000,
         "permitted_use_capacity_kw": 50000,
-        "purchase_price_cents": 4000000000,
+        "purchase_price_cents": 7000000000,
         "site_control_expiry_month": 33,
         "site_control_start_month": 1
       },
@@ -665,9 +665,9 @@
           "zoning_approval"
         ],
         "extension_option_months": 6,
-        "extension_price_cents": 160000000,
+        "extension_price_cents": 280000000,
         "permitted_use_capacity_kw": 50000,
-        "purchase_price_cents": 4000000000,
+        "purchase_price_cents": 7000000000,
         "site_control_expiry_month": 30,
         "site_control_start_month": 1
       },
@@ -715,14 +715,14 @@
           "power_ready",
           "construction_complete"
         ],
-        "credit_support_cents": 6450000000,
+        "credit_support_cents": 5550000000,
         "customer_termination_fee_cents": 0,
         "customer_termination_option_month": null,
-        "delay_damages_cap_cents": 100000000,
-        "delay_damages_cents_per_month": 50000000,
+        "delay_damages_cap_cents": 80000000,
+        "delay_damages_cents_per_month": 40000000,
         "energy_pass_through_cents_per_kwh": 7,
         "initial_term_months": 180,
-        "monthly_capacity_charge_cents_per_kw": 21500,
+        "monthly_capacity_charge_cents_per_kw": 18500,
         "ramp_schedule": [
           {
             "capacity_kw": 50000,

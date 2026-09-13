@@ -56,6 +56,7 @@ from .stack_environment import (
     OPTIONAL_AGREEMENT_KEYS,
     SEQUENCE_PHASE_ID,
     TERM_PARSER_BY_TYPE,
+    counter_reason,
     terms_acceptable,
     COUNTERPART_BY_KEY,
     SCORER_ID,
@@ -1156,7 +1157,7 @@ class StackScriptedCounterpartyProvider:
         output = (
             {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
             if acceptable
-            else {"decision": "counter", "offer_id": offer["offer_id"], "message": policy.get("counter_message") or f"{self._seat_id} counterproposal.", "terms": policy["counter_terms"]}
+            else {"decision": "counter", "offer_id": offer["offer_id"], "message": policy.get("counter_message") or counter_reason(TERM_PARSER_BY_TYPE[offer["agreement_type"]](offer["terms"]), policy), "terms": policy["counter_terms"]}
         )
         return _scripted_result(request, output)
 

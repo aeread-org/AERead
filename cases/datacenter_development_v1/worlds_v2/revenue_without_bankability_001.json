@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-  "content_sha256": "f81e98a1bba2f60a8bad333e27da39b2f2cb353400ac3a93f13731735e65090b",
+  "content_sha256": "a2b7a2ac6aab803e29c826228526b40362ffa1a3c5894900a4d80b839aac0b62",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -158,9 +158,9 @@
           "maximum_loan_to_cost_bps": 6500,
           "maximum_loan_to_value_bps": 6000,
           "minimum_contracted_capacity_kw": 50000,
-          "minimum_customer_credit_support_cents": 6450000000,
+          "minimum_customer_credit_support_cents": 7525000000,
           "minimum_dscr_bps": 12500,
-          "minimum_take_or_pay_bps": 9500,
+          "minimum_take_or_pay_bps": 8500,
           "origination_fee_bps": 100,
           "spread_bps": 300,
           "unused_commitment_fee_bps_annual": 50
@@ -174,9 +174,9 @@
         },
         "minimums": {
           "minimum_contracted_capacity_kw": 50000,
-          "minimum_customer_credit_support_cents": 6450000000,
+          "minimum_customer_credit_support_cents": 7525000000,
           "minimum_dscr_bps": 12500,
-          "minimum_take_or_pay_bps": 9500,
+          "minimum_take_or_pay_bps": 8500,
           "origination_fee_bps": 85,
           "spread_bps": 255,
           "unused_commitment_fee_bps_annual": 42
@@ -241,7 +241,7 @@
             "power_ready",
             "construction_complete"
           ],
-          "credit_support_cents": 6450000000,
+          "credit_support_cents": 7525000000,
           "customer_termination_fee_cents": 0,
           "customer_termination_option_month": null,
           "delay_damages_cap_cents": 200000000,
@@ -261,7 +261,7 @@
           "take_or_pay_bps": 10000
         },
         "maximums": {
-          "credit_support_cents": 6450000000,
+          "credit_support_cents": 7525000000,
           "customer_termination_fee_cents": 0,
           "delay_damages_cap_cents": 200000000,
           "delay_damages_cents_per_month": 50000000,
@@ -687,9 +687,9 @@
         "maximum_loan_to_cost_bps": 6500,
         "maximum_loan_to_value_bps": 6000,
         "minimum_contracted_capacity_kw": 50000,
-        "minimum_customer_credit_support_cents": 6450000000,
+        "minimum_customer_credit_support_cents": 7525000000,
         "minimum_dscr_bps": 12500,
-        "minimum_take_or_pay_bps": 9500,
+        "minimum_take_or_pay_bps": 8500,
         "origination_fee_bps": 85,
         "spread_bps": 255,
         "unused_commitment_fee_bps_annual": 42
@@ -715,7 +715,7 @@
           "power_ready",
           "construction_complete"
         ],
-        "credit_support_cents": 6450000000,
+        "credit_support_cents": 7525000000,
         "customer_termination_fee_cents": 0,
         "customer_termination_option_month": null,
         "delay_damages_cap_cents": 200000000,

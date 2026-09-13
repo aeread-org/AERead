@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
-  "content_sha256": "ef8e379a00e7d455ed0c5b52c8835dd559ff353acd6e4c35d3a8ec0bc4c8edee",
+  "content_sha256": "294f35434ee4308fbe86556f0c76f851da3bc8a0505c16f75065fa72f75341e9",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -159,7 +159,7 @@
           "maximum_loan_to_value_bps": 6000,
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
-          "minimum_dscr_bps": 13500,
+          "minimum_dscr_bps": 13000,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 100,
           "spread_bps": 300,
@@ -175,7 +175,7 @@
         "minimums": {
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
-          "minimum_dscr_bps": 13500,
+          "minimum_dscr_bps": 13000,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 85,
           "spread_bps": 255,
@@ -192,7 +192,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -692,7 +692,7 @@
         "maximum_loan_to_value_bps": 6000,
         "minimum_contracted_capacity_kw": 50000,
         "minimum_customer_credit_support_cents": 5550000000,
-        "minimum_dscr_bps": 13500,
+        "minimum_dscr_bps": 13000,
         "minimum_take_or_pay_bps": 9000,
         "origination_fee_bps": 85,
         "spread_bps": 255,

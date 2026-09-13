@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-  "content_sha256": "ffa674e29c2df8364b4d4335ad5f4f2fb75c244d3105860c65143ce6d687ba5f",
+  "content_sha256": "41f569c239e314f1d3de8b51f4ff312a8fbe6c620819d9966daed88a20954441",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -159,7 +159,7 @@
           "maximum_loan_to_value_bps": 6000,
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
-          "minimum_dscr_bps": 12500,
+          "minimum_dscr_bps": 13500,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 100,
           "spread_bps": 300,
@@ -175,7 +175,7 @@
         "minimums": {
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 5550000000,
-          "minimum_dscr_bps": 12500,
+          "minimum_dscr_bps": 13500,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 85,
           "spread_bps": 255,
@@ -692,7 +692,7 @@
         "maximum_loan_to_value_bps": 6000,
         "minimum_contracted_capacity_kw": 50000,
         "minimum_customer_credit_support_cents": 5550000000,
-        "minimum_dscr_bps": 12500,
+        "minimum_dscr_bps": 13500,
         "minimum_take_or_pay_bps": 9000,
         "origination_fee_bps": 85,
         "spread_bps": 255,

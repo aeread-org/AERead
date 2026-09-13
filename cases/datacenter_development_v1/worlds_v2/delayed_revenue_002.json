@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
-  "content_sha256": "95d8d1789d35a5f3827a893f16955a7072ac42021969eb862346fde81148de90",
+  "content_sha256": "97b1f40da3a415780e1860ef58b3b65326db612bef3f1011f03d838f80360c0c",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 702778859,
-      "developer_equity_npv_cents": 47381812558,
-      "lender_npv_cents": 520099861,
-      "total_project_npv_cents": 48604691278
+      "developer_equity_npv_cents": 47606132051,
+      "lender_npv_cents": 272307633,
+      "total_project_npv_cents": 48581218543
     },
     "negotiation": {
       "developer_chooses_order": true,
@@ -162,7 +162,7 @@
           "minimum_dscr_bps": 10000,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 100,
-          "spread_bps": 350,
+          "spread_bps": 300,
           "unused_commitment_fee_bps_annual": 50
         },
         "maximums": {
@@ -178,7 +178,7 @@
           "minimum_dscr_bps": 10000,
           "minimum_take_or_pay_bps": 9000,
           "origination_fee_bps": 85,
-          "spread_bps": 297,
+          "spread_bps": 255,
           "unused_commitment_fee_bps_annual": 42
         },
         "required_conditions": [
@@ -192,7 +192,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -691,7 +691,7 @@
         "minimum_dscr_bps": 10000,
         "minimum_take_or_pay_bps": 9000,
         "origination_fee_bps": 85,
-        "spread_bps": 297,
+        "spread_bps": 255,
         "unused_commitment_fee_bps_annual": 42
       },
       "power_terms": {

@@ -182,6 +182,55 @@ def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
     return utility is None or utility >= int(policy["utility"]["reservation"])
 
 
+def counter_reason(terms: AgreementTerms, policy: Mapping[str, Any]) -> str:
+    """Say what would make this offer acceptable.
+
+    A counterparty that only ever repeats its own package teaches nothing, and
+    a developer cannot find a trade it is never told exists. Real counterparties
+    say what they need. This names the terms that are out of range, and when the
+    hard bounds are all met but the package is still not worth enough, names the
+    term that could be conceded to pay for the rest.
+    """
+
+    values = _term_values(terms)
+    problems: list[str] = []
+    for field, minimum in sorted(policy["minimums"].items()):
+        if field in values and values[field] < minimum:
+            problems.append(f"{field} of at least {minimum}")
+    for field, maximum in sorted(policy["maximums"].items()):
+        if field in values and values[field] > maximum:
+            problems.append(f"{field} of no more than {maximum}")
+    missing = sorted(
+        set(policy["required_conditions"]) - set(values.get("conditions_precedent", ()))
+    )
+    if missing:
+        problems.append("conditions precedent covering " + ", ".join(missing))
+    if problems:
+        return "We cannot sign this. We need " + "; ".join(problems) + "."
+
+    specification = policy.get("utility")
+    if specification is None:
+        return "We cannot sign this as drafted."
+    tradeable = [
+        field
+        for field, weight in sorted(specification["weights"].items())
+        if int(weight) > 0
+        and field in policy["maximums"]
+        and values.get(field, 0) < policy["maximums"][field]
+    ]
+    if tradeable:
+        field = tradeable[0]
+        return (
+            "The commercial terms are inside what we can sign, but the package "
+            f"as a whole is not worth enough to us. We will look again at them "
+            f"if {field} moves toward {policy['maximums'][field]}."
+        )
+    return (
+        "Every term is within range on its own, but the package as a whole is "
+        "not worth enough to us to sign."
+    )
+
+
 def _exceeds_magnitude(value: Any) -> bool:
     """True when any nested integer is too large to be a real contract term."""
 
@@ -915,6 +964,8 @@ class DataCenterStackPlugin:
             ),
             "sequencing": self._sequencing(family_case, terminal),
             "integrative_trade": self._integrative_trade(family_case, terminal),
+            "agreements_executed": sorted(terminal["executed"]),
+            "constraint_checks": {},
             "binding_contract_integrity": False,
             "project_constraints_satisfied": False,
             "amendment_precedence_valid": True,
@@ -948,6 +999,7 @@ class DataCenterStackPlugin:
         result.update(
             {
                 "binding_contract_integrity": True,
+                "constraint_checks": _plain(stack.constraint_checks),
                 "project_constraints_satisfied": stack.negotiated_constraints_satisfied,
                 "amendment_precedence_valid": amendment_valid,
                 "developer_equity_npv_cents": stack.developer_equity_npv_cents,
