@@ -1,0 +1,6 @@
+{"case_id":"alympics.wac.reference_baseline","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.009523720000000001,"status":"operational_failure"}
+{"case_id":"alympics.wac.generous_supply","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.00260592,"status":"operational_failure"}
+{"case_id":"alympics.wac.scarce_supply","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.011304320000000001,"status":"operational_failure"}
+{"case_id":"alympics.wac.mixed_policies_a","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.01155652,"status":"operational_failure"}
+{"case_id":"alympics.wac.mixed_policies_a_seed2","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.0026015200000000004,"status":"operational_failure"}
+{"case_id":"alympics.wac.short_horizon","failure_condition":"length","failure_type":"SchedulerContractError","observed_successful_turn_cost_usd":0.0022979199999999997,"status":"operational_failure"}

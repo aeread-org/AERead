@@ -43,8 +43,16 @@ default_upstream_root() {
     walk="$(dirname "${walk}")"
   done
   if [ "${walk}" = "/" ]; then
-    echo "error: could not find an ancestor directory named 'AERead' above ${1}" >&2
-    return 1
+    # Desktop/saved-project checkouts may be renamed (for example ``AER``).
+    # In a real git checkout, the common-dir parent is the canonical main
+    # repository root for both an ordinary checkout and a linked worktree.
+    local git_common
+    if git_common="$(git -C "${1}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then
+      walk="$(dirname "${git_common}")"
+    else
+      echo "error: could not find the repository root above ${1}" >&2
+      return 1
+    fi
   fi
   echo "$(dirname "${walk}")/upstream-negarena"
 }
