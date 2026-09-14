@@ -22,6 +22,26 @@ most nine, so nine is the fixed-rule ceiling.
 | Qwen3-Next 80B instruct | 5 | 36 | $0.0832 |
 | Qwen3-Next 80B thinking | not measurable | 36 | $0.0859 |
 
+## How to check any of this yourself
+
+The classifier is `aeread_families.procurement_allocation.trajectory_analysis`,
+not a scratch script, so every number below is regenerable and every row is
+inspectable. Three resolutions:
+
+```
+python -m aeread_families.procurement_allocation.trajectory_analysis \
+    --runs runs/procurement_allocation                 # counts by stage
+    --worlds                                           # solved per world per subject
+    --table > rows.csv                                 # one line per trajectory
+    --episode <world> <seed>                           # one trajectory, rendered
+```
+
+The episode view is the one that earns its keep. It prints the supplier table the
+buyer actually faced, marks what it sampled and what those samples showed,
+reconstructed from the declared noise seed rather than from hidden truth, and
+marks what it awarded. Reading one changed this taxonomy: see the ignored
+evidence stage below.
+
 ## The stages a trajectory can fail at
 
 Five stages, in the order a trajectory passes through them. A row is classified
@@ -31,8 +51,12 @@ at the first one it fails.
 2. **no valid action** — a response could not be parsed into an action.
 3. **no award** — the episode ended without an award, by deferral or exhaustion.
 4. **bad award** — an award was made that the subject's own evidence contradicts.
-5. **search** — the award was the best of what it verified, but it never verified
-   anything adequate.
+5. **ignored evidence** — the awarded supplier was ruled out by its own formal
+   quote. On-time probability and capacity are both quoted, so a buyer that
+   quoted a supplier already held the answer and did not need to sample.
+6. **search** — the award was the best of what it verified, but it never verified
+   anything adequate. Only yield worlds can reach here, because yield is the one
+   risk a quote cannot settle.
 
 A sixth bucket, **other**, holds rows where every awarded supplier was adequate
 for the world's binding risk and the award still fell short. Adequacy is judged
@@ -46,14 +70,16 @@ fine on yield can be the wrong choice in a world where timing or capacity bites.
 | stage | mode | rows |
 |---|---|---:|
 | solved | | 22 |
-| search | stopped with budget unspent, never checked an adequate supplier | 7 |
+| ignored evidence | awarded a supplier its own quote ruled out | 3 |
+| search | never checked an adequate supplier | 4 |
 | no valid action | response could not be parsed | 5 |
 | never ran | model qualification failure | 1 |
 | no award | deferred deliberately | 1 |
 
-Every decision failure is the same mode. It never awarded a supplier it had not
-verified, never contradicted its own evidence, and never committed after a single
-draw. It looked in the wrong place and stopped. That is the only failure a
+It never awarded a supplier it had not verified and never committed after a
+single draw. Its failures split between looking in the wrong place and ignoring a
+quote it already held, and it is the only subject where search failures outnumber
+ignored evidence. That is the only failure a
 subject can have once its procedure is sound, and it is the failure the panel
 exists to measure.
 
@@ -62,8 +88,8 @@ exists to measure.
 | stage | mode | rows |
 |---|---|---:|
 | solved | | 34 |
-| search | spent the whole budget without finding an adequate supplier | 12 |
-| search | stopped with budget unspent, never checked an adequate supplier | 6 |
+| ignored evidence | awarded a supplier its own quote ruled out | 10 |
+| search | never checked an adequate supplier | 8 |
 | never ran | timeout | 12 |
 | other | every awarded supplier was adequate yet the award fell short | 4 |
 | bad award | awarded a supplier it never verified | 3 |
@@ -79,7 +105,8 @@ are counted apart from anything about the buyer.
 
 | stage | mode | rows |
 |---|---|---:|
-| search | stopped with budget unspent, never checked an adequate supplier | 15 |
+| ignored evidence | awarded a supplier its own quote ruled out | 11 |
+| search | never checked an adequate supplier | 4 |
 | solved | | 13 |
 | no award | budget exhausted before awarding | 4 |
 | bad award | awarded a supplier it never verified | 3 |
@@ -96,6 +123,30 @@ probing the route directly shows the model spending all 1800 on reasoning and
 returning empty content with `finish_reason: length`. On a short prompt the same
 endpoint returns clean JSON with its reasoning in a separate field, so neither the
 parser nor the model is at fault. See design-review defect 29.
+
+## The failure that dominates, and how it was found
+
+Splitting *ignored evidence* out of *search* changes the headline. Across the
+three measurable subjects, **24 of 41 decision failures awarded a supplier whose
+own quote had already ruled it out.**
+
+| subject | ignored evidence | failed search |
+|---|---:|---:|
+| GLM 5.3 Flash | 10 | 8 |
+| Qwen3-Next 80B instruct | 11 | 4 |
+| Gemini 3.8 Flash | 3 | 4 |
+
+These were one bucket until an episode was read by hand. Gemini on
+`lead_time_long_is_good__timing`: it quoted and sampled the two cheapest
+suppliers, saw yields of 1.000 and 0.875, and awarded both. The samples were
+fine. The world turned on delivery timing, and both awarded suppliers carried an
+on-time probability of 0.55 against 0.99 for the two it never looked at. That
+number was in the quotes it already held, and four actions were left unspent.
+
+So the dominant failure is not insufficient searching. It is reading one field of
+the evidence and ignoring another, in worlds deliberately built so that which
+field matters changes. A subject that sampled less and read its quotes would
+score better.
 
 ## The cut that explains the scoreboard
 
