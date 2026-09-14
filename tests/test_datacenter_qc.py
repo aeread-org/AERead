@@ -821,3 +821,82 @@ def test_an_invented_condition_precedent_is_an_illegal_action() -> None:
     assert plugin.legal(
         case, state, "developer", phase, {"decision": "offer", "message": "m", "terms": terms}
     ).legal
+
+
+def test_the_lender_requirement_sometimes_exceeds_market_convention() -> None:
+    """Discovery only pays if the conventional answer can fail.
+
+    The lender's security requirement was defined as six months of rent, which
+    is also the market convention, so proposing the standard lease cleared it
+    without learning anything. Take-or-pay could never bind either, since the
+    convention is 100 percent against a requirement of 85 to 95.
+    """
+    binding = 0
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        service = payload["policies"]["service"]["counter_terms"]
+        loan = payload["policies"]["loan"]["counter_terms"]
+        conventional_security = (
+            service["committed_capacity_kw"]
+            * service["monthly_capacity_charge_cents_per_kw"]
+            * 6
+        )
+        if conventional_security < loan["minimum_customer_credit_support_cents"]:
+            binding += 1
+            # And the tenant will post it once the developer knows to ask.
+            assert (
+                payload["policies"]["service"]["maximums"]["credit_support_cents"]
+                >= loan["minimum_customer_credit_support_cents"]
+            ), world["file"]
+    assert binding >= 12, f"only {binding} of 24 worlds punish the conventional lease"
+
+
+def test_the_presented_order_does_not_favour_one_answer() -> None:
+    """Listing the agreements in one fixed order baked in an answer.
+
+    Canonical order puts financing last, which is also the order that forgoes
+    learning the lender's terms, so the presented default was systematically
+    the worse choice and copying it could not be distinguished from reasoning.
+    Alphabetical would have been worse still: it puts the loan fourth and the
+    lease last, so a copier would score full marks by accident.
+    """
+    loan_first = 0
+    orders = set()
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        listing = payload["negotiation"]["presented_order"]
+        assert sorted(listing) == sorted(SEQUENCE), world["file"]
+        # Copying the listing must always be legal, or copiers are punished by
+        # an illegal action rather than by a worse deal.
+        assert listing.index("land") < listing.index("land_amendment"), world["file"]
+        orders.add(tuple(listing))
+        if listing.index("loan") < listing.index("service"):
+            loan_first += 1
+
+    assert len(orders) > 1, "a single presented order is a fixed answer"
+    assert 6 <= loan_first <= 18, (
+        f"the listing favours one answer: loan before lease in {loan_first} of 24"
+    )
+
+
+def test_the_suite_does_not_require_gitignored_artifacts() -> None:
+    """No test may fail merely because scratch run output is absent.
+
+    Twelve publication tests read the campaign run that produced the artifacts
+    they verify. Those runs are not committed, so on a clean checkout they
+    failed on a missing file rather than on anything being wrong, which
+    contradicted the family's own exit gate.
+    """
+    from pathlib import Path
+
+    tests_dir = Path(__file__).resolve().parent
+    guarded = [
+        path
+        for path in sorted(tests_dir.glob("test_datacenter_terms_*.py"))
+        if "_local_run_artifacts" in path.read_text(encoding="utf-8")
+    ]
+    assert len(guarded) >= 12, "the publication tests must declare their dependency"
+    for path in guarded:
+        body = path.read_text(encoding="utf-8")
+        assert "pytestmark = requires_run_artifacts(" in body, path.name
+        assert "DEFAULT_RUN_ROOT" in body, path.name

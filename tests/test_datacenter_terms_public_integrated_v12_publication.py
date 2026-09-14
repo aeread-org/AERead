@@ -10,6 +10,12 @@ from aeread_families.datacenter_development_terms.public_integrated_v12_publicat
 )
 
 
+from aeread_families.datacenter_development_terms.public_integrated_v12_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_0
+from tests._local_run_artifacts import requires_run_artifacts
+
+pytestmark = requires_run_artifacts(_RUN_ROOT_0)
+
+
 def _jsonl(path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text().splitlines()]
 

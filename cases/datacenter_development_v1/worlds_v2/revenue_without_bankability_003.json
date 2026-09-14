@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
-  "content_sha256": "cdf86380ac5afd7ef99e970953eeab5cb485aa6a99152447fbdc2bc329d01e2f",
+  "content_sha256": "4bdd60bbba1f4fc6c1a0724a76797cd7829aaddf76de6d07381eb5dbb65da52d",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -28,7 +28,15 @@
         "loan": 3,
         "power": 3,
         "service": 3
-      }
+      },
+      "presented_order": [
+        "land",
+        "loan",
+        "land_amendment",
+        "service",
+        "power",
+        "epc"
+      ]
     },
     "outside_option": {
       "customer_npv_cents": 0,
@@ -160,7 +168,7 @@
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 7525000000,
           "minimum_dscr_bps": 12500,
-          "minimum_take_or_pay_bps": 9500,
+          "minimum_take_or_pay_bps": 8500,
           "origination_fee_bps": 100,
           "spread_bps": 300,
           "unused_commitment_fee_bps_annual": 50
@@ -176,7 +184,7 @@
           "minimum_contracted_capacity_kw": 50000,
           "minimum_customer_credit_support_cents": 7525000000,
           "minimum_dscr_bps": 12500,
-          "minimum_take_or_pay_bps": 9500,
+          "minimum_take_or_pay_bps": 8500,
           "origination_fee_bps": 85,
           "spread_bps": 255,
           "unused_commitment_fee_bps_annual": 42
@@ -192,7 +200,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 40000,
+          "contracted_capacity_kw": 50000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -261,7 +269,7 @@
           "take_or_pay_bps": 10000
         },
         "maximums": {
-          "credit_support_cents": 7525000000,
+          "credit_support_cents": 12900000000,
           "customer_termination_fee_cents": 0,
           "delay_damages_cap_cents": 200000000,
           "delay_damages_cents_per_month": 50000000,
@@ -689,7 +697,7 @@
         "minimum_contracted_capacity_kw": 50000,
         "minimum_customer_credit_support_cents": 7525000000,
         "minimum_dscr_bps": 12500,
-        "minimum_take_or_pay_bps": 9500,
+        "minimum_take_or_pay_bps": 8500,
         "origination_fee_bps": 85,
         "spread_bps": 255,
         "unused_commitment_fee_bps_annual": 42

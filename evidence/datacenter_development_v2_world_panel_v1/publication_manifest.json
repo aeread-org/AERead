@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "7f35686fea4cea344e27dac5df9b14e6bd96bc7fb90cc06d2f22ff9200fd46b1",
+  "artifact_sha256": "86e4100a6fd94e533615bb27997d9d849c8e538792fbb074962f169f3bb84966",
   "campaign_id": "datacenter_development_v2_world_panel_v1",
   "design_sha256": "8a8f87489385a466b662ac164a98f48bcab727b5fd404c5ede895eb7140e9f00",
   "files": {
@@ -12,8 +12,8 @@
       "sha256": "e938234a868052c4ab213e02059c4e409d9849e687f6ea27d352a3c61e203f76"
     },
     "leaderboard.md": {
-      "bytes": 2056,
-      "sha256": "40837396ba68e0a0f6c1e8f62eec50cdacc947227bd744088d75078c52a7d0ab"
+      "bytes": 2176,
+      "sha256": "98a4eb3f26aa0937659cb14fe7331500b73c87f597c8064fd0502298a0bc3be5"
     },
     "provider_free_validation.json": {
       "bytes": 11537,

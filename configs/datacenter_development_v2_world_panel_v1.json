@@ -4,7 +4,7 @@
   "family_id": "datacenter_development_v1",
   "scope_version": "v2",
   "pack_id": "datacenter_development_v2_worlds_v1",
-  "expected_pack_sha256": "a5bb0ccc5f8aea67fda116fcd0ab40663f3052b3080957f84f280fc5ce83261d",
+  "expected_pack_sha256": "eecda1d7fba0e99f1e19d84b099c4f55252be5c96004a63bf2f80295c6d7467e",
   "claim_status": "twenty_four_world_controlled_developer_paired_panel_exploratory",
   "inference_seeds": [
     41211,

@@ -774,11 +774,27 @@ def _walked_away(row: Mapping[str, Any]) -> bool:
 
 
 def _economic_value(row: Mapping[str, Any]) -> float | None:
-    """Developer NPV for admitted stacks and no-agreement outcomes; else None."""
+    """What the developer walked away with, for every completed episode.
 
+    Dropping the cells a route failed on made the mean an average over
+    whatever subset it happened to succeed on, which is not comparable between
+    routes with different failure profiles: the leading route's headline was an
+    average over 7 of its 48 cells.
+
+    An executed stack that cannot stand up delivers no project, and its
+    simulated NPV is meaningless because the ledger credits operations that
+    cannot happen. The developer could always have walked instead, so it scores
+    the outside option it declined. That is generous, since it ignores what was
+    already committed, and it is the floor we can defend without inventing a
+    penalty. The difference between signing something unbuildable and declining
+    to sign shows up in the admission and no-deal rates, not here.
+    """
+
+    if row["status"] != "completed":
+        return None
     if _admitted(row) or _no_agreement(row):
         return float(row["outcome"]["developer_equity_npv_cents"])
-    return None
+    return float(row["outside_option_developer_equity_npv_cents"])
 
 
 def _mean(values: Sequence[float]) -> float | None:
@@ -833,6 +849,7 @@ def _model_summary(model_id: str, rows: Sequence[Mapping[str, Any]], planned: in
             sorted(Counter(str(row["outcome"]["termination_reason"]) for row in walked).items())
         ),
         "exclusion_rate": len(excluded) / planned,
+        "scored_cells": len(economic),
         "mean_developer_equity_npv_cents": _mean([_economic_value(row) for row in economic]),
         "mean_delta_from_baseline_cents": _mean(
             [
@@ -987,10 +1004,14 @@ def summarize(
             "within_declared_campaign_cost_ceiling": reported_cost
             <= float(contract["execution"]["campaign_max_cost_usd"]),
             "ranking_basis": (
-                "mean developer equity NPV over admitted stacks and declared walk-aways; "
-                "no-agreement episodes (walk, reject, rounds exhausted) score the declared "
-                "outside option; excluded cells (constraint, contract, temporal, or invalid-"
-                "action failures) are admission failures reported separately, not low scores"
+                "mean developer equity NPV over every completed episode. An "
+                "admitted stack scores what it earns; a no-agreement episode "
+                "and an executed stack that cannot stand up both score the "
+                "declared outside option, because neither delivers a project "
+                "and the developer could have walked. Operational failures are "
+                "typed missingness and are reported separately. Scoring only "
+                "the cells a route succeeded on would make the headline an "
+                "average over a self-selected subset"
             ),
             "model_summaries": model_summaries,
             "leaderboard": [
@@ -998,6 +1019,7 @@ def summarize(
                     "rank": index + 1,
                     "model_id": item["model_id"],
                     "mean_developer_equity_npv_cents": item["mean_developer_equity_npv_cents"],
+                    "scored_cells": item["scored_cells"],
                     "mean_delta_from_baseline_cents": item["mean_delta_from_baseline_cents"],
                     "admission_rate": item["admission_rate"],
                     "no_agreement_rate": item["no_agreement_rate"],
@@ -1040,6 +1062,9 @@ def render_leaderboard(summary: Mapping[str, Any]) -> str:
         f"${summary['reported_cost_usd']:.4f} ({summary['cost_qualifier']}).",
         "",
         f"Ranking basis: {summary['ranking_basis']}.",
+        "",
+        "Every completed episode is scored, so the mean is not an average over "
+        "whichever cells a route happened to finish well.",
         "",
         "| Rank | Model | Mean dev NPV ($) | Delta vs scripted ($) | Admitted | No deal | Excluded | Failures | Calls | In tok | Out tok | Cost ($) | Mean s |",
         "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",

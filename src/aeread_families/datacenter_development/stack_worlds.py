@@ -26,6 +26,7 @@ from .contracts import ContractSignature, execute_offer, make_offer
 from .stack_cashflow import simulate_development_stack
 from .stack_environment import (
     AGREEMENT_TYPE_BY_KEY,
+    ORDER_PREREQUISITES,
     COUNTERPART_BY_KEY,
     FAMILY_ID,
     SCOPE_CONFIG,
@@ -176,6 +177,10 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
     land_price = rng.choice((4_000_000_000, 5_000_000_000, 7_000_000_000))
     # Sunk predevelopment cost if the developer walks: $8M to $15M.
     sunk_cents = rng.choice((800_000_000, 1_100_000_000, 1_500_000_000))
+    # Months of rent the lender wants held as security. Six is the market
+    # convention, so a requirement above it cannot be met by proposing the
+    # standard lease: it has to be learned from the lender first.
+    security_months = rng.choice((6, 8, 9, 12))
     # The site is built for full capacity and the tenant takes all of it. A
     # smaller tenant was tried and rejected: the capex is fixed by the build, so
     # a partial lease is simply a worse world rather than a different decision.
@@ -287,7 +292,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "delay_damages_cents_per_month": 50_000_000,
             "delay_damages_cap_cents": 200_000_000,
             # Six months of rent as credit support.
-            "credit_support_cents": tenant_requirement * capacity_price * 6,
+            "credit_support_cents": tenant_requirement * capacity_price * security_months,
             "conditions_precedent": ["power_ready", "construction_complete"],
         },
         "loan": {
@@ -301,7 +306,9 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
             "draw_start_month": 3,
             "minimum_contracted_capacity_kw": tenant_requirement,
             "minimum_take_or_pay_bps": 9_000,
-            "minimum_customer_credit_support_cents": tenant_requirement * 18_500 * 6,
+            "minimum_customer_credit_support_cents": (
+                tenant_requirement * 18_500 * security_months
+            ),
             "minimum_dscr_bps": 12_500,
             "maximum_loan_to_cost_bps": 6_500,
             "maximum_loan_to_value_bps": 6_000,
@@ -322,6 +329,7 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
         "tenant_requirement_kw": tenant_requirement,
         "knobs": {
             "tenant_requirement_kw": tenant_requirement,
+            "security_months": security_months,
             "epc_price_cents": epc_price,
             "capacity_price_cents_per_kw": capacity_price,
             "demand_charge_cents_per_kw": demand_charge,
@@ -506,7 +514,12 @@ def _default_policies(
                     "monthly_capacity_charge_cents_per_kw"
                 ],
                 "take_or_pay_bps": 10_000,
-                "credit_support_cents": service["credit_support_cents"],
+                "credit_support_cents": max(
+                    service["credit_support_cents"],
+                    service["committed_capacity_kw"]
+                    * service["monthly_capacity_charge_cents_per_kw"]
+                    * 12,
+                ),
                 "delay_damages_cents_per_month": service[
                     "delay_damages_cents_per_month"
                 ],
@@ -1058,6 +1071,13 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
     # one early error the universal cause of death, so no trajectory ever
     # reached the mechanism its own stratum exists to test.
     world["undersized_quote"] = rng.choice((True, False))
+    listing = list(SEQUENCE)
+    rng.shuffle(listing)
+    for later, earlier in ORDER_PREREQUISITES.items():
+        if listing.index(later) < listing.index(earlier):
+            i, j = listing.index(later), listing.index(earlier)
+            listing[i], listing[j] = listing[j], listing[i]
+    world["presented_order"] = listing
     built = STRATUM_BUILDERS[stratum](world, rng)
     built["feasible"] = _drive_to_floor(built["feasible"], built["policies"])
     undisclosed = built.get("undisclosed_counter_fields", {})
@@ -1084,6 +1104,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "explanation": built["explanation"],
         "undisclosed_counter_fields": undisclosed,
         "lever": built.get("lever"),
+        "presented_order": world["presented_order"],
     }
     assembled["mechanism"] = _verify_world(assembled)
     return assembled
@@ -1101,6 +1122,11 @@ def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
         "negotiation": {
             "max_rounds": {key: MAX_ROUNDS for key in SEQUENCE},
             "developer_chooses_order": True,
+            # Shuffled per world. Listing the agreements in canonical order put
+            # financing last, which is also the order that forgoes learning the
+            # lender's terms, so the presented default was systematically the
+            # worse choice and copying it could not be told from reasoning.
+            "presented_order": world["presented_order"],
         },
         "policies": copy.deepcopy(world["policies"]),
         "scripted_developer": scripted,

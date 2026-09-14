@@ -281,6 +281,7 @@ KNOWN_DEFECTS = (
     },
     {
         "id": "primary-metric-is-survivorship-biased",
+        "status_note": "scoring now covers every completed episode",
         "summary": (
             "Mean developer NPV is averaged over admitted stacks and declared "
             "no-agreement episodes only; excluded cells are reported separately "
@@ -295,9 +296,16 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "reading the completed panel",
         "severity": "headline_number_not_comparable",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "every completed episode is scored: an executed stack that cannot "
+            "stand up takes the outside option it declined, rather than being "
+            "dropped from the mean"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_world_campaign.py::"
+            "test_every_completed_episode_is_scored"
+        ),
     },
     {
         "id": "bankability-threshold-never-binds",
@@ -314,9 +322,16 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "the sequencing diagnostic on the first full panel",
         "severity": "mechanism_does_not_bind",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "the lender's security requirement is drawn between six and twelve "
+            "months of rent, so in most worlds the conventional lease fails it "
+            "and the requirement has to be learned"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_lender_requirement_sometimes_exceeds_market_convention"
+        ),
     },
     {
         "id": "sequencing-anchored-by-presentation-order",
@@ -332,9 +347,16 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "first panel carrying the sequencing diagnostic",
         "severity": "confounds_a_reported_metric",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "the listing is shuffled per world, keeping land before its "
+            "amendment so copying stays legal, and the presented order is "
+            "recorded beside the declared one so anchoring is measured"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_presented_order_does_not_favour_one_answer"
+        ),
     },
     {
         "id": "suite-needs-gitignored-artifacts",
@@ -346,9 +368,16 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "running the suite in a fresh worktree",
         "severity": "blocks_clean_checkout",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "the twelve publication modules skip when their source run "
+            "artifacts are absent, with the reason named, instead of failing "
+            "on a missing file"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_suite_does_not_require_gitignored_artifacts"
+        ),
     },
 )
 
@@ -441,8 +470,15 @@ def build_register(
     *,
     runs_root: Path | str = REPOSITORY_ROOT / "runs",
     run_glob: str = DEFAULT_RUN_GLOB,
+    previous: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Collect every incident across every run of this campaign."""
+    """Collect every incident across every run of this campaign.
+
+    The register is append-only. `runs/` is scratch and gets cleaned, and
+    rebuilding purely from what survives would silently shrink the record every
+    time a machine tidied its temp directory. Incidents from runs no longer on
+    disk are carried forward from the committed register instead.
+    """
 
     root = Path(runs_root)
     incidents: list[dict[str, Any]] = []
@@ -470,6 +506,55 @@ def build_register(
                 "superseded": run_dir.name != DEFAULT_RUN_GLOB.rstrip("*"),
             }
         )
+    if previous:
+        # A panel run on a new design reuses the same directory name, so the
+        # record of the previous design would otherwise be overwritten by the
+        # one that replaced it. Carry it forward under an identity of its own.
+        present = {run["run_id"] for run in runs}
+        used = set(present)
+        renamed: dict[str, str] = {}
+        for run in previous.get("runs", ()):
+            original = run["run_id"]
+            carried_id = original
+            index = 1
+            while carried_id in used:
+                carried_id = f"{original}__superseded{index}"
+                index += 1
+            used.add(carried_id)
+            renamed[original] = carried_id
+            # Carried forward means no longer current, whatever it was when the
+            # previous register was written.
+            runs.append(
+                {
+                    **run,
+                    "run_id": carried_id,
+                    "superseded": True,
+                    "artifacts_retained": False,
+                }
+            )
+        # A sealed receipt identifies one execution, so the same incident read
+        # from disk and carried forward from the register is one incident, not
+        # two. Without this the merge is not idempotent and every rebuild
+        # inflates the record.
+        seen_receipts = {
+            (item.get("receipt_sha256"), item.get("cell_key"), item.get("attempt"))
+            for item in incidents
+        }
+        for item in previous.get("incidents", ()):
+            key = (
+                item.get("receipt_sha256"),
+                item.get("cell_key"),
+                item.get("attempt"),
+            )
+            if key in seen_receipts:
+                continue
+            seen_receipts.add(key)
+            incidents.append(
+                {**dict(item), "run_id": renamed.get(item["run_id"], item["run_id"])}
+            )
+        # Drop any carried-forward run that contributed nothing new.
+        contributing = {item["run_id"] for item in incidents}
+        runs = [run for run in runs if run["run_id"] in contributing]
     incidents.sort(
         key=lambda item: (item["run_id"], str(item["cell_key"]), str(item["attempt"]))
     )
@@ -593,11 +678,17 @@ def write_register(
     runs_root: Path | str = REPOSITORY_ROOT / "runs",
     register_path: Path | str = DEFAULT_REGISTER_PATH,
 ) -> dict[str, Any]:
-    register = build_register(runs_root=runs_root)
+    path = Path(register_path)
+    previous = load_register(path) if path.exists() else None
+    register = build_register(runs_root=runs_root, previous=previous)
+    if previous and register["total_incidents"] < previous["total_incidents"]:
+        raise ValueError(
+            "register would lose incidents: "
+            f"{previous['total_incidents']} -> {register['total_incidents']}"
+        )
     problems = check_register(register)
     if problems:
         raise ValueError("register failed its own checks: " + "; ".join(problems))
-    path = Path(register_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(register, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     path.with_suffix(".md").write_text(render_register(register), encoding="utf-8")

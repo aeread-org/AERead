@@ -471,6 +471,11 @@ class DataCenterStackPlugin:
             raise ValueError("scenario_id must be non-empty")
         ProjectFacts.from_dict(data["project_facts"])
         negotiation_fields = {"max_rounds"}
+        if "presented_order" in data["negotiation"]:
+            listing = data["negotiation"]["presented_order"]
+            if sorted(listing) != sorted(self.sequence):
+                raise ValueError("negotiation.presented_order must list every agreement")
+            negotiation_fields.add("presented_order")
         if "developer_chooses_order" in data["negotiation"]:
             if not isinstance(data["negotiation"]["developer_chooses_order"], bool):
                 raise ValueError("negotiation.developer_chooses_order must be a boolean")
@@ -667,7 +672,10 @@ class DataCenterStackPlugin:
                 "scenario_id": family_case["scenario_id"],
                 "phase_id": phase.phase_id,
                 "project_facts": self._public_facts(family_case),
-                "agreements_to_negotiate": list(self.sequence),
+                "agreements_to_negotiate": list(
+                    family_case["negotiation"].get("presented_order") or self.sequence
+                ),
+                "listing_order_carries_no_meaning": True,
                 "order_prerequisites": {
                     key: value
                     for key, value in ORDER_PREREQUISITES.items()
@@ -1046,9 +1054,12 @@ class DataCenterStackPlugin:
                 and service["credit_support_cents"]
                 >= loan["minimum_customer_credit_support_cents"]
             )
+        presented = list(family_case["negotiation"].get("presented_order") or ())
         return {
             "developer_chose_order": chooses_order(family_case),
             "order": order,
+            "presented_order": presented,
+            "followed_presented_order": (order == presented) if presented else None,
             "loan_before_service": (
                 position["loan"] < position["service"]
                 if "loan" in position and "service" in position

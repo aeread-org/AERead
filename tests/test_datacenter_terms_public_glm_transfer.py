@@ -26,6 +26,13 @@ from aeread_families.datacenter_development_terms.public_glm_transfer_publicatio
 from aeread_families.single_offer.runner import FixedResponseProvider
 
 
+from aeread_families.datacenter_development_terms.public_glm_transfer_campaign import DEFAULT_RUN_ROOT as _RUN_ROOT_0
+from aeread_families.datacenter_development_terms.public_glm_transfer_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_1
+from tests._local_run_artifacts import requires_run_artifacts
+
+pytestmark = requires_run_artifacts(_RUN_ROOT_0, _RUN_ROOT_1)
+
+
 def test_public_glm_transfer_contract_is_model_only_matched_and_bounded() -> None:
     contract = load_contract()
     design = build_design(contract)

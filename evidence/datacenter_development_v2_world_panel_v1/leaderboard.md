@@ -4,6 +4,8 @@ Claim status: `twenty_four_world_controlled_developer_paired_panel_exploratory`.
 
 Ranking basis: mean developer equity NPV over admitted stacks and declared walk-aways; no-agreement episodes (walk, reject, rounds exhausted) score the declared outside option; excluded cells (constraint, contract, temporal, or invalid-action failures) are admission failures reported separately, not low scores.
 
+Every completed episode is scored, so the mean is not an average over whichever cells a route happened to finish well.
+
 | Rank | Model | Mean dev NPV ($) | Delta vs scripted ($) | Admitted | No deal | Excluded | Failures | Calls | In tok | Out tok | Cost ($) | Mean s |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 

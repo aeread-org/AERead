@@ -44,6 +44,16 @@ from aeread_families.datacenter_development_terms.campaign import _route
 from aeread_families.single_offer.runner import FixedResponseProvider
 
 
+from aeread_families.datacenter_development_terms.campaign import DEFAULT_RUN_ROOT as _RUN_ROOT_0
+from aeread_families.datacenter_development_terms.grounded_campaign import DEFAULT_RUN_ROOT as _RUN_ROOT_1
+from aeread_families.datacenter_development_terms.grounded_glm_campaign import DEFAULT_RUN_ROOT as _RUN_ROOT_2
+from aeread_families.datacenter_development_terms.grounded_glm_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_3
+from aeread_families.datacenter_development_terms.grounded_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_4
+from tests._local_run_artifacts import requires_run_artifacts
+
+pytestmark = requires_run_artifacts(_RUN_ROOT_0, _RUN_ROOT_1, _RUN_ROOT_2, _RUN_ROOT_3, _RUN_ROOT_4)
+
+
 def test_grounded_pack_preserves_lineage_and_cluster_limits() -> None:
     manifest, records, catalog = load_authoring_records()
 

@@ -14,6 +14,12 @@ from aeread_families.datacenter_development_terms.public_integrated_v8_publicati
 )
 
 
+from aeread_families.datacenter_development_terms.public_integrated_v8_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_0
+from tests._local_run_artifacts import requires_run_artifacts
+
+pytestmark = requires_run_artifacts(_RUN_ROOT_0)
+
+
 def test_integrated_v8_publication_is_sealed_complete_and_sanitized() -> None:
     root = Path(__file__).resolve().parents[1]
     publication = root / "evidence/datacenter_development_terms_public_integrated_v8"

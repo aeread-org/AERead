@@ -224,7 +224,9 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
     pair = comparisons[("glm53_parasail", "qwen3_235b_google")]
     assert pair["admission_rate_difference"]["worlds"] == 24
     assert pair["admission_rate_difference"]["mean"] == pytest.approx(1.0)
-    assert pair["developer_equity_npv_difference_cents"]["worlds"] == 20
+    # Every completed episode is scored now, so every world yields a pair;
+    # previously the excluded cells were dropped and four worlds fell out.
+    assert pair["developer_equity_npv_difference_cents"]["worlds"] == 24
     assert pair["developer_equity_npv_difference_cents"]["mean"] > 0
 
     text = render_leaderboard(summary)
@@ -265,3 +267,58 @@ def test_a_retry_may_reuse_a_cell_directory_but_not_overwrite_a_live_one(tmp_pat
     (cell / "result.json").write_text(_json.dumps(done, indent=2, sort_keys=True) + "\n")
     assert archive_failed_attempt(cell) == 0
     assert (cell / "result.json").is_file()
+
+
+def test_every_completed_episode_is_scored() -> None:
+    """The mean must not be an average over a route's self-selected successes.
+
+    Dropping excluded cells made the headline incomparable between routes with
+    different failure profiles: a route that signed something unbuildable in
+    most cells was averaged over the few it finished well, and it led the table
+    on a figure computed from 7 of its 48 cells.
+    """
+    from aeread_families.datacenter_development.world_campaign import (
+        _economic_value,
+        build_design,
+        load_contract,
+        summarize,
+    )
+
+    contract = load_contract()
+    design = build_design(contract)
+    rows = []
+    for index, cell in enumerate(design["cells"]):
+        if cell["model_id"] == "gemini38_flash_aistudio":
+            rows.append(
+                _row(cell, npv=cell["scripted_baseline_developer_equity_npv_cents"])
+                if index == 0
+                else _row(cell, constraints=False, npv=10**12)
+            )
+        else:
+            rows.append(
+                _row(
+                    cell,
+                    reason="developer_walk",
+                    completed=False,
+                    npv=cell["outside_option_developer_equity_npv_cents"],
+                )
+            )
+
+    # A failed stack scores the walk-away it declined, not its fictional NPV.
+    failed = next(
+        r
+        for r in rows
+        if r["model_id"] == "gemini38_flash_aistudio"
+        and not r["outcome"]["project_constraints_satisfied"]
+    )
+    assert _economic_value(failed) == float(
+        failed["outside_option_developer_equity_npv_cents"]
+    )
+
+    summary = summarize(contract, design, rows)
+    for item in summary["model_summaries"]:
+        assert item["scored_cells"] == item["completed_cells"], item["model_id"]
+
+    by_model = {item["model_id"]: item for item in summary["model_summaries"]}
+    reckless = by_model["gemini38_flash_aistudio"]["mean_developer_equity_npv_cents"]
+    assert reckless is not None and reckless < 10**11

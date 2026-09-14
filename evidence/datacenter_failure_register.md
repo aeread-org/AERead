@@ -1,23 +1,32 @@
 # Data-center family failure register
 
-183 incidents across 192 cells in 1 runs of `datacenter_development_v2_world_panel_v1`.
+766 incidents across 768 cells in 9 runs of `datacenter_development_v2_world_panel_v1`.
 
 Attribution answers the question worth asking later: whose fault was it? Anything a model can trigger is the model's, never the provider's.
 
 | Attribution | As recorded | After reclassification |
 |---|---:|---:|
-| environment | 1 | 1 |
-| model | 141 | 141 |
-| negotiation | 7 | 7 |
-| provider | 34 | 34 |
+| budget | 5 | 7 |
+| environment | 11 | 9 |
+| model | 356 | 371 |
+| negotiation | 213 | 213 |
+| provider | 181 | 166 |
 
-0 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
+17 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
 
 ## Runs
 
 | Run | Cells | Incidents | Superseded |
 |---|---:|---:|---|
 | `datacenter_development_v2_world_panel_v1` | 192 | 183 | no |
+| `datacenter_development_v2_world_panel_v1__superseded1__superseded1` | 192 | 234 | yes |
+| `datacenter_development_v2_world_panel_v1_run3_partial_predegeneracy_fix_20260904` | 4 | 4 | yes |
+| `datacenter_development_v2_world_panel_v1_run4_phasegraph_bug_20260904` | 25 | 25 | yes |
+| `datacenter_development_v2_world_panel_v1_run5_precalibration_20260905` | 96 | 83 | yes |
+| `datacenter_development_v2_world_panel_v1_run6_preplanning_20260906` | 96 | 79 | yes |
+| `datacenter_development_v2_world_panel_v1_run7_action_budget_bug_20260906` | 33 | 32 | yes |
+| `datacenter_development_v2_world_panel_v1_run8_cost_cap_too_tight_20260906` | 34 | 34 | yes |
+| `datacenter_development_v2_world_panel_v1_run9_planning_only_20260907` | 96 | 92 | yes |
 
 ## Defects
 
@@ -34,9 +43,7 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | traps-unreachable-by-counter-adopters | strata_do_not_test_what_they_claim | fixed | `test_the_task_cannot_be_solved_without_cross_agreement_lookahead` |
 | planning-decoupled-from-negotiation | under-tests_declared_capability | fixed | `test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative` |
 | mechanisms-shipped-without-checking-they-bind | mechanism_does_not_bind | fixed | `test_no_world_survives_a_naive_strategy_or_an_inert_lever` |
-| primary-metric-is-survivorship-biased | headline_number_not_comparable | open | `none` |
-| bankability-threshold-never-binds | mechanism_does_not_bind | open | `none` |
-| sequencing-anchored-by-presentation-order | confounds_a_reported_metric | open | `none` |
-| suite-needs-gitignored-artifacts | blocks_clean_checkout | open | `none` |
-
-Open: primary-metric-is-survivorship-biased, bankability-threshold-never-binds, sequencing-anchored-by-presentation-order, suite-needs-gitignored-artifacts.
+| primary-metric-is-survivorship-biased | headline_number_not_comparable | fixed | `test_every_completed_episode_is_scored` |
+| bankability-threshold-never-binds | mechanism_does_not_bind | fixed | `test_the_lender_requirement_sometimes_exceeds_market_convention` |
+| sequencing-anchored-by-presentation-order | confounds_a_reported_metric | fixed | `test_the_presented_order_does_not_favour_one_answer` |
+| suite-needs-gitignored-artifacts | blocks_clean_checkout | fixed | `test_the_suite_does_not_require_gitignored_artifacts` |

@@ -37,6 +37,13 @@ from aeread_families.datacenter_development_terms.public_cases import load_publi
 from aeread_families.single_offer.runner import FixedResponseProvider
 
 
+from aeread_families.datacenter_development_terms.public_candidate_screen_campaign import DEFAULT_RUN_ROOT as _RUN_ROOT_0
+from aeread_families.datacenter_development_terms.public_candidate_screen_publication import DEFAULT_RUN_ROOT as _RUN_ROOT_1
+from tests._local_run_artifacts import requires_run_artifacts
+
+pytestmark = requires_run_artifacts(_RUN_ROOT_0, _RUN_ROOT_1)
+
+
 def test_candidate_screen_case_is_prompt_only_and_hides_oracle() -> None:
     base = load_public_cases(
         case_slugs=("linked-land-power-construction-underwriting",)
