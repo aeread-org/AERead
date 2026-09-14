@@ -1029,6 +1029,45 @@ times, with budget in hand. That is the behaviour defects 24 and 25 recorded
 before this panel existed, and it survives into a panel where checking one more
 supplier is affordable and decisive.
 
+## 29. A third subject, and a reasoning model the scaffold cannot measure
+
+Qwen3-Next 80B was run on the inference panel in both variants, same provider,
+same price, same quantization, two seeds a world.
+
+| subject | worlds solved of 18 | rows | cost |
+|---|---:|---:|---:|
+| Gemini 3.8 Flash | 11 | 35 | $0.5582 |
+| fixed-rule ceiling | 9 | — | — |
+| GLM 5.3 Flash | 8 | 60 | $0.1945 |
+| Qwen3-Next 80B instruct | 5 | 36 | $0.0832 |
+| Qwen3-Next 80B thinking | **not measurable** | 36 | $0.0859 |
+
+The instruct variant is a genuine third point and sits below every fixed rule,
+worse than verifying the cheapest listing first. Two of three subjects are below
+the ceiling a one-line heuristic reaches.
+
+**The thinking variant returned zero, and that number means nothing.** Thirty-five
+of its thirty-six rows ended on the first action with an unparseable response.
+The cause was established by probing the route directly rather than inferred: the
+plan caps output at 1800 tokens an action, and on a realistic prompt the model
+spends all 1800 on reasoning and returns empty content with `finish_reason:
+length`. On a trivial prompt the same endpoint returns clean JSON with its
+reasoning in a separate field, so the parser is not at fault and neither is the
+model. The scaffold simply does not budget for a model that thinks before it
+answers.
+
+That is a scaffold defect with a scope wider than this family. Any campaign
+comparing a reasoning model against a non-reasoning one under a shared output cap
+is measuring the cap. The cap is part of the frozen plan, so raising it is a new
+campaign identity rather than a settings change, and the honest reading of any
+existing cross-model comparison is that reasoning models were never eligible.
+
+**What the three measurable subjects now show.** A fixed rule takes nine. Two
+subjects sit at eight and five, below it, failing in the ways defect 28
+enumerates. One sits at eleven, above it. The spread is the useful part: the
+panel separates subjects from heuristics and from each other, which is what
+twelve earlier panels could not do at any price.
+
 ## Status of the fixes
 
 | defect | state |
@@ -1050,6 +1089,7 @@ supplier is affordable and decisive.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | superseded by 24, which shows the channel stays unread even when the prompt names the action and prices it; open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | **mechanism removed, effect unproven** — `interaction.sample_noise` makes verification imperfect so evidence accumulates; no panel has been built or screened on it, so the within-world interior is still undemonstrated |
+| 29 the scaffold cannot measure a reasoning model | open, and wider than this family; a 1800-token action cap is consumed by reasoning, so the subject returns empty content and scores zero for a reason that is not about the subject |
 | 28 failure taxonomy derived from trajectories | **available** — seven decision modes partitioned across 108 rows; GLM fails on process, Gemini fails on search, and both stop early with budget left |
 | 27 subjects now separate from fixed rules | **measured** — Gemini 3.8 Flash 11 of 18, above the fixed-rule ceiling of 9; GLM 5.3 Flash 8, below it ; the family now measures a subject rather than a panel |
 | 26 choosing whom to verify is now an inference | **built, unproven against a subject** — 18 worlds, six signals crossed with three unlabelled binding risks; all 18 separate two policies in expectation and no fixed rule wins more than half |
