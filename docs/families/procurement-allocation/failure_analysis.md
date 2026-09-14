@@ -42,6 +42,63 @@ reconstructed from the declared noise seed rather than from hidden truth, and
 marks what it awarded. Reading one changed this taxonomy: see the ignored
 evidence stage below.
 
+## The verifier at its edges
+
+Worth knowing before reading any score, because feasibility is a cliff rather
+than a slope. An award is checked line by line, and the checks are pinned in
+`tests/test_procurement_scorer_boundaries.py`.
+
+| award placed | result |
+|---|---|
+| exactly at capacity | accepted |
+| one unit above capacity | `over_capacity` |
+| one unit below the minimum order | `below_moq` and `invalid_order_step` |
+| off the order step | `invalid_order_step` |
+| on a supplier never quoted | `unknown_offer` |
+| covering one component of two | zero kits, `minimum_service_not_met` |
+
+**The service minimum is the edge that decides everything.** Completed kits are
+`floor(quantity x yield x on-time + 1e-12)`, taken as the minimum across
+components, and the award fails outright if that falls below the declared
+minimum. At 20 units and 0.99 on-time, reaching 18 kits needs a yield of exactly
+0.9090909091.
+
+| yield | expected units | kits | feasible |
+|---|---:|---:|---|
+| 0.9091000000 | 18.000180 | 18 | yes |
+| 0.9090909091 | 18.000000 | 18 | yes |
+| 0.9090909000 | 17.999999820 | 17 | no |
+| 0.9090000000 | 17.998200 | 17 | no |
+
+Nine ten-billionths of yield separate a feasible award from a $275 regret. The
+epsilon is load-bearing: removing it makes the exactly-on-threshold case round to
+seventeen kits and scores a feasible award as a failure. Both that and the
+threshold comparison are mutation-verified.
+
+An award that fails any check is **not executed**. The buyer is scored as if it
+had deferred, minus whatever it spent looking, so a failed award costs only its
+information spend rather than the goods.
+
+## A known-invalid output
+
+Not every row is a decision. A recorded Qwen3-Next thinking trajectory:
+
+```
+action_count          1
+termination_reason    invalid_action
+action_trace          [{'action': 'unparseable', 'status': 'agent_action_failure'}]
+violations            ['malformed_json']
+contribution_margin   0.0
+regret                272.44
+receipt_replayed      True
+```
+
+The parser could not turn the response into an action, the episode ended after
+one step, and the scorer still produced a number: margin zero, regret the whole
+upper bound. That number is about the scaffold, not the buyer. It is why the
+taxonomy gives parse failures their own stage and why design defect 29 treats
+this model as unmeasurable rather than as scoring zero.
+
 ## The stages a trajectory can fail at
 
 Five stages, in the order a trajectory passes through them. A row is classified
