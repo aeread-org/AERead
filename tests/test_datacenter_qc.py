@@ -23,6 +23,7 @@ import pytest
 from aeread_families.datacenter_development.cashflow import ProjectFacts, simulate_project
 from aeread_families.datacenter_development.stack_worlds import (
     CAPACITY_KW,
+    CONCESSION_CEILING_FIELDS,
     DEFAULT_OUTPUT_ROOT,
     HORIZON,
     evaluate_stack,
@@ -900,3 +901,78 @@ def test_the_suite_does_not_require_gitignored_artifacts() -> None:
         body = path.read_text(encoding="utf-8")
         assert "pytestmark = requires_run_artifacts(" in body, path.name
         assert "DEFAULT_RUN_ROOT" in body, path.name
+
+
+def test_the_concession_the_counterparty_asks_for_is_not_free() -> None:
+    """A concession that costs nothing to give is not a concession.
+
+    The power agreement advertises an integrative trade: better cash terms
+    bought with a later energisation date. It shipped with the utility's
+    ceiling sitting exactly at mechanical completion, where deferral is free
+    because construction was withholding those months anyway. The whole
+    admissible range was inside the free region, so the correct play was to
+    take the ceiling the counter message already named, worth a median $1.4M
+    against $400M to $700M of developer NPV. That measures reading, not
+    bargaining.
+    """
+
+    costly = 0
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        terms = _scripted(payload)
+        held = _evaluate(payload, terms)
+        for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+            for field in fields:
+                ceiling = payload["policies"][agreement_key]["maximums"][field]
+                assert terms[agreement_key][field] < ceiling, (
+                    f"{world['file']}: the scripted developer already sits at the "
+                    f"{agreement_key}.{field} ceiling, so there is nothing to decide"
+                )
+                conceded = copy.deepcopy(terms)
+                conceded[agreement_key] = {
+                    **conceded[agreement_key],
+                    field: ceiling,
+                }
+                outcome = _evaluate(payload, conceded)
+                assert (
+                    outcome["developer_equity_npv_cents"]
+                    < held["developer_equity_npv_cents"]
+                ), (
+                    f"{world['file']}: conceding {agreement_key}.{field} to the "
+                    "counterparty's ceiling costs the developer nothing"
+                )
+                costly += 1
+    assert costly == 24, f"only {costly} worlds priced the concession"
+
+
+def test_the_scripted_developer_concedes_exactly_as_far_as_it_is_free() -> None:
+    """The reference answer stops at the last free month, not at the ceiling.
+
+    This is the decision the trade is meant to require: the free point is set
+    by the developer's own construction date, which lives in a different
+    agreement, while the ceiling is handed to it in the counter message. One
+    more month must cost real money, or the developer was not obliged to know
+    its own schedule.
+    """
+
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        terms = _scripted(payload)
+        held = _evaluate(payload, terms)
+        for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+            for field in fields:
+                further = copy.deepcopy(terms)
+                further[agreement_key] = {
+                    **further[agreement_key],
+                    field: terms[agreement_key][field] + 1,
+                }
+                outcome = _evaluate(payload, further)
+                assert (
+                    not outcome["constraints_satisfied"]
+                    or outcome["developer_equity_npv_cents"]
+                    < held["developer_equity_npv_cents"]
+                ), (
+                    f"{world['file']}: one month past the scripted "
+                    f"{agreement_key}.{field} is still free, so the reference "
+                    "answer is not the last free month"
+                )

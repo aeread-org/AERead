@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-  "content_sha256": "2674c998f4bd0f53538a6637b1bd7ec8c366c9bd46f4d0c9ff0495d9cf3cce8a",
+  "content_sha256": "3e584684bfa448140cfcc302c3e3697c14740bf31146ea768076df5157aea300",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 909650182,
-      "developer_equity_npv_cents": 66158028368,
-      "lender_npv_cents": 230742552,
-      "total_project_npv_cents": 67298421102
+      "developer_equity_npv_cents": 66336671569,
+      "lender_npv_cents": 231724981,
+      "total_project_npv_cents": 67478046732
     },
     "negotiation": {
       "developer_chooses_order": true,
@@ -214,7 +214,7 @@
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
-          "energization_month": 24,
+          "energization_month": 30,
           "energy_charge_cents_per_kwh": 7,
           "interconnection_cost_cents": 2000000000,
           "monthly_demand_charge_cents_per_kw": 1400
@@ -236,7 +236,7 @@
           },
           "reservation": 0,
           "weights": {
-            "energization_month": 218250000,
+            "energization_month": 72750000,
             "interconnection_cost_cents": 1,
             "monthly_demand_charge_cents_per_kw": 650000
           }
@@ -711,7 +711,7 @@
         "delay_liquidated_damages_cap_cents": 1000000000,
         "delay_liquidated_damages_cents_per_month": 200000000,
         "developer_security_cents": 20000000,
-        "energization_month": 24,
+        "energization_month": 28,
         "energy_charge_cents_per_kwh": 7,
         "initial_term_months": 180,
         "interconnection_cost_cents": 1700000000,

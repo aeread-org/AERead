@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
-  "content_sha256": "7d597cfebe517032a4dba9113176e20c6f02777ce6416c681955c3b42d7e7100",
+  "content_sha256": "eb2722d53e95b0fd39482829d756531120eed6de3f1d939747996cd87bc38bfd",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -214,7 +214,7 @@
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
-          "energization_month": 29,
+          "energization_month": 31,
           "energy_charge_cents_per_kwh": 7,
           "interconnection_cost_cents": 2000000000,
           "monthly_demand_charge_cents_per_kw": 1400

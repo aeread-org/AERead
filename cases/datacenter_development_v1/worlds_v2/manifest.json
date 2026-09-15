@@ -1,7 +1,7 @@
 {
-  "artifact_sha256": "eecda1d7fba0e99f1e19d84b099c4f55252be5c96004a63bf2f80295c6d7467e",
+  "artifact_sha256": "a9cf905a0b6f4b76fb2d77f8a1ad9342ec8fe2cbb8aa2684afb5aab34033a497",
   "generator_id": "datacenter_v2_world_generator",
-  "generator_sha256": "5e951ad065d69060f86117afe8c2ef78c055b81a5042b2d65a39c4a3edbd4549",
+  "generator_sha256": "afaa20ede897952397286fb4d5f167ffb64099908f74ebc44ff70498a47c2abf",
   "generator_version": "1.0.0",
   "master_seed": 20260903,
   "pack_id": "datacenter_development_v2_worlds_v1",
@@ -20,7 +20,7 @@
   "worlds": [
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-      "content_sha256": "49db523340005c590fbde6a9b2e22d7f83dfb00f2916013457a3158f32ed838d",
+      "content_sha256": "f7b8c1c71b24d9e1403130902c32f031bdb4b917ebd74ee52b2e3484a67cdbe5",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_001.json",
       "knobs": {
@@ -62,17 +62,17 @@
         },
         "expected_failure": "loan_never_funds",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 66836732803,
+          "developer_equity_npv_cents": 66875380502,
           "financing_succeeded": true,
-          "lender_npv_cents": 248447503,
+          "lender_npv_cents": 248689075,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 68310338044
+          "total_project_npv_cents": 68349227315
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -87,7 +87,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
-      "content_sha256": "623e9a191a93199e948fc2989705e67f94f0a27ae2defac7ea2f38af60b35964",
+      "content_sha256": "5cb858905b9604c9ae5f1b44b596616cf414c0c14ccc48f20eabc2424b71595b",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_002.json",
       "knobs": {
@@ -129,17 +129,17 @@
         },
         "expected_failure": "loan_never_funds",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 58394595707,
+          "developer_equity_npv_cents": 58433243406,
           "financing_succeeded": true,
-          "lender_npv_cents": 271214349,
+          "lender_npv_cents": 271455921,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 59890967794
+          "total_project_npv_cents": 59929857065
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -154,7 +154,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
-      "content_sha256": "4bdd60bbba1f4fc6c1a0724a76797cd7829aaddf76de6d07381eb5dbb65da52d",
+      "content_sha256": "b0704cc724531d316c5853b522ce82ff4b3f0a5273feb3d87ad8095640f12748",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_003.json",
       "knobs": {
@@ -196,17 +196,17 @@
         },
         "expected_failure": "loan_never_funds",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 69443867609,
+          "developer_equity_npv_cents": 69488956592,
           "financing_succeeded": true,
-          "lender_npv_cents": 288401470,
+          "lender_npv_cents": 288683304,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 70957426817
+          "total_project_npv_cents": 71002797634
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -221,7 +221,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
-      "content_sha256": "0173d336bbe8420ab4b310719aec9d034f95135a50ca519283cf807f0ce39319",
+      "content_sha256": "ce757b3f7c360e3fe93bba8e634cdcbd5410e4aec4447959312b7085815cbb46",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_004.json",
       "knobs": {
@@ -263,17 +263,17 @@
         },
         "expected_failure": "loan_never_funds",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 51090108605,
+          "developer_equity_npv_cents": 51135197588,
           "financing_succeeded": true,
-          "lender_npv_cents": 178404414,
+          "lender_npv_cents": 178686247,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 52493670757
+          "total_project_npv_cents": 52539041573
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -288,7 +288,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
-      "content_sha256": "8731c0e2760d2a95822123d8b09096da5546a1bb6fb19b7c2fe9a275f25be62b",
+      "content_sha256": "16a0dcc6e92a2467e1454fa0dcac757e113cd05d3134761c0bbc3ea3d4fb2d41",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_001.json",
       "knobs": {
@@ -355,7 +355,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
-      "content_sha256": "639c383dad9f09cba6e3b52f6ab8316df204a6825ceff1b2eadf2f2636ad1005",
+      "content_sha256": "74870e4515779163a1361d1456fd3ece2fe2e4ab10c40dec8e9da4d243ac662e",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_002.json",
       "knobs": {
@@ -422,7 +422,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
-      "content_sha256": "7d597cfebe517032a4dba9113176e20c6f02777ce6416c681955c3b42d7e7100",
+      "content_sha256": "eb2722d53e95b0fd39482829d756531120eed6de3f1d939747996cd87bc38bfd",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_003.json",
       "knobs": {
@@ -489,7 +489,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
-      "content_sha256": "8b004ee4c5e77b1a65475d79f088193986f2c7b3352e9da832f82b9015abca90",
+      "content_sha256": "323ffa6b4b7dc964f63ae867fea57f5886198f2521a98b3a3f5abe809ddad6c8",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_004.json",
       "knobs": {
@@ -556,7 +556,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
-      "content_sha256": "ac74c14339a984c7bbeaee04984831a7d2099b256172ab389c51a49deccda442",
+      "content_sha256": "a525fffdc8a9948b9716f346d1b65e38c356503ce2338e965960cc1000f620e7",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_001.json",
       "knobs": {
@@ -599,17 +599,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 52902262252,
+          "developer_equity_npv_cents": 52940909951,
           "financing_succeeded": true,
-          "lender_npv_cents": 264092086,
+          "lender_npv_cents": 264333658,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 54391512076
+          "total_project_npv_cents": 54430401347
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -624,7 +624,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-      "content_sha256": "604ca16dfbcecf0e7f381f4b7e292822efe6de593109716105abf3bd02c4112f",
+      "content_sha256": "ec32329f50cc12e1580763dcfc1965a9ef1b21d1dc1fa882953251f9432b1d89",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_002.json",
       "knobs": {
@@ -667,17 +667,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 41575306511,
+          "developer_equity_npv_cents": 41607512927,
           "financing_succeeded": true,
-          "lender_npv_cents": 237542422,
+          "lender_npv_cents": 237743731,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 43038006671
+          "total_project_npv_cents": 43070414396
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -692,7 +692,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
-      "content_sha256": "4c6a0d3513eb27993100ba128e168fa2ecc07a68fbbb40860cd99a85ad25091e",
+      "content_sha256": "679e83f3fc0b5df4c904741bd6d21afc0f57ab431c11c9315442dd1c82e850bb",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_003.json",
       "knobs": {
@@ -735,17 +735,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 68394721298,
+          "developer_equity_npv_cents": 68439810281,
           "financing_succeeded": true,
-          "lender_npv_cents": 431317662,
+          "lender_npv_cents": 431599495,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 70051196698
+          "total_project_npv_cents": 70096567514
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -760,7 +760,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
-      "content_sha256": "f6af6eefb32016bb15a2140919ab46eeb753153d1fed16e5788199b569a70041",
+      "content_sha256": "9026ac62ccaa47e62ccfe0d9a097c4fee00d9e2e728bce0135b1511a700dac82",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_004.json",
       "knobs": {
@@ -803,17 +803,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 55633704048,
+          "developer_equity_npv_cents": 55665910464,
           "financing_succeeded": true,
-          "lender_npv_cents": 387580862,
+          "lender_npv_cents": 387782171,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 57246442648
+          "total_project_npv_cents": 57278850373
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -828,7 +828,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
-      "content_sha256": "ff2fac45867e78c647f5a3f645161c72a47177c43d480d860e17e586b25cba63",
+      "content_sha256": "fcfe685fd1c73f4a99d2b7cb58ceb0e9e94ad8db40b318caedde7b222e926f89",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_001.json",
       "knobs": {
@@ -871,17 +871,17 @@
         },
         "expected_failure": "minimum_dscr_breach",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1015514309,
           "default_reasons": [],
-          "developer_equity_npv_cents": 40619524155,
+          "developer_equity_npv_cents": 40651730571,
           "financing_succeeded": true,
-          "lender_npv_cents": 178922241,
+          "lender_npv_cents": 179123550,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 41813960705
+          "total_project_npv_cents": 41846368430
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -896,7 +896,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-      "content_sha256": "a40423fde80771b0d047bb5160ce81d68b2619c5888cd0619e8f484bad1604d3",
+      "content_sha256": "3c1af6b693b125e1b8e4cf42edcd63ea92279a2ea64fae7d8b4e3e6a74ea8809",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_002.json",
       "knobs": {
@@ -939,17 +939,17 @@
         },
         "expected_failure": "minimum_dscr_breach",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1015514309,
           "default_reasons": [],
-          "developer_equity_npv_cents": 47547125612,
+          "developer_equity_npv_cents": 47592214595,
           "financing_succeeded": true,
-          "lender_npv_cents": 270955432,
+          "lender_npv_cents": 271237266,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 48833595353
+          "total_project_npv_cents": 48878966170
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -964,7 +964,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
-      "content_sha256": "44a0e0d2f24e212ad9cdb4ccf6f31caa98be50b6dd85c3e52c32cc873187d991",
+      "content_sha256": "3fb83fecc36e753bc6d7939871cdbf0800b013eb975564e9560e7756bd9070a2",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_003.json",
       "knobs": {
@@ -1007,17 +1007,17 @@
         },
         "expected_failure": "minimum_dscr_breach",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1015514309,
           "default_reasons": [],
-          "developer_equity_npv_cents": 43007840419,
+          "developer_equity_npv_cents": 43052929402,
           "financing_succeeded": true,
-          "lender_npv_cents": 218617294,
+          "lender_npv_cents": 218899128,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 44241972022
+          "total_project_npv_cents": 44287342839
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1032,7 +1032,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
-      "content_sha256": "6cbde4825c447a32f369a634f8ce29bb178e223223abe4d4bfc84b9374e61395",
+      "content_sha256": "7f5e0785532e5a314bbda728431f5da6522b14d211d714aa51c108f9ca10a02c",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_004.json",
       "knobs": {
@@ -1075,17 +1075,17 @@
         },
         "expected_failure": "minimum_dscr_breach",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1015514309,
           "default_reasons": [],
-          "developer_equity_npv_cents": 47547125612,
+          "developer_equity_npv_cents": 47592214595,
           "financing_succeeded": true,
-          "lender_npv_cents": 270955432,
+          "lender_npv_cents": 271237266,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 48833595353
+          "total_project_npv_cents": 48878966170
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1100,7 +1100,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-      "content_sha256": "2674c998f4bd0f53538a6637b1bd7ec8c366c9bd46f4d0c9ff0495d9cf3cce8a",
+      "content_sha256": "3e584684bfa448140cfcc302c3e3697c14740bf31146ea768076df5157aea300",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_001.json",
       "knobs": {
@@ -1146,13 +1146,13 @@
           "constraints_satisfied": true,
           "customer_npv_cents": 909650182,
           "default_reasons": [],
-          "developer_equity_npv_cents": 66158028368,
+          "developer_equity_npv_cents": 66336671569,
           "financing_succeeded": true,
-          "lender_npv_cents": 230742552,
+          "lender_npv_cents": 231724981,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 67298421102
+          "total_project_npv_cents": 67478046732
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1167,7 +1167,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
-      "content_sha256": "ef8a3572dba35ae197a1d5d64a7a6610a45129be50bbaf9bb98db280b10aba9f",
+      "content_sha256": "d8d1e9550a26ed432b8ddb13d1725657a92a0fc6854f390f2f62e5d6ce1d4e65",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_002.json",
       "knobs": {
@@ -1213,13 +1213,13 @@
           "constraints_satisfied": true,
           "customer_npv_cents": 909650182,
           "default_reasons": [],
-          "developer_equity_npv_cents": 59388430413,
+          "developer_equity_npv_cents": 59567073614,
           "financing_succeeded": true,
-          "lender_npv_cents": 270955432,
+          "lender_npv_cents": 271937862,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 60569036027
+          "total_project_npv_cents": 60748661658
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1234,7 +1234,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
-      "content_sha256": "882038de6beda40e6e0d189a9caaa5b1c5e07cea65af8a0a9575aa5466d4bfe3",
+      "content_sha256": "0cc7f39f562d0e8c45e759cb93bb37ab0b8bb2debb805fffa1f1b17ede1ef012",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_003.json",
       "knobs": {
@@ -1280,13 +1280,13 @@
           "constraints_satisfied": true,
           "customer_npv_cents": 909650182,
           "default_reasons": [],
-          "developer_equity_npv_cents": 58262080615,
+          "developer_equity_npv_cents": 58389682903,
           "financing_succeeded": true,
-          "lender_npv_cents": 248706414,
+          "lender_npv_cents": 249408148,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 59420437211
+          "total_project_npv_cents": 59548741233
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1301,7 +1301,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
-      "content_sha256": "d99420bf7f35d56ec91187169e32342a63d95d68303fcaafe3794c94378f82ff",
+      "content_sha256": "3ecfeca39a1a2148bcd6e83733f127cb03d3748f408fc2cb46956605b96fcf9c",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_004.json",
       "knobs": {
@@ -1347,13 +1347,13 @@
           "constraints_satisfied": true,
           "customer_npv_cents": 909650182,
           "default_reasons": [],
-          "developer_equity_npv_cents": 70248990476,
+          "developer_equity_npv_cents": 70427633679,
           "financing_succeeded": true,
-          "lender_npv_cents": 288401470,
+          "lender_npv_cents": 289383897,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 71447042128
+          "total_project_npv_cents": 71626667758
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1368,7 +1368,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
-      "content_sha256": "34673eb6074d025caaded236a8108ce74ebc6299f04ed7cea264d5d51ab7ac07",
+      "content_sha256": "243b9348e4ba6a36fd30ebd92689318aa676460ef87ba7a1704150b3418fc8c9",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_001.json",
       "knobs": {
@@ -1410,17 +1410,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 49260398575,
+          "developer_equity_npv_cents": 49305487558,
           "financing_succeeded": true,
-          "lender_npv_cents": 333617360,
+          "lender_npv_cents": 333899194,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 50819173673
+          "total_project_npv_cents": 50864544490
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1435,7 +1435,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
-      "content_sha256": "3026de2825b4a8b23677c0342a4dd9dc900eeebe8ee2553b204528baee5a3432",
+      "content_sha256": "0ab6ad329d95c709baa68689cadc66aed27f2613e4ddca67a53e972e2e86fa57",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_002.json",
       "knobs": {
@@ -1477,17 +1477,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 47747303513,
+          "developer_equity_npv_cents": 47792392495,
           "financing_succeeded": true,
-          "lender_npv_cents": 316171312,
+          "lender_npv_cents": 316453146,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 49288632563
+          "total_project_npv_cents": 49334003379
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1502,7 +1502,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
-      "content_sha256": "de5d50d2a77474389c9fbb2794d4bef7f4637dfc6c74e98af5bd19b9c5c6f135",
+      "content_sha256": "d561f696e5bb6a17d6faf0060451e980d44b9cb48aedbeb067185dda30415ee4",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_003.json",
       "knobs": {
@@ -1544,17 +1544,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 62404310115,
+          "developer_equity_npv_cents": 62436516531,
           "financing_succeeded": true,
-          "lender_npv_cents": 459751601,
+          "lender_npv_cents": 459952912,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 64089219454
+          "total_project_npv_cents": 64121627181
         },
         "walk_away": {
           "customer_npv_cents": 0,
@@ -1569,7 +1569,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
-      "content_sha256": "c7a7d1f6f5d7ac187747784a88f4f29e0d0676861bf6a44f7bfa082e5110c35b",
+      "content_sha256": "d8f4e387033ef2d20b5487aa651a18139e89b881b39e73c31208b395f06d4ac4",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_004.json",
       "knobs": {
@@ -1611,17 +1611,17 @@
         },
         "expected_failure": "funding_shortfall",
         "feasible_path": {
-          "cod_month": 24,
+          "cod_month": 25,
           "constraints_satisfied": true,
           "customer_npv_cents": 1225157738,
           "default_reasons": [],
-          "developer_equity_npv_cents": 50042625515,
+          "developer_equity_npv_cents": 50081273214,
           "financing_succeeded": true,
-          "lender_npv_cents": 542681167,
+          "lender_npv_cents": 542922739,
           "loan_conditions_satisfied_month": 4,
           "minimum_dscr_bps": 0,
           "site_control_valid_through_cod": true,
-          "total_project_npv_cents": 51810464420
+          "total_project_npv_cents": 51849353691
         },
         "walk_away": {
           "customer_npv_cents": 0,

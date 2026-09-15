@@ -51,6 +51,13 @@ MAX_ROUNDS = 3
 # reopened, accepting its smaller, cheaper package is an irreversible planning
 # error that only surfaces when the tenant asks for full capacity.
 UNDERSIZED_CAPACITY_BPS = 8_000
+# Months of energisation deferral the utility will accept beyond mechanical
+# completion. They exist so the counterparty's stated ceiling is not the
+# developer's best answer: up to completion the deferral is free, past it every
+# month delays revenue. Without them the trade is a free option rather than a
+# concession, and "capture the trade" collapses into "take what you are
+# offered".
+PAID_DEFERRAL_MONTHS = 2
 
 
 def _undersized_capacity() -> int:
@@ -450,11 +457,16 @@ def _default_policies(
                 ),
             },
             "maximums": {
-                # Energisation may slip as far as mechanical completion. Beyond
-                # that it delays operations and destroys value; up to it the
-                # developer gives up nothing that construction was not already
-                # withholding, which is what makes it tradeable.
-                "energization_month": epc["guaranteed_completion_month"],
+                # A starting ceiling, replaced by `_price_the_concession`
+                # once the realised operations date is known. Both put it past
+                # the point the concession is free: up to that date the
+                # developer gives up nothing construction was not already
+                # withholding, past it every month delays operations. The
+                # utility will happily take the extra months, so the ceiling it
+                # quotes is never the developer's answer.
+                "energization_month": (
+                    epc["guaranteed_completion_month"] + PAID_DEFERRAL_MONTHS
+                ),
                 "interconnection_cost_cents": power["interconnection_cost_cents"],
                 "monthly_demand_charge_cents_per_kw": power[
                     "monthly_demand_charge_cents_per_kw"
@@ -947,6 +959,45 @@ def solved_by_naive_strategy(
     return None
 
 
+def concession_is_free(
+    facts: Mapping[str, Any],
+    terms: Mapping[str, Any],
+    policies: Mapping[str, Any],
+) -> str | None:
+    """Name a declared concession that costs the developer nothing to give.
+
+    The power agreement advertises an integrative trade: better cash terms
+    bought with a later energisation date. That is only a trade if the later
+    date costs something. It shipped priced so that the utility's ceiling sat
+    exactly at mechanical completion, where deferral is free, so the whole
+    "trade" was a free option and the correct play was to take the ceiling the
+    counter message already named. A concession nobody pays for is not a
+    concession, and capturing it measures reading, not bargaining.
+    """
+
+    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+        maximums = policies[agreement_key]["maximums"]
+        for field in fields:
+            if field not in maximums:
+                continue
+            candidate = copy.deepcopy(dict(terms))
+            candidate[agreement_key] = {
+                **candidate[agreement_key],
+                field: maximums[field],
+            }
+            try:
+                conceded = evaluate_stack(facts, candidate)
+                held = evaluate_stack(facts, terms)
+            except Exception:
+                continue
+            if conceded["constraints_satisfied"] and (
+                conceded["developer_equity_npv_cents"]
+                >= held["developer_equity_npv_cents"]
+            ):
+                return f"{agreement_key}.{field}"
+    return None
+
+
 def lever_is_inert(
     facts: Mapping[str, Any], terms: Mapping[str, Any], lever: Mapping[str, Any]
 ) -> bool:
@@ -1002,6 +1053,9 @@ def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             f"declared lever {lever['agreement']}.{lever['field']} changes nothing"
         )
+    free = concession_is_free(facts, world["feasible"], policies)
+    if free is not None:
+        raise ValueError(f"the concession {free} costs the developer nothing")
     if not feasible["constraints_satisfied"] or not feasible["financing_succeeded"]:
         raise ValueError(f"feasible path fails admission: {feasible}")
     if feasible["developer_equity_npv_cents"] <= outside["developer_equity_npv_cents"]:
@@ -1023,7 +1077,11 @@ def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# Terms the developer concedes to the counterparty's ceiling in exchange.
+# Terms the developer concedes to the counterparty in exchange for better cash
+# terms. Each is priced against commercial operation: conceding up to the date
+# the project can actually operate is free, and every month past it delays
+# revenue. `_price_the_concession` puts the counterparty's ceiling past that
+# date on purpose, so the ceiling it quotes is never the developer's answer.
 CONCESSION_CEILING_FIELDS = {"power": ("energization_month",)}
 NEGOTIABLE_FLOOR_FIELDS = {
     "power": ("interconnection_cost_cents", "monthly_demand_charge_cents_per_kw"),
@@ -1043,11 +1101,9 @@ def _drive_to_floor(
         for field in fields:
             if field in minimums:
                 driven[agreement_key][field] = minimums[field]
-    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
-        maximums = policies[agreement_key]["maximums"]
-        for field in fields:
-            if field in maximums:
-                driven[agreement_key][field] = maximums[field]
+    # The concession fields are deliberately not driven here. Their ceiling now
+    # sits past the point the concession is free, so driving to it destroys the
+    # project; `_price_the_concession` finds the last free month instead.
     if "payment_schedule" in driven["epc"]:
         price = driven["epc"]["contract_price_cents"]
         half = price // 2
@@ -1059,6 +1115,75 @@ def _drive_to_floor(
             },
         ]
     return driven
+
+
+def _price_the_concession(
+    facts: Mapping[str, Any],
+    terms: dict[str, dict[str, Any]],
+    policies: dict[str, Any],
+) -> None:
+    """Make the concession cost something, and put the ceiling past its worth.
+
+    The power agreement advertises an integrative trade: the utility's cash
+    floors bought with a later energisation date. It shipped with the ceiling
+    sitting exactly at mechanical completion, where deferral is free because
+    construction was withholding those months anyway, so the whole admissible
+    range was inside the free region and the correct play was to take the
+    ceiling the counter message already named.
+
+    Priced properly the developer has a real decision. Deferral is valued so
+    the cash floors become affordable at exactly the month that maximises
+    developer NPV: earlier and the utility refuses, later and the developer
+    pays the utility for months it needed. Where that month sits depends on
+    the construction schedule, which lives in a different agreement, while the
+    ceiling is handed over in the counter message.
+    """
+
+    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+        specification = policies[agreement_key].get("utility")
+        for field in fields:
+            if field not in policies[agreement_key]["maximums"]:
+                continue
+            if specification is None:
+                continue
+            weights = specification["weights"]
+            reference = int(specification["reference"][field])
+            floors = {
+                term: int(minimum)
+                for term, minimum in policies[agreement_key]["minimums"].items()
+                if term in weights and term != field
+            }
+            cash_concession = sum(
+                int(weights[term]) * (int(specification["reference"][term]) - floor)
+                for term, floor in floors.items()
+            )
+            best: tuple[int, int] | None = None
+            for months in range(1, HORIZON - reference + 1):
+                trial = copy.deepcopy(terms)
+                trial[agreement_key] = {
+                    **trial[agreement_key],
+                    **floors,
+                    field: reference + months,
+                }
+                try:
+                    outcome = evaluate_stack(facts, trial)
+                except Exception:
+                    break
+                if not outcome["constraints_satisfied"]:
+                    break
+                value = int(outcome["developer_equity_npv_cents"])
+                if best is None or value > best[0]:
+                    best = (value, months)
+            if best is None:
+                raise ValueError(f"no admissible {agreement_key}.{field} concession")
+            months = best[1]
+            terms[agreement_key].update(floors)
+            terms[agreement_key][field] = reference + months
+            weights[field] = -(-cash_concession // months)
+            specification["reservation"] = 0
+            policies[agreement_key]["maximums"][field] = (
+                reference + months + PAID_DEFERRAL_MONTHS
+            )
 
 
 def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any]:
@@ -1080,6 +1205,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
     world["presented_order"] = listing
     built = STRATUM_BUILDERS[stratum](world, rng)
     built["feasible"] = _drive_to_floor(built["feasible"], built["policies"])
+    _price_the_concession(world["facts"], built["feasible"], built["policies"])
     undisclosed = built.get("undisclosed_counter_fields", {})
     outside_option = {
         "developer_equity_npv_cents": -base["sunk_cents"],
