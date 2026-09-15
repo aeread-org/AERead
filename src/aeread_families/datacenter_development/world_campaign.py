@@ -1139,6 +1139,16 @@ def publish(
     target = Path(publication_root)
     design = _read_sealed(root / "design.json")
     summary = _read_sealed(root / "live" / "summary.json")
+    # The summary records the design it was computed against. If that is not
+    # the design sitting in the same run directory, the two were produced under
+    # different code and the bundle cannot be both faithful to the run and
+    # internally consistent. Publishing either way hides that, so refuse.
+    if summary["design_sha256"] != design["artifact_sha256"]:
+        raise ValueError(
+            "run is internally inconsistent: the summary references design "
+            f"{summary['design_sha256'][:16]} but the run holds "
+            f"{design['artifact_sha256'][:16]}; re-run the panel"
+        )
     provider_free = _read_sealed(root / "provider_free_validation" / "summary.json")
     rows = [
         _read_sealed(path) for path in sorted((root / "live").glob("*/result.json"))
@@ -1151,20 +1161,24 @@ def publish(
         }
         for row in rows
     ]
+    # The repository's publication layout: a README at the bundle root, the
+    # artefacts under a standard category. Loose files in the bundle root are
+    # a layout violation the suite checks for.
     files = {
-        "design.json": json.dumps(design, indent=2, sort_keys=True) + "\n",
-        "provider_free_validation.json": json.dumps(provider_free, indent=2, sort_keys=True) + "\n",
-        "summary.json": json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        "cells.jsonl": "".join(
+        "reports/design.json": json.dumps(design, indent=2, sort_keys=True) + "\n",
+        "qc/provider_free_validation.json": json.dumps(provider_free, indent=2, sort_keys=True) + "\n",
+        "reports/summary.json": json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        "tables/cells.jsonl": "".join(
             canonical_json_bytes(row).decode("utf-8") + "\n" for row in public_rows
         ),
-        "leaderboard.md": render_leaderboard(summary),
+        "reports/leaderboard.md": render_leaderboard(summary),
     }
     target.mkdir(parents=True, exist_ok=True)
     manifest_files: dict[str, Any] = {}
     for name, text in files.items():
         _assert_public(name, text)
         payload = text.encode("utf-8")
+        (target / name).parent.mkdir(parents=True, exist_ok=True)
         (target / name).write_bytes(payload)
         manifest_files[name] = {
             "bytes": len(payload),
@@ -1181,6 +1195,16 @@ def publish(
         }
     )
     _atomic_write(target / "publication_manifest.json", manifest)
+    (target / "README.md").write_text(
+        f"# {summary['campaign_id']}\n\n"
+        "Sealed public artefacts from the frozen world panel.\n\n"
+        "- `reports/leaderboard.md` ranks the routes.\n"
+        "- `reports/summary.json` and `reports/design.json` are the sealed "
+        "summary and the frozen design.\n"
+        "- `tables/cells.jsonl` is one row per cell.\n"
+        "- `qc/` holds the route validation and the diagnostic corrections.\n",
+        encoding="utf-8",
+    )
     return manifest
 
 

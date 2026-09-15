@@ -25,7 +25,9 @@ from a clean checkout.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
+import io
 import json
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -37,8 +39,34 @@ from aeread.shared_runner.run.resolver import canonical_json_bytes
 REGISTER_SCHEMA_VERSION = "aeread.datacenter_failure_register/0.1"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RUN_GLOB = "datacenter_development_v2_world_panel_v1*"
-DEFAULT_REGISTER_PATH = (
-    REPOSITORY_ROOT / "evidence" / "datacenter_failure_register.json"
+# The layout the incident-log standard requires of every Tier 1 register:
+# `tables/failures.csv` one row per incident, `reports/summary.json` the counts
+# and digests. Four sessions once built four shapes; consolidating them is why
+# the standard exists, so this is not the place to invent a fifth.
+REGISTER_ID = "datacenter_development_failure_register"
+REGISTER_BUNDLE = REPOSITORY_ROOT / "evidence" / REGISTER_ID
+DEFAULT_REGISTER_PATH = REGISTER_BUNDLE / "reports" / "summary.json"
+ROWS_PATH_NAME = "failures.csv"
+# Every row must trace to a committed artifact, never to gitignored scratch.
+PUBLISHED_SOURCE = (
+    "evidence/datacenter_development_v2_world_panel_v1/tables/cells.jsonl"
+)
+# Columns the standard requires, then the ones it recommends where meaningful.
+ROW_FIELDS = (
+    "campaign_id",
+    "stage",
+    "failure_condition",
+    "source_artifact",
+    "source_artifact_sha256",
+    "attribution",
+    "attribution_as_recorded",
+    "class",
+    "cell_key",
+    "case_id",
+    "model_id",
+    "stratum",
+    "run_id",
+    "attempt",
 )
 
 # How a sealed failure condition is attributed. Anything a model can trigger is
@@ -379,6 +407,96 @@ KNOWN_DEFECTS = (
             "test_the_suite_does_not_require_gitignored_artifacts"
         ),
     },
+    {
+        "id": "costless-integrative-concession",
+        "summary": (
+            "The power agreement's integrative trade was priced with the "
+            "utility's energisation ceiling sitting exactly at mechanical "
+            "completion, where deferral is free because construction was "
+            "withholding those months anyway. The whole admissible range sat "
+            "inside the free region, so capturing the trade meant taking the "
+            "ceiling the counter message already named, worth a median $1.43M "
+            "against $400M to $700M of developer NPV. A concession nobody pays "
+            "for is not a concession, and the diagnostic recorded one anyway."
+        ),
+        "detected_by": "manual trace of a single cell from observation to score",
+        "severity": "mechanism_does_not_bind",
+        "status": "fixed",
+        "fix": (
+            "deferral is valued so the cash floors become affordable at "
+            "exactly the month that maximises developer NPV, and the ceiling "
+            "sits two months past it: copying the counter package now costs a "
+            "median $5.04M and conceding to the ceiling costs a median $10.08M"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_concession_the_counterparty_asks_for_is_not_free"
+        ),
+    },
+    {
+        "id": "evidence-bundles-break-the-publication-layout",
+        "summary": (
+            "The failure register wrote two loose files into the evidence "
+            "root, and the world panel wrote five into its bundle root, both "
+            "against the repository's publication layout. The layout test "
+            "caught it only when the whole suite ran; the datacenter subset "
+            "that had been run after each change does not include it."
+        ),
+        "detected_by": "running the whole suite rather than the family subset",
+        "severity": "blocks_clean_checkout",
+        "status": "fixed",
+        "fix": (
+            "both publishers write a README at the bundle root and their "
+            "artefacts under reports/, tables/ and qc/"
+        ),
+        "regression_test": (
+            "tests/test_source_layout.py::"
+            "test_evidence_bundles_use_the_standard_publication_categories"
+        ),
+    },
+    {
+        "id": "panel-run-cannot-be-republished",
+        "summary": (
+            "The world panel's run directory is internally inconsistent: its "
+            "summary records design 480a3c64, the design.json beside it is "
+            "8a8f8748. The two were produced under different versions of the "
+            "campaign driver, so the published bundle can be faithful to the "
+            "run or internally consistent, never both. The committed bundle "
+            "had silently drifted to the latter, recording a driver hash two "
+            "revisions old."
+        ),
+        "detected_by": "republishing the bundle after moving it to the standard layout",
+        "severity": "headline_not_comparable",
+        "status": "worked_around",
+        "fix": (
+            "publish() refuses a run whose summary references a design the "
+            "run does not hold, so the drift is an error rather than a silent "
+            "rewrite; the bundle stays as published until the panel is re-run"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_world_campaign.py::"
+            "test_publish_refuses_a_run_whose_summary_and_design_disagree"
+        ),
+    },
+    {
+        "id": "panel-pinned-to-a-superseded-pack",
+        "summary": (
+            "The 192-cell panel's sealed evidence pins world pack a5bb0ccc, "
+            "which closing the last three defects replaced. Every yield figure "
+            "in the failure analysis, including the 61 substantive deal "
+            "failures and 9 admitted cells, describes worlds that no longer "
+            "exist. The drift guard behaved correctly throughout; nothing was "
+            "silently wrong, and nothing re-ran."
+        ),
+        "detected_by": "manual trace of a single cell from observation to score",
+        "severity": "headline_not_comparable",
+        "status": "open",
+        "fix": None,
+        "regression_test": (
+            "tests/test_datacenter_world_campaign.py::"
+            "test_world_panel_rejects_budget_overflow_and_drifted_pack"
+        ),
+    },
 )
 
 
@@ -660,17 +778,107 @@ def render_register(register: Mapping[str, Any]) -> str:
             f"| `{run['run_id']}` | {run['cells']} | {run['incidents']} | "
             f"{'yes' if run['superseded'] else 'no'} |"
         )
-    lines += ["", "## Defects", "", "| Defect | Severity | Status | Regression test |", "|---|---|---|---|"]
+    lines += [
+        "",
+        "## Defects",
+        "",
+        "The judgment-bearing half: what the design got wrong, what caught it, "
+        "and where it stands. `detection` is the honest answer, including "
+        "\"nothing, it was found later\".",
+        "",
+        "| Defect | Severity | Detection | Disposition | Regression test |",
+        "|---|---|---|---|---|",
+    ]
     for defect in register["defects"]:
         test = defect["regression_test"]
         short = test.split("::")[-1] if test else "none"
         lines.append(
-            f"| {defect['id']} | {defect['severity']} | {defect['status']} | `{short}` |"
+            f"| {defect['id']} | {defect['severity']} | "
+            f"{defect['detected_by']} | {defect['status']} | `{short}` |"
         )
     if register["open_defects"]:
         lines += ["", "Open: " + ", ".join(register["open_defects"]) + "."]
     lines.append("")
     return "\n".join(lines)
+
+
+def failure_rows(register: Mapping[str, Any]) -> list[dict[str, str]]:
+    """One row per incident, in the columns the standard requires.
+
+    `source_artifact` points at committed evidence rather than the gitignored
+    run that produced it, so every row can be checked from a clean checkout.
+    A reclassified row keeps the attribution it was recorded under beside the
+    correction instead of overwriting it.
+    """
+
+    rows: list[dict[str, str]] = []
+    for incident in register["incidents"]:
+        correction = incident.get("reclassified") or {}
+        rows.append(
+            {
+                "campaign_id": str(register["campaign_id"]),
+                "stage": str(incident["class"]),
+                "failure_condition": str(incident["condition"]),
+                "source_artifact": PUBLISHED_SOURCE,
+                "source_artifact_sha256": str(incident.get("receipt_sha256") or ""),
+                "attribution": str(
+                    correction.get("attribution") or incident["attribution"]
+                ),
+                "attribution_as_recorded": str(incident["attribution"]),
+                "class": str(incident["class"]),
+                "cell_key": str(incident.get("cell_key") or ""),
+                "case_id": str(incident.get("case_id") or ""),
+                "model_id": str(incident.get("model_id") or ""),
+                "stratum": str(incident.get("stratum") or ""),
+                "run_id": str(incident["run_id"]),
+                "attempt": str(incident["attempt"]),
+            }
+        )
+    return sorted(rows, key=lambda row: tuple(row[field] for field in ROW_FIELDS))
+
+
+def _rows_csv(rows: Sequence[Mapping[str, str]]) -> str:
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=list(ROW_FIELDS), lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row)
+    return buffer.getvalue()
+
+
+def _write_bundle(path: Path, register: dict[str, Any]) -> None:
+    """Write the two files the standard names, plus the rendering."""
+
+    rows = failure_rows(register)
+    rows_text = _rows_csv(rows)
+    bundle = path.parent.parent
+    (bundle / "tables").mkdir(parents=True, exist_ok=True)
+    (bundle / "reports").mkdir(parents=True, exist_ok=True)
+    (bundle / "tables" / ROWS_PATH_NAME).write_text(rows_text, encoding="utf-8")
+    register["register_id"] = REGISTER_ID
+    register["failure_count"] = len(rows)
+    register["rows_sha256"] = hashlib.sha256(rows_text.encode("utf-8")).hexdigest()
+    register["rows_artifact"] = f"tables/{ROWS_PATH_NAME}"
+    register = _sealed(register)
+    path.write_text(
+        json.dumps(register, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (bundle / "reports" / "failure_register.md").write_text(
+        render_register(register), encoding="utf-8"
+    )
+    (bundle / "README.md").write_text(
+        "# Data-center family failure register\n\n"
+        "Every failure the family has recorded, in one append-only place, "
+        "deduplicated on the sealed receipt so rebuilding it never inflates "
+        "the count.\n\n"
+        f"- `tables/{ROWS_PATH_NAME}` is one row per incident.\n"
+        "- `reports/summary.json` carries the counts, the defects and the "
+        "digests.\n"
+        "- `reports/failure_register.md` renders the summary for reading.\n\n"
+        "Rebuild with `python -m "
+        "aeread_families.datacenter_development.failure_register`.\n",
+        encoding="utf-8",
+    )
 
 
 def write_register(
@@ -689,9 +897,7 @@ def write_register(
     problems = check_register(register)
     if problems:
         raise ValueError("register failed its own checks: " + "; ".join(problems))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(register, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    path.with_suffix(".md").write_text(render_register(register), encoding="utf-8")
+    _write_bundle(path, register)
     return register
 
 
@@ -732,6 +938,7 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = [
     "DEFAULT_REGISTER_PATH",
+    "REGISTER_BUNDLE",
     "KNOWN_DEFECTS",
     "build_register",
     "check_register",

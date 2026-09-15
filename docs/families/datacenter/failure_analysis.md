@@ -1,8 +1,8 @@
 # Data-center family: failure analysis
 
 A taxonomy over the 766 incidents recorded across 9 runs and 768 cells, and
-over the 15 design defects found while building the family. The register at
-`evidence/datacenter_failure_register.json` is the source; this document is the
+over the 19 design defects found while building the family. The register at
+`evidence/datacenter_development_failure_register/` is the source; this document is the
 reading of it.
 
 The two halves answer different questions. **Trajectory failures** say what
@@ -119,29 +119,30 @@ charged there too.
 
 ## Part 2: design defects
 
-Fifteen found, all closed. This is the more useful half, because the pattern in
-them is stronger than anything in the trajectory data.
+Nineteen found: eighteen closed or worked around, one open. This is the more
+useful half, because the pattern in them is stronger than anything in the
+trajectory data.
 
 ### 2.1 By severity
 
 | Severity | Count |
 |---|---:|
 | Invalidates the measurement | 3 |
-| Mechanism does not bind | 2 |
+| Mechanism does not bind | 3 |
 | Strata do not test what they claim | 1 |
 | Under-tests a declared capability | 1 |
-| Headline number not comparable | 1 |
+| Headline number not comparable | 3 |
 | Confounds a reported metric | 1 |
 | Silent wrong metric | 1 |
 | Mis-attributes failure | 1 |
 | Truncates trajectories | 1 |
 | Kills cells | 1 |
 | Specification not realisable | 1 |
-| Blocks a clean checkout | 1 |
+| Blocks a clean checkout | 2 |
 
 ### 2.2 The dominant family: mechanisms that did not bind
 
-Five of the fifteen are the same error. A lever was declared, tests were
+Six of the nineteen are the same error. A lever was declared, tests were
 written for the properties its author had thought of, and only later did it
 emerge that the lever constrained nothing.
 
@@ -160,6 +161,16 @@ emerge that the lever constrained nothing.
 - **The traps were unreachable by the behaviour models exhibit.** In four of six
   strata the counter package was the safe one, so an agent that adopts counters
   walked past the trap without facing the decision.
+- **The integrative trade cost the developer nothing.** The utility's
+  energisation ceiling sat exactly at mechanical completion, where deferral is
+  free because construction was already withholding those months. The whole
+  admissible range was inside the free region, so capturing the trade meant
+  taking the ceiling the counter message already named, worth a median $1.43M
+  against $400M to $700M of developer NPV. The generator's own comment said
+  deferral was tradeable *because* it was free. A concession nobody pays for is
+  not a concession, and the diagnostic recorded one anyway. Repriced, copying
+  the counter now costs a median $5.04M and over-conceding to the ceiling costs
+  a median $10.08M, in 24 of 24 worlds.
 
 **The common cause.** Verification checked two points the author had
 constructed — the feasible path and the trap — and treated that as proof the
@@ -202,7 +213,7 @@ infrastructure.**
 
 ### 2.5 Self-inflicted defects
 
-Three were introduced by the fix for an earlier one.
+Four were introduced by the fix for an earlier one.
 
 - Allowing an optional agreement to be declined introduced a transition the
   phase graph never declared, which killed 6 of the first 7 cells of the next
@@ -214,8 +225,12 @@ Three were introduced by the fix for an earlier one.
 - Longer negotiation pushed episodes past the per-route cost cap, truncating
   five of nine cells mid-stack.
 
-All three were caught by a live panel rather than by the suite, which is the
-expensive way to find them.
+Those three were caught by a live panel rather than by the suite, which is the
+expensive way to find them. The fourth is cheaper and more embarrassing: the
+failure register and the world panel both wrote files into the evidence root
+that the repository's publication layout forbids, and the layout test that
+checks for exactly this was never in the datacenter subset being run after each
+change. Running the whole suite found it in nine minutes.
 
 ### 2.6 How defects were found
 
@@ -223,27 +238,68 @@ expensive way to find them.
 |---|---:|---|
 | Offline probe over the pack | 5 | free, seconds |
 | Live panel | 5 | $2 to $4, about an hour |
+| Manual trace of one cell, end to end | 2 | free, about an hour |
+| Running the whole suite, not the family subset | 1 | free, nine minutes |
+| Republishing evidence into the standard layout | 1 | free |
 | Recalibration to market magnitudes | 2 | free |
 | Reading sealed evidence after a panel | 1 | free |
 | Reading a completed summary | 1 | free |
 | Running the suite in a fresh worktree | 1 | free |
 
-A third of all defects cost a live run to find. The generation gates exist to
-move that class into the free column.
+Under a third of all defects cost a live run to find. The generation gates exist
+to move that class into the free column.
+
+Tracing one cell by hand found two, one of them the sixth member of the dominant
+family, in an hour and for nothing. It is the cheapest audit in the table per
+finding, and the only one that reads the environment's messages the way an agent
+does. `trace_covenant_cliff_003.md` is the walkthrough.
 
 ---
 
 ## Part 3: what this leaves
 
-**Usable yield.** In the most recent 192-cell panel, 61 cells were substantive
+**Usable yield**, with the caveat two paragraphs below that these worlds have
+been replaced. In the most recent 192-cell panel, 61 cells were substantive
 deal failures, 9 were admitted, 8 failed to transact, and 114 were discarded as
 schema or infrastructure. Roughly two fifths of a panel is waste, and schema
 compliance is what gates the sample.
 
 **What is sound.** The engine's accounting identities, the two-sided acceptance
-model, the planning requirement, the integrative trade, the calibration to
-published market figures, and the attribution taxonomy. All are covered by
-tests that would fail if they regressed.
+model, the planning requirement, the integrative trade as repriced, the
+calibration to published market figures, and the attribution taxonomy. All are
+covered by tests that would fail if they regressed.
+
+**What cannot be republished.** The world panel's run directory is internally
+inconsistent. Its summary records one design, the design file beside it is
+another, and the two were produced under different versions of the campaign
+driver. The published bundle can be faithful to the run or internally
+consistent, never both, and it had silently drifted to the latter: it carried a
+driver hash two revisions old, because publishing rewrote it each time without
+checking. Publishing now refuses a run like that, so the next attempt is an
+error rather than a quiet rewrite. The bundle stays as it was published until
+the panel is re-run.
+
+**What is stale.** The 192-cell panel is pinned to world pack `a5bb0ccc`, which
+has since been regenerated twice: once closing the last three defects, once
+repricing the integrative trade. Every yield figure above therefore describes
+worlds that no longer exist, and the changes were not cosmetic. The per-world
+undersized-quote draw is now true in 15 of 24 worlds, so copying the power
+counter breaks the capacity chain far more often than the panel data shows. No
+panel has been run against the current pack. This is the one defect left open.
+
+**What the branch owes.** This work sits on `codex/datacenter-world-panel-v1`,
+38 commits ahead of `main` and 742 behind it. Three conventions arrived on
+`main` during those 742: evidence bundles grouped under a family directory, the
+Tier 1 register standard, and the incident log. The register here follows the
+standard; the bundles here are still flat, because that is this branch's shape.
+A rebase is owed before this merges, and the evidence paths move with it.
+
+**What the index still owes.** The incident log on `main` lists this family's
+Tier 1 register at its old loose path and its counts at 541 incidents over 573
+cells in 10 runs. The register now sits at
+`evidence/datacenter_development_failure_register/` in the layout the standard
+requires, with 766 incidents over 768 cells in 9 runs. That index row needs
+updating when this branch merges.
 
 **What is not yet established.** No route has produced enough admitted cells to
 compare deal *quality*; the panel currently separates failure modes, not skill.

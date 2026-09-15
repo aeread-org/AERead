@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "56b200e3068bdaa89bdd0f874fd9c9ee375240c1fdf1b1ab64bed748d056a80c",
+  "artifact_sha256": "226a51de2dc02bbf4cd745a7a0177e10c23b0580f9c77760345f2bd0f38dc53a",
   "by_attribution_as_recorded": {
     "budget": 5,
     "environment": 11,
@@ -156,8 +156,45 @@
       "severity": "blocks_clean_checkout",
       "status": "fixed",
       "summary": "Fifteen datacenter_development_terms tests read artifacts under the gitignored runs/ directory and fail anywhere those local runs are absent, contradicting the R3 exit gate's requirement that the suite be reproducible from a clean checkout."
+    },
+    {
+      "detected_by": "manual trace of a single cell from observation to score",
+      "fix": "deferral is valued so the cash floors become affordable at exactly the month that maximises developer NPV, and the ceiling sits two months past it: copying the counter package now costs a median $5.04M and conceding to the ceiling costs a median $10.08M",
+      "id": "costless-integrative-concession",
+      "regression_test": "tests/test_datacenter_qc.py::test_the_concession_the_counterparty_asks_for_is_not_free",
+      "severity": "mechanism_does_not_bind",
+      "status": "fixed",
+      "summary": "The power agreement's integrative trade was priced with the utility's energisation ceiling sitting exactly at mechanical completion, where deferral is free because construction was withholding those months anyway. The whole admissible range sat inside the free region, so capturing the trade meant taking the ceiling the counter message already named, worth a median $1.43M against $400M to $700M of developer NPV. A concession nobody pays for is not a concession, and the diagnostic recorded one anyway."
+    },
+    {
+      "detected_by": "running the whole suite rather than the family subset",
+      "fix": "both publishers write a README at the bundle root and their artefacts under reports/, tables/ and qc/",
+      "id": "evidence-bundles-break-the-publication-layout",
+      "regression_test": "tests/test_source_layout.py::test_evidence_bundles_use_the_standard_publication_categories",
+      "severity": "blocks_clean_checkout",
+      "status": "fixed",
+      "summary": "The failure register wrote two loose files into the evidence root, and the world panel wrote five into its bundle root, both against the repository's publication layout. The layout test caught it only when the whole suite ran; the datacenter subset that had been run after each change does not include it."
+    },
+    {
+      "detected_by": "republishing the bundle after moving it to the standard layout",
+      "fix": "publish() refuses a run whose summary references a design the run does not hold, so the drift is an error rather than a silent rewrite; the bundle stays as published until the panel is re-run",
+      "id": "panel-run-cannot-be-republished",
+      "regression_test": "tests/test_datacenter_world_campaign.py::test_publish_refuses_a_run_whose_summary_and_design_disagree",
+      "severity": "headline_not_comparable",
+      "status": "worked_around",
+      "summary": "The world panel's run directory is internally inconsistent: its summary records design 480a3c64, the design.json beside it is 8a8f8748. The two were produced under different versions of the campaign driver, so the published bundle can be faithful to the run or internally consistent, never both. The committed bundle had silently drifted to the latter, recording a driver hash two revisions old."
+    },
+    {
+      "detected_by": "manual trace of a single cell from observation to score",
+      "fix": null,
+      "id": "panel-pinned-to-a-superseded-pack",
+      "regression_test": "tests/test_datacenter_world_campaign.py::test_world_panel_rejects_budget_overflow_and_drifted_pack",
+      "severity": "headline_not_comparable",
+      "status": "open",
+      "summary": "The 192-cell panel's sealed evidence pins world pack a5bb0ccc, which closing the last three defects replaced. Every yield figure in the failure analysis, including the 61 substantive deal failures and 9 admitted cells, describes worlds that no longer exist. The drift guard behaved correctly throughout; nothing was silently wrong, and nothing re-ran."
     }
   ],
+  "failure_count": 766,
   "incidents": [
     {
       "attempt": "current",
@@ -9662,8 +9699,13 @@
       "stratum": "verbal_written_divergence"
     }
   ],
-  "open_defects": [],
+  "open_defects": [
+    "panel-pinned-to-a-superseded-pack"
+  ],
   "reclassified_incidents": 17,
+  "register_id": "datacenter_development_failure_register",
+  "rows_artifact": "tables/failures.csv",
+  "rows_sha256": "d0b84ca6cd424118c2bfb0d7392e1c037e93e6dae19ce5b8ef856d411b5da333",
   "runs": [
     {
       "attempts": 192,

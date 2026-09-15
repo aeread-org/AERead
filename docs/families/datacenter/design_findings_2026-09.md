@@ -100,7 +100,7 @@ the developer already receives them through `pending_counter_terms`, and the
 diagnostic falls back to the world's declared counter package. Recomputed from
 the sealed receipts of the final panel, the true figure is **4 adoptions of 4
 presentations** for Gemini and 0 of 3 for Qwen, published alongside the run as
-`verbal_written_diagnostic_corrected.json`.
+`qc/verbal_written_diagnostic_corrected.json`.
 
 ### 1.6 Three smaller correctness defects
 
@@ -171,7 +171,7 @@ Mis-typing them inflates the provider's fault and understates the model's.
 The decode limit is now lifted in the plugin and any term beyond a quadrillion
 cents is rejected as a malformed action, so the cell is booked against the
 model. The affected cells in the calibrated run are listed in
-`mistyped_model_errors_corrected.json` alongside the published evidence.
+`qc/mistyped_model_errors_corrected.json` inside the published evidence bundle.
 
 The general lesson is that a family must own the classification of anything a
 model can cause. If a model can trigger it, it is not infrastructure.
@@ -534,7 +534,7 @@ illegal actions, attributed to the model.
 Failure evidence used to scatter across per-cell results, run summaries, two ad
 hoc correction files, prose in this document, and five archived aborted runs.
 It is now collected in one committed artifact,
-`evidence/datacenter_failure_register.json`, with a rendered summary beside it.
+`evidence/datacenter_development_failure_register/`, with a rendered summary beside it.
 
 Every incident carries an attribution, because the question worth asking later
 is whose fault it was:

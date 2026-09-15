@@ -322,3 +322,35 @@ def test_every_completed_episode_is_scored() -> None:
     by_model = {item["model_id"]: item for item in summary["model_summaries"]}
     reckless = by_model["gemini38_flash_aistudio"]["mean_developer_equity_npv_cents"]
     assert reckless is not None and reckless < 10**11
+
+
+def test_publish_refuses_a_run_whose_summary_and_design_disagree(tmp_path) -> None:
+    """A published bundle must be faithful to the run it claims to publish.
+
+    The summary records the design it was computed against. Where that is not
+    the design sitting beside it, the two came from different versions of the
+    campaign driver, and the bundle can be faithful to the run or internally
+    consistent but never both. The committed world-panel bundle had silently
+    drifted to the latter, recording a driver hash two revisions old, and
+    nothing noticed because publish() rewrote it every time.
+    """
+    from aeread_families.datacenter_development.world_campaign import publish
+
+    root = tmp_path / "run"
+    (root / "live").mkdir(parents=True)
+    (root / "design.json").write_text(
+        json.dumps(
+            {
+                "artifact_sha256": "a" * 64,
+                "campaign_driver_sha256": "b" * 64,
+                "pack_sha256": "c" * 64,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "live" / "summary.json").write_text(
+        json.dumps({"artifact_sha256": "d" * 64, "design_sha256": "e" * 64}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="internally inconsistent|digest mismatch"):
+        publish(run_root=root, publication_root=tmp_path / "publication")

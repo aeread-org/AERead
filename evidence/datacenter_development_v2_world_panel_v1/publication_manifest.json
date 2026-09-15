@@ -1,27 +1,27 @@
 {
-  "artifact_sha256": "86e4100a6fd94e533615bb27997d9d849c8e538792fbb074962f169f3bb84966",
+  "artifact_sha256": "4729f6f87dfdc75564b9a36398e50a027300f353ec5bce4111caad1cf89a041e",
   "campaign_id": "datacenter_development_v2_world_panel_v1",
   "design_sha256": "8a8f87489385a466b662ac164a98f48bcab727b5fd404c5ede895eb7140e9f00",
   "files": {
-    "cells.jsonl": {
-      "bytes": 873421,
-      "sha256": "41ddafd931739efcd757e7bbd3ece73a45245b74e233b46c0051d2c0bd842582"
-    },
-    "design.json": {
-      "bytes": 195496,
-      "sha256": "e938234a868052c4ab213e02059c4e409d9849e687f6ea27d352a3c61e203f76"
-    },
-    "leaderboard.md": {
-      "bytes": 2176,
-      "sha256": "98a4eb3f26aa0937659cb14fe7331500b73c87f597c8064fd0502298a0bc3be5"
-    },
-    "provider_free_validation.json": {
+    "qc/provider_free_validation.json": {
       "bytes": 11537,
       "sha256": "a9d27a079939aa50c3cae8fd7d4a2621f6852d262ff9fcae72c73bb2188a878f"
     },
-    "summary.json": {
+    "reports/design.json": {
+      "bytes": 195496,
+      "sha256": "e938234a868052c4ab213e02059c4e409d9849e687f6ea27d352a3c61e203f76"
+    },
+    "reports/leaderboard.md": {
+      "bytes": 2176,
+      "sha256": "98a4eb3f26aa0937659cb14fe7331500b73c87f597c8064fd0502298a0bc3be5"
+    },
+    "reports/summary.json": {
       "bytes": 15978,
       "sha256": "634a158656f57cb570ca2dd52555a9b1bde0462f00945f53750939ac523f6806"
+    },
+    "tables/cells.jsonl": {
+      "bytes": 873421,
+      "sha256": "41ddafd931739efcd757e7bbd3ece73a45245b74e233b46c0051d2c0bd842582"
     }
   },
   "schema_version": "aeread.datacenter_world_publication/0.1",
@@ -219,5 +219,5 @@
     "fdcb47c2b3a8a47da14ce0de43a583262b8751952d36de24ec89a7c1cff9e45c",
     "fec51dec27bf6d19afb25aa27e4c57508e79a332a2e6b60d09c091d6c3cabd7a"
   ],
-  "summary_sha256": "a5aa0c43c5289fcf9e08f54cbd1cedce9cf67107e8517a71a1bda5e4bcc47c77"
+  "summary_sha256": "8999b0aa7efc7742f0c4a0a40bd682303a5602e33f84f13277e633a6e87f903f"
 }

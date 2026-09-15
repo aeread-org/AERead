@@ -533,5 +533,23 @@ def test_v2_interaction_publication_is_reproducible_and_sanitized(tmp_path) -> N
     ):
         assert prohibited not in public_text
 
+
+def test_v2_interaction_publication_reproduces_from_its_source_run(tmp_path) -> None:
+    """Re-publishing must reproduce the committed bundle byte for byte.
+
+    This half needs the run that produced it, which is scratch and gitignored,
+    so it skips where those artifacts are absent. Everything the bundle can
+    prove about itself is asserted above and runs on a clean checkout.
+    """
+
+    source_root = ROOT / "runs" / "datacenter_development_v2_interaction_v1"
+    if not (source_root / "design.json").exists():
+        pytest.skip(
+            "needs local run artifacts under the gitignored runs/ directory: "
+            f"{source_root.name}"
+        )
+    manifest = json.loads(
+        (INTERACTION_PUBLICATION / "publication_manifest.json").read_text()
+    )
     reproduced = publish(publication_root=tmp_path / "publication")
     assert reproduced == manifest
