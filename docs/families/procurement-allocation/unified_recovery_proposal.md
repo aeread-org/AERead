@@ -1,5 +1,7 @@
 # Approved recovery confirmation
 
+Execution is complete; see the [verified results](unified_recovery_results.md).
+
 The user approved this recovery on 2026-09-19. Implementation and provider-free
 validation precede its freeze and paid execution. The original
 `procurement_allocation_unified_regret_v1` remains ineligible and immutable.
