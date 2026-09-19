@@ -10,6 +10,7 @@ on the family version.
 | V1 | `1.1.0` | power, EPC, service, construction loan | 12 |
 | V2 | `2.0.0` | land, power, EPC, service, land amendment, construction loan | 18 |
 | V2 objective calibration | `2.1.0` | V2 with an objective-visible developer and exact-package controlled counterparties | 18 |
+| V2 repaired (`full_stack_amendment_002`) | `2.0.0` | V2 with two-sided price bands, a scripted developer that negotiates to the floor, and the opt-in `construct_controls` guard; the sealed `001` case is unchanged | 18 |
 
 Run the provider-free admission fixtures from the repository root:
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import dataclasses
 import hashlib
 import json
@@ -27,6 +28,9 @@ from aeread_families.datacenter_development.contracts import (
 )
 from aeread_families.datacenter_development.stack_environment import (
     DataCenterStackPlugin,
+    _baseline_stack,
+    _terms,
+    terms_acceptable,
 )
 from aeread_families.datacenter_development.stack_campaign import (
     build_design,
@@ -536,3 +540,153 @@ def test_v2_interaction_publication_is_reproducible_and_sanitized(tmp_path) -> N
 
     reproduced = publish(publication_root=tmp_path / "publication")
     assert reproduced == manifest
+
+
+# --- DC-D-01: the repaired V2 case and the opt-in construct guard -----------
+
+REPAIRED_V2_CASE = (
+    Path(__file__).resolve().parents[1]
+    / "cases"
+    / "datacenter_development_v1"
+    / "v2"
+    / "full_stack_amendment_002.json"
+)
+
+
+def _repaired_payload() -> dict:
+    return json.loads(REPAIRED_V2_CASE.read_text(encoding="utf-8"))["payload"]
+
+
+def test_repaired_v2_case_reference_dominates_walking_and_seals(tmp_path) -> None:
+    """The scripted reference negotiates to the floor of two-sided bands and
+    beats the outside option by the declared margin; the sealed 001 case,
+    whose reference loses to walking away by 55,000, is untouched."""
+
+    case = load_stack_case("v2", REPAIRED_V2_CASE)
+    assert case.case_id == "datacenter_development_v1.v2.full_stack_amendment_002"
+    family_case = DataCenterStackPlugin("v2").validate_payload(case.payload)
+    controls = family_case["construct_controls"]
+    assert controls["baseline_must_dominate_outside_option"] is True
+    assert controls["two_sided_price_bands"] is True
+    assert family_case["baseline"]["developer_equity_npv_cents"] == -72_000
+    assert family_case["outside_option"]["developer_equity_npv_cents"] == -100_000
+    assert -72_000 - (-100_000) >= controls["minimum_baseline_margin_cents"] == 25_000
+
+    evidence_root = tmp_path / "v2_repaired"
+    setup, execution = asyncio.run(
+        run_stack_offline("v2", evidence_root=evidence_root, case_path=REPAIRED_V2_CASE)
+    )
+    outcome = execution.episode_result.outcome
+    assert execution.episode_result.logical_action_count == 18
+    assert outcome["project_completed"] is True
+    assert outcome["binding_contract_integrity"] is True
+    assert outcome["project_constraints_satisfied"] is True
+    assert outcome["developer_equity_npv_cents"] == -72_000
+    assert outcome["total_project_npv_cents"] == -32_000
+    assert outcome["customer_npv_cents"] == 40_000  # the customer still gains at 160
+
+    receipt = finalize_stack_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert len(receipt.scores) == 5
+    assert (
+        replay_stack_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+        == receipt
+    )
+
+
+def test_repaired_v2_case_admits_counter_adoption_but_not_overpayment_or_lowball() -> None:
+    """Copying every counter stays admissible and loses (the trap the case
+    sets); paying 15x for land, an EPC price of one cent, and charging the
+    customer three times its ceiling are all refused by the counterparties."""
+
+    payload = _repaired_payload()
+    policies = payload["policies"]
+    for key, policy in policies.items():
+        agreement = "land" if key == "land_amendment" else key
+        assert terms_acceptable(_terms(agreement, policy["counter_terms"]), policy), key
+
+    adopted = copy.deepcopy(payload)
+    for key, policy in policies.items():
+        adopted["scripted_developer"][f"{key}_terms"] = copy.deepcopy(policy["counter_terms"])
+    _, outcome = _baseline_stack(adopted, "v2")
+    assert outcome.developer_equity_npv_cents == -155_000
+    assert outcome.developer_equity_npv_cents < payload["outside_option"]["developer_equity_npv_cents"]
+
+    scripted = payload["scripted_developer"]
+    overpay = dict(scripted["land_terms"], purchase_price_cents=300_000)
+    assert not terms_acceptable(_terms("land", overpay), policies["land"])
+    lowball = dict(
+        scripted["epc_terms"],
+        contract_price_cents=1,
+        payment_schedule=[{"month": 1, "amount_cents": 1}],
+    )
+    assert not terms_acceptable(_terms("epc", lowball), policies["epc"])
+    over_cap = dict(scripted["service_terms"], monthly_capacity_charge_cents_per_kw=300)
+    assert not terms_acceptable(_terms("service", over_cap), policies["service"])
+
+
+def test_construct_controls_guard_kills_the_sealed_dominated_case() -> None:
+    """Mutation evidence for the guard: switched on against the sealed 001
+    payload it dies for the intended reason on each control, and the sealed
+    payload without the block still validates exactly as before."""
+
+    plugin = DataCenterStackPlugin("v2")
+    sealed = dict(load_stack_case("v2").payload)
+    plugin.validate_payload(sealed)
+
+    dominance_only = {
+        "baseline_must_dominate_outside_option": True,
+        "minimum_baseline_margin_cents": 0,
+        "two_sided_price_bands": False,
+    }
+    with pytest.raises(ValueError, match="does not strictly dominate the outside option"):
+        plugin.validate_payload({**sealed, "construct_controls": dominance_only})
+    bands_only = {**dominance_only, "baseline_must_dominate_outside_option": False, "two_sided_price_bands": True}
+    with pytest.raises(ValueError, match="bounded on one side only"):
+        plugin.validate_payload({**sealed, "construct_controls": bands_only})
+
+    repaired = _repaired_payload()
+    plugin.validate_payload(repaired)
+    too_strict = {**repaired["construct_controls"], "minimum_baseline_margin_cents": 1_000_000}
+    with pytest.raises(ValueError, match="below the declared minimum"):
+        plugin.validate_payload({**repaired, "construct_controls": too_strict})
+    one_sided = copy.deepcopy(repaired)
+    del one_sided["policies"]["epc"]["minimums"]["contract_price_cents"]
+    with pytest.raises(ValueError, match=r"policies\.epc\.contract_price_cents is bounded on one side only"):
+        plugin.validate_payload(one_sided)
+    with pytest.raises(ValueError, match="construct_controls fields differ"):
+        plugin.validate_payload(
+            {**repaired, "construct_controls": {"baseline_must_dominate_outside_option": True}}
+        )
+    with pytest.raises(ValueError, match="non-negative integer"):
+        plugin.validate_payload(
+            {**repaired, "construct_controls": {**repaired["construct_controls"], "minimum_baseline_margin_cents": -1}}
+        )
+
+
+
+def test_repaired_v2_case_observation_hides_bands_and_controls() -> None:
+    """The floors, the guard block and the reference stay private to the
+    developer seat exactly as the sealed case's private policy does."""
+
+    case = load_stack_case("v2", REPAIRED_V2_CASE)
+    plugin = DataCenterStackPlugin("v2")
+    family_case = plugin.validate_payload(case.payload)
+    state = plugin.initial_state(family_case, run=None)
+    phase = plugin.phases(family_case)[0]
+
+    serialized = repr(plugin.observe(family_case, state, "developer", phase))
+
+    for token in (
+        "construct_controls",
+        "minimums",
+        "maximums",
+        "private_policy",
+        "scripted_developer",
+        "baseline",
+        "outside_option",
+        "17000",  # the land floor
+        "184000",  # the EPC floor
+    ):
+        assert token not in serialized, token

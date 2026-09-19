@@ -119,6 +119,14 @@ What does not exist, and why the gate is `failed` rather than `partial`:
    option (see the status note above). `validate_payload` checks that the
    authored baseline matches the simulation, which it does; nothing checks that
    the baseline is worth reaching.
+   **Repair (2026-09-19):** `full_stack_amendment_002` carries an opt-in
+   `construct_controls` block; `validate_payload` refuses a case that declares
+   it unless the scripted reference strictly dominates the outside option by
+   the declared margin (here 28,000 over a 25,000 minimum) and every negotiated
+   price is bounded on both sides. Switched on against the sealed `001` payload
+   the guard dies on both controls (`test_construct_controls_guard_kills_the_sealed_dominated_case`);
+   `001` itself is unchanged, so no published campaign moves. The gate stays
+   `failed` for the family: one repaired case is not an admission screen.
 3. **Seeds are repeats, not replicates.** `cases/datacenter_development_terms_v1/README.md:149-155`
    records that in integrated V5 all six model-by-project groups repeat exactly
    across seeds. The effective sample size of a panel is its cluster count, and
@@ -256,6 +264,26 @@ Three findings bound what this family can claim:
 **Main blocker:** a declared policy set run through the active interface — at
 minimum a walk-away anchor and a blind-adoption policy — with a predeclared
 beatability rule, on a case whose reference strictly dominates walking away.
+
+**What changed on 2026-09-19.** Two live probes on the sealed V2 case (Gemini
+3.8 Flash and GPT-6 Astra, three seeds each, $1.10 in total) showed why the
+score hides everything: Gemini opened every agreement bidding *against itself*
+(300,000 for land quoted at 20,000), was countered only because an unrelated
+field breached a ceiling, then copied the counter and scored exactly the
+reference, -155,000; Astra bid 800,000 for the same land, demanded three times
+the customer's price ceiling, never conceded to it, stranded the project and
+scored the outside option, -100,000 — better than Gemini by failing to close.
+Re-simulation showed the case's own optimum was an EPC price of one cent
+(+69,999) because the bands had ceilings and no floors, and that a 300,000
+land bid with the other fields in band is *accepted* (-435,000) because the
+purchase price had a floor and no ceiling. `full_stack_amendment_002` closes
+both holes with two-sided bands (floors 15% below the counter, 8% for EPC;
+ceilings at the counter; the customer's price ceiling opened to 160 against
+its value of 200) and re-points the scripted reference to the floor of every
+band: it scores -72,000, beating walking by 28,000, while copying every counter
+stays admissible and still loses (-155,000), which is the trap the case now
+sets. The walk-away and blind-adoption controls are still owed as *scored*
+policies.
 
 ## 4. Attribution and experimental controls
 
