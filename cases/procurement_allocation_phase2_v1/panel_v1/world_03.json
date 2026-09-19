@@ -1,0 +1,543 @@
+{
+  "case_id": "procurement_allocation_phase2_v1.world_03",
+  "content_sha256": "fcaa0eeba5c6839478a60707565fca7fcfef898381b60b49da3666130a384cf4",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_phase2_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.1,
+      "counter_days": 1,
+      "counter_feedback": "field_specific",
+      "inquiry_cost_usd": 0.1,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1,
+      "sample_noise": {
+        "model": "binomial",
+        "seed": 51001
+      }
+    },
+    "objective": {
+      "annual_financing_rate": 0.0,
+      "bom": {
+        "esp32_s3_n8r8": 1
+      },
+      "cash_budget_usd": 100.0,
+      "deadline_days": 24,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 10,
+      "product_id": "pilot_kit_bottleneck_procurement",
+      "revenue_per_completed_kit_usd": 4.6,
+      "shortfall_penalty_per_kit_usd": 0.5,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics"
+      ],
+      "market_constraints": {
+        "minimum_delivery_days": 1,
+        "minimum_unit_price_usd": 0.1,
+        "status": "certified_market_floor_not_supplier_claim"
+      },
+      "required_variant_by_component": {
+        "esp32_s3_n8r8": "esp32_s3_devkitc_1_n8r8"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.8,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 4B58BB2E84"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 5,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.79
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_4b58bb2e84"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.87,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor ED9ED29885"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.88
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_ed9ed29885"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 1.107,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.88,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 95B5EACB36"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.35,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.35,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 4,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.83
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_95b5eacb36"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 0.451,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.62,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 2B12033053"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.55,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.55,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 11,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.55
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_2b12033053"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.95,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor B10BA3B3BC"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.95,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.96
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_b10ba3b3bc"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 1.476,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.77,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 69D51DECAF"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.8,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 6,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.75
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_69d51decaf"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 0.902,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.94,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 9A7E843D3A"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_9a7e843d3a"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 1.968,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.9,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 11549DF4D8"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.4,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 2,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.91
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_11549df4d8"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_phase2_worlds_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "phase2_v1",
+  "visibility_policy": "phase2_public_market_floors_no_hidden_yield_checker_v1",
+  "world_seed": 41002
+}

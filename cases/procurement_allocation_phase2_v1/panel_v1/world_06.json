@@ -1,0 +1,543 @@
+{
+  "case_id": "procurement_allocation_phase2_v1.world_06",
+  "content_sha256": "714f3a0f68b3340f1a700b71af94513b18b463eb87bd96c33710a237393ff861",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_phase2_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.1,
+      "counter_days": 1,
+      "counter_feedback": "field_specific",
+      "inquiry_cost_usd": 0.1,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1,
+      "sample_noise": {
+        "model": "binomial",
+        "seed": 51001
+      }
+    },
+    "objective": {
+      "annual_financing_rate": 0.0,
+      "bom": {
+        "mosfet_low_side_3v3": 1
+      },
+      "cash_budget_usd": 100.0,
+      "deadline_days": 13,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 16,
+      "product_id": "pilot_kit_bottleneck_procurement",
+      "revenue_per_completed_kit_usd": 4.75,
+      "shortfall_penalty_per_kit_usd": 0.5,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics"
+      ],
+      "market_constraints": {
+        "minimum_delivery_days": 1,
+        "minimum_unit_price_usd": 0.1,
+        "status": "certified_market_floor_not_supplier_claim"
+      },
+      "required_variant_by_component": {
+        "mosfet_low_side_3v3": "3v3_logic_level_low_side_module"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 1,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.902,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.92,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 0FB5231277"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 3,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.96
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_0fb5231277"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 26,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.451,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.96,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor FFCA9DD09D"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.55,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 28,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.55,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.98
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_ffca9dd09d"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 8,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.92,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 9244BFB33E"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 10,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.96
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_9244bfb33e"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 10,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 1.968,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.94,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 37885F62C4"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.4,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 12,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_37885f62c4"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 22,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.94,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 8CAAC65D40"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 24,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.95,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_8caac65d40"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 3,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.89,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 6036A8DDFC"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 5,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 2,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.9
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_6036a8ddfc"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 2,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 1.107,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.91,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor FF62BCFC92"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.35,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 4,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.35,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.94
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_ff62bcfc92"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 6,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 1.476,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.9,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 5C4FDE7720"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.8,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 8,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.94
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_5c4fde7720"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_phase2_worlds_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "phase2_v1",
+  "visibility_policy": "phase2_public_market_floors_no_hidden_yield_checker_v1",
+  "world_seed": 41005
+}

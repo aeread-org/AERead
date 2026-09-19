@@ -246,6 +246,8 @@ Includes the preserved case-selection bundle at the evidence root.
 
 Includes all 16 procurement bundles at preserved top-level paths.
 
+- [procurement_phase2_economic_epistemics_v1](procurement_allocation/procurement_phase2_economic_epistemics_v1/): eight-world offline review package; no live calls, pending digest-bound human QC admission
+
 - [procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after](procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after/) **(preserved path)**:
   qualified same-route labeled and opaque prompt-treatment evidence, including
   retry observability, paired effects, integrity gates, and sanitized row projections;
