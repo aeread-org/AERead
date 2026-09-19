@@ -1,5 +1,11 @@
 # Procurement Phase 2: economic search and walk-away decisions
 
+Historical v1 contract: its approved pilot stopped on an operational failure;
+the source and audit remain at `cb27b3b8`. See the [live pilot evidence](../../../evidence/procurement_allocation/procurement_allocation_phase2_pilot_v1/README.md)
+and [separate action-format recovery](phase2_action_format_recovery.md).
+The execution command below describes v1 at that revision; the repaired source
+tree requires the recovery's newly reviewed contribution.
+
 This is a new campaign, `procurement_phase2_economic_epistemics_v1`, with a new
 $0.45 total ceiling. It does not pool results or billing with PR #189. Implementation,
 prompts, worlds, scoring and seeds are fixed before the pilot. A failed pilot stops

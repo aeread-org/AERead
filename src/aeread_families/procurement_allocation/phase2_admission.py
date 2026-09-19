@@ -39,6 +39,21 @@ def source_pins():
 def action_schema():
     schema = procurement_action_output_schema()
     schema["properties"]["action"]["enum"].remove("check_award")
+    descriptions = {
+        "supplier_id": "Nonempty supplier ID required for inquire, request_quote, request_sample and counter_offer; otherwise null.",
+        "message": "Nonempty supplier-facing request required for inquire, request_quote, request_sample and counter_offer. Must not be null for those actions; otherwise null.",
+        "fields": "For inquire, a nonempty unique list of exact_variant, moq_capacity, lead_time, shipping, quality or sample_logistics. Otherwise null.",
+        "offer_id": "Nonempty existing formal offer ID required for counter_offer; otherwise null. Award offer IDs belong inside award_lines.",
+        "proposal": "Required object for counter_offer, with all five keys present and at least one non-null proposed value. Otherwise null. Message text cannot substitute for this object.",
+        "award_lines": "Nonempty list required for submit_award; each line contains only a nonempty offer_id and positive integer quantity. Otherwise null.",
+        "reason": "Nonempty explanation required for defer; otherwise null. This field cannot substitute for message on supplier requests.",
+    }
+    for name, description in descriptions.items():
+        # The legacy builder shares nullable type dictionaries across fields.
+        schema["properties"][name] = {
+            **schema["properties"][name],
+            "description": description,
+        }
     return schema
 
 

@@ -226,7 +226,16 @@ def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypat
             preflight=lambda candidate: {"test_only": True},
         )
     )
-    assert result["status"] == "completed" and result["accounted_cost_usd"] == 0
+    from aeread_families.procurement_allocation.phase2_campaign import (
+        BASELINE_SETTLED_USD,
+    )
+
+    assert result["status"] == "completed"
+    assert result["accounted_cost_usd"] == pytest.approx(
+        BASELINE_SETTLED_USD, abs=1e-12
+    )
+    assert result["known_settled_cost_usd"] == 0
+    assert result["combined_known_settled_cost_usd"] == BASELINE_SETTLED_USD
     rows = json.loads((root / "confirmatory" / "report.json").read_text())["rows"]
     assert len(rows) == 48 and all(r["receipt_replayed"] for r in rows)
     assert len(json.loads((root / "pilot" / "report.json").read_text())["rows"]) == 16

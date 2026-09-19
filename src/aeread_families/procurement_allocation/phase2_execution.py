@@ -49,6 +49,7 @@ from .phase2_worlds import (
 from .phase2_campaign import (
     CAMPAIGN_ID,
     HARD_COST_CEILING_USD,
+    BASELINE_SETTLED_USD,
     execution_contract,
     pilot_gate,
     analyze,
@@ -391,7 +392,9 @@ async def run_campaign(
         json.loads((admission_root / "provider_free_conformance.json").read_text()),
         True,
     )
-    provider = Phase2BudgetedProvider(provider_factory(), root)
+    provider = Phase2BudgetedProvider(
+        provider_factory(), root, baseline=BASELINE_SETTLED_USD
+    )
 
     def finish(status, **extra):
         bills = [json.loads(p.read_text()) for p in provider.calls if p.exists()]
@@ -403,6 +406,8 @@ async def run_campaign(
             dict(
                 status=status,
                 known_settled_cost_usd=known,
+                prior_phase2_settled_cost_usd=BASELINE_SETTLED_USD,
+                combined_known_settled_cost_usd=BASELINE_SETTLED_USD + known,
                 unresolved_reserved_cost_usd=reserved,
                 accounted_cost_usd=provider.spent,
                 hard_ceiling_usd=HARD_COST_CEILING_USD,

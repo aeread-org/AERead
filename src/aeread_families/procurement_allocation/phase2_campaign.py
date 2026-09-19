@@ -23,8 +23,45 @@ from .headroom_screen import classify_world_continuous
 from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
-CAMPAIGN_ID = "procurement_phase2_economic_epistemics_v1"
+CAMPAIGN_ID = "procurement_phase2_action_format_recovery_v1"
 HARD_COST_CEILING_USD = 0.45
+BASELINE_SETTLED_USD = 0.0099593505
+BASELINE_PUBLICATION = (
+    "evidence/procurement_allocation/procurement_allocation_phase2_pilot_v1"
+)
+
+
+def prior_campaign_accounting():
+    """Bind the recovery to the published failed attempt and its existing spend."""
+    import hashlib
+
+    root = Path(__file__).resolve().parents[3] / BASELINE_PUBLICATION
+    manifest = json.loads((root / "publication_manifest.json").read_text())
+    expected_manifest = (
+        "41e5ee0d0ba06f650388d3bdd9f46caddccfe7253f0b67eab940d88f3c88d84c"
+    )
+    if manifest["manifest_sha256"] != expected_manifest or expected_manifest != digest(
+        {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    ):
+        raise ValueError("prior Phase 2 publication digest changed")
+    path = root / "reports/execution_status.json"
+    assert (
+        hashlib.sha256(path.read_bytes()).hexdigest()
+        == manifest["artifacts"]["reports/execution_status.json"]
+    )
+    status = json.loads(path.read_text())
+    assert status["status"] == "pilot_operational_gate_failed"
+    assert status["settled_cost_usd"] == BASELINE_SETTLED_USD
+    assert status["unresolved_reserved_cost_usd"] == 0
+    assert status["confirmatory_rows_executed"] == 0
+    return dict(
+        campaign_id=status["campaign_id"],
+        publication_manifest_sha256=manifest["manifest_sha256"],
+        status_file_sha256=manifest["artifacts"]["reports/execution_status.json"],
+        settled_cost_usd=BASELINE_SETTLED_USD,
+        unresolved_reserved_cost_usd=0,
+        pooling="no outcome pooling; prior API spend counts toward combined ceiling",
+    )
 
 
 def power_sensitivity():
@@ -138,6 +175,8 @@ def execution_contract(cases, screen):
         route=json.loads(canonical_json_bytes(GLM_PARASAIL_CANDIDATE)),
         hard_total_cost_ceiling_usd=HARD_COST_CEILING_USD,
         baseline_phase1_cost_usd=0.0,
+        prior_phase2_campaign=prior_campaign_accounting(),
+        recovery_scope="common action-format instructions and matching schema descriptions; unchanged parser, economics, worlds, route, seeds and analysis",
         max_output_tokens_per_action=1200,
         max_actions=10,
         max_trajectory_cost_usd=0.025,

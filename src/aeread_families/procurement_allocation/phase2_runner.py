@@ -27,6 +27,7 @@ from .runner import (
     default_harnesses,
 )
 from .phase2_environment import Phase2Plugin, family_manifest
+from .phase2_admission import action_schema
 
 COMMON_PROMPT = """You are a procurement buyer. Return exactly one JSON action each turn.
 Maximize contribution margin in USD, subject to evidence, service, cash and deadline constraints.
@@ -43,7 +44,22 @@ component units / BOM requirement, capped by target kits. Margin = kit revenue -
 - information costs - shortfall penalty. This panel has no duty, financing or return recovery.
 Defer earns defer_value minus research already spent. Rejected purchases are a separate constraint failure;
 they do not purchase inventory, but research costs remain. There is no check_award action.
-Use only offer_id and quantity in award_lines. Use the required action-specific fields; unused fields may be null.
+Action format contract: all eight top-level schema keys must be present. Null is allowed ONLY for
+fields unused by the selected action. Required fields for the selected action must never be null:
+- request_quote or request_sample: supplier_id and message must both be nonempty strings.
+  message is a short supplier-facing request, for example "Please provide a formal quote."
+  or "Please provide a verified sample." A reason field does not replace message.
+- inquire: supplier_id and message must be nonempty strings; fields must be a nonempty list
+  of distinct names from exact_variant, moq_capacity, lead_time, shipping, quality, sample_logistics.
+- counter_offer: supplier_id, offer_id and message must be nonempty strings; proposal must be
+  an object containing all five schema keys, with at least one non-null proposed value.
+  unit_price_usd must be a nonnegative number; moq, payment_terms_days and refund_window_days
+  must be positive integers when used; return_freight_payer must be buyer or supplier when used.
+  Use null for proposal terms you are not changing. Text in message is not a numeric proposal.
+- submit_award: award_lines must be a nonempty list. Each line has ONLY offer_id (nonempty string)
+  and quantity (positive integer).
+- defer: reason must be a nonempty string.
+Before returning the JSON, check these required fields for your selected action.
 """
 CONTROL_PROMPT = COMMON_PROMPT + "\nChoose your own sourcing and decision strategy.\n"
 TREATMENT_PROMPT = (
@@ -73,7 +89,7 @@ def build_setup(
         or case_content_sha256(case) != case.content_sha256
     ):
         raise ValueError("wrong Phase 2 case identity or digest")
-    prompt_id = f"procurement_phase2_{arm}_v1"
+    prompt_id = f"procurement_phase2_action_format_{arm}_v2"
     kwargs = dict(prompt=PROMPTS[arm], prompt_id=prompt_id)
     # Reuse only the tested boilerplate. Replace family, case, registry, output
     # schema and implementation pins before resolving any executable plan.
@@ -103,8 +119,7 @@ def build_setup(
     profile_raw["profile_id"] = f"phase2_{arm}_" + (
         "fixture" if route is None else route.profile_id
     )
-    schema = profile_raw["harness"]["config"]["output_schema"]
-    schema["properties"]["action"]["enum"].remove("check_award")
+    profile_raw["harness"]["config"]["output_schema"] = action_schema()
     profile = AgentProfile.from_dict(profile_raw)
     suite_raw = json.loads(canonical_json_bytes(template.plan.suite))
     suite_raw.update(
