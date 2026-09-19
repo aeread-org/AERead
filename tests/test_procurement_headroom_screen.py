@@ -105,3 +105,176 @@ def test_screen_baselines_covers_every_declared_policy() -> None:
     outcomes = screen_baselines(payload)
     assert set(outcomes) == set(SCREEN_BASELINES)
     assert all(isinstance(value, bool) for value in outcomes.values())
+
+
+# --- continuous scoring ------------------------------------------------------
+#
+# Defect 21: award feasibility is a threshold on regret, and thresholding
+# discarded the only dispersion the noisy panel had. These cover the continuous
+# rule that replaces it.
+
+from aeread_families.procurement_allocation.headroom_screen import (  # noqa: E402
+    DEGENERATE,
+    classify_world_continuous,
+)
+
+LOSE_ALL_SCORES = {policy: 90.0 for policy in SCREEN_BASELINES}
+
+
+def test_identical_control_scores_are_degenerate() -> None:
+    """Zero dispersion subsumes floored and saturated: nothing can be moved."""
+    assert (
+        classify_world_continuous([12.0, 12.0, 12.0], LOSE_ALL_SCORES) == DEGENERATE
+    )
+
+
+def test_a_baseline_matching_the_control_best_is_trivial() -> None:
+    """Verification buys nothing if a public-observation policy already ties it."""
+    scores = dict(LOSE_ALL_SCORES) | {SCREEN_BASELINES[0]: 8.0}
+    assert classify_world_continuous([8.0, 19.0, 20.0], scores) == TRIVIAL
+
+
+def test_dispersed_control_beating_every_baseline_is_admitted() -> None:
+    assert classify_world_continuous([8.0, 19.0, 20.0], LOSE_ALL_SCORES) == ADMIT
+
+
+def test_continuous_screen_needs_several_seeds() -> None:
+    assert classify_world_continuous([8.0], LOSE_ALL_SCORES) == UNMEASURED
+
+
+def test_continuous_screen_rejects_when_no_baseline_scored() -> None:
+    unmeasured = {policy: None for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([8.0, 19.0, 20.0], unmeasured) == UNMEASURED
+
+
+def test_higher_is_better_metrics_are_supported() -> None:
+    """Margin rather than regret: the same rule with the comparison flipped."""
+    baselines = {policy: 10.0 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([50.0, 60.0], baselines, lower_is_better=False)
+        == UNMEASURED
+    )
+    assert (
+        classify_world_continuous([50.0, 60.0, 70.0], baselines, lower_is_better=False)
+        == ADMIT
+    )
+    beating = {policy: 99.0 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([50.0, 60.0, 70.0], beating, lower_is_better=False)
+        == TRIVIAL
+    )
+
+
+def test_variance_is_computed_on_real_numbers_not_just_booleans() -> None:
+    """The screen reports dispersion for continuous scores too."""
+    assert within_world_variance([8.04, 8.04, 8.04]) == 0.0
+    assert within_world_variance([18.32, 29.32, 18.87, 20.85]) > 0.0
+
+
+# --- dispersion must be material -------------------------------------------
+#
+# Two worlds were admitted on a $0.25 spread and a $0.35 margin against a $269
+# baseline. The control failed at every seed there and differed only in what it
+# spent on information, so "not all identical" admitted a world with no headroom.
+
+
+def test_a_sub_material_spread_is_degenerate() -> None:
+    """The measured case: control fails every seed, spends slightly differently."""
+    baselines = {policy: 269.07 for policy in SCREEN_BASELINES}
+    assert (
+        classify_world_continuous([268.72, 268.97, 268.80, 268.91], baselines)
+        == DEGENERATE
+    )
+
+
+def test_a_sub_material_margin_over_the_baseline_is_trivial() -> None:
+    """Beating a public-observation policy by a rounding error is not beating it.
+
+    The spread here is large, so this isolates the margin test: the control
+    varies a lot but its *best* barely improves on a policy that reads only the
+    public listing.
+    """
+    baselines = {policy: 201.0 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([200.0, 269.0, 240.0], baselines) == TRIVIAL
+
+
+def test_a_material_spread_and_margin_is_admitted() -> None:
+    """The two worlds that genuinely separated, at their measured values."""
+    baselines = {policy: 267.88 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([1.88, 267.88, 130.0], baselines) == ADMIT
+
+
+def test_materiality_is_relative_not_absolute() -> None:
+    """A small-stakes world is judged on its own scale, not a fixed dollar cut."""
+    baselines = {policy: 10.0 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([0.1, 5.0, 9.0], baselines) == ADMIT
+    tiny = {policy: 0.5 for policy in SCREEN_BASELINES}
+    assert classify_world_continuous([0.40, 0.42, 0.44], tiny) == DEGENERATE
+
+
+def test_the_threshold_is_declarable() -> None:
+    baselines = {policy: 100.0 for policy in SCREEN_BASELINES}
+    scores = [70.0, 78.0, 74.0]
+    assert classify_world_continuous(scores, baselines, minimum_relative_spread=0.05) == ADMIT
+    assert (
+        classify_world_continuous(scores, baselines, minimum_relative_spread=0.30)
+        == DEGENERATE
+    )
+
+
+# --- a world must let a better decision exist -------------------------------
+#
+# Defect 26. Dispersion alone admits a coin flip: where suppliers are
+# indistinguishable before verification, which ones a policy happens to check
+# decides the outcome and every policy draws from the same urn. Twelve panels
+# failed this way and the earlier rules could not see it.
+
+from aeread_families.procurement_allocation.headroom_screen import (  # noqa: E402
+    COIN_FLIP,
+    classify_world_by_policy_separation,
+)
+
+
+def test_two_policies_separating_in_mean_is_admitted() -> None:
+    assert classify_world_by_policy_separation(
+        {"screener": [2.0, 3.0, 1.0], "blind": [250.0, 260.0, 255.0]}
+    ) == ADMIT
+
+
+def test_wide_dispersion_with_equal_means_is_a_coin_flip() -> None:
+    """The failure the earlier rules admitted: both policies swing, neither wins.
+
+    Each policy scores near-zero on some seeds and near-total-loss on others,
+    which is exactly what luck about which supplier you checked looks like. The
+    continuous rule sees healthy spread and admits it; this one must not.
+    """
+    scores = {"blind": [0.0, 260.0, 0.0, 260.0], "frugal": [260.0, 0.0, 260.0, 0.0]}
+    assert classify_world_by_policy_separation(scores) == COIN_FLIP
+    # The rule it replaces would have admitted the same world.
+    assert classify_world_continuous(
+        scores["blind"], {policy: 300.0 for policy in SCREEN_BASELINES}
+    ) == ADMIT
+
+
+def test_a_single_policy_cannot_establish_separation() -> None:
+    assert classify_world_by_policy_separation({"only": [1.0, 2.0, 3.0]}) == UNMEASURED
+    assert classify_world_by_policy_separation({}) == UNMEASURED
+
+
+def test_an_immaterial_mean_difference_is_a_coin_flip() -> None:
+    assert classify_world_by_policy_separation(
+        {"a": [100.0, 102.0], "b": [101.0, 103.0]}
+    ) == COIN_FLIP
+
+
+def test_separation_is_measured_on_means_not_on_best_cases() -> None:
+    """A policy that wins once must not qualify on that single lucky seed."""
+    assert classify_world_by_policy_separation(
+        {"lucky": [0.0, 260.0, 260.0, 260.0], "steady": [200.0, 200.0, 200.0, 200.0]}
+    ) == COIN_FLIP
+
+
+def test_higher_is_better_separation() -> None:
+    assert classify_world_by_policy_separation(
+        {"good": [90.0, 95.0], "bad": [10.0, 12.0]}, lower_is_better=False
+    ) == ADMIT
