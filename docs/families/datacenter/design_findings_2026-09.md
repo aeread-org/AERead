@@ -1,0 +1,713 @@
+# Data-center negotiation family: design findings
+
+Findings from building the 24-world V2 pack (R3) and running the first paired
+live panels (R4/R5). Everything below was verified by probing the engine or by
+reading sealed receipts, not inferred from model output.
+
+Two classes are separated deliberately: **defects that made the measurement
+invalid**, which are fixed on this branch, and **modelling limits that are
+still open**, which need a design decision before the family can carry the
+claims the implementation plan makes for it.
+
+---
+
+## Part 1: defects found and fixed
+
+### 1.1 The negotiation was degenerate
+
+Each counterparty answers an unacceptable offer with a fixed `counter_terms`
+package. In the first generated pack those counter terms **were the
+developer-optimal answer**: adopting every counter verbatim matched or beat
+the scripted baseline in **20 of 24 worlds**.
+
+The panel was therefore measuring whether a model copies a counter back, not
+whether it negotiates. This matches what the live runs showed: the one route
+that kept proposing its own terms instead of adopting counters (GLM-5.3-flash)
+exhausted its rounds in 34 of 48 cells, while routes that adopted got further.
+
+**Fix.** Every negotiated price now carries a two-sided band with 30 percent
+width. The counter sits at the counterparty-favourable ceiling and remains
+admissible; the scripted developer negotiates to the floor.
+
+| | before | after |
+|---|---:|---:|
+| Worlds where blind counter-adoption reaches the baseline | 20 / 24 | 0 / 24 |
+| Median headroom between adopting and negotiating | 0 | 104,000 cents |
+
+Regression test: `test_adopting_every_counter_is_admissible_but_never_optimal`.
+
+### 1.2 A developer could write itself unbounded damages
+
+Counterparty policies bounded only one side of each term. Fields where the
+developer pays were capped above but had no floor, and liability fields were
+unconstrained entirely. Two consequences, both accepted by every counterparty
+and both passing all constraint checks:
+
+- The utility accepted a **zero** interconnection charge and a zero demand
+  charge, because its policy only capped them from above.
+- Setting the EPC and power delay-damages fields to arbitrary values earned
+  **19,970,000 cents against a 530,000 cent baseline**, a 38x return, because
+  the engine credits liquidated damages as terminal value with no counterparty
+  refusal and no cap relative to contract price.
+
+A metric that rewards self-awarded damages by 38x measures exploitation, not
+negotiation.
+
+**Fix.** Policies are two-sided bands with reservation floors, and liability
+terms are capped at the counterparty's quoted level. Regression test:
+`test_no_within_policy_stack_earns_unbounded_self_written_damages`.
+
+Residual headroom after the fix is a bounded 30,000 cents from negotiating a
+tighter completion guarantee and collecting capped delay damages. That is
+realistic contracting behaviour and is left in deliberately.
+
+### 1.3 The V2 sequence forced an amendment with no way to decline
+
+V2 always runs a land-amendment phase. A developer that judged the executed
+lease adequate had no lawful action: re-proposing the same terms was rejected,
+and there was no decline. This truncated **16 of 48 Gemini cells and 2 gpt-oss
+cells** after they had already negotiated land, power, EPC and service.
+
+**Fix.** Optional agreements accept an explicit `decline` action that advances
+to the next agreement without executing one. Completion no longer requires an
+optional agreement. Regression test:
+`test_optional_amendment_can_be_declined_without_ending_the_episode`.
+
+### 1.4 The decline jump was not declared in the phase graph
+
+The fix in 1.3 introduced its own defect. Declining an optional agreement
+skips that agreement's response and commit phases, but the amendment offer
+phase still declared only its response phase as a successor, so the scheduler
+rejected the transition as an undeclared next phase and the cell died as
+`family_execution_failure`. A live panel caught it in 6 of the first 7 cells.
+
+Two tests now cover it: a phase-graph consistency check on the decline
+transition, and a full scripted episode that declines the amendment and still
+completes, seals and replays. The lesson is that testing `legal()` in
+isolation was not enough; the phase graph is a separate declaration that has
+to agree with every transition the environment can take.
+
+### 1.5 Counter terms were never recorded, so the diagnostic read empty
+
+The environment recorded structured terms for offers but not for counters, so
+a counter in the trajectory was unauditable and the verbal/written diagnostic
+compared against an empty package and always reported zero adoptions. The
+first panel run reported `undisclosed_counters_adopted: 0` for cells that had
+demonstrably adopted the hidden term.
+
+Counters now record their structured terms, which discloses nothing new since
+the developer already receives them through `pending_counter_terms`, and the
+diagnostic falls back to the world's declared counter package. Recomputed from
+the sealed receipts of the final panel, the true figure is **4 adoptions of 4
+presentations** for Gemini and 0 of 3 for Qwen, published alongside the run as
+`qc/verbal_written_diagnostic_corrected.json`.
+
+### 1.6 Three smaller correctness defects
+
+- **Amendment fields crashed the environment.** A live developer whose
+  amendment changed fields other than the scripted ones raised
+  `family_execution_failure` at commit instead of being measured. Amended
+  fields are now derived from the structured diff.
+- **Oversized integers escaped as operational failures.** A model emitting a
+  5,811-digit integer raised inside the JSON decoder and was recorded as
+  infrastructure missingness rather than as a malformed action.
+- **Month 0 was proposed repeatedly.** Two routes lost cells proposing month 0
+  for 1-based month fields. The developer prompt now states the convention.
+
+---
+
+## Part 1b: recalibration to published market figures
+
+Section 2.1 below recorded that the economics were four orders of magnitude
+too small. They now are not. The worlds are a 50 MW project over 36 months,
+with every magnitude anchored to a published 2026 benchmark rather than
+invented, and `tests/test_datacenter_qc.py` fails if any of them drifts out of
+range.
+
+| Quantity | Calibrated world | Published range |
+|---|---:|---|
+| Construction | $10.3M per MW | $8M to $13M per MW |
+| Lease rate | $185 per kW-month | $130 to $400 wholesale |
+| Loan spread | SOFR + 255bps | 250 to 450bps |
+| Loan-to-cost | 65% | 50% to 70% |
+| EPC delay cap | 9% of contract | 5% to 10% |
+| Lease term | 15 years, take-or-pay | 15 to 20 years |
+
+Energy throughput and pass-through, a floating base-rate curve, and per-seat
+discount rates of 12, 7 and 8 percent are now live, which closes 2.2 and most
+of 2.5. A successful developer clears about $404M against an $8M walk-away,
+and negotiating rather than adopting counters is worth a median $39.5M.
+
+Two engine defects surfaced only once the world was realistic:
+
+- **Coverage counted the balloon.** Debt-service coverage included the bullet
+  principal repayment at maturity, so every realistic term loan breached its
+  covenant in its final month purely because principal came due. Coverage is
+  now measured on scheduled service, and repayment ability is still tested
+  separately as `maturity_nonpayment`.
+- **The covenant-cliff stratum was unbuildable from leverage.** Section 8 of
+  the plan specifies that stratum as "small changes in price, ramp, or
+  leverage" causing a breach. Once loan-to-cost is capped at a realistic 65 to
+  70 percent, stabilised coverage runs 2 to 4x and *no admissible leverage
+  breaches it*: the commitment binds before the advance rate does, so raising
+  leverage changes nothing at all. The stratum now uses the tenant ramp. Price
+  and ramp are the real levers; leverage is not one.
+
+A third point is recorded but not fixed: the coverage covenant is gated on the
+contractual service commencement date rather than on first revenue, so a
+package that commences before its conditions precedent are met reports zero
+coverage for those months. That is arguably correct, but it means the
+commencement date, not commercial operation, decides when the covenant starts
+biting.
+
+### A model error booked as an infrastructure failure
+
+Qwen emitted integers of 5,700 to 5,800 digits. CPython refuses to decode an
+integer past 4,300 digits, and that refusal is raised inside the provider call,
+before the family parser runs, so the scheduler recorded 14 cells as
+`child_provider_outcome_unknown` provider missingness. They are model errors.
+Mis-typing them inflates the provider's fault and understates the model's.
+
+The decode limit is now lifted in the plugin and any term beyond a quadrillion
+cents is rejected as a malformed action, so the cell is booked against the
+model. The affected cells in the calibrated run are listed in
+`qc/mistyped_model_errors_corrected.json` inside the published evidence bundle.
+
+The general lesson is that a family must own the classification of anything a
+model can cause. If a model can trigger it, it is not infrastructure.
+
+## Is this a planning and negotiation case?
+
+Partly, and less than the plan claims. Measured rather than asserted:
+
+**Negotiation: the distributive half only.** There is a real gradient. Adopting
+every counter is admissible but leaves a median $39.5M per world, and the
+reservation prices are private, so an agent must probe for them inside three
+rounds. That is distributive bargaining under incomplete information. What is
+absent is everything integrative: the counterparty answers with the same
+package regardless of what was offered, and acceptance is field-wise against
+independent bands, so no concession can be traded for another. Logrolling
+cannot appear in a score. Empirically the only route that transacts does none
+of it, landing on pure counter-adoption to the cent.
+
+**Planning: present in the traps, inert almost everywhere else.** Price
+negotiation cannot break the structural plan: in 19 of 24 worlds both adopting
+every counter and negotiating every price to the floor are structurally valid.
+The counter package is internally consistent, so the cross-agreement
+constraints that would require lookahead are solved for free, and the sequence
+order is imposed rather than chosen.
+
+**The traps are mostly unreachable by the behaviour models actually exhibit.**
+A trap only catches an agent that deviates from the counters, because in four
+of six strata the counter package *is* the safe one:
+
+| Stratum | Adopting every counter | Caught Gemini |
+|---|---|---:|
+| verbal/written divergence | enters the trap, 0 of 4 admissible | 4 of 4 |
+| delayed revenue | enters it in 1 of 4 | 1 of 4 |
+| covenant cliff | avoids it, 4 of 4 admissible | 0 of 4 |
+| restrictive draws | avoids it | 0 of 4 |
+| revenue without bankability | avoids it | 0 of 4 |
+| liability transfer | avoids it | 1 of 4 |
+
+So against a counter-adopting agent, five of six strata are inert and one
+stratum does nearly all the discriminating. This corrects the claim made from
+the earlier toy-scale panel that the strata discriminate broadly; at market
+calibration they do not.
+
+**What it was**, then: a schema-compliance and instruction-following case with
+a distributive-pricing gradient and one genuine reading-comprehension trap. The
+environment was correct and the engine sound, but the task handed to the agent
+never required planning, because the counterparties handed over a complete,
+mutually consistent, safe answer.
+
+### Designing the test that was missing
+
+The fix is to make the counter package jointly infeasible. The utility now
+counters with a connection sized at 80 percent of the project, which is locally
+rational for it, individually admissible, and visibly cheaper through lower
+per-kW demand charges. Power is agreed two steps before the lease and executed
+agreements cannot be reopened, so a developer that accepts it has already lost
+by the time the tenant demands full capacity.
+
+| Property | Before | After |
+|---|---:|---:|
+| Worlds where adopting every counter is structurally valid | 19 of 24 | 0 of 24 |
+| Worlds where the scripted plan is valid | 24 of 24 | 24 of 24 |
+
+Four properties are pinned by tests, because a planning test is only fair if it
+is solvable, informed, and not solvable by accident:
+
+1. **It cannot be solved by adoption.** Every counter is admissible on its own,
+   and jointly they violate the capacity chain, in all 24 worlds.
+2. **It is a planning failure, not a cash failure.** In at least 18 worlds the
+   financing still succeeds with no defaults, so the capacity gap stands alone
+   and is not confounded with running out of money.
+3. **It is reachable.** Insisting on full capacity is accepted by the utility
+   and repairs the stack wherever capacity is the only defect.
+4. **The escape is closed and the information is timely.** Shrinking the lease
+   to match the smaller connection is refused by the tenant, so exactly one
+   plan survives, and the requirement is visible in public project facts two
+   agreements before the binding commitment.
+
+What remains undone is the rest of the plan's ambition: the agreement order is
+still imposed rather than chosen, and the counterparty is still static, so
+integrative bargaining remains unmeasurable. Those are limits on the
+negotiation dimension, not the planning one.
+
+### What the planning test measured
+
+The first panel on worlds that require cross-agreement lookahead, 96 cells for
+$1.89, with no environment failures and no budget truncations.
+
+| Route | Admitted | Was admitted before | Signed an incoherent stack |
+|---|---:|---:|---:|
+| Gemini 3.8 Flash | 17% | 71% | 12 of 16 completed stacks |
+| Qwen3-235B | 0% | 0% | 0 |
+| GLM-5.3-flash | 0% | 0% | 0 |
+| gpt-oss-120b | 0% | 0% | 0 |
+
+Gemini's admission collapsed from 71 percent to 17. The mechanism is exactly
+the one the test was built to expose: among the stacks it completed, it
+accepted the utility's undersized 40,000 kW connection in 12 and insisted on
+the full 50,000 kW in only 4. Every one of those 12 signed a complete,
+internally executed agreement stack that could not serve its own tenant.
+
+That is the finding. The only route that transacts does not plan across
+agreements: it treats each negotiation as a local, self-contained deal and
+accepts the locally cheaper offer, two steps before the commitment that makes
+it fatal. Under the previous design the same behaviour scored 71 percent
+admission and looked competent.
+
+The other three routes never reach the trap, failing earlier on schema
+compliance or exhausting their rounds, so the test does not yet discriminate
+among them.
+
+### Designing the integrative half
+
+The counterparty had no view of its own: it accepted any package inside
+independent per-field bands, so no concession could be traded for another and
+haggling was the only strategy available.
+
+Each counterparty now carries a linear valuation of the terms it cares about,
+measured against its own opening package, with a reservation it will not go
+below. Because the weights are the counterparty's and not the developer's, a
+term that is cheap for one side can be dear to the other, which is what makes
+a trade possible at all.
+
+The power agreement carries the trade. Energisation may slip as far as
+mechanical completion, and up to that point the developer gives up little,
+because construction was withholding the capacity anyway. The utility values
+that deferral highly. So:
+
+| Offer | Counterparty utility | Accepted |
+|---|---:|---|
+| the utility's own opening package | 0 | yes |
+| both prices pushed to their floors | -417,000,000 | **no** |
+| the same prices plus the deferral | 0 | yes |
+
+An agent that only pushes prices is refused. The identical prices become
+available the moment the deferral is offered, and taking that trade is worth
+about $4.5M to the developer while costing the utility nothing against its
+reservation. This is the difference between haggling and bargaining, and it is
+now the difference between a rejected offer and an accepted one.
+
+The concession is not free everywhere, and the tests say so. Where revenue
+timing is tight the deferral costs real money; what holds in all 24 worlds is
+that it costs less than the price concession it unlocks. In at least half the
+worlds it is free outright.
+
+One defect surfaced while building this: acceptance was implemented twice, once
+in the generator and once inline in the runtime counterparty, so the two could
+drift and the utility model would have applied to only one of them. There is
+now a single acceptance rule.
+
+### What the integrative panel measured
+
+96 cells for $1.98, no environment failures. The run is not rankable: 18 cells
+died on transport timeouts spread evenly across all four routes, five seconds
+each against a 180 second budget, which is provider-side and not the task.
+
+What it did show is a clean separation between the two capabilities.
+
+Three cells were admitted, two by Gemini and one by GLM, the first admitted
+cell GLM has produced under any design in this family. In all three the
+developer corrected the undersized connection, so it solved the planning
+problem. And in all three it signed the utility's opening price and opening
+energisation date unchanged, so it captured none of the $4.5M the trade was
+worth.
+
+| Capability | Result |
+|---|---|
+| cross-agreement planning | solved in the admitted cells |
+| integrative trade | found in none of them |
+
+Accepting the opening package is a legitimate move: it sits exactly at the
+counterparty's reservation and is admissible. It is simply the worst admissible
+outcome, and no route did better. The family can now tell the difference, which
+it could not before.
+
+### Designing the ordering half
+
+The order was imposed. The developer now declares, before it negotiates
+anything, the order it will work through, as a permutation of the agreements,
+with the single rule that an amendment follows the agreement it amends. Every
+agreement is a legal opening move and every commit may be followed by any
+agreement still outstanding.
+
+Ordering only pays if negotiating one thing reveals something about another,
+and the worlds already contained exactly that: **the lender's bankability
+thresholds**. They decide whether a lease can be financed at all, they differ
+between worlds so they cannot be memorised, they appear in the lender's own
+counter, and they appear in no developer observation before that counter
+arrives. A developer that negotiates the loan before the lease turns a guess
+into a known constraint. The scripted plan does precisely that, and completes
+all 24 worlds.
+
+An earlier attempt made the *tenant's* requirement private and variable
+instead. It was abandoned on evidence: the site is built for full capacity
+whatever the tenant takes, so a partial lease is not a different decision, only
+a worse world, and every generated variant failed verification. The note is
+left here because the negative result is the useful part.
+
+**The blast radius was the surprise.** Five sibling families reuse this stack
+plugin, and adding a phase to it broke all of them. Sequencing is therefore
+opt-in per case, through `negotiation.developer_chooses_order`, and those
+families keep the fixed sequence they were built against. A shared environment
+is a shared contract, and the tests said so within a minute of the change.
+
+### What the full design measured
+
+192 cells for $4.38, no environment failures, 143 completed. The run is not
+rankable: 48 cells were rate limited, which removed gpt-oss and Qwen from
+contention, and the one route with a complete panel admitted a single cell, so
+the leaderboard says nothing.
+
+The diagnostics say a great deal.
+
+| Route | Admitted | Power negotiation | Lease bankable |
+|---|---:|---|---:|
+| Gemini 3.8 Flash | 6 of 47 | accepted the opening 47 times | 44 of 47 |
+| GLM-5.3-flash | 1 of 48 | accepted 16, haggled 1 | 4 of 48 |
+| gpt-oss-120b | 0 of 19 | accepted 11 | n/a |
+| Qwen3-235B | 0 of 29 | no completed power agreement | n/a |
+
+**Nobody captured the trade.** Across 75 completed power agreements, 74
+accepted the counterparty's opening package unchanged and one haggled. Zero
+traded a concession for a better price. This number is not confounded: nothing
+in the presentation favours accepting, and the diagnostic separates trading,
+haggling and accepting, with tests pinning all three.
+
+**Nobody sequenced to discover**, in all 143 completed cells. That number *is*
+confounded, and is reported only with its caveat: the observation lists the
+agreements in dependency order, which places financing last, and that is also
+the order that forgoes learning the lender's thresholds. Models are not simply
+copying the list, since three distinct orders appear, but every one of them
+puts the loan after the lease, so presentation and reasoning cannot be
+separated here.
+
+One incidental result is worth keeping. Gemini writes leases that clear the
+lender's thresholds 44 times in 47 without ever having seen them, apparently by
+proposing strong terms as a default rather than by discovering the constraint.
+GLM manages it 4 times in 48. Getting the right answer and knowing why are
+different things, and the diagnostics can now tell them apart.
+
+### Re-executing the failed cells
+
+Forty-nine cells had failed operationally, which removed two routes from
+contention. Re-executing them as further declared attempts recovered twelve;
+thirty-seven hit the same rate limits again. The throttling is persistent
+rather than transient, and it sits almost entirely on two routes.
+
+That is enough to rank two of four. Gemini and GLM now have complete,
+route-verified panels; gpt-oss and Qwen remain unranked with 24 and 13 failed
+cells respectively, which is a reliability fact about those routes and is
+reported as one rather than hidden.
+
+| Route | Admitted | No deal | Excluded | Failed |
+|---|---:|---:|---:|---:|
+| Gemini 3.8 Flash | 6 | 1 | 41 | 0 |
+| GLM-5.3-flash | 1 | 33 | 14 | 0 |
+| gpt-oss-120b | 0 | 16 | 8 | 24 |
+| Qwen3-235B | 0 | 18 | 17 | 13 |
+
+The two rankable routes fail in opposite directions, which the single NPV
+column would not have shown. Gemini always transacts and is excluded 85 percent
+of the time for signing a stack that does not stand up. GLM mostly declines to
+transact at all, exhausting its rounds in 69 percent of cells and scoring the
+walk-away. Neither is competence.
+
+The trade result is unchanged and now rests on 76 completed power agreements:
+75 accepted the counterparty's opening package and one did anything else. None
+traded.
+
+## Reference wrong answers
+
+Four mechanisms were declared and shipped without anything checking they
+constrained the agent. The counter was the optimal answer. The covenant cliff
+could not be built from leverage. The bankability threshold was cleared by
+market convention. And adopting every counter, then sizing the connection to
+the lease, solved 19 of 24 worlds.
+
+The common cause is one habit. Verification checked two points the author had
+constructed, the feasible path and the trap, and treated that as proof the
+mechanism discriminated. It never checked the space between them, which is
+where the agent operates. There was a reference right answer, the scripted
+developer, and no reference wrong answers. An answer key working says nothing
+about whether the question is hard.
+
+Two gates now sit inside world generation, so a world that fails either is
+never emitted.
+
+**Naive strategies.** A world must defeat every answer reachable without
+reasoning about the deal.
+
+| Strategy | Before | After |
+|---|---:|---:|
+| Adopt every counter | 0 of 24 | 0 of 24 |
+| Propose the market-convention lease | 0 of 24 | 0 of 24 |
+| Adopt every counter, then size the connection to the lease | **19 of 24** | **0 of 24** |
+
+Closing the third required a second defect that one visible correction cannot
+reach: the landowner now quotes the cheaper, shorter tenure and volunteers no
+extension, so site control lapses before the campus can be brought into
+service. Seeing that means reading the construction schedule against the lease
+term, not inspecting one field.
+
+Stated plainly, because it is the ceiling of the current task: a developer who
+adopts every counter, sizes the connection to the lease, *and* fixes site
+control reaches an admissible stack in 20 of 24 worlds. The task is two
+structural corrections, and four worlds need more. That is better than one
+correction, and it is not yet deep.
+
+**Declared levers.** Each stratum names the lever it claims, in data rather
+than in a comment, and generation refuses a stratum whose lever leaves the
+outcome unchanged across its admissible range. The covenant stratum once
+passed every check while leverage produced byte-identical results from 50 to 80
+percent loan-to-cost, because the commitment cap bound first. All six levers
+now respond.
+
+### Letting trajectories reach the mechanisms
+
+The completed panel produced 41 substantive failures and every one died the
+same way, on undersized power, after signing exactly five agreements. Forty-six
+more stalled at the second of six negotiations. None of the six strata had ever
+been met by a live model.
+
+Three changes: the counterparty now says what it needs rather than repeating
+its package; the undersized quote is drawn per world instead of applied to all;
+and the outcome carries the constraint vector and the agreements executed
+rather than only the conjunction.
+
+| | before | after |
+|---|---:|---:|
+| Substantive deal failures | 41 | 61 |
+| Distinct causes among them | 1 | 5 |
+| Rounds-exhausted stalls | 46 | 7 |
+| Admitted | 7 | 9 |
+| Discarded | 75 | 114 |
+
+The failures are now diagnosable rather than identical: site control 51,
+financing 21, no-default 21, EPC conditions 17, capacity 15, many failing on
+several at once. Depth spread from bimodal at 1 and 5 to a real distribution
+across 0 to 6.
+
+**Schema compliance is now the binding constraint, and it was previously
+masked.** Malformed actions rose from 38 to 79. Two hypotheses were wrong and
+worth recording as wrong. It is not context length: failing cells carry *fewer*
+input tokens per call, 1,607 against 2,616, because they are shallower. It is
+not the richer counter messages: only 11 percent of malformed actions follow a
+counter. Forty-two follow a signature and twenty-seven follow a decline, which
+is to say they occur when the developer must open a *new* agreement and emit a
+complete term set for the first time. That is the hardest action in the family,
+and models now attempt it far more often because the negotiation wall no longer
+stops them at the second agreement. The increase is a consequence of progress,
+not a regression.
+
+A defect of the familiar kind surfaced too: a model invented a condition
+precedent, `service_agreement`, the ledger raised on the unknown identifier,
+and the cell was recorded as an environment failure. Unknown conditions are now
+illegal actions, attributed to the model.
+
+## Where the failures live
+
+Failure evidence used to scatter across per-cell results, run summaries, two ad
+hoc correction files, prose in this document, and five archived aborted runs.
+It is now collected in one committed artifact,
+`evidence/datacenter_development_failure_register/`, with a rendered summary beside it.
+
+Every incident carries an attribution, because the question worth asking later
+is whose fault it was:
+
+| Attribution | As recorded | After reclassification |
+|---|---:|---:|
+| model | 281 | 298 |
+| negotiation | 170 | 170 |
+| provider | 64 | 47 |
+| budget | 16 | 16 |
+| environment | 10 | 10 |
+
+541 incidents across 573 cells in 10 runs. Seventeen were recorded under one
+attribution and belong to another, all of them model errors booked against the
+provider; the original condition is kept beside the correction rather than
+overwritten, so a mis-typed incident stays auditable. Superseded runs stay in
+the register and are marked, so a stale result cannot be quoted as current.
+
+The register also carries the defect list, each closed entry naming the
+regression test that keeps it closed, and a test asserts those tests exist. It
+is validated without reading `runs/` at all, so the checks survive a clean
+checkout.
+
+## How this family is quality controlled
+
+Golden-value tests pin what the engine returned last time. They do not say it
+is right. Three layers do:
+
+1. **Accounting identities**, checked for all 24 worlds rather than one
+   fixture: monthly sources equal uses, principal rolls forward, and the three
+   seat NPVs sum to the reported total. `simulate_project` raises on any
+   violation, so every world that generates has already proved them.
+2. **Metamorphic properties**: a directional input change must move the
+   outcome the way finance requires. Raising the capacity charge must not
+   lower developer value; raising the EPC price must not raise it; a delay
+   that moves commercial operation must destroy value; a positive discount
+   rate must reduce a future-weighted NPV. These catch sign errors and
+   mis-wired terms that no golden value can.
+3. **Calibration and structural bounds**: every magnitude sits in a published
+   range, every world exercises energy, floating rates and discounting, and
+   equity is priced above debt. Blind counter-adoption must stay admissible
+   but never optimal, and inflated liability terms must be rejected at any
+   scale.
+
+The value of the layer is not theoretical. Writing it caught that the pack on
+disk was still toy-scale, that the bargaining band pushed the negotiated EPC
+price below market, and that one property I asserted about energisation was
+simply false.
+
+## Part 2: modelling limits that are still open
+
+These do not corrupt the current measurement, but each one caps what the
+family can claim. They need a decision, not a patch.
+
+### 2.1 The economics were four orders of magnitude too small (now fixed, see Part 1b)
+
+A world's EPC contract is 224,000 cents (**$2,240**) for a 1 MW data centre,
+and a successful developer clears about **$7,080**. Real 1 MW capacity is
+roughly $10M of construction.
+
+This is not merely cosmetic. Models bring real-world priors: several proposed
+land at 1,000,000 cents ($10,000), which is economically sane for a site and
+was rejected as outside the band. The benchmark currently penalises correct
+domain intuition. Either scale the worlds to realistic magnitudes or state
+explicitly in the observation that amounts are scenario-scaled.
+
+### 2.2 There was no time value of money (now fixed, see Part 1b)
+
+Every discount rate is zero and the base-rate curve is all zeros, so
+`developer_equity_npv` is an undiscounted sum. Deferring a payment is free,
+and the EPC payment schedule, which is otherwise unconstrained, has no effect
+on value. A financing benchmark in which financing timing does not matter is
+missing its central mechanism.
+
+### 2.3 Nothing is stochastic, so nothing is risk-adjusted
+
+The implementation plan describes the primary outcome as *risk-adjusted*
+developer equity NPV. Worlds are fully deterministic: capacity, demand and
+schedules are fixed vectors known in advance. There is no risk to adjust for,
+and no reason to value a guarantee or a cap except through the delay-damages
+path. Either introduce scenario uncertainty or drop "risk-adjusted" from the
+claim.
+
+### 2.4 The counterparty has no utility function
+
+Acceptance is field-wise: a package is accepted when every field sits inside
+its band. The counterparty cannot trade a concession on one term for a gain on
+another, so **integrative bargaining is unmeasurable**. Logrolling, the single
+most studied negotiation skill, cannot appear in a score. The counter is also
+static: the same package regardless of what was offered, so extra rounds add
+no information and there is no adaptive opponent.
+
+### 2.5 Whole subsystems are never exercised
+
+Energy throughput is zero, customer usage is constant, and the rate curve is
+flat, so energy pass-through, variable-demand SLA credits and floating-rate
+interest never execute. The horizon is 6 months for a land-to-operations
+sequence that takes 24 to 48 months in practice, so the delayed-revenue
+stratum compresses into a one-month distinction.
+
+### 2.6 Coverage and process gaps
+
+- **Only V2 has worlds.** V0 and V1 still have a single curated case each.
+- **Mechanism annotations are machine-derived** (`review_status: generated`).
+  Section 8 of the plan requires a hand-reviewed explanation per world; nobody
+  has confirmed the traps are economically sensible rather than merely
+  engine-failing.
+- **`verbal_written_mismatch` is descriptive only.** It is now computed and
+  sealed, but it is not a scored leaf, per the plan's own staging.
+- **The harness axis is untested.** R5 as written is a harness bake-off
+  (minimal chat against LangGraph or smolagents on one model). What has run is
+  a model panel on one harness.
+- **The suite does not pass from a clean checkout.** Fifteen
+  `datacenter_development_terms` tests on the campaign branch read artifacts
+  under the gitignored `runs/` directory and fail with `FileNotFoundError`
+  anywhere those local runs are absent. This contradicts the R3 exit gate,
+  which requires reproducibility from a clean checkout. None of these failures
+  involves the negotiation-stack modules.
+
+---
+
+## What the calibrated panel showed
+
+The 96-cell panel on the recalibrated 50 MW worlds, for $1.90:
+
+| Route | Admitted | Mean developer NPV | vs baseline | Typed failures |
+|---|---:|---:|---:|---:|
+| Gemini 3.8 Flash | 71% | $412.6M | -$148.5M | 0 |
+| gpt-oss-120b | 0% | -$10.7M | -$549.6M | 0 |
+| GLM-5.3-flash | 0% | n/a | n/a | 15 rate-limited |
+| Qwen3-235B | 0% | n/a | n/a | 14 oversized integers |
+
+Gemini transacts on most worlds and still leaves roughly $39M per world on the
+table, the counter-adoption gap the width fix created. gpt-oss now completes
+the panel without a single operational failure but is excluded on 18 of 24
+worlds for schema-invalid actions. Only Gemini and gpt-oss have complete,
+route-verified panels, so only they are ranked.
+
+## What the earlier toy-scale panel showed
+
+The final 96-cell panel on the corrected worlds is the first run in which the
+family measured what it was built to measure.
+
+| Route | Admitted | Mean developer NPV | vs scripted baseline |
+|---|---:|---:|---:|
+| Gemini 3.8 Flash | 54% | $6,426 | -$1,028 |
+| Qwen3-235B | 0% | -$338 | -$7,895 |
+| GLM-5.3-flash | 0% | n/a | n/a |
+| gpt-oss-120b | 0% | n/a | n/a |
+
+Gemini is the only route that transacts, and its admitted NPV equals **pure
+counter-adoption to the cent** in every completed stack: it accepts whatever
+each counterparty counters with and leaves about 12 percent on the table. On
+the pre-fix worlds that same behaviour would have scored exactly at baseline
+and looked like flawless play, which is precisely why 1.1 mattered.
+
+The strata now discriminate. Gemini clears revenue-without-bankability and
+liability-transfer 4 of 4, but the covenant-cliff and restrictive-draws traps
+catch it 3 of 4 each, and the verbal/written trap catches it 4 of 4: it signs
+a loan whose prose claimed only the fee moved while the terms also cut the
+advance rate, and the project then fails on a funding shortfall.
+
+Paired world-clustered intervals separate Gemini from every open-weight route
+by +0.54 admission rate [+0.33, +0.75]. The three routes at zero admission are
+not separable from each other.
+
+## What the panels can and cannot support today
+
+They can support: route qualification with verified endpoints and complete
+cost telemetry; typed separation of admission failures, no-agreement outcomes
+and infrastructure missingness; and world-clustered paired comparison across
+24 independent clusters.
+
+They cannot yet support: any claim about negotiation skill in the integrative
+sense, any risk-adjusted interpretation of the primary metric, or any
+cross-model ranking, which the artifacts explicitly disallow.

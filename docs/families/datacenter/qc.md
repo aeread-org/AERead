@@ -80,7 +80,7 @@ the 30 published campaigns inventoried below.
 
 ## 1. Task-distribution admission
 
-**Status: failed.**
+**Status: partial** (was `failed` until 2026-09-19; see the world pack below).
 
 The independent unit differs by side of the family and both are declared:
 
@@ -153,6 +153,22 @@ What does not exist, and why the gate is `failed` rather than `partial`:
 **Main blocker:** an admission screen that measures whether a world can express
 a difference, plus a case-level rejection of a reference that does not
 strictly dominate the outside option for the 1.0.0, 1.1.0 and 2.0.0 identities.
+
+**World pack (2026-09-19).** `cases/datacenter_development_v1/worlds_v2/` holds 24
+generated worlds — six mechanism strata, four variants each, 50 MW / 36 months
+at published 2026 figures — ported from `codex/datacenter-world-panel-v1` and
+regenerated on `main`. Every world is refused at generation unless a naive
+strategy fails it (`solved_by_naive_strategy`: adopt every counter, market
+convention, adopt-and-size), its declared lever moves value (`lever_is_inert`),
+its concession costs something (`concession_is_free`), its feasible path beats
+walking away, and it passes the `construct_controls` guard with a declared
+margin of 1% of the EPC contract price. Closing the guard's two-sided rule
+required flooring six money terms the branch had left one-sided, which is the
+guard doing on 24 worlds what it did on `001`. Independent clusters: 24.
+Still missing for `passed`: a development-versus-confirmatory split bound to
+disjoint seed domains, near-duplicate clustering across strata, and a measured
+control rate per world from the frozen control rather than from the scripted
+reference alone.
 
 ## 2. Environment and verifier
 

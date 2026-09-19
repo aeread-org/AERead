@@ -53,11 +53,15 @@ from aeread.shared_runner.schemas import (
 
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
+    AGREEMENT_TYPE_BY_KEY,
     COUNTERPART_BY_KEY,
-    SCORER_ID,
-    SCOPE_CONFIG,
     DataCenterStackPlugin,
+    SCOPE_CONFIG,
+    SCORER_ID,
+    TERM_PARSER_BY_TYPE,
+    counter_reason,
     stack_family_manifest,
+    terms_acceptable,
 )
 
 
@@ -1095,20 +1099,23 @@ class StackScriptedCounterpartyProvider:
         offer = observation["latest_offer"]
         values = offer["terms"]
         policy = observation["private_policy"]
-        acceptable = all(
-            field in values and values[field] >= minimum
-            for field, minimum in policy["minimums"].items()
-        ) and all(
-            field in values and values[field] <= maximum
-            for field, maximum in policy["maximums"].items()
-        ) and set(policy["required_conditions"]).issubset(
-            set(values.get("conditions_precedent", ()))
-        )
-        output = (
-            {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
-            if acceptable
-            else {"decision": "counter", "offer_id": offer["offer_id"], "message": f"{self._seat_id} counterproposal.", "terms": policy["counter_terms"]}
-        )
+        # One acceptance rule for the scripted seat and the legality check:
+        # bands, required conditions, and the counterparty's valuation when the
+        # policy declares one. The inline band check this replaced could not see
+        # a valuation, so a scripted seat would have signed packages the
+        # environment's own rule refuses.
+        agreement_type = AGREEMENT_TYPE_BY_KEY[observation["agreement_key"]]
+        parsed = TERM_PARSER_BY_TYPE[agreement_type](values)
+        acceptable = terms_acceptable(parsed, policy)
+        if acceptable:
+            output = {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
+        else:
+            # A world may pin the counter message (the verbal/written stratum
+            # says one thing and writes another); otherwise the seat says what
+            # would make the package signable, which is the only way a developer
+            # can find a trade it is never told exists.
+            message = policy.get("counter_message") or counter_reason(parsed, policy)
+            output = {"decision": "counter", "offer_id": offer["offer_id"], "message": message, "terms": policy["counter_terms"]}
         return _scripted_result(request, output)
 
 
