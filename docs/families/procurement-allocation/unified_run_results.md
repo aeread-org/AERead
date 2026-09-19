@@ -1,5 +1,9 @@
 # Unified regret campaign: observed execution
 
+This page preserves the original failed attempt. The separately approved
+[recovery confirmation](unified_recovery_results.md) subsequently completed 36/36
+rows; it does not alter or pool this attempt.
+
 The implementation and offline admission are complete. The live pilot passed,
 but the frozen confirmation is **ineligible after an upstream HTTP 429**. There
 is no confirmatory effect estimate or confidence interval. The failed attempt
@@ -90,8 +94,7 @@ print(checked)  # observed: 39
 PY
 ```
 
-Completing a new confirmation requires a separately declared execution identity
-and an explicit infrastructure-retry policy. The user decision on changing the
-single-confirmation rule is pending; the [recovery proposal](unified_recovery_proposal.md)
-states the fresh seeds, retry boundary, inherited evidence, and remaining budget.
-The current failed identity stays sealed.
+The user approved a separately declared recovery with fresh seeds and a bounded
+infrastructure-retry policy. The [approved contract](unified_recovery_proposal.md)
+and [completed recovery result](unified_recovery_results.md) record that separate
+execution. This original failed identity stays sealed.
