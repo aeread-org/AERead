@@ -122,15 +122,76 @@ def _strict_schema_from_example(value: Any) -> dict[str, Any]:
     raise ValueError(f"unsupported strict-schema example: {type(value).__name__}")
 
 
+#: The literal lower bounds the contract parsers enforce (`contracts._integer`
+#: with an explicit minimum; every other integer term is non-negative). A case
+#: that opts into `construct_controls` carries them in its closed output schema
+#: so a model cannot emit a value the parser will refuse (DC-D-07): five of the
+#: first ten pilot cells died at their first action on `site_control_start_month: 0`.
+TERM_MINIMUMS = {
+    "site_control_start_month": 1,
+    "notice_to_proceed_month": 1,
+    "energization_month": 1,
+    "draw_start_month": 1,
+    "maturity_month": 1,
+    "initial_term_months": 1,
+    "committed_capacity_kw": 1,
+    "contracted_capacity_kw": 1,
+    "guaranteed_capacity_kw": 1,
+    "permitted_use_capacity_kw": 1,
+    "contract_price_cents": 1,
+    "maximum_commitment_cents": 1,
+}
+MONTH_INDEXING_NOTE = (
+    " Months are numbered from 1: month 1 is the first month of the horizon, and "
+    "every month field must be at least 1."
+)
+
+
+def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
+    """The developer prompt id and text for a case.
+
+    A case that opts into `construct_controls` gets the v2 prompt, which adds
+    the month-indexing note; every other case keeps v1 byte for byte, so the
+    sealed campaigns' prompt digests do not move."""
+
+    if "construct_controls" in case_payload:
+        return f"datacenter_{scope_version}_developer_prompt_v2", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE
+    return f"datacenter_{scope_version}_developer_prompt_v1", DEVELOPER_PROMPT
+
+
+def _bound_integer_terms(schema: dict[str, Any]) -> dict[str, Any]:
+    """Copy the parser's lower bounds into a strict term schema."""
+
+    bounded = dict(schema)
+    properties = dict(bounded.get("properties", {}))
+    for name, spec in properties.items():
+        if isinstance(spec, dict) and spec.get("type") == "integer":
+            properties[name] = {**spec, "minimum": TERM_MINIMUMS.get(name, 0)}
+        elif isinstance(spec, dict) and spec.get("type") == "array":
+            properties[name] = {**spec, "items": _bound_integer_terms(spec["items"])}
+        elif isinstance(spec, dict) and spec.get("type") == "object":
+            properties[name] = _bound_integer_terms(spec)
+    bounded["properties"] = properties
+    return bounded
+
+
 def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
-    """Return one strict schema per developer action schema in the case."""
+    """Return one strict schema per developer action schema in the case.
+
+    A case that opts into `construct_controls` also carries the contract
+    parser's lower bounds on every integer term, so the schema the model sees
+    and the rule the environment enforces cannot disagree. Cases without the
+    block keep the schema their sealed campaigns were run with."""
 
     scope_version = str(case.payload["scope_version"])
     sequence = SCOPE_CONFIG[scope_version]["sequence"]
+    bounded = "construct_controls" in case.payload
     schemas: dict[str, Any] = {}
     for key in sequence:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
+        if bounded:
+            term_schema = _bound_integer_terms(term_schema)
         schemas[f"datacenter_{key}_offer_v1"] = {
             "type": "object",
             "properties": {
@@ -406,8 +467,8 @@ def build_stack_setup(
             profile_id=developer_model,
             provider="datacenter_stack_scripted_developer",
             model=developer_model,
-            prompt_id=f"datacenter_{scope_version}_developer_prompt_v1",
-            prompt=DEVELOPER_PROMPT,
+            prompt_id=developer_prompt(case.payload, scope_version)[0],
+            prompt=developer_prompt(case.payload, scope_version)[1],
             pricing=developer_pricing,
             max_actions=sum(
                 family_case["negotiation"]["max_rounds"][key]
@@ -514,7 +575,7 @@ def build_stack_setup(
         developer_policy=developer_policy,
         registry=registry,
         prompt_sources={
-            f"datacenter_{scope_version}_developer_prompt_v1": DEVELOPER_PROMPT,
+            developer_prompt(case.payload, scope_version)[0]: developer_prompt(case.payload, scope_version)[1],
             **{
                 f"datacenter_{scope_version}_{seat}_prompt_v1": COUNTERPART_PROMPT
                 for seat in counterpart_seats
@@ -606,9 +667,9 @@ def build_stack_openrouter_setup(
                 "config": live_config,
             },
             "prompt": {
-                "prompt_id": f"datacenter_{scope_version}_developer_prompt_v1",
+                "prompt_id": developer_prompt(template.case.payload, scope_version)[0],
                 "sha256": hashlib.sha256(
-                    DEVELOPER_PROMPT.encode("utf-8")
+                    developer_prompt(template.case.payload, scope_version)[1].encode("utf-8")
                 ).hexdigest(),
             },
             "runtime": {

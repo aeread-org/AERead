@@ -238,6 +238,13 @@ arithmetic oracle (`test_datacenter_terms_public.py:271`), accession drift
 (`stack:97`) — which show a guard rejecting a broken input but not a guard being
 reverted and observed to die.
 
+**Schema and parser agree (2026-09-19, DC-D-07).** For cases that opt into
+`construct_controls`, the strict developer output schema carries every lower
+bound the contract parser enforces (`stack_runner.TERM_MINIMUMS`; every other
+integer term non-negative) and the developer prompt states that months are
+numbered from 1. The gap cost five of the first ten pilot cells. Sealed cases
+keep their v1 schema and prompt byte for byte.
+
 **Main blockers:** replay that recomputes a published score instead of copying a
 flag; ledger identities for `stack_cashflow.py`; the missing invalid-action and
 malformed-output goldens for the salience, affordance and action-schema ids; and
