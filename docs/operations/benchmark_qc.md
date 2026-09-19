@@ -410,6 +410,7 @@ Published profiles:
 |---|---|---|
 | Housing V1 | [housing/qc.md](../families/housing/qc.md) | `partial` |
 | Procurement allocation V1 | [procurement-allocation/qc.md](../families/procurement-allocation/qc.md) | `partial`, construct gate `failed` |
+| Data-center development (six family ids) | [datacenter/qc.md](../families/datacenter/qc.md) | `failed`; task-distribution and construct gates `failed`, confirmatory `not_run` |
 
 A family may run development campaigns while carrying a dated Gate 0 exemption,
 but no family may publish a result described as measuring its declared construct
