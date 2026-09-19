@@ -39,7 +39,7 @@ def test_the_register_only_counts_rows_that_actually_executed(register: dict) ->
 def test_every_failure_names_a_source_and_a_kind(register: dict) -> None:
     for failure in register["failures"]:
         assert failure["source"].startswith("evidence/")
-        assert failure["kind"] in {"operational", "measured_violation"}
+        assert failure["kind"] in {"operational", "measured_violation", "not_attempted"}
         if failure["kind"] == "measured_violation":
             assert failure["violations"], failure["case_id"]
             assert failure["status"] == "completed"
@@ -92,14 +92,17 @@ def test_bundle_coverage_counts_nested_publications_including_clean_reports(tmp_
     for name, rows in (
         ('procurement_allocation_failed', [{'status': 'operational_failure'}]),
         ('procurement_allocation_clean', [{'status': 'completed', 'violations': []}]),
+        ('procurement_allocation_unattempted', [{'status': 'not_attempted', 'cost_usd': None}]),
     ):
         report = tmp_path / 'evidence' / 'procurement_allocation' / name / 'reports' / 'rows.json'
         report.parent.mkdir(parents=True)
         report.write_text(json.dumps({'rows': rows}))
     summary = build_register(repository_root=tmp_path)['summary']
-    assert summary['bundles_scanned'] == 2
-    assert summary['reports_scanned'] == 2
-    assert summary['rows_scanned'] == 2
+    assert summary['bundles_scanned'] == 3
+    assert summary['reports_scanned'] == 3
+    assert summary['rows_scanned'] == 3
+    assert summary['executed_rows_scanned'] == 2
+    assert summary['unattempted_rows'] == 1
     assert summary['operational_failures'] == 1
     assert summary['operational_cost_usd'] is None
     assert summary['known_operational_cost_usd'] == 0.

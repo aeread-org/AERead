@@ -125,7 +125,8 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
                     "campaign_id": value.get("campaign_id"),
                     "case_id": row.get("case_id"),
                     "inference_seed": row.get("inference_seed"),
-                    "kind": "operational" if not completed else "measured_violation",
+                    "kind": ("not_attempted" if row['status'] == 'not_attempted'
+                             else "operational" if not completed else "measured_violation"),
                     "violations": violations,
                     "result_sha256": row.get("result_sha256"),
                 }
@@ -136,6 +137,7 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
 
     operational = [f for f in failures if f["kind"] == "operational"]
     measured = [f for f in failures if f["kind"] == "measured_violation"]
+    not_attempted = [f for f in failures if f["kind"] == "not_attempted"]
     unknown_costs = sum(f.get("cost_usd") is None for f in operational)
     known_cost = round(sum(float(f["cost_usd"]) for f in operational if f.get("cost_usd") is not None), 8)
     register = {
@@ -151,6 +153,8 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
             "bundles_scanned": len({str(Path(source).parent.parent) for source in sources}),
             "reports_scanned": len(sources),
             "rows_scanned": scanned_rows,
+            "executed_rows_scanned": scanned_rows - len(not_attempted),
+            "unattempted_rows": len(not_attempted),
             "operational_failures": len(operational),
             "measured_violations": len(measured),
             "rejected_canaries": len(canaries),

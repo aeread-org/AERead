@@ -146,9 +146,12 @@ def test_real_runner_seals_and_reaudits_noisy_fixture_receipts(tmp_path):
     # The review exporter independently replays the actual sealed receipts.
     from aeread_families.procurement_allocation.continuous_campaign import _seal
     from aeread_families.procurement_allocation.continuous_publication import publish_review
-    execution._write_once_json(root/'execution_design.json', _seal({
+    fixture_design = _seal({
         'design':{'world_ids':[economic_world_id(case)],'implementation_pins':implementation_pins()},
-    }, 'plan_sha256'))
+    }, 'plan_sha256')
+    execution._write_once_json(root/'execution_design.json', fixture_design)
+    fixture_freeze = _seal({'execution_design_sha256':fixture_design['plan_sha256']}, 'plan_sha256')
+    execution._write_once_json(root/'confirmatory_plan.json', fixture_freeze)
     publication=tmp_path/'evidence'/'procurement_allocation_fixture_review'
     result=publish_review(run_root=root,publication_root=publication)
     assert result['provider_call_count']==6
@@ -156,6 +159,7 @@ def test_real_runner_seals_and_reaudits_noisy_fixture_receipts(tmp_path):
     review=json.loads((publication/'reports/pilot.json').read_text())
     assert len(review['rows'])==2
     assert all(r['receipt_replayed'] for r in review['rows'])
+    assert json.loads((publication/'tables/frozen_plan.json').read_text()) == fixture_freeze
     # Even a freshly rehashed row cannot override receipt-backed economics.
     row_path=next((root/'pilot'/'rows').glob('*.json'))
     tampered=json.loads(row_path.read_text())
@@ -171,3 +175,27 @@ def test_precision_gate_can_fail_even_with_nonzero_pilot_variance():
     assert result['power'] < .2
     assert result['monte_carlo_95_lower'] < .8
     assert execution.bootstrap_power_sensitivity(0.,1.,6)['status']=='unidentified'
+
+
+def test_failure_export_keeps_unknown_billing_and_unattempted_cells_distinct(tmp_path):
+    from aeread_families.procurement_allocation.continuous_case_matrix import build_candidate
+    from aeread_families.procurement_allocation.continuous_campaign import _seal
+    from aeread_families.procurement_allocation.continuous_publication import publish_review
+    case = build_candidate(2)
+    root = tmp_path / 'runs' / 'failed'
+    provider = execution.BudgetedProvider(CountingProvider(fail=True), root)
+    rows = asyncio.run(execution._rows(root, 'pilot', [case], [29001], provider, execution._run_cell, execution._audit_row))
+    assert [r['status'] for r in rows] == ['operational_failure', 'not_attempted']
+    execution._write_once_json(root / 'execution_design.json', _seal({
+        'design':{'world_ids':[economic_world_id(case)], 'implementation_pins':implementation_pins()},
+    }, 'plan_sha256'))
+    target = tmp_path / 'evidence' / 'procurement_allocation_failed_review'
+    status = publish_review(run_root=root, publication_root=target)
+    assert status['unsettled_provider_outcomes'] == 1
+    assert status['unresolved_reserved_cost_usd'] > 0
+    review = json.loads((target / 'reports/pilot.json').read_text())
+    failed = next(r for r in review['rows'] if r['status'] == 'operational_failure')
+    assert failed['failure_receipt_verified'] is True
+    assert failed['cost_usd'] is None
+    assert failed['known_cost_usd'] == 0
+    assert failed['cost_accounting'] == 'unknown_provider_billing'

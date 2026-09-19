@@ -251,6 +251,7 @@ Includes all 16 procurement bundles at preserved top-level paths.
   retry observability, paired effects, integrity gates, and sanitized row projections;
 - [procurement_allocation_failure_register](procurement_allocation/procurement_allocation_failure_register/)
 - [procurement_allocation_unified_regret_v1](procurement_allocation/procurement_allocation_unified_regret_v1/): six-world continuous admission; provider-free screen, not a model result
+- [procurement_allocation_unified_regret_v1_execution](procurement_allocation/procurement_allocation_unified_regret_v1_execution/): 24-row pilot passed; confirmation ineligible after HTTP 429 (15 completed, one failed, 20 unattempted)
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_pre_award_check_v1](procurement_allocation_glm53_flash_parasail_pre_award_check_v1/) **(preserved path)**
