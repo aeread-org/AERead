@@ -246,11 +246,12 @@ flowchart LR
     X3 -. "refused by the customer's ceiling" .-> F
 ```
 
-What `002` still does not do: it is one case, not an admission screen, so the
-family's Gate 1 and Gate 3 stay `failed` in the profile; and the walk-away
-and blind-adoption controls are still owed as *scored* policies, which is
-what turns the table in section 7 from an authoring rule into Gate 3
-evidence.
+Both gaps have since moved. The 24-world pack (`worlds_v2/`, generated under
+the guard) is the admission screen `002` alone could not be, and the walk-away
+and blind-adoption controls now run as *scored* policies on all 25 cases
+(`evidence/datacenter_development/datacenter_v2_scored_controls_v1/`): the
+reference beats walking away and beats adoption in 25 of 25, and adoption
+strands on every world. Gates 1 and 3 are `partial` in the profile.
 
 ## 9. What the two live probes showed on `001`
 

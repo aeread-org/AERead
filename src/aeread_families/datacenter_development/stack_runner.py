@@ -197,6 +197,7 @@ class DataCenterStackSetup:
     case: CaseManifest
     harnesses: Mapping[str, Any]
     scope_version: str
+    developer_policy: str = "scripted"
 
 
 def load_stack_case(
@@ -300,11 +301,25 @@ def _harness_registry_for(harness: Any) -> HarnessRegistry:
     return registry
 
 
+DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter")
+
+
 def build_stack_setup(
-    scope_version: str, *, case_path: Path | str | None = None
+    scope_version: str,
+    *,
+    case_path: Path | str | None = None,
+    developer_policy: str = "scripted",
 ) -> DataCenterStackSetup:
+    """Provider-free setup. `developer_policy` selects the scripted developer:
+    `scripted` follows the case's feasible path, `walk_away` walks at the first
+    offer, `adopt_every_counter` opens with an incomplete package the
+    counterparty must refuse and then copies its counter verbatim. The last
+    two are the Gate 3 controls; each gets its own profile identity."""
+
     if scope_version not in SCOPE_CONFIG:
         raise ValueError("scope_version must be v1 or v2")
+    if developer_policy not in DEVELOPER_POLICIES:
+        raise ValueError(f"developer_policy must be one of {DEVELOPER_POLICIES}")
     case = load_stack_case(scope_version, case_path)
     family = stack_family_manifest(scope_version)
     plugin = DataCenterStackPlugin(scope_version)
@@ -377,7 +392,11 @@ def build_stack_setup(
 
     pricing: dict[str, TokenPricing] = {}
     profiles: list[AgentProfile] = []
-    developer_model = f"datacenter_{scope_version}_scripted_developer_v1"
+    developer_model = (
+        f"datacenter_{scope_version}_scripted_developer_v1"
+        if developer_policy == "scripted"
+        else f"datacenter_{scope_version}_{developer_policy}_developer_v1"
+    )
     developer_pricing = TokenPricing(
         0.0, 0.0, 0.0, f"{developer_model}_zero_cost"
     )
@@ -492,6 +511,7 @@ def build_stack_setup(
     )
     return DataCenterStackSetup(
         plan=plan,
+        developer_policy=developer_policy,
         registry=registry,
         prompt_sources={
             f"datacenter_{scope_version}_developer_prompt_v1": DEVELOPER_PROMPT,
@@ -1064,8 +1084,13 @@ def _scripted_result(request: ProviderRequest, output: Mapping[str, Any]) -> Pro
 
 
 class StackScriptedDeveloperProvider:
-    def __init__(self, scripted_developer: Mapping[str, Any]) -> None:
+    def __init__(
+        self, scripted_developer: Mapping[str, Any], *, policy: str = "scripted"
+    ) -> None:
+        if policy not in DEVELOPER_POLICIES:
+            raise ValueError(f"policy must be one of {DEVELOPER_POLICIES}")
         self._scripted = dict(scripted_developer)
+        self._policy = policy
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "datacenter_stack_scripted_developer":
@@ -1074,8 +1099,37 @@ class StackScriptedDeveloperProvider:
         phase = payload["phase_id"]
         observation = payload["observation"]
         key = observation["agreement_key"]
-        if phase.endswith("_offer"):
-            terms = observation.get("pending_counter_terms") or self._scripted[f"{key}_terms"]
+        if phase.endswith("_offer") and self._policy == "walk_away":
+            # The outside option, taken at the first opportunity. Scores the
+            # case's own walk-away value through the real interface.
+            output = {"decision": "walk", "message": None, "terms": None}  # the parser requires a bare walk
+        elif (
+            phase.endswith("_offer")
+            and self._policy == "adopt_every_counter"
+            and key == "land_amendment"
+            and observation.get("pending_counter_terms")
+            and observation["pending_counter_terms"]
+            == (observation.get("executed_agreements") or {}).get("land", {}).get("terms")
+        ):
+            # The landowner's amendment counter is the executed land agreement
+            # itself (it volunteers no extension). Re-proposing it is a no-op
+            # amendment, so a blind adopter has no amendment to adopt: it
+            # declines and walks, and the project strands at the outside
+            # option, which is the trap the world sets for adopters.
+            output = {"decision": "walk", "message": None, "terms": None}
+        elif phase.endswith("_offer"):
+            pending = observation.get("pending_counter_terms")
+            if pending:
+                terms = pending
+            elif self._policy == "adopt_every_counter":
+                # Open with the feasible package minus every condition
+                # precedent. Every policy requires at least one, so the
+                # counterparty refuses and names its own package, which the
+                # next offer copies verbatim. What gets executed is exactly the
+                # counter, so the score is the adopt-every-counter path.
+                terms = {**self._scripted[f"{key}_terms"], "conditions_precedent": []}
+            else:
+                terms = self._scripted[f"{key}_terms"]
             output = {"decision": "offer", "message": f"Written {key} proposal.", "terms": terms}
         elif phase.endswith("_commit"):
             output = {"decision": "sign", "offer_id": observation["accepted_offer_id"]}
@@ -1124,7 +1178,7 @@ def _providers(setup: DataCenterStackSetup) -> Mapping[str, Any]:
     seats = sorted({COUNTERPART_BY_KEY[key] for key in sequence})
     return {
         "datacenter_stack_scripted_developer": StackScriptedDeveloperProvider(
-            setup.case.payload["scripted_developer"]
+            setup.case.payload["scripted_developer"], policy=setup.developer_policy
         ),
         **{
             f"datacenter_stack_scripted_{seat}": StackScriptedCounterpartyProvider(seat)
@@ -1139,8 +1193,11 @@ async def run_stack_offline(
     evidence_root: Path | str,
     episode_attempt_ordinal: int = 0,
     case_path: Path | str | None = None,
+    developer_policy: str = "scripted",
 ) -> tuple[DataCenterStackSetup, CellExecution]:
-    setup = build_stack_setup(scope_version, case_path=case_path)
+    setup = build_stack_setup(
+        scope_version, case_path=case_path, developer_policy=developer_policy
+    )
     execution = await execute_plan_cell(
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
