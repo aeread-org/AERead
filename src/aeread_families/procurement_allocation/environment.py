@@ -13,6 +13,7 @@ import itertools
 import json
 import math
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -292,6 +293,8 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         _positive_int(interaction.get(field), f"interaction.{field}")
     for field in ("inquiry_cost_usd", "quote_cost_usd", "counter_cost_usd"):
         _finite_number(interaction.get(field), f"interaction.{field}", minimum=0.0)
+    if interaction.get("counter_feedback", "legacy") not in {"legacy", "field_specific"}:
+        raise ValueError("interaction.counter_feedback must be legacy or field_specific")
 
     # Sampling noise is opt-in and declared, never implicit. A case that omits
     # the block keeps perfect verification, which is what every sealed panel was
@@ -508,33 +511,41 @@ def _best_offer(supplier: Mapping[str, Any], *, version: int, issued_day: int) -
 def _counter_is_accepted(
     supplier: Mapping[str, Any], offer: Mapping[str, Any], proposal: Mapping[str, Any]
 ) -> bool:
+    return not _counter_rejection_fields(supplier, offer, proposal)
+
+
+def _counter_rejection_fields(
+    supplier: Mapping[str, Any], offer: Mapping[str, Any], proposal: Mapping[str, Any]
+) -> list[str]:
+    """Name rejected terms without exposing private reservation values."""
     limits = supplier["private_terms"]["negotiation"]
+    rejected = []
     if "unit_price_usd" in proposal and not (
         limits["floor_unit_price_usd"] <= proposal["unit_price_usd"] <= offer["unit_price_usd"]
     ):
-        return False
+        rejected.append("unit_price_usd")
     if "moq" in proposal and not (
         limits["minimum_moq"] <= proposal["moq"] <= offer["moq"]
     ):
-        return False
+        rejected.append("moq")
     if "payment_terms_days" in proposal and not (
         offer["payment_terms_days"]
         <= proposal["payment_terms_days"]
         <= limits["maximum_payment_terms_days"]
     ):
-        return False
+        rejected.append("payment_terms_days")
     current_window = offer["return_policy"]["refund_window_days"]
     if "refund_window_days" in proposal and not (
         current_window
         <= proposal["refund_window_days"]
         <= limits["maximum_refund_window_days"]
     ):
-        return False
+        rejected.append("refund_window_days")
     if proposal.get("return_freight_payer") == "supplier" and not limits[
         "supplier_paid_return_freight_available"
     ]:
-        return False
-    return True
+        rejected.append("return_freight_payer")
+    return rejected
 
 
 def _apply_counter(
@@ -745,6 +756,25 @@ class UpperBoundResult:
 
 
 def solve_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperBoundResult:
+    # Neither observation noise nor rejection wording changes a full-information
+    # optimum. Screening many seeds otherwise repeats the same enumeration four
+    # times per policy/seed (validation and scoring). Copy the cached result so
+    # callers cannot corrupt a later certificate through its nested award plan.
+    economic = _plain(family_case)
+    economic["interaction"].pop("sample_noise", None)
+    economic["interaction"].pop("counter_feedback", None)
+    return copy.deepcopy(_cached_full_information_upper_bound(
+        canonical_json_bytes(economic), UPPER_BOUND_ENUMERATION_LIMIT
+    ))
+
+
+@lru_cache(maxsize=128)
+def _cached_full_information_upper_bound(payload: bytes, enumeration_limit: int) -> UpperBoundResult:
+    del enumeration_limit  # Part of the key: changing the guard invalidates cache entries.
+    return _enumerate_full_information_upper_bound(json.loads(payload))
+
+
+def _enumerate_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperBoundResult:
     """Enumerate the small curated world under full information.
 
     The bound charges every quote, sample, and counter action needed to make its
@@ -1397,6 +1427,10 @@ class ProcurementAllocationPlugin:
                     f"Counter rejected; {current['offer_id']} remains available "
                     f"until day {current['expires_day']}."
                 )
+                if interaction.get("counter_feedback") == "field_specific":
+                    rejected = _counter_rejection_fields(supplier, current, action["proposal"])
+                    consequences["rejected_fields"] = rejected
+                    reply += " Rejected terms: " + ", ".join(rejected) + "."
             next_state["conversation"].append(
                 {"role": "supplier", "supplier_id": action["supplier_id"], "content": reply}
             )

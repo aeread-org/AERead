@@ -48,11 +48,15 @@ _FAILURE_FIELDS = (
 
 
 def _bundles(evidence_root: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in evidence_root.iterdir()
-        if path.is_dir() and path.name.startswith(FAMILY_PREFIX)
-    )
+    # Support both preserved legacy bundles and the current family/publication
+    # layout. Never ingest the derived register itself (including snapshots),
+    # which would make a second generation depend on the first one's digest.
+    return sorted({
+        reports.parent for reports in evidence_root.rglob("reports")
+        if reports.is_dir()
+        and reports.parent.name.startswith(FAMILY_PREFIX)
+        and REGISTER_ID not in reports.relative_to(evidence_root).parts
+    })
 
 
 def _reports(bundle: Path) -> list[Path]:
@@ -121,7 +125,8 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
                     "campaign_id": value.get("campaign_id"),
                     "case_id": row.get("case_id"),
                     "inference_seed": row.get("inference_seed"),
-                    "kind": "operational" if not completed else "measured_violation",
+                    "kind": ("not_attempted" if row['status'] == 'not_attempted'
+                             else "operational" if not completed else "measured_violation"),
                     "violations": violations,
                     "result_sha256": row.get("result_sha256"),
                 }
@@ -132,6 +137,9 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
 
     operational = [f for f in failures if f["kind"] == "operational"]
     measured = [f for f in failures if f["kind"] == "measured_violation"]
+    not_attempted = [f for f in failures if f["kind"] == "not_attempted"]
+    unknown_costs = sum(f.get("cost_usd") is None for f in operational)
+    known_cost = round(sum(float(f["cost_usd"]) for f in operational if f.get("cost_usd") is not None), 8)
     register = {
         "schema_version": SCHEMA_VERSION,
         "register_id": REGISTER_ID,
@@ -142,11 +150,11 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
         ),
         "sources": dict(sorted(sources.items())),
         "summary": {
-            "bundles_scanned": len({f["source"].split("/")[1] for f in failures})
-            if failures
-            else 0,
+            "bundles_scanned": len({str(Path(source).parent.parent) for source in sources}),
             "reports_scanned": len(sources),
             "rows_scanned": scanned_rows,
+            "executed_rows_scanned": scanned_rows - len(not_attempted),
+            "unattempted_rows": len(not_attempted),
             "operational_failures": len(operational),
             "measured_violations": len(measured),
             "rejected_canaries": len(canaries),
@@ -168,9 +176,9 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
                     ).items()
                 )
             ),
-            "operational_cost_usd": round(
-                sum(float(f.get("cost_usd") or 0.0) for f in operational), 8
-            ),
+            "operational_cost_usd": None if unknown_costs else known_cost,
+            "known_operational_cost_usd": known_cost,
+            "operational_failures_with_unknown_cost": unknown_costs,
         },
         "rejected_canaries": canaries,
         "failures": failures,
