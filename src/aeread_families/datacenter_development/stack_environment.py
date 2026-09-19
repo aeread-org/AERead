@@ -306,11 +306,16 @@ def _make_offer(
         prior = state["executed"].get("land")
         if prior is None:
             raise ValueError("land amendment requires an executed land agreement")
+        # The amended fields are what the offer actually changes against the
+        # executed land agreement, never the scripted developer's list. Stamping
+        # the scripted list onto a live offer made any amendment that changed a
+        # different set of fields -- including one that changed nothing -- pass
+        # the landowner and then crash at commit as an environment failure
+        # (DC-D-05). The scripted path's own amendment changes exactly its
+        # declared fields, so its offers and receipts are unchanged.
         metadata = {
             "supersedes_offer_id": prior["offer_id"],
-            "amended_fields": family_case["scripted_developer"][
-                "land_amendment_fields"
-            ],
+            "amended_fields": _amended_fields(prior, terms),
             "precedence_index": int(prior.get("precedence_index", 0)) + 1,
         }
     return make_offer(
@@ -322,6 +327,15 @@ def _make_offer(
         terms=terms,
         **metadata,
     )
+
+
+def _amended_fields(prior: Mapping[str, Any], terms: AgreementTerms) -> tuple[str, ...]:
+    """Fields the offered terms change against the executed land agreement."""
+
+    prior_terms = _terms("land", prior["terms"])
+    before = _term_values(prior_terms)
+    after = _term_values(terms)
+    return tuple(sorted(field for field in before if before[field] != after.get(field)))
 
 
 def _offer_from_dict(value: Mapping[str, Any]) -> ContractOffer:
@@ -639,6 +653,13 @@ class DataCenterStackPlugin:
         if phase.phase_id.endswith("_offer"):
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
                 return LegalityResult.illegal("round_limit_exhausted")
+            if key == "land_amendment":
+                prior = state["executed"].get("land")
+                if prior is not None and not _amended_fields(prior, _terms("land", action["terms"])):
+                    # A re-proposal of the executed terms is not an amendment.
+                    # It is the developer's invalid action, typed and scored
+                    # as such, not an environment failure at commit.
+                    return LegalityResult.illegal("amendment_changes_nothing")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_response"):
             if action["offer_id"] != state["latest_offer_id"][key]:

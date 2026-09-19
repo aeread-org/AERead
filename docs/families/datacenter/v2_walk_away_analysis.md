@@ -265,3 +265,21 @@ Neither number describes what happened, and on `001` the model that failed
 to close outscored the one that closed. That is DC-D-04, and it is why the
 repair is bands and a floor-negotiating reference rather than a terminal
 value alone.
+
+## 10. The same two models on the repaired case, `002`
+
+Three seeds each again, $1.09 in total.
+
+| model | opening land bid (ceiling now 20,000) | what followed | score |
+|---|---:|---|---:|
+| Gemini 3.8 Flash | 1,000,000 ×3 | refused by the landowner's ceiling, for the right reason this time; then adopted every cost-side counter. One seed asked the customer for 150, inside the opened band, and got it: −105,000. One seed lowballed the customer at 50 (below the floor), was countered, adopted 100: −155,000. One seed re-proposed the executed land terms as its "amendment" and hit DC-D-05 (excluded) | −105,000 / −155,000 / excluded |
+| GPT-6 Astra | 800,000 / 250,000 / 800,000 | refused by the ceiling; interconnection at 10,000 now refused by the floor; demanded 300–350 from a customer whose ceiling is now 160, conceded to 275–300, rounds exhausted, stranded again | −100,000 ×3 |
+
+Two things the repaired case now does that the sealed one could not. It
+refuses the overpayment and the lowball on their own merits, not because an
+unrelated field happened to be out of band. And it lets a model be paid for
+reading the revenue side: Gemini's in-band 150 is worth exactly 50,000 over
+adopting, and the score shows it. What it still cannot do is reward the
+cost side — neither model ever proposed a price below a counter that a
+counterparty would accept, so the 33,000 of cost-side headroom between the
+adopt path and the floor path went untouched by both.

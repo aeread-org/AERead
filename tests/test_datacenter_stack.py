@@ -29,6 +29,7 @@ from aeread_families.datacenter_development.contracts import (
 from aeread_families.datacenter_development.stack_environment import (
     DataCenterStackPlugin,
     _baseline_stack,
+    _plain,
     _terms,
     terms_acceptable,
 )
@@ -690,3 +691,103 @@ def test_repaired_v2_case_observation_hides_bands_and_controls() -> None:
         "184000",  # the EPC floor
     ):
         assert token not in serialized, token
+
+
+# --- DC-D-05: a live amendment is measured by what it changes -------------
+
+
+def _state_after_land(plugin, family_case, payload):
+    executed, _ = _baseline_stack(payload, "v2")
+    state = plugin.initial_state(family_case, run=None)
+    state["executed"]["land"] = _plain(executed["land"])
+    return state
+
+
+def _envelope(seat, action, legality=None):
+    legality = legality or LegalityResult.legal_action()
+    return ActionEnvelope(
+        seat_id=seat,
+        valid=legality == LegalityResult.legal_action(),
+        action=action,
+        parse=ParseResult.success(action),
+        legality=legality,
+    )
+
+
+def test_no_op_land_amendment_is_the_developers_invalid_action() -> None:
+    """Gemini re-proposed the executed land terms as its amendment (probe on
+    002, seed 31212); the landowner accepted and the commit crashed as an
+    environment failure. It is the developer's action and is typed as such."""
+
+    payload = _repaired_payload()
+    plugin = DataCenterStackPlugin("v2")
+    family_case = plugin.validate_payload(payload)
+    state = _state_after_land(plugin, family_case, payload)
+    phase = next(
+        item for item in plugin.phases(family_case)
+        if item.phase_id == "land_amendment_developer_offer"
+    )
+    no_op = {
+        "decision": "offer",
+        "message": "Re-proposing the executed land terms.",
+        "terms": dict(state["executed"]["land"]["terms"]),
+    }
+    legality = plugin.legal(family_case, state, "developer", phase, no_op)
+    assert legality.reason == "amendment_changes_nothing"
+
+    transition = plugin.step(
+        family_case, state, phase, {"developer": _envelope("developer", no_op, legality)}
+    )
+    outcome = plugin.outcome(family_case, plugin.terminal(family_case, transition.state))
+    assert transition.state["termination_reason"] == "invalid_action"
+    assert "amendment_changes_nothing" in transition.state["temporal_violations"]
+    assert outcome["project_completed"] is False
+    assert outcome["developer_equity_npv_cents"] == payload["outside_option"]["developer_equity_npv_cents"]
+
+    real = dict(no_op, terms=dict(no_op["terms"], site_control_expiry_month=4))
+    assert plugin.legal(family_case, state, "developer", phase, real) == LegalityResult.legal_action()
+
+
+def test_live_amendment_fields_are_derived_from_the_diff_and_commit() -> None:
+    """An amendment that changes two in-band fields carries both as its
+    amended fields and executes; before, the scripted list was stamped on
+    and the commit raised. The scripted path's own amendment is unchanged."""
+
+    payload = _repaired_payload()
+    plugin = DataCenterStackPlugin("v2")
+    family_case = plugin.validate_payload(payload)
+    state = _state_after_land(plugin, family_case, payload)
+    phases = {item.phase_id: item for item in plugin.phases(family_case)}
+    prior_terms = state["executed"]["land"]["terms"]
+
+    offer = {
+        "decision": "offer",
+        "message": "Extend site control through month 4 and pay the full extension fee.",
+        "terms": dict(prior_terms, site_control_expiry_month=4, extension_price_cents=5_000),
+    }
+    assert plugin.legal(family_case, state, "developer", phases["land_amendment_developer_offer"], offer) == LegalityResult.legal_action()
+    after_offer = plugin.step(
+        family_case, state, phases["land_amendment_developer_offer"], {"developer": _envelope("developer", offer)}
+    )
+    recorded = after_offer.state["public_history"][-1]
+    assert recorded["amended_fields"] == ["extension_price_cents", "site_control_expiry_month"]
+    offer_id = recorded["offer_id"]
+
+    accept = {"decision": "accept", "offer_id": offer_id, "message": "landowner accepts the written terms."}
+    response_phase = phases["land_amendment_landowner_response"]
+    assert plugin.legal(family_case, after_offer.state, "landowner", response_phase, accept) == LegalityResult.legal_action()
+    after_accept = plugin.step(family_case, after_offer.state, response_phase, {"landowner": _envelope("landowner", accept)})
+
+    sign = {"decision": "sign", "offer_id": offer_id}
+    after_sign = plugin.step(family_case, after_accept.state, phases["land_amendment_developer_commit"], {"developer": _envelope("developer", sign)})
+    amendment = after_sign.state["executed"]["land_amendment"]
+    assert tuple(amendment["amended_fields"]) == ("extension_price_cents", "site_control_expiry_month")
+    assert amendment["terms"]["site_control_expiry_month"] == 4
+    assert amendment["terms"]["extension_price_cents"] == 5_000
+    assert prior_terms["extension_price_cents"] == 4_250  # the executed land sits at the floor
+
+    executed, _ = _baseline_stack(payload, "v2")
+    assert executed["land_amendment"].amended_fields == ("site_control_expiry_month",)
+    sealed_executed, _ = _baseline_stack(dict(load_stack_case("v2").payload), "v2")
+    assert sealed_executed["land_amendment"].amended_fields == ("site_control_expiry_month",)
+
