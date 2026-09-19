@@ -1,0 +1,135 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_full_campaign_gates_64_replayed_rows_and_one_freeze ___________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1304/test_full_campaign_gates_64_re0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10afa3bf0>
+
+    def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypatch):
+        from aeread_families.procurement_allocation import phase2_execution as execution
+        from aeread_families.procurement_allocation.phase2_admission import source_pins
+    
+        # Only the reviewer/admission fixture is substituted. All 64 trajectories,
+        # budgets, gates, row audits, receipts and inference use production code.
+        root = tmp_path / "runs" / "phase2"
+        admission = root / "admission"
+        admission.mkdir(parents=True)
+        c = fixture_contribution(admission)
+        screen = offline_screen()
+        (admission / "offline_screen.json").write_text(json.dumps(screen))
+        (admission / "provider_free_conformance.json").write_text(
+            json.dumps(
+                {"passed": True, "test_only": True, "implementation_pins": source_pins()}
+            )
+        )
+        # Refresh the fixture's content-addressed evidence after setting the test log.
+        from dataclasses import replace
+        import hashlib
+        from aeread.shared_runner.registry import family_contribution_sha256
+    
+        ref = replace(
+            c.provider_free_evidence,
+            sha256=hashlib.sha256(
+                (admission / c.provider_free_evidence.path).read_bytes()
+            ).hexdigest(),
+        )
+        c = replace(c, provider_free_evidence=ref)
+        c = replace(
+            c,
+            human_qc_approval=replace(
+                c.human_qc_approval, contribution_sha256=family_contribution_sha256(c)
+            ),
+        )
+        monkeypatch.setattr(execution, "load_contribution", lambda root: c)
+        result = asyncio.run(
+            execution.run_campaign(
+                root,
+                admission,
+                provider_factory=PolicyProvider,
+                preflight=lambda candidate: {"test_only": True},
+            )
+        )
+        from aeread_families.procurement_allocation.phase2_campaign import (
+            BASELINE_SETTLED_USD,
+            BASELINE_RESERVED_USD,
+        )
+    
+        assert result["status"] == "completed"
+>       assert result["accounted_cost_usd"] == pytest.approx(
+            BASELINE_SETTLED_USD + BASELINE_RESERVED_USD, abs=1e-12
+        )
+E       assert 0.026018635500000005 == 0.0311531355 ± 1.0e-12
+E         
+E         comparison failed
+E         Obtained: 0.026018635500000005
+E         Expected: 0.0311531355 ± 1.0e-12
+
+tests/test_procurement_phase2_execution.py:235: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "treatment", "environment_seed": 52001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "control", "environment_seed": 52001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_01", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_02", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_03", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_04", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.75, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_05", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_06", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "award", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "treatment", "environment_seed": 53001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "control", "environment_seed": 53001, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "control", "environment_seed": 53002, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "treatment", "environment_seed": 53002, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "treatment", "environment_seed": 53003, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+{"world_id": "procurement_allocation_phase2_v1.world_08", "arm": "control", "environment_seed": 53003, "status": "completed", "decision": "defer", "regret_to_upper_bound_usd": 0.0, "cost_usd": 0.0}
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_execution.py::test_full_campaign_gates_64_replayed_rows_and_one_freeze
+1 failed in 11.62s

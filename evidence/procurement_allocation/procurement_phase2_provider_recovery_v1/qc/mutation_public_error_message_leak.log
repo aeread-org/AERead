@@ -1,0 +1,24 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_publication_keeps_private_provider_message_out_and_checks_its_digest ___
+
+    def test_publication_keeps_private_provider_message_out_and_checks_its_digest():
+        from tools.publish_procurement_phase2_recovery import public_provider_failures
+    
+        message = "private fixture account information"
+        details = dict(message=message, message_sha256=hashlib.sha256(message.encode()).hexdigest(),
+                       exception_type="ProviderFailure", condition="rate_limit", status_code=429, retryable=True)
+        bill = dict(request_sha256="a" * 64, provider_call_id="fixture", provider_failure=details)
+        public = public_provider_failures([bill])
+>       assert message not in json.dumps(public)
+E       assert 'private fix... information' not in '[{"request_...ble": true}]'
+E         
+E         'private fixture account information' is contained here:
+E         ?           ^^^^
+E           essage": "private fixture account information", "message_sha256": "3e5d9e2c4cd0b87c444898ce686329bce0eeebf90dbe399c83c67f19bac033c2", "condition": "rate_limit", "status_code": 429, "retryable": true}]
+E         ?           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ++++++++++
+
+tests/test_procurement_phase2_provider_recovery.py:116: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_provider_recovery.py::test_publication_keeps_private_provider_message_out_and_checks_its_digest
+1 failed in 0.55s

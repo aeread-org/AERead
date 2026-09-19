@@ -12,6 +12,7 @@ from aeread_families.procurement_allocation.phase2_environment import Phase2Plug
 from aeread_families.procurement_allocation.phase2_campaign import (
     prior_campaign_accounting,
     BASELINE_SETTLED_USD,
+    BASELINE_RESERVED_USD,
 )
 from aeread_families.procurement_allocation.phase2_runner import PROMPTS
 from aeread_families.procurement_allocation.phase2_worlds import build_world
@@ -92,10 +93,9 @@ def test_economics_worlds_and_verifier_bytes_are_unchanged_from_failed_pilot():
         "phase2_worlds.py",
         "phase2_policies.py",
         "runner.py",
-        "phase2_budget.py",
     ):
         path = "src/aeread_families/procurement_allocation/" + name
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == pins[path]
     prior = prior_campaign_accounting()
     assert prior["settled_cost_usd"] == BASELINE_SETTLED_USD > 0
-    assert prior["unresolved_reserved_cost_usd"] == 0
+    assert prior["unresolved_reserved_cost_usd"] == BASELINE_RESERVED_USD > 0

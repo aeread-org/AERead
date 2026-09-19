@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import math
+import hashlib
 from aeread.shared_runner.task.execution import ProviderFailure
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from .continuous_execution import CampaignBudgetExceeded
@@ -87,6 +88,17 @@ class Phase2BudgetedProvider:
         try:
             result = await self.provider.complete(request)
         except BaseException as error:
+            # Billing is private run evidence. Public exports retain the digest,
+            # not the message, which may contain account or request details.
+            original_message = str(error)
+            provider_failure = {
+                "exception_type": type(error).__name__,
+                "message": original_message,
+                "message_sha256": hashlib.sha256(original_message.encode()).hexdigest(),
+                "condition": getattr(error, "condition", None),
+                "status_code": getattr(error, "status_code", None),
+                "retryable": getattr(error, "retryable", None),
+            }
             explicit_429 = (
                 isinstance(error, ProviderFailure)
                 and error.condition == "rate_limit"
@@ -110,6 +122,7 @@ class Phase2BudgetedProvider:
                         else "unknown_provider_outcome"
                     ),
                     "cost_usd": None,
+                    "provider_failure": provider_failure,
                     "retry_permitted": allowed,
                     "required_retry_delay_seconds": delay,
                     "provider_retry_after_seconds": (
@@ -120,7 +133,7 @@ class Phase2BudgetedProvider:
             if explicit_429:
                 raise ProviderFailure(
                     "rate_limit",
-                    "explicit HTTP 429; see preserved provider evidence",
+                    original_message,
                     retryable=allowed,
                     status_code=429,
                     retry_after_seconds=delay,

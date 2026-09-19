@@ -50,6 +50,7 @@ from .phase2_campaign import (
     CAMPAIGN_ID,
     HARD_COST_CEILING_USD,
     BASELINE_SETTLED_USD,
+    BASELINE_RESERVED_USD,
     execution_contract,
     pilot_gate,
     analyze,
@@ -393,7 +394,7 @@ async def run_campaign(
         True,
     )
     provider = Phase2BudgetedProvider(
-        provider_factory(), root, baseline=BASELINE_SETTLED_USD
+        provider_factory(), root, baseline=BASELINE_SETTLED_USD + BASELINE_RESERVED_USD
     )
 
     def finish(status, **extra):
@@ -407,8 +408,10 @@ async def run_campaign(
                 status=status,
                 known_settled_cost_usd=known,
                 prior_phase2_settled_cost_usd=BASELINE_SETTLED_USD,
+                prior_phase2_reserved_cost_usd=BASELINE_RESERVED_USD,
                 combined_known_settled_cost_usd=BASELINE_SETTLED_USD + known,
                 unresolved_reserved_cost_usd=reserved,
+                combined_unresolved_reserved_cost_usd=BASELINE_RESERVED_USD + reserved,
                 accounted_cost_usd=provider.spent,
                 hard_ceiling_usd=HARD_COST_CEILING_USD,
                 provider_request_count=len(provider.calls),

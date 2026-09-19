@@ -188,8 +188,9 @@ def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypat
 
     # Only the reviewer/admission fixture is substituted. All 64 trajectories,
     # budgets, gates, row audits, receipts and inference use production code.
-    admission = tmp_path / "admission"
-    admission.mkdir()
+    root = tmp_path / "runs" / "phase2"
+    admission = root / "admission"
+    admission.mkdir(parents=True)
     c = fixture_contribution(admission)
     screen = offline_screen()
     (admission / "offline_screen.json").write_text(json.dumps(screen))
@@ -217,7 +218,6 @@ def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypat
         ),
     )
     monkeypatch.setattr(execution, "load_contribution", lambda root: c)
-    root = tmp_path / "runs" / "phase2"
     result = asyncio.run(
         execution.run_campaign(
             root,
@@ -228,14 +228,18 @@ def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypat
     )
     from aeread_families.procurement_allocation.phase2_campaign import (
         BASELINE_SETTLED_USD,
+        BASELINE_RESERVED_USD,
     )
 
     assert result["status"] == "completed"
     assert result["accounted_cost_usd"] == pytest.approx(
-        BASELINE_SETTLED_USD, abs=1e-12
+        BASELINE_SETTLED_USD + BASELINE_RESERVED_USD, abs=1e-12
     )
     assert result["known_settled_cost_usd"] == 0
     assert result["combined_known_settled_cost_usd"] == BASELINE_SETTLED_USD
+    assert result["prior_phase2_reserved_cost_usd"] == BASELINE_RESERVED_USD
+    assert result["unresolved_reserved_cost_usd"] == 0
+    assert result["combined_unresolved_reserved_cost_usd"] == BASELINE_RESERVED_USD
     rows = json.loads((root / "confirmatory" / "report.json").read_text())["rows"]
     assert len(rows) == 48 and all(r["receipt_replayed"] for r in rows)
     assert len(json.loads((root / "pilot" / "report.json").read_text())["rows"]) == 16
@@ -249,6 +253,16 @@ def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypat
                 root, admission, provider_factory=PolicyProvider, preflight=lambda c: {}
             )
         )
+    from tools import publish_procurement_phase2_recovery as publication
+
+    monkeypatch.setattr(publication, "load_contribution", lambda root: c)
+    target = tmp_path / "evidence" / "procurement_allocation" / "provider_recovery_fixture"
+    summary = publication.publish(root, target)
+    assert summary["confirmation_rows_executed"] == 48
+    assert summary["combined_unresolved_reserved_cost_usd"] == BASELINE_RESERVED_USD
+    first = {str(p.relative_to(target)): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+    assert publication.publish(root, target) == summary
+    assert first == {str(p.relative_to(target)): p.read_bytes() for p in target.rglob("*") if p.is_file()}
 
 
 def test_live_row_preserves_unknown_retry_billing(tmp_path, monkeypatch):

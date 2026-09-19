@@ -51,6 +51,25 @@ def without_seal(value):
     return {k: v for k, v in value.items() if k != "artifact_sha256"}
 
 
+def public_provider_failures(bills):
+    """Verify private error messages, exporting only explicit metadata and hashes."""
+    result = []
+    for bill in bills:
+        details = bill.get("provider_failure")
+        if details is None:
+            continue
+        if hashlib.sha256(details["message"].encode()).hexdigest() != details["message_sha256"]:
+            raise ValueError("Private provider failure message digest mismatch")
+        result.append({
+            "request_sha256": bill["request_sha256"],
+            "provider_call_id": bill["provider_call_id"],
+            **{key: details[key] for key in (
+                "exception_type", "message_sha256", "condition", "status_code", "retryable"
+            )},
+        })
+    return result
+
+
 def publish(root, target):
     _validate_publication_root(target)
     design = sealed(root / "execution_contract.json", "plan_sha256")
@@ -58,7 +77,7 @@ def publish(root, target):
         raise ValueError("Executed source pins changed")
     status = sealed(root / "execution_status.json")
     prior = prior_campaign_accounting()
-    assert design["prior_phase2_campaign"] == prior
+    assert design["prior_phase2_campaigns"] == prior
     contribution = load_contribution(root / "admission")
     bills = [
         json.loads(p.read_text())
@@ -78,9 +97,11 @@ def publish(root, target):
     reserved = sum(b["reserved_cost_usd"] for b in bills if b["status"] != "settled")
     assert math.isclose(status["known_settled_cost_usd"], known, abs_tol=1e-12)
     assert math.isclose(status["unresolved_reserved_cost_usd"], reserved, abs_tol=1e-12)
+    assert math.isclose(status["prior_phase2_reserved_cost_usd"], prior["unresolved_reserved_cost_usd"], abs_tol=1e-12)
+    assert math.isclose(status["combined_unresolved_reserved_cost_usd"], prior["unresolved_reserved_cost_usd"] + reserved, abs_tol=1e-12)
     assert math.isclose(
         status["accounted_cost_usd"],
-        prior["settled_cost_usd"] + known + reserved,
+        prior["accounted_cost_usd"] + known + reserved,
         abs_tol=1e-12,
     )
     assert status["accounted_cost_usd"] <= status["hard_ceiling_usd"]
@@ -315,8 +336,10 @@ def publish(root, target):
         unscored_canary_count=len(canaries),
         recovery_settled_cost_usd=known,
         prior_phase2_settled_cost_usd=prior["settled_cost_usd"],
+        prior_phase2_reserved_cost_usd=prior["unresolved_reserved_cost_usd"],
         combined_settled_cost_usd=prior["settled_cost_usd"] + known,
         unresolved_reserved_cost_usd=reserved,
+        combined_unresolved_reserved_cost_usd=prior["unresolved_reserved_cost_usd"] + reserved,
         combined_accounted_cost_usd=status["accounted_cost_usd"],
         hard_combined_ceiling_usd=status["hard_ceiling_usd"],
         remaining_budget_usd=status["hard_ceiling_usd"] - status["accounted_cost_usd"],
@@ -325,16 +348,17 @@ def publish(root, target):
         ),
         comparison=comparison,
         pilot_gate=diagnostics,
-        confirmation_rows_executed=len(rows_by_phase.get("confirmatory", [])),
+        confirmation_rows_executed=sum(r["status"] != "not_attempted" for r in rows_by_phase.get("confirmatory", [])),
         confirmation_rows_gated_off=(
             0 if "confirmatory" in rows_by_phase else design["confirmatory_rows"]
         ),
-        provider_failure_evidence_limit="HTTP status, request identity and retry timing retained; wrapper replaced original exception detail. Provider-specific cause and charges remain unknown.",
-        claim_scope="Fixed curated synthetic panel; failed original attempt excluded from effects but retained in costs. Trap certificates test public impossibility recognition, not hidden-market discovery.",
+        provider_failure_evidence_limit="Provider exception messages retained privately and bound by digest; availability of an original raw response body depends on the adapter. Unknown charges remain reserved.",
+        claim_scope="Fixed curated synthetic panel; both prior attempts excluded from effects but retained in costs. Trap certificates test public impossibility recognition, not hidden-market discovery.",
     )
     outputs["reports/execution_status.json"] = summary
     outputs["qc/canonical_actions.json"] = {"traces": traces}
     outputs["qc/provider_failure_events.json"] = {"events": failure_events}
+    outputs["qc/provider_failure_digests.json"] = {"failures": public_provider_failures(bills)}
     diagnostic_path = root / "provider_diagnostic.json"
     if diagnostic_path.exists():
         diagnostic = json.loads(diagnostic_path.read_text())
@@ -360,13 +384,14 @@ def publish(root, target):
         _write_once_json(target / relative, value)
     _write_once_text(
         target / "README.md",
-        f"""# Phase 2 action-format recovery: verified live evidence
+        f"""# Phase 2 provider recovery: verified live evidence
 
 Execution status: `{status['status']}`. See [the reconciled result](reports/execution_status.json).
 Independently audited receipts: {audited}. Recovery settled spend: ${known:.10f}.
 Separately audited score-free failure receipts: {audited_failures}.
-Combined Phase 2 settled spend, including the failed original attempt:
-${prior['settled_cost_usd'] + known:.10f}. Unresolved reservations: ${reserved:.10f}.
+Combined Phase 2 settled spend, including both prior attempts:
+${prior['settled_cost_usd'] + known:.10f}. Combined unresolved reservations:
+${prior['unresolved_reserved_cost_usd'] + reserved:.10f}.
 The combined ceiling remains $0.45. No original failed episode is pooled or replaced.
 
 The confirmation comparison, when present, averages paired seeds within each

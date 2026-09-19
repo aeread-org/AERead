@@ -23,44 +23,68 @@ from .headroom_screen import classify_world_continuous
 from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
-CAMPAIGN_ID = "procurement_phase2_action_format_recovery_v1"
+CAMPAIGN_ID = "procurement_phase2_provider_recovery_v1"
 HARD_COST_CEILING_USD = 0.45
-BASELINE_SETTLED_USD = 0.0099593505
-BASELINE_PUBLICATION = (
-    "evidence/procurement_allocation/procurement_allocation_phase2_pilot_v1"
+BASELINE_SETTLED_USD = 0.0260186355
+BASELINE_RESERVED_USD = 0.0051345
+PRIOR_PUBLICATIONS = (
+    (
+        "procurement_allocation_phase2_pilot_v1",
+        "41e5ee0d0ba06f650388d3bdd9f46caddccfe7253f0b67eab940d88f3c88d84c",
+        "settled_cost_usd",
+        "confirmatory_rows_executed",
+    ),
+    (
+        "procurement_allocation_phase2_action_format_recovery_v1",
+        "ea8e2e3d9ff97379e16978014540fcdf025e74a78dc33e5e30a387ef38b0d494",
+        "recovery_settled_cost_usd",
+        "confirmation_rows_executed",
+    ),
 )
 
 
 def prior_campaign_accounting():
-    """Bind the recovery to the published failed attempt and its existing spend."""
+    """Carry each prior attempt once, including charges still unknown after 429."""
     import hashlib
+    import math
 
-    root = Path(__file__).resolve().parents[3] / BASELINE_PUBLICATION
-    manifest = json.loads((root / "publication_manifest.json").read_text())
-    expected_manifest = (
-        "41e5ee0d0ba06f650388d3bdd9f46caddccfe7253f0b67eab940d88f3c88d84c"
-    )
-    if manifest["manifest_sha256"] != expected_manifest or expected_manifest != digest(
-        {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    base = Path(__file__).resolve().parents[3] / "evidence/procurement_allocation"
+    campaigns = []
+    for name, expected_manifest, settled_key, confirmation_key in PRIOR_PUBLICATIONS:
+        root = base / name
+        manifest = json.loads((root / "publication_manifest.json").read_text())
+        if manifest["manifest_sha256"] != expected_manifest or expected_manifest != digest(
+            {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+        ):
+            raise ValueError("prior Phase 2 publication digest changed")
+        path = root / "reports/execution_status.json"
+        status_sha = manifest["artifacts"]["reports/execution_status.json"]
+        if hashlib.sha256(path.read_bytes()).hexdigest() != status_sha:
+            raise ValueError("prior Phase 2 execution status changed")
+        status = json.loads(path.read_text())
+        if status["status"] != "pilot_operational_gate_failed" or status[confirmation_key] != 0:
+            raise ValueError("prior campaign is not the declared stopped pilot")
+        campaigns.append(dict(
+            campaign_id=status["campaign_id"],
+            publication_manifest_sha256=expected_manifest,
+            status_file_sha256=status_sha,
+            settled_cost_usd=status[settled_key],
+            unresolved_reserved_cost_usd=status["unresolved_reserved_cost_usd"],
+        ))
+    settled = sum(c["settled_cost_usd"] for c in campaigns)
+    reserved = sum(c["unresolved_reserved_cost_usd"] for c in campaigns)
+    if not (
+        len({c["campaign_id"] for c in campaigns}) == len(campaigns)
+        and math.isclose(settled, BASELINE_SETTLED_USD, rel_tol=0, abs_tol=1e-12)
+        and math.isclose(reserved, BASELINE_RESERVED_USD, rel_tol=0, abs_tol=1e-12)
     ):
-        raise ValueError("prior Phase 2 publication digest changed")
-    path = root / "reports/execution_status.json"
-    assert (
-        hashlib.sha256(path.read_bytes()).hexdigest()
-        == manifest["artifacts"]["reports/execution_status.json"]
-    )
-    status = json.loads(path.read_text())
-    assert status["status"] == "pilot_operational_gate_failed"
-    assert status["settled_cost_usd"] == BASELINE_SETTLED_USD
-    assert status["unresolved_reserved_cost_usd"] == 0
-    assert status["confirmatory_rows_executed"] == 0
+        raise ValueError("prior Phase 2 accounting does not match frozen baseline")
     return dict(
-        campaign_id=status["campaign_id"],
-        publication_manifest_sha256=manifest["manifest_sha256"],
-        status_file_sha256=manifest["artifacts"]["reports/execution_status.json"],
+        campaigns=campaigns,
         settled_cost_usd=BASELINE_SETTLED_USD,
-        unresolved_reserved_cost_usd=0,
-        pooling="no outcome pooling; prior API spend counts toward combined ceiling",
+        unresolved_reserved_cost_usd=BASELINE_RESERVED_USD,
+        accounted_cost_usd=BASELINE_SETTLED_USD + BASELINE_RESERVED_USD,
+        pooling="no outcome pooling; prior settled spend and unknown-charge reservations count toward combined ceiling",
     )
 
 
@@ -175,8 +199,9 @@ def execution_contract(cases, screen):
         route=json.loads(canonical_json_bytes(GLM_PARASAIL_CANDIDATE)),
         hard_total_cost_ceiling_usd=HARD_COST_CEILING_USD,
         baseline_phase1_cost_usd=0.0,
-        prior_phase2_campaign=prior_campaign_accounting(),
-        recovery_scope="common action-format instructions and matching schema descriptions; unchanged parser, economics, worlds, route, seeds and analysis",
+        prior_phase2_campaigns=prior_campaign_accounting(),
+        recovery_scope="fresh full-panel operational attempt; carry both prior attempts and unresolved reservations; preserve provider exception messages privately; unchanged prompts, parser, economics, worlds, route, seeds, retry policy and analysis",
+        provider_failure_evidence="retain original exception message and typed fields in ignored billing; message digest may be published; raw response body availability depends on adapter",
         max_output_tokens_per_action=1200,
         max_actions=10,
         max_trajectory_cost_usd=0.025,
