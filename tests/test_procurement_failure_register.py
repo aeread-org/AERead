@@ -75,3 +75,14 @@ def test_publish_writes_a_bound_manifest(tmp_path: Path, register: dict) -> None
     ).hexdigest()
     with pytest.raises(ValueError):
         publish_register(register, publication_root=tmp_path / "runs" / REGISTER_ID)
+
+
+def test_register_discovers_nested_publications_and_excludes_its_own_output(tmp_path):
+    source = tmp_path / 'evidence' / 'procurement_allocation' / 'procurement_allocation_new' / 'reports' / 'rows.json'
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps({'rows': [{'status': 'operational_failure', 'case_id': 'x', 'failure_condition': 'timeout'}]}))
+    register = build_register(repository_root=tmp_path)
+    assert register['summary']['operational_failures'] == 1
+    target = tmp_path / 'evidence' / 'procurement_allocation' / REGISTER_ID
+    publish_register(register, publication_root=target)
+    assert build_register(repository_root=tmp_path) == register

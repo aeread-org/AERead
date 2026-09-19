@@ -411,3 +411,74 @@ def test_headroom_screening_would_reject_the_holdout_panel() -> None:
         "fewer than half of this panel's worlds should survive a 25% control-"
         f"failure admission rule; admissible: {sorted(admissible)}"
     )
+
+
+# New continuous campaign identity: economic regret plus evidence validity.
+def _continuous_rows():
+    return [
+        {
+            'world_id': world, 'environment_seed': seed, 'arm': arm,
+            'status': 'completed', 'receipt_replayed': True,
+            'decision': 'award', 'feasible': True, 'feasible_award': True,
+            'violations': [], 'upper_bound_usd': 100.,
+            'contribution_margin_usd': 80. if arm == 'treatment' else 40.,
+            'regret_to_upper_bound_usd': 20. if arm == 'treatment' else 60.,
+        }
+        for world in ('w1', 'w2', 'w3', 'w4', 'w5', 'w6')
+        for seed in (1, 2, 3) for arm in ('control', 'treatment')
+    ]
+
+
+def _continuous_result(rows):
+    from aeread_families.procurement_allocation.runner import continuous_promotion_rule
+    return continuous_promotion_rule(rows, world_ids=['w1', 'w2', 'w3', 'w4', 'w5', 'w6'], seeds=[1, 2, 3], bootstrap_resamples=500)
+
+
+def test_continuous_rule_detects_economics_when_both_arms_have_identical_award_rates():
+    result = _continuous_result(_continuous_rows())
+    assert result['status'] == 'supported'
+    assert result['mean_regret_delta_usd'] == -40.
+    assert result['world_count'] == 6
+    assert result['planned_rows'] == 36
+
+
+def test_gate5_unverified_shortcut_cannot_win_even_with_apparently_better_regret():
+    rows = _continuous_rows()
+    for row in rows:
+        if row['arm'] == 'treatment':
+            row.update(contribution_margin_usd=99., regret_to_upper_bound_usd=1.,
+                       feasible=False, feasible_award=False, violations=['missing_verified_sample'])
+    result = _continuous_result(rows)
+    assert result['status'] == 'ineligible'
+    assert result['checks']['treatment_respects_evidence_requirements'] is False
+
+
+def test_continuous_rule_rejects_an_arm_that_defers_everything():
+    rows = _continuous_rows()
+    for row in rows:
+        if row['arm'] == 'treatment':
+            row.update(decision='defer', feasible_award=False,
+                       contribution_margin_usd=0., regret_to_upper_bound_usd=100.)
+    result = _continuous_result(rows)
+    assert result['status'] == 'not_supported'
+    assert result['mean_regret_delta_usd'] == 40.
+
+
+@pytest.mark.parametrize('defect', ['missing', 'duplicate', 'unreplayed', 'nan', 'false_regret', 'wrong_bound', 'operational_failure'])
+def test_continuous_rule_fails_closed_on_invalid_panel_evidence(defect):
+    rows = _continuous_rows()
+    if defect == 'missing':
+        rows.pop()
+    elif defect == 'duplicate':
+        rows[-1] = rows[0]
+    elif defect == 'unreplayed':
+        rows[0]['receipt_replayed'] = False
+    elif defect == 'nan':
+        rows[0]['regret_to_upper_bound_usd'] = float('nan')
+    elif defect == 'false_regret':
+        rows[0]['regret_to_upper_bound_usd'] = 1.
+    elif defect == 'wrong_bound':
+        rows[0].update(upper_bound_usd=110., regret_to_upper_bound_usd=70.)
+    else:
+        rows[0]['status'] = 'operational_failure'
+    assert _continuous_result(rows)['status'] == 'ineligible'

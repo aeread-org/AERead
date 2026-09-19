@@ -20,6 +20,7 @@ produced a fabricated unanimous admission across a whole panel.
 
 from __future__ import annotations
 
+import math
 from typing import Any, Iterable, Mapping, Sequence
 
 from aeread.shared_runner.task.scheduler import ActionEnvelope
@@ -95,6 +96,7 @@ def classify_world_continuous(
     *,
     lower_is_better: bool = True,
     minimum_relative_spread: float = MINIMUM_RELATIVE_SPREAD,
+    materiality_scale: float | None = None,
 ) -> str:
     """Admission verdict for a world scored on a continuous metric.
 
@@ -112,6 +114,12 @@ def classify_world_continuous(
     *trivial* when a deterministic public-observation policy already matches the
     control's best score, since verification then buys nothing.
     """
+    if not math.isfinite(minimum_relative_spread) or minimum_relative_spread <= 0:
+        raise ValueError("minimum_relative_spread must be finite and positive")
+    if materiality_scale is not None and (
+        not math.isfinite(materiality_scale) or materiality_scale <= 0
+    ):
+        raise ValueError("materiality_scale must be finite and positive")
     if not control_scores or len(control_scores) < MINIMUM_SCREEN_SEEDS:
         return UNMEASURED
     if not baseline_scores or all(
@@ -119,12 +127,16 @@ def classify_world_continuous(
     ):
         return UNMEASURED
     measured = [score for score in baseline_scores.values() if score is not None]
+    if not all(math.isfinite(score) for score in [*control_scores, *measured]):
+        return UNMEASURED
     best_control = min(control_scores) if lower_is_better else max(control_scores)
     best_baseline = min(measured) if lower_is_better else max(measured)
 
     # Both remaining tests are comparisons of a difference against a scale, so
     # the scale is derived once from the magnitudes actually in play.
-    scale = max(abs(best_baseline), abs(best_control), 1.0)
+    scale = materiality_scale if materiality_scale is not None else max(
+        abs(best_baseline), abs(best_control), 1.0
+    )
     material = minimum_relative_spread * scale
 
     if max(control_scores) - min(control_scores) < material:
@@ -195,6 +207,14 @@ def replay_baseline(payload: Mapping[str, Any], policy_id: str) -> bool | None:
     Deliberately does not guard the policy call. A ``TypeError`` here means the
     screen is broken, not that the policy lost.
     """
+    outcome = replay_baseline_outcome(payload, policy_id)
+    return bool(outcome["feasible_award"]) if outcome is not None else None
+
+
+def replay_baseline_outcome(
+    payload: Mapping[str, Any], policy_id: str
+) -> dict[str, Any] | None:
+    """Preserve continuous outcomes instead of reducing the screen to a bool."""
     plugin = ProcurementAllocationPlugin()
     family_case = plugin.validate_payload(payload)
     phase = plugin.phases(family_case)[0]
@@ -227,7 +247,7 @@ def replay_baseline(payload: Mapping[str, Any], policy_id: str) -> bool | None:
     terminal = plugin.terminal(family_case, state)
     if terminal is None:
         return None
-    return bool(plugin.outcome(family_case, terminal)["feasible_award"])
+    return plugin.outcome(family_case, terminal)
 
 
 def replay_best_qualified(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -264,10 +284,10 @@ def replay_best_qualified(payload: Mapping[str, Any]) -> dict[str, Any] | None:
         return True
 
     by_component: dict[str, list[Mapping[str, Any]]] = {}
-    for supplier in case["suppliers"]:
+    for supplier in plugin.observe(case, state, "buyer", phase)["supplier_listings"]:
         by_component.setdefault(supplier["component"], []).append(supplier)
     for suppliers in by_component.values():
-        suppliers.sort(key=lambda s: float(s["private_terms"]["base_unit_price_usd"]))
+        suppliers.sort(key=lambda s: float(s["listing"]["displayed_unit_price_usd"]))
 
     def evidenced(supplier_id: str) -> float:
         record = state["quality_evidence"].get(supplier_id) or {}
@@ -353,6 +373,7 @@ __all__ = [
     "classify_world_by_policy_separation",
     "classify_world_continuous",
     "replay_baseline",
+    "replay_baseline_outcome",
     "replay_best_qualified",
     "screen_baselines",
     "within_world_variance",

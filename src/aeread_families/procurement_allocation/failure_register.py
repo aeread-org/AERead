@@ -48,11 +48,15 @@ _FAILURE_FIELDS = (
 
 
 def _bundles(evidence_root: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in evidence_root.iterdir()
-        if path.is_dir() and path.name.startswith(FAMILY_PREFIX)
-    )
+    # Support both preserved legacy bundles and the current family/publication
+    # layout. Never ingest the derived register itself (including snapshots),
+    # which would make a second generation depend on the first one's digest.
+    return sorted({
+        reports.parent for reports in evidence_root.rglob("reports")
+        if reports.is_dir()
+        and reports.parent.name.startswith(FAMILY_PREFIX)
+        and REGISTER_ID not in reports.relative_to(evidence_root).parts
+    })
 
 
 def _reports(bundle: Path) -> list[Path]:
