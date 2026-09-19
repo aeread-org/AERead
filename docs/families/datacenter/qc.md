@@ -364,9 +364,18 @@ one project.
 
 ## 5. Confirmatory reliability and publication
 
-**Status: not_run.**
+**Status: not_run** (a design contract now exists; nothing live has been attempted).
 
-No step of the required sequence has been attempted: there is no declared
+**Design contract (2026-09-19).** `configs/datacenter_development_v2_world_panel_v1.json`
+with `world_campaign.py`: the 24-world pack pinned by digest, one route
+(Gemini 3.8 Flash via Google AI Studio, chosen to keep the pilot under $10),
+two predeclared inference seeds, 48 cells, a $0.20 per-cell cap and a $10
+ceiling, `claim_status` exploratory, the world as the resampling unit with
+24 clusters, missingness reported separately, and every winner, ranking and
+causal claim flag set to false. The provider-free and profile-admission
+gates run on `main` without a key; the variance pilot is the next paid step.
+
+No step of the live sequence has been attempted: there is no declared
 variance pilot, no confirmatory freeze artifact, no holdout table, and no
 `analysis_plan` anywhere in the 30 bundles. The nearest artifacts are a
 `decision_rule` and `primary_endpoint` in
