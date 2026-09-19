@@ -146,9 +146,7 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
         ),
         "sources": dict(sorted(sources.items())),
         "summary": {
-            "bundles_scanned": len({f["source"].split("/")[1] for f in failures})
-            if failures
-            else 0,
+            "bundles_scanned": len({str(Path(source).parent.parent) for source in sources}),
             "reports_scanned": len(sources),
             "rows_scanned": scanned_rows,
             "operational_failures": len(operational),

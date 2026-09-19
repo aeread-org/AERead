@@ -143,6 +143,27 @@ def test_real_runner_seals_and_reaudits_noisy_fixture_receipts(tmp_path):
     saved=asyncio.run(execution._rows(root,'pilot',[case],[29001],provider,_run_cell,execution._audit_row))
     assert saved==rows
     assert len(provider.calls)==6
+    # The review exporter independently replays the actual sealed receipts.
+    from aeread_families.procurement_allocation.continuous_campaign import _seal
+    from aeread_families.procurement_allocation.continuous_publication import publish_review
+    execution._write_once_json(root/'execution_design.json', _seal({
+        'design':{'world_ids':[economic_world_id(case)],'implementation_pins':implementation_pins()},
+    }, 'plan_sha256'))
+    publication=tmp_path/'evidence'/'procurement_allocation_fixture_review'
+    result=publish_review(run_root=root,publication_root=publication)
+    assert result['provider_call_count']==6
+    assert result['confirmatory_executed'] is False
+    review=json.loads((publication/'reports/pilot.json').read_text())
+    assert len(review['rows'])==2
+    assert all(r['receipt_replayed'] for r in review['rows'])
+    # Even a freshly rehashed row cannot override receipt-backed economics.
+    row_path=next((root/'pilot'/'rows').glob('*.json'))
+    tampered=json.loads(row_path.read_text())
+    tampered.pop('artifact_sha256')
+    tampered['contribution_margin_usd']+=1
+    row_path.write_text(json.dumps(_seal(tampered)))
+    with pytest.raises(ValueError,match='differs from replayed outcome'):
+        publish_review(run_root=root,publication_root=publication)
 
 
 def test_precision_gate_can_fail_even_with_nonzero_pilot_variance():

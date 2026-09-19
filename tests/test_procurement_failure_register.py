@@ -86,3 +86,18 @@ def test_register_discovers_nested_publications_and_excludes_its_own_output(tmp_
     target = tmp_path / 'evidence' / 'procurement_allocation' / REGISTER_ID
     publish_register(register, publication_root=target)
     assert build_register(repository_root=tmp_path) == register
+
+
+def test_bundle_coverage_counts_nested_publications_including_clean_reports(tmp_path):
+    for name, rows in (
+        ('procurement_allocation_failed', [{'status': 'operational_failure'}]),
+        ('procurement_allocation_clean', [{'status': 'completed', 'violations': []}]),
+    ):
+        report = tmp_path / 'evidence' / 'procurement_allocation' / name / 'reports' / 'rows.json'
+        report.parent.mkdir(parents=True)
+        report.write_text(json.dumps({'rows': rows}))
+    summary = build_register(repository_root=tmp_path)['summary']
+    assert summary['bundles_scanned'] == 2
+    assert summary['reports_scanned'] == 2
+    assert summary['rows_scanned'] == 2
+    assert summary['operational_failures'] == 1

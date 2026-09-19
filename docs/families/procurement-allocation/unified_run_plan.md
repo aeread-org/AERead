@@ -143,6 +143,22 @@ pilot; it cannot bypass the precision or cost gate. No live command should be
 run with a fabricated validation record. An orphaned execution lock or uncertain
 billing requires an audit before any further dispatch.
 
+After execution stops, produce a separate, immutable review bundle:
+
+```sh
+PYTHONPATH=src python -m aeread_families.procurement_allocation.continuous_publication \
+  --run-root runs/procurement_allocation/unified_regret_v1/attempt_001 \
+  --publication-root evidence/procurement_allocation/procurement_allocation_unified_regret_v1_execution
+```
+
+Export checks the measurement source pins and gate evidence, replays every
+completed receipt, and recomputes the pilot diagnostics or confirmatory
+comparison before copying sanitized rows. The exporter never creates a provider.
+It can publish a failed pilot as failed evidence; this does not promote it.
+Choose a new publication directory for a later stage rather than replacing a
+previously sealed review. An altered economic row is rejected even if its
+own digest has been recomputed.
+
 The original [failure register](../../../evidence/procurement_allocation/procurement_allocation_failure_register/)
 is retained. The 2026-09-19 report and its QC manifest include nested evidence
 bundles that the old scanner missed. All source-report hashes are recorded;
