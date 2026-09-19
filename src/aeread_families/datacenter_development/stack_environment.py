@@ -90,6 +90,97 @@ def _plain(value: Any) -> Any:
     return copy.deepcopy(value)
 
 
+#: Negotiated money terms. When a case opts into ``two_sided_price_bands``,
+#: any of these that a policy bounds on one side must be bounded on both, with
+#: the counterparty's own counter inside the band. One-sided bands are what let
+#: an EPC price of one cent and a 15x land overpayment both through (DC-D-01).
+PRICE_BAND_FIELDS = frozenset(
+    {
+        "purchase_price_cents",
+        "extension_price_cents",
+        "interconnection_cost_cents",
+        "monthly_demand_charge_cents_per_kw",
+        "energy_charge_cents_per_kwh",
+        "developer_security_cents",
+        "contract_price_cents",
+        "cost_overrun_cap_cents",
+        "monthly_capacity_charge_cents_per_kw",
+        "credit_support_cents",
+        "minimum_customer_credit_support_cents",
+        "spread_bps",
+        "origination_fee_bps",
+        "unused_commitment_fee_bps_annual",
+    }
+)
+
+
+def _construct_controls(value: Any) -> dict[str, Any] | None:
+    """Parse the optional ``construct_controls`` block, or return None."""
+
+    if value is None:
+        return None
+    controls = _exact(
+        value,
+        {
+            "baseline_must_dominate_outside_option",
+            "minimum_baseline_margin_cents",
+            "two_sided_price_bands",
+        },
+        "construct_controls",
+    )
+    for flag in ("baseline_must_dominate_outside_option", "two_sided_price_bands"):
+        if not isinstance(controls[flag], bool):
+            raise ValueError(f"construct_controls.{flag} must be a boolean")
+    margin = controls["minimum_baseline_margin_cents"]
+    if isinstance(margin, bool) or not isinstance(margin, int) or margin < 0:
+        raise ValueError(
+            "construct_controls.minimum_baseline_margin_cents must be a non-negative integer"
+        )
+    return controls
+
+
+def _enforce_construct_controls(
+    data: Mapping[str, Any],
+    policies: Mapping[str, Mapping[str, Any]],
+    controls: Mapping[str, Any],
+) -> None:
+    """Refuse a case whose reference is beatable by not playing, or whose
+    bands let a price run off in either direction."""
+
+    if controls["baseline_must_dominate_outside_option"]:
+        baseline = int(data["baseline"]["developer_equity_npv_cents"])
+        outside = int(data["outside_option"]["developer_equity_npv_cents"])
+        margin = baseline - outside
+        if margin <= 0:
+            raise ValueError(
+                "construct_controls: scripted baseline "
+                f"({baseline}) does not strictly dominate the outside option ({outside})"
+            )
+        minimum = int(controls["minimum_baseline_margin_cents"])
+        if margin < minimum:
+            raise ValueError(
+                f"construct_controls: baseline margin over the outside option ({margin}) "
+                f"is below the declared minimum ({minimum})"
+            )
+    if controls["two_sided_price_bands"]:
+        for key, policy in policies.items():
+            minimums = policy["minimums"]
+            maximums = policy["maximums"]
+            counter = policy["counter_terms"]
+            bounded = (set(minimums) | set(maximums)) & PRICE_BAND_FIELDS
+            for field in sorted(bounded):
+                if field not in minimums or field not in maximums:
+                    raise ValueError(
+                        f"construct_controls: policies.{key}.{field} is bounded on one side only"
+                    )
+                low, high = minimums[field], maximums[field]
+                if not (low <= counter.get(field, low) <= high) or low > high:
+                    raise ValueError(
+                        f"construct_controls: policies.{key}.{field} counter {counter.get(field)} "
+                        f"is outside its band [{low}, {high}]"
+                    )
+
+
 def _exact(value: Any, fields: set[str], path: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{path} must be an object")
@@ -215,11 +306,16 @@ def _make_offer(
         prior = state["executed"].get("land")
         if prior is None:
             raise ValueError("land amendment requires an executed land agreement")
+        # The amended fields are what the offer actually changes against the
+        # executed land agreement, never the scripted developer's list. Stamping
+        # the scripted list onto a live offer made any amendment that changed a
+        # different set of fields -- including one that changed nothing -- pass
+        # the landowner and then crash at commit as an environment failure
+        # (DC-D-05). The scripted path's own amendment changes exactly its
+        # declared fields, so its offers and receipts are unchanged.
         metadata = {
             "supersedes_offer_id": prior["offer_id"],
-            "amended_fields": family_case["scripted_developer"][
-                "land_amendment_fields"
-            ],
+            "amended_fields": _amended_fields(prior, terms),
             "precedence_index": int(prior.get("precedence_index", 0)) + 1,
         }
     return make_offer(
@@ -231,6 +327,15 @@ def _make_offer(
         terms=terms,
         **metadata,
     )
+
+
+def _amended_fields(prior: Mapping[str, Any], terms: AgreementTerms) -> tuple[str, ...]:
+    """Fields the offered terms change against the executed land agreement."""
+
+    prior_terms = _terms("land", prior["terms"])
+    before = _term_values(prior_terms)
+    after = _term_values(terms)
+    return tuple(sorted(field for field in before if before[field] != after.get(field)))
 
 
 def _offer_from_dict(value: Mapping[str, Any]) -> ContractOffer:
@@ -310,20 +415,25 @@ class DataCenterStackPlugin:
 
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _plain(payload)
-        _exact(
-            data,
-            {
-                "scope_version",
-                "scenario_id",
-                "project_facts",
-                "negotiation",
-                "policies",
-                "scripted_developer",
-                "outside_option",
-                "baseline",
-            },
-            "payload",
-        )
+        payload_fields = {
+            "scope_version",
+            "scenario_id",
+            "project_facts",
+            "negotiation",
+            "policies",
+            "scripted_developer",
+            "outside_option",
+            "baseline",
+        }
+        # Opt-in construct controls (DC-D-01). A case that declares the block
+        # is refused unless its scripted reference strictly dominates the
+        # outside option by the declared margin and every negotiated price is
+        # bounded on both sides. Cases without the block keep their sealed
+        # behaviour, so no published campaign moves.
+        controls = _construct_controls(data.get("construct_controls"))
+        if controls is not None:
+            payload_fields.add("construct_controls")
+        _exact(data, payload_fields, "payload")
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
@@ -371,6 +481,8 @@ class DataCenterStackPlugin:
         }
         if data["baseline"] != expected:
             raise ValueError(f"payload.baseline differs from stack simulation: {expected}")
+        if controls is not None:
+            _enforce_construct_controls(data, policies, controls)
         return data
 
     def initial_state(self, family_case, run) -> dict[str, Any]:
@@ -541,6 +653,13 @@ class DataCenterStackPlugin:
         if phase.phase_id.endswith("_offer"):
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
                 return LegalityResult.illegal("round_limit_exhausted")
+            if key == "land_amendment":
+                prior = state["executed"].get("land")
+                if prior is not None and not _amended_fields(prior, _terms("land", action["terms"])):
+                    # A re-proposal of the executed terms is not an amendment.
+                    # It is the developer's invalid action, typed and scored
+                    # as such, not an environment failure at commit.
+                    return LegalityResult.illegal("amendment_changes_nothing")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_response"):
             if action["offer_id"] != state["latest_offer_id"][key]:
