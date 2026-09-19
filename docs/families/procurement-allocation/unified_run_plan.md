@@ -22,6 +22,14 @@ seed is recorded in each episode case and paired across arms. Inference seeds
 are recorded separately. Merely changing an inference seed does not change the
 sampling stream.
 
+The pilot changes both environment and inference seeds between repetitions.
+Its within-world variance therefore measures their combined realized effect;
+the diagnostic name `nonzero_sampling_dispersion` does not isolate
+a causal effect of sample noise. Deterministic unit tests establish that the
+binomial sampler varies with its seed and replays exactly. An additional
+fixed-inference ablation would be needed to attribute live variance to sampling
+alone, and is outside this frozen design.
+
 `counter_feedback=field_specific` identifies rejected price, MOQ, payment,
 refund-window, and return-freight terms without revealing private limits.
 Legacy cases retain their historical reply text. Lead time is not a counterable

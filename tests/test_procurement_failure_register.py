@@ -101,3 +101,6 @@ def test_bundle_coverage_counts_nested_publications_including_clean_reports(tmp_
     assert summary['reports_scanned'] == 2
     assert summary['rows_scanned'] == 2
     assert summary['operational_failures'] == 1
+    assert summary['operational_cost_usd'] is None
+    assert summary['known_operational_cost_usd'] == 0.
+    assert summary['operational_failures_with_unknown_cost'] == 1

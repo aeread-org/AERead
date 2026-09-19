@@ -136,6 +136,8 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
 
     operational = [f for f in failures if f["kind"] == "operational"]
     measured = [f for f in failures if f["kind"] == "measured_violation"]
+    unknown_costs = sum(f.get("cost_usd") is None for f in operational)
+    known_cost = round(sum(float(f["cost_usd"]) for f in operational if f.get("cost_usd") is not None), 8)
     register = {
         "schema_version": SCHEMA_VERSION,
         "register_id": REGISTER_ID,
@@ -170,9 +172,9 @@ def build_register(*, repository_root: Path = REPOSITORY_ROOT) -> dict[str, Any]
                     ).items()
                 )
             ),
-            "operational_cost_usd": round(
-                sum(float(f.get("cost_usd") or 0.0) for f in operational), 8
-            ),
+            "operational_cost_usd": None if unknown_costs else known_cost,
+            "known_operational_cost_usd": known_cost,
+            "operational_failures_with_unknown_cost": unknown_costs,
         },
         "rejected_canaries": canaries,
         "failures": failures,
