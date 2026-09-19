@@ -283,7 +283,8 @@ its value of 200) and re-points the scripted reference to the floor of every
 band: it scores -72,000, beating walking by 28,000, while copying every counter
 stays admissible and still loses (-155,000), which is the trap the case now
 sets. The walk-away and blind-adoption controls are still owed as *scored*
-policies.
+policies. The decision tree, the simulated ladders and the repaired
+case's ladder are recorded in [the V2 walk-away analysis](v2_walk_away_analysis.md).
 
 ## 4. Attribution and experimental controls
 
