@@ -1,6 +1,12 @@
 # Phase 2 timeout recovery: proposed operational contract
 
-Campaign `procurement_phase2_timeout_recovery_v1` is a new, unexecuted attempt.
+Campaign `procurement_phase2_timeout_recovery_v2` is a new, unexecuted attempt.
+The first offline timeout candidate, `procurement_phase2_timeout_recovery_v1`,
+was not executed. It is preserved at `b727feb2` but superseded because Python 3.10
+distinguishes asynchronous and built-in timeout exceptions. V2 catches both;
+its contribution needs its own review. No approval of the superseded candidate
+authorizes V2.
+
 The [previous attempt](phase2_provider_recovery_results.md) passed the pilot but
 stopped after 19 completed confirmation rows when a request exceeded 180 seconds.
 Its source, approval, plan, receipts and outcome remain preserved at `88023a75`.
@@ -71,14 +77,15 @@ attempt or permission to exceed the ceiling.
 
 ## Review and readiness
 
-The [exact review package](../../../evidence/procurement_allocation/procurement_phase2_timeout_recovery_v1/qc/README.md)
+The [exact review package](../../../evidence/procurement_allocation/procurement_phase2_timeout_recovery_v2/qc/README.md)
 binds the contribution and execution contract to provider-free tests, source
 pins, all eight cases and offline references. The tests include the real
 scheduler's timeout recovery, retained reservations, two-failure stop, external
 cancellation, changed-request rejection and the complete 64-episode fixture
 campaign with repeated publication audits. Fixtures are not model observations.
-All 55 focused tests passed. The full combined tree passed 3,894 tests, with
-266 skips and two expected failures. Three deliberate mutations each failed
+The superseded candidate passed 55 focused tests and 3,894 full-suite tests
+on Python 3.12. V2 is being checked on both supported Python versions before
+its replacement review is sealed. Three deliberate mutations each failed
 their intended check; source bytes were restored before final validation.
 
 Inspect in this order:

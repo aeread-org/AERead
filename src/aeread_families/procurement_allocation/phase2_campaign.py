@@ -24,7 +24,7 @@ from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
 from .phase2_controls import PROVIDER_TIMEOUT_SECONDS, HARNESS_TIMEOUT_SECONDS, RETRY_CONDITIONS
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
-CAMPAIGN_ID = "procurement_phase2_timeout_recovery_v1"
+CAMPAIGN_ID = "procurement_phase2_timeout_recovery_v2"
 HARD_COST_CEILING_USD = 0.45
 BASELINE_SETTLED_USD = 0.094915161
 BASELINE_RESERVED_USD = 0.00801045

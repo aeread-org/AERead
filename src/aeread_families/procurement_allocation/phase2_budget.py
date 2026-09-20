@@ -92,7 +92,7 @@ class Phase2BudgetedProvider:
                 result = await asyncio.wait_for(
                     self.provider.complete(request), timeout=PROVIDER_TIMEOUT_SECONDS
                 )
-            except asyncio.TimeoutError as error:
+            except (asyncio.TimeoutError, TimeoutError) as error:
                 # Finish inside the harness deadline so its declared retry
                 # owner receives a typed error. External cancellation is not
                 # converted and still stops dispatch in the outer handler.
