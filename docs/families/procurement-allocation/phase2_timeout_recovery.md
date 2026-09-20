@@ -83,9 +83,11 @@ pins, all eight cases and offline references. The tests include the real
 scheduler's timeout recovery, retained reservations, two-failure stop, external
 cancellation, changed-request rejection and the complete 64-episode fixture
 campaign with repeated publication audits. Fixtures are not model observations.
-The superseded candidate passed 55 focused tests and 3,894 full-suite tests
-on Python 3.12. V2 is being checked on both supported Python versions before
-its replacement review is sealed. Three deliberate mutations each failed
+V2 passed all 55 focused tests on each of Python 3.10 and 3.12. Its fresh
+Python 3.12 full suite passed 3,894 tests with 266 skips and two expected
+failures. The superseded V1 candidate reproduced four failed and two passing
+timeout tests on Python 3.10; its CI independently reported the same four
+failures. Those regressions pass in V2. Three deliberate mutations each failed
 their intended check; source bytes were restored before final validation.
 
 Inspect in this order:

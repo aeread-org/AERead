@@ -1,0 +1,148 @@
+.FF.FF                                                                   [100%]
+=================================== FAILURES ===================================
+______ test_timeout_second_failure_stops_with_both_reservations[second0] _______
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1390/test_timeout_second_failure_st0')
+second = TimeoutError('second timeout')
+
+    @pytest.mark.parametrize("second", [TimeoutError("second timeout"), rate_limit()])
+    def test_timeout_second_failure_stops_with_both_reservations(tmp_path, second):
+        delegate = Script([TimeoutError("first timeout"), second])
+        p = budget.Phase2BudgetedProvider(delegate, tmp_path)
+        for retryable in (True, False):
+            with pytest.raises(ProviderFailure) as caught:
+>               asyncio.run(p.complete(request()))
+
+tests/test_procurement_phase2_timeout_recovery.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/runners.py:44: in run
+    return loop.run_until_complete(main)
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/base_events.py:649: in run_until_complete
+    return future.result()
+src/aeread_families/procurement_allocation/phase2_budget.py:92: in complete
+    result = await asyncio.wait_for(
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/tasks.py:445: in wait_for
+    return fut.result()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_procurement_phase2_execution.Script object at 0x1100b2170>
+request = namespace(model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-flash-20260826', provider_metadata={'route_provider': 'Pa...e, tools=None, max_output_tokens=10, request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+
+    async def complete(self, request):
+        self.calls += 1
+        if self.errors:
+>           raise self.errors.pop(0)
+E           TimeoutError: first timeout
+
+tests/test_procurement_phase2_execution.py:56: TimeoutError
+______ test_timeout_second_failure_stops_with_both_reservations[second1] _______
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1390/test_timeout_second_failure_st1')
+second = ProviderFailure('fixture HTTP 429')
+
+    @pytest.mark.parametrize("second", [TimeoutError("second timeout"), rate_limit()])
+    def test_timeout_second_failure_stops_with_both_reservations(tmp_path, second):
+        delegate = Script([TimeoutError("first timeout"), second])
+        p = budget.Phase2BudgetedProvider(delegate, tmp_path)
+        for retryable in (True, False):
+            with pytest.raises(ProviderFailure) as caught:
+>               asyncio.run(p.complete(request()))
+
+tests/test_procurement_phase2_timeout_recovery.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/runners.py:44: in run
+    return loop.run_until_complete(main)
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/base_events.py:649: in run_until_complete
+    return future.result()
+src/aeread_families/procurement_allocation/phase2_budget.py:92: in complete
+    result = await asyncio.wait_for(
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/tasks.py:445: in wait_for
+    return fut.result()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_procurement_phase2_execution.Script object at 0x10fe8f760>
+request = namespace(model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-flash-20260826', provider_metadata={'route_provider': 'Pa...e, tools=None, max_output_tokens=10, request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+
+    async def complete(self, request):
+        self.calls += 1
+        if self.errors:
+>           raise self.errors.pop(0)
+E           TimeoutError: first timeout
+
+tests/test_procurement_phase2_execution.py:56: TimeoutError
+___________________ test_timeout_retry_cannot_change_request ___________________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1390/test_timeout_retry_cannot_chan0')
+
+    def test_timeout_retry_cannot_change_request(tmp_path):
+        p = budget.Phase2BudgetedProvider(Script([TimeoutError("fixture")]), tmp_path)
+        with pytest.raises(ProviderFailure):
+>           asyncio.run(p.complete(request()))
+
+tests/test_procurement_phase2_timeout_recovery.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/runners.py:44: in run
+    return loop.run_until_complete(main)
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/base_events.py:649: in run_until_complete
+    return future.result()
+src/aeread_families/procurement_allocation/phase2_budget.py:92: in complete
+    result = await asyncio.wait_for(
+/Users/chenyusu/.local/share/uv/python/cpython-3.10.18-macos-aarch64-none/lib/python3.10/asyncio/tasks.py:445: in wait_for
+    return fut.result()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_procurement_phase2_execution.Script object at 0x10b9d1120>
+request = namespace(model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-flash-20260826', provider_metadata={'route_provider': 'Pa...e, tools=None, max_output_tokens=10, request_sha256='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+
+    async def complete(self, request):
+        self.calls += 1
+        if self.errors:
+>           raise self.errors.pop(0)
+E           TimeoutError: fixture
+
+tests/test_procurement_phase2_execution.py:56: TimeoutError
+__ test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call ___
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1390/test_real_scheduler_retries_ti0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fe6d210>
+
+    def test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call(tmp_path, monkeypatch):
+        delays = []
+    
+        async def sleep(seconds):
+            delays.append(seconds)
+    
+        monkeypatch.setattr(asyncio, "sleep", sleep)
+        delegate = PolicyProvider()
+    
+        class FirstTimeout:
+            calls = 0
+    
+            async def complete(self, request):
+                self.calls += 1
+                if self.calls == 1:
+                    raise TimeoutError("fixture timeout")
+                return await delegate.complete(request)
+    
+        admission = tmp_path / "admission"
+        admission.mkdir()
+        c = fixture_contribution(admission)
+        root = tmp_path / "run"
+        p = budget.Phase2BudgetedProvider(FirstTimeout(), root)
+        row = asyncio.run(run_row(root, "pilot", build_world(6), CATEGORIES[6],
+                                 52001, "control", p, c, admission))
+>       assert row["status"] == "completed" and row["receipt_replayed"]
+E       AssertionError: assert ('operational_failure' == 'completed'
+E         
+E         - completed
+E         + operational_failure)
+
+tests/test_procurement_phase2_timeout_recovery.py:92: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"world_id": "procurement_allocation_phase2_v1.world_07", "arm": "control", "environment_seed": 52001, "status": "operational_failure", "decision": null, "regret_to_upper_bound_usd": null, "cost_usd": null}
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_second_failure_stops_with_both_reservations[second0]
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_second_failure_stops_with_both_reservations[second1]
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_retry_cannot_change_request
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call
+4 failed, 2 passed in 2.67s

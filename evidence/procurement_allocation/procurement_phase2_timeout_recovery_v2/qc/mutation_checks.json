@@ -1,0 +1,23 @@
+{
+  "source_restored": true,
+  "mutations": [
+    {
+      "mutation": "disable_timeout_retry",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "21eb8e29e9dd780d3d5cccdc15da665a1add689772b0ef8a23e0288e814ed7f6"
+    },
+    {
+      "mutation": "drop_unknown_reservation",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "f62f66635620df848b239f8e6c701376e6b9540b1da59390d3476aa69394dd37"
+    },
+    {
+      "mutation": "allow_changed_request",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "0fc3d691404b70bcb95a64ea77148422bc84a0e63bfe87d0b06dae7766c719f1"
+    }
+  ]
+}
