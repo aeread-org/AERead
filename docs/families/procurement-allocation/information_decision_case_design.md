@@ -1,9 +1,10 @@
 # Procurement: decisions under costly, incomplete information
 
-Status: **local design with twelve numerically checked decision points**. No new
-model calls, full-episode world generator, registered adapter, frozen campaign or
-model-performance result is included. These fixtures are calibration examples,
-not twelve independent markets. Phase 2 evidence remains unchanged.
+Status: **local design with twelve numerically checked decision points**. The design
+slice used zero model calls. A subsequent [GLM next-action diagnostic](information_decision_pilot.md)
+completed 12 calls, with 9 optimal choices; that is separate from a full-episode
+world generator or registered adapter, which remain unimplemented. These fixtures
+are calibration examples, not twelve independent markets. Phase 2 evidence remains unchanged.
 
 The target is choosing a profitable sequence of information purchases and orders
 under uncertainty: which supplier to investigate, how much evidence to buy, when
@@ -221,9 +222,10 @@ Inspect in this order:
 The next implementation slice is one fully replayable end-to-end family with
 actual quote/sample actions and a checked reference, followed by offline baselines
 and a provider-free fixture campaign. Full-world adapter, observation-boundary
-tests, shared-runner admission, external domain review and live discrimination
-testing remain outstanding. This document and its calculator complete the case
-design slice, not those later execution stages.
+tests, shared-runner admission, external domain review and full-episode live
+discrimination testing remain outstanding. The later one-decision pilot is linked
+above. This document and its calculator complete the case design slice, not those
+later execution stages.
 
 Method basis: belief-state sequential planning follows
 [Kaelbling, Littman and Cassandra (1998)](https://www.cassandra.org/arc/papers/aij98.pdf).
