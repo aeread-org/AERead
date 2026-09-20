@@ -50,7 +50,7 @@ significance from six curated pairs.
 A mocked always-defer provider scores only **1/12** optimal choices. Offline checks
 cover value-sensitive choice, eligibility, quantities/MOQ/cash, answer-key isolation,
 provider failure with retained reservation, interrupted requests and raw replay.
-**45 focused tests passed before live execution.**
+**38 focused tests passed before live execution** (18 pilot, 20 design).
 
 ## Observed result: completed 2026-09-20
 
@@ -125,7 +125,7 @@ per curated case cannot establish broad saturation, model ranking, or robustness
 | Sum of request latencies | 73.247 seconds |
 | Reported prompt / completion tokens | 9,708 / 2,955 |
 | Finish reasons | `stop` for all 12 |
-| Validation | 45 focused tests before execution; all frozen source hashes unchanged; all 12 payloads pass answer-key/credential boundary audit; two replays byte-identical and equal to original result |
+| Validation | 38 focused tests before execution (18 pilot, 20 design); all frozen source hashes unchanged; all 12 payloads pass answer-key/credential boundary audit; two replays byte-identical and equal to original result |
 
 All evidence remains local under ignored
 `runs/procurement_information_decision_glm_v1/`: `plan.json`, saved requests,
