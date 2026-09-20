@@ -1,7 +1,10 @@
-# Phase 2 provider recovery: proposed operational attempt
+# Phase 2 provider recovery: operational contract
 
-Campaign: `procurement_phase2_provider_recovery_v1`. This is an unexecuted
-full-panel attempt following the [stopped recovery](phase2_recovery_results.md).
+Campaign: `procurement_phase2_provider_recovery_v1`. This full-panel attempt
+followed the [stopped recovery](phase2_recovery_results.md). It has now executed:
+the pilot passed and confirmation stopped after 19 completed rows on a timeout.
+See the [audited results](phase2_provider_recovery_results.md). The remainder of
+this document records the pre-execution contract.
 No source or evidence from that attempt is overwritten. It remains auditable at
 `7ca7cbf38989d49930d99ac893b80bd18dcf375f` in the preserved action-format worktree.
 

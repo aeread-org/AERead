@@ -51,6 +51,23 @@ def without_seal(value):
     return {k: v for k, v in value.items() if k != "artifact_sha256"}
 
 
+PROVIDER_FAILURE_EVENTS = {"provider_call_failed", "provider_call_outcome_unknown"}
+
+
+def public_failure_event(event, payload, *, phase, row_id):
+    """Preserve typed unknown outcomes without exporting private error text."""
+    if event["event_type"] not in PROVIDER_FAILURE_EVENTS | {
+        "retry_backoff_started", "retry_backoff_completed"
+    }:
+        return None
+    safe = {k: v for k, v in payload.items() if k in {
+        "failure_condition", "retryable", "status_code", "delay_seconds",
+        "attempt_ordinal", "provider_retry_after_seconds",
+    }}
+    return dict(phase=phase, row_id=row_id, event_type=event["event_type"],
+                event_hash=event["event_hash"], **safe)
+
+
 def public_provider_failures(bills):
     """Verify private error messages, exporting only explicit metadata and hashes."""
     result = []
@@ -194,34 +211,15 @@ def publish(root, target):
                             actions.append(
                                 {"unparsed_action_text": result["output_text"]}
                             )
-                    elif event["event_type"] in {
-                        "provider_call_failed",
-                        "retry_backoff_started",
-                        "retry_backoff_completed",
-                    }:
+                    else:
                         payload = json.loads(payload_path.read_text())
-                        safe = {
-                            k: v
-                            for k, v in payload.items()
-                            if k
-                            in {
-                                "failure_condition",
-                                "retryable",
-                                "status_code",
-                                "delay_seconds",
-                                "attempt_ordinal",
-                                "provider_retry_after_seconds",
-                            }
-                        }
-                        item = dict(
-                            phase=phase,
-                            row_id=label,
-                            event_type=event["event_type"],
-                            event_hash=event["event_hash"],
-                            **safe,
+                        item = public_failure_event(
+                            event, payload, phase=phase, row_id=label
                         )
+                        if item is None:
+                            continue
                         failure_events.append(item)
-                        if event["event_type"] == "provider_call_failed":
+                        if event["event_type"] in PROVIDER_FAILURE_EVENTS:
                             row_failures.append(item)
                 row_bills = [b for b in bills if b["request_sha256"] in requests]
                 expected_calls = row.get(
@@ -251,7 +249,7 @@ def publish(root, target):
                     if len(codes) == 1:
                         public["failure_status_code"] = codes.pop()
                     public["failure_attribution_source"] = (
-                        "sealed provider_call_failed events; original runtime exception type retained"
+                        "sealed provider failure/outcome-unknown events; original runtime exception type retained"
                     )
                 traces.append(
                     dict(
