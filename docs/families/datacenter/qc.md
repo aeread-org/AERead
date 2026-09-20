@@ -430,9 +430,11 @@ all three. Admitted cells sit 2.2 billion cents below the scripted reference on
 average (95% -2.9 to -1.5 billion; 3 of 18 above it). Excluded: 21 completed
 stacks the lender would not fund, 16 no-op amendments, 12 walks with a stated
 reason typed malformed (DC-D-08), 5 non-JSON outputs. Verbal/written divergence
-admitted 0 of 12; revenue without bankability 1 of 12. Every guarded quantity
-has its failing counterexample: the adopt-every-counter control fails admission
-on every world and walk-away scores the outside option (`datacenter_v2_scored_controls_v1`).
+admitted 0 of 12; revenue without bankability 1 of 12. Walk-away scores the
+outside option on every world (`datacenter_v2_scored_controls_v1`); the
+adopt-every-counter control also fails on every world, but at the amendment
+phase on a refusal that carries no terms to copy (DC-D-09), so it does not yet
+show that transcribing priced counters fails admission.
 What the number may be read as: one route's descriptive admission rate and
 reference gap on held-out worlds, biased down by the two harness gaps the next
 identity closes; not a winner, a ranking, or a causal claim.
@@ -454,10 +456,13 @@ scored controls that fail it on every world.
 
 **Main blocker (2026-09-20):** one route and no random or blind control rate
 measured per world, so the confirmatory number is descriptive and compares
-nothing; and two harness gaps bias admission down under the frozen identity —
-a walk with a stated reason is typed malformed (DC-D-08, 12 of 72 cells) and a
-no-op amendment ends the episode instead of being declined (16 of 72). Both
-close in the next campaign identity, never under this one.
+nothing; and the amendment phase has no decline (DC-D-10): 22 of 72 cells died
+there after signing all four agreements — 16 no-op re-proposals and 6 walks
+phrased as declines, the latter typed malformed (DC-D-08) — and 12 of the 22
+pass every static cross-agreement check, so the measured 0.25 has an upper
+bound of 0.42. The other 6 DC-D-08 walks are reasoned refusals at the loan
+and score the outside option under either typing. Both gaps close in the next
+campaign identity, never under this one.
 
 ## 6. Current implementation coverage
 
@@ -468,7 +473,7 @@ close in the next campaign identity, never under this one.
 | Environment and verifier | deterministic ledger with sources-equals-uses and rollforward identities, leakage tests for all six ids, provider-free success goldens, typed missingness | **Partial:** replay copies a flag over 531 published rows instead of recomputing; no identities for `stack_cashflow.py`; five golden kinds missing on three ids |
 | Construct validity and baselines | a scripted reference per case; the opt-in `construct_controls` guard (strict dominance by a declared margin, two-sided price bands); walk-away and adopt-every-counter as scored controls on the curated case and all 24 worlds (`datacenter_v2_scored_controls_v1`) | **Partial:** no random or adaptive policy; the guard covers `construct_controls` cases only, so the sealed `001` case and the 1.0.0/1.1.0 identities keep their dominated reference |
 | Attribution and controls | claim status, digests and route snapshots on all 33 contracts; byte-identical paired conditions; typed missingness | **Partial:** one independent cluster in 19 of 30 bundles, five at most; 0 of 10 exposure-qualified pairs in one campaign |
-| Confirmatory reliability | one frozen confirmatory on the held-out pack (`datacenter_development_v2_world_panel_confirmatory_v1`): 72 of 72 cells, predeclared endpoints, world-clustered bootstrap, the analysis sealed into the bundle | **Passed for that track, partial for the family:** one route, descriptive; DC-D-08 walks and no-op amendments bias admission down and close only under a new identity |
+| Confirmatory reliability | one frozen confirmatory on the held-out pack (`datacenter_development_v2_world_panel_confirmatory_v1`): 72 of 72 cells, predeclared endpoints, world-clustered bootstrap, the analysis sealed into the bundle | **Passed for that track, partial for the family:** one route, descriptive; the amendment phase's missing decline (DC-D-10) biases admission down — measured 0.25, upper bound 0.42 — and closes only under a new identity |
 
 ## 7. Registers
 
@@ -513,8 +518,8 @@ to five clusters, as a diagnostic**. Specifically permitted:
   missingness;
 - on the held-out world pack, one route's descriptive admission rate (0.25,
   95% world-clustered bootstrap 0.15-0.35) and its gap from the scripted
-  reference, labelled as descriptive and as biased down by DC-D-08 and the
-  no-op amendment.
+  reference, labelled as descriptive and as biased down by the amendment
+  phase's missing decline (DC-D-10; upper bound 0.42).
 
 Not permitted, and not currently claimed anywhere: a model winner, an
 inferential ranking, a population or project generalization, a causal condition
