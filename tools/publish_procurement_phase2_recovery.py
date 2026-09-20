@@ -351,7 +351,7 @@ def publish(root, target):
             0 if "confirmatory" in rows_by_phase else design["confirmatory_rows"]
         ),
         provider_failure_evidence_limit="Provider exception messages retained privately and bound by digest; availability of an original raw response body depends on the adapter. Unknown charges remain reserved.",
-        claim_scope="Fixed curated synthetic panel; both prior attempts excluded from effects but retained in costs. Trap certificates test public impossibility recognition, not hidden-market discovery.",
+        claim_scope="Fixed curated synthetic panel; all prior attempts excluded from effects but retained in costs. Trap certificates test public impossibility recognition, not hidden-market discovery.",
     )
     outputs["reports/execution_status.json"] = summary
     outputs["qc/canonical_actions.json"] = {"traces": traces}

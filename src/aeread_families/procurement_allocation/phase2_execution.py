@@ -56,6 +56,7 @@ from .phase2_campaign import (
     analyze,
 )
 from .phase2_budget import Phase2BudgetedProvider
+from .phase2_controls import RETRY_CONDITIONS
 from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
 from aeread_families.procurement_grounding.bakeoff import preflight_candidate
 
@@ -144,7 +145,7 @@ async def canary(root, case, arm, provider, contribution, admission_root):
                 response = await provider.complete(request)
                 break
             except ProviderFailure as error:
-                if attempt or not error.retryable or error.status_code != 429:
+                if attempt or not error.retryable or error.condition not in RETRY_CONDITIONS:
                     raise
                 await asyncio.sleep(error.retry_after_seconds)
         plugin = Phase2Plugin()

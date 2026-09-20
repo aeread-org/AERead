@@ -1,6 +1,8 @@
 """Phase 2 adapter over the shared runner, with a separate family identity."""
 
 from __future__ import annotations
+
+from .phase2_controls import HARNESS_TIMEOUT_SECONDS, RETRY_CONDITIONS
 import json
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 import copy
@@ -103,6 +105,7 @@ def build_setup(
             max_cost_usd=0.025,
             max_action_attempts=2,
             retryable_conditions=("rate_limit",),
+            timeout_seconds=HARNESS_TIMEOUT_SECONDS,
             retry_backoff="exponential_jitter_v1",
             retry_base_seconds=2.0,
             retry_after_max_seconds=180.0,
@@ -120,6 +123,10 @@ def build_setup(
         "fixture" if route is None else route.profile_id
     )
     profile_raw["harness"]["config"]["output_schema"] = action_schema()
+    if route is not None:
+        # The legacy template admits known-zero-cost retries only. Phase 2's
+        # separate budget wrapper reserves unknown timeout charges before retry.
+        profile_raw["retry_policy"]["retryable_conditions"] = list(RETRY_CONDITIONS)
     profile = AgentProfile.from_dict(profile_raw)
     suite_raw = json.loads(canonical_json_bytes(template.plan.suite))
     suite_raw.update(

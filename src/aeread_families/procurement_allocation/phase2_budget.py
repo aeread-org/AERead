@@ -3,18 +3,20 @@
 from __future__ import annotations
 import math
 import hashlib
+import asyncio
 from aeread.shared_runner.task.execution import ProviderFailure
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from .continuous_execution import CampaignBudgetExceeded
 from .model_campaign import _write_once_json
 from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
 from .phase2_campaign import HARD_COST_CEILING_USD
+from .phase2_controls import PROVIDER_TIMEOUT_SECONDS
 
 
 class Phase2BudgetedProvider:
-    """Reserve before every request; only an explicit 429 can enter retry state.
+    """Reserve before every request; allow one identical 429/timeout retry.
 
-    The runner owns action retries. Raising a typed 429 with a floor of 60s
+    The runner owns action retries. Raising a typed failure with a floor of 60s
     makes its sealed backoff event carry the actual required delay. A second
     rejection, an excessive Retry-After, or any other error stops all dispatch.
     Interrupted runs cannot be restarted automatically, even after a 429.
@@ -86,7 +88,18 @@ class Phase2BudgetedProvider:
         self.spent += reserve
         self.calls.append(path)
         try:
-            result = await self.provider.complete(request)
+            try:
+                result = await asyncio.wait_for(
+                    self.provider.complete(request), timeout=PROVIDER_TIMEOUT_SECONDS
+                )
+            except asyncio.TimeoutError as error:
+                # Finish inside the harness deadline so its declared retry
+                # owner receives a typed error. External cancellation is not
+                # converted and still stops dispatch in the outer handler.
+                raise ProviderFailure(
+                    "timeout", f"provider request timed out (limit {PROVIDER_TIMEOUT_SECONDS}s): {error}",
+                    retryable=True,
+                ) from error
         except BaseException as error:
             # Billing is private run evidence. Public exports retain the digest,
             # not the message, which may contain account or request details.
@@ -104,11 +117,12 @@ class Phase2BudgetedProvider:
                 and error.condition == "rate_limit"
                 and error.status_code == 429
             )
+            timeout = isinstance(error, ProviderFailure) and error.condition == "timeout"
             delay = (
-                max(60.0, error.retry_after_seconds or 0.0) if explicit_429 else None
+                max(60.0, error.retry_after_seconds or 0.0) if explicit_429 or timeout else None
             )
             allowed = (
-                explicit_429 and error.retryable and not retrying and delay <= 180.0
+                (explicit_429 or timeout) and error.retryable and not retrying and delay <= 180.0
             )
             self.stopped = not allowed
             self.retry_request = request.request_sha256 if allowed else None
@@ -130,12 +144,12 @@ class Phase2BudgetedProvider:
                     ),
                 },
             )
-            if explicit_429:
+            if explicit_429 or timeout:
                 raise ProviderFailure(
-                    "rate_limit",
+                    error.condition,
                     original_message,
                     retryable=allowed,
-                    status_code=429,
+                    status_code=error.status_code,
                     retry_after_seconds=delay,
                 ) from error
             raise

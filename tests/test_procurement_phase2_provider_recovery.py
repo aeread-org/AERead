@@ -23,17 +23,17 @@ from aeread_families.procurement_allocation.phase2_worlds import build_world
 from tests.test_procurement_phase2_execution import Script, request
 
 ROOT = Path(__file__).resolve().parents[1]
-PREVIOUS = ROOT / "evidence/procurement_allocation/procurement_allocation_phase2_action_format_recovery_v1"
+PREVIOUS = ROOT / "evidence/procurement_allocation/procurement_allocation_phase2_provider_recovery_v1"
 
 
-def test_both_prior_attempts_count_once_and_unknown_charges_remain_reserved():
+def test_all_prior_attempts_count_once_and_unknown_charges_remain_reserved():
     prior = prior_campaign_accounting()
     attempts = prior["campaigns"]
-    assert len(attempts) == 2
-    assert [a["settled_cost_usd"] for a in attempts] == [0.0099593505, 0.016059285]
-    assert [a["unresolved_reserved_cost_usd"] for a in attempts] == [0, 0.0051345]
-    assert prior["settled_cost_usd"] == pytest.approx(0.0260186355, abs=1e-12)
-    assert prior["accounted_cost_usd"] == pytest.approx(0.0311531355, abs=1e-12)
+    assert len(attempts) == 3
+    assert [a["settled_cost_usd"] for a in attempts] == [0.0099593505, 0.016059285, 0.0688965255]
+    assert [a["unresolved_reserved_cost_usd"] for a in attempts] == [0, 0.0051345, 0.00287595]
+    assert prior["settled_cost_usd"] == pytest.approx(0.094915161, abs=1e-12)
+    assert prior["accounted_cost_usd"] == pytest.approx(0.102925611, abs=1e-12)
 
 
 @pytest.mark.parametrize("status", [429, 503])
@@ -80,16 +80,19 @@ def test_second_429_stops_dispatch_and_keeps_both_reservations(tmp_path):
     )
 
 
-def test_new_contract_changes_accounting_and_observability_only():
+def test_new_contract_changes_timeout_retry_and_accounting_only():
     previous = json.loads((PREVIOUS / "tables/execution_contract.json").read_text())
     current = execution_contract([build_world(i) for i in range(8)], offline_screen())
     assert current["campaign_id"] != previous["campaign_id"]
     for key in ("implementation_pins", "screen_sha256", "campaign_id", "plan_sha256", "recovery_scope"):
         previous.pop(key)
         current.pop(key)
-    previous.pop("prior_phase2_campaign")
+    previous.pop("prior_phase2_campaigns")
     current.pop("prior_phase2_campaigns")
-    current.pop("provider_failure_evidence")
+    assert current.pop("provider_timeout_seconds") == 175
+    assert current.pop("harness_timeout_seconds") == 180
+    assert current["retry_policy"]["conditions"] == ["rate_limit", "timeout"]
+    current["retry_policy"]["conditions"] = ["rate_limit"]
     assert current == previous
     pins = json.loads((PREVIOUS / "publication_manifest.json").read_text())["source_bindings"]["implementation_pins"]
     changed = {
@@ -100,7 +103,8 @@ def test_new_contract_changes_accounting_and_observability_only():
         "src/aeread_families/procurement_allocation/phase2_budget.py",
         "src/aeread_families/procurement_allocation/phase2_campaign.py",
         "src/aeread_families/procurement_allocation/phase2_execution.py",
-        "tests/test_procurement_phase2_action_format.py",
+        "src/aeread_families/procurement_allocation/phase2_runner.py",
+        "tests/test_procurement_phase2_provider_recovery.py",
         "tests/test_procurement_phase2_execution.py",
     }
 

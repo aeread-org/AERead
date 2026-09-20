@@ -94,9 +94,9 @@ def test_retry_reserves_unknown_429_charge_and_cannot_change_request(tmp_path):
 
 
 def test_ambiguous_failure_stops_further_dispatch(tmp_path):
-    script = Script([TimeoutError("fixture")])
+    script = Script([ConnectionError("fixture")])
     p = Phase2BudgetedProvider(script, tmp_path)
-    with pytest.raises(TimeoutError):
+    with pytest.raises(ConnectionError):
         asyncio.run(p.complete(request()))
     assert p.stopped and p.spent > 0
     with pytest.raises(CampaignBudgetExceeded):

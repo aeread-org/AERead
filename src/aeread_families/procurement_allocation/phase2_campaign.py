@@ -21,36 +21,46 @@ from .phase2_runner import PROMPTS
 from .environment import solve_full_information_upper_bound
 from .headroom_screen import classify_world_continuous
 from .strategy_scaffold import GLM_PARASAIL_CANDIDATE
+from .phase2_controls import PROVIDER_TIMEOUT_SECONDS, HARNESS_TIMEOUT_SECONDS, RETRY_CONDITIONS
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
-CAMPAIGN_ID = "procurement_phase2_provider_recovery_v1"
+CAMPAIGN_ID = "procurement_phase2_timeout_recovery_v1"
 HARD_COST_CEILING_USD = 0.45
-BASELINE_SETTLED_USD = 0.0260186355
-BASELINE_RESERVED_USD = 0.0051345
+BASELINE_SETTLED_USD = 0.094915161
+BASELINE_RESERVED_USD = 0.00801045
 PRIOR_PUBLICATIONS = (
     (
         "procurement_allocation_phase2_pilot_v1",
         "41e5ee0d0ba06f650388d3bdd9f46caddccfe7253f0b67eab940d88f3c88d84c",
         "settled_cost_usd",
         "confirmatory_rows_executed",
+        "pilot_operational_gate_failed", 0,
     ),
     (
         "procurement_allocation_phase2_action_format_recovery_v1",
         "ea8e2e3d9ff97379e16978014540fcdf025e74a78dc33e5e30a387ef38b0d494",
         "recovery_settled_cost_usd",
         "confirmation_rows_executed",
+        "pilot_operational_gate_failed", 0,
+    ),
+    (
+        "procurement_allocation_phase2_provider_recovery_v1",
+        "aae4225265641da03ff4e6ef0c2731f07fe23d1db88e2443f043ac34ab4f9eed",
+        "recovery_settled_cost_usd",
+        "confirmation_rows_executed",
+        "confirmation_incomplete", 20,
     ),
 )
 
 
 def prior_campaign_accounting():
-    """Carry each prior attempt once, including charges still unknown after 429."""
+    """Carry each prior attempt once, including unknown 429/timeout charges."""
     import hashlib
     import math
 
     base = Path(__file__).resolve().parents[3] / "evidence/procurement_allocation"
     campaigns = []
-    for name, expected_manifest, settled_key, confirmation_key in PRIOR_PUBLICATIONS:
+    for name, expected_manifest, settled_key, confirmation_key, expected_status, executed in PRIOR_PUBLICATIONS:
         root = base / name
         manifest = json.loads((root / "publication_manifest.json").read_text())
         if manifest["manifest_sha256"] != expected_manifest or expected_manifest != digest(
@@ -62,8 +72,8 @@ def prior_campaign_accounting():
         if hashlib.sha256(path.read_bytes()).hexdigest() != status_sha:
             raise ValueError("prior Phase 2 execution status changed")
         status = json.loads(path.read_text())
-        if status["status"] != "pilot_operational_gate_failed" or status[confirmation_key] != 0:
-            raise ValueError("prior campaign is not the declared stopped pilot")
+        if status["status"] != expected_status or status[confirmation_key] != executed:
+            raise ValueError("prior campaign is not the declared stopped attempt")
         campaigns.append(dict(
             campaign_id=status["campaign_id"],
             publication_manifest_sha256=expected_manifest,
@@ -200,14 +210,16 @@ def execution_contract(cases, screen):
         hard_total_cost_ceiling_usd=HARD_COST_CEILING_USD,
         baseline_phase1_cost_usd=0.0,
         prior_phase2_campaigns=prior_campaign_accounting(),
-        recovery_scope="fresh full-panel operational attempt; carry both prior attempts and unresolved reservations; preserve provider exception messages privately; unchanged prompts, parser, economics, worlds, route, seeds, retry policy and analysis",
+        recovery_scope="fresh full-panel operational attempt; carry all three prior attempts and unresolved reservations; 175-second provider deadline inside explicit 180-second harness deadline; one identical-request timeout or 429 retry; unchanged prompts, parser, economics, worlds, route, seeds and analysis",
         provider_failure_evidence="retain original exception message and typed fields in ignored billing; message digest may be published; raw response body availability depends on adapter",
         max_output_tokens_per_action=1200,
         max_actions=10,
         max_trajectory_cost_usd=0.025,
+        provider_timeout_seconds=PROVIDER_TIMEOUT_SECONDS,
+        harness_timeout_seconds=HARNESS_TIMEOUT_SECONDS,
         retry_policy=dict(
             max_action_attempts=2,
-            conditions=["rate_limit"],
+            conditions=list(RETRY_CONDITIONS),
             minimum_delay_seconds=60.0,
             maximum_retry_after_seconds=180.0,
         ),
