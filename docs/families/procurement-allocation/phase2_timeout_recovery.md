@@ -1,11 +1,16 @@
-# Phase 2 timeout recovery: proposed operational contract
+# Phase 2 timeout recovery: executed operational contract
 
-Campaign `procurement_phase2_timeout_recovery_v2` is a new, unexecuted attempt.
+Campaign `procurement_phase2_timeout_recovery_v2` was approved by the user's
+`continue` after all seven current-source CI checks passed. It completed the fresh
+16-row pilot and frozen 48-row confirmation; all 64 receipts independently replay.
+Mean regret falls, but a treatment supplier-ID violation fails the validity guard:
+see the [audited results](phase2_timeout_recovery_results.md). No provider retry
+was needed in this attempt. The original reviewed controls are recorded below.
 The first offline timeout candidate, `procurement_phase2_timeout_recovery_v1`,
 was not executed. It is preserved at `b727feb2` but superseded because Python 3.10
 distinguishes asynchronous and built-in timeout exceptions. V2 catches both;
-its contribution needs its own review. No approval of the superseded candidate
-authorizes V2.
+its own sealed contribution received the approval. The superseded candidate was
+never admitted or executed.
 
 The [previous attempt](phase2_provider_recovery_results.md) passed the pilot but
 stopped after 19 completed confirmation rows when a request exceeded 180 seconds.
@@ -102,7 +107,9 @@ Inspect in this order:
 4. The review verifier and full test logs: exact bytes and observed coverage;
    they cannot establish future live reliability or economic performance.
 
-Live dispatch requires a real approval of the sealed contribution under
+Live dispatch required a real approval of the sealed contribution under
 `phase2_admission.load_contribution`, implementing the repository's benchmark QC
 requirement that human approval bind the exact contribution contract. Earlier
-approvals remain attached to their earlier retry policies and source pins.
+approvals remain attached to their earlier retry policies and source pins. The
+executed V2 approval is preserved with its live publication; the offline review
+package remains unchanged as the preapproval record.

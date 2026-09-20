@@ -22,9 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 76 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 59 directories under a benchmark folder and
-17 at preserved top-level paths. A directory's presence in this index does
+Campaign and register directories are linked below, grouped by benchmark
+ownership, including 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
 
@@ -41,7 +40,7 @@ appropriate section below when they land.
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
 | [Housing](#housing) | 16 | 1 |
-| [Procurement allocation](#procurement-allocation) | 19 | 16 |
+| [Procurement allocation](#procurement-allocation) | 31 | 16 |
 | [Procurement grounding](#procurement-grounding) | 3 | 0 |
 | [Shared runner diagnostics](#shared-runner-diagnostics) | 1 | 0 |
 
@@ -246,7 +245,15 @@ Includes the preserved case-selection bundle at the evidence root.
 
 Includes all 16 procurement bundles at preserved top-level paths.
 
-- [procurement_phase2_economic_epistemics_v1](procurement_allocation/procurement_phase2_economic_epistemics_v1/): eight-world offline review package; no live calls, pending digest-bound human QC admission
+- [procurement_allocation_phase2_timeout_recovery_v2](procurement_allocation/procurement_allocation_phase2_timeout_recovery_v2/): completed 16-row pilot and 48-row confirmation, all replayed; regret delta -$13.97, 95% world-bootstrap interval [-$31.83, -$0.69], but the treatment-validity guard fails; [full report](../docs/families/procurement-allocation/phase2_timeout_recovery_results.md)
+- [procurement_phase2_timeout_recovery_v2](procurement_allocation/procurement_phase2_timeout_recovery_v2/): immutable offline V2 review, subsequently approved and executed under the separate live publication above
+- [procurement_phase2_timeout_recovery_v1](procurement_allocation/procurement_phase2_timeout_recovery_v1/): superseded offline candidate; never admitted or executed
+- [procurement_allocation_phase2_provider_recovery_v1](procurement_allocation/procurement_allocation_phase2_provider_recovery_v1/): pilot passed; confirmation has 19 completed, one timeout and 28 unattempted rows; no effect estimate
+- [procurement_phase2_provider_recovery_v1](procurement_allocation/procurement_phase2_provider_recovery_v1/): preserved offline provider-recovery review
+- [procurement_allocation_phase2_action_format_recovery_v1](procurement_allocation/procurement_allocation_phase2_action_format_recovery_v1/): eight completed pilot rows, one failure after two 429s and seven unattempted rows
+- [procurement_phase2_action_format_recovery_v1](procurement_allocation/procurement_phase2_action_format_recovery_v1/): preserved offline action-format review
+- [procurement_allocation_phase2_pilot_v1](procurement_allocation/procurement_allocation_phase2_pilot_v1/): original 16-row pilot, 11 malformed actions; confirmation gated off
+- [procurement_phase2_economic_epistemics_v1](procurement_allocation/procurement_phase2_economic_epistemics_v1/): original eight-world offline review package; provider-free artifacts remain the preapproval record
 
 - [procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after](procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after/) **(preserved path)**:
   qualified same-route labeled and opaque prompt-treatment evidence, including
@@ -254,6 +261,7 @@ Includes all 16 procurement bundles at preserved top-level paths.
 - [procurement_allocation_failure_register](procurement_allocation/procurement_allocation_failure_register/)
 - [procurement_allocation_unified_regret_v1](procurement_allocation/procurement_allocation_unified_regret_v1/): six-world continuous admission; provider-free screen, not a model result
 - [procurement_allocation_unified_regret_v1_execution](procurement_allocation/procurement_allocation_unified_regret_v1_execution/): 24-row pilot passed; confirmation ineligible after HTTP 429 (15 completed, one failed, 20 unattempted)
+- [procurement_allocation_unified_regret_recovery_v2](procurement_allocation/procurement_allocation_unified_regret_recovery_v2/): preserved Phase 1 recovery evidence
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_pre_award_check_v1](procurement_allocation_glm53_flash_parasail_pre_award_check_v1/) **(preserved path)**
