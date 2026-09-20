@@ -34,7 +34,7 @@ from .stack_runner import (
     run_stack_openrouter,
 )
 from .stack_worlds import DEFAULT_OUTPUT_ROOT as DEFAULT_PACK_ROOT
-from .stack_worlds import PACK_ID, load_pack_manifest
+from .stack_worlds import PACK_ID, SPLIT, load_pack_manifest
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.datacenter_world_campaign_contract/0.1"
@@ -132,18 +132,22 @@ def load_contract(path: Path | str = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         "execution",
         "analysis",
     }
-    if set(contract) != expected_fields:
+    if set(contract) - {"pack_split"} != expected_fields:
         raise ValueError("campaign contract fields differ")
     if contract["schema_version"] != CONTRACT_SCHEMA_VERSION:
         raise ValueError("campaign contract schema version differs")
-    if contract["campaign_id"] != CAMPAIGN_ID:
-        raise ValueError("campaign ID differs")
+    campaign_id = contract["campaign_id"]
+    if not isinstance(campaign_id, str) or not campaign_id.startswith("datacenter_development_v2_world_panel"):
+        raise ValueError("campaign ID must name a datacenter_development_v2_world_panel campaign")
     if contract["family_id"] != "datacenter_development_v1":
         raise ValueError("campaign family differs")
     if contract["scope_version"] != "v2":
         raise ValueError("campaign must use the V2 agreement stack")
-    if contract["pack_id"] != PACK_ID:
-        raise ValueError("campaign must run the generated V2 world pack")
+    if not isinstance(contract["pack_id"], str) or not contract["pack_id"]:
+        raise ValueError("campaign must name the generated world pack it runs")
+    split = contract.get("pack_split", SPLIT)
+    if not isinstance(split, str) or not split or "/" in split or split.startswith("."):
+        raise ValueError("pack_split must be a case split name under cases/datacenter_development_v1/")
     if tuple(contract["conditions"]) != CONDITIONS:
         raise ValueError("campaign conditions differ")
 
@@ -265,6 +269,21 @@ def _route(model: Mapping[str, Any]) -> OpenRouterRoute:
         reasoning_effort=model["reasoning_effort"],
         temperature_supported=bool(model["temperature_supported"]),
     )
+
+
+
+def pack_root_for(contract: Mapping[str, Any]) -> Path:
+    """The case split the contract names, under cases/datacenter_development_v1/."""
+
+    return REPOSITORY_ROOT / "cases" / "datacenter_development_v1" / str(contract.get("pack_split", SPLIT))
+
+
+def run_root_for(contract: Mapping[str, Any]) -> Path:
+    return REPOSITORY_ROOT / "runs" / str(contract["campaign_id"])
+
+
+def publication_root_for(contract: Mapping[str, Any]) -> Path:
+    return REPOSITORY_ROOT / "evidence" / "datacenter_development" / str(contract["campaign_id"])
 
 
 def load_pack(contract: Mapping[str, Any], pack_root: Path | str = DEFAULT_PACK_ROOT) -> dict[str, Any]:
@@ -1218,16 +1237,18 @@ def publish(
 async def run_campaign(
     *,
     contract_path: Path | str = DEFAULT_CONTRACT_PATH,
-    run_root: Path | str = DEFAULT_RUN_ROOT,
-    pack_root: Path | str = DEFAULT_PACK_ROOT,
+    run_root: Path | str | None = None,
+    pack_root: Path | str | None = None,
     stop_after: str = "live",
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     cell_filter: Callable[[Mapping[str, Any]], bool] | None = None,
     retry_failed: bool = False,
 ) -> dict[str, Any]:
     contract = load_contract(contract_path)
-    root = Path(run_root)
-    pack = Path(pack_root)
+    # Roots follow the contract's identity and split unless overridden, so a
+    # second campaign on a second pack never shares a run root with the first.
+    root = Path(run_root) if run_root is not None else run_root_for(contract)
+    pack = Path(pack_root) if pack_root is not None else pack_root_for(contract)
     design = build_design(contract, pack_root=pack)
     _atomic_write(root / "design.json", design)
     if stop_after == "design":
@@ -1306,8 +1327,8 @@ async def run_campaign(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT_PATH)
-    parser.add_argument("--run-root", type=Path, default=DEFAULT_RUN_ROOT)
-    parser.add_argument("--pack-root", type=Path, default=DEFAULT_PACK_ROOT)
+    parser.add_argument("--run-root", type=Path, default=None, help="defaults to runs/<campaign_id>")
+    parser.add_argument("--pack-root", type=Path, default=None, help="defaults to the contract's pack_split")
     parser.add_argument(
         "--stop-after",
         choices=("design", "provider_free", "profile_admission", "live"),
@@ -1319,19 +1340,25 @@ def main(argv: list[str] | None = None) -> int:
         help="re-execute cells that failed operationally, as further attempts",
     )
     parser.add_argument("--publish", action="store_true")
-    parser.add_argument("--publication-root", type=Path, default=DEFAULT_PUBLICATION_ROOT)
+    parser.add_argument("--publication-root", type=Path, default=None, help="defaults to evidence/datacenter_development/<campaign_id>")
     arguments = parser.parse_args(argv)
+    contract = load_contract(arguments.contract)
+    run_root = arguments.run_root if arguments.run_root is not None else run_root_for(contract)
+    pack_root = arguments.pack_root if arguments.pack_root is not None else pack_root_for(contract)
+    publication_root = (
+        arguments.publication_root if arguments.publication_root is not None else publication_root_for(contract)
+    )
     result = asyncio.run(
         run_campaign(
             contract_path=arguments.contract,
-            run_root=arguments.run_root,
-            pack_root=arguments.pack_root,
+            run_root=run_root,
+            pack_root=pack_root,
             stop_after=arguments.stop_after,
             retry_failed=arguments.retry_failed,
         )
     )
     if arguments.publish and arguments.stop_after == "live":
-        result = publish(run_root=arguments.run_root, publication_root=arguments.publication_root)
+        result = publish(run_root=run_root, publication_root=publication_root)
     print(canonical_json_bytes(result).decode("utf-8"))
     return 0
 
@@ -1342,6 +1369,9 @@ __all__ = [
     "DEFAULT_RUN_ROOT",
     "build_design",
     "load_contract",
+    "pack_root_for",
+    "publication_root_for",
+    "run_root_for",
     "load_pack",
     "publish",
     "render_leaderboard",

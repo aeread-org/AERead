@@ -1,0 +1,33 @@
+{
+  "campaign_driver_sha256": "701fecc83a208e6e2da48b5c9feb40df6e7e22abb6d09367def6c44df9771985",
+  "campaign_id": "datacenter_development_v2_world_panel_confirmatory_v1",
+  "claims_allowed": {
+    "causal_condition_effect": false,
+    "inferential_model_ranking": false,
+    "single_route_descriptive_with_cluster_intervals": true,
+    "winner": false
+  },
+  "contract_sha256": "d792172f537deceeb423030274d6fdaa010a8905fd969829e5dca2124169f154",
+  "design_artifact_sha256": "ae2d6f25657d5918a3e2660871fb6f371302a773e18cf617e03865475a4f5358",
+  "developer_prompt_id": "datacenter_v2_developer_prompt_v2",
+  "developer_prompt_sha256": "42c85a446022a196225e5c8e497ab766aea66ca836dc7ddd6ac3ba7c8be05828",
+  "execution_order": "world index then seed, one cell at a time, 10 s provider cooldown",
+  "frozen_at": "2026-09-20T16:45:52Z",
+  "holdout": "worlds_v2_holdout is generated from master seed 20270920, a seed domain disjoint from worlds_v2 (20260903..20260926); no case digest, knob signature or seed label is shared; the pilot that tuned the schema and prompt ran only on worlds_v2",
+  "independent_cluster_count": 24,
+  "missingness_policy": "an operational failure is typed missingness and is never rerun in place; eligibility requires operational failures under 10% of planned cells (7 of 72)",
+  "output_schema_bounded": true,
+  "pack_id": "datacenter_development_v2_worlds_holdout_v1",
+  "pack_sha256": "feffbaba60535f7ecbcae5a9a55b4df8465d425798bc98b77e7e5c6146728512",
+  "paired_seed_count": 3,
+  "planned_cells": 72,
+  "predeclared_slices": [
+    "stratum"
+  ],
+  "primary_endpoint": "admission rate over worlds (a cell is admitted when the stack executes, every constraint check holds and financing funds), with a world-clustered bootstrap interval",
+  "sample_size_rationale": "24 worlds is the cluster count the pilot established as the effective sample; three seeds average within-world model variance (pilot median 2.6 billion cents on worlds completed twice) without adding clusters",
+  "schema_version": "aeread.datacenter_confirmatory_freeze/0.1",
+  "secondary_endpoint": "mean developer_equity_npv delta from the scripted reference over admitted cells, world-clustered bootstrap",
+  "seed_handling": "the three seeds of a world are averaged within the world before worlds are treated as independent",
+  "stopping_rule": "no early stop; the run ends when every planned cell holds a verified receipt or typed missingness, or the $15 ceiling is reached"
+}
