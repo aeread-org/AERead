@@ -284,3 +284,27 @@ adopting, and the score shows it. What it still cannot do is reward the
 cost side — neither model ever proposed a price below a counter that a
 counterparty would accept, so the 33,000 of cost-side headroom between the
 adopt path and the floor path went untouched by both.
+
+## 11. The first variance pilot on the pack
+
+Gemini 3.8 Flash, 24 worlds × 2 seeds, $2.52. Published unchanged as
+`evidence/datacenter_development/datacenter_development_v2_world_panel_v1/`.
+
+| outcome | cells |
+|---|---:|
+| admitted (completed, financed, legal) | 7 |
+| output-format death at the first action (`site_control_start_month: 0` and kin, DC-D-07) | 23 |
+| re-proposed the executed land terms as the amendment | 7 |
+| completed a stack the lender would not fund (the trap) | 10 |
+| provider timeout | 1 |
+
+Admitted cells sit at the scripted reference: median −0.03 billion cents on
+references near 50 billion, with 3 of 7 above it — the reference is beatable
+and the score sees it. Two strata admitted nothing (liability transfer,
+verbal/written divergence). Four of 24 worlds completed on both seeds; where
+both did, the seed difference was 2.6 billion median, 3.8 billion max: for a
+live model the seeds are not repeats, but the bulk of the variance is
+admission, which is binary. The confirmatory therefore runs under a new
+identity with the bounded schema and v2 prompt (#195), and is sized on 24
+worlds.
+

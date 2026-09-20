@@ -371,7 +371,7 @@ one project.
 
 ## 5. Confirmatory reliability and publication
 
-**Status: not_run** (a design contract now exists; nothing live has been attempted).
+**Status: partial** (the variance pilot has run; nothing is frozen).
 
 **Design contract (2026-09-19).** `configs/datacenter_development_v2_world_panel_v1.json`
 with `world_campaign.py`: the 24-world pack pinned by digest, one route
@@ -382,7 +382,19 @@ ceiling, `claim_status` exploratory, the world as the resampling unit with
 causal claim flag set to false. The provider-free and profile-admission
 gates run on `main` without a key; the variance pilot is the next paid step.
 
-No step of the live sequence has been attempted: there is no declared
+**Variance pilot (2026-09-19).** `evidence/datacenter_development/datacenter_development_v2_world_panel_v1/`:
+47 of 48 cells completed (1 timeout), $2.52 lower bound. Admitted 7 of 48; the
+rest split into 23 output-format deaths (DC-D-07), 7 no-op amendments and 10
+completed stacks the lender would not fund. Admitted cells sit at the scripted
+reference (median −0.03 billion cents on ~50-billion references, 3 of 7 above
+it), so the reference is beatable and the score sees it. Four of 24 worlds
+completed on both seeds; where both did, the seed difference was 2.6 billion
+cents median — for a live model, seeds are not repeats, but most of the
+variance is admission, which is binary. What this fixes before a freeze: the
+confirmatory runs under a new campaign identity with the bounded schema and
+v2 prompt, and its sample is sized on 24 worlds, not 48 cells.
+
+Before that pilot, no step of the live sequence had been attempted: there is no declared
 variance pilot, no confirmatory freeze artifact, no holdout table, and no
 `analysis_plan` anywhere in the 30 bundles. The nearest artifacts are a
 `decision_rule` and `primary_endpoint` in
