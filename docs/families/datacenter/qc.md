@@ -6,17 +6,26 @@
 
 **Design plan:** [development negotiation implementation plan](development_negotiation_implementation_plan.md)
 
-**Status:** case-specific profile covering six registered family ids;
+**Status:** as of 2026-09-20, case-specific profile covering six registered family ids;
 `profile_admission=passed`, while
-`task_distribution_admission=failed`,
+`task_distribution_admission=partial`,
 `environment_and_verifier_qc=partial`,
-`construct_validity=failed`,
+`construct_validity=partial`,
 `attribution_and_controls=partial`,
-`confirmatory_reliability=not_run`, and
-`normative_datacenter_profile=failed`.
+`confirmatory_reliability=passed` for the
+`datacenter_development_v2_world_panel_confirmatory_v1` track and `partial`
+for the family, and
+`normative_datacenter_profile=partial`.
 
-Two gates are failed, and the construct failure is the most important line in
-this profile. On `cases/datacenter_development_v1/v2/full_stack_amendment_001.json`
+As audited on 2026-09-19 this profile read `task_distribution_admission=failed`,
+`construct_validity=failed`, `confirmatory_reliability=not_run` and
+`normative_datacenter_profile=failed`. The sections below keep that audit as
+written and date every change of status, because the 30 bundles it audited
+are still published and are still read against the reference it describes.
+
+As audited, two gates were failed, and the construct failure was the most
+important line in this profile. On
+`cases/datacenter_development_v1/v2/full_stack_amendment_001.json`
 the declared scripted-developer comparison baseline is **-155,000 cents** while
 the case's own outside option is **-100,000 cents**. The reference the family
 compares subjects against is dominated by walking away, by 55,000 cents, and
@@ -428,37 +437,38 @@ What the number may be read as: one route's descriptive admission rate and
 reference gap on held-out worlds, biased down by the two harness gaps the next
 identity closes; not a winner, a ranking, or a causal claim.
 
-Before that pilot, no step of the live sequence had been attempted: there is no declared
-variance pilot, no confirmatory freeze artifact, no holdout table, and no
-`analysis_plan` anywhere in the 30 bundles. The nearest artifacts are a
-`decision_rule` and `primary_endpoint` in
-`terms_public_glm_transfer_v1/reports/summary.json` (which returned
-`inconclusive_operational_missingness`) and a `primary_contrast` in
-`terms_public_candidate_screen_v1`. The word frozen appears only as prose about
-a run configuration.
+**As audited on 2026-09-19.** Before that pilot, no step of the live sequence
+had been attempted: no declared variance pilot, no confirmatory freeze
+artifact, no holdout table, and no `analysis_plan` anywhere in the 30 bundles
+then published. The nearest artifacts were a `decision_rule` and
+`primary_endpoint` in `terms_public_glm_transfer_v1/reports/summary.json`
+(which returned `inconclusive_operational_missingness`) and a
+`primary_contrast` in `terms_public_candidate_screen_v1`; the word frozen
+appeared only as prose about a run configuration. The audit required that the
+guarded metric be one walking away fails, because the outside option is a
+legal terminal economic outcome and on the sealed V2 case beat the reference,
+as procurement's terminal feasibility once counted a deferral as a success.
+That is why the confirmatory's primary endpoint is admission — a completed
+stack the lender funds — and why walk-away and adopt-every-counter run as
+scored controls that fail it on every world.
 
-When this gate is attempted, the guarded metric must be chosen so that walking
-away fails it. Today it does not: the outside option is a legal terminal
-economic outcome, so a subject that never transacts scores `-100,000` cents and,
-on the V2 case, beats the reference. Procurement hit exactly this with terminal
-feasibility counting a deferral as a success; the lesson transfers, and
-`project_completion_rate` — `0.0` for every group in the interaction campaign —
-is the candidate the family already records.
-
-**Main blocker:** Gates 1 and 3 are failed, so a confirmatory design would
-measure a case that cannot express a difference against a reference that
-refusing to play can beat.
+**Main blocker (2026-09-20):** one route and no random or blind control rate
+measured per world, so the confirmatory number is descriptive and compares
+nothing; and two harness gaps bias admission down under the frozen identity —
+a walk with a stated reason is typed malformed (DC-D-08, 12 of 72 cells) and a
+no-op amendment ends the episode instead of being declined (16 of 72). Both
+close in the next campaign identity, never under this one.
 
 ## 6. Current implementation coverage
 
 | Gate | Current coverage | Main blocker to `passed` |
 |---|---|---|
-| Profile admission | this document, as of 2026-09-19 | none |
-| Task-distribution admission | 4 curated projects, 15 counteroffer cases on one world, 6 authored terms packs with pack digests and honest source lineage | **Failed:** no informativeness screen, no split, and a case admitted whose reference is dominated by walking away |
+| Profile admission | this document, as of 2026-09-20 | none |
+| Task-distribution admission | 4 curated projects and the repaired `full_stack_amendment_002`, 15 counteroffer cases on one world, 6 authored terms packs, and two generated 24-world packs (`worlds_v2`, `worlds_v2_holdout`) refused at generation unless a naive strategy fails them, sealed by pack digest and split by seed domain | **Partial:** no near-duplicate clustering across strata; the control rate per world comes from the scripted reference, not from a measured control |
 | Environment and verifier | deterministic ledger with sources-equals-uses and rollforward identities, leakage tests for all six ids, provider-free success goldens, typed missingness | **Partial:** replay copies a flag over 531 published rows instead of recomputing; no identities for `stack_cashflow.py`; five golden kinds missing on three ids |
-| Construct validity and baselines | one authored scripted-developer reference per case; a dominance precondition on the 2.1.0 identity only | **Failed:** the reference is beaten by not transacting; no no-op, random, adaptive or blind-adoption policy exists |
+| Construct validity and baselines | a scripted reference per case; the opt-in `construct_controls` guard (strict dominance by a declared margin, two-sided price bands); walk-away and adopt-every-counter as scored controls on the curated case and all 24 worlds (`datacenter_v2_scored_controls_v1`) | **Partial:** no random or adaptive policy; the guard covers `construct_controls` cases only, so the sealed `001` case and the 1.0.0/1.1.0 identities keep their dominated reference |
 | Attribution and controls | claim status, digests and route snapshots on all 33 contracts; byte-identical paired conditions; typed missingness | **Partial:** one independent cluster in 19 of 30 bundles, five at most; 0 of 10 exposure-qualified pairs in one campaign |
-| Confirmatory reliability | nothing attempted; all 33 contracts declare diagnostic, exploratory or reliability-only | **Not run:** blocked by Gates 1 and 3; the guarded metric must be one a walk-away fails |
+| Confirmatory reliability | one frozen confirmatory on the held-out pack (`datacenter_development_v2_world_panel_confirmatory_v1`): 72 of 72 cells, predeclared endpoints, world-clustered bootstrap, the analysis sealed into the bundle | **Passed for that track, partial for the family:** one route, descriptive; DC-D-08 walks and no-op amendments bias admission down and close only under a new identity |
 
 ## 7. Registers
 
@@ -472,17 +482,22 @@ section of the incident log.
 
 ## 8. Published campaigns
 
-Thirty sealed bundles: 11 under `evidence/datacenter_development/` and 19 under
-`evidence/datacenter_development_terms/`, together 531 rows in
-`trajectories/sanitized.jsonl`, all digest-verified against their manifests. The
-largest is `terms_public_mechanism_v1` at 53 of 54 cells; the smallest is the
-two-cell probe of 2026-09-03. Total recorded spend across the family is under
-$0.11, most bundles reporting a `lower_bound` because failed calls report no
-usage.
+Thirty-three sealed bundles: 14 under `evidence/datacenter_development/` and
+19 under `evidence/datacenter_development_terms/`, all digest-verified against
+their manifests. The 30 audited on 2026-09-19 hold 531 rows in
+`trajectories/sanitized.jsonl`; the two world-panel campaigns add 2,811 rows of
+the kernel trajectory grain (878 in the pilot, 1,933 in the confirmatory) and
+the scored-controls bundle carries tables only. The largest live bundle is the
+confirmatory at 72 of 72 cells; the smallest is the two-cell probe of
+2026-09-03. Recorded spend: under $0.11 across the 30 audited bundles, most
+reporting a `lower_bound` because failed calls report no usage; $2.52 lower
+bound for the pilot; $5.34 exact for the confirmatory.
 
-None of them is confirmatory, none claims a winner, and after this profile none
-of them may be described as measuring the family's declared construct until
-Gates 1 and 3 change status.
+One of them is confirmatory, none claims a winner, and only the three bundles
+of 2026-09-20 — generated or run under the `construct_controls` guard with
+scored controls beside them — may be described as measuring the family's
+declared construct. The 30 earlier bundles may not, because the reference they
+are read against is beatable by walking away.
 
 ## 9. What may be claimed today
 
@@ -495,10 +510,15 @@ to five clusters, as a diagnostic**. Specifically permitted:
 - operational findings about routes, schemas and provider behavior, which is
   what the integrated V4 to V11 series actually measured;
 - descriptive completion, validity and compliance rates with their typed
-  missingness.
+  missingness;
+- on the held-out world pack, one route's descriptive admission rate (0.25,
+  95% world-clustered bootstrap 0.15-0.35) and its gap from the scripted
+  reference, labelled as descriptive and as biased down by DC-D-08 and the
+  no-op amendment.
 
 Not permitted, and not currently claimed anywhere: a model winner, an
 inferential ranking, a population or project generalization, a causal condition
-effect, or any statement that a subject negotiated *well*. The last one is the
-new restriction this profile adds, because the reference it would be measured
-against is beatable by walking away.
+effect, or any statement that a subject negotiated *well*. The last one stays:
+on the 30 pre-guard bundles because their reference is beatable by walking
+away, and on the world-panel campaigns because one route on a descriptive
+endpoint says nothing about how it negotiated relative to any other.
