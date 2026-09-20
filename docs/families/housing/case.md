@@ -146,6 +146,27 @@ explicitly injects the deterministic policy for the controlled comparison block;
 runner may instead fill the same response batch from live landlord seats. Scripted and
 live-counterparty results must be reported as separate experimental conditions.
 
+The controlled landlord has two explicit policy versions. `housing_scripted_landlord_v1`
+(`1.0.0`) preserves the historical midpoint counter, including its possibility of
+countering below private cost. `housing_scripted_landlord_v2` (`2.0.0`) accepts the
+highest offer at or above cost, using the existing tenant-ID tie break. If all offers
+are below cost, it counters the best offer at
+`max(private_cost, round((best_offer + public_ask) / 2, 2))`. The cost floor is applied
+after rounding. An empty inbox produces no hold. V2 therefore guarantees that the
+controlled landlord's binding terms cover its cost; optimal bargaining is a separate
+property.
+
+The standalone Housing CLI defaults to V2; `--scripted-landlord-version 1.0.0`
+selects the legacy control. Frozen programmatic builders and every sealed campaign
+retain their V1 default, so published receipts replay unchanged. New callers select
+V2 with `landlord_model="housing_scripted_landlord_v2"` and
+`landlord_revision="2.0.0"`; these identify the actual controlled profile in the
+plan and receipt. Changing the opponent requires a new campaign identity.
+
+This constraint is in the scripted policy. Model-controlled landlords and tenants
+can still make loss-making agreements, which remain observable in terminal payoffs
+and IR violations. Tenant observations do not gain access to the landlord's cost.
+
 Tenants see the board each round with a `status` column marking listings already
 leased. That column is what makes the market adaptive: without it a later round
 carries no more information than the first.

@@ -971,11 +971,24 @@ class HousingScriptedTenantProvider:
         return _scripted_result(request, output)
 
 
+SCRIPTED_LANDLORD_MODELS = {
+    "housing_scripted_landlord_v1": "1.0.0",
+    "housing_scripted_landlord_v2": "2.0.0",
+}
+
+
 class HousingScriptedLandlordProvider:
+    """Dispatch the sealed model/revision to a versioned scripted policy."""
+
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "housing_scripted_landlord":
             raise ProviderFailure(
                 "provider_contract", "wrong scripted landlord provider", retryable=False
+            )
+        policy_version = SCRIPTED_LANDLORD_MODELS.get(request.model)
+        if policy_version is None or request.revision != policy_version:
+            raise ProviderFailure(
+                "provider_contract", "unknown scripted landlord model/revision", retryable=False
             )
         payload = json.loads(request.input_text)
         if payload["phase_id"] != "respond":
@@ -1012,9 +1025,9 @@ class HousingScriptedLandlordProvider:
                 output = {
                     "decision": "counter",
                     "offer_id": chosen["offer_id"],
-                    "counter_rent": round(
-                        (chosen["rent"] + observation["listing"]["rent_asked"]) / 2.0,
-                        2,
+                    "counter_rent": hz.scripted_landlord_counter_rent(
+                        chosen["rent"], observation["listing"]["rent_asked"],
+                        observation["private_cost"], policy_version=policy_version,
                     ),
                 }
         return _scripted_result(request, output)
@@ -1318,6 +1331,11 @@ def build_housing_smoke(
             raise ValueError(f"{field} must be a positive integer")
     if evaluation_kind not in {"controlled", "cross_play", "self_play"}:
         raise ValueError("evaluation_kind must be controlled, cross_play, or self_play")
+    if landlord_provider == "housing_scripted_landlord" and (
+        landlord_model not in SCRIPTED_LANDLORD_MODELS
+        or landlord_revision != SCRIPTED_LANDLORD_MODELS[landlord_model]
+    ):
+        raise ValueError("unknown scripted landlord model/revision")
     digest_overrides = dict(implementation_digest_overrides or {})
     allowed_digest_overrides = {
         "housing",
@@ -1384,7 +1402,10 @@ def build_housing_smoke(
                 },
                 "landlord": {
                     "testable": False,
-                    "scripted_policies": ["housing_scripted_landlord_v1"],
+                    "scripted_policies": [
+                        landlord_model if landlord_provider == "housing_scripted_landlord"
+                        else "housing_scripted_landlord_v1"
+                    ],
                 },
             },
             "measurement": {
@@ -1508,7 +1529,7 @@ def build_housing_smoke(
     landlord_profile_id = landlord_profile_id_override or (
         "housing_model_landlord_v1"
         if landlord_provider == "openrouter"
-        else "housing_scripted_landlord_v1"
+        else landlord_model
     )
     landlord_pricing = (
         resolved_landlord_route.token_pricing()
@@ -1855,6 +1876,9 @@ def build_housing_smoke(
 
 
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
+    landlord_version = getattr(arguments, "scripted_landlord_version", "2.0.0")
+    landlord_model = next(model for model, version in SCRIPTED_LANDLORD_MODELS.items()
+                          if version == landlord_version)
     if arguments.provider == "openrouter":
         tenant_provider = "openrouter"
         tenant_model = arguments.model or "deepseek/deepseek-v4-flash-0731"
@@ -1869,6 +1893,8 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         tenant_provider=tenant_provider,
         tenant_model=tenant_model,
         tenant_revision=tenant_revision,
+        landlord_model=landlord_model,
+        landlord_revision=landlord_version,
         world_seed=arguments.world_seed,
         num_tenants=arguments.tenants,
         num_listings=arguments.listings,
@@ -1903,6 +1929,8 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             (execution.evidence.root / "evaluation_receipt.json").resolve()
         ),
         "replay_level": receipt.replay_level,
+        "scripted_landlord_model": landlord_model,
+        "scripted_landlord_version": landlord_version,
     }
 
 
@@ -1913,6 +1941,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--model")
     parser.add_argument("--revision")
+    parser.add_argument(
+        "--scripted-landlord-version", choices=hz.SCRIPTED_LANDLORD_POLICY_VERSIONS,
+        default="2.0.0", help="V2 covers private cost; V1 preserves the legacy midpoint control",
+    )
     parser.add_argument("--world-seed", type=int, default=41001)
     parser.add_argument("--tenants", type=int, default=2)
     parser.add_argument("--listings", type=int, default=1)
