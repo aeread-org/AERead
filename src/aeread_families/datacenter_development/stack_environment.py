@@ -207,7 +207,35 @@ def _term_values(terms: AgreementTerms) -> dict[str, Any]:
     return dataclasses.asdict(terms)
 
 
+def counterparty_utility(
+    terms: AgreementTerms, policy: Mapping[str, Any]
+) -> int | None:
+    """What this package is worth to the counterparty, or None if it has no view.
+
+    A linear valuation over a few terms, measured against the counterparty's own
+    opening package, so its own counter is worth exactly zero. Weights are the
+    counterparty's, not the developer's, which is what makes a trade possible:
+    a term the developer can concede cheaply may be worth a great deal here, and
+    the reservation is what it will give up before walking. Optional per policy;
+    the sealed cases declare none and keep their band-only acceptance.
+    """
+
+    specification = policy.get("utility")
+    if specification is None:
+        return None
+    values = _term_values(terms)
+    reference = specification["reference"]
+    total = 0
+    for field, weight in specification["weights"].items():
+        if field not in values or field not in reference:
+            return None
+        total += int(weight) * (int(values[field]) - int(reference[field]))
+    return total
+
+
 def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
+    """Hard constraints first, then the counterparty's own valuation."""
+
     values = _term_values(terms)
     for field, minimum in policy["minimums"].items():
         if field not in values or values[field] < minimum:
@@ -216,7 +244,58 @@ def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
         if field not in values or values[field] > maximum:
             return False
     required = set(policy["required_conditions"])
-    return required.issubset(set(values.get("conditions_precedent", ())))
+    if not required.issubset(set(values.get("conditions_precedent", ()))):
+        return False
+    utility = counterparty_utility(terms, policy)
+    return utility is None or utility >= int(policy["utility"]["reservation"])
+
+
+def counter_reason(terms: AgreementTerms, policy: Mapping[str, Any]) -> str:
+    """Say what would make this offer acceptable.
+
+    A counterparty that only ever repeats its own package teaches nothing, and
+    a developer cannot find a trade it is never told exists. This names the
+    terms that are out of range, and when the hard bounds are all met but the
+    package is still not worth enough, names the term that could be conceded to
+    pay for the rest.
+    """
+
+    values = _term_values(terms)
+    problems: list[str] = []
+    for field, minimum in sorted(policy["minimums"].items()):
+        if field in values and values[field] < minimum:
+            problems.append(f"{field} of at least {minimum}")
+    for field, maximum in sorted(policy["maximums"].items()):
+        if field in values and values[field] > maximum:
+            problems.append(f"{field} of no more than {maximum}")
+    missing = sorted(
+        set(policy["required_conditions"]) - set(values.get("conditions_precedent", ()))
+    )
+    if missing:
+        problems.append("conditions precedent covering " + ", ".join(missing))
+    if problems:
+        return "We cannot sign this. We need " + "; ".join(problems) + "."
+    specification = policy.get("utility")
+    if specification is None:
+        return "We cannot sign this as drafted."
+    tradeable = [
+        field
+        for field, weight in sorted(specification["weights"].items())
+        if int(weight) > 0
+        and field in policy["maximums"]
+        and values.get(field, 0) < policy["maximums"][field]
+    ]
+    if tradeable:
+        field = tradeable[0]
+        return (
+            "The commercial terms are inside what we can sign, but the package "
+            f"as a whole is not worth enough to us. We will look again at them "
+            f"if {field} moves toward {policy['maximums'][field]}."
+        )
+    return (
+        "Every term is within range on its own, but the package as a whole is "
+        "not worth enough to us to sign."
+    )
 
 
 def _phase_id(agreement_key: str, kind: str) -> str:
@@ -447,11 +526,34 @@ class DataCenterStackPlugin:
             _positive(value, f"negotiation.max_rounds.{key}")
         policies = _exact(data["policies"], set(self.sequence), "policies")
         for key, value in policies.items():
-            policy = _exact(
-                value,
-                {"minimums", "maximums", "required_conditions", "counter_terms"},
-                f"policies.{key}",
-            )
+            if not isinstance(value, dict):
+                raise ValueError(f"policies.{key} must be an object")
+            policy_fields = {"minimums", "maximums", "required_conditions", "counter_terms"}
+            # Optional: a counterparty valuation (weights over a few terms against
+            # its own reference package, and a reservation it will not sign
+            # below) and a fixed counter message. Both are generator features of
+            # the world pack; the sealed curated cases declare neither.
+            if "utility" in value:
+                utility = _exact(
+                    value["utility"],
+                    {"weights", "reservation", "reference"},
+                    f"policies.{key}.utility",
+                )
+                if not isinstance(utility["weights"], dict) or not utility["weights"]:
+                    raise ValueError(f"policies.{key}.utility.weights must be non-empty")
+                if not isinstance(utility["reference"], dict):
+                    raise ValueError(f"policies.{key}.utility.reference must be an object")
+                missing = set(utility["weights"]) - set(utility["reference"])
+                if missing:
+                    raise ValueError(
+                        f"policies.{key}.utility.reference omits {sorted(missing)}"
+                    )
+                policy_fields.add("utility")
+            if "counter_message" in value:
+                if not isinstance(value["counter_message"], str) or not value["counter_message"]:
+                    raise ValueError(f"policies.{key}.counter_message must be non-empty")
+                policy_fields.add("counter_message")
+            policy = _exact(value, policy_fields, f"policies.{key}")
             if not isinstance(policy["minimums"], dict) or not isinstance(
                 policy["maximums"], dict
             ):

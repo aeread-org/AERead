@@ -80,7 +80,7 @@ the 30 published campaigns inventoried below.
 
 ## 1. Task-distribution admission
 
-**Status: failed.**
+**Status: partial** (was `failed` until 2026-09-19; see the world pack below).
 
 The independent unit differs by side of the family and both are declared:
 
@@ -154,6 +154,22 @@ What does not exist, and why the gate is `failed` rather than `partial`:
 a difference, plus a case-level rejection of a reference that does not
 strictly dominate the outside option for the 1.0.0, 1.1.0 and 2.0.0 identities.
 
+**World pack (2026-09-19).** `cases/datacenter_development_v1/worlds_v2/` holds 24
+generated worlds — six mechanism strata, four variants each, 50 MW / 36 months
+at published 2026 figures — ported from `codex/datacenter-world-panel-v1` and
+regenerated on `main`. Every world is refused at generation unless a naive
+strategy fails it (`solved_by_naive_strategy`: adopt every counter, market
+convention, adopt-and-size), its declared lever moves value (`lever_is_inert`),
+its concession costs something (`concession_is_free`), its feasible path beats
+walking away, and it passes the `construct_controls` guard with a declared
+margin of 1% of the EPC contract price. Closing the guard's two-sided rule
+required flooring six money terms the branch had left one-sided, which is the
+guard doing on 24 worlds what it did on `001`. Independent clusters: 24.
+Still missing for `passed`: a development-versus-confirmatory split bound to
+disjoint seed domains, near-duplicate clustering across strata, and a measured
+control rate per world from the frozen control rather than from the scripted
+reference alone.
+
 ## 2. Environment and verifier
 
 **Status: partial.**
@@ -222,6 +238,13 @@ arithmetic oracle (`test_datacenter_terms_public.py:271`), accession drift
 (`stack:97`) — which show a guard rejecting a broken input but not a guard being
 reverted and observed to die.
 
+**Schema and parser agree (2026-09-19, DC-D-07).** For cases that opt into
+`construct_controls`, the strict developer output schema carries every lower
+bound the contract parser enforces (`stack_runner.TERM_MINIMUMS`; every other
+integer term non-negative) and the developer prompt states that months are
+numbered from 1. The gap cost five of the first ten pilot cells. Sealed cases
+keep their v1 schema and prompt byte for byte.
+
 **Main blockers:** replay that recomputes a published score instead of copying a
 flag; ledger identities for `stack_cashflow.py`; the missing invalid-action and
 malformed-output goldens for the salience, affordance and action-schema ids; and
@@ -229,7 +252,7 @@ a committed bundle for integrated V12 or its removal.
 
 ## 3. Construct validity and baselines
 
-**Status: failed.**
+**Status: partial** (was `failed` until 2026-09-19; see the scored controls below).
 
 Declared controls, as they exist on main:
 
@@ -264,6 +287,24 @@ Three findings bound what this family can claim:
 **Main blocker:** a declared policy set run through the active interface — at
 minimum a walk-away anchor and a blind-adoption policy — with a predeclared
 beatability rule, on a case whose reference strictly dominates walking away.
+
+**Scored controls (2026-09-19).** Three provider-free developer policies now
+run through the real scheduler — the scripted reference at the floor of every
+band, `walk_away` at the first offer, and `adopt_every_counter` (an opening the
+counterparty must refuse, then its counter copied verbatim) — on the repaired
+curated case and all 24 worlds, every trajectory finalised, verified and
+replayed: 75 trajectories, 75 included. The reference beats walking away in
+25 of 25 cases and beats adoption in 25 of 25; adoption completes the stack
+only on the curated case (−155,000, below walking) and on every world declines
+the landowner's no-op amendment counter and strands at the outside option, the
+trap the worlds set for a transcriber. On the worlds the reference clears
+walking away by a median of 54.4 billion cents. Published as the derived
+bundle `evidence/datacenter_development/datacenter_v2_scored_controls_v1/`,
+regenerated never edited (`python -m aeread_families.datacenter_development.scored_controls`).
+Still missing for `passed`: a seeded random or weak behavioural control, an
+informed policy that uses the counterparty's stated reasons, shortcut tests on
+the prompt surface, and a beatability rule predeclared before any live subject
+is read against these anchors.
 
 **What changed on 2026-09-19.** Two live probes on the sealed V2 case (Gemini
 3.8 Flash and GPT-6 Astra, three seeds each, $1.10 in total) showed why the
@@ -330,9 +371,18 @@ one project.
 
 ## 5. Confirmatory reliability and publication
 
-**Status: not_run.**
+**Status: not_run** (a design contract now exists; nothing live has been attempted).
 
-No step of the required sequence has been attempted: there is no declared
+**Design contract (2026-09-19).** `configs/datacenter_development_v2_world_panel_v1.json`
+with `world_campaign.py`: the 24-world pack pinned by digest, one route
+(Gemini 3.8 Flash via Google AI Studio, chosen to keep the pilot under $10),
+two predeclared inference seeds, 48 cells, a $0.20 per-cell cap and a $10
+ceiling, `claim_status` exploratory, the world as the resampling unit with
+24 clusters, missingness reported separately, and every winner, ranking and
+causal claim flag set to false. The provider-free and profile-admission
+gates run on `main` without a key; the variance pilot is the next paid step.
+
+No step of the live sequence has been attempted: there is no declared
 variance pilot, no confirmatory freeze artifact, no holdout table, and no
 `analysis_plan` anywhere in the 30 bundles. The nearest artifacts are a
 `decision_rule` and `primary_endpoint` in

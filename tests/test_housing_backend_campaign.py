@@ -309,7 +309,11 @@ def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
     design = design_artifact(contract, routes=routes)
     provider_free = provider_free_artifact(contract)
     assert design["artifact_sha256"] == (
-        "5ead3480740ef7105a8c94d486c2f0e896c0682d15974a8eae1780ebdde04ea8"
+        # Re-pinned once when design identity stopped including the kernel
+        # implementation pins (#68): the artifact now seals design_sha256, the
+        # pin-free digest, instead of run_plan_id/plan_sha256, so this value
+        # changes only when the v11 design changes -- not on every kernel commit.
+        "eb8119be8f07aa2662fdcb108cb2a88fc2965391e85ff65d1bfabd95d8870b9c"
     )
     assert design["planned_trajectories"] == 4
     assert design["configuration_count"] == 1
@@ -355,7 +359,8 @@ def test_v12_changes_only_campaign_identity_profiles_and_call_pacing() -> None:
         == pytest.approx(0.14)
     )
     assert design_artifact(v12, routes=routes)["artifact_sha256"] == (
-        "e26b9f1e43ce5976f5e17c53749880f1f4512e5f3442f386edcffc176d8c08c5"
+        # Re-pinned once with the design-identity change (#68); see the v11 note.
+        "4447c1f1c93b79cd1c67c84d6bc56af0d05d20be4a326fb670a675bfd35d107b"
     )
     assert provider_free_artifact(v12)["artifact_sha256"] == (
         "a0e032b4f6a8131845879addbc9a837e47b77d64eac15a9742a41d8eca246203"
@@ -579,9 +584,19 @@ def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
     )
     gates = {row["gate_id"]: row for row in qualification["gate_status"]}
 
+    # The published v8 design gate was sealed when design identity still
+    # included the kernel implementation pins (schema 0.1). Under the #68
+    # ruling a design's identity excludes them, so today's artifact cannot
+    # and should not reproduce that digest: the published one is sealed
+    # history and is asserted as such. What is asserted about today's code is
+    # the property the ruling defines -- the v8 design digest is stable across
+    # kernel commits -- pinned once, here. If it moves, the v8 design changed.
+    assert gates["design"]["artifact_sha256"] == (
+        "b1b14d848e613e4665da94517ab7f92ddf4b102b7a15d4e39bb830d1d7e4c1da"
+    )
     assert design_artifact(contract, routes=route_table(contract))[
         "artifact_sha256"
-    ] == gates["design"]["artifact_sha256"]
+    ] == "1628ee9d8ffe29ddf455831f549eb12535a40139a85597f060682807b6b5815d"
     assert provider_free_artifact(contract)["artifact_sha256"] == gates[
         "provider_free"
     ]["artifact_sha256"]
@@ -1371,3 +1386,26 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_design_identity_is_stable_across_kernel_commits() -> None:
+    """The property behind design_sha256 (#68): re-pinning a plan to different
+    implementation bytes moves plan_sha256 -- a receipt must name the build
+    that produced it -- and must NOT move the design digest, because a frozen
+    design is the same design under any build. Before this, every kernel
+    commit moved every design-artifact digest in the repo."""
+    import dataclasses
+
+    from aeread.shared_runner.run.resolver import design_plan_sha256, plan_with_pins
+
+    v11 = load_contract(V11_CONTRACT_PATH)
+    setups = build_setups(v11, routes=route_table(v11))
+    plan = setups[sorted(setups)[0]].plan
+    assert plan.implementation_pins, "fixture plan carries implementation pins"
+    other_build = tuple(
+        dataclasses.replace(pin, sha256="0" * 64) if index == 0 else pin
+        for index, pin in enumerate(plan.implementation_pins)
+    )
+    repinned = plan_with_pins(plan, other_build)
+    assert repinned.plan_sha256 != plan.plan_sha256, "a receipt identity follows the build"
+    assert design_plan_sha256(repinned) == design_plan_sha256(plan), "a design identity does not"

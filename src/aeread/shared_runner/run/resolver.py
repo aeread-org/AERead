@@ -673,6 +673,35 @@ def _plan_payload(plan: RunPlan) -> Mapping[str, Any]:
     }
 
 
+def design_plan_sha256(plan: RunPlan) -> str:
+    """Digest of a plan's *design*: everything ``plan_sha256`` covers except
+    which implementation bytes will run it.
+
+    ``plan_sha256`` deliberately includes the ``implementation:<component>``
+    pins, so a receipt names the exact kernel and family code that produced
+    it. That is right for a receipt and wrong for a design: a frozen
+    campaign design is the same design whichever kernel build executes it,
+    and pinning the build into the design's identity meant every kernel
+    commit moved every design-artifact digest in the repo (#68). This strips
+    the pins and their input digests and hashes what remains, so a design
+    digest is stable across kernel commits and changes only when the design
+    does. Receipts keep ``plan_sha256``; nothing about sealing changes.
+    """
+    digests = {
+        key: value
+        for key, value in plan.input_digests.items()
+        if not key.startswith("implementation:")
+    }
+    stripped = dataclasses.replace(
+        plan,
+        run_plan_id="",
+        plan_sha256="",
+        implementation_pins=(),
+        input_digests=MappingProxyType(dict(sorted(digests.items()))),
+    )
+    return _digest(_plan_payload(stripped))
+
+
 def _seal_plan(provisional: RunPlan) -> RunPlan:
     plan_sha256 = _digest(_plan_payload(provisional))
     return dataclasses.replace(

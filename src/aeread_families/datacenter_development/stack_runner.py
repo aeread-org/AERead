@@ -53,11 +53,15 @@ from aeread.shared_runner.schemas import (
 
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
+    AGREEMENT_TYPE_BY_KEY,
     COUNTERPART_BY_KEY,
-    SCORER_ID,
-    SCOPE_CONFIG,
     DataCenterStackPlugin,
+    SCOPE_CONFIG,
+    SCORER_ID,
+    TERM_PARSER_BY_TYPE,
+    counter_reason,
     stack_family_manifest,
+    terms_acceptable,
 )
 
 
@@ -118,15 +122,76 @@ def _strict_schema_from_example(value: Any) -> dict[str, Any]:
     raise ValueError(f"unsupported strict-schema example: {type(value).__name__}")
 
 
+#: The literal lower bounds the contract parsers enforce (`contracts._integer`
+#: with an explicit minimum; every other integer term is non-negative). A case
+#: that opts into `construct_controls` carries them in its closed output schema
+#: so a model cannot emit a value the parser will refuse (DC-D-07): five of the
+#: first ten pilot cells died at their first action on `site_control_start_month: 0`.
+TERM_MINIMUMS = {
+    "site_control_start_month": 1,
+    "notice_to_proceed_month": 1,
+    "energization_month": 1,
+    "draw_start_month": 1,
+    "maturity_month": 1,
+    "initial_term_months": 1,
+    "committed_capacity_kw": 1,
+    "contracted_capacity_kw": 1,
+    "guaranteed_capacity_kw": 1,
+    "permitted_use_capacity_kw": 1,
+    "contract_price_cents": 1,
+    "maximum_commitment_cents": 1,
+}
+MONTH_INDEXING_NOTE = (
+    " Months are numbered from 1: month 1 is the first month of the horizon, and "
+    "every month field must be at least 1."
+)
+
+
+def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
+    """The developer prompt id and text for a case.
+
+    A case that opts into `construct_controls` gets the v2 prompt, which adds
+    the month-indexing note; every other case keeps v1 byte for byte, so the
+    sealed campaigns' prompt digests do not move."""
+
+    if "construct_controls" in case_payload:
+        return f"datacenter_{scope_version}_developer_prompt_v2", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE
+    return f"datacenter_{scope_version}_developer_prompt_v1", DEVELOPER_PROMPT
+
+
+def _bound_integer_terms(schema: dict[str, Any]) -> dict[str, Any]:
+    """Copy the parser's lower bounds into a strict term schema."""
+
+    bounded = dict(schema)
+    properties = dict(bounded.get("properties", {}))
+    for name, spec in properties.items():
+        if isinstance(spec, dict) and spec.get("type") == "integer":
+            properties[name] = {**spec, "minimum": TERM_MINIMUMS.get(name, 0)}
+        elif isinstance(spec, dict) and spec.get("type") == "array":
+            properties[name] = {**spec, "items": _bound_integer_terms(spec["items"])}
+        elif isinstance(spec, dict) and spec.get("type") == "object":
+            properties[name] = _bound_integer_terms(spec)
+    bounded["properties"] = properties
+    return bounded
+
+
 def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
-    """Return one strict schema per developer action schema in the case."""
+    """Return one strict schema per developer action schema in the case.
+
+    A case that opts into `construct_controls` also carries the contract
+    parser's lower bounds on every integer term, so the schema the model sees
+    and the rule the environment enforces cannot disagree. Cases without the
+    block keep the schema their sealed campaigns were run with."""
 
     scope_version = str(case.payload["scope_version"])
     sequence = SCOPE_CONFIG[scope_version]["sequence"]
+    bounded = "construct_controls" in case.payload
     schemas: dict[str, Any] = {}
     for key in sequence:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
+        if bounded:
+            term_schema = _bound_integer_terms(term_schema)
         schemas[f"datacenter_{key}_offer_v1"] = {
             "type": "object",
             "properties": {
@@ -193,6 +258,7 @@ class DataCenterStackSetup:
     case: CaseManifest
     harnesses: Mapping[str, Any]
     scope_version: str
+    developer_policy: str = "scripted"
 
 
 def load_stack_case(
@@ -296,11 +362,25 @@ def _harness_registry_for(harness: Any) -> HarnessRegistry:
     return registry
 
 
+DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter")
+
+
 def build_stack_setup(
-    scope_version: str, *, case_path: Path | str | None = None
+    scope_version: str,
+    *,
+    case_path: Path | str | None = None,
+    developer_policy: str = "scripted",
 ) -> DataCenterStackSetup:
+    """Provider-free setup. `developer_policy` selects the scripted developer:
+    `scripted` follows the case's feasible path, `walk_away` walks at the first
+    offer, `adopt_every_counter` opens with an incomplete package the
+    counterparty must refuse and then copies its counter verbatim. The last
+    two are the Gate 3 controls; each gets its own profile identity."""
+
     if scope_version not in SCOPE_CONFIG:
         raise ValueError("scope_version must be v1 or v2")
+    if developer_policy not in DEVELOPER_POLICIES:
+        raise ValueError(f"developer_policy must be one of {DEVELOPER_POLICIES}")
     case = load_stack_case(scope_version, case_path)
     family = stack_family_manifest(scope_version)
     plugin = DataCenterStackPlugin(scope_version)
@@ -373,7 +453,11 @@ def build_stack_setup(
 
     pricing: dict[str, TokenPricing] = {}
     profiles: list[AgentProfile] = []
-    developer_model = f"datacenter_{scope_version}_scripted_developer_v1"
+    developer_model = (
+        f"datacenter_{scope_version}_scripted_developer_v1"
+        if developer_policy == "scripted"
+        else f"datacenter_{scope_version}_{developer_policy}_developer_v1"
+    )
     developer_pricing = TokenPricing(
         0.0, 0.0, 0.0, f"{developer_model}_zero_cost"
     )
@@ -383,8 +467,8 @@ def build_stack_setup(
             profile_id=developer_model,
             provider="datacenter_stack_scripted_developer",
             model=developer_model,
-            prompt_id=f"datacenter_{scope_version}_developer_prompt_v1",
-            prompt=DEVELOPER_PROMPT,
+            prompt_id=developer_prompt(case.payload, scope_version)[0],
+            prompt=developer_prompt(case.payload, scope_version)[1],
             pricing=developer_pricing,
             max_actions=sum(
                 family_case["negotiation"]["max_rounds"][key]
@@ -488,9 +572,10 @@ def build_stack_setup(
     )
     return DataCenterStackSetup(
         plan=plan,
+        developer_policy=developer_policy,
         registry=registry,
         prompt_sources={
-            f"datacenter_{scope_version}_developer_prompt_v1": DEVELOPER_PROMPT,
+            developer_prompt(case.payload, scope_version)[0]: developer_prompt(case.payload, scope_version)[1],
             **{
                 f"datacenter_{scope_version}_{seat}_prompt_v1": COUNTERPART_PROMPT
                 for seat in counterpart_seats
@@ -582,9 +667,9 @@ def build_stack_openrouter_setup(
                 "config": live_config,
             },
             "prompt": {
-                "prompt_id": f"datacenter_{scope_version}_developer_prompt_v1",
+                "prompt_id": developer_prompt(template.case.payload, scope_version)[0],
                 "sha256": hashlib.sha256(
-                    DEVELOPER_PROMPT.encode("utf-8")
+                    developer_prompt(template.case.payload, scope_version)[1].encode("utf-8")
                 ).hexdigest(),
             },
             "runtime": {
@@ -1060,8 +1145,13 @@ def _scripted_result(request: ProviderRequest, output: Mapping[str, Any]) -> Pro
 
 
 class StackScriptedDeveloperProvider:
-    def __init__(self, scripted_developer: Mapping[str, Any]) -> None:
+    def __init__(
+        self, scripted_developer: Mapping[str, Any], *, policy: str = "scripted"
+    ) -> None:
+        if policy not in DEVELOPER_POLICIES:
+            raise ValueError(f"policy must be one of {DEVELOPER_POLICIES}")
         self._scripted = dict(scripted_developer)
+        self._policy = policy
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "datacenter_stack_scripted_developer":
@@ -1070,8 +1160,37 @@ class StackScriptedDeveloperProvider:
         phase = payload["phase_id"]
         observation = payload["observation"]
         key = observation["agreement_key"]
-        if phase.endswith("_offer"):
-            terms = observation.get("pending_counter_terms") or self._scripted[f"{key}_terms"]
+        if phase.endswith("_offer") and self._policy == "walk_away":
+            # The outside option, taken at the first opportunity. Scores the
+            # case's own walk-away value through the real interface.
+            output = {"decision": "walk", "message": None, "terms": None}  # the parser requires a bare walk
+        elif (
+            phase.endswith("_offer")
+            and self._policy == "adopt_every_counter"
+            and key == "land_amendment"
+            and observation.get("pending_counter_terms")
+            and observation["pending_counter_terms"]
+            == (observation.get("executed_agreements") or {}).get("land", {}).get("terms")
+        ):
+            # The landowner's amendment counter is the executed land agreement
+            # itself (it volunteers no extension). Re-proposing it is a no-op
+            # amendment, so a blind adopter has no amendment to adopt: it
+            # declines and walks, and the project strands at the outside
+            # option, which is the trap the world sets for adopters.
+            output = {"decision": "walk", "message": None, "terms": None}
+        elif phase.endswith("_offer"):
+            pending = observation.get("pending_counter_terms")
+            if pending:
+                terms = pending
+            elif self._policy == "adopt_every_counter":
+                # Open with the feasible package minus every condition
+                # precedent. Every policy requires at least one, so the
+                # counterparty refuses and names its own package, which the
+                # next offer copies verbatim. What gets executed is exactly the
+                # counter, so the score is the adopt-every-counter path.
+                terms = {**self._scripted[f"{key}_terms"], "conditions_precedent": []}
+            else:
+                terms = self._scripted[f"{key}_terms"]
             output = {"decision": "offer", "message": f"Written {key} proposal.", "terms": terms}
         elif phase.endswith("_commit"):
             output = {"decision": "sign", "offer_id": observation["accepted_offer_id"]}
@@ -1095,20 +1214,23 @@ class StackScriptedCounterpartyProvider:
         offer = observation["latest_offer"]
         values = offer["terms"]
         policy = observation["private_policy"]
-        acceptable = all(
-            field in values and values[field] >= minimum
-            for field, minimum in policy["minimums"].items()
-        ) and all(
-            field in values and values[field] <= maximum
-            for field, maximum in policy["maximums"].items()
-        ) and set(policy["required_conditions"]).issubset(
-            set(values.get("conditions_precedent", ()))
-        )
-        output = (
-            {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
-            if acceptable
-            else {"decision": "counter", "offer_id": offer["offer_id"], "message": f"{self._seat_id} counterproposal.", "terms": policy["counter_terms"]}
-        )
+        # One acceptance rule for the scripted seat and the legality check:
+        # bands, required conditions, and the counterparty's valuation when the
+        # policy declares one. The inline band check this replaced could not see
+        # a valuation, so a scripted seat would have signed packages the
+        # environment's own rule refuses.
+        agreement_type = AGREEMENT_TYPE_BY_KEY[observation["agreement_key"]]
+        parsed = TERM_PARSER_BY_TYPE[agreement_type](values)
+        acceptable = terms_acceptable(parsed, policy)
+        if acceptable:
+            output = {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
+        else:
+            # A world may pin the counter message (the verbal/written stratum
+            # says one thing and writes another); otherwise the seat says what
+            # would make the package signable, which is the only way a developer
+            # can find a trade it is never told exists.
+            message = policy.get("counter_message") or counter_reason(parsed, policy)
+            output = {"decision": "counter", "offer_id": offer["offer_id"], "message": message, "terms": policy["counter_terms"]}
         return _scripted_result(request, output)
 
 
@@ -1117,7 +1239,7 @@ def _providers(setup: DataCenterStackSetup) -> Mapping[str, Any]:
     seats = sorted({COUNTERPART_BY_KEY[key] for key in sequence})
     return {
         "datacenter_stack_scripted_developer": StackScriptedDeveloperProvider(
-            setup.case.payload["scripted_developer"]
+            setup.case.payload["scripted_developer"], policy=setup.developer_policy
         ),
         **{
             f"datacenter_stack_scripted_{seat}": StackScriptedCounterpartyProvider(seat)
@@ -1132,8 +1254,11 @@ async def run_stack_offline(
     evidence_root: Path | str,
     episode_attempt_ordinal: int = 0,
     case_path: Path | str | None = None,
+    developer_policy: str = "scripted",
 ) -> tuple[DataCenterStackSetup, CellExecution]:
-    setup = build_stack_setup(scope_version, case_path=case_path)
+    setup = build_stack_setup(
+        scope_version, case_path=case_path, developer_policy=developer_policy
+    )
     execution = await execute_plan_cell(
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,

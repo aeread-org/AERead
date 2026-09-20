@@ -1,0 +1,1467 @@
+"""Seeded V2 world generator: six mechanism strata with four variants each.
+
+Every world carries three engine-verified paths that the tested agent never
+sees: a feasible agreement stack (the scripted-developer baseline), a
+superficially attractive stack that every counterparty accepts but that fails
+project admission, and the declared walk-away outside option. Mechanism
+annotations live in the pack manifest, outside the case payload.
+"""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import random
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.schemas import CaseManifest
+
+from .cashflow import ProjectFacts
+from .contracts import ContractSignature, execute_offer, make_offer
+from .stack_cashflow import simulate_development_stack
+from .stack_environment import (
+    AGREEMENT_TYPE_BY_KEY,
+    COUNTERPART_BY_KEY,
+    FAMILY_ID,
+    PRICE_BAND_FIELDS,
+    SCOPE_CONFIG,
+    TERM_PARSER_BY_TYPE,
+    DataCenterStackPlugin,
+    terms_acceptable,
+)
+
+
+GENERATOR_ID = "datacenter_v2_world_generator"
+GENERATOR_VERSION = "1.0.0"
+PACK_ID = "datacenter_development_v2_worlds_v1"
+MASTER_SEED = 20260903
+SPLIT = "worlds_v2"
+SCOPE_VERSION = "v2"
+HORIZON = 36
+CAPACITY_KW = 50_000
+VARIANTS_PER_STRATUM = 4
+MAX_ROUNDS = 3
+# A feasible path that clears walking away by less than this share of the
+# world's EPC contract price is not a world a subject can be measured on.
+MINIMUM_BASELINE_MARGIN_BPS = 100
+# The utility will happily sell less capacity than the project needs. Because
+# power is agreed two steps before the lease and executed agreements cannot be
+# reopened, accepting its smaller, cheaper package is an irreversible planning
+# error that only surfaces when the tenant asks for full capacity.
+UNDERSIZED_CAPACITY_BPS = 8_000
+# Months of energisation deferral the utility will accept beyond mechanical
+# completion. They exist so the counterparty's stated ceiling is not the
+# developer's best answer: up to completion the deferral is free, past it every
+# month delays revenue. Without them the trade is a free option rather than a
+# concession, and "capture the trade" collapses into "take what you are
+# offered".
+PAID_DEFERRAL_MONTHS = 2
+
+
+def _undersized_capacity() -> int:
+    return _round_div(CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000)
+STRATA = (
+    "revenue_without_bankability",
+    "delayed_revenue",
+    "restrictive_draws",
+    "covenant_cliff",
+    "liability_transfer",
+    "verbal_written_divergence",
+)
+SEQUENCE = tuple(SCOPE_CONFIG[SCOPE_VERSION]["sequence"])
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_OUTPUT_ROOT = REPOSITORY_ROOT / "cases" / "datacenter_development_v1" / SPLIT
+VISIBILITY_POLICY = "datacenter_v2_public_terms_private_thresholds_explicit_amendments_v1"
+SEATS = (
+    {"id": "developer", "role": "developer"},
+    {"id": "landowner", "role": "landowner"},
+    {"id": "utility", "role": "utility"},
+    {"id": "contractor", "role": "contractor"},
+    {"id": "customer", "role": "customer"},
+    {"id": "lender", "role": "lender"},
+)
+# Every agreement can run its full allowance: MAX_ROUNDS offers, MAX_ROUNDS
+# responses and one commit. Anything less silently penalises a developer for
+# using the negotiation rounds the world grants it.
+WORST_CASE_ACTIONS = len(SEQUENCE) * (2 * MAX_ROUNDS + 1)
+EPISODE = {
+    "max_logical_actions": WORST_CASE_ACTIONS,
+    "termination": [
+        "agreement_stack_executed",
+        "developer_walk",
+        "counterparty_reject",
+        "invalid_action",
+    ],
+}
+
+
+# --------------------------------------------------------------------------
+# Engine evaluation of an explicit term stack
+# --------------------------------------------------------------------------
+
+
+def _executed(agreement_key: str, terms: Mapping[str, Any]) -> Any:
+    agreement_type = AGREEMENT_TYPE_BY_KEY[agreement_key]
+    offer = make_offer(
+        case_id="world_probe",
+        agreement_type=agreement_type,
+        proposer_seat_id="developer",
+        round_index=0,
+        message=f"probe {agreement_key}",
+        terms=TERM_PARSER_BY_TYPE[agreement_type](terms),
+    )
+    counterpart = COUNTERPART_BY_KEY[agreement_key]
+    return execute_offer(
+        offer,
+        (
+            ContractSignature(offer.offer_id, "developer"),
+            ContractSignature(offer.offer_id, counterpart),
+        ),
+        required_signers=("developer", counterpart),
+    )
+
+
+def evaluate_stack(
+    project_facts: Mapping[str, Any], terms_by_key: Mapping[str, Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Simulate an executed V2 stack and project the admission-relevant facts."""
+
+    outcome = simulate_development_stack(
+        ProjectFacts.from_dict(project_facts),
+        service_agreement=_executed("service", terms_by_key["service"]),
+        loan_agreement=_executed("loan", terms_by_key["loan"]),
+        power_agreement=_executed("power", terms_by_key["power"]),
+        epc_agreement=_executed("epc", terms_by_key["epc"]),
+        land_agreement=_executed("land_amendment", terms_by_key["land_amendment"]),
+    )
+    project = outcome.project
+    return {
+        "developer_equity_npv_cents": outcome.developer_equity_npv_cents,
+        "lender_npv_cents": outcome.lender_npv_cents,
+        "customer_npv_cents": outcome.customer_npv_cents,
+        "total_project_npv_cents": outcome.total_project_npv_cents,
+        "constraints_satisfied": outcome.negotiated_constraints_satisfied,
+        "financing_succeeded": project.financing_succeeded,
+        "default_reasons": list(project.default_reasons),
+        "cod_month": project.cod_month,
+        "loan_conditions_satisfied_month": project.loan_conditions_satisfied_month,
+        "minimum_dscr_bps": project.minimum_dscr_bps,
+        "site_control_valid_through_cod": outcome.adjustments.site_control_valid_through_cod,
+    }
+
+
+# --------------------------------------------------------------------------
+# Base world
+# --------------------------------------------------------------------------
+
+
+def _months(*values: int) -> list[int]:
+    if len(values) != HORIZON:
+        raise ValueError("month vectors must span the horizon")
+    return list(values)
+
+
+def _base_world(rng: random.Random) -> dict[str, Any]:
+    """One feasible 50 MW world calibrated to published 2026 market figures.
+
+    Anchors, all per published industry benchmarks rather than invented:
+    construction near $10M per MW, wholesale colocation near $200 per kW-month,
+    construction debt at a floating benchmark plus 250-400bps at 60-70 percent
+    loan-to-cost, EPC delay damages around 3 percent of contract value per
+    month capped near 8 percent, and 15-year take-or-pay leases.
+    """
+
+    # $9.6M to $11.2M per MW of turnkey construction.
+    epc_per_mw = rng.choice((960_000_000, 1_000_000_000, 1_120_000_000))
+    epc_price = epc_per_mw * (CAPACITY_KW // 1000)
+    # $185 to $215 per kW per month wholesale.
+    capacity_price = rng.choice((18_500, 20_000, 21_500))
+    # $10 to $14 per kW per month utility demand charge.
+    demand_charge = rng.choice((1_000, 1_200, 1_400))
+    # Land at $400k to $700k per acre over a 100 acre campus.
+    land_price = rng.choice((4_000_000_000, 5_000_000_000, 7_000_000_000))
+    # Sunk predevelopment cost if the developer walks: $8M to $15M.
+    sunk_cents = rng.choice((800_000_000, 1_100_000_000, 1_500_000_000))
+    # Months of rent the lender wants held as security. Six is the market
+    # convention, so a requirement above it cannot be met by proposing the
+    # standard lease: it has to be learned from the lender first.
+    security_months = rng.choice((6, 8, 9, 12))
+    # The site is built for full capacity and the tenant takes all of it. A
+    # smaller tenant was tried and rejected: the capex is fixed by the build, so
+    # a partial lease is simply a worse world rather than a different decision.
+    # The information that makes sequencing pay is the lender's, below.
+    tenant_requirement = CAPACITY_KW
+    energization_month = 22
+    completion_month = 24
+    commencement_month = 25
+
+    def ramp(first_month: int) -> list[int]:
+        return [0 if month < first_month else CAPACITY_KW for month in range(1, HORIZON + 1)]
+
+    monthly_noi = tenant_requirement * (capacity_price - 4_000)
+    facts = {
+        "horizon_months": HORIZON,
+        "construction_cost_cents_by_month": [0] * HORIZON,
+        "development_cost_cents_by_month": [0] * HORIZON,
+        "built_capacity_kw_by_month": ramp(completion_month),
+        "energized_capacity_kw_by_month": ramp(energization_month),
+        "customer_usage_kw_by_month": [CAPACITY_KW] * HORIZON,
+        # SOFR near 4 percent, expressed in annual basis points.
+        "base_rate_bps_by_month": [400] * HORIZON,
+        # Wholesale power near $0.07 per kWh.
+        "energy_cost_cents_per_kwh_by_month": [7] * HORIZON,
+        "tax_and_insurance_cents_by_month": [0] * HORIZON,
+        # Operating cost near $40 per kW per month.
+        "operating_cost_cents_per_kw_month": 4_000,
+        # About 70 percent utilisation of a kW over a 730 hour month.
+        "energy_kwh_per_kw_month": 500,
+        # The tenant values capacity above the rent it agrees to pay.
+        "customer_value_cents_per_kw_month": capacity_price + 6_000,
+        "developer_equity_budget_cents": 30_000_000_000,
+        "appraised_value_cents": 130_000_000_000,
+        # Stabilised asset value at a 7 percent capitalisation rate.
+        "terminal_value_cents": (monthly_noi * 12 * 10_000) // 700,
+        # Equity 12 percent, debt 7 percent, tenant 8 percent.
+        "developer_discount_rate_bps_annual": 1_200,
+        "lender_discount_rate_bps_annual": 700,
+        "customer_discount_rate_bps_annual": 800,
+        "base_rate_curve_id": "sofr_forward_2026_v1",
+        "condition_satisfaction": [
+            {"condition_id": "zoning_approval", "satisfied_month": 2},
+            {"condition_id": "site_control", "satisfied_month": 2},
+            {"condition_id": "power_commitment", "satisfied_month": 4},
+            {"condition_id": "power_ready", "satisfied_month": energization_month},
+            {"condition_id": "construction_complete", "satisfied_month": completion_month},
+        ],
+        "customer_termination_month": None,
+    }
+    quarter = epc_price // 4
+    terms = {
+        "land": {
+            "site_control_start_month": 1,
+            "closing_month": 2,
+            "site_control_expiry_month": 30,
+            "purchase_price_cents": land_price,
+            "extension_option_months": 6,
+            "extension_price_cents": land_price // 25,
+            "permitted_use_capacity_kw": CAPACITY_KW,
+            "conditions_precedent": ["zoning_approval"],
+        },
+        "power": {
+            "contracted_capacity_kw": tenant_requirement,
+            "energization_month": energization_month,
+            # $20M of interconnection and network upgrades.
+            "interconnection_cost_cents": 2_000_000_000,
+            "monthly_demand_charge_cents_per_kw": demand_charge,
+            "energy_charge_cents_per_kwh": 7,
+            "delay_liquidated_damages_cents_per_month": 200_000_000,
+            "delay_liquidated_damages_cap_cents": 1_000_000_000,
+            # Queue deposit near $4,000 per MW.
+            "developer_security_cents": 20_000_000,
+            "initial_term_months": 180,
+            "conditions_precedent": ["site_control", "power_commitment"],
+        },
+        "epc": {
+            "notice_to_proceed_month": 3,
+            "guaranteed_completion_month": completion_month,
+            "guaranteed_capacity_kw": tenant_requirement,
+            "contract_price_cents": epc_price,
+            "payment_schedule": [
+                {"month": 4, "amount_cents": quarter},
+                {"month": 10, "amount_cents": quarter},
+                {"month": 16, "amount_cents": quarter},
+                {"month": 22, "amount_cents": epc_price - 3 * quarter},
+            ],
+            # About 3 percent of contract value per month, capped near 8 percent.
+            "delay_liquidated_damages_cents_per_month": epc_price * 3 // 100,
+            "delay_liquidated_damages_cap_cents": epc_price * 8 // 100,
+            "cost_overrun_cap_cents": 0,
+            "completion_guarantee_cents": epc_price // 10,
+            "conditions_precedent": ["site_control"],
+        },
+        "service": {
+            "committed_capacity_kw": tenant_requirement,
+            "service_commencement_month": commencement_month,
+            "ramp_schedule": [
+                {"month": commencement_month, "capacity_kw": tenant_requirement}
+            ],
+            "monthly_capacity_charge_cents_per_kw": capacity_price,
+            "energy_pass_through_cents_per_kwh": 7,
+            "take_or_pay_bps": 10_000,
+            "initial_term_months": 180,
+            "renewal_option_months": 60,
+            # SLA credits capped at 5 percent of the monthly charge.
+            "sla_credit_cap_bps": 500,
+            "customer_termination_option_month": None,
+            "customer_termination_fee_cents": 0,
+            "delay_damages_cents_per_month": 50_000_000,
+            "delay_damages_cap_cents": 200_000_000,
+            # Six months of rent as credit support.
+            "credit_support_cents": tenant_requirement * capacity_price * security_months,
+            "conditions_precedent": ["power_ready", "construction_complete"],
+        },
+        "loan": {
+            "maximum_commitment_cents": 40_000_000_000,
+            "advance_rate_bps": 6_500,
+            "base_rate_curve_id": "sofr_forward_2026_v1",
+            "spread_bps": 300,
+            "unused_commitment_fee_bps_annual": 50,
+            "origination_fee_bps": 100,
+            "interest_reserve_cents": 0,
+            "draw_start_month": 3,
+            "minimum_contracted_capacity_kw": tenant_requirement,
+            "minimum_take_or_pay_bps": 9_000,
+            "minimum_customer_credit_support_cents": (
+                tenant_requirement * 18_500 * security_months
+            ),
+            "minimum_dscr_bps": 12_500,
+            "maximum_loan_to_cost_bps": 6_500,
+            "maximum_loan_to_value_bps": 6_000,
+            "maturity_month": HORIZON,
+            "extension_option_months": 12,
+            "completion_guarantee_cents": 0,
+            "conditions_precedent": ["site_control", "power_commitment"],
+        },
+    }
+    terms["land_amendment"] = {
+        **copy.deepcopy(terms["land"]),
+        "site_control_expiry_month": terms["land"]["site_control_expiry_month"] + 3,
+    }
+    return {
+        "facts": facts,
+        "terms": terms,
+        "sunk_cents": sunk_cents,
+        "tenant_requirement_kw": tenant_requirement,
+        "knobs": {
+            "tenant_requirement_kw": tenant_requirement,
+            "security_months": security_months,
+            "epc_price_cents": epc_price,
+            "capacity_price_cents_per_kw": capacity_price,
+            "demand_charge_cents_per_kw": demand_charge,
+            "land_price_cents": land_price,
+            "sunk_cents": sunk_cents,
+        },
+    }
+
+
+def _round_div(numerator: int, denominator: int) -> int:
+    return (numerator + denominator // 2) // denominator
+
+
+def _floor(value: int, *, width_bps: int = 1500) -> int:
+    """The developer-favourable edge of a negotiated price band.
+
+    The counterparty's opening counter sits at the ceiling it already quotes,
+    so adopting a counter verbatim stays admissible but is strictly worse for
+    the developer than negotiating toward this floor.
+    """
+
+    return max(0, value - _round_div(value * width_bps, 10_000))
+
+
+def _power_utility(
+    power: Mapping[str, Any], epc: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The utility's own valuation, which differs from the developer's.
+
+    Priced so that pushing both cash terms to their floors falls short of the
+    reservation on its own, and is affordable exactly when the developer also
+    concedes the energisation date. That date is close to free for the
+    developer while construction is the binding constraint, and expensive for
+    the utility, which is what makes the trade joint rather than zero-sum.
+    """
+
+    deferrable = epc["guaranteed_completion_month"] - power["energization_month"]
+    # Months of demand charge inside the horizon, used to value a rate change.
+    charged_months = HORIZON - epc["guaranteed_completion_month"] + 1
+    interconnection_concession = power["interconnection_cost_cents"] - _floor(
+        power["interconnection_cost_cents"]
+    )
+    demand_units = CAPACITY_KW * charged_months
+    demand_concession = demand_units * (
+        power["monthly_demand_charge_cents_per_kw"]
+        - _floor(power["monthly_demand_charge_cents_per_kw"])
+    )
+    cash_concession = interconnection_concession + demand_concession
+    per_month = _round_div(cash_concession, max(1, deferrable))
+    return {
+        "weights": {
+            "interconnection_cost_cents": 1,
+            "monthly_demand_charge_cents_per_kw": demand_units,
+            "energization_month": per_month,
+        },
+        "reference": {
+            "interconnection_cost_cents": power["interconnection_cost_cents"],
+            "monthly_demand_charge_cents_per_kw": power[
+                "monthly_demand_charge_cents_per_kw"
+            ],
+            "energization_month": power["energization_month"],
+        },
+        # It will concede the cash terms, but only against the deferral.
+        "reservation": per_month * deferrable - cash_concession,
+    }
+
+
+def _default_policies(
+    terms: Mapping[str, Mapping[str, Any]], *, undersized_quote: bool = True
+) -> dict[str, dict[str, Any]]:
+    """Two-sided acceptance bands with real width, opened per stratum."""
+
+    epc = terms["epc"]
+    land = terms["land"]
+    amendment = terms["land_amendment"]
+    power = terms["power"]
+    service = terms["service"]
+    loan = terms["loan"]
+    return {
+        "land": {
+            "minimums": {
+                "purchase_price_cents": _floor(land["purchase_price_cents"]),
+                "permitted_use_capacity_kw": CAPACITY_KW,
+            },
+            "maximums": {
+                "closing_month": land["closing_month"],
+                "site_control_expiry_month": land["site_control_expiry_month"],
+                "purchase_price_cents": land["purchase_price_cents"],
+                "extension_option_months": land["extension_option_months"],
+                "extension_price_cents": land["extension_price_cents"],
+            },
+            "required_conditions": ["zoning_approval"],
+            # The landowner quotes the cheaper, shorter tenure and volunteers no
+            # extension. Adopting it strands the project, because site control
+            # lapses before the campus can be brought into service. Reading that
+            # requires the construction schedule, not one field.
+            "counter_terms": {
+                **copy.deepcopy(land),
+                "site_control_expiry_month": epc["guaranteed_completion_month"] - 2,
+                "extension_option_months": 0,
+                "extension_price_cents": 0,
+                "purchase_price_cents": _floor(land["purchase_price_cents"]),
+            },
+        },
+        "power": {
+            # Two-sided bands: the utility will not supply below its own cost,
+            # and will not underwrite unbounded delay liability.
+            "minimums": {
+                # The utility will quote the smaller connection whatever the
+                # tenant turns out to need. Whether that is a bargain or a
+                # stranded project is private information held by the customer.
+                "contracted_capacity_kw": _undersized_capacity(),
+                "interconnection_cost_cents": _floor(
+                    power["interconnection_cost_cents"]
+                ),
+                "monthly_demand_charge_cents_per_kw": _floor(
+                    power["monthly_demand_charge_cents_per_kw"]
+                ),
+            },
+            "maximums": {
+                # A starting ceiling, replaced by `_price_the_concession`
+                # once the realised operations date is known. Both put it past
+                # the point the concession is free: up to that date the
+                # developer gives up nothing construction was not already
+                # withholding, past it every month delays operations. The
+                # utility will happily take the extra months, so the ceiling it
+                # quotes is never the developer's answer.
+                "energization_month": (
+                    epc["guaranteed_completion_month"] + PAID_DEFERRAL_MONTHS
+                ),
+                "interconnection_cost_cents": power["interconnection_cost_cents"],
+                "monthly_demand_charge_cents_per_kw": power[
+                    "monthly_demand_charge_cents_per_kw"
+                ],
+                "energy_charge_cents_per_kwh": power["energy_charge_cents_per_kwh"],
+                "developer_security_cents": power["developer_security_cents"],
+                "delay_liquidated_damages_cents_per_month": power[
+                    "delay_liquidated_damages_cents_per_month"
+                ],
+                "delay_liquidated_damages_cap_cents": power[
+                    "delay_liquidated_damages_cap_cents"
+                ],
+            },
+            "required_conditions": ["site_control", "power_commitment"],
+            "utility": _power_utility(power, epc),
+            "counter_terms": {
+                **copy.deepcopy(power),
+                # Locally rational for the utility and visibly cheaper: a
+                # smaller connection carries proportionally lower demand
+                # charges. Jointly infeasible with the tenant's requirement.
+                "contracted_capacity_kw": (
+                    _undersized_capacity() if undersized_quote else CAPACITY_KW
+                ),
+            },
+        },
+        "epc": {
+            "minimums": {
+                "guaranteed_capacity_kw": CAPACITY_KW,
+                # Contractors concede far less than utilities or lenders, and a
+                # deeper discount would put the negotiated price below market.
+                "contract_price_cents": _floor(
+                    epc["contract_price_cents"], width_bps=800
+                ),
+            },
+            "maximums": {
+                "guaranteed_completion_month": epc["guaranteed_completion_month"],
+                "contract_price_cents": epc["contract_price_cents"],
+                "cost_overrun_cap_cents": 0,
+                "delay_liquidated_damages_cents_per_month": epc[
+                    "delay_liquidated_damages_cents_per_month"
+                ],
+                "delay_liquidated_damages_cap_cents": epc[
+                    "delay_liquidated_damages_cap_cents"
+                ],
+                "completion_guarantee_cents": epc["completion_guarantee_cents"],
+            },
+            "required_conditions": ["site_control"],
+            "counter_terms": copy.deepcopy(epc),
+        },
+        "service": {
+            "minimums": {
+                "committed_capacity_kw": CAPACITY_KW,
+                "sla_credit_cap_bps": service["sla_credit_cap_bps"],
+            },
+            "maximums": {
+                "monthly_capacity_charge_cents_per_kw": service[
+                    "monthly_capacity_charge_cents_per_kw"
+                ],
+                "take_or_pay_bps": 10_000,
+                "credit_support_cents": max(
+                    service["credit_support_cents"],
+                    service["committed_capacity_kw"]
+                    * service["monthly_capacity_charge_cents_per_kw"]
+                    * 12,
+                ),
+                "delay_damages_cents_per_month": service[
+                    "delay_damages_cents_per_month"
+                ],
+                "delay_damages_cap_cents": service["delay_damages_cap_cents"],
+                "customer_termination_fee_cents": service[
+                    "customer_termination_fee_cents"
+                ],
+            },
+            "required_conditions": ["power_ready", "construction_complete"],
+            "counter_terms": copy.deepcopy(service),
+        },
+        "land_amendment": {
+            "minimums": {
+                "purchase_price_cents": _floor(amendment["purchase_price_cents"]),
+                "permitted_use_capacity_kw": CAPACITY_KW,
+            },
+            "maximums": {
+                "closing_month": amendment["closing_month"],
+                "site_control_expiry_month": amendment["site_control_expiry_month"],
+                "purchase_price_cents": amendment["purchase_price_cents"],
+                "extension_option_months": amendment["extension_option_months"],
+                "extension_price_cents": amendment["extension_price_cents"],
+            },
+            "required_conditions": ["zoning_approval"],
+            # Nor will it volunteer the extension at the amendment either.
+            "counter_terms": {
+                **copy.deepcopy(amendment),
+                "site_control_expiry_month": epc["guaranteed_completion_month"] - 2,
+                "extension_option_months": 0,
+                "extension_price_cents": 0,
+                "purchase_price_cents": _floor(amendment["purchase_price_cents"]),
+            },
+        },
+        "loan": {
+            "minimums": {
+                "spread_bps": _floor(loan["spread_bps"]),
+                "origination_fee_bps": _floor(loan["origination_fee_bps"]),
+                "unused_commitment_fee_bps_annual": _floor(
+                    loan["unused_commitment_fee_bps_annual"]
+                ),
+                "minimum_contracted_capacity_kw": CAPACITY_KW,
+                "minimum_take_or_pay_bps": loan["minimum_take_or_pay_bps"],
+                "minimum_customer_credit_support_cents": loan[
+                    "minimum_customer_credit_support_cents"
+                ],
+                "minimum_dscr_bps": loan["minimum_dscr_bps"],
+            },
+            "maximums": {
+                "maximum_commitment_cents": loan["maximum_commitment_cents"],
+                "advance_rate_bps": loan["advance_rate_bps"],
+                "maximum_loan_to_cost_bps": loan["maximum_loan_to_cost_bps"],
+                "maximum_loan_to_value_bps": 10_000,
+                "maturity_month": loan["maturity_month"],
+            },
+            "required_conditions": ["site_control", "power_commitment"],
+            "counter_terms": copy.deepcopy(loan),
+        },
+    }
+
+
+# --------------------------------------------------------------------------
+# Strata
+# --------------------------------------------------------------------------
+
+
+def _stratum_revenue_without_bankability(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    minimum_take_or_pay = rng.choice((8500, 9000, 9500))
+    monthly_rent = (
+        CAPACITY_KW * world["terms"]["service"]["monthly_capacity_charge_cents_per_kw"]
+    )
+    minimum_credit = monthly_rent * rng.choice((5, 6, 7, 8))
+    terms = world["terms"]
+    terms["loan"]["minimum_take_or_pay_bps"] = minimum_take_or_pay
+    terms["loan"]["minimum_customer_credit_support_cents"] = minimum_credit
+    terms["service"]["credit_support_cents"] = minimum_credit
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    # The customer accepts any weaker take-or-pay or credit support.
+    trap = copy.deepcopy(terms)
+    terms["service"]["credit_support_cents"] = minimum_credit
+    trap["service"]["take_or_pay_bps"] = minimum_take_or_pay - 500
+    trap["service"]["credit_support_cents"] = max(0, minimum_credit - monthly_rent)
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {
+            "lender_minimum_take_or_pay_bps": minimum_take_or_pay,
+            "lender_minimum_credit_support_cents": minimum_credit,
+        },
+        "lever": {
+            "agreement": "service",
+            "field": "take_or_pay_bps",
+            "values": [minimum_take_or_pay - 1500, minimum_take_or_pay, 10_000],
+        },
+        "expected_failure": "loan_never_funds",
+        "explanation": (
+            "The customer accepts a weaker take-or-pay and credit-support "
+            "package, but the lender's private minimums make that service "
+            "agreement unbankable, so the loan never funds and construction "
+            "spend exhausts the equity budget."
+        ),
+    }
+
+
+def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    ready_month = rng.choice((26, 28, 30))
+    spread_bps = rng.choice((300, 350, 400))
+    facts = world["facts"]
+    vector = [0] * HORIZON
+    for month in range(ready_month, HORIZON + 1):
+        vector[month - 1] = CAPACITY_KW
+    facts["built_capacity_kw_by_month"] = list(vector)
+    facts["energized_capacity_kw_by_month"] = list(vector)
+    for condition in facts["condition_satisfaction"]:
+        if condition["condition_id"] in {"power_ready", "construction_complete"}:
+            condition["satisfied_month"] = ready_month
+    terms = world["terms"]
+    terms["power"]["energization_month"] = ready_month - 2
+    terms["epc"]["guaranteed_completion_month"] = ready_month - 1
+    terms["epc"]["payment_schedule"] = [
+        {**step, "month": min(step["month"], ready_month - 2)}
+        for step in terms["epc"]["payment_schedule"]
+    ]
+    terms["service"]["service_commencement_month"] = ready_month
+    terms["service"]["ramp_schedule"] = [
+        {"month": ready_month, "capacity_kw": CAPACITY_KW}
+    ]
+    terms["land"]["site_control_expiry_month"] = ready_month + 1
+    terms["land_amendment"]["site_control_expiry_month"] = ready_month + 2
+    terms["loan"]["spread_bps"] = spread_bps
+    terms["loan"]["minimum_dscr_bps"] = 10_000
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    # The lender accepts any maturity up to the horizon and any spread.
+    trap = copy.deepcopy(terms)
+    trap["loan"]["maturity_month"] = ready_month
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {"physical_ready_month": ready_month, "lender_spread_bps": spread_bps},
+        "lever": {
+            "agreement": "loan",
+            "field": "maturity_month",
+            "values": [ready_month, ready_month + 3, HORIZON],
+        },
+        "expected_failure": "maturity_nonpayment",
+        "explanation": (
+            "Revenue only begins once construction and energization land in "
+            "the ready month. A loan maturing in that same month looks like a "
+            "shorter, cheaper tenor, but the project cannot repay principal "
+            "before revenue has accumulated."
+        ),
+    }
+
+
+def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    origination_fee_bps = rng.choice((100, 125, 150))
+    trap_advance = rng.choice((3000, 3500, 4000))
+    equity_budget = rng.choice((28_000_000_000, 30_000_000_000, 32_000_000_000))
+    world["facts"]["developer_equity_budget_cents"] = equity_budget
+    terms = world["terms"]
+    terms["loan"]["origination_fee_bps"] = origination_fee_bps
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
+    policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
+    # A larger headline commitment is fine with the lender; draws are what bind.
+    policies["loan"]["maximums"]["maximum_commitment_cents"] = 60_000_000_000
+    trap = copy.deepcopy(terms)
+    trap["loan"]["maximum_commitment_cents"] = 60_000_000_000
+    trap["loan"]["advance_rate_bps"] = trap_advance
+    trap["loan"]["maximum_loan_to_cost_bps"] = trap_advance
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {
+            "origination_fee_bps": origination_fee_bps,
+            "trap_advance_rate_bps": trap_advance,
+            "developer_equity_budget_cents": equity_budget,
+        },
+        "lever": {
+            "agreement": "loan",
+            "field": "advance_rate_bps",
+            "values": [trap_advance, 5_000, 6_500],
+        },
+        "expected_failure": "funding_shortfall",
+        "explanation": (
+            "A larger headline commitment reads as generous, but the "
+            "advance-rate and loan-to-cost draw conditions fund far less of "
+            "each month's spend than the priced facility, so equity runs out "
+            "before completion."
+        ),
+    }
+
+
+def _stratum_covenant_cliff(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    minimum_dscr = rng.choice((12_500, 13_000, 13_500))
+    trap_advance = rng.choice((6800, 6900, 7000))
+    operating_cost = rng.choice((4_000, 4_400))
+    world["facts"]["operating_cost_cents_per_kw_month"] = operating_cost
+    terms = world["terms"]
+    terms["loan"]["minimum_dscr_bps"] = minimum_dscr
+    # A phased tenant ramp: coverage is tightest while revenue is partial.
+    commencement = terms["service"]["service_commencement_month"]
+    terms["service"]["ramp_schedule"] = [
+        {"month": commencement, "capacity_kw": CAPACITY_KW // 2},
+        {"month": commencement + 4, "capacity_kw": CAPACITY_KW},
+    ]
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    # The tenant will pay a premium for a slower ramp, and the lender's
+    # coverage covenant is what that trade actually spends.
+    premium = terms["service"]["monthly_capacity_charge_cents_per_kw"] + 2_000
+    policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium
+    trap = copy.deepcopy(terms)
+    trap["service"]["monthly_capacity_charge_cents_per_kw"] = premium
+    trap["service"]["ramp_schedule"] = [
+        {"month": commencement, "capacity_kw": CAPACITY_KW // 3},
+        {"month": commencement + 4, "capacity_kw": CAPACITY_KW},
+    ]
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {
+            "minimum_dscr_bps": minimum_dscr,
+            "premium_price_cents_per_kw": premium,
+            "operating_cost_cents_per_kw_month": operating_cost,
+        },
+        "lever": {
+            "agreement": "service",
+            "field": "monthly_capacity_charge_cents_per_kw",
+            "values": [premium - 4_000, terms["service"]["monthly_capacity_charge_cents_per_kw"], premium],
+        },
+        "expected_failure": "minimum_dscr_breach",
+        "explanation": (
+            "The priced facility clears its coverage covenant by a thin margin "
+            "during the tenant ramp. The tenant offers a higher rate in return "
+            "for a slower ramp, which reads as more revenue but removes the "
+            "early-period cash the covenant is measured on, and the loan "
+            "breaches its minimum DSCR before the ramp completes. Leverage is "
+            "not the lever here: loan-to-cost caps well below the point where "
+            "stabilised coverage is at risk."
+        ),
+    }
+
+
+def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    premium_price = world["terms"]["service"][
+        "monthly_capacity_charge_cents_per_kw"
+    ] + rng.choice((4_000, 5_000, 6_000))
+    delay_damages = rng.choice((40_000_000, 50_000_000))
+    facts = world["facts"]
+    late_month = 28
+    facts["built_capacity_kw_by_month"] = [
+        0 if month < late_month else CAPACITY_KW for month in range(1, HORIZON + 1)
+    ]
+    for condition in facts["condition_satisfaction"]:
+        if condition["condition_id"] == "construction_complete":
+            condition["satisfied_month"] = late_month
+    # The prudent package starts billing when capacity actually exists, so no
+    # month carries debt service against a contractual date it cannot serve.
+    terms = world["terms"]
+    terms["service"]["service_commencement_month"] = late_month
+    terms["service"]["ramp_schedule"] = [
+        {"month": late_month, "capacity_kw": CAPACITY_KW}
+    ]
+    terms["service"]["delay_damages_cents_per_month"] = delay_damages
+    terms["service"]["delay_damages_cap_cents"] = 2 * delay_damages
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    policies["service"]["required_conditions"] = ["power_ready"]
+    policies["service"]["maximums"]["service_commencement_month"] = late_month
+    policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium_price
+    policies["service"]["maximums"]["delay_damages_cents_per_month"] = delay_damages
+    policies["service"]["maximums"]["delay_damages_cap_cents"] = 2 * delay_damages
+    # The customer prices the premium against a real availability commitment.
+    policies["service"]["minimums"]["sla_credit_cap_bps"] = terms["service"][
+        "sla_credit_cap_bps"
+    ]
+    trap = copy.deepcopy(terms)
+    trap["service"]["monthly_capacity_charge_cents_per_kw"] = premium_price
+    trap["service"]["conditions_precedent"] = ["power_ready"]
+    # Billing nominally starts at energization, months before capacity exists.
+    trap["service"]["service_commencement_month"] = terms["power"]["energization_month"]
+    trap["service"]["ramp_schedule"] = [
+        {"month": terms["power"]["energization_month"], "capacity_kw": CAPACITY_KW}
+    ]
+    trap["service"]["delay_damages_cents_per_month"] = delay_damages
+    trap["service"]["delay_damages_cap_cents"] = 2 * delay_damages
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {
+            "premium_price_cents_per_kw": premium_price,
+            "delay_damages_cents_per_month": delay_damages,
+        },
+        "lever": {
+            "agreement": "service",
+            "field": "service_commencement_month",
+            "values": [terms["power"]["energization_month"], late_month, late_month + 2],
+        },
+        "expected_failure": "minimum_dscr_breach",
+        "explanation": (
+            "Construction lands several months after energization. The customer "
+            "pays a premium for service gated only on power readiness, so "
+            "billing nominally starts before any capacity exists: the schedule "
+            "earns nothing while SLA credits and delay damages accrue against "
+            "it, and debt service is left uncovered. The premium is a liability "
+            "transfer dressed as revenue."
+        ),
+    }
+
+
+def _stratum_verbal_written_divergence(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    trap_advance = rng.choice((2000, 2500, 3000))
+    origination_fee_bps = rng.choice((100, 150))
+    terms = world["terms"]
+    terms["loan"]["origination_fee_bps"] = origination_fee_bps
+    policies = _default_policies(terms, undersized_quote=world["undersized_quote"])
+    policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
+    policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
+    trap = copy.deepcopy(terms)
+    trap["loan"]["advance_rate_bps"] = trap_advance
+    trap["loan"]["maximum_loan_to_cost_bps"] = trap_advance
+    policies["loan"]["counter_terms"] = copy.deepcopy(trap["loan"])
+    policies["loan"]["counter_message"] = (
+        "We can accept your proposed structure with the origination fee set "
+        f"to {origination_fee_bps} bps; the advance rate and all other "
+        "economics remain exactly as you proposed."
+    )
+    built_undisclosed = ("advance_rate_bps", "maximum_loan_to_cost_bps")
+    return {
+        "policies": policies,
+        "feasible": terms,
+        "trap": trap,
+        "knobs": {
+            "trap_advance_rate_bps": trap_advance,
+            "origination_fee_bps": origination_fee_bps,
+        },
+        "undisclosed_counter_fields": {"loan": list(built_undisclosed)},
+        "lever": {
+            "agreement": "loan",
+            "field": "advance_rate_bps",
+            "values": [trap_advance, 5_000, terms["loan"]["advance_rate_bps"]],
+        },
+        "expected_failure": "funding_shortfall",
+        "explanation": (
+            "A fee-free loan offer is countered with a message that claims "
+            "only the fee changed, while the written counter also cuts the "
+            "advance rate and loan-to-cost limit. Adopting the counter as "
+            "described leaves the project underfunded."
+        ),
+    }
+
+
+STRATUM_BUILDERS = {
+    "revenue_without_bankability": _stratum_revenue_without_bankability,
+    "delayed_revenue": _stratum_delayed_revenue,
+    "restrictive_draws": _stratum_restrictive_draws,
+    "covenant_cliff": _stratum_covenant_cliff,
+    "liability_transfer": _stratum_liability_transfer,
+    "verbal_written_divergence": _stratum_verbal_written_divergence,
+}
+
+
+# --------------------------------------------------------------------------
+# World assembly and verification
+# --------------------------------------------------------------------------
+
+
+# Answers a developer could reach without reasoning about the deal. A world any
+# of these solves is not testing anything, so generation refuses to emit it.
+def _adopt_every_counter(policies: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: copy.deepcopy(policies[key]["counter_terms"]) for key in SEQUENCE}
+
+
+def _market_convention(policies: Mapping[str, Any]) -> dict[str, Any]:
+    """The standard lease: full take-or-pay, six months of rent as security."""
+
+    terms = _adopt_every_counter(policies)
+    service = terms["service"]
+    service["take_or_pay_bps"] = 10_000
+    service["credit_support_cents"] = (
+        service["committed_capacity_kw"]
+        * service["monthly_capacity_charge_cents_per_kw"]
+        * 6
+    )
+    return terms
+
+
+def _adopt_and_size_supply(policies: Mapping[str, Any]) -> dict[str, Any]:
+    """Take every offer, then make the supply agreements cover the lease.
+
+    One visible correction, no reasoning about schedule, financing or price.
+    """
+
+    terms = _adopt_every_counter(policies)
+    required = terms["service"]["committed_capacity_kw"]
+    terms["power"]["contracted_capacity_kw"] = required
+    terms["epc"]["guaranteed_capacity_kw"] = max(
+        terms["epc"]["guaranteed_capacity_kw"], required
+    )
+    return terms
+
+
+NAIVE_STRATEGIES = {
+    "adopt_every_counter": _adopt_every_counter,
+    "market_convention_lease": _market_convention,
+    "adopt_and_size_supply": _adopt_and_size_supply,
+}
+
+
+def solved_by_naive_strategy(
+    facts: Mapping[str, Any], policies: Mapping[str, Any]
+) -> str | None:
+    """The first naive strategy that yields an admissible stack, if any."""
+
+    for name, build in NAIVE_STRATEGIES.items():
+        try:
+            outcome = evaluate_stack(facts, build(policies))
+        except Exception:
+            continue
+        if outcome["constraints_satisfied"]:
+            return name
+    return None
+
+
+def concession_is_free(
+    facts: Mapping[str, Any],
+    terms: Mapping[str, Any],
+    policies: Mapping[str, Any],
+) -> str | None:
+    """Name a declared concession that costs the developer nothing to give.
+
+    The power agreement advertises an integrative trade: better cash terms
+    bought with a later energisation date. That is only a trade if the later
+    date costs something. It shipped priced so that the utility's ceiling sat
+    exactly at mechanical completion, where deferral is free, so the whole
+    "trade" was a free option and the correct play was to take the ceiling the
+    counter message already named. A concession nobody pays for is not a
+    concession, and capturing it measures reading, not bargaining.
+    """
+
+    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+        maximums = policies[agreement_key]["maximums"]
+        for field in fields:
+            if field not in maximums:
+                continue
+            candidate = copy.deepcopy(dict(terms))
+            candidate[agreement_key] = {
+                **candidate[agreement_key],
+                field: maximums[field],
+            }
+            try:
+                conceded = evaluate_stack(facts, candidate)
+                held = evaluate_stack(facts, terms)
+            except Exception:
+                continue
+            if conceded["constraints_satisfied"] and (
+                conceded["developer_equity_npv_cents"]
+                >= held["developer_equity_npv_cents"]
+            ):
+                return f"{agreement_key}.{field}"
+    return None
+
+
+def lever_is_inert(
+    facts: Mapping[str, Any], terms: Mapping[str, Any], lever: Mapping[str, Any]
+) -> bool:
+    """True when moving a stratum's declared lever changes nothing at all.
+
+    A mechanism that names a lever and does not respond to it is not testing
+    what it claims. The covenant stratum once passed every check while its
+    declared lever, leverage, produced byte-identical outcomes across its whole
+    admissible range, because a different limit bound first.
+    """
+
+    seen = set()
+    for value in lever["values"]:
+        candidate = copy.deepcopy(dict(terms))
+        candidate[lever["agreement"]] = {
+            **candidate[lever["agreement"]],
+            lever["field"]: value,
+        }
+        try:
+            outcome = evaluate_stack(facts, candidate)
+        except Exception:
+            continue
+        seen.add(
+            (
+                outcome["constraints_satisfied"],
+                outcome["developer_equity_npv_cents"],
+                outcome["minimum_dscr_bps"],
+            )
+        )
+    return len(seen) <= 1
+
+
+def _assert_accepted(terms_by_key: Mapping[str, Any], policies: Mapping[str, Any], label: str) -> None:
+    for key in SEQUENCE:
+        parsed = TERM_PARSER_BY_TYPE[AGREEMENT_TYPE_BY_KEY[key]](terms_by_key[key])
+        if not terms_acceptable(parsed, policies[key]):
+            raise ValueError(f"{label}: {key} terms are not acceptable to the counterparty")
+
+
+def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
+    facts = world["facts"]
+    policies = world["policies"]
+    feasible = evaluate_stack(facts, world["feasible"])
+    trap = evaluate_stack(facts, world["trap"])
+    outside = world["outside_option"]
+    _assert_accepted(world["feasible"], policies, "feasible path")
+    _assert_accepted(world["trap"], policies, "trap path")
+    solved = solved_by_naive_strategy(facts, policies)
+    if solved is not None:
+        raise ValueError(f"world is solved by the naive strategy {solved}")
+    lever = world.get("lever")
+    if lever is not None and lever_is_inert(facts, world["feasible"], lever):
+        raise ValueError(
+            f"declared lever {lever['agreement']}.{lever['field']} changes nothing"
+        )
+    free = concession_is_free(facts, world["feasible"], policies)
+    if free is not None:
+        raise ValueError(f"the concession {free} costs the developer nothing")
+    if not feasible["constraints_satisfied"] or not feasible["financing_succeeded"]:
+        raise ValueError(f"feasible path fails admission: {feasible}")
+    if feasible["developer_equity_npv_cents"] <= outside["developer_equity_npv_cents"]:
+        raise ValueError("feasible path does not beat the walk-away outside option")
+    if trap["constraints_satisfied"]:
+        raise ValueError("trap path unexpectedly satisfies project constraints")
+    expected = world["expected_failure"]
+    observed = set(trap["default_reasons"])
+    if expected == "loan_never_funds":
+        if trap["loan_conditions_satisfied_month"] is not None:
+            raise ValueError("bankability trap still funded the loan")
+    elif expected not in observed:
+        raise ValueError(f"trap failed for {sorted(observed)} rather than {expected}")
+    return {
+        "feasible_path": feasible,
+        "attractive_path": trap,
+        "walk_away": dict(outside),
+        "expected_failure": expected,
+    }
+
+
+# Terms the developer concedes to the counterparty in exchange for better cash
+# terms. Each is priced against commercial operation: conceding up to the date
+# the project can actually operate is free, and every month past it delays
+# revenue. `_price_the_concession` puts the counterparty's ceiling past that
+# date on purpose, so the ceiling it quotes is never the developer's answer.
+CONCESSION_CEILING_FIELDS = {"power": ("energization_month",)}
+NEGOTIABLE_FLOOR_FIELDS = {
+    "power": ("interconnection_cost_cents", "monthly_demand_charge_cents_per_kw"),
+    "epc": ("contract_price_cents",),
+    "loan": ("spread_bps", "origination_fee_bps", "unused_commitment_fee_bps_annual"),
+}
+
+
+def _drive_to_floor(
+    terms: dict[str, dict[str, Any]], policies: Mapping[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Move the scripted developer to the best terms its counterparties accept."""
+
+    driven = copy.deepcopy(terms)
+    for agreement_key, fields in NEGOTIABLE_FLOOR_FIELDS.items():
+        minimums = policies[agreement_key]["minimums"]
+        for field in fields:
+            if field in minimums:
+                driven[agreement_key][field] = minimums[field]
+    # The concession fields are deliberately not driven here. Their ceiling now
+    # sits past the point the concession is free, so driving to it destroys the
+    # project; `_price_the_concession` finds the last free month instead.
+    if "payment_schedule" in driven["epc"]:
+        price = driven["epc"]["contract_price_cents"]
+        half = price // 2
+        driven["epc"]["payment_schedule"] = [
+            {"month": driven["epc"]["payment_schedule"][0]["month"], "amount_cents": half},
+            {
+                "month": driven["epc"]["payment_schedule"][-1]["month"],
+                "amount_cents": price - half,
+            },
+        ]
+    return driven
+
+
+def _price_the_concession(
+    facts: Mapping[str, Any],
+    terms: dict[str, dict[str, Any]],
+    policies: dict[str, Any],
+) -> None:
+    """Make the concession cost something, and put the ceiling past its worth.
+
+    The power agreement advertises an integrative trade: the utility's cash
+    floors bought with a later energisation date. It shipped with the ceiling
+    sitting exactly at mechanical completion, where deferral is free because
+    construction was withholding those months anyway, so the whole admissible
+    range was inside the free region and the correct play was to take the
+    ceiling the counter message already named.
+
+    Priced properly the developer has a real decision. Deferral is valued so
+    the cash floors become affordable at exactly the month that maximises
+    developer NPV: earlier and the utility refuses, later and the developer
+    pays the utility for months it needed. Where that month sits depends on
+    the construction schedule, which lives in a different agreement, while the
+    ceiling is handed over in the counter message.
+    """
+
+    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+        specification = policies[agreement_key].get("utility")
+        for field in fields:
+            if field not in policies[agreement_key]["maximums"]:
+                continue
+            if specification is None:
+                continue
+            weights = specification["weights"]
+            reference = int(specification["reference"][field])
+            floors = {
+                term: int(minimum)
+                for term, minimum in policies[agreement_key]["minimums"].items()
+                if term in weights and term != field
+            }
+            cash_concession = sum(
+                int(weights[term]) * (int(specification["reference"][term]) - floor)
+                for term, floor in floors.items()
+            )
+            best: tuple[int, int] | None = None
+            for months in range(1, HORIZON - reference + 1):
+                trial = copy.deepcopy(terms)
+                trial[agreement_key] = {
+                    **trial[agreement_key],
+                    **floors,
+                    field: reference + months,
+                }
+                try:
+                    outcome = evaluate_stack(facts, trial)
+                except Exception:
+                    break
+                if not outcome["constraints_satisfied"]:
+                    break
+                value = int(outcome["developer_equity_npv_cents"])
+                if best is None or value > best[0]:
+                    best = (value, months)
+            if best is None:
+                raise ValueError(f"no admissible {agreement_key}.{field} concession")
+            months = best[1]
+            terms[agreement_key].update(floors)
+            terms[agreement_key][field] = reference + months
+            weights[field] = -(-cash_concession // months)
+            specification["reservation"] = 0
+            policies[agreement_key]["maximums"][field] = (
+                reference + months + PAID_DEFERRAL_MONTHS
+            )
+
+
+def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any]:
+    base = _base_world(rng)
+    world = {
+        "facts": base["facts"],
+        "terms": base["terms"],
+    }
+    # Half the worlds carry the undersized quote. Applying it everywhere made
+    # one early error the universal cause of death, so no trajectory ever
+    # reached the mechanism its own stratum exists to test.
+    world["undersized_quote"] = rng.choice((True, False))
+    # The order shuffle drew from the rng; keep the draw so the pinned seed
+    # still reproduces the branch's worlds, but present the canonical sequence
+    # (main's phase graph has no order choice; see the note in _case_document).
+    listing = list(SEQUENCE)
+    rng.shuffle(listing)
+    world["presented_order"] = list(SEQUENCE)
+    built = STRATUM_BUILDERS[stratum](world, rng)
+    built["feasible"] = _drive_to_floor(built["feasible"], built["policies"])
+    _price_the_concession(world["facts"], built["feasible"], built["policies"])
+    _close_the_bands(built["policies"], built["feasible"])
+    undisclosed = built.get("undisclosed_counter_fields", {})
+    outside_option = {
+        "developer_equity_npv_cents": -base["sunk_cents"],
+        "lender_npv_cents": 0,
+        "customer_npv_cents": 0,
+        "total_project_npv_cents": -base["sunk_cents"],
+    }
+    assembled = {
+        "stratum": stratum,
+        "variant": variant,
+        "facts": world["facts"],
+        "policies": built["policies"],
+        "feasible": built["feasible"],
+        "trap": built["trap"],
+        "outside_option": outside_option,
+        "knobs": {
+            **base["knobs"],
+            **built["knobs"],
+            "undersized_quote": world["undersized_quote"],
+        },
+        "expected_failure": built["expected_failure"],
+        "explanation": built["explanation"],
+        "undisclosed_counter_fields": undisclosed,
+        "lever": built.get("lever"),
+        "presented_order": world["presented_order"],
+    }
+    assembled["mechanism"] = _verify_world(assembled)
+    return assembled
+
+
+
+def _close_the_bands(policies: dict[str, Any], feasible: Mapping[str, Any]) -> None:
+    """Bound every negotiated money term on both sides (DC-D-01).
+
+    The construct guard refuses a policy that caps a price with no floor, or
+    floors it with no ceiling: the first lets a one-cent bid through, the
+    second a fifteen-fold overpayment. The strata builders open only the
+    levers they mean to test, so close the rest here: a capped term gets a
+    floor 15% below its counter (never above the feasible path's own value, so
+    the scripted developer stays admissible), and a floored term gets its
+    counter as ceiling.
+    """
+
+    for key, policy in policies.items():
+        minimums, maximums, counter = policy["minimums"], policy["maximums"], policy["counter_terms"]
+        for field in sorted(PRICE_BAND_FIELDS):
+            if field in maximums and field not in minimums:
+                ceiling = int(maximums[field])
+                floor = 0 if ceiling <= 0 else _floor(int(counter.get(field, ceiling)))
+                minimums[field] = min(floor, int(feasible[key].get(field, floor)), ceiling)
+            elif field in minimums and field not in maximums:
+                floor = int(minimums[field])
+                maximums[field] = max(int(counter.get(field, floor)), int(feasible[key].get(field, floor)), floor)
+
+
+def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
+    slug = f"{world['stratum']}_{world['variant']:03d}"
+    scripted = {f"{key}_terms": copy.deepcopy(world["feasible"][key]) for key in SEQUENCE}
+    scripted["land_amendment_fields"] = ["site_control_expiry_month"]
+    baseline = world["mechanism"]["feasible_path"]
+    payload = {
+        "scope_version": SCOPE_VERSION,
+        "scenario_id": f"datacenter_v2_world_{slug}",
+        "project_facts": copy.deepcopy(world["facts"]),
+        # The developer-chooses-order feature and its presented_order confound
+        # (branch commits 8c59ed6c / 91972c04) are not ported: main's phase graph
+        # runs the canonical sequence, and the order question is a separate
+        # ruling. `presented_order` stays internal to the generator.
+        "negotiation": {"max_rounds": {key: MAX_ROUNDS for key in SEQUENCE}},
+        "policies": copy.deepcopy(world["policies"]),
+        "scripted_developer": scripted,
+        "outside_option": dict(world["outside_option"]),
+        "baseline": {
+            "developer_equity_npv_cents": baseline["developer_equity_npv_cents"],
+            "lender_npv_cents": baseline["lender_npv_cents"],
+            "customer_npv_cents": baseline["customer_npv_cents"],
+            "total_project_npv_cents": baseline["total_project_npv_cents"],
+        },
+    }
+    # Every generated world opts into the construct guard (DC-D-01): the
+    # feasible path must beat walking away by the declared margin and every
+    # negotiated price must be bounded on both sides. The guard runs inside
+    # validate_payload below, so a world that fails it is never written.
+    payload["construct_controls"] = {
+        "baseline_must_dominate_outside_option": True,
+        # 1% of the EPC contract price: these worlds carry construction through
+        # the EPC agreement, not the facts' construction schedule.
+        "minimum_baseline_margin_cents": _round_div(
+            int(world["feasible"]["epc"]["contract_price_cents"]) * MINIMUM_BASELINE_MARGIN_BPS,
+            10_000,
+        ),
+        "two_sided_price_bands": True,
+    }
+    DataCenterStackPlugin(SCOPE_VERSION).validate_payload(payload)
+    document = {
+        "spec_version": CaseManifest.SPEC_VERSION,
+        "case_id": f"{FAMILY_ID}.{SPLIT}.{slug}",
+        "family_id": FAMILY_ID,
+        "family_version": SCOPE_CONFIG[SCOPE_VERSION]["family_version"],
+        "split": SPLIT,
+        "world_seed": MASTER_SEED + index,
+        "seats": [dict(seat) for seat in SEATS],
+        "episode": copy.deepcopy(EPISODE),
+        "visibility_policy": VISIBILITY_POLICY,
+        "payload": payload,
+        "provenance": {
+            "generator_id": GENERATOR_ID,
+            "generator_version": GENERATOR_VERSION,
+            "review_status": "generated",
+        },
+        "content_sha256": "0" * 64,
+    }
+    document["content_sha256"] = case_content_sha256(document)
+    CaseManifest.from_dict(document)
+    return document
+
+
+def generate_pack(master_seed: int = MASTER_SEED) -> dict[str, Any]:
+    """Return the 24 case documents and the sealed pack manifest."""
+
+    rng = random.Random(master_seed)
+    cases: list[dict[str, Any]] = []
+    entries: list[dict[str, Any]] = []
+    index = 0
+    for stratum in STRATA:
+        seen: set[str] = set()
+        for variant in range(1, VARIANTS_PER_STRATUM + 1):
+            for _attempt in range(64):
+                probe_rng = random.Random(rng.getrandbits(64))
+                try:
+                    world = build_world(stratum, variant, probe_rng)
+                except ValueError:
+                    # Jitter drew an infeasible or non-trapping combination.
+                    continue
+                signature = canonical_json_bytes(world["knobs"]).decode("utf-8")
+                if signature not in seen:
+                    break
+            else:
+                raise ValueError(f"could not draw a distinct {stratum} variant")
+            seen.add(signature)
+            document = _case_document(world, index)
+            cases.append(document)
+            entries.append(
+                {
+                    "case_id": document["case_id"],
+                    "file": f"{document['case_id'].rsplit('.', 1)[1]}.json",
+                    "content_sha256": document["content_sha256"],
+                    "world_seed": document["world_seed"],
+                    "stratum": stratum,
+                    "variant": variant,
+                    "knobs": world["knobs"],
+                    "mechanism": world["mechanism"],
+                    "lever": world["lever"],
+                    "explanation": world["explanation"],
+                }
+            )
+            index += 1
+    manifest = {
+        "schema_version": "aeread.datacenter_world_pack/0.1",
+        "pack_id": PACK_ID,
+        "generator_id": GENERATOR_ID,
+        "generator_version": GENERATOR_VERSION,
+        "generator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "master_seed": master_seed,
+        "scope_version": SCOPE_VERSION,
+        "strata": list(STRATA),
+        "variants_per_stratum": VARIANTS_PER_STRATUM,
+        "world_count": len(entries),
+        "worlds": entries,
+    }
+    manifest["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(manifest)).hexdigest()
+    return {"cases": cases, "manifest": manifest}
+
+
+def _dump(value: Mapping[str, Any]) -> str:
+    return json.dumps(value, indent=2, sort_keys=True) + "\n"
+
+
+def write_pack(output_root: Path | str = DEFAULT_OUTPUT_ROOT, *, master_seed: int = MASTER_SEED) -> dict[str, Any]:
+    root = Path(output_root)
+    root.mkdir(parents=True, exist_ok=True)
+    pack = generate_pack(master_seed)
+    for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
+        (root / entry["file"]).write_text(_dump(document), encoding="utf-8")
+    (root / "manifest.json").write_text(_dump(pack["manifest"]), encoding="utf-8")
+    return pack["manifest"]
+
+
+def check_pack(output_root: Path | str = DEFAULT_OUTPUT_ROOT, *, master_seed: int = MASTER_SEED) -> dict[str, Any]:
+    """Confirm the on-disk pack equals a fresh generation from the pinned seed."""
+
+    root = Path(output_root)
+    pack = generate_pack(master_seed)
+    drift: list[str] = []
+    for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
+        path = root / entry["file"]
+        if not path.is_file() or path.read_text(encoding="utf-8") != _dump(document):
+            drift.append(entry["file"])
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file() or manifest_path.read_text(encoding="utf-8") != _dump(pack["manifest"]):
+        drift.append("manifest.json")
+    return {"pack_id": PACK_ID, "drift": drift, "reproducible": not drift}
+
+
+def load_pack_manifest(output_root: Path | str = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]:
+    root = Path(output_root)
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    core = {key: value for key, value in manifest.items() if key != "artifact_sha256"}
+    if manifest["artifact_sha256"] != hashlib.sha256(canonical_json_bytes(core)).hexdigest():
+        raise ValueError("world pack manifest digest mismatch")
+    return manifest
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--master-seed", type=int, default=MASTER_SEED)
+    parser.add_argument("--check", action="store_true", help="verify instead of write")
+    arguments = parser.parse_args(argv)
+    if arguments.check:
+        result = check_pack(arguments.output, master_seed=arguments.master_seed)
+        print(canonical_json_bytes(result).decode("utf-8"))
+        return 0 if result["reproducible"] else 1
+    manifest = write_pack(arguments.output, master_seed=arguments.master_seed)
+    summary = {
+        "pack_id": manifest["pack_id"],
+        "world_count": manifest["world_count"],
+        "artifact_sha256": manifest["artifact_sha256"],
+        "strata": {
+            stratum: sum(world["stratum"] == stratum for world in manifest["worlds"])
+            for stratum in STRATA
+        },
+    }
+    print(canonical_json_bytes(summary).decode("utf-8"))
+    return 0
+
+
+__all__ = [
+    "DEFAULT_OUTPUT_ROOT",
+    "GENERATOR_ID",
+    "GENERATOR_VERSION",
+    "MASTER_SEED",
+    "PACK_ID",
+    "STRATA",
+    "build_world",
+    "check_pack",
+    "evaluate_stack",
+    "generate_pack",
+    "load_pack_manifest",
+    "main",
+    "write_pack",
+]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
