@@ -49,15 +49,24 @@ from .stack_worlds import DEFAULT_OUTPUT_ROOT as WORLDS_ROOT
 from .stack_worlds import load_pack_manifest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+CASES_ROOT = REPOSITORY_ROOT / "cases" / "datacenter_development_v1"
 PUBLICATION_ID = "datacenter_v2_scored_controls_v1"
+#: One bundle per (curated case, world pack) the controls are scored on. The
+#: first is the sealed interface-2 pack; the second is the same 24 worlds at
+#: developer interface 3 (DC-D-10), where the adopter declines the amendment
+#: instead of walking and so reaches the loan (DC-D-09).
+BUNDLES: dict[str, dict[str, Path]] = {
+    PUBLICATION_ID: {
+        "curated": CASES_ROOT / "v2" / "full_stack_amendment_002.json",
+        "worlds": WORLDS_ROOT,
+    },
+    "datacenter_v2_interface3_scored_controls_v1": {
+        "curated": CASES_ROOT / "v2" / "full_stack_amendment_003.json",
+        "worlds": CASES_ROOT / "worlds_v3",
+    },
+}
 DEFAULT_BUNDLE_ROOT = REPOSITORY_ROOT / "evidence" / "datacenter_development" / PUBLICATION_ID
-CURATED_CASE = (
-    REPOSITORY_ROOT
-    / "cases"
-    / "datacenter_development_v1"
-    / "v2"
-    / "full_stack_amendment_002.json"
-)
+CURATED_CASE = BUNDLES[PUBLICATION_ID]["curated"]
 POLICIES: tuple[str, ...] = tuple(DEVELOPER_POLICIES)
 COLUMNS = (
     "case_id",
@@ -76,11 +85,16 @@ COLUMNS = (
 )
 
 
-def _cases() -> list[tuple[str, Path]]:
-    cases = [("curated", CURATED_CASE)]
-    manifest = load_pack_manifest(WORLDS_ROOT)
+def bundle_root_for(publication_id: str = PUBLICATION_ID) -> Path:
+    return REPOSITORY_ROOT / "evidence" / "datacenter_development" / publication_id
+
+
+def _cases(publication_id: str = PUBLICATION_ID) -> list[tuple[str, Path]]:
+    sources = BUNDLES[publication_id]
+    cases = [("curated", sources["curated"])]
+    manifest = load_pack_manifest(sources["worlds"])
     for entry in manifest["worlds"]:
-        cases.append(("world_pack", WORLDS_ROOT / entry["file"]))
+        cases.append(("world_pack", sources["worlds"] / entry["file"]))
     return cases
 
 
@@ -114,12 +128,12 @@ async def _run(case_path: Path, policy: str, evidence_root: Path) -> dict[str, A
     }
 
 
-def score_controls() -> list[dict[str, Any]]:
+def score_controls(publication_id: str = PUBLICATION_ID) -> list[dict[str, Any]]:
     """One row per (case, policy), every trajectory sealed and replayed."""
 
     rows: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory() as scratch:
-        for source, case_path in _cases():
+        for source, case_path in _cases(publication_id):
             case = load_stack_case("v2", case_path)
             for policy in POLICIES:
                 evidence_root = Path(scratch) / case.case_id / policy
@@ -135,7 +149,9 @@ def _by_case(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Mapping[s
     return grouped
 
 
-def summarize(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def summarize(
+    rows: Sequence[Mapping[str, Any]], publication_id: str = PUBLICATION_ID
+) -> dict[str, Any]:
     """The three inequalities a measurable case must satisfy, per case."""
 
     grouped = _by_case(rows)
@@ -161,7 +177,7 @@ def summarize(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     world_rows = [item for item in per_case if item["source"] == "world_pack"]
     return {
         "schema_version": "aeread.datacenter_scored_controls_summary/0.1",
-        "publication_id": PUBLICATION_ID,
+        "publication_id": publication_id,
         "policies": list(POLICIES),
         "case_count": len(per_case),
         "trajectory_count": len(rows),
@@ -202,18 +218,30 @@ def _table(rows: Sequence[Mapping[str, Any]]) -> str:
     return buffer.getvalue()
 
 
-def _readme(summary: Mapping[str, Any]) -> str:
+def _readme(summary: Mapping[str, Any], publication_id: str = PUBLICATION_ID) -> str:
     world = summary["world_pack"]
+    sources = BUNDLES[publication_id]
+    split = sources["worlds"].name
+    curated = sources["curated"].stem
+    interface_note = (
+        ""
+        if publication_id == PUBLICATION_ID
+        else """
+This bundle scores the same 24 worlds at developer interface 3: the amendment
+phase can be declined, so the adopter keeps the executed land agreement and
+goes on to copy the lender's counter instead of walking (DC-D-09, DC-D-10).
+"""
+    )
     return f"""# Scored controls for the V2 stack
 
 Three provider-free developer policies -- the scripted reference negotiated to
 the floor of every band, walking away at the first offer, and adopting every
 counterparty counter verbatim -- run through the real scheduler on the repaired
-curated case and every world of `cases/datacenter_development_v1/worlds_v2/`.
+curated case and every world of `cases/datacenter_development_v1/{split}/`.
 Every trajectory is finalised, verified and replayed offline; the rows are the
 Gate 3 exit evidence the datacenter QC profile was missing.
-
-- cases: {summary['case_count']} ({world['world_count']} worlds and the curated `full_stack_amendment_002`)
+{interface_note}
+- cases: {summary['case_count']} ({world['world_count']} worlds and the curated `{curated}`)
 - trajectories: {summary['trajectory_count']}, all included, all replay-verified
 - the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} cases
 - the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} cases
@@ -230,15 +258,20 @@ is what a subject's score is read against, not a subject.
 """
 
 
-def write_bundle(bundle_root: Path | str = DEFAULT_BUNDLE_ROOT) -> dict[str, Any]:
-    root = Path(bundle_root)
-    rows = score_controls()
-    summary = summarize(rows)
+def write_bundle(
+    bundle_root: Path | str | None = None, *, publication_id: str = PUBLICATION_ID
+) -> dict[str, Any]:
+    if publication_id not in BUNDLES:
+        raise ValueError(f"publication_id must be one of {sorted(BUNDLES)}")
+    root = Path(bundle_root) if bundle_root is not None else bundle_root_for(publication_id)
+    sources = BUNDLES[publication_id]
+    rows = score_controls(publication_id)
+    summary = summarize(rows, publication_id)
     (root / "tables").mkdir(parents=True, exist_ok=True)
     (root / "reports").mkdir(parents=True, exist_ok=True)
     (root / "tables" / "controls.csv").write_text(_table(rows), encoding="utf-8")
     (root / "reports" / "summary.json").write_bytes(canonical_json_bytes(summary) + b"\n")
-    (root / "README.md").write_text(_readme(summary), encoding="utf-8")
+    (root / "README.md").write_text(_readme(summary, publication_id), encoding="utf-8")
     manifest_path = root / "publication_manifest.json"
     boundary = {
         "included": "sealed receipt digests, terminations, NPVs and inequalities per case and policy",
@@ -249,12 +282,12 @@ def write_bundle(bundle_root: Path | str = DEFAULT_BUNDLE_ROOT) -> dict[str, Any
     else:
         seal_publication_manifest(
             root,
-            publication_id=PUBLICATION_ID,
+            publication_id=publication_id,
             privacy_boundary=boundary,
-            campaign_id=PUBLICATION_ID,
+            campaign_id=publication_id,
             source_bindings={
-                "curated_case": load_stack_case("v2", CURATED_CASE).content_sha256,
-                "world_pack_sha256": load_pack_manifest(WORLDS_ROOT)["artifact_sha256"],
+                "curated_case": load_stack_case("v2", sources["curated"]).content_sha256,
+                "world_pack_sha256": load_pack_manifest(sources["worlds"])["artifact_sha256"],
             },
             derived_from="committed cases and the family engine; no provider calls",
         )
@@ -263,9 +296,10 @@ def write_bundle(bundle_root: Path | str = DEFAULT_BUNDLE_ROOT) -> dict[str, Any
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=DEFAULT_BUNDLE_ROOT)
+    parser.add_argument("--publication-id", default=PUBLICATION_ID, choices=sorted(BUNDLES))
+    parser.add_argument("--output", type=Path, default=None, help="defaults to evidence/datacenter_development/<publication-id>")
     arguments = parser.parse_args(argv)
-    summary = write_bundle(arguments.output)
+    summary = write_bundle(arguments.output, publication_id=arguments.publication_id)
     print(json.dumps({k: summary[k] for k in ("case_count", "trajectory_count", "reference_beats_walk_away_in", "reference_beats_adoption_in", "adoption_completes_the_stack_in")}))
     return 0
 
@@ -274,4 +308,13 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["DEFAULT_BUNDLE_ROOT", "PUBLICATION_ID", "POLICIES", "score_controls", "summarize", "write_bundle"]
+__all__ = [
+    "BUNDLES",
+    "DEFAULT_BUNDLE_ROOT",
+    "PUBLICATION_ID",
+    "POLICIES",
+    "bundle_root_for",
+    "score_controls",
+    "summarize",
+    "write_bundle",
+]
