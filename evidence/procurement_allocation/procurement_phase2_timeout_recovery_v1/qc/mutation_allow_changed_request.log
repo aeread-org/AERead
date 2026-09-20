@@ -1,0 +1,20 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________________ test_timeout_retry_cannot_change_request ___________________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1363/test_timeout_retry_cannot_chan0')
+
+    def test_timeout_retry_cannot_change_request(tmp_path):
+        p = budget.Phase2BudgetedProvider(Script([TimeoutError("fixture")]), tmp_path)
+        with pytest.raises(ProviderFailure):
+            asyncio.run(p.complete(request()))
+        changed = request()
+        changed.request_sha256 = "b" * 64
+>       with pytest.raises(ValueError, match="changed the logical"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_procurement_phase2_timeout_recovery.py:62: Failed
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_retry_cannot_change_request
+1 failed in 0.88s

@@ -1,0 +1,50 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+______ test_timeout_second_failure_stops_with_both_reservations[second0] _______
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1362/test_timeout_second_failure_st0')
+second = TimeoutError('second timeout')
+
+    @pytest.mark.parametrize("second", [TimeoutError("second timeout"), rate_limit()])
+    def test_timeout_second_failure_stops_with_both_reservations(tmp_path, second):
+        delegate = Script([TimeoutError("first timeout"), second])
+        p = budget.Phase2BudgetedProvider(delegate, tmp_path)
+        for retryable in (True, False):
+            with pytest.raises(ProviderFailure) as caught:
+                asyncio.run(p.complete(request()))
+            assert caught.value.retryable == retryable
+        assert p.stopped and len(p.calls) == 2
+>       assert p.spent == pytest.approx(sum(json.loads(x.read_text())["reserved_cost_usd"] for x in p.calls))
+E       assert 0.0 == 0.0006493 ± 6.5e-10
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.0006493 ± 6.5e-10
+
+tests/test_procurement_phase2_timeout_recovery.py:42: AssertionError
+______ test_timeout_second_failure_stops_with_both_reservations[second1] _______
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1362/test_timeout_second_failure_st1')
+second = ProviderFailure('fixture HTTP 429')
+
+    @pytest.mark.parametrize("second", [TimeoutError("second timeout"), rate_limit()])
+    def test_timeout_second_failure_stops_with_both_reservations(tmp_path, second):
+        delegate = Script([TimeoutError("first timeout"), second])
+        p = budget.Phase2BudgetedProvider(delegate, tmp_path)
+        for retryable in (True, False):
+            with pytest.raises(ProviderFailure) as caught:
+                asyncio.run(p.complete(request()))
+            assert caught.value.retryable == retryable
+        assert p.stopped and len(p.calls) == 2
+>       assert p.spent == pytest.approx(sum(json.loads(x.read_text())["reserved_cost_usd"] for x in p.calls))
+E       assert 0.0 == 0.0006493 ± 6.5e-10
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.0006493 ± 6.5e-10
+
+tests/test_procurement_phase2_timeout_recovery.py:42: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_second_failure_stops_with_both_reservations[second0]
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_timeout_second_failure_stops_with_both_reservations[second1]
+2 failed in 0.57s

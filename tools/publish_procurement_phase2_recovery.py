@@ -387,7 +387,7 @@ def publish(root, target):
 Execution status: `{status['status']}`. See [the reconciled result](reports/execution_status.json).
 Independently audited receipts: {audited}. Recovery settled spend: ${known:.10f}.
 Separately audited score-free failure receipts: {audited_failures}.
-Combined Phase 2 settled spend, including both prior attempts:
+Combined Phase 2 settled spend, including all prior attempts:
 ${prior['settled_cost_usd'] + known:.10f}. Combined unresolved reservations:
 ${prior['unresolved_reserved_cost_usd'] + reserved:.10f}.
 The combined ceiling remains $0.45. No original failed episode is pooled or replaced.

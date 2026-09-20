@@ -1,0 +1,28 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_local_deadline_is_typed_and_holds_unknown_charge _____________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1361/test_local_deadline_is_typed_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c8d36e0>
+
+    def test_local_deadline_is_typed_and_holds_unknown_charge(tmp_path, monkeypatch):
+        monkeypatch.setattr(budget, "PROVIDER_TIMEOUT_SECONDS", 0.001)
+    
+        class NeverReturns:
+            async def complete(self, request):
+                await asyncio.Event().wait()
+    
+        p = budget.Phase2BudgetedProvider(NeverReturns(), tmp_path)
+        with pytest.raises(ProviderFailure) as caught:
+            asyncio.run(p.complete(request()))
+>       assert caught.value.condition == "timeout" and caught.value.retryable
+E       AssertionError: assert ('timeout' == 'timeout'
+E         
+E           timeout and False)
+E        +  where False = ProviderFailure('provider request timed out (limit 0.001s): ').retryable
+E        +    where ProviderFailure('provider request timed out (limit 0.001s): ') = <ExceptionInfo ProviderFailure('provider request timed out (limit 0.001s): ') tblen=5>.value
+
+tests/test_procurement_phase2_timeout_recovery.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_local_deadline_is_typed_and_holds_unknown_charge
+1 failed in 0.93s

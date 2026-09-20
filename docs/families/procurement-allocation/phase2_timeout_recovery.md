@@ -22,11 +22,17 @@ Every request reserves its maximum charge before dispatch. A timeout's charge
 stays unknown and fully reserved even if the retry succeeds. The completed row
 then has null total cost, a known settled component and an unresolved reserved
 component. This is a software accounting distinction, not a billing refund.
-External cancellation is never converted into timeout retry permission.
+External cancellation is never converted into timeout retry permission. The
+retry repeats the same logical action request; it does not advance the market,
+reveal new supplier evidence or spend an additional environment action. Provider
+attempts and their charges are still counted separately.
 
 The legacy procurement builder retains its old retry allowlist. The separate
 Phase 2 profile declares the new condition and its own reservation wrapper
-handles unknown costs. No shared-runner or legacy implementation changes.
+handles unknown costs. This recovery edits neither shared-runner nor legacy implementation code.
+The combined tree includes upstream PR #149, which adds an unused resolver
+design-digest helper; an AST comparison verifies no existing resolver body changed.
+The new review binds those kernel bytes explicitly.
 The 175-second timer cannot guarantee upstream availability; a second slow
 request or another operational failure will still stop the attempt.
 
@@ -71,7 +77,9 @@ pins, all eight cases and offline references. The tests include the real
 scheduler's timeout recovery, retained reservations, two-failure stop, external
 cancellation, changed-request rejection and the complete 64-episode fixture
 campaign with repeated publication audits. Fixtures are not model observations.
-Three deliberate mutations must each fail their intended test before sealing.
+All 55 focused tests passed. The full combined tree passed 3,894 tests, with
+266 skips and two expected failures. Three deliberate mutations each failed
+their intended check; source bytes were restored before final validation.
 
 Inspect in this order:
 

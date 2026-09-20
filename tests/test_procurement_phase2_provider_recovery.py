@@ -100,6 +100,7 @@ def test_new_contract_changes_timeout_retry_and_accounting_only():
         if hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != old_sha
     }
     assert changed == {
+        "src/aeread/shared_runner/run/resolver.py",  # upstream PR #149, additive helper
         "src/aeread_families/procurement_allocation/phase2_budget.py",
         "src/aeread_families/procurement_allocation/phase2_campaign.py",
         "src/aeread_families/procurement_allocation/phase2_execution.py",
