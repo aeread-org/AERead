@@ -1,0 +1,24 @@
+....................................................ssssssssss.......... [  1%]
+.................................ssssss.........ssssssssssssss..sss.ssss [  3%]
+sssssssssssss.sssssssss.......ssss.ssssss...............ssssssssssssssss [  5%]
+.s.sssss....ssssss...................................................... [  7%]
+.....................................................x.................. [  8%]
+........................................................................ [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........s...............sss.................................s........... [ 15%]
+..s.....................................s.........s.........ss.......... [ 17%]
+..............s......s.......s........s.........s.........s............. [ 19%]
+..........s.............ssssss...............ssssssssssssss..........s.s [ 21%]
+.............ss...ssss.......ssssssss..........ss....................... [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+.....................................................................
+------------ upstream auction-arena QC gate required (not enforced) ------------
+1 test(s)/module(s) skipped because $AEREAD_AUCARENA_QC_GATE_REQUIRED is unset. Reported reasons:
+  ('/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery/tests/test_aucarena_cases.py', 35, 'Skipped: pinned upstream auction-arena checkout not found at /Users/sunzeyu/Documents/econ benchmark/upstream-aucarena')
+Set $AEREAD_AUCARENA_QC_GATE_REQUIRED=1 to turn this into a failed run instead.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery-reviewed/AERead/src/aeread/exchange_v1/runner.py:273: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+996 passed, 183 skipped, 1 xfailed in 222.19s (0:03:42)

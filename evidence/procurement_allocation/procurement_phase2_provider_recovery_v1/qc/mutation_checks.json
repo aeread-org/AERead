@@ -1,0 +1,27 @@
+{
+  "mutations": [
+    {
+      "mutation": "error_message_loss",
+      "test": "tests/test_procurement_phase2_provider_recovery.py::test_original_provider_message_is_preserved_privately[429]",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "2bd0a06ef6d54605742914b8b5e277eb67f2cc99743cf1335f3a43b87bafe26a"
+    },
+    {
+      "mutation": "dropped_prior_reservation",
+      "test": "tests/test_procurement_phase2_execution.py::test_full_campaign_gates_64_replayed_rows_and_one_freeze",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "f9f9dc92bdd0d41a700247cca03852372486615e46bc8295d5be99720b2d0b7d"
+    },
+    {
+      "mutation": "public_error_message_leak",
+      "test": "tests/test_procurement_phase2_provider_recovery.py::test_publication_keeps_private_provider_message_out_and_checks_its_digest",
+      "exit_code": 1,
+      "check_killed": true,
+      "log_sha256": "761a8d4c799b11251ecdde0361c00872d0e89e0d15317c51763e124f364aed46"
+    }
+  ],
+  "source_restored": true,
+  "live_calls": 0
+}

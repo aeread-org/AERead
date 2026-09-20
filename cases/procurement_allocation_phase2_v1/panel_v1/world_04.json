@@ -1,0 +1,543 @@
+{
+  "case_id": "procurement_allocation_phase2_v1.world_04",
+  "content_sha256": "5e4b34af1bd280561a75346839fca26afce6fa288e18f31b1f08c637d0d2040c",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_phase2_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.1,
+      "counter_days": 1,
+      "counter_feedback": "field_specific",
+      "inquiry_cost_usd": 0.1,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1,
+      "sample_noise": {
+        "model": "binomial",
+        "seed": 51001
+      }
+    },
+    "objective": {
+      "annual_financing_rate": 0.0,
+      "bom": {
+        "ky023_joystick": 1
+      },
+      "cash_budget_usd": 100.0,
+      "deadline_days": 24,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 10,
+      "product_id": "pilot_kit_bottleneck_procurement",
+      "revenue_per_completed_kit_usd": 4.65,
+      "shortfall_penalty_per_kit_usd": 0.5,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics"
+      ],
+      "market_constraints": {
+        "minimum_delivery_days": 1,
+        "minimum_unit_price_usd": 0.1,
+        "status": "certified_market_floor_not_supplier_claim"
+      },
+      "required_variant_by_component": {
+        "ky023_joystick": "ky023_dual_axis_push_switch_module"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.8,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 91D3D747E9"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 5,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.79
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_91d3d747e9"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 0.902,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.94,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor F8ECFBE1CE"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_f8ecfbe1ce"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.107,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.88,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 7B3AB6E6C1"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.35,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.35,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 4,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.83
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_7b3ab6e6c1"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.476,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.77,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 943C0352FB"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.8,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 6,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.75
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_943c0352fb"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.968,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.9,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 063E20765C"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.4,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 2,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.91
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_063e20765c"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 0.451,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.62,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 7869CC8028"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.55,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.55,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 11,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.55
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_7869cc8028"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.95,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 2363B03718"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.95,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 7,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.7
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_2363b03718"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.87,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 0940CC7943"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.88
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_0940cc7943"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_phase2_worlds_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "phase2_v1",
+  "visibility_policy": "phase2_public_market_floors_no_hidden_yield_checker_v1",
+  "world_seed": 41003
+}

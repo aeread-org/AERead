@@ -1,0 +1,30 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_original_provider_message_is_preserved_privately[429] __________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1303/test_original_provider_message0')
+status = 429
+
+    @pytest.mark.parametrize("status", [429, 503])
+    def test_original_provider_message_is_preserved_privately(tmp_path, status):
+        message = f"fixture provider {status}: explanatory detail; account=private-fixture"
+        failure = ProviderFailure(
+            "rate_limit" if status == 429 else "provider_5xx",
+            message,
+            retryable=True,
+            status_code=status,
+            retry_after_seconds=75 if status == 429 else None,
+        )
+        provider = Phase2BudgetedProvider(Script([failure]), tmp_path)
+        with pytest.raises(ProviderFailure) as caught:
+            asyncio.run(provider.complete(request()))
+>       assert str(caught.value) == message
+E       AssertionError: assert 'generic fixture message' == 'fixture prov...ivate-fixture'
+E         
+E         - fixture provider 429: explanatory detail; account=private-fixture
+E         + generic fixture message
+
+tests/test_procurement_phase2_provider_recovery.py:52: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_provider_recovery.py::test_original_provider_message_is_preserved_privately[429]
+1 failed in 1.33s

@@ -1,0 +1,17 @@
+
+==================================== ERRORS ====================================
+_____________ ERROR collecting tests/test_negarena_provisioning.py _____________
+tests/test_negarena_provisioning.py:71: in <module>
+    _ancestor_named(REPO_ROOT, "AERead").parent / "upstream-negarena"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_negarena_provisioning.py:60: in _ancestor_named
+    raise AssertionError(f"no ancestor named {name!r} found above {path}")
+E   AssertionError: no ancestor named 'AERead' found above /Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery
+------------ upstream auction-arena QC gate required (not enforced) ------------
+1 test(s)/module(s) skipped because $AEREAD_AUCARENA_QC_GATE_REQUIRED is unset. Reported reasons:
+  ('/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery/tests/test_aucarena_cases.py', 35, 'Skipped: pinned upstream auction-arena checkout not found at /Users/sunzeyu/Documents/econ benchmark/upstream-aucarena')
+Set $AEREAD_AUCARENA_QC_GATE_REQUIRED=1 to turn this into a failed run instead.
+=========================== short test summary info ============================
+ERROR tests/test_negarena_provisioning.py - AssertionError: no ancestor named...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+31 skipped, 1 error in 16.68s

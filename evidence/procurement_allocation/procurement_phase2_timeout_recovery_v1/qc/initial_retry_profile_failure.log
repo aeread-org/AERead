@@ -1,0 +1,338 @@
+.....................................FF..............F.                  [100%]
+=================================== FAILURES ===================================
+___________ test_full_campaign_gates_64_replayed_rows_and_one_freeze ___________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1359/test_full_campaign_gates_64_re0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fd59c10>
+
+    def test_full_campaign_gates_64_replayed_rows_and_one_freeze(tmp_path, monkeypatch):
+        from aeread_families.procurement_allocation import phase2_execution as execution
+        from aeread_families.procurement_allocation.phase2_admission import source_pins
+    
+        # Only the reviewer/admission fixture is substituted. All 64 trajectories,
+        # budgets, gates, row audits, receipts and inference use production code.
+        root = tmp_path / "runs" / "phase2"
+        admission = root / "admission"
+        admission.mkdir(parents=True)
+        c = fixture_contribution(admission)
+        screen = offline_screen()
+        (admission / "offline_screen.json").write_text(json.dumps(screen))
+        (admission / "provider_free_conformance.json").write_text(
+            json.dumps(
+                {"passed": True, "test_only": True, "implementation_pins": source_pins()}
+            )
+        )
+        # Refresh the fixture's content-addressed evidence after setting the test log.
+        from dataclasses import replace
+        import hashlib
+        from aeread.shared_runner.registry import family_contribution_sha256
+    
+        ref = replace(
+            c.provider_free_evidence,
+            sha256=hashlib.sha256(
+                (admission / c.provider_free_evidence.path).read_bytes()
+            ).hexdigest(),
+        )
+        c = replace(c, provider_free_evidence=ref)
+        c = replace(
+            c,
+            human_qc_approval=replace(
+                c.human_qc_approval, contribution_sha256=family_contribution_sha256(c)
+            ),
+        )
+        monkeypatch.setattr(execution, "load_contribution", lambda root: c)
+>       result = asyncio.run(
+            execution.run_campaign(
+                root,
+                admission,
+                provider_factory=PolicyProvider,
+                preflight=lambda candidate: {"test_only": True},
+            )
+        )
+
+tests/test_procurement_phase2_execution.py:221: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/aeread_families/procurement_allocation/phase2_execution.py:435: in run_campaign
+    await canary(
+src/aeread_families/procurement_allocation/phase2_execution.py:113: in canary
+    setup = build_setup(
+src/aeread_families/procurement_allocation/phase2_runner.py:101: in build_setup
+    template = build_openrouter_setup(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+route = OpenRouterRoute(profile_id='procurement_glm53_flash_parasail_v1', model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-f..._price_per_million='0.15', max_completion_price_per_million='0.50', reasoning_effort='low', temperature_supported=True)
+seed = 54001
+case_path = PosixPath('/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery/cases/procurement_allocation_v1/dev/quality_speed_margin.json')
+max_output_tokens = 1200, timeout_seconds = 180.0, max_cost_usd = 0.025
+harness = None
+prompt = 'You are a procurement buyer. Return exactly one JSON action each turn.\nMaximize contribution margin in USD, subject ...g the JSON, check these required fields for your selected action.\n\nChoose your own sourcing and decision strategy.\n'
+prompt_id = 'procurement_phase2_action_format_control_v2'
+max_action_attempts = 2, retryable_conditions = ('rate_limit', 'timeout')
+retry_backoff = 'exponential_jitter_v1', retry_base_seconds = 2.0
+retry_after_max_seconds = 180.0
+
+    def build_openrouter_setup(
+        route: OpenRouterRoute,
+        *,
+        seed: int,
+        case_path: Path | str = CASE_PATH,
+        max_output_tokens: int = 1800,
+        timeout_seconds: float = 180.0,
+        max_cost_usd: float = 0.1,
+        harness: Any | None = None,
+        prompt: str = PROMPT,
+        prompt_id: str = "procurement_allocation_prompt_v1",
+        max_action_attempts: int = 1,
+        retryable_conditions: Sequence[str] = (),
+        retry_backoff: str | None = None,
+        retry_base_seconds: float = 2.0,
+        retry_after_max_seconds: float = 60.0,
+    ) -> ProcurementAllocationSetup:
+        if seed < 0:
+            raise ValueError("seed must be non-negative")
+        if max_cost_usd <= 0:
+            raise ValueError("max_cost_usd must be positive")
+        resolved_retryable_conditions = tuple(retryable_conditions)
+        if max_action_attempts < 1:
+            raise ValueError("max_action_attempts must be positive")
+        if len(set(resolved_retryable_conditions)) != len(
+            resolved_retryable_conditions
+        ):
+            raise ValueError("retryable_conditions must be unique")
+        unsupported_conditions = set(resolved_retryable_conditions).difference(
+            RETRYABLE_PROVIDER_CONDITIONS
+        )
+        if unsupported_conditions:
+>           raise ValueError(
+                "unsupported procurement retry conditions; allowed known-zero-cost "
+                "failures plus empty_response: "
+                f"{sorted(unsupported_conditions)}"
+            )
+E           ValueError: unsupported procurement retry conditions; allowed known-zero-cost failures plus empty_response: ['timeout']
+
+src/aeread_families/procurement_allocation/runner.py:578: ValueError
+________________ test_live_row_preserves_unknown_retry_billing _________________
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1359/test_live_row_preserves_unknow0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10f9703b0>
+
+    def test_live_row_preserves_unknown_retry_billing(tmp_path, monkeypatch):
+        from aeread_families.procurement_allocation.phase2_execution import run_row
+    
+        delays = []
+    
+        async def sleep(seconds):
+            delays.append(seconds)
+    
+        monkeypatch.setattr(asyncio, "sleep", sleep)
+        delegate = PolicyProvider()
+    
+        class First429:
+            calls = 0
+    
+            async def complete(self, request):
+                self.calls += 1
+                if self.calls == 1:
+                    raise rate_limit()
+                return await delegate.complete(request)
+    
+        admission = tmp_path / "admission"
+        admission.mkdir()
+        contribution = fixture_contribution(admission)
+        root = tmp_path / "run"
+        provider = Phase2BudgetedProvider(First429(), root)
+>       row = asyncio.run(
+            run_row(
+                root,
+                "pilot",
+                build_world(6),
+                CATEGORIES[6],
+                52001,
+                "control",
+                provider,
+                contribution,
+                admission,
+            )
+        )
+
+tests/test_procurement_phase2_execution.py:293: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/aeread_families/procurement_allocation/phase2_execution.py:179: in run_row
+    setup = build_setup(
+src/aeread_families/procurement_allocation/phase2_runner.py:101: in build_setup
+    template = build_openrouter_setup(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+route = OpenRouterRoute(profile_id='procurement_glm53_flash_parasail_v1', model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-f..._price_per_million='0.15', max_completion_price_per_million='0.50', reasoning_effort='low', temperature_supported=True)
+seed = 52001
+case_path = PosixPath('/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery/cases/procurement_allocation_v1/dev/quality_speed_margin.json')
+max_output_tokens = 1200, timeout_seconds = 180.0, max_cost_usd = 0.025
+harness = None
+prompt = 'You are a procurement buyer. Return exactly one JSON action each turn.\nMaximize contribution margin in USD, subject ...g the JSON, check these required fields for your selected action.\n\nChoose your own sourcing and decision strategy.\n'
+prompt_id = 'procurement_phase2_action_format_control_v2'
+max_action_attempts = 2, retryable_conditions = ('rate_limit', 'timeout')
+retry_backoff = 'exponential_jitter_v1', retry_base_seconds = 2.0
+retry_after_max_seconds = 180.0
+
+    def build_openrouter_setup(
+        route: OpenRouterRoute,
+        *,
+        seed: int,
+        case_path: Path | str = CASE_PATH,
+        max_output_tokens: int = 1800,
+        timeout_seconds: float = 180.0,
+        max_cost_usd: float = 0.1,
+        harness: Any | None = None,
+        prompt: str = PROMPT,
+        prompt_id: str = "procurement_allocation_prompt_v1",
+        max_action_attempts: int = 1,
+        retryable_conditions: Sequence[str] = (),
+        retry_backoff: str | None = None,
+        retry_base_seconds: float = 2.0,
+        retry_after_max_seconds: float = 60.0,
+    ) -> ProcurementAllocationSetup:
+        if seed < 0:
+            raise ValueError("seed must be non-negative")
+        if max_cost_usd <= 0:
+            raise ValueError("max_cost_usd must be positive")
+        resolved_retryable_conditions = tuple(retryable_conditions)
+        if max_action_attempts < 1:
+            raise ValueError("max_action_attempts must be positive")
+        if len(set(resolved_retryable_conditions)) != len(
+            resolved_retryable_conditions
+        ):
+            raise ValueError("retryable_conditions must be unique")
+        unsupported_conditions = set(resolved_retryable_conditions).difference(
+            RETRYABLE_PROVIDER_CONDITIONS
+        )
+        if unsupported_conditions:
+>           raise ValueError(
+                "unsupported procurement retry conditions; allowed known-zero-cost "
+                "failures plus empty_response: "
+                f"{sorted(unsupported_conditions)}"
+            )
+E           ValueError: unsupported procurement retry conditions; allowed known-zero-cost failures plus empty_response: ['timeout']
+
+src/aeread_families/procurement_allocation/runner.py:578: ValueError
+__ test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call ___
+
+tmp_path = PosixPath('/private/var/folders/2n/1t18mlqx16z514dqjjgvcglr0000gn/T/pytest-of-chenyusu/pytest-1359/test_real_scheduler_retries_ti0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10fc4f5c0>
+
+    def test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call(tmp_path, monkeypatch):
+        delays = []
+    
+        async def sleep(seconds):
+            delays.append(seconds)
+    
+        monkeypatch.setattr(asyncio, "sleep", sleep)
+        delegate = PolicyProvider()
+    
+        class FirstTimeout:
+            calls = 0
+    
+            async def complete(self, request):
+                self.calls += 1
+                if self.calls == 1:
+                    raise TimeoutError("fixture timeout")
+                return await delegate.complete(request)
+    
+        admission = tmp_path / "admission"
+        admission.mkdir()
+        c = fixture_contribution(admission)
+        root = tmp_path / "run"
+        p = budget.Phase2BudgetedProvider(FirstTimeout(), root)
+>       row = asyncio.run(run_row(root, "pilot", build_world(6), CATEGORIES[6],
+                                 52001, "control", p, c, admission))
+
+tests/test_procurement_phase2_timeout_recovery.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.12/3.12.9/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/aeread_families/procurement_allocation/phase2_execution.py:179: in run_row
+    setup = build_setup(
+src/aeread_families/procurement_allocation/phase2_runner.py:101: in build_setup
+    template = build_openrouter_setup(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+route = OpenRouterRoute(profile_id='procurement_glm53_flash_parasail_v1', model='z-ai/glm-5.3-flash', revision='z-ai/glm-5.3-f..._price_per_million='0.15', max_completion_price_per_million='0.50', reasoning_effort='low', temperature_supported=True)
+seed = 52001
+case_path = PosixPath('/Users/chenyusu/AERead-worktrees/procurement-phase2-timeout-recovery/cases/procurement_allocation_v1/dev/quality_speed_margin.json')
+max_output_tokens = 1200, timeout_seconds = 180.0, max_cost_usd = 0.025
+harness = None
+prompt = 'You are a procurement buyer. Return exactly one JSON action each turn.\nMaximize contribution margin in USD, subject ...g the JSON, check these required fields for your selected action.\n\nChoose your own sourcing and decision strategy.\n'
+prompt_id = 'procurement_phase2_action_format_control_v2'
+max_action_attempts = 2, retryable_conditions = ('rate_limit', 'timeout')
+retry_backoff = 'exponential_jitter_v1', retry_base_seconds = 2.0
+retry_after_max_seconds = 180.0
+
+    def build_openrouter_setup(
+        route: OpenRouterRoute,
+        *,
+        seed: int,
+        case_path: Path | str = CASE_PATH,
+        max_output_tokens: int = 1800,
+        timeout_seconds: float = 180.0,
+        max_cost_usd: float = 0.1,
+        harness: Any | None = None,
+        prompt: str = PROMPT,
+        prompt_id: str = "procurement_allocation_prompt_v1",
+        max_action_attempts: int = 1,
+        retryable_conditions: Sequence[str] = (),
+        retry_backoff: str | None = None,
+        retry_base_seconds: float = 2.0,
+        retry_after_max_seconds: float = 60.0,
+    ) -> ProcurementAllocationSetup:
+        if seed < 0:
+            raise ValueError("seed must be non-negative")
+        if max_cost_usd <= 0:
+            raise ValueError("max_cost_usd must be positive")
+        resolved_retryable_conditions = tuple(retryable_conditions)
+        if max_action_attempts < 1:
+            raise ValueError("max_action_attempts must be positive")
+        if len(set(resolved_retryable_conditions)) != len(
+            resolved_retryable_conditions
+        ):
+            raise ValueError("retryable_conditions must be unique")
+        unsupported_conditions = set(resolved_retryable_conditions).difference(
+            RETRYABLE_PROVIDER_CONDITIONS
+        )
+        if unsupported_conditions:
+>           raise ValueError(
+                "unsupported procurement retry conditions; allowed known-zero-cost "
+                "failures plus empty_response: "
+                f"{sorted(unsupported_conditions)}"
+            )
+E           ValueError: unsupported procurement retry conditions; allowed known-zero-cost failures plus empty_response: ['timeout']
+
+src/aeread_families/procurement_allocation/runner.py:578: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_procurement_phase2_execution.py::test_full_campaign_gates_64_replayed_rows_and_one_freeze
+FAILED tests/test_procurement_phase2_execution.py::test_live_row_preserves_unknown_retry_billing
+FAILED tests/test_procurement_phase2_timeout_recovery.py::test_real_scheduler_retries_timeout_and_replays_without_free_unknown_call
+3 failed, 52 passed in 11.75s

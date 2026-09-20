@@ -1,0 +1,543 @@
+{
+  "case_id": "procurement_allocation_phase2_v1.world_07",
+  "content_sha256": "3812d05128afd4d9399dddfef9ada2f17bd8713b0a3cee333a876d2f071f8174",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_phase2_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.1,
+      "counter_days": 1,
+      "counter_feedback": "field_specific",
+      "inquiry_cost_usd": 0.1,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1,
+      "sample_noise": {
+        "model": "binomial",
+        "seed": 51001
+      }
+    },
+    "objective": {
+      "annual_financing_rate": 0.0,
+      "bom": {
+        "sht30_i2c": 1
+      },
+      "cash_budget_usd": 100.0,
+      "deadline_days": 14,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "pilot_kit_bottleneck_procurement",
+      "revenue_per_completed_kit_usd": 4.8,
+      "shortfall_penalty_per_kit_usd": 0.5,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics"
+      ],
+      "market_constraints": {
+        "minimum_delivery_days": 30,
+        "minimum_unit_price_usd": 0.1,
+        "status": "certified_market_floor_not_supplier_claim"
+      },
+      "required_variant_by_component": {
+        "sht30_i2c": "sht30_i2c_module_3v3"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 28,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.451,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.65,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 0B814F330D"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.55,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 30,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.55,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_0b814f330d"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 31,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 1.107,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.86,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 7DF94990EE"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.35,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 33,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.35,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_7df94990ee"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 33,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 1.476,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.76,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor F6AA427A71"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.8,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 35,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_f6aa427a71"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 29,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.93,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor CA729941EC"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 31,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 0.95,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_ca729941ec"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 35,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 1.968,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.88,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 8112630A26"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.4,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 37,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_8112630a26"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 32,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.81,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor A7E15049A2"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 34,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_a7e15049a2"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 34,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.84,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 05D73F265A"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 36,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_05d73f265a"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "advertised_capacity": 24,
+          "advertised_moq": 24,
+          "claimed_lead_time_days": 30,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.902,
+          "evidence_status": "marketplace_listing_unverified",
+          "historical_sample_units": 40,
+          "historical_status": "previous_batch_nonbinding_prior",
+          "historical_yield_estimate": 0.9,
+          "sample_batch_units": 24,
+          "sample_cost_usd": 0.65,
+          "sample_days": 1,
+          "supplier_name": "Vendor 66B9C7A190"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.1,
+          "capacity": 24,
+          "duty_rate": 0.0,
+          "lead_time_days": 32,
+          "moq": 24,
+          "negotiation": {
+            "floor_unit_price_usd": 1.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 24,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 1.0,
+          "order_step": 24,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.65,
+            "sample_lead_time_days": 1,
+            "sample_size": 24,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.0,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "verified_yield_rate": 0.94
+          }
+        },
+        "supplier_id": "vendor_66b9c7a190"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_phase2_worlds_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "phase2_v1",
+  "visibility_policy": "phase2_public_market_floors_no_hidden_yield_checker_v1",
+  "world_seed": 41006
+}
