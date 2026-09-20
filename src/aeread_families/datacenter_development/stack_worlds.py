@@ -1264,7 +1264,9 @@ def _close_the_bands(policies: dict[str, Any], feasible: Mapping[str, Any]) -> N
                 maximums[field] = max(int(counter.get(field, floor)), int(feasible[key].get(field, floor)), floor)
 
 
-def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
+def _case_document(
+    world: Mapping[str, Any], index: int, *, master_seed: int = MASTER_SEED, split: str = SPLIT
+) -> dict[str, Any]:
     slug = f"{world['stratum']}_{world['variant']:03d}"
     scripted = {f"{key}_terms": copy.deepcopy(world["feasible"][key]) for key in SEQUENCE}
     scripted["land_amendment_fields"] = ["site_control_expiry_month"]
@@ -1305,11 +1307,11 @@ def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
     DataCenterStackPlugin(SCOPE_VERSION).validate_payload(payload)
     document = {
         "spec_version": CaseManifest.SPEC_VERSION,
-        "case_id": f"{FAMILY_ID}.{SPLIT}.{slug}",
+        "case_id": f"{FAMILY_ID}.{split}.{slug}",
         "family_id": FAMILY_ID,
         "family_version": SCOPE_CONFIG[SCOPE_VERSION]["family_version"],
-        "split": SPLIT,
-        "world_seed": MASTER_SEED + index,
+        "split": split,
+        "world_seed": master_seed + index,
         "seats": [dict(seat) for seat in SEATS],
         "episode": copy.deepcopy(EPISODE),
         "visibility_policy": VISIBILITY_POLICY,
@@ -1326,7 +1328,9 @@ def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
     return document
 
 
-def generate_pack(master_seed: int = MASTER_SEED) -> dict[str, Any]:
+def generate_pack(
+    master_seed: int = MASTER_SEED, *, split: str = SPLIT, pack_id: str = PACK_ID
+) -> dict[str, Any]:
     """Return the 24 case documents and the sealed pack manifest."""
 
     rng = random.Random(master_seed)
@@ -1349,7 +1353,7 @@ def generate_pack(master_seed: int = MASTER_SEED) -> dict[str, Any]:
             else:
                 raise ValueError(f"could not draw a distinct {stratum} variant")
             seen.add(signature)
-            document = _case_document(world, index)
+            document = _case_document(world, index, master_seed=master_seed, split=split)
             cases.append(document)
             entries.append(
                 {
@@ -1368,7 +1372,7 @@ def generate_pack(master_seed: int = MASTER_SEED) -> dict[str, Any]:
             index += 1
     manifest = {
         "schema_version": "aeread.datacenter_world_pack/0.1",
-        "pack_id": PACK_ID,
+        "pack_id": pack_id,
         "generator_id": GENERATOR_ID,
         "generator_version": GENERATOR_VERSION,
         "generator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -1387,30 +1391,64 @@ def _dump(value: Mapping[str, Any]) -> str:
     return json.dumps(value, indent=2, sort_keys=True) + "\n"
 
 
-def write_pack(output_root: Path | str = DEFAULT_OUTPUT_ROOT, *, master_seed: int = MASTER_SEED) -> dict[str, Any]:
+def write_pack(
+    output_root: Path | str = DEFAULT_OUTPUT_ROOT,
+    *,
+    master_seed: int = MASTER_SEED,
+    split: str = SPLIT,
+    pack_id: str = PACK_ID,
+) -> dict[str, Any]:
     root = Path(output_root)
     root.mkdir(parents=True, exist_ok=True)
-    pack = generate_pack(master_seed)
+    pack = generate_pack(master_seed, split=split, pack_id=pack_id)
     for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
         (root / entry["file"]).write_text(_dump(document), encoding="utf-8")
     (root / "manifest.json").write_text(_dump(pack["manifest"]), encoding="utf-8")
     return pack["manifest"]
 
 
-def check_pack(output_root: Path | str = DEFAULT_OUTPUT_ROOT, *, master_seed: int = MASTER_SEED) -> dict[str, Any]:
-    """Confirm the on-disk pack equals a fresh generation from the pinned seed."""
+def check_pack(
+    output_root: Path | str = DEFAULT_OUTPUT_ROOT,
+    *,
+    master_seed: int = MASTER_SEED,
+    split: str = SPLIT,
+    pack_id: str = PACK_ID,
+) -> dict[str, Any]:
+    """Confirm the on-disk pack equals a fresh generation from the pinned seed.
+
+    Reproducibility is about the worlds: every case file and every manifest
+    entry must come back byte for byte. The manifest also pins the generator's
+    own digest, which moves whenever this module is edited even when no world
+    does; that is reported apart as ``generator_drift`` rather than counted as
+    a drifted world, so a committed pack keeps the digest of the generator
+    that made it and a later generator edit is visible without pretending the
+    worlds changed."""
 
     root = Path(output_root)
-    pack = generate_pack(master_seed)
+    pack = generate_pack(master_seed, split=split, pack_id=pack_id)
     drift: list[str] = []
     for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
         path = root / entry["file"]
         if not path.is_file() or path.read_text(encoding="utf-8") != _dump(document):
             drift.append(entry["file"])
     manifest_path = root / "manifest.json"
-    if not manifest_path.is_file() or manifest_path.read_text(encoding="utf-8") != _dump(pack["manifest"]):
+    generator_drift = False
+    if not manifest_path.is_file():
         drift.append("manifest.json")
-    return {"pack_id": PACK_ID, "drift": drift, "reproducible": not drift}
+    else:
+        on_disk = json.loads(manifest_path.read_text(encoding="utf-8"))
+        fresh = dict(pack["manifest"])
+        generator_drift = on_disk.get("generator_sha256") != fresh["generator_sha256"]
+        masked = {k: v for k, v in on_disk.items() if k not in ("generator_sha256", "artifact_sha256")}
+        fresh_masked = {k: v for k, v in fresh.items() if k not in ("generator_sha256", "artifact_sha256")}
+        if masked != fresh_masked:
+            drift.append("manifest.json")
+    return {
+        "pack_id": pack_id,
+        "drift": drift,
+        "reproducible": not drift,
+        "generator_drift": generator_drift,
+    }
 
 
 def load_pack_manifest(output_root: Path | str = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]:
@@ -1426,13 +1464,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--master-seed", type=int, default=MASTER_SEED)
+    parser.add_argument("--split", default=SPLIT, help="case split name; also the output directory under cases/datacenter_development_v1/")
+    parser.add_argument("--pack-id", default=PACK_ID)
     parser.add_argument("--check", action="store_true", help="verify instead of write")
     arguments = parser.parse_args(argv)
     if arguments.check:
-        result = check_pack(arguments.output, master_seed=arguments.master_seed)
+        result = check_pack(arguments.output, master_seed=arguments.master_seed, split=arguments.split, pack_id=arguments.pack_id)
         print(canonical_json_bytes(result).decode("utf-8"))
         return 0 if result["reproducible"] else 1
-    manifest = write_pack(arguments.output, master_seed=arguments.master_seed)
+    manifest = write_pack(arguments.output, master_seed=arguments.master_seed, split=arguments.split, pack_id=arguments.pack_id)
     summary = {
         "pack_id": manifest["pack_id"],
         "world_count": manifest["world_count"],

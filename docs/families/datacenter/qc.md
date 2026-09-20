@@ -165,10 +165,13 @@ walking away, and it passes the `construct_controls` guard with a declared
 margin of 1% of the EPC contract price. Closing the guard's two-sided rule
 required flooring six money terms the branch had left one-sided, which is the
 guard doing on 24 worlds what it did on `001`. Independent clusters: 24.
-Still missing for `passed`: a development-versus-confirmatory split bound to
-disjoint seed domains, near-duplicate clustering across strata, and a measured
-control rate per world from the frozen control rather than from the scripted
-reference alone.
+**Held-out pack (2026-09-20).** `worlds_v2_holdout/`: the same generator from
+master seed 20270920, a seed domain disjoint from `worlds_v2`, sharing no case
+digest, knob signature or seed label with it. The pilot that tuned the schema
+and prompt ran only on `worlds_v2`; every confirmatory runs on the holdout.
+Still missing for `passed`: near-duplicate clustering across strata, and a
+measured control rate per world from the frozen control rather than from the
+scripted reference alone.
 
 ## 2. Environment and verifier
 
@@ -244,6 +247,10 @@ bound the contract parser enforces (`stack_runner.TERM_MINIMUMS`; every other
 integer term non-negative) and the developer prompt states that months are
 numbered from 1. The gap cost five of the first ten pilot cells. Sealed cases
 keep their v1 schema and prompt byte for byte.
+A second gap of the same class is open (DC-D-08): the schema allows a walk
+that states its reason, the parser accepts only a bare walk, and 8 cells across
+the pilot and the confirmatory were typed malformed for walking with a reason.
+It is fixed in the next campaign identity, never under a frozen one.
 
 **Main blockers:** replay that recomputes a published score instead of copying a
 flag; ledger identities for `stack_cashflow.py`; the missing invalid-action and
@@ -393,6 +400,17 @@ cents median — for a live model, seeds are not repeats, but most of the
 variance is admission, which is binary. What this fixes before a freeze: the
 confirmatory runs under a new campaign identity with the bounded schema and
 v2 prompt, and its sample is sized on 24 worlds, not 48 cells.
+
+**Confirmatory freeze (2026-09-20).** `configs/datacenter_development_v2_world_panel_confirmatory_v1.json`
+and its `.freeze.json`: 24 held-out worlds x 3 predeclared seeds x Gemini 3.8
+Flash = 72 cells, bounded schema and v2 prompt, $0.20 per cell, $15 ceiling.
+Hashed before any confirmatory outcome is inspected: the contract, the holdout
+pack, the sealed design with every run-plan digest, the driver, the prompt.
+Primary endpoint: admission rate over worlds with a world-clustered bootstrap
+interval; secondary: mean delta from the scripted reference over admitted
+cells; seeds averaged within the world; missingness ceiling 10% of planned
+cells; no early stop; predeclared slice by stratum; no winner, ranking or
+causal claim, one route. Gates 1-3 pass on the holdout without a key.
 
 Before that pilot, no step of the live sequence had been attempted: there is no declared
 variance pilot, no confirmatory freeze artifact, no holdout table, and no
