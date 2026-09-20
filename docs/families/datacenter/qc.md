@@ -247,6 +247,10 @@ bound the contract parser enforces (`stack_runner.TERM_MINIMUMS`; every other
 integer term non-negative) and the developer prompt states that months are
 numbered from 1. The gap cost five of the first ten pilot cells. Sealed cases
 keep their v1 schema and prompt byte for byte.
+A second gap of the same class is open (DC-D-08): the schema allows a walk
+that states its reason, the parser accepts only a bare walk, and 8 cells across
+the pilot and the confirmatory were typed malformed for walking with a reason.
+It is fixed in the next campaign identity, never under a frozen one.
 
 **Main blockers:** replay that recomputes a published score instead of copying a
 flag; ledger identities for `stack_cashflow.py`; the missing invalid-action and
