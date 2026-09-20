@@ -1,0 +1,738 @@
+{
+  "schema_version": "procurement_information_design_probes/0.1",
+  "status": "offline_authoring_fixtures_not_live_worlds",
+  "contains_evaluator_answer_keys": true,
+  "network_or_provider_calls": 0,
+  "scope": "Six matched pairs of reachable decision points. Not independent market samples, full episodes, hidden model prompts, or a qualified campaign. All amounts are synthetic USD.",
+  "cases": [
+    {
+      "id": "prioritize_low_contact_cost",
+      "mechanism": "search_prioritization",
+      "prior": [
+        ".14",
+        ".06",
+        ".56",
+        ".24"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "10",
+            "10",
+            "10",
+            "10"
+          ],
+          "requires": []
+        },
+        {
+          "id": "award_A",
+          "payoffs_usd": [
+            "80",
+            "80",
+            "-20",
+            "-20"
+          ],
+          "requires": [
+            "quote_A"
+          ]
+        },
+        {
+          "id": "award_B",
+          "payoffs_usd": [
+            "22",
+            "-6",
+            "22",
+            "-6"
+          ],
+          "requires": [
+            "quote_B"
+          ]
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_A",
+          "cost_usd": "3",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "1",
+              "0",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "0",
+              "1",
+              "1"
+            ]
+          }
+        },
+        {
+          "id": "quote_B",
+          "cost_usd": "1",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "0",
+              "1",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "1",
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "quote_A"
+      ],
+      "expected_incremental_value_usd": "21",
+      "decision_point": "Incumbent is fully qualified. A and B have verified samples but need binding quotes. One research action plus a terminal action remains. Quoted price determines net lot margin; cash is ample. A has 20% chance of $80 margin, otherwise -$20; B has 70% chance of $22, otherwise -$6."
+    },
+    {
+      "id": "prioritize_high_contact_cost",
+      "mechanism": "search_prioritization",
+      "prior": [
+        ".14",
+        ".06",
+        ".56",
+        ".24"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "10",
+            "10",
+            "10",
+            "10"
+          ],
+          "requires": []
+        },
+        {
+          "id": "award_A",
+          "payoffs_usd": [
+            "80",
+            "80",
+            "-20",
+            "-20"
+          ],
+          "requires": [
+            "quote_A"
+          ]
+        },
+        {
+          "id": "award_B",
+          "payoffs_usd": [
+            "22",
+            "-6",
+            "22",
+            "-6"
+          ],
+          "requires": [
+            "quote_B"
+          ]
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_A",
+          "cost_usd": "8",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "1",
+              "0",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "0",
+              "1",
+              "1"
+            ]
+          }
+        },
+        {
+          "id": "quote_B",
+          "cost_usd": "1",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "0",
+              "1",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "1",
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "quote_B"
+      ],
+      "expected_incremental_value_usd": "17.4",
+      "decision_point": "Incumbent is fully qualified. A and B have verified samples but need binding quotes. One research action plus a terminal action remains. Quoted price determines net lot margin; cash is ample. A has 20% chance of $80 margin, otherwise -$20; B has 70% chance of $22, otherwise -$6."
+    },
+    {
+      "id": "resample_uncertain",
+      "mechanism": "evidence_and_stopping",
+      "prior": [
+        ".5",
+        ".5"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "12",
+            "12"
+          ],
+          "requires": []
+        },
+        {
+          "id": "award_candidate",
+          "payoffs_usd": [
+            "40",
+            "-20"
+          ],
+          "requires": []
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "resample_candidate",
+          "cost_usd": "2",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "pass": [
+              ".8",
+              ".2"
+            ],
+            "fail": [
+              ".2",
+              ".8"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "resample_candidate"
+      ],
+      "expected_incremental_value_usd": "18",
+      "decision_point": "Both choices already have formal quotes and variant-qualified samples. The stated belief is after the first sample. An additional calibrated QC screen has 80% sensitivity and 80% specificity for lot condition; one extra screen fits. Margins are net of purchase, shipping and service loss, before optional research."
+    },
+    {
+      "id": "resample_strong_evidence",
+      "mechanism": "evidence_and_stopping",
+      "prior": [
+        ".9",
+        ".1"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "12",
+            "12"
+          ],
+          "requires": []
+        },
+        {
+          "id": "award_candidate",
+          "payoffs_usd": [
+            "40",
+            "-20"
+          ],
+          "requires": []
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "resample_candidate",
+          "cost_usd": "2",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "pass": [
+              ".8",
+              ".2"
+            ],
+            "fail": [
+              ".2",
+              ".8"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "award_candidate"
+      ],
+      "expected_incremental_value_usd": "34",
+      "decision_point": "Both choices already have formal quotes and variant-qualified samples. The stated belief is after the first sample. An additional calibrated QC screen has 80% sensitivity and 80% specificity for lot condition; one extra screen fits. Margins are net of purchase, shipping and service loss, before optional research."
+    },
+    {
+      "id": "deadline_tight",
+      "mechanism": "deadline_opportunity_cost",
+      "prior": [
+        ".4",
+        ".6"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "16",
+            "16"
+          ],
+          "requires": [],
+          "last_award_day": 0
+        },
+        {
+          "id": "award_alternative",
+          "payoffs_usd": [
+            "36",
+            "-8"
+          ],
+          "requires": [
+            "quote_alternative"
+          ],
+          "last_award_day": 0
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_alternative",
+          "cost_usd": "1",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "award_incumbent"
+      ],
+      "expected_incremental_value_usd": "16",
+      "decision_point": "Incumbent is qualified; alternative already has a sample and needs one quote taking one day. Shipping takes one day; remaining deadline is 1 days. Research can expire the incumbent as well as the alternative."
+    },
+    {
+      "id": "deadline_slack",
+      "mechanism": "deadline_opportunity_cost",
+      "prior": [
+        ".4",
+        ".6"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_incumbent",
+          "payoffs_usd": [
+            "16",
+            "16"
+          ],
+          "requires": [],
+          "last_award_day": 1
+        },
+        {
+          "id": "award_alternative",
+          "payoffs_usd": [
+            "36",
+            "-8"
+          ],
+          "requires": [
+            "quote_alternative"
+          ],
+          "last_award_day": 1
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_alternative",
+          "cost_usd": "1",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "good_price": [
+              "1",
+              "0"
+            ],
+            "bad_price": [
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "quote_alternative"
+      ],
+      "expected_incremental_value_usd": "23",
+      "decision_point": "Incumbent is qualified; alternative already has a sample and needs one quote taking one day. Shipping takes one day; remaining deadline is 2 days. Research can expire the incumbent as well as the alternative."
+    },
+    {
+      "id": "walkaway_shared_downturn",
+      "mechanism": "correlated_market_evidence",
+      "prior": [
+        ".1",
+        ".9"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_remaining",
+          "payoffs_usd": [
+            "30",
+            "-10"
+          ],
+          "requires": [
+            "quote_remaining"
+          ]
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_remaining",
+          "cost_usd": "4",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "profitable": [
+              "1",
+              "0"
+            ],
+            "unprofitable": [
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "defer"
+      ],
+      "expected_incremental_value_usd": "0",
+      "decision_point": "Two previously investigated suppliers were unprofitable; those costs remain sunk. Remaining supplier has a sample but needs a binding quote costing $4. No market-wide impossibility certificate exists; a profitable quote is still possible. These are decision-point probes, not claims that the supplied history is an optimal full policy.",
+      "sunk_research_cost_usd": "2",
+      "belief_provenance": {
+        "prior_favorable_market": ".5",
+        "bad_quote_likelihood_given_favorable": ".2",
+        "bad_quote_likelihood_given_unfavorable": ".6",
+        "conditionally_independent_bad_quotes": 2,
+        "remaining_profitability_tracks_market": true
+      }
+    },
+    {
+      "id": "walkaway_independent_prospect",
+      "mechanism": "correlated_market_evidence",
+      "prior": [
+        ".4",
+        ".6"
+      ],
+      "terminal_choices": [
+        {
+          "id": "award_remaining",
+          "payoffs_usd": [
+            "30",
+            "-10"
+          ],
+          "requires": [
+            "quote_remaining"
+          ]
+        }
+      ],
+      "research_actions": [
+        {
+          "id": "quote_remaining",
+          "cost_usd": "4",
+          "days": 1,
+          "max_uses": 1,
+          "outcomes": {
+            "profitable": [
+              "1",
+              "0"
+            ],
+            "unprofitable": [
+              "0",
+              "1"
+            ]
+          }
+        }
+      ],
+      "research_actions_left": 1,
+      "expected_best_actions": [
+        "quote_remaining"
+      ],
+      "expected_incremental_value_usd": "8",
+      "decision_point": "Two previously investigated suppliers were unprofitable; those costs remain sunk. Remaining supplier has a sample but needs a binding quote costing $4. No market-wide impossibility certificate exists; a profitable quote is still possible. These are decision-point probes, not claims that the supplied history is an optimal full policy.",
+      "sunk_research_cost_usd": "2",
+      "belief_provenance": {
+        "remaining_profitable_prior": ".4",
+        "previous_quote_outcomes_independent_of_remaining": true
+      }
+    },
+    {
+      "id": "allocation_cheap_second_shipment",
+      "mechanism": "split_fixed_cost_tradeoff",
+      "prior": [
+        "1"
+      ],
+      "terminal_choices": [],
+      "research_actions": [],
+      "research_actions_left": 0,
+      "expected_best_actions": [
+        "award:A=12,B=8"
+      ],
+      "expected_incremental_value_usd": "56.8",
+      "decision_point": "All three suppliers have binding quotes and verified samples; this deterministic allocation probe assumes all purchased units are usable and on time. Fixed freight applies once per used supplier. No research remains.",
+      "allocation_market": {
+        "bom": {
+          "part": 1
+        },
+        "target_kits": 20,
+        "minimum_service_kits": 20,
+        "cash_budget_usd": "100",
+        "revenue_per_kit_usd": "5",
+        "vendors": [
+          {
+            "id": "A",
+            "component": "part",
+            "moq": 6,
+            "capacity": 12,
+            "order_step": 6,
+            "unit_price_usd": "2",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "B",
+            "component": "part",
+            "moq": 4,
+            "capacity": 12,
+            "order_step": 4,
+            "unit_price_usd": "2.4",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "C",
+            "component": "part",
+            "moq": 20,
+            "capacity": 20,
+            "order_step": 20,
+            "unit_price_usd": "2.8",
+            "shipping_usd": "0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "allocation_expensive_second_shipment",
+      "mechanism": "split_fixed_cost_tradeoff",
+      "prior": [
+        "1"
+      ],
+      "terminal_choices": [],
+      "research_actions": [],
+      "research_actions_left": 0,
+      "expected_best_actions": [
+        "award:C=20"
+      ],
+      "expected_incremental_value_usd": "44",
+      "decision_point": "All three suppliers have binding quotes and verified samples; this deterministic allocation probe assumes all purchased units are usable and on time. Fixed freight applies once per used supplier. No research remains.",
+      "allocation_market": {
+        "bom": {
+          "part": 1
+        },
+        "target_kits": 20,
+        "minimum_service_kits": 20,
+        "cash_budget_usd": "100",
+        "revenue_per_kit_usd": "5",
+        "vendors": [
+          {
+            "id": "A",
+            "component": "part",
+            "moq": 6,
+            "capacity": 12,
+            "order_step": 6,
+            "unit_price_usd": "2",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "B",
+            "component": "part",
+            "moq": 4,
+            "capacity": 12,
+            "order_step": 4,
+            "unit_price_usd": "2.4",
+            "shipping_usd": "20"
+          },
+          {
+            "id": "C",
+            "component": "part",
+            "moq": 20,
+            "capacity": 20,
+            "order_step": 20,
+            "unit_price_usd": "2.8",
+            "shipping_usd": "0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bom_cash_60",
+      "mechanism": "bom_bottleneck_and_quantity",
+      "prior": [
+        "1"
+      ],
+      "terminal_choices": [],
+      "research_actions": [],
+      "research_actions_left": 0,
+      "expected_best_actions": [
+        "award:A=10,B=10,C=10,D=10"
+      ],
+      "expected_incremental_value_usd": "42",
+      "decision_point": "All four suppliers are quote/sample qualified and on time, with deterministic usable units in this probe. A kit needs one controller and one radio. Partial fulfillment down to 10 kits is allowed; excess unmatched parts earn no revenue, and there is no additional shortfall penalty.",
+      "allocation_market": {
+        "bom": {
+          "controller": 1,
+          "radio": 1
+        },
+        "target_kits": 20,
+        "minimum_service_kits": 10,
+        "cash_budget_usd": "60",
+        "revenue_per_kit_usd": "5",
+        "vendors": [
+          {
+            "id": "A",
+            "component": "controller",
+            "moq": 10,
+            "capacity": 20,
+            "order_step": 10,
+            "unit_price_usd": "1",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "B",
+            "component": "controller",
+            "moq": 10,
+            "capacity": 10,
+            "order_step": 10,
+            "unit_price_usd": ".8",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "C",
+            "component": "radio",
+            "moq": 10,
+            "capacity": 10,
+            "order_step": 10,
+            "unit_price_usd": "1",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "D",
+            "component": "radio",
+            "moq": 10,
+            "capacity": 20,
+            "order_step": 10,
+            "unit_price_usd": "3",
+            "shipping_usd": "0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bom_cash_50",
+      "mechanism": "bom_bottleneck_and_quantity",
+      "prior": [
+        "1"
+      ],
+      "terminal_choices": [],
+      "research_actions": [],
+      "research_actions_left": 0,
+      "expected_best_actions": [
+        "award:B=10,C=10"
+      ],
+      "expected_incremental_value_usd": "32",
+      "decision_point": "All four suppliers are quote/sample qualified and on time, with deterministic usable units in this probe. A kit needs one controller and one radio. Partial fulfillment down to 10 kits is allowed; excess unmatched parts earn no revenue, and there is no additional shortfall penalty.",
+      "allocation_market": {
+        "bom": {
+          "controller": 1,
+          "radio": 1
+        },
+        "target_kits": 20,
+        "minimum_service_kits": 10,
+        "cash_budget_usd": "50",
+        "revenue_per_kit_usd": "5",
+        "vendors": [
+          {
+            "id": "A",
+            "component": "controller",
+            "moq": 10,
+            "capacity": 20,
+            "order_step": 10,
+            "unit_price_usd": "1",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "B",
+            "component": "controller",
+            "moq": 10,
+            "capacity": 10,
+            "order_step": 10,
+            "unit_price_usd": ".8",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "C",
+            "component": "radio",
+            "moq": 10,
+            "capacity": 10,
+            "order_step": 10,
+            "unit_price_usd": "1",
+            "shipping_usd": "0"
+          },
+          {
+            "id": "D",
+            "component": "radio",
+            "moq": 10,
+            "capacity": 20,
+            "order_step": 10,
+            "unit_price_usd": "3",
+            "shipping_usd": "0"
+          }
+        ]
+      }
+    }
+  ]
+}
