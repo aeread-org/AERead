@@ -422,7 +422,7 @@ cells; no early stop; predeclared slice by stratum; no winner, ranking or
 causal claim, one route. Gates 1-3 pass on the holdout without a key.
 
 **Confirmatory result (2026-09-20).** `evidence/datacenter_development/datacenter_development_v2_world_panel_confirmatory_v1/`,
-with the predeclared analysis sealed in as `reports/confirmatory_analysis.json`:
+with the predeclared analysis sealed in as `reports/confirmatory_analysis.json` (reproduced by `aeread_families.datacenter_development.confirmatory`, DC-T-07):
 72 of 72 cells completed, no operational failure, $5.34 exact. **Admission rate
 over worlds 0.25, 95% world-clustered bootstrap 0.15-0.35** (seeds averaged
 within the world first); 14 of 24 worlds admitted on at least one seed, none on
