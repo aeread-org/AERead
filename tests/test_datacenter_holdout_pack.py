@@ -87,17 +87,26 @@ def test_confirmatory_contract_freezes_on_the_holdout() -> None:
     freeze = json.loads(FREEZE.read_text())
     assert freeze["contract_sha256"] == hashlib.sha256(CONFIRMATORY.read_bytes()).hexdigest()
     assert freeze["pack_sha256"] == contract["expected_pack_sha256"]
-    # The frozen design digest pins the run as executed (Python 3.13). The
-    # driver's worst-case cost is a plain float sum, and Python 3.12 changed
-    # sum() to compensated summation, so the same design digests differently
-    # under 3.10 (DC-T-05). Compare the design field by field instead: every
-    # pin and every run-plan digest must be identical, the cost within a cent.
-    assert freeze["campaign_driver_sha256"] == design["campaign_driver_sha256"]
-    assert freeze["planned_cells"] == design["planned_cells"] == 72
+    # The freeze pins the run as executed, and the record of execution is the
+    # published design inside the sealed bundle, not a design rebuilt from
+    # whatever the family source is today: a run plan pins the family
+    # implementation by digest, so comparing the freeze to a fresh design
+    # would fail on the first family edit after the run (DC-T-06). The fresh
+    # design is held to what is independent of the source: the pack, the
+    # contract, the cell count and the cost, within a cent (DC-T-05).
+    published = json.loads((publication_root_for(contract) / "reports" / "design.json").read_text())
+    assert freeze["campaign_driver_sha256"] == published["campaign_driver_sha256"]
+    assert freeze["frozen_run_plan_sha256s"] == [cell["run_plan_sha256"] for cell in published["cells"]]
+    assert freeze["design_artifact_sha256"] == published["artifact_sha256"]
+    assert freeze["planned_cells"] == design["planned_cells"] == published["planned_cells"] == 72
     assert freeze["independent_cluster_count"] == design["independent_cluster_count"] == 24
     assert freeze["paired_seed_count"] == design["paired_seed_count"] == 3
+    assert design["pack_sha256"] == published["pack_sha256"] == freeze["pack_sha256"]
+    # The design hashes the contract as canonical JSON; the freeze hashes the
+    # file bytes (asserted above). Both name the same contract.
+    assert design["contract_sha256"] == published["contract_sha256"]
+    assert [cell["case_sha256"] for cell in design["cells"]] == [cell["case_sha256"] for cell in published["cells"]]
     assert design["worst_case_declared_cost_usd"] == pytest.approx(14.4, abs=0.01)
-    assert freeze["frozen_run_plan_sha256s"] == [cell["run_plan_sha256"] for cell in design["cells"]]
     assert freeze["output_schema_bounded"] is True
     assert freeze["claims_allowed"]["winner"] is False
 

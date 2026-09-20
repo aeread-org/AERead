@@ -60,6 +60,7 @@ from .stack_environment import (
     SCORER_ID,
     TERM_PARSER_BY_TYPE,
     counter_reason,
+    developer_interface,
     stack_family_manifest,
     terms_acceptable,
 )
@@ -145,15 +146,33 @@ MONTH_INDEXING_NOTE = (
     " Months are numbered from 1: month 1 is the first month of the horizon, and "
     "every month field must be at least 1."
 )
+#: Interface 3 (DC-D-08, DC-D-10): the amendment phase can be declined, and a
+#: walk may say why. Without the first, 22 of the first confirmatory's 72
+#: cells died re-proposing the executed land terms or walking to say that no
+#: amendment was needed.
+AMENDMENT_DECLINE_NOTE = (
+    ' In the land amendment phase you may instead return {"decision": "decline", '
+    '"message": <reason or null>, "terms": null} to keep the executed land agreement '
+    "exactly as signed and proceed to financing; an amendment that changes nothing is "
+    "invalid. A walk ends the project at the outside option and may state its reason "
+    "in message."
+)
 
 
 def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
     """The developer prompt id and text for a case.
 
     A case that opts into `construct_controls` gets the v2 prompt, which adds
-    the month-indexing note; every other case keeps v1 byte for byte, so the
-    sealed campaigns' prompt digests do not move."""
+    the month-indexing note; one that opts into developer interface 3 gets the
+    v3 prompt, which also explains the amendment decline and the walk reason.
+    Every other case keeps v1 byte for byte, so the sealed campaigns' prompt
+    digests do not move."""
 
+    if developer_interface(case_payload) >= 3:
+        return (
+            f"datacenter_{scope_version}_developer_prompt_v3",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE,
+        )
     if "construct_controls" in case_payload:
         return f"datacenter_{scope_version}_developer_prompt_v2", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE
     return f"datacenter_{scope_version}_developer_prompt_v1", DEVELOPER_PROMPT
@@ -186,16 +205,20 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
     scope_version = str(case.payload["scope_version"])
     sequence = SCOPE_CONFIG[scope_version]["sequence"]
     bounded = "construct_controls" in case.payload
+    interface = developer_interface(case.payload)
     schemas: dict[str, Any] = {}
     for key in sequence:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
         if bounded:
             term_schema = _bound_integer_terms(term_schema)
+        decisions = ["offer", "walk"]
+        if key == "land_amendment" and interface >= 3:
+            decisions = ["offer", "decline", "walk"]
         schemas[f"datacenter_{key}_offer_v1"] = {
             "type": "object",
             "properties": {
-                "decision": {"enum": ["offer", "walk"]},
+                "decision": {"enum": decisions},
                 "message": {"type": ["string", "null"]},
                 "terms": {"anyOf": [term_schema, {"type": "null"}]},
             },
@@ -1146,12 +1169,17 @@ def _scripted_result(request: ProviderRequest, output: Mapping[str, Any]) -> Pro
 
 class StackScriptedDeveloperProvider:
     def __init__(
-        self, scripted_developer: Mapping[str, Any], *, policy: str = "scripted"
+        self,
+        scripted_developer: Mapping[str, Any],
+        *,
+        policy: str = "scripted",
+        interface: int = 2,
     ) -> None:
         if policy not in DEVELOPER_POLICIES:
             raise ValueError(f"policy must be one of {DEVELOPER_POLICIES}")
         self._scripted = dict(scripted_developer)
         self._policy = policy
+        self._interface = interface
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "datacenter_stack_scripted_developer":
@@ -1174,10 +1202,13 @@ class StackScriptedDeveloperProvider:
         ):
             # The landowner's amendment counter is the executed land agreement
             # itself (it volunteers no extension). Re-proposing it is a no-op
-            # amendment, so a blind adopter has no amendment to adopt: it
-            # declines and walks, and the project strands at the outside
-            # option, which is the trap the world sets for adopters.
-            output = {"decision": "walk", "message": None, "terms": None}
+            # amendment, so a blind adopter has nothing to adopt. Under
+            # interface 3 it declines the amendment and goes on to copy the
+            # lender's counter, which is what adoption means; under interface
+            # 2 there is no decline and it walks, stranding the project at the
+            # outside option (DC-D-09: that walk says nothing about adoption).
+            decision = "decline" if self._interface >= 3 else "walk"
+            output = {"decision": decision, "message": None, "terms": None}
         elif phase.endswith("_offer"):
             pending = observation.get("pending_counter_terms")
             if pending:
@@ -1239,7 +1270,9 @@ def _providers(setup: DataCenterStackSetup) -> Mapping[str, Any]:
     seats = sorted({COUNTERPART_BY_KEY[key] for key in sequence})
     return {
         "datacenter_stack_scripted_developer": StackScriptedDeveloperProvider(
-            setup.case.payload["scripted_developer"], policy=setup.developer_policy
+            setup.case.payload["scripted_developer"],
+            policy=setup.developer_policy,
+            interface=developer_interface(setup.case.payload),
         ),
         **{
             f"datacenter_stack_scripted_{seat}": StackScriptedCounterpartyProvider(seat)

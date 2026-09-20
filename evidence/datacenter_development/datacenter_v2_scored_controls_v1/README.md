@@ -12,6 +12,7 @@ Gate 3 exit evidence the datacenter QC profile was missing.
 - the reference beats walking away in 25 of 25 cases
 - the reference beats adopting every counter in 25 of 25 cases
 - adopting every counter completes the stack in 1 of 25 cases; on the worlds it ends in developer_walk
+- adopting every counter is admitted (the stack executes and the lender funds it) in 1 of 25 cases
 - on the worlds the reference clears walking away by a median of 54,432,151,312 cents and adoption by a median of 54,432,151,312 cents
 
 `tables/controls.csv` holds one row per case and policy with the sealed run-plan
