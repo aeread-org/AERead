@@ -25,6 +25,7 @@ from .cashflow import ProjectFacts
 from .contracts import ContractSignature, execute_offer, make_offer
 from .stack_cashflow import simulate_development_stack
 from .stack_environment import (
+    DEVELOPER_INTERFACES,
     AGREEMENT_TYPE_BY_KEY,
     COUNTERPART_BY_KEY,
     FAMILY_ID,
@@ -1265,7 +1266,12 @@ def _close_the_bands(policies: dict[str, Any], feasible: Mapping[str, Any]) -> N
 
 
 def _case_document(
-    world: Mapping[str, Any], index: int, *, master_seed: int = MASTER_SEED, split: str = SPLIT
+    world: Mapping[str, Any],
+    index: int,
+    *,
+    master_seed: int = MASTER_SEED,
+    split: str = SPLIT,
+    developer_interface: int = 2,
 ) -> dict[str, Any]:
     slug = f"{world['stratum']}_{world['variant']:03d}"
     scripted = {f"{key}_terms": copy.deepcopy(world["feasible"][key]) for key in SEQUENCE}
@@ -1304,6 +1310,10 @@ def _case_document(
         ),
         "two_sided_price_bands": True,
     }
+    if developer_interface != 2:
+        # Packs generated for developer interface 3 say so in every case; the
+        # sealed packs carry no key and keep their bytes.
+        payload["construct_controls"]["developer_interface"] = developer_interface
     DataCenterStackPlugin(SCOPE_VERSION).validate_payload(payload)
     document = {
         "spec_version": CaseManifest.SPEC_VERSION,
@@ -1329,9 +1339,18 @@ def _case_document(
 
 
 def generate_pack(
-    master_seed: int = MASTER_SEED, *, split: str = SPLIT, pack_id: str = PACK_ID
+    master_seed: int = MASTER_SEED,
+    *,
+    split: str = SPLIT,
+    pack_id: str = PACK_ID,
+    developer_interface: int = 2,
 ) -> dict[str, Any]:
-    """Return the 24 case documents and the sealed pack manifest."""
+    """Return the 24 case documents and the sealed pack manifest.
+
+    ``developer_interface`` selects the interface every case opts into; the
+    worlds themselves are the same for a given master seed, so a pack at
+    interface 3 and one at interface 2 differ only in that key and in every
+    digest that covers it."""
 
     rng = random.Random(master_seed)
     cases: list[dict[str, Any]] = []
@@ -1353,7 +1372,13 @@ def generate_pack(
             else:
                 raise ValueError(f"could not draw a distinct {stratum} variant")
             seen.add(signature)
-            document = _case_document(world, index, master_seed=master_seed, split=split)
+            document = _case_document(
+                world,
+                index,
+                master_seed=master_seed,
+                split=split,
+                developer_interface=developer_interface,
+            )
             cases.append(document)
             entries.append(
                 {
@@ -1383,6 +1408,10 @@ def generate_pack(
         "world_count": len(entries),
         "worlds": entries,
     }
+    if developer_interface != 2:
+        # Recorded only when it departs from the sealed default so that the
+        # committed interface-2 manifests regenerate byte for byte.
+        manifest["developer_interface"] = developer_interface
     manifest["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(manifest)).hexdigest()
     return {"cases": cases, "manifest": manifest}
 
@@ -1397,10 +1426,13 @@ def write_pack(
     master_seed: int = MASTER_SEED,
     split: str = SPLIT,
     pack_id: str = PACK_ID,
+    developer_interface: int = 2,
 ) -> dict[str, Any]:
     root = Path(output_root)
     root.mkdir(parents=True, exist_ok=True)
-    pack = generate_pack(master_seed, split=split, pack_id=pack_id)
+    pack = generate_pack(
+        master_seed, split=split, pack_id=pack_id, developer_interface=developer_interface
+    )
     for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
         (root / entry["file"]).write_text(_dump(document), encoding="utf-8")
     (root / "manifest.json").write_text(_dump(pack["manifest"]), encoding="utf-8")
@@ -1413,6 +1445,7 @@ def check_pack(
     master_seed: int = MASTER_SEED,
     split: str = SPLIT,
     pack_id: str = PACK_ID,
+    developer_interface: int = 2,
 ) -> dict[str, Any]:
     """Confirm the on-disk pack equals a fresh generation from the pinned seed.
 
@@ -1425,7 +1458,9 @@ def check_pack(
     worlds changed."""
 
     root = Path(output_root)
-    pack = generate_pack(master_seed, split=split, pack_id=pack_id)
+    pack = generate_pack(
+        master_seed, split=split, pack_id=pack_id, developer_interface=developer_interface
+    )
     drift: list[str] = []
     for document, entry in zip(pack["cases"], pack["manifest"]["worlds"]):
         path = root / entry["file"]
@@ -1466,13 +1501,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--master-seed", type=int, default=MASTER_SEED)
     parser.add_argument("--split", default=SPLIT, help="case split name; also the output directory under cases/datacenter_development_v1/")
     parser.add_argument("--pack-id", default=PACK_ID)
+    parser.add_argument(
+        "--developer-interface",
+        type=int,
+        default=2,
+        choices=DEVELOPER_INTERFACES,
+        help="developer interface every case opts into (2 = sealed default; 3 = amendment decline and walk reason)",
+    )
     parser.add_argument("--check", action="store_true", help="verify instead of write")
     arguments = parser.parse_args(argv)
+    options = {
+        "master_seed": arguments.master_seed,
+        "split": arguments.split,
+        "pack_id": arguments.pack_id,
+        "developer_interface": arguments.developer_interface,
+    }
     if arguments.check:
-        result = check_pack(arguments.output, master_seed=arguments.master_seed, split=arguments.split, pack_id=arguments.pack_id)
+        result = check_pack(arguments.output, **options)
         print(canonical_json_bytes(result).decode("utf-8"))
         return 0 if result["reproducible"] else 1
-    manifest = write_pack(arguments.output, master_seed=arguments.master_seed, split=arguments.split, pack_id=arguments.pack_id)
+    manifest = write_pack(arguments.output, **options)
     summary = {
         "pack_id": manifest["pack_id"],
         "world_count": manifest["world_count"],

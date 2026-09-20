@@ -38,6 +38,12 @@ from .stack_worlds import PACK_ID, SPLIT, load_pack_manifest
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.datacenter_world_campaign_contract/0.1"
+#: 0.2 differs from 0.1 in one derived number: the design's
+#: ``worst_case_declared_cost_usd`` is summed in integer cents, so the sealed
+#: design digest no longer depends on the interpreter's float summation
+#: (DC-T-05: 72 x 0.20 was 14.39999999999998 on Python 3.10 and 14.4 on 3.13).
+#: 0.1 contracts keep the float sum so their sealed designs still reproduce.
+CONTRACT_SCHEMA_VERSIONS = (CONTRACT_SCHEMA_VERSION, "aeread.datacenter_world_campaign_contract/0.2")
 CAMPAIGN_ID = "datacenter_development_v2_world_panel_v1"
 CONDITIONS = ("controlled_developer",)
 LIVE_PROFILE_COUNT = 1
@@ -134,7 +140,7 @@ def load_contract(path: Path | str = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
     }
     if set(contract) - {"pack_split"} != expected_fields:
         raise ValueError("campaign contract fields differ")
-    if contract["schema_version"] != CONTRACT_SCHEMA_VERSION:
+    if contract["schema_version"] not in CONTRACT_SCHEMA_VERSIONS:
         raise ValueError("campaign contract schema version differs")
     campaign_id = contract["campaign_id"]
     if not isinstance(campaign_id, str) or not campaign_id.startswith("datacenter_development_v2_world_panel"):
@@ -378,7 +384,7 @@ def build_design(
                 "declared_cell_max_cost_usd": live_profiles * per_profile,
             }
         )
-    declared_maximum = sum(row["declared_cell_max_cost_usd"] for row in cells)
+    declared_maximum = _declared_maximum(contract, cells)
     campaign_maximum = float(contract["execution"]["campaign_max_cost_usd"])
     if declared_maximum > campaign_maximum:
         raise ValueError("resolved design exceeds the campaign cost ceiling")
@@ -400,6 +406,15 @@ def build_design(
             "cells": cells,
         }
     )
+
+
+def _declared_maximum(contract: Mapping[str, Any], cells: Sequence[Mapping[str, Any]]) -> float:
+    """The design's worst-case cost, summed the way the contract version says."""
+
+    caps = [float(row["declared_cell_max_cost_usd"]) for row in cells]
+    if contract["schema_version"] == CONTRACT_SCHEMA_VERSION:
+        return sum(caps)
+    return sum(round(cap * 100) for cap in caps) / 100
 
 
 # --------------------------------------------------------------------------

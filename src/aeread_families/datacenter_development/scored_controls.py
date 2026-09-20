@@ -65,6 +65,7 @@ COLUMNS = (
     "policy",
     "termination_reason",
     "project_completed",
+    "project_constraints_satisfied",
     "logical_actions",
     "developer_equity_npv_cents",
     "total_project_npv_cents",
@@ -97,6 +98,9 @@ async def _run(case_path: Path, policy: str, evidence_root: Path) -> dict[str, A
         "policy": policy,
         "termination_reason": outcome["termination_reason"],
         "project_completed": bool(outcome["project_completed"]),
+        # Admission, not completion: an executed stack the lender will not
+        # fund is what the adopter is expected to produce on a trap world.
+        "project_constraints_satisfied": bool(outcome["project_constraints_satisfied"]),
         "logical_actions": execution.episode_result.logical_action_count,
         "developer_equity_npv_cents": int(outcome["developer_equity_npv_cents"]),
         "total_project_npv_cents": int(outcome["total_project_npv_cents"]),
@@ -150,6 +154,7 @@ def summarize(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
                 "reference_beats_walk_away": scripted > walk,
                 "reference_beats_adoption": scripted > adopt,
                 "adoption_completes_the_stack": bool(by_policy["adopt_every_counter"]["project_completed"]),
+                "adoption_admitted": bool(by_policy["adopt_every_counter"]["project_constraints_satisfied"]),
                 "adoption_termination": by_policy["adopt_every_counter"]["termination_reason"],
             }
         )
@@ -165,6 +170,7 @@ def summarize(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "reference_beats_walk_away_in": sum(item["reference_beats_walk_away"] for item in per_case),
         "reference_beats_adoption_in": sum(item["reference_beats_adoption"] for item in per_case),
         "adoption_completes_the_stack_in": sum(item["adoption_completes_the_stack"] for item in per_case),
+        "adoption_admitted_in": sum(item["adoption_admitted"] for item in per_case),
         "world_pack": {
             "world_count": len(world_rows),
             "median_reference_over_walk_away_cents": (
@@ -212,6 +218,7 @@ Gate 3 exit evidence the datacenter QC profile was missing.
 - the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} cases
 - the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} cases
 - adopting every counter completes the stack in {summary['adoption_completes_the_stack_in']} of {summary['case_count']} cases; on the worlds it ends in {', '.join(world['adoption_terminations'])}
+- adopting every counter is admitted (the stack executes and the lender funds it) in {summary['adoption_admitted_in']} of {summary['case_count']} cases
 - on the worlds the reference clears walking away by a median of {world['median_reference_over_walk_away_cents']:,} cents and adoption by a median of {world['median_reference_over_adoption_cents']:,} cents
 
 `tables/controls.csv` holds one row per case and policy with the sealed run-plan

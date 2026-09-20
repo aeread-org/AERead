@@ -96,6 +96,9 @@ def test_the_scored_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
     assert summary["all_receipts_included"] and summary["all_replays_verified"]
     assert summary["reference_beats_walk_away_in"] == 25
     assert summary["reference_beats_adoption_in"] == 25
+    # On the sealed pack the adopter walks at the amendment (DC-D-09), so the
+    # only admitted adoption is the curated case's.
+    assert summary["adoption_completes_the_stack_in"] == summary["adoption_admitted_in"] == 1
     for relative in ("tables/controls.csv", "reports/summary.json", "README.md"):
         assert (tmp_path / "bundle" / relative).read_bytes() == (DEFAULT_BUNDLE_ROOT / relative).read_bytes(), relative
     fresh = json.loads((tmp_path / "bundle" / "publication_manifest.json").read_text())

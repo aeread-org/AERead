@@ -114,20 +114,35 @@ PRICE_BAND_FIELDS = frozenset(
 )
 
 
+#: Developer interface versions a case may opt into through
+#: ``construct_controls.developer_interface``. Every sealed case is 2. Version 3
+#: adds a ``decline`` to the land-amendment phase, which keeps the executed land
+#: agreement and proceeds to financing (DC-D-10: 22 of the first confirmatory's
+#: 72 cells died there re-proposing the executed terms or "walking" to say no
+#: amendment was needed), and lets a walk carry its reason (DC-D-08).
+DEVELOPER_INTERFACES = (2, 3)
+
+
+def developer_interface(family_case: Mapping[str, Any]) -> int:
+    """The developer interface a case opts into; 2 unless it says otherwise."""
+
+    controls = family_case.get("construct_controls") or {}
+    return int(controls.get("developer_interface", 2))
+
+
 def _construct_controls(value: Any) -> dict[str, Any] | None:
     """Parse the optional ``construct_controls`` block, or return None."""
 
     if value is None:
         return None
-    controls = _exact(
-        value,
-        {
-            "baseline_must_dominate_outside_option",
-            "minimum_baseline_margin_cents",
-            "two_sided_price_bands",
-        },
-        "construct_controls",
-    )
+    fields = {
+        "baseline_must_dominate_outside_option",
+        "minimum_baseline_margin_cents",
+        "two_sided_price_bands",
+    }
+    if isinstance(value, dict) and "developer_interface" in value:
+        fields.add("developer_interface")
+    controls = _exact(value, fields, "construct_controls")
     for flag in ("baseline_must_dominate_outside_option", "two_sided_price_bands"):
         if not isinstance(controls[flag], bool):
             raise ValueError(f"construct_controls.{flag} must be a boolean")
@@ -135,6 +150,11 @@ def _construct_controls(value: Any) -> dict[str, Any] | None:
     if isinstance(margin, bool) or not isinstance(margin, int) or margin < 0:
         raise ValueError(
             "construct_controls.minimum_baseline_margin_cents must be a non-negative integer"
+        )
+    interface = controls.get("developer_interface", 2)
+    if isinstance(interface, bool) or interface not in DEVELOPER_INTERFACES:
+        raise ValueError(
+            f"construct_controls.developer_interface must be one of {DEVELOPER_INTERFACES}"
         )
     return controls
 
@@ -604,10 +624,17 @@ class DataCenterStackPlugin:
 
     def phases(self, family_case) -> tuple[PhaseSpec, ...]:
         phases: list[PhaseSpec] = []
+        interface = developer_interface(family_case)
         for index, key in enumerate(self.sequence):
             counterpart = COUNTERPART_BY_KEY[key]
             maximum = family_case["negotiation"]["max_rounds"][key]
             next_key = self.sequence[index + 1] if index + 1 < len(self.sequence) else None
+            # A declined amendment skips the landowner and goes straight to
+            # the next agreement; the scheduler refuses any transition the
+            # phase does not declare, so the successor is declared here.
+            after_offer: tuple[str, ...] = (_phase_id(key, "response"),)
+            if key == "land_amendment" and interface >= 3 and next_key is not None:
+                after_offer += (_phase_id(next_key, "offer"),)
             phases.extend(
                 (
                     PhaseSpec(
@@ -618,7 +645,7 @@ class DataCenterStackPlugin:
                         {"developer": f"datacenter_{key}_offer_v1"},
                         maximum,
                         "family_defined",
-                        (_phase_id(key, "response"),),
+                        after_offer,
                     ),
                     PhaseSpec(
                         _phase_id(key, "response"),
@@ -712,7 +739,8 @@ class DataCenterStackPlugin:
         return observation
 
     def parse_action(self, family_case, state, seat, phase, response) -> ParseResult:
-        del family_case, state, seat
+        del state, seat
+        interface = developer_interface(family_case)
         if not isinstance(response, CanonicalResponse):
             return ParseResult.failure("noncanonical_response")
         try:
@@ -725,8 +753,22 @@ class DataCenterStackPlugin:
         try:
             if phase.phase_id.endswith("_offer"):
                 _exact(value, {"decision", "message", "terms"}, "offer_action")
-                if value["decision"] == "walk" and value["message"] is None and value["terms"] is None:
-                    return ParseResult.success({"decision": "walk"})
+                message = value["message"]
+                stated = isinstance(message, str) and bool(message.strip())
+                if value["decision"] == "walk" and value["terms"] is None:
+                    if message is None:
+                        return ParseResult.success({"decision": "walk"})
+                    if interface >= 3 and stated:
+                        # The reason enters the public record (DC-D-08): under
+                        # interface 2 a walk that explains itself is malformed.
+                        return ParseResult.success({"decision": "walk", "message": message})
+                if (
+                    interface >= 3
+                    and value["decision"] == "decline"
+                    and value["terms"] is None
+                    and (message is None or stated)
+                ):
+                    return ParseResult.success({"decision": "decline", "message": message})
                 if value["decision"] != "offer" or not isinstance(value["message"], str) or not value["message"].strip():
                     raise ValueError("malformed offer")
                 terms = _terms(key, value["terms"])
@@ -751,6 +793,13 @@ class DataCenterStackPlugin:
         del seat
         key = self._phase_key(phase.phase_id)
         if action["decision"] == "walk":
+            return LegalityResult.legal_action()
+        if action["decision"] == "decline":
+            # Only an amendment can be declined: every other agreement is
+            # either signed or walked from. The parser admits the decision
+            # only under interface 3, so a sealed case never reaches here.
+            if key != "land_amendment" or not phase.phase_id.endswith("_offer"):
+                return LegalityResult.illegal("decline_only_amends")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_offer"):
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
@@ -793,10 +842,23 @@ class DataCenterStackPlugin:
             next_state["temporal_violations"].append(str(code))
             return TransitionResult(next_state, None, {"valid": False, "failure_code": code})
         action = envelope.action
+        if action["decision"] == "decline":
+            # The executed land agreement stands as signed; the stack moves
+            # on to the next agreement. The list is created here rather than
+            # in the initial state so that sealed interface-2 episodes keep
+            # their state bytes.
+            next_state.setdefault("declined", []).append(key)
+            next_state["pending_counter_terms"][key] = None
+            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "decline", "message": action.get("message")})
+            next_key = self.sequence[self.sequence.index(key) + 1]
+            return TransitionResult(next_state, _phase_id(next_key, "offer"), {"valid": True, "decision": "decline"})
         if action["decision"] in {"walk", "reject"}:
             next_state["finished"] = True
             next_state["termination_reason"] = f"{seat}_{action['decision']}"
-            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action.get("offer_id")})
+            entry = {"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action.get("offer_id")}
+            if "message" in action:
+                entry["message"] = action["message"]
+            next_state["public_history"].append(entry)
             return TransitionResult(next_state, None, {"valid": True, "decision": action["decision"]})
         if phase.phase_id.endswith("_offer"):
             offer = _make_offer(
@@ -866,7 +928,10 @@ class DataCenterStackPlugin:
         return _plain(state) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
-        completed = all(key in terminal["executed"] for key in self.sequence)
+        declined = tuple(terminal.get("declined") or ())
+        completed = all(
+            key in terminal["executed"] or key in declined for key in self.sequence
+        )
         result = {
             "scope_version": self.scope_version,
             "project_completed": completed,
@@ -882,6 +947,8 @@ class DataCenterStackPlugin:
             "total_project_npv_cents": family_case["outside_option"]["total_project_npv_cents"],
             "project_outcome": None,
         }
+        if declined:
+            result["declined_agreements"] = list(declined)
         if not completed:
             return result
         executed = {
@@ -889,9 +956,10 @@ class DataCenterStackPlugin:
             for key, value in terminal["executed"].items()
         }
         amendment_valid = True
-        if self.scope_version == "v2":
+        amended = self.scope_version == "v2" and "land_amendment" not in declined
+        if amended:
             apply_executed_amendment(executed["land"], executed["land_amendment"])
-        land_key = "land_amendment" if self.scope_version == "v2" else "land"
+        land_key = "land_amendment" if amended else "land"
         stack = simulate_development_stack(
             ProjectFacts.from_dict(family_case["project_facts"]),
             service_agreement=executed["service"],
@@ -928,7 +996,9 @@ class DataCenterStackPlugin:
 
 __all__ = [
     "COUNTERPART_BY_KEY",
+    "DEVELOPER_INTERFACES",
     "DataCenterStackPlugin",
+    "developer_interface",
     "FAMILY_ID",
     "SCORER_ID",
     "SCOPE_CONFIG",
