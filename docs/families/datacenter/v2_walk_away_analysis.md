@@ -308,3 +308,25 @@ admission, which is binary. The confirmatory therefore runs under a new
 identity with the bounded schema and v2 prompt (#195), and is sized on 24
 worlds.
 
+## 12. The confirmatory on the held-out pack
+
+Frozen before any outcome (`configs/…confirmatory_v1.freeze.json`), 24 held-out
+worlds × 3 seeds × Gemini 3.8 Flash on the bounded schema and v2 prompt, $5.34.
+
+| | |
+|---|---|
+| cells | 72 of 72 completed, 0 operational failures |
+| **admission rate over worlds** | **0.25** (95% world-clustered bootstrap 0.15–0.35) |
+| worlds admitted on any seed / on all seeds | 14 / 0 of 24 |
+| admitted cells vs the scripted reference | −2.2 billion cents on average (95% −2.9 to −1.5); 3 of 18 above it |
+| excluded | 21 completed but unfinanced (the trap), 16 no-op amendments, 12 walks with a reason typed malformed (DC-D-08), 5 non-JSON |
+| strata | delayed revenue 6/12, restrictive draws 5/12, covenant cliff 3/12, liability transfer 3/12, revenue without bankability 1/12, verbal/written divergence 0/12 |
+
+The bounded schema did its job — the month-0 deaths are gone — and what
+remains is the model: it strands one stack in three on financing it could
+have read, re-proposes the executed land terms as its amendment one time in
+four, and when it does close it lands a little under the floor the scripted
+developer reaches. The two harness gaps that bias the rate down (DC-D-08 and
+the no-op amendment being an invalid action rather than a decline) are the
+next identity's work, and the number is reported as run.
+

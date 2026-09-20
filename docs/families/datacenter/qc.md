@@ -378,7 +378,7 @@ one project.
 
 ## 5. Confirmatory reliability and publication
 
-**Status: partial** (the variance pilot has run; nothing is frozen).
+**Status: passed for the confirmatory track** (`datacenter_development_v2_world_panel_confirmatory_v1`), `partial` for the family: one route, descriptive, and the Gate 1-4 blockers still stand.
 
 **Design contract (2026-09-19).** `configs/datacenter_development_v2_world_panel_v1.json`
 with `world_campaign.py`: the 24-world pack pinned by digest, one route
@@ -411,6 +411,22 @@ interval; secondary: mean delta from the scripted reference over admitted
 cells; seeds averaged within the world; missingness ceiling 10% of planned
 cells; no early stop; predeclared slice by stratum; no winner, ranking or
 causal claim, one route. Gates 1-3 pass on the holdout without a key.
+
+**Confirmatory result (2026-09-20).** `evidence/datacenter_development/datacenter_development_v2_world_panel_confirmatory_v1/`,
+with the predeclared analysis sealed in as `reports/confirmatory_analysis.json`:
+72 of 72 cells completed, no operational failure, $5.34 exact. **Admission rate
+over worlds 0.25, 95% world-clustered bootstrap 0.15-0.35** (seeds averaged
+within the world first); 14 of 24 worlds admitted on at least one seed, none on
+all three. Admitted cells sit 2.2 billion cents below the scripted reference on
+average (95% -2.9 to -1.5 billion; 3 of 18 above it). Excluded: 21 completed
+stacks the lender would not fund, 16 no-op amendments, 12 walks with a stated
+reason typed malformed (DC-D-08), 5 non-JSON outputs. Verbal/written divergence
+admitted 0 of 12; revenue without bankability 1 of 12. Every guarded quantity
+has its failing counterexample: the adopt-every-counter control fails admission
+on every world and walk-away scores the outside option (`datacenter_v2_scored_controls_v1`).
+What the number may be read as: one route's descriptive admission rate and
+reference gap on held-out worlds, biased down by the two harness gaps the next
+identity closes; not a winner, a ranking, or a causal claim.
 
 Before that pilot, no step of the live sequence had been attempted: there is no declared
 variance pilot, no confirmatory freeze artifact, no holdout table, and no
