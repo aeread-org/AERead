@@ -52,8 +52,13 @@ def test_interface_four_is_the_v3_prompt_plus_the_rules_and_nothing_else() -> No
     assert "maximum" not in loan3["maximum_loan_to_value_bps"]
     assert loan4["maximum_loan_to_value_bps"]["maximum"] == 10_000 and loan4["spread_bps"]["maximum"] == 100_000
     assert loan4["maximum_commitment_cents"].get("maximum") is None  # only basis-point terms have ceilings
-    stripped = json.loads(json.dumps(s4).replace(', "maximum": 10000', "").replace(', "maximum": 100000', ""))
-    assert stripped == s3
+    def without_ceilings(node):
+        if isinstance(node, dict):
+            return {k: without_ceilings(v) for k, v in node.items() if k != "maximum"}
+        if isinstance(node, list):
+            return [without_ceilings(v) for v in node]
+        return node
+    assert without_ceilings(s4) == s3
     plugin = DataCenterStackPlugin("v2")
     a, b = plugin.validate_payload(three.payload), plugin.validate_payload(four.payload)
     assert [p.next_phases for p in plugin.phases(a)] == [p.next_phases for p in plugin.phases(b)]
