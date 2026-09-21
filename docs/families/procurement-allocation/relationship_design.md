@@ -1,7 +1,7 @@
 # Procurement over periods: the award as a relationship
 
-**Status:** built, offline-verified, one live pilot; no campaign identity
-sealed. Implements §4 of the [economic primitives extension
+**Status:** built, offline-verified, one live pilot and one three-seed
+variance run; no campaign identity sealed as evidence. Implements §4 of the [economic primitives extension
 design](../../research/economic_primitives_extension_design.md) (PR #213).
 
 **What it adds.** The single-period family ends at `submit_award`. A case
@@ -242,12 +242,62 @@ traceback from the per-cell provider client's teardown, after every cell had
 completed and sealed. The client is now closed inside the loop; the plan's
 source hash for the tool records the bytes the run was made with.
 
+### 6.1 Variance run: the same six worlds at three seeds
+
+`procurement_allocation_relationship_gemini38_flash_variance_v1`, run
+2026-09-21 at commit 56437642 on the same route and contract, seeds 73201,
+73202 and 73203. A seed sets the inference seed and is re-sealed into the
+world's `delivery_seed`, so the buyer's history differs between seeds from
+period two on while the bound and references do not. Eighteen of eighteen
+cells completed, every receipt replayed live and re-audited from disk,
+$0.7958 reported, 72 of 72 periods awarded, 0 counters, 0 inquiries.
+
+| World | Bound | Myopic | Regret by seed | Mean | Against myopic |
+|---|---:|---:|---|---:|---:|
+| `loyalty_investment` | 413.14 | 388.60 | 21.09, 21.09, 21.09 | 21.09 | +3.45 |
+| `qualification_investment` | 401.85 | 380.78 | 44.39, 44.39, 44.39 | 44.39 | −23.32 |
+| `demand_ramp` | 422.09 | 395.21 | 37.68, 20.47, 20.47 | 26.21 | +0.67 |
+| `incumbent_capacity` | 407.51 | 380.78 | 50.05, 50.05, 50.05 | 50.05 | −23.32 |
+| `retaliation_trap` | 416.83 | 392.30 | 21.65, 20.84, 46.14 | 29.54 | −5.00 |
+| `unreliable_incumbent` | 413.19 | 392.12 | 43.61, 43.61, 43.61 | 43.61 | −22.54 |
+
+Mean regret over worlds $35.81, 95% world-clustered bootstrap 27.24 to
+44.06. Mean margin against the myopic reference −$11.68, 95% interval
+−20.14 to −2.40: on this route the buyer sits below a period-by-period
+optimizer that negotiates, and the interval excludes zero over six worlds.
+
+**Seeds were repeats on four worlds and route draws on two.** The delivery
+seed is hidden from the buyer and the period-one prompt is byte-identical
+across seeds, so a deterministic route returns the same episode; four
+worlds did, to the cent. On `demand_ramp` and `retaliation_trap` the three
+seeds produced three distinct action routines, one of which quoted a third
+supplier and paid for it ($17 and $25 under the other two). That variance
+is the route's, not the environment's: the delivery draws never changed a
+decision anywhere. On `loyalty_investment` all three seeds chose the
+partner supplier where the single-seed pilot on identical bytes had chosen
+the spot supplier, which is nondeterminism between runs rather than between
+seeds. A variance design for this family therefore cannot rely on the
+delivery seed to make replicates; the independent unit is the world, and a
+tighter interval needs more worlds, not more seeds.
+
+**What moved and what did not.** Every cell ran the same shape as the
+pilot: sample, quote, award, re-quote, re-award, and never a counter. The
+un-negotiated floor is again $22.5–23.3 on the three worlds where the model
+matched the myopic reference's suppliers. Where it chose the relationship
+supplier (`loyalty_investment` on all three seeds, `demand_ramp` on two,
+`retaliation_trap` on two) it finished within $5 of that reference without
+negotiating, which says the loyalty discount roughly pays for the missing
+negotiation and no more.
+
 ## 7. Open
 
 - Solicitation (§2.1) and the concession schedule (§2.2), so that finding a
   supplier and pushing back on one become decisions with a price.
 - A variance pilot: the six worlds at three or more seeds on one route, then
   a frozen confirmatory on a held-out pack, before any interval is quoted.
+- A held-out pack of new worlds, generated after the prompt and tool are
+  frozen and not read before the run; the six worlds here were tuned by hand
+  against the screen, and more worlds is what the interval needs.
 - Whether the myopic reference should also *shop*, quoting every supplier
   each period and paying the retaliation it provokes; today it quotes only
   what it awards, which makes it a bound on period-wise play rather than a
