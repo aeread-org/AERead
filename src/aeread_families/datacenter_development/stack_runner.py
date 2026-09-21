@@ -170,14 +170,18 @@ AMENDMENT_DECLINE_NOTE = (
 #: the utility's; each proposer names only its own share.
 JOINT_VENTURE_NOTE = (
     " Before the power agreement comes a joint venture: one utility feeder can serve "
-    "your site and the adjacent developer's. In jv_developer_offer return "
+    "your site and the adjacent developer's. The observation's jv_package gives the feeder's "
+    "capacity and cost and each site's capacity; partner_announcement is what the adjacent "
+    "developer has stated it will fund, before you act. In jv_developer_offer return "
     '{"decision": "offer", "share_bps": <basis points of feeder_cost_cents you will fund>, '
     '"message": <text>} or {"decision": "decline", "share_bps": null, "message": <text or null>}; '
-    "the partner names its own share at the same time and the utility signs the feeder only "
-    "when the two shares fund all of it. In jv_developer_commit return "
-    '{"decision": "sign" | "decline", "offer_id": accepted_offer_id}. A declined joint venture '
-    "does not end the project: each site then pays the utility's solo interconnection price "
-    "in its own power agreement."
+    "the partner names its own share at the same time, the utility signs the feeder only "
+    "when the two shares fund all of it, and a partner share beyond what you left unfunded "
+    "is reduced to that. Once the joint venture is signed, your share is the whole "
+    "interconnection charge of your power agreement and the utility's power package states "
+    'it. In jv_developer_commit return {"decision": "sign" | "decline", "offer_id": '
+    "accepted_offer_id}. A declined or unfunded joint venture does not end the project: each "
+    "site then pays the utility's solo interconnection price in its own power agreement."
 )
 
 
@@ -193,7 +197,7 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     if scope_version == "v3":
         # The joint venture presupposes interface 3 (a decline exists).
         return (
-            "datacenter_v3_developer_prompt_v3",
+            "datacenter_v3_developer_prompt_v3.1",
             DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE,
         )
     if developer_interface(case_payload) >= 3:
@@ -1292,6 +1296,14 @@ class StackScriptedDeveloperProvider:
                 terms = {**self._scripted[f"{key}_terms"], "conditions_precedent": []}
             else:
                 terms = self._scripted[f"{key}_terms"]
+            jv = (observation.get("executed_agreements") or {}).get("jv")
+            if key == "power" and jv is not None and not pending:
+                # The case scripts the solo interconnection price; a signed
+                # joint venture replaces it with the developer's share of the
+                # feeder, which is what the utility's package now states.
+                jv_terms = jv["terms"]
+                share = int(jv_terms["feeder_cost_cents"]) * int(jv_terms["developer_share_bps"]) // 10_000
+                terms = {**terms, "interconnection_cost_cents": share}
             output = {"decision": "offer", "message": f"Written {key} proposal.", "terms": terms}
         elif phase.endswith("_commit"):
             output = {"decision": "sign", "offer_id": observation["accepted_offer_id"]}
@@ -1388,7 +1400,9 @@ class StackScriptedPartnerProvider:
             terms = latest.get("terms") or {}
             partner_share = int(terms.get("partner_share_bps", -1))
             accepted = observation["accepted_offer_id"]
-            if policy == "pro_rata" and partner_share != own_share:
+            if policy == "pro_rata" and partner_share > own_share:
+                # Pro rata pays its capacity share and no more; a developer
+                # that funds more than its own share is not refused for it.
                 output = {"decision": "decline", "offer_id": accepted}
             else:
                 output = {"decision": "sign", "offer_id": accepted}

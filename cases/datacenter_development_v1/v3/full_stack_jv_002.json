@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.v3.full_stack_jv_002",
-  "content_sha256": "4f878586784c662375f81e81a61a6f47ba931213a28454496f858f7b0c294611",
+  "content_sha256": "d1072abe209b1dd7eaa4d713d8c2f65395e367210731e5294ab6967b88636ada",
   "episode": {
     "max_logical_actions": 44,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 40000,
-      "developer_equity_npv_cents": -72000,
+      "developer_equity_npv_cents": -73000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": -32000
+      "total_project_npv_cents": -33000
     },
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
@@ -87,11 +87,11 @@
             "site_control"
           ],
           "developer_capacity_kw": 1000,
-          "developer_share_bps": 5000,
-          "feeder_capacity_kw": 2000,
-          "feeder_cost_cents": 34000,
-          "partner_capacity_kw": 1000,
-          "partner_share_bps": 5000
+          "developer_share_bps": 4000,
+          "feeder_capacity_kw": 2500,
+          "feeder_cost_cents": 45000,
+          "partner_capacity_kw": 1500,
+          "partner_share_bps": 6000
         },
         "maximums": {
           "developer_share_bps": 10000,
@@ -219,21 +219,21 @@
           "energization_month": 4,
           "energy_charge_cents_per_kwh": 0,
           "initial_term_months": 24,
-          "interconnection_cost_cents": 400000,
+          "interconnection_cost_cents": 48000,
           "monthly_demand_charge_cents_per_kw": 5
         },
         "maximums": {
           "developer_security_cents": 0,
           "energization_month": 4,
           "energy_charge_cents_per_kwh": 0,
-          "interconnection_cost_cents": 400000,
+          "interconnection_cost_cents": 48000,
           "monthly_demand_charge_cents_per_kw": 5
         },
         "minimums": {
           "contracted_capacity_kw": 1000,
           "developer_security_cents": 0,
           "energy_charge_cents_per_kwh": 0,
-          "interconnection_cost_cents": 400000,
+          "interconnection_cost_cents": 48000,
           "monthly_demand_charge_cents_per_kw": 4
         },
         "required_conditions": [
@@ -398,11 +398,11 @@
           "site_control"
         ],
         "developer_capacity_kw": 1000,
-        "developer_share_bps": 5000,
-        "feeder_capacity_kw": 2000,
-        "feeder_cost_cents": 34000,
-        "partner_capacity_kw": 1000,
-        "partner_share_bps": 5000
+        "developer_share_bps": 4000,
+        "feeder_capacity_kw": 2500,
+        "feeder_cost_cents": 45000,
+        "partner_capacity_kw": 1500,
+        "partner_share_bps": 6000
       },
       "land_amendment_fields": [
         "site_control_expiry_month"
@@ -466,7 +466,7 @@
         "energization_month": 4,
         "energy_charge_cents_per_kwh": 0,
         "initial_term_months": 24,
-        "interconnection_cost_cents": 400000,
+        "interconnection_cost_cents": 48000,
         "monthly_demand_charge_cents_per_kw": 4
       },
       "service_terms": {

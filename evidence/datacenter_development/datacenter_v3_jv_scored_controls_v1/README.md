@@ -13,11 +13,14 @@ offline.
 - the reference beats walking away in 3 of 3 cases
 - the reference beats adopting every counter in 3 of 3 cases
 - adopting every counter is admitted in 3 of 3 cases
-- the free rider is admitted in 1 of 3 cases -- only where the partner covers the whole feeder
+- the free rider is admitted in 3 of 3 cases; the reference clears it by 30,000, 30,000, -18,000 cents per case
 
-The reference is the fair share, not the highest NPV: against a generous
-partner the free rider is admitted and beats it, which is the exploitation
-stratum by design; against a pro-rata or conditional partner nobody funds the
-feeder and the rider's solo stack cannot finance. This bundle is derived only
-from committed cases and the family engine and is regenerated, never edited.
-No claim about any model is made here.
+The reference is the fair share, not the highest NPV. The partner states its
+position before anyone offers, so the developer knows what a free ride is
+worth: against a generous partner the rider is admitted and beats the reference
+by its whole share of the feeder, which is the exploitation stratum by design;
+against a pro-rata or conditional partner nobody funds the feeder, the rider's
+solo stack still finances at the utility's solo interconnection price, and it
+trails the reference by that premium. This bundle is derived only from
+committed cases and the family engine and is regenerated, never edited. No
+claim about any model is made here.

@@ -578,6 +578,55 @@ def _capacity_share_bps(package: Mapping[str, Any], seat: str) -> int:
     return own * 10_000 // total
 
 
+def _policy_for(
+    family_case: Mapping[str, Any], state: Mapping[str, Any], key: str
+) -> dict[str, Any]:
+    """The counterparty's policy for this agreement, given what is executed.
+
+    Once a joint venture funds the feeder, the utility's power package carries
+    no interconnection charge of its own: the band and the counter collapse to
+    the developer's share of the feeder (DC-D-12). Before that, and for every
+    other agreement, the policy is the case's as declared, so the solo price
+    still binds a developer whose coalition failed.
+    """
+
+    policy = _plain(family_case["policies"][key])
+    jv = state["executed"].get("jv") if key == "power" else None
+    if jv is not None:
+        terms = _executed_from_dict(jv).terms
+        cost = terms.share_cost_cents(terms.developer_share_bps)
+        for block in ("minimums", "maximums", "counter_terms"):
+            policy[block]["interconnection_cost_cents"] = cost
+    return policy
+
+
+def _partner_announcement(family_case: Mapping[str, Any]) -> dict[str, Any]:
+    """What the adjacent developer states it will fund, before anyone offers.
+
+    The solicitation the design calls for, in its smallest form: one true
+    statement of the scripted partner's position, visible to the developer
+    ahead of the joint offer. What it is worth is the developer's judgment.
+    """
+
+    package = _jv_package(family_case)
+    own = _capacity_share_bps(package, "partner")
+    policy = family_case["scripted_partner"]["policy"]
+    if policy == "generous":
+        return {
+            "share_bps": 10_000,
+            "statement": "We will fund whatever share of the feeder cost you leave unfunded, up to all of it.",
+        }
+    if policy == "conditional":
+        return {
+            "share_bps": own,
+            "statement": f"We will fund our capacity share of the feeder cost, {own} basis points, provided you fund yours; if you offer less than your share, we fund nothing.",
+        }
+    return {
+        "share_bps": own,
+        "statement": f"We will fund our capacity share of the feeder cost, {own} basis points, and no more.",
+    }
+
+
 class DataCenterStackPlugin:
     """Generic versioned phase graph for V1 and V2 agreement stacks."""
 
@@ -886,6 +935,7 @@ class DataCenterStackPlugin:
                 # The feeder the utility would build, without the shares: the
                 # developer works out what a fair share is from the capacities.
                 observation["jv_package"] = _plain(_jv_package(family_case))
+                observation["partner_announcement"] = _partner_announcement(family_case)
         elif key in CO_PROPOSER_BY_KEY and seat == CO_PROPOSER_BY_KEY[key]:
             package = _jv_package(family_case)
             observation.update(
@@ -901,7 +951,7 @@ class DataCenterStackPlugin:
                 }
             )
         else:
-            observation["private_policy"] = _plain(family_case["policies"][key])
+            observation["private_policy"] = _policy_for(family_case, state, key)
             if seat == "customer":
                 observation["private_demand"] = {
                     "usage_kw_by_month": _plain(
@@ -962,10 +1012,12 @@ class DataCenterStackPlugin:
                     and (message is None or stated)
                 ):
                     return ParseResult.success({"decision": "decline", "message": message})
-                if value["decision"] != "offer" or not isinstance(value["message"], str) or not value["message"].strip():
+                if value["decision"] != "offer" or not (message is None or isinstance(message, str)):
                     raise ValueError("malformed offer")
+                # The schema declares the message nullable (walks and declines
+                # carry null); an offer without one is an offer (DC-D-14).
                 terms = _terms(key, value["terms"])
-                return ParseResult.success({"decision": "offer", "message": value["message"], "terms": _plain(terms)})
+                return ParseResult.success({"decision": "offer", "message": message if stated else "", "terms": _plain(terms)})
             if phase.phase_id.endswith("_response"):
                 _exact(value, {"decision", "offer_id", "message", "terms"}, "response_action")
                 if value["decision"] in {"accept", "reject"} and isinstance(value["offer_id"], str) and value["terms"] is None:
@@ -1027,7 +1079,7 @@ class DataCenterStackPlugin:
                     for item in state["offers"]
                     if item["offer_id"] == action["offer_id"]
                 )
-                if not terms_acceptable(offer.terms, family_case["policies"][key]):
+                if not terms_acceptable(offer.terms, _policy_for(family_case, state, key)):
                     return LegalityResult.illegal("controlled_policy_rejects_offer")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_commit"):
@@ -1159,13 +1211,20 @@ class DataCenterStackPlugin:
             raise ValueError(f"scripted partner produced an invalid {phase.phase_id} action")
         proposals = {"developer": developer.action, partner: partner_envelope.action}
         if phase.phase_id.endswith("_offer"):
+            if next_state["rounds"][key] == 0:
+                announcement = _partner_announcement(family_case)
+                next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": partner, "agreement_key": key, "decision": "announce", "share_bps": announcement["share_bps"], "message": announcement["statement"]})
             for seat, action in proposals.items():
                 next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "share_bps": action.get("share_bps"), "message": action.get("message")})
             declined = [seat for seat, action in proposals.items() if action["decision"] == "decline"]
             if declined:
                 return self._coalition_fails(next_state, key, phase, "declined_by_" + "_and_".join(sorted(declined)))
             package = _jv_package(family_case)
-            terms = _terms(key, {**package, "developer_share_bps": proposals["developer"]["share_bps"], f"{partner}_share_bps": proposals[partner]["share_bps"]})
+            developer_share = int(proposals["developer"]["share_bps"])
+            # A partner that covers "whatever is left" covers exactly that: the
+            # joint offer never funds more than the whole feeder (DC-D-13).
+            partner_share = min(int(proposals[partner]["share_bps"]), 10_000 - developer_share)
+            terms = _terms(key, {**package, "developer_share_bps": developer_share, f"{partner}_share_bps": partner_share})
             offer = _make_offer(
                 family_case=family_case,
                 state=next_state,
@@ -1224,12 +1283,31 @@ class DataCenterStackPlugin:
         }
         if declined:
             result["declined_agreements"] = list(declined)
-        if not completed:
-            return result
         executed = {
             key: _executed_from_dict(value)
             for key, value in terminal["executed"].items()
         }
+        if self.joint_venture:
+            # Written for every termination: a coalition that formed and then
+            # died at the service offer is still a formed coalition, and the
+            # cells where a free rider's coalition failed are exactly the
+            # ones a completed-only block would drop (DC-D-15).
+            package = _jv_package(family_case)
+            jv = executed.get("jv")
+            share = int(jv.terms.developer_share_bps) if jv is not None else None
+            fair = _capacity_share_bps(package, "developer")
+            result["coalition"] = {
+                "formed": jv is not None,
+                "developer_share_bps": share,
+                "partner_share_bps": int(jv.terms.partner_share_bps) if jv is not None else None,
+                "developer_capacity_share_bps": fair,
+                "partner_announced_share_bps": _partner_announcement(family_case)["share_bps"],
+                # Positive: the developer funded less than its capacity share
+                # and rode on the partner; negative: it funded more.
+                "free_riding_bps": None if share is None else fair - share,
+            }
+        if not completed:
+            return result
         amendment_valid = True
         amended = self.amends_land and "land_amendment" not in declined
         if amended:
@@ -1244,20 +1322,6 @@ class DataCenterStackPlugin:
             land_agreement=executed.get(land_key),
             jv_agreement=executed.get("jv"),
         )
-        if self.joint_venture:
-            package = _jv_package(family_case)
-            jv = executed.get("jv")
-            share = int(jv.terms.developer_share_bps) if jv is not None else None
-            fair = _capacity_share_bps(package, "developer")
-            result["coalition"] = {
-                "formed": jv is not None,
-                "developer_share_bps": share,
-                "partner_share_bps": int(jv.terms.partner_share_bps) if jv is not None else None,
-                "developer_capacity_share_bps": fair,
-                # Positive: the developer paid more than its capacity share;
-                # negative: it rode on the partner.
-                "free_riding_bps": None if share is None else fair - share,
-            }
         result.update(
             {
                 "binding_contract_integrity": True,

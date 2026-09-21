@@ -133,9 +133,10 @@ navigation index does not change the control or any sealed artifact. See the
   winner, ranking, or causal claim;
 - [datacenter_v3_jv_scored_controls_v1](datacenter_development/datacenter_v3_jv_scored_controls_v1/): the V3 shared-feeder
   joint venture's provider-free controls on three curated cases, one per
-  scripted partner type: the fair-share reference is admitted everywhere; the
-  free rider is admitted only where the partner covers the whole feeder (1 of
-  3) and strands the project otherwise; regenerated, never edited;
+  scripted partner type, the partner's position stated before anyone offers:
+  the fair-share reference is admitted everywhere; the free rider beats it by
+  18,000 cents where the partner covers the whole feeder and trails it by the
+  30,000-cent solo interconnection premium otherwise; regenerated, never edited;
 
 ### Datacenter development terms
 
