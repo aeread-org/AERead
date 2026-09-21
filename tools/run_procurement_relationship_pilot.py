@@ -228,19 +228,38 @@ def _cell_root(run_root: Path, row: Mapping[str, Any]) -> Path:
 
 
 def _public_trace(execution: Any) -> list[dict[str, Any]]:
-    trace = []
-    for action in execution.action_executions:
-        consequences = action.consequences if hasattr(action, "consequences") else None
-        trace.append(
-            {
-                "ordinal": len(trace) + 1,
-                "action": (
-                    dict(action.action) if isinstance(action.action, Mapping) else action.action
-                ),
-                "failure_code": action.failure_code,
-                "consequences": dict(consequences) if isinstance(consequences, Mapping) else None,
-            }
+    """The buyer's actions as sent, read back from each attempt's canonical response."""
+    trace: list[dict[str, Any]] = []
+    for ordinal, logical_action in enumerate(execution.action_executions, start=1):
+        response = next(
+            (
+                attempt.canonical_response
+                for attempt in reversed(logical_action.attempts)
+                if attempt.canonical_response is not None
+            ),
+            None,
         )
+        payload: Mapping[str, Any] | None = None
+        if response is not None and isinstance(response.action, Mapping):
+            payload = response.action
+        elif response is not None:
+            try:
+                candidate = json.loads(response.text)
+                payload = candidate if isinstance(candidate, Mapping) else None
+            except (TypeError, json.JSONDecodeError):
+                payload = None
+        row: dict[str, Any] = {
+            "ordinal": ordinal,
+            "status": logical_action.status,
+            "failure_code": logical_action.failure_code,
+            "action": payload.get("action") if payload is not None else "unparseable",
+        }
+        if payload is not None:
+            for key in ("supplier_id", "offer_id", "proposal", "award_lines", "fields", "reason"):
+                value = payload.get(key)
+                if value not in (None, [], {}):
+                    row[key] = value
+        trace.append(row)
     return trace
 
 
