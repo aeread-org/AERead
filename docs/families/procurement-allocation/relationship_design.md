@@ -181,9 +181,74 @@ computable from one seed. The single-period construct gate is `failed` and
 this extension does not reopen it; it adds a construct the single-period
 worlds cannot express and a screen that says when a world expresses it.
 
-## 6. Live pilot
+## 6. Live pilot: Gemini 3.8 Flash, one seed, six worlds
 
-Recorded in §7 once run. Route, seed, temperature, per-trajectory cost
-ceiling and attempt count are frozen in
-`tools/run_procurement_relationship_pilot.py`; the run directory is
-gitignored under `runs/` and nothing from it is evidence-lane.
+Run 2026-09-21 with `tools/run_procurement_relationship_pilot.py` at commit
+5495d115 (plan `014ecfdf…`), route `google/gemini-3.8-flash` pinned to
+Google AI Studio at the datacenter campaigns' reviewed prices, reasoning
+effort low, temperature 0, seed 73101, one attempt per action, $0.60 per
+trajectory and $4 for the run. Six of six cells completed, every receipt
+replayed live and re-audited from disk without a provider, 296,980 input and
+11,414 output tokens, $0.2629 reported. The run directory is gitignored and
+nothing from it is evidence-lane.
+
+| World | Margin | Bound | Myopic | Loyal | Regret | Against myopic |
+|---|---:|---:|---:|---:|---:|---:|
+| `loyalty_investment` | 365.82 | 413.14 | 388.60 | 388.60 | 47.32 | −22.78 |
+| `qualification_investment` | 357.46 | 401.85 | 380.78 | 380.78 | 44.39 | −23.32 |
+| `demand_ramp` | 401.62 | 422.09 | 395.21 | 85.98 | 20.47 | +6.41 |
+| `incumbent_capacity` | 357.46 | 407.51 | 380.78 | 380.78 | 50.05 | −23.32 |
+| `retaliation_trap` | 395.19 | 416.83 | 392.30 | 392.30 | 21.65 | +2.89 |
+| `unreliable_incumbent` | 369.58 | 413.19 | 392.12 | 392.12 | 43.61 | −22.54 |
+
+Mean regret $37.91 on a mean bound of $412. All 24 periods awarded, 48 of
+48 lines delivered on time, no violations, no switches.
+
+**One routine in every world.** Fourteen actions each: sample both
+components' chosen suppliers, quote them, award; then quote the same two and
+award, three more times. No `inquire`, no `counter_offer`, no second quote in
+any component, ever. The regret therefore decomposes cleanly. Where the model
+chose the myopic reference's supplier (four worlds) its shortfall against
+that reference is $22.5–23.3, which is the un-negotiated floor: the
+reference counters to 94% of the quote and the model never counters. The rest
+of each regret is the world's tension left on the table: the partner never
+quoted, the unproven supplier never sampled, the flexible supplier never
+tried.
+
+**The relationship supplier was chosen twice, once by design and once by
+chance.** On `demand_ramp` the model quoted `scale` from period one, the one
+supplier able to fill the thirty-kit periods on the demand plan it was shown,
+and beat the myopic reference by $6.41 without negotiating. On
+`retaliation_trap` it chose `partner` and rode the discount to $2.89 above
+myopic; on `loyalty_investment`, whose controller pair is identical, it chose
+`spot`. A programme is not visible before a quote, so the choice between two
+listings a cent apart was not informed by it, and with one seed the two
+outcomes cannot be told from a coin flip. The retaliation and
+verbal-reliability traps were never triggered, because the model never
+shopped and never asked.
+
+**What this says about the extension, not the model.** The environment ran
+four periods through the kernel on a live route with standing, history and
+receipts intact, at four cents a world, so a variance pilot at the family's
+usual scale is affordable. The screen did what it was built for: on the
+four worlds where the model behaved myopically it scored under the myopic
+reference by exactly the negotiation gap, so the intertemporal headroom the
+screen certified is measurable as a separate quantity. What the run cannot
+say is anything about Gemini in general: one route, one seed, six curated
+worlds, descriptive only.
+
+**Tooling note.** At interpreter exit the run printed a closed-event-loop
+traceback from the per-cell provider client's teardown, after every cell had
+completed and sealed. The client is now closed inside the loop; the plan's
+source hash for the tool records the bytes the run was made with.
+
+## 7. Open
+
+- Solicitation (§2.1) and the concession schedule (§2.2), so that finding a
+  supplier and pushing back on one become decisions with a price.
+- A variance pilot: the six worlds at three or more seeds on one route, then
+  a frozen confirmatory on a held-out pack, before any interval is quoted.
+- Whether the myopic reference should also *shop*, quoting every supplier
+  each period and paying the retaliation it provokes; today it quotes only
+  what it awards, which makes it a bound on period-wise play rather than a
+  portrait of it.
