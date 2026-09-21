@@ -64,10 +64,22 @@ BUNDLES: dict[str, dict[str, Path]] = {
         "curated": CASES_ROOT / "v2" / "full_stack_amendment_003.json",
         "worlds": CASES_ROOT / "worlds_v3",
     },
+    # Scope V3, the shared-feeder joint venture: three curated cases, one per
+    # scripted partner type, and a fourth control -- the free rider, which
+    # offers nothing toward the feeder. The reference is the fair share, so
+    # on the generous-partner case the rider beats it by design; the
+    # inequality that must hold everywhere is that the rider is not admitted
+    # unless the partner covers the feeder.
+    "datacenter_v3_jv_scored_controls_v1": {
+        "scope": "v3",
+        "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in (1, 2, 3)],
+        "policies": tuple(DEVELOPER_POLICIES),
+    },
 }
 DEFAULT_BUNDLE_ROOT = REPOSITORY_ROOT / "evidence" / "datacenter_development" / PUBLICATION_ID
 CURATED_CASE = BUNDLES[PUBLICATION_ID]["curated"]
-POLICIES: tuple[str, ...] = tuple(DEVELOPER_POLICIES)
+#: The three controls every V2 bundle scores; the free rider is a V3 control.
+POLICIES: tuple[str, ...] = ("scripted", "walk_away", "adopt_every_counter")
 COLUMNS = (
     "case_id",
     "source",
@@ -91,16 +103,26 @@ def bundle_root_for(publication_id: str = PUBLICATION_ID) -> Path:
 
 def _cases(publication_id: str = PUBLICATION_ID) -> list[tuple[str, Path]]:
     sources = BUNDLES[publication_id]
-    cases = [("curated", sources["curated"])]
-    manifest = load_pack_manifest(sources["worlds"])
-    for entry in manifest["worlds"]:
-        cases.append(("world_pack", sources["worlds"] / entry["file"]))
+    curated = sources.get("cases") or [sources["curated"]]
+    cases = [("curated", path) for path in curated]
+    if "worlds" in sources:
+        manifest = load_pack_manifest(sources["worlds"])
+        for entry in manifest["worlds"]:
+            cases.append(("world_pack", sources["worlds"] / entry["file"]))
     return cases
 
 
-async def _run(case_path: Path, policy: str, evidence_root: Path) -> dict[str, Any]:
+def _policies(publication_id: str = PUBLICATION_ID) -> tuple[str, ...]:
+    return tuple(BUNDLES[publication_id].get("policies", POLICIES))
+
+
+def _scope(publication_id: str = PUBLICATION_ID) -> str:
+    return str(BUNDLES[publication_id].get("scope", "v2"))
+
+
+async def _run(case_path: Path, policy: str, evidence_root: Path, scope: str = "v2") -> dict[str, Any]:
     setup, execution = await run_stack_offline(
-        "v2", evidence_root=evidence_root, case_path=case_path, developer_policy=policy
+        scope, evidence_root=evidence_root, case_path=case_path, developer_policy=policy
     )
     receipt = finalize_stack_execution(setup=setup, execution=execution)
     verify_evaluation_receipt(receipt)
@@ -132,12 +154,13 @@ def score_controls(publication_id: str = PUBLICATION_ID) -> list[dict[str, Any]]
     """One row per (case, policy), every trajectory sealed and replayed."""
 
     rows: list[dict[str, Any]] = []
+    scope = _scope(publication_id)
     with tempfile.TemporaryDirectory() as scratch:
         for source, case_path in _cases(publication_id):
-            case = load_stack_case("v2", case_path)
-            for policy in POLICIES:
+            case = load_stack_case(scope, case_path)
+            for policy in _policies(publication_id):
                 evidence_root = Path(scratch) / case.case_id / policy
-                row = asyncio.run(_run(case_path, policy, evidence_root))
+                row = asyncio.run(_run(case_path, policy, evidence_root, scope))
                 rows.append({"source": source, **row})
     return rows
 
@@ -172,13 +195,21 @@ def summarize(
                 "adoption_completes_the_stack": bool(by_policy["adopt_every_counter"]["project_completed"]),
                 "adoption_admitted": bool(by_policy["adopt_every_counter"]["project_constraints_satisfied"]),
                 "adoption_termination": by_policy["adopt_every_counter"]["termination_reason"],
+                **(
+                    {
+                        "reference_over_free_rider_cents": scripted - int(by_policy["free_rider"]["developer_equity_npv_cents"]),
+                        "free_rider_admitted": bool(by_policy["free_rider"]["project_constraints_satisfied"]),
+                    }
+                    if "free_rider" in by_policy
+                    else {}
+                ),
             }
         )
     world_rows = [item for item in per_case if item["source"] == "world_pack"]
     return {
         "schema_version": "aeread.datacenter_scored_controls_summary/0.1",
         "publication_id": publication_id,
-        "policies": list(POLICIES),
+        "policies": list(_policies(publication_id)),
         "case_count": len(per_case),
         "trajectory_count": len(rows),
         "all_receipts_included": all(row["inclusion_status"] == "included" for row in rows),
@@ -187,6 +218,11 @@ def summarize(
         "reference_beats_adoption_in": sum(item["reference_beats_adoption"] for item in per_case),
         "adoption_completes_the_stack_in": sum(item["adoption_completes_the_stack"] for item in per_case),
         "adoption_admitted_in": sum(item["adoption_admitted"] for item in per_case),
+        **(
+            {"free_rider_admitted_in": sum(item["free_rider_admitted"] for item in per_case)}
+            if per_case and "free_rider_admitted" in per_case[0]
+            else {}
+        ),
         "world_pack": {
             "world_count": len(world_rows),
             "median_reference_over_walk_away_cents": (
@@ -221,6 +257,8 @@ def _table(rows: Sequence[Mapping[str, Any]]) -> str:
 def _readme(summary: Mapping[str, Any], publication_id: str = PUBLICATION_ID) -> str:
     world = summary["world_pack"]
     sources = BUNDLES[publication_id]
+    if "cases" in sources:
+        return _jv_readme(summary, publication_id)
     split = sources["worlds"].name
     curated = sources["curated"].stem
     interface_note = (
@@ -258,6 +296,34 @@ is what a subject's score is read against, not a subject.
 """
 
 
+def _jv_readme(summary: Mapping[str, Any], publication_id: str) -> str:
+    cases = ", ".join(f"`{path.stem}`" for path in BUNDLES[publication_id]["cases"])
+    return f"""# Scored controls for the V3 joint venture
+
+Four provider-free developer policies -- the scripted reference funding its
+capacity share of the shared feeder, walking away at the first offer, adopting
+every counter (which opens the joint venture at nothing and then takes whatever
+share the utility's counter assigns), and the free rider, which offers nothing
+toward the feeder in every round -- run through the real scheduler on the three
+curated joint-venture cases ({cases}), one per scripted partner type: pro-rata,
+conditional and generous. Every trajectory is finalised, verified and replayed
+offline.
+
+- cases: {summary['case_count']}; trajectories: {summary['trajectory_count']}, all included, all replay-verified
+- the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} cases
+- the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} cases
+- adopting every counter is admitted in {summary['adoption_admitted_in']} of {summary['case_count']} cases
+- the free rider is admitted in {summary['free_rider_admitted_in']} of {summary['case_count']} cases -- only where the partner covers the whole feeder
+
+The reference is the fair share, not the highest NPV: against a generous
+partner the free rider is admitted and beats it, which is the exploitation
+stratum by design; against a pro-rata or conditional partner nobody funds the
+feeder and the rider's solo stack cannot finance. This bundle is derived only
+from committed cases and the family engine and is regenerated, never edited.
+No claim about any model is made here.
+"""
+
+
 def write_bundle(
     bundle_root: Path | str | None = None, *, publication_id: str = PUBLICATION_ID
 ) -> dict[str, Any]:
@@ -285,10 +351,19 @@ def write_bundle(
             publication_id=publication_id,
             privacy_boundary=boundary,
             campaign_id=publication_id,
-            source_bindings={
-                "curated_case": load_stack_case("v2", sources["curated"]).content_sha256,
-                "world_pack_sha256": load_pack_manifest(sources["worlds"])["artifact_sha256"],
-            },
+            source_bindings=(
+                {
+                    "curated_cases": {
+                        path.stem: load_stack_case(_scope(publication_id), path).content_sha256
+                        for path in sources["cases"]
+                    }
+                }
+                if "cases" in sources
+                else {
+                    "curated_case": load_stack_case("v2", sources["curated"]).content_sha256,
+                    "world_pack_sha256": load_pack_manifest(sources["worlds"])["artifact_sha256"],
+                }
+            ),
             derived_from="committed cases and the family engine; no provider calls",
         )
     return summary

@@ -10,6 +10,7 @@ from .cashflow import ConditionSatisfaction, ProjectFacts, ProjectOutcome, simul
 from .contracts import (
     EpcAgreement,
     ExecutedAgreement,
+    JvAgreement,
     LandAgreement,
     LoanAgreement,
     PowerAgreement,
@@ -111,8 +112,13 @@ def simulate_development_stack(
     power_agreement: ExecutedAgreement,
     epc_agreement: ExecutedAgreement,
     land_agreement: ExecutedAgreement | None = None,
+    jv_agreement: ExecutedAgreement | None = None,
 ) -> DevelopmentStackOutcome:
-    """Compile V1/V2 terms into project physics, costs, conditions, and value."""
+    """Compile V1/V2/V3 terms into project physics, costs, conditions, and value.
+
+    A joint venture (V3) replaces the power agreement's interconnection cost
+    with the developer's share of the shared feeder, booked in the same month;
+    the feeder must then cover the developer's contracted power."""
 
     if not isinstance(facts, ProjectFacts):
         raise DevelopmentStackValidationError("facts must be ProjectFacts")
@@ -125,6 +131,7 @@ def simulate_development_stack(
         if land_agreement is None
         else _terms(land_agreement, "land", LandAgreement)
     )
+    jv = None if jv_agreement is None else _terms(jv_agreement, "jv", JvAgreement)
     assert isinstance(service, ServiceAgreement)
     assert isinstance(loan, LoanAgreement)
     assert isinstance(power, PowerAgreement)
@@ -167,10 +174,13 @@ def simulate_development_stack(
     for payment in epc.payment_schedule:
         construction_costs[payment.month - 1] += payment.amount_cents
     development_costs = list(facts.development_cost_cents_by_month)
-    development_costs[0] += (
-        power.interconnection_cost_cents + power.developer_security_cents
+    interconnection_cost = (
+        power.interconnection_cost_cents
+        if jv is None
+        else jv.share_cost_cents(jv.developer_share_bps)
     )
-    power_cost = power.interconnection_cost_cents + power.developer_security_cents
+    development_costs[0] += interconnection_cost + power.developer_security_cents
+    power_cost = interconnection_cost + power.developer_security_cents
     final_power_month = min(
         horizon, power.energization_month + power.initial_term_months - 1
     )
@@ -296,6 +306,12 @@ def simulate_development_stack(
         "financing_funded": project.financing_succeeded,
         "no_default": not project.defaulted,
     }
+    if jv is not None:
+        # Only a V3 stack carries the key, so V1/V2 outcomes keep their bytes.
+        constraint_checks["feeder_funded"] = jv.funded
+        constraint_checks["feeder_capacity_covers_power"] = (
+            jv.developer_capacity_kw >= power.contracted_capacity_kw
+        )
     constraints_ok = all(constraint_checks.values())
     adjustments = AgreementStackAdjustments(
         physical_epc_completion_month=physical_epc_month,

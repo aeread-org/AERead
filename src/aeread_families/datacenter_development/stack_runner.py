@@ -54,6 +54,7 @@ from aeread.shared_runner.schemas import (
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
     AGREEMENT_TYPE_BY_KEY,
+    CO_PROPOSER_BY_KEY,
     COUNTERPART_BY_KEY,
     DataCenterStackPlugin,
     SCOPE_CONFIG,
@@ -78,6 +79,11 @@ CASE_PATH_BY_SCOPE = {
     / "datacenter_development_v1"
     / "v2"
     / "full_stack_amendment_001.json",
+    "v3": REPOSITORY_ROOT
+    / "cases"
+    / "datacenter_development_v1"
+    / "v3"
+    / "full_stack_jv_001.json",
 }
 RUNTIME_ID = "aeread_families.datacenter_development.stack_runner"
 DEVELOPER_PROMPT = """Negotiate the complete data-center agreement stack. Return
@@ -159,6 +165,22 @@ AMENDMENT_DECLINE_NOTE = (
 )
 
 
+#: Scope V3: the shared-feeder joint venture, explained to the developer. The
+#: partner is a second developer on the adjacent site; the feeder package is
+#: the utility's; each proposer names only its own share.
+JOINT_VENTURE_NOTE = (
+    " Before the power agreement comes a joint venture: one utility feeder can serve "
+    "your site and the adjacent developer's. In jv_developer_offer return "
+    '{"decision": "offer", "share_bps": <basis points of feeder_cost_cents you will fund>, '
+    '"message": <text>} or {"decision": "decline", "share_bps": null, "message": <text or null>}; '
+    "the partner names its own share at the same time and the utility signs the feeder only "
+    "when the two shares fund all of it. In jv_developer_commit return "
+    '{"decision": "sign" | "decline", "offer_id": accepted_offer_id}. A declined joint venture '
+    "does not end the project: each site then pays the utility's solo interconnection price "
+    "in its own power agreement."
+)
+
+
 def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
     """The developer prompt id and text for a case.
 
@@ -168,6 +190,12 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     Every other case keeps v1 byte for byte, so the sealed campaigns' prompt
     digests do not move."""
 
+    if scope_version == "v3":
+        # The joint venture presupposes interface 3 (a decline exists).
+        return (
+            "datacenter_v3_developer_prompt_v3",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE,
+        )
     if developer_interface(case_payload) >= 3:
         return (
             f"datacenter_{scope_version}_developer_prompt_v3",
@@ -208,6 +236,27 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
     interface = developer_interface(case.payload)
     schemas: dict[str, Any] = {}
     for key in sequence:
+        if key in CO_PROPOSER_BY_KEY:
+            schemas[f"datacenter_{key}_offer_v1"] = {
+                "type": "object",
+                "properties": {
+                    "decision": {"enum": ["offer", "decline"]},
+                    "share_bps": {"anyOf": [{"type": "integer", "minimum": 0, "maximum": 10_000}, {"type": "null"}]},
+                    "message": {"type": ["string", "null"]},
+                },
+                "required": ["decision", "share_bps", "message"],
+                "additionalProperties": False,
+            }
+            schemas[f"datacenter_{key}_commit_v1"] = {
+                "type": "object",
+                "properties": {
+                    "decision": {"enum": ["sign", "decline"]},
+                    "offer_id": {"type": "string"},
+                },
+                "required": ["decision", "offer_id"],
+                "additionalProperties": False,
+            }
+            continue
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
         if bounded:
@@ -385,7 +434,7 @@ def _harness_registry_for(harness: Any) -> HarnessRegistry:
     return registry
 
 
-DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter")
+DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter", "free_rider")
 
 
 def build_stack_setup(
@@ -401,9 +450,11 @@ def build_stack_setup(
     two are the Gate 3 controls; each gets its own profile identity."""
 
     if scope_version not in SCOPE_CONFIG:
-        raise ValueError("scope_version must be v1 or v2")
+        raise ValueError("scope_version must be v1, v2 or v3")
     if developer_policy not in DEVELOPER_POLICIES:
         raise ValueError(f"developer_policy must be one of {DEVELOPER_POLICIES}")
+    if developer_policy == "free_rider" and scope_version != "v3":
+        raise ValueError("free_rider is a joint-venture control and needs scope v3")
     case = load_stack_case(scope_version, case_path)
     family = stack_family_manifest(scope_version)
     plugin = DataCenterStackPlugin(scope_version)
@@ -425,7 +476,7 @@ def build_stack_setup(
             "panel_mode": "fixed_panel",
         }
     )
-    counterpart_seats = sorted({COUNTERPART_BY_KEY[key] for key in sequence})
+    counterpart_seats = _scripted_seats(sequence)
     controlled_profiles = {
         seat: f"datacenter_{scope_version}_scripted_{seat}_v1"
         for seat in counterpart_seats
@@ -513,9 +564,9 @@ def build_stack_setup(
                 prompt=COUNTERPART_PROMPT,
                 pricing=seat_pricing,
                 max_actions=sum(
-                    family_case["negotiation"]["max_rounds"][key]
+                    family_case["negotiation"]["max_rounds"][key] + 1
                     for key in sequence
-                    if COUNTERPART_BY_KEY[key] == seat
+                    if COUNTERPART_BY_KEY[key] == seat or CO_PROPOSER_BY_KEY.get(key) == seat
                 ),
             )
         )
@@ -1188,6 +1239,25 @@ class StackScriptedDeveloperProvider:
         phase = payload["phase_id"]
         observation = payload["observation"]
         key = observation["agreement_key"]
+        if key in CO_PROPOSER_BY_KEY and phase.endswith("_offer"):
+            # The joint venture: the reference funds its capacity share; the
+            # adopter opens at nothing and then copies whatever the utility's
+            # counter assigns it; the free rider offers nothing every round.
+            fair = int(self._scripted[f"{key}_terms"]["developer_share_bps"])
+            pending = observation.get("pending_counter_terms")
+            if self._policy == "walk_away":
+                output = {"decision": "walk", "message": None, "terms": None}
+            elif self._policy == "free_rider":
+                output = {"decision": "offer", "share_bps": 0, "message": "We will not fund the feeder."}
+            elif self._policy == "adopt_every_counter":
+                share = int(pending["developer_share_bps"]) if pending else 0
+                output = {"decision": "offer", "share_bps": share, "message": f"Offering {share} bps."}
+            else:
+                output = {"decision": "offer", "share_bps": fair, "message": f"Funding our capacity share, {fair} bps."}
+            return _scripted_result(request, output)
+        if key in CO_PROPOSER_BY_KEY and phase.endswith("_commit"):
+            output = {"decision": "sign", "offer_id": observation["accepted_offer_id"]}
+            return _scripted_result(request, output)
         if phase.endswith("_offer") and self._policy == "walk_away":
             # The outside option, taken at the first opportunity. Scores the
             # case's own walk-away value through the real interface.
@@ -1265,20 +1335,83 @@ class StackScriptedCounterpartyProvider:
         return _scripted_result(request, output)
 
 
+def _scripted_seats(sequence: Sequence[str]) -> list[str]:
+    """Every scripted seat the stack needs: the counterparts and any co-proposer."""
+
+    seats = {COUNTERPART_BY_KEY[key] for key in sequence}
+    seats.update(CO_PROPOSER_BY_KEY[key] for key in sequence if key in CO_PROPOSER_BY_KEY)
+    return sorted(seats)
+
+
+class StackScriptedPartnerProvider:
+    """The second developer in a joint venture, playing a declared policy.
+
+    ``pro_rata`` offers its capacity share every round and signs only a feeder
+    it funds at exactly that share. ``conditional`` does the same while the
+    developer's last offer covered the developer's own capacity share, and
+    offers nothing once it did not. ``generous`` covers whatever the developer
+    left unfunded. None of them reads the developer's private state: every
+    input is in the public history and the partner's own observation.
+    """
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.provider != "datacenter_stack_scripted_partner":
+            raise ProviderFailure("provider_contract", "wrong stack partner provider", retryable=False)
+        payload = json.loads(request.input_text)
+        phase = payload["phase_id"]
+        observation = payload["observation"]
+        private = observation["private_partner"]
+        policy = private["policy"]
+        own_share = int(private["capacity_share_bps"])
+        developer_fair = int(private["developer_capacity_share_bps"])
+        history = observation.get("public_history") or []
+        developer_offers = [
+            item for item in history
+            if item.get("agreement_key") == observation["agreement_key"]
+            and item.get("seat_id") == "developer"
+            and item.get("decision") == "offer"
+            and item.get("share_bps") is not None
+        ]
+        last_developer_share = int(developer_offers[-1]["share_bps"]) if developer_offers else None
+        if phase.endswith("_offer"):
+            if policy == "pro_rata":
+                share = own_share
+            elif policy == "conditional":
+                share = own_share if last_developer_share is None or last_developer_share >= developer_fair else 0
+            elif policy == "generous":
+                share = 10_000 if last_developer_share is None else max(own_share, 10_000 - last_developer_share)
+            else:
+                raise ProviderFailure("provider_contract", f"unknown partner policy {policy}", retryable=False)
+            output = {"decision": "offer", "share_bps": share, "message": f"{policy} partner offers {share} bps."}
+        elif phase.endswith("_commit"):
+            latest = observation.get("latest_offer") or {}
+            terms = latest.get("terms") or {}
+            partner_share = int(terms.get("partner_share_bps", -1))
+            accepted = observation["accepted_offer_id"]
+            if policy == "pro_rata" and partner_share != own_share:
+                output = {"decision": "decline", "offer_id": accepted}
+            else:
+                output = {"decision": "sign", "offer_id": accepted}
+        else:
+            raise ProviderFailure("provider_contract", "partner received wrong stack phase", retryable=False)
+        return _scripted_result(request, output)
+
+
 def _providers(setup: DataCenterStackSetup) -> Mapping[str, Any]:
     sequence = SCOPE_CONFIG[setup.scope_version]["sequence"]
-    seats = sorted({COUNTERPART_BY_KEY[key] for key in sequence})
-    return {
+    providers: dict[str, Any] = {
         "datacenter_stack_scripted_developer": StackScriptedDeveloperProvider(
             setup.case.payload["scripted_developer"],
             policy=setup.developer_policy,
             interface=developer_interface(setup.case.payload),
         ),
-        **{
-            f"datacenter_stack_scripted_{seat}": StackScriptedCounterpartyProvider(seat)
-            for seat in seats
-        },
     }
+    for seat in _scripted_seats(sequence):
+        if seat in CO_PROPOSER_BY_KEY.values():
+            providers[f"datacenter_stack_scripted_{seat}"] = StackScriptedPartnerProvider()
+        else:
+            providers[f"datacenter_stack_scripted_{seat}"] = StackScriptedCounterpartyProvider(seat)
+    return providers
 
 
 async def run_stack_offline(
@@ -1477,6 +1610,7 @@ __all__ = [
     "CASE_PATH_BY_SCOPE",
     "DataCenterStackSetup",
     "StackScriptedCounterpartyProvider",
+    "StackScriptedPartnerProvider",
     "StackScriptedDeveloperProvider",
     "build_stack_model_to_model_setup",
     "build_stack_openrouter_setup",

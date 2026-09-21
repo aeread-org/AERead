@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 82 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 65 directories under a benchmark folder and
+All 83 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 66 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -36,7 +36,7 @@ appropriate section below when they land.
 | Benchmark | Campaigns and registers | Preserved top-level paths |
 |---|---:|---:|
 | [Commercial state calibration](#commercial-state-calibration) | 1 | 0 |
-| [Datacenter development](#datacenter-development) | 17 | 0 |
+| [Datacenter development](#datacenter-development) | 18 | 0 |
 | [Datacenter development terms](#datacenter-development-terms) | 19 | 0 |
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
@@ -131,6 +131,11 @@ navigation index does not change the control or any sealed artifact. See the
   72 of 72 cells, $5.34 exact) with the predeclared world-clustered analysis
   sealed in; one route, descriptive admission rate 0.25 (95% 0.15-0.35), no
   winner, ranking, or causal claim;
+- [datacenter_v3_jv_scored_controls_v1](datacenter_development/datacenter_v3_jv_scored_controls_v1/): the V3 shared-feeder
+  joint venture's provider-free controls on three curated cases, one per
+  scripted partner type: the fair-share reference is admitted everywhere; the
+  free rider is admitted only where the partner covers the whole feeder (1 of
+  3) and strands the project otherwise; regenerated, never edited;
 
 ### Datacenter development terms
 

@@ -756,8 +756,79 @@ class LandAgreement:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class JvAgreement:
+    """A shared-feeder joint venture between two developers and the utility.
+
+    One feeder serves both sites. Each developer funds a share of its cost
+    and reserves part of its capacity; the utility signs when the shares fund
+    the feeder. The parser accepts any pair of shares so that a proposal that
+    under-funds the feeder can be written down, countered and refused; whether
+    the feeder is funded is the utility's rule, not the contract's.
+    """
+
+    feeder_capacity_kw: int
+    feeder_cost_cents: int
+    developer_capacity_kw: int
+    partner_capacity_kw: int
+    developer_share_bps: int
+    partner_share_bps: int
+    conditions_precedent: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        _integer(self.feeder_capacity_kw, "feeder_capacity_kw", minimum=1)
+        _integer(self.feeder_cost_cents, "feeder_cost_cents", minimum=1)
+        _integer(self.developer_capacity_kw, "developer_capacity_kw", minimum=1)
+        _integer(self.partner_capacity_kw, "partner_capacity_kw", minimum=1)
+        _basis_points(self.developer_share_bps, "developer_share_bps")
+        _basis_points(self.partner_share_bps, "partner_share_bps")
+        if self.developer_capacity_kw + self.partner_capacity_kw > self.feeder_capacity_kw:
+            raise ContractValidationError("feeder capacity cannot be oversubscribed")
+        object.__setattr__(
+            self,
+            "conditions_precedent",
+            _identifiers(self.conditions_precedent, "conditions_precedent"),
+        )
+
+    @property
+    def funded(self) -> bool:
+        """Whether the two shares pay for the whole feeder."""
+
+        return self.developer_share_bps + self.partner_share_bps >= 10_000
+
+    def share_cost_cents(self, share_bps: int) -> int:
+        return self.feeder_cost_cents * share_bps // 10_000
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str = "jv_agreement") -> "JvAgreement":
+        fields = {
+            "feeder_capacity_kw",
+            "feeder_cost_cents",
+            "developer_capacity_kw",
+            "partner_capacity_kw",
+            "developer_share_bps",
+            "partner_share_bps",
+            "conditions_precedent",
+        }
+        data = _exact_mapping(value, required=fields, path=path)
+        return cls(
+            feeder_capacity_kw=_integer(data["feeder_capacity_kw"], f"{path}.feeder_capacity_kw", minimum=1),
+            feeder_cost_cents=_integer(data["feeder_cost_cents"], f"{path}.feeder_cost_cents", minimum=1),
+            developer_capacity_kw=_integer(data["developer_capacity_kw"], f"{path}.developer_capacity_kw", minimum=1),
+            partner_capacity_kw=_integer(data["partner_capacity_kw"], f"{path}.partner_capacity_kw", minimum=1),
+            developer_share_bps=_basis_points(data["developer_share_bps"], f"{path}.developer_share_bps"),
+            partner_share_bps=_basis_points(data["partner_share_bps"], f"{path}.partner_share_bps"),
+            conditions_precedent=_identifiers(data["conditions_precedent"], f"{path}.conditions_precedent"),
+        )
+
+
 AgreementTerms = (
-    ServiceAgreement | LoanAgreement | PowerAgreement | EpcAgreement | LandAgreement
+    ServiceAgreement
+    | LoanAgreement
+    | PowerAgreement
+    | EpcAgreement
+    | LandAgreement
+    | JvAgreement
 )
 
 _TERM_TYPE_BY_AGREEMENT = {
@@ -766,6 +837,7 @@ _TERM_TYPE_BY_AGREEMENT = {
     "power": PowerAgreement,
     "epc": EpcAgreement,
     "land": LandAgreement,
+    "jv": JvAgreement,
 }
 
 
@@ -1056,6 +1128,7 @@ __all__ = [
     "EpcAgreement",
     "EpcPayment",
     "ExecutedAgreement",
+    "JvAgreement",
     "LandAgreement",
     "LoanAgreement",
     "PowerAgreement",

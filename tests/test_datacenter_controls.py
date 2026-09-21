@@ -82,7 +82,8 @@ def test_adoption_strands_on_a_world_and_the_reference_does_not(tmp_path) -> Non
 
 
 def test_an_unknown_developer_policy_is_refused() -> None:
-    assert DEVELOPER_POLICIES == ("scripted", "walk_away", "adopt_every_counter")
+    assert DEVELOPER_POLICIES == ("scripted", "walk_away", "adopt_every_counter", "free_rider")
+    assert POLICIES == ("scripted", "walk_away", "adopt_every_counter")  # the V2 bundles' three
     with pytest.raises(ValueError, match="developer_policy must be one of"):
         build_stack_setup("v2", case_path=CURATED, developer_policy="random")
 
