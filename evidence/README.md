@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 80 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 63 directories under a benchmark folder and
+All 81 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 64 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -36,7 +36,7 @@ appropriate section below when they land.
 | Benchmark | Campaigns and registers | Preserved top-level paths |
 |---|---:|---:|
 | [Commercial state calibration](#commercial-state-calibration) | 1 | 0 |
-| [Datacenter development](#datacenter-development) | 15 | 0 |
+| [Datacenter development](#datacenter-development) | 16 | 0 |
 | [Datacenter development terms](#datacenter-development-terms) | 19 | 0 |
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
@@ -111,6 +111,11 @@ navigation index does not change the control or any sealed artifact. See the
   three controls on the same 24 worlds at developer interface 3 (`worlds_v3`),
   where the adopter declines the amendment instead of walking: it completes
   every stack and the lender funds none of them; regenerated, never edited;
+- [datacenter_development_v2_world_panel_interface3_pilot_v1](datacenter_development/datacenter_development_v2_world_panel_interface3_pilot_v1/): the first
+  pilot's 24 worlds and two seeds at developer interface 3 (Gemini 3.8 Flash,
+  48 of 48 cells, $3.36, 15 recorded further attempts after a network outage):
+  0 amendment-phase deaths, 44 declines, 34 unfunded stacks with site control
+  short of COD, 6 admitted; exploratory, no winner, ranking or causal claim;
 - [datacenter_development_v2_world_panel_v1](datacenter_development/datacenter_development_v2_world_panel_v1/): the first
   variance pilot on the 24-world pack (Gemini 3.8 Flash, two seeds, 47 of 48
   cells, $2.52 lower bound), exploratory, published as run with the DC-D-07
