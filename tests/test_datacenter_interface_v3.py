@@ -104,12 +104,12 @@ def _interface_three_pack() -> dict:
 
 
 def test_interface_is_two_unless_a_case_opts_in() -> None:
-    assert DEVELOPER_INTERFACES == (2, 3)
+    assert DEVELOPER_INTERFACES == (2, 3, 4)
     assert developer_interface(_payload(CASE_002)) == 2
     assert developer_interface(_payload(CASE_003)) == 3
     assert developer_interface(load_stack_case("v2").payload) == 2  # the sealed 001 case
     plugin = DataCenterStackPlugin("v2")
-    for bad in (4, True, "3"):
+    for bad in (5, True, "3"):
         payload = copy.deepcopy(_payload(CASE_003))
         payload["construct_controls"]["developer_interface"] = bad
         with pytest.raises(ValueError, match="developer_interface"):

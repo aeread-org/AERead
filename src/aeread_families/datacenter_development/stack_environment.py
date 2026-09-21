@@ -119,8 +119,12 @@ PRICE_BAND_FIELDS = frozenset(
 #: adds a ``decline`` to the land-amendment phase, which keeps the executed land
 #: agreement and proceeds to financing (DC-D-10: 22 of the first confirmatory's
 #: 72 cells died there re-proposing the executed terms or "walking" to say no
-#: amendment was needed), and lets a walk carry its reason (DC-D-08).
-DEVELOPER_INTERFACES = (2, 3)
+#: amendment was needed), and lets a walk carry its reason (DC-D-08). Version 4
+#: changes nothing the environment enforces: it tells the developer the
+#: relational rules the contract parser applies and a JSON schema cannot
+#: express (DC-D-11: a ramp that begins before service commencement is refused
+#: as a malformed action, and nothing the model saw said so).
+DEVELOPER_INTERFACES = (2, 3, 4)
 
 
 def developer_interface(family_case: Mapping[str, Any]) -> int:
