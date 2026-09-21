@@ -142,6 +142,22 @@ TERM_MINIMUMS = {
     "contract_price_cents": 1,
     "maximum_commitment_cents": 1,
 }
+#: The parser's ceilings on basis-point terms (`contracts._basis_points`: 10,000
+#: unless a field says otherwise). Interface 4 carries them in the strict
+#: schema (DC-D-11): GLM 5.3 proposed a loan-to-value above 100% and was
+#: refused as a malformed action by a rule the schema had not shown it.
+TERM_MAXIMUMS = {
+    "advance_rate_bps": 10_000,
+    "maximum_loan_to_cost_bps": 10_000,
+    "maximum_loan_to_value_bps": 10_000,
+    "minimum_take_or_pay_bps": 10_000,
+    "take_or_pay_bps": 10_000,
+    "sla_credit_cap_bps": 10_000,
+    "spread_bps": 100_000,
+    "unused_commitment_fee_bps_annual": 100_000,
+    "origination_fee_bps": 100_000,
+    "minimum_dscr_bps": 100_000,
+}
 MONTH_INDEXING_NOTE = (
     " Months are numbered from 1: month 1 is the first month of the horizon, and "
     "every month field must be at least 1."
@@ -200,18 +216,20 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     return f"datacenter_{scope_version}_developer_prompt_v1", DEVELOPER_PROMPT
 
 
-def _bound_integer_terms(schema: dict[str, Any]) -> dict[str, Any]:
-    """Copy the parser's lower bounds into a strict term schema."""
+def _bound_integer_terms(schema: dict[str, Any], *, maximums: bool = False) -> dict[str, Any]:
+    """Copy the parser's lower bounds, and from interface 4 its ceilings, into a strict term schema."""
 
     bounded = dict(schema)
     properties = dict(bounded.get("properties", {}))
     for name, spec in properties.items():
         if isinstance(spec, dict) and spec.get("type") == "integer":
             properties[name] = {**spec, "minimum": TERM_MINIMUMS.get(name, 0)}
+            if maximums and name in TERM_MAXIMUMS:
+                properties[name]["maximum"] = TERM_MAXIMUMS[name]
         elif isinstance(spec, dict) and spec.get("type") == "array":
-            properties[name] = {**spec, "items": _bound_integer_terms(spec["items"])}
+            properties[name] = {**spec, "items": _bound_integer_terms(spec["items"], maximums=maximums)}
         elif isinstance(spec, dict) and spec.get("type") == "object":
-            properties[name] = _bound_integer_terms(spec)
+            properties[name] = _bound_integer_terms(spec, maximums=maximums)
     bounded["properties"] = properties
     return bounded
 
@@ -233,7 +251,7 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
         if bounded:
-            term_schema = _bound_integer_terms(term_schema)
+            term_schema = _bound_integer_terms(term_schema, maximums=interface >= 4)
         decisions = ["offer", "walk"]
         if key == "land_amendment" and interface >= 3:
             decisions = ["offer", "decline", "walk"]

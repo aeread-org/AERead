@@ -101,3 +101,32 @@ def test_classify_names_walks_failures_and_missingness() -> None:
     assert invalid["exclusion"] == "amendment_changes_nothing"
     missing = classify({**base, "status": "operational_failure", "inclusion_status": "excluded", "outcome": None})
     assert missing["missing"] is True and missing["admitted"] is False
+
+
+def test_two_routes_get_per_route_endpoints_and_a_paired_world_contrast(tmp_path) -> None:
+    """Synthetic cells for two routes on four worlds: the contrast is the mean
+    per-world difference in admission, second minus first, over worlds where
+    both routes have every seed, with a world-clustered interval."""
+
+    from aeread_families.datacenter_development.confirmatory import analyze_two_routes
+
+    def cell(model, world, seed, admitted, missing=False):
+        outcome = None if missing else {"project_completed": admitted, "project_constraints_satisfied": admitted, "temporal_violations": [], "developer_equity_npv_cents": 130 if admitted else -5, "termination_reason": "agreement_stack_executed" if admitted else "developer_walk"}
+        return {"case_id": world, "stratum": "s", "inference_seed": seed, "model_id": model, "status": "operational_failure" if missing else "completed", "inclusion_status": "excluded" if missing else "included", "cell_key": f"{world}_{model}_{seed}", "scripted_baseline_developer_equity_npv_cents": 100, "outcome": outcome}
+    rows = []
+    for world in ("w1", "w2", "w3", "w4"):
+        for seed in (1, 2):
+            rows.append(cell("a", world, seed, admitted=(world in ("w1",))))
+            rows.append(cell("b", world, seed, admitted=(world in ("w1", "w2", "w3")), missing=(world == "w4" and seed == 2)))
+    (tmp_path / "tables").mkdir(); (tmp_path / "tables" / "cells.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    contract = {"campaign_id": "t", "models": {"a": {}, "b": {}}, "inference_seeds": [1, 2], "analysis": {"bootstrap_draws": 200, "bootstrap_seed": 7}}
+    freeze = {"contract_sha256": "x", "primary_endpoint": "p", "secondary_endpoint": "s", "seed_handling": "h", "missingness_policy": "m", "paired_contrast": "c"}
+    out = analyze_two_routes(tmp_path, contract, freeze, reading="r")
+    assert out["routes"] == ["a", "b"] and out["cells"] == 16 and out["operational_failures"] == 1
+    assert out["by_route"]["a"]["primary_admission_rate"]["point"] == 0.25
+    assert out["by_route"]["b"]["primary_admission_rate"]["point"] == pytest.approx(0.75)  # 3 of 4 worlds, w4 has one seed
+    contrast = out["paired_admission_contrast"]
+    assert contrast["second_minus_first"] == ["b", "a"] and contrast["worlds_paired"] == 3  # w4 lacks a seed for b
+    assert contrast["point"] == pytest.approx(2 / 3) and contrast["worlds_second_higher"] == 2 and contrast["worlds_tied"] == 1
+    assert contrast["ci95"][0] <= contrast["point"] <= contrast["ci95"][1]
+    assert out["winner_claim_allowed"] is False
