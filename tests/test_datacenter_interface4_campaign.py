@@ -2,8 +2,9 @@
 
 `worlds_v4` is the development pack at interface 4 and `worlds_v4_holdout` a
 fresh pack from master seed 20300920 that shares nothing with any pack a live
-model has seen. The Kimi K3 pilot runs on the first; the two-route
-confirmatory (Gemini 3.8 Flash and Kimi K3, paired by world and seed) is
+model has seen. The GLM 5.3 pilot runs on the first (Kimi K3 was tried and
+set aside on cost, DC-O-06); the two-route confirmatory (Gemini 3.8 Flash
+and GLM 5.3, paired by world and seed) is
 declared on the second under schema 0.3 with the consecutive-failure stop
 rule (DC-T-08) and is frozen only after the pilot.
 """
@@ -31,7 +32,7 @@ CASES = REPOSITORY_ROOT / "cases" / "datacenter_development_v1"
 WORLDS_V4 = CASES / "worlds_v4"
 HOLDOUT_V4 = CASES / "worlds_v4_holdout"
 BUNDLE_ID = "datacenter_v2_interface4_scored_controls_v1"
-PILOT = REPOSITORY_ROOT / "configs" / "datacenter_development_v2_world_panel_interface4_kimi_pilot_v1.json"
+PILOT = REPOSITORY_ROOT / "configs" / "datacenter_development_v2_world_panel_interface4_glm_pilot_v1.json"
 TWO_ROUTE = REPOSITORY_ROOT / "configs" / "datacenter_development_v2_world_panel_interface4_two_route_confirmatory_v1.json"
 
 
@@ -69,37 +70,37 @@ def test_the_interface_four_controls_bundle_regenerates(tmp_path) -> None:
     assert sealed["source_bindings"]["world_pack_sha256"] == load_pack_manifest(WORLDS_V4)["artifact_sha256"]
 
 
-def test_the_kimi_pilot_contract_pins_the_pack_and_carries_the_stop_rule() -> None:
+def test_the_glm_pilot_contract_pins_the_pack_and_carries_the_stop_rule() -> None:
     contract = load_contract(PILOT)
     assert contract["schema_version"] == CONTRACT_SCHEMA_VERSIONS[2]
     assert contract["pack_split"] == "worlds_v4" and contract["expected_pack_sha256"] == load_pack_manifest(WORLDS_V4)["artifact_sha256"]
     assert pack_root_for(contract) == WORLDS_V4
-    assert list(contract["models"]) == ["kimi_k3_deepinfra"]
-    route = contract["models"]["kimi_k3_deepinfra"]
-    assert route["canonical_model"] == "moonshotai/kimi-k3-20260715" and route["provider"] == "DeepInfra" and route["quantization"] == "bf16"
-    assert contract["execution"]["max_consecutive_operational_failures"] == 3
+    assert list(contract["models"]) == ["glm53_phala"]
+    route = contract["models"]["glm53_phala"]
+    assert route["canonical_model"] == "z-ai/glm-5.3-20260816" and route["provider"] == "Phala"
+    assert contract["execution"]["max_consecutive_operational_failures"] == 6
     design = build_design(contract, pack_root=WORLDS_V4)
-    assert design["planned_cells"] == 48 and design["worst_case_declared_cost_usd"] == 19.2
+    assert design["planned_cells"] == 48 and design["worst_case_declared_cost_usd"] == 9.6
 
 
 def test_the_two_route_contract_pairs_both_routes_on_the_fresh_holdout() -> None:
     contract = load_contract(TWO_ROUTE)
     assert contract["schema_version"] == CONTRACT_SCHEMA_VERSIONS[2]
     assert contract["pack_split"] == "worlds_v4_holdout" and contract["expected_pack_sha256"] == load_pack_manifest(HOLDOUT_V4)["artifact_sha256"]
-    assert sorted(contract["models"]) == ["gemini38_flash_aistudio", "kimi_k3_deepinfra"]
+    assert sorted(contract["models"]) == ["gemini38_flash_aistudio", "glm53_phala"]
     assert contract["inference_seeds"] == [51211, 51212, 51213]
-    assert contract["execution"]["max_consecutive_operational_failures"] == 3 and contract["execution"]["concurrency"] == 2
+    assert contract["execution"]["max_consecutive_operational_failures"] == 6 and contract["execution"]["concurrency"] == 2
     assert contract["analysis"]["paired_by"] == ["case_id", "inference_seed"]
     assert contract["analysis"]["winner_claim_allowed"] is False and contract["analysis"]["inferential_model_ranking_allowed"] is False
     design = build_design(contract, pack_root=HOLDOUT_V4)
-    assert design["planned_cells"] == 144 and design["worst_case_declared_cost_usd"] == 43.2
+    assert design["planned_cells"] == 144 and design["worst_case_declared_cost_usd"] == 28.8
     by_model = {}
     for cell in design["cells"]:
         by_model.setdefault(cell["model_id"], set()).add((cell["case_id"], cell["inference_seed"]))
-    assert by_model["gemini38_flash_aistudio"] == by_model["kimi_k3_deepinfra"] and len(by_model["kimi_k3_deepinfra"]) == 72
+    assert by_model["gemini38_flash_aistudio"] == by_model["glm53_phala"] and len(by_model["glm53_phala"]) == 72
 
 
-def test_the_kimi_pilot_provider_free_gate_replays_every_world(tmp_path) -> None:
+def test_the_glm_pilot_provider_free_gate_replays_every_world(tmp_path) -> None:
     summary = asyncio.run(run_campaign(contract_path=PILOT, run_root=tmp_path / "campaign", stop_after="provider_free"))
     assert summary["status"] == "passed" and summary["world_count"] == 24
     assert all(row["replay_verified"] for row in summary["worlds"])

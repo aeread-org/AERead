@@ -44,8 +44,16 @@ def test_interface_four_is_the_v3_prompt_plus_the_rules_and_nothing_else() -> No
     assert developer_interface(three.payload) == 3 and developer_interface(four.payload) == 4
     assert developer_prompt(three.payload, "v2") == ("datacenter_v2_developer_prompt_v3", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE)
     assert developer_prompt(four.payload, "v2") == ("datacenter_v2_developer_prompt_v4", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + RELATIONAL_RULES_NOTE)
-    # Same schema, same phase graph, same legality: only the prompt differs.
-    assert stack_developer_output_schemas(three) == stack_developer_output_schemas(four)
+    # Same phase graph and legality; the schema differs only by the parser's
+    # basis-point ceilings, which interface 4 carries and interface 3 did not.
+    s3, s4 = stack_developer_output_schemas(three), stack_developer_output_schemas(four)
+    loan3 = s3["datacenter_loan_offer_v1"]["properties"]["terms"]["anyOf"][0]["properties"]
+    loan4 = s4["datacenter_loan_offer_v1"]["properties"]["terms"]["anyOf"][0]["properties"]
+    assert "maximum" not in loan3["maximum_loan_to_value_bps"]
+    assert loan4["maximum_loan_to_value_bps"]["maximum"] == 10_000 and loan4["spread_bps"]["maximum"] == 100_000
+    assert loan4["maximum_commitment_cents"].get("maximum") is None  # only basis-point terms have ceilings
+    stripped = json.loads(json.dumps(s4).replace(', "maximum": 10000', "").replace(', "maximum": 100000', ""))
+    assert stripped == s3
     plugin = DataCenterStackPlugin("v2")
     a, b = plugin.validate_payload(three.payload), plugin.validate_payload(four.payload)
     assert [p.next_phases for p in plugin.phases(a)] == [p.next_phases for p in plugin.phases(b)]

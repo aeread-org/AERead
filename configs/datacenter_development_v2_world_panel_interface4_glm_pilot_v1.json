@@ -1,7 +1,7 @@
 {
   "analysis": {
     "bootstrap_draws": 10000,
-    "bootstrap_seed": 20260923,
+    "bootstrap_seed": 20260922,
     "causal_condition_effect_allowed": false,
     "condition_interpretation": {
       "controlled_developer": "live developer against fixed scripted counterparties"
@@ -17,14 +17,14 @@
     "resampling_unit": "world",
     "winner_claim_allowed": false
   },
-  "campaign_id": "datacenter_development_v2_world_panel_interface4_two_route_confirmatory_v1",
-  "claim_status": "two_route_paired_gemini_glm53_interface4_confirmatory_admission_contrast_on_held_out_worlds",
+  "campaign_id": "datacenter_development_v2_world_panel_interface4_glm_pilot_v1",
+  "claim_status": "twenty_four_world_single_route_glm53_interface4_variance_pilot_exploratory",
   "conditions": [
     "controlled_developer"
   ],
   "execution": {
-    "campaign_max_cost_usd": 30.0,
-    "concurrency": 2,
+    "campaign_max_cost_usd": 10.0,
+    "concurrency": 1,
     "harness": "minimal_chat/1.0",
     "max_action_attempts": 1,
     "max_concurrent_cells_per_route_provider": 1,
@@ -37,34 +37,13 @@
     "sdk_retries": 0,
     "timeout_seconds_per_action": 180.0
   },
-  "expected_pack_sha256": "fd3333b401a829c314c9dbb5e86e3e7d7d7314a3d1a3b27a80e3ee674e6aee6c",
+  "expected_pack_sha256": "7fe8ac7fc87bb7290754402926bbff32a482a93aa4dd903675f971637a4e0d48",
   "family_id": "datacenter_development_v1",
   "inference_seeds": [
-    51211,
-    51212,
-    51213
+    41211,
+    41212
   ],
   "models": {
-    "gemini38_flash_aistudio": {
-      "access_class": "proprietary",
-      "canonical_model": "google/gemini-3.8-flash-20260902",
-      "license_id": "proprietary",
-      "max_completion_price_per_million": "6.75",
-      "max_cost_usd_per_live_profile": 0.2,
-      "max_prompt_price_per_million": "1.35",
-      "pricing": {
-        "cached_input_per_million": 0.075,
-        "input_per_million": 0.75,
-        "output_per_million": 3.75,
-        "pricing_id": "openrouter_2026-09-03_gemini38_flash_aistudio_world_panel_interface4_confirmatory_v1"
-      },
-      "profile_id": "datacenter_v2_gemini38_flash_aistudio_world_panel_interface4_confirmatory_v1",
-      "provider": "Google AI Studio",
-      "quantization": "unknown",
-      "reasoning_effort": "low",
-      "requested_model": "google/gemini-3.8-flash",
-      "temperature_supported": true
-    },
     "glm53_phala": {
       "access_class": "open_source",
       "canonical_model": "z-ai/glm-5.3-20260816",
@@ -76,9 +55,9 @@
         "cached_input_per_million": 0.91,
         "input_per_million": 0.91,
         "output_per_million": 2.86,
-        "pricing_id": "openrouter_2026-09-21_glm53_phala_world_panel_interface4_confirmatory_v1"
+        "pricing_id": "openrouter_2026-09-21_glm53_phala_world_panel_interface4_v1"
       },
-      "profile_id": "datacenter_v2_glm53_phala_world_panel_interface4_confirmatory_v1",
+      "profile_id": "datacenter_v2_glm53_phala_world_panel_interface4_pilot_v1",
       "provider": "Phala",
       "quantization": "unknown",
       "reasoning_effort": "low",
@@ -86,8 +65,8 @@
       "temperature_supported": true
     }
   },
-  "pack_id": "datacenter_development_v2_worlds_v4_holdout_v1",
-  "pack_split": "worlds_v4_holdout",
+  "pack_id": "datacenter_development_v2_worlds_v4_interface4_v1",
+  "pack_split": "worlds_v4",
   "schema_version": "aeread.datacenter_world_campaign_contract/0.3",
   "scope_version": "v2"
 }
