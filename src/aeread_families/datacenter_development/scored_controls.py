@@ -64,6 +64,14 @@ BUNDLES: dict[str, dict[str, Path]] = {
         "curated": CASES_ROOT / "v2" / "full_stack_amendment_003.json",
         "worlds": CASES_ROOT / "worlds_v3",
     },
+    # The same worlds at interface 4 (DC-D-11): the prompt states the parser's
+    # relational rules; the scripted policies never break them, so the
+    # controls read the same and the bundle pins the pack for the two-route
+    # comparison's pilot.
+    "datacenter_v2_interface4_scored_controls_v1": {
+        "curated": CASES_ROOT / "v2" / "full_stack_amendment_004.json",
+        "worlds": CASES_ROOT / "worlds_v4",
+    },
 }
 DEFAULT_BUNDLE_ROOT = REPOSITORY_ROOT / "evidence" / "datacenter_development" / PUBLICATION_ID
 CURATED_CASE = BUNDLES[PUBLICATION_ID]["curated"]
@@ -230,6 +238,13 @@ def _readme(summary: Mapping[str, Any], publication_id: str = PUBLICATION_ID) ->
 This bundle scores the same 24 worlds at developer interface 3: the amendment
 phase can be declined, so the adopter keeps the executed land agreement and
 goes on to copy the lender's counter instead of walking (DC-D-09, DC-D-10).
+"""
+        if publication_id == "datacenter_v2_interface3_scored_controls_v1"
+        else """
+This bundle scores the same 24 worlds at developer interface 4: interface 3
+plus the parser's relational rules stated in the prompt (DC-D-11). The
+scripted policies never break those rules, so every control reads as it did
+at interface 3; the bundle pins the pack the two-route comparison pilots on.
 """
     )
     return f"""# Scored controls for the V2 stack
