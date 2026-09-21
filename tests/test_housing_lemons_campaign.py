@@ -228,6 +228,25 @@ def test_live_stages_run_halt_and_resume_without_paying_twice(tmp_path):
     assert analysis["winner_claim_allowed"] is False
     assert summary["rows"][0]["commit_decisions"]
 
+    # Publication: a sanitized, digest-bound bundle with the trajectory grain.
+    bundle = tmp_path / "evidence" / "housing" / lc.CAMPAIGN_ID
+    published = lc.publish(contract_path=contract_path, run_root=root, publication_root=bundle)
+    assert published["live_cells"] == 5 and published["control_cells"] == 9
+    assert published["trajectory_rows"] > 0 and published["receipts"] == 14
+    manifest = json.loads((bundle / "publication_manifest.json").read_bytes())
+    assert manifest["campaign_id"] == lc.CAMPAIGN_ID and manifest["winner_claim_allowed"] is False
+    assert set(manifest["artifacts"]) >= {
+        "README.md", "reports/design.json", "reports/variance_pilot.json", "reports/analysis.json",
+        "qc/provider_free_validation.json", "qc/profile_admission.json", "tables/cells.jsonl",
+        "tables/scripted_controls.jsonl", "trajectories/sanitized.jsonl",
+    }
+    for relative, digest in manifest["artifacts"].items():
+        payload = (bundle / relative).read_bytes()
+        assert __import__("hashlib").sha256(payload).hexdigest() == digest
+        lc.assert_public_payload(relative, payload)
+    with pytest.raises(ValueError, match="not empty"):
+        lc.publish(contract_path=contract_path, run_root=root, publication_root=bundle)
+
 
 def test_analysis_is_deterministic_and_world_clustered():
     contract = lc.load_contract(CONTRACT_PATH)

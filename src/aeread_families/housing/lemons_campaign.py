@@ -48,6 +48,14 @@ from aeread.shared_runner.run.contract import (
     sealed,
     sha256_json,
 )
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.run.publication import (
+    assert_public_payload,
+    atomic_publish,
+    jsonl,
+    seal_publication_manifest,
+)
+from aeread.shared_runner.run.publish_trajectories import publish_trajectory_grain
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
@@ -1239,6 +1247,195 @@ def analyze_pilot(
 
 
 # ---------------------------------------------------------------------------
+# Publication: a kernel-layout bundle under evidence/housing/<campaign_id>/
+# ---------------------------------------------------------------------------
+
+
+def _latest_passed_stage(output_root: Path, stage: str) -> tuple[dict[str, Any], Path]:
+    """The newest attempt whose summary carries a passed status, with its root."""
+    found: tuple[dict[str, Any], Path] | None = None
+    for attempt in range(1, 100):
+        root = _live_stage_root(output_root, stage, attempt)
+        path = root / "summary.json"
+        if not path.exists():
+            if attempt > 1:
+                break
+            continue
+        summary = read_sealed(path)
+        passed = summary.get("status") == "passed" or summary.get("complete_pack") is True
+        if passed:
+            found = (summary, root)
+    if found is None:
+        raise ValueError(f"no passed attempt of {stage} under {output_root}")
+    return found
+
+
+def _live_attempt_dirs(rows: Sequence[Mapping[str, Any]], evidence_root: Path) -> list[Path]:
+    dirs: list[Path] = []
+    for row in rows:
+        if row.get("status") != "completed" or "run_plan_id" not in row:
+            continue
+        attempts_dir = RunLayout(evidence_root, row["run_plan_id"]).resolve_attempts_dir(row["cell_id"])
+        candidates = sorted(path for path in attempts_dir.iterdir() if path.is_dir()) if attempts_dir.is_dir() else []
+        for candidate in candidates:
+            receipt = candidate / "evaluation_receipt.json"
+            if receipt.exists() and json.loads(receipt.read_bytes()).get("receipt_sha256") == row["receipt_sha256"]:
+                dirs.append(candidate)
+    return dirs
+
+
+def publish(
+    *, contract_path: Path, run_root: Path, publication_root: Path
+) -> dict[str, Any]:
+    """Seal the pilot as a digest-bound, sanitized bundle. Refuses unless every
+    gate through ``variance_pilot`` passed and the design still matches the
+    contract. Rows carry numbers, digests and typed conditions only."""
+    contract = load_contract(contract_path)
+    design, _ = _latest_passed_stage(run_root, "design_contract")
+    if design["contract_sha256"] != sha256_json(contract):
+        raise ValueError("the sealed design was built from a different contract")
+    provider_free, _ = _latest_passed_stage(run_root, "provider_free_validation")
+    admission, _ = _latest_passed_stage(run_root, "profile_admission")
+    full, full_root = _latest_passed_stage(run_root, "full_trajectory")
+    pilot, pilot_root = _latest_passed_stage(run_root, "variance_pilot")
+    if not pilot.get("complete_pack") or pilot.get("analysis") is None:
+        raise ValueError("the variance pilot is not complete")
+    bundle = Path(publication_root)
+    if bundle.exists() and any(bundle.iterdir()):
+        raise ValueError(f"publication root is not empty: {bundle}")
+    bundle.mkdir(parents=True, exist_ok=True)
+    admission_public = {
+        **{key: value for key, value in admission.items() if key != "results"},
+        "results": [
+            {key: value for key, value in row.items() if key != "attempts"}
+            for row in admission["results"]
+        ],
+    }
+    cells = [
+        {"stage": "full_trajectory", **row} for row in full["rows"]
+    ] + [{"stage": "variance_pilot", **row} for row in pilot["rows"]]
+    controls = [{"stage": "provider_free_validation", **row} for row in provider_free["rows"]]
+    files = {
+        "reports/design.json": canonical_json_bytes(design) + b"\n",
+        "reports/full_trajectory.json": canonical_json_bytes(full) + b"\n",
+        "reports/variance_pilot.json": canonical_json_bytes(pilot) + b"\n",
+        "reports/analysis.json": canonical_json_bytes(pilot["analysis"]) + b"\n",
+        "qc/provider_free_validation.json": canonical_json_bytes(provider_free) + b"\n",
+        "qc/profile_admission.json": canonical_json_bytes(admission_public) + b"\n",
+        "tables/cells.jsonl": jsonl(cells),
+        "tables/scripted_controls.jsonl": jsonl(controls),
+        "README.md": _publication_readme(contract, design, pilot).encode("utf-8"),
+    }
+    for relative, payload in files.items():
+        assert_public_payload(relative, payload)
+        path = bundle / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_publish(path, payload)
+    receipts = sorted(
+        {row["receipt_sha256"] for row in cells + controls if row.get("receipt_sha256")}
+    )
+    manifest = seal_publication_manifest(
+        bundle,
+        publication_id=contract["campaign_id"],
+        campaign_id=contract["campaign_id"],
+        privacy_boundary={
+            "included": (
+                "sealed design, gate summaries, per-cell numeric outcomes with typed "
+                "failure conditions, refusal-decision records, receipt digests, "
+                "sanitized trajectory rows"
+            ),
+            "excluded": (
+                "raw provider responses, prompts, model reasoning, complete receipts, "
+                "failure messages, provider identifiers"
+            ),
+        },
+        source_bindings={
+            "contract_path": str(contract_path),
+            "contract_sha256": design["contract_sha256"],
+            "design_sha256": design["artifact_sha256"],
+            "variance_pilot_sha256": pilot["artifact_sha256"],
+            "full_trajectory_sha256": full["artifact_sha256"],
+            "provider_free_sha256": provider_free["artifact_sha256"],
+            "profile_admission_sha256": admission["artifact_sha256"],
+            "source_receipt_sha256s": receipts,
+            "run_root_layout": "runs/<campaign_id>/<stage>[/attempt_<n>]/live_tenant/evidence",
+        },
+        claim_status=contract["claim_status"],
+        winner_claim_allowed=False,
+        inferential_model_ranking_allowed=False,
+        cost_qualifier=pilot["cost_qualifier"],
+        total_cost_usd=round(
+            float(pilot["total_cost_usd"]) + float(full["total_cost_usd"]) + float(admission["total_cost_usd"]),
+            6,
+        ),
+    )
+    attempt_dirs = _live_attempt_dirs(full["rows"], full_root / LIVE_CONDITION_ID / "evidence")
+    for prior in range(1, 100):
+        root = _live_stage_root(run_root, "variance_pilot", prior)
+        if not (root / "summary.json").exists():
+            if prior > 1:
+                break
+            continue
+        attempt_dirs.extend(_live_attempt_dirs(pilot["rows"], root / LIVE_CONDITION_ID / "evidence"))
+    seen: set[Path] = set()
+    attempt_dirs = [path for path in attempt_dirs if not (path in seen or seen.add(path))]
+    trajectory_rows, manifest = publish_trajectory_grain(bundle, attempt_dirs)
+    return {
+        "publication_root": str(bundle),
+        "manifest_sha256": manifest["manifest_sha256"],
+        "artifact_count": len(manifest["artifacts"]),
+        "live_cells": len(cells),
+        "control_cells": len(controls),
+        "trajectory_rows": trajectory_rows,
+        "receipts": len(receipts),
+    }
+
+
+def _publication_readme(
+    contract: Mapping[str, Any], design: Mapping[str, Any], pilot: Mapping[str, Any]
+) -> str:
+    analysis = pilot["analysis"]
+    overall = analysis["overall"]
+
+    def fmt(endpoint: str) -> str:
+        item = overall[endpoint]
+        if item["point"] is None:
+            return "n/a"
+        ci = item["ci95"]
+        return f"{item['point']:.3f}" + (f" (95% {ci[0]:.3f} to {ci[1]:.3f})" if ci else "")
+
+    return (
+        f"# {contract['campaign_id']}\n\n"
+        "Descriptive single-route pilot of the Housing lemons world (refusal under "
+        "adverse selection): one live tenant route on a frozen pack of gate-admitted "
+        "worlds, with the three scripted tenant policies run through the same runner "
+        "on the same pack as controls. Claim status: "
+        f"`{contract['claim_status']}`. No winner and no model ranking may be read "
+        "from this bundle.\n\n"
+        f"- Route: `{contract['route']['route_id']}` "
+        f"(`{contract['route']['canonical_model']}` via {contract['route']['provider']})\n"
+        f"- Pack: {design['world_count']} worlds from seed {contract['world_pack']['seed_start']} "
+        f"by the declared selection rule; {pilot['planned_cells']} pilot cells, "
+        f"{pilot['completed_cells']} completed, {pilot['operational_failures']} operational "
+        f"failures, {pilot['not_attempted_cells']} not attempted\n"
+        f"- Cost: ${pilot['total_cost_usd']:.4f} for the pilot stage ({pilot['cost_qualifier']})\n"
+        f"- Primary endpoint, tenant net payoff, mean over worlds: {fmt('tenant_net_payoff')}\n"
+        f"- Live minus inspect-then-sign reference: {fmt('live_minus_reference_net_payoff')}\n"
+        f"- Abstention correctness: {fmt('abstention_correctness_rate')}\n"
+        f"- Cells that signed an uninspected lemon: {overall['cells_with_uninspected_lemon_signing']} of {overall['cells']}\n\n"
+        "Files: `reports/design.json` (sealed design), `reports/full_trajectory.json` and "
+        "`reports/variance_pilot.json` (gate summaries with every cell row), "
+        "`reports/analysis.json` (the predeclared analysis), `qc/` (provider-free "
+        "validation and profile admission), `tables/cells.jsonl` (live cells), "
+        "`tables/scripted_controls.jsonl` (the bracket on the same pack), and "
+        "`trajectories/sanitized.jsonl` (the kernel trajectory grain). "
+        "`publication_manifest.json` digests every file and binds the bundle to its "
+        "source receipts. Raw responses, prompts, reasoning and failure messages stay "
+        "in the ignored run root.\n"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Gate history
 # ---------------------------------------------------------------------------
 
@@ -1477,7 +1674,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--changed-control", action="append", default=[])
     parser.add_argument("--invalidation-reason", default=None)
     parser.add_argument("--select-pack", action="store_true", help="print the pack the selection rule yields and exit")
+    parser.add_argument(
+        "--publish-to", type=Path, default=None,
+        help="seal the completed pilot as a bundle at this evidence path and exit",
+    )
     arguments = parser.parse_args(argv)
+    if arguments.publish_to is not None:
+        result = publish(
+            contract_path=arguments.contract,
+            run_root=arguments.run_root,
+            publication_root=arguments.publish_to,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
     if arguments.select_pack:
         contract = load_contract(arguments.contract)
         selected = select_world_pack(contract)
