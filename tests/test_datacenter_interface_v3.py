@@ -292,7 +292,7 @@ def test_contract_zero_two_sums_declared_costs_in_integer_cents(tmp_path) -> Non
     path = tmp_path / "contract.json"
     path.write_text(json.dumps(contract))
     assert load_contract(path)["schema_version"].endswith("/0.2")
-    contract["schema_version"] = "aeread.datacenter_world_campaign_contract/0.3"
+    contract["schema_version"] = "aeread.datacenter_world_campaign_contract/0.9"
     path.write_text(json.dumps(contract))
     with pytest.raises(ValueError, match="schema version"):
         load_contract(path)
