@@ -1,0 +1,1 @@
+{"case_id":"tau3.retail.base.11","cost_usd":0.0872271,"db_state_score":1.0,"receipt_replayed":true,"receipt_sha256":"955d7b3d8e41a7abb3415a5346f45373b353d87c3fdcb6bca49a4eb2975aa825","redundant_tool_call_count":0.0,"stratum":"cross_payment_refund_fallback","termination_reason":"user_stop","tool_error_count":0.0,"upstream_step_count":19}
