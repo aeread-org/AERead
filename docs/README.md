@@ -28,6 +28,7 @@ After stage 8, choose the track closest to your work:
 - **Campaign operator:** continue with [open-harness testing](operations/open_harness_testing.md)
   and the relevant family QC profile.
 - **Researcher:** continue with [multi-agent experiment design](research/multiagent_experiment_design.md),
+  [the economic-primitives extension design](research/economic_primitives_extension_design.md),
   [benchmark saturation](research/benchmark_saturation.md), and
   [reasoning diagnostics](research/reasoning_condition_and_diagnostics.md).
 
