@@ -294,6 +294,132 @@ def analyze(
     }
 
 
+def _route_endpoints(rows: Sequence[Mapping[str, Any]], rng: random.Random, draws: int) -> dict[str, Any]:
+    """One route's primary and secondary endpoints from its classified rows."""
+
+    present = [row for row in rows if not row["missing"]]
+    worlds = sorted({row["world"] for row in present})
+    by_world = {world: [row for row in present if row["world"] == world] for world in worlds}
+    rate = {world: sum(row["admitted"] for row in cells) / len(cells) for world, cells in by_world.items()}
+    point = statistics.mean(rate.values()) if worlds else None
+    low, high = _bootstrap(rng, worlds, lambda sample: statistics.mean(rate[w] for w in sample), draws) if worlds else (None, None)
+    deltas = {}
+    for world in worlds:
+        admitted = [row["delta"] for row in by_world[world] if row["admitted"]]
+        deltas[world] = statistics.mean(admitted) if admitted else None
+    admitted_worlds = [world for world in worlds if deltas[world] is not None]
+    if admitted_worlds:
+        delta_point = statistics.mean(deltas[w] for w in admitted_worlds)
+        delta_low, delta_high = _bootstrap(rng, admitted_worlds, lambda sample: statistics.mean(deltas[w] for w in sample), draws)
+    else:
+        delta_point = delta_low = delta_high = None
+    strata = sorted({row["stratum"] for row in rows})
+    return {
+        "cells": len(rows),
+        "operational_failures": sum(row["missing"] for row in rows),
+        "primary_admission_rate": {
+            "point": point,
+            "ci95": [low, high],
+            "worlds": len(worlds),
+            "worlds_with_any_admission": sum(1 for w in worlds if rate[w] > 0),
+            "worlds_admitted_on_every_seed": sum(1 for w in worlds if rate[w] == 1.0),
+        },
+        "secondary_reference_delta_cents": {
+            "point": delta_point,
+            "ci95": [delta_low, delta_high],
+            "admitted_worlds": len(admitted_worlds),
+            "admitted_cells": sum(row["admitted"] for row in present),
+            "cells_above_reference": sum(1 for row in present if row["admitted"] and row["delta"] > 0),
+        },
+        "by_stratum": {
+            stratum: {
+                "admitted": sum(row["admitted"] for row in present if row["stratum"] == stratum),
+                "cells": sum(1 for row in rows if row["stratum"] == stratum),
+            }
+            for stratum in strata
+        },
+        "exclusions": dict(collections.Counter(row["exclusion"] for row in present if not row["admitted"])),
+        "world_admission_rate": rate,
+    }
+
+
+def analyze_two_routes(
+    bundle_root: Path | str,
+    contract: Mapping[str, Any],
+    freeze: Mapping[str, Any],
+    *,
+    reading: str,
+    missingness_ceiling: float = 0.10,
+) -> dict[str, Any]:
+    """The predeclared endpoints for a contract with two routes on one pack.
+
+    Each route gets the single-route endpoints; the paired contrast is the
+    difference in admission rate per world (second route minus first, in the
+    contract's declared order), averaged over worlds where both routes have
+    every seed, with a world-clustered bootstrap over those worlds. One
+    stream seeded by the contract serves every bootstrap in the order the
+    routes are declared, then the contrast. The contrast is an estimate with
+    an interval, not a winner claim: the contract forbids that reading."""
+
+    bundle_root = Path(bundle_root)
+    routes = list(contract["models"])
+    if len(routes) != 2:
+        raise ValueError("analyze_two_routes needs a contract with exactly two routes")
+    draws = int(contract["analysis"]["bootstrap_draws"])
+    seed = int(contract["analysis"]["bootstrap_seed"])
+    cells = _load_cells(bundle_root)
+    rows = {route: [classify(cell) for cell in cells if cell["model_id"] == route] for route in routes}
+    rng = random.Random(seed)
+    per_route = {route: _route_endpoints(rows[route], rng, draws) for route in routes}
+    first, second = routes
+    shared = sorted(set(per_route[first]["world_admission_rate"]) & set(per_route[second]["world_admission_rate"]))
+    planned_per_world = len(contract["inference_seeds"])
+    complete = [
+        world for world in shared
+        if all(sum(1 for row in rows[route] if row["world"] == world and not row["missing"]) == planned_per_world for route in routes)
+    ]
+    diff = {world: per_route[second]["world_admission_rate"][world] - per_route[first]["world_admission_rate"][world] for world in complete}
+    if complete:
+        point = statistics.mean(diff.values())
+        low, high = _bootstrap(rng, complete, lambda sample: statistics.mean(diff[w] for w in sample), draws)
+    else:
+        point = low = high = None
+    planned = len(cells)
+    missing = sum(row["missing"] for route in routes for row in rows[route])
+    fraction = missing / planned if planned else 0.0
+    return {
+        "schema_version": "aeread.datacenter_two_route_confirmatory_analysis/0.1",
+        "campaign_id": contract["campaign_id"],
+        "freeze_contract_sha256": freeze["contract_sha256"],
+        "routes": routes,
+        "predeclared": {
+            "primary": freeze["primary_endpoint"],
+            "secondary": freeze["secondary_endpoint"],
+            "paired_contrast": freeze.get("paired_contrast"),
+            "seed_handling": freeze["seed_handling"],
+            "missingness_policy": freeze["missingness_policy"],
+            "bootstrap": {"draws": draws, "seed": seed, "resampling_unit": "world"},
+        },
+        "cells": planned,
+        "operational_failures": missing,
+        "missingness_fraction": fraction,
+        "eligible": fraction < missingness_ceiling,
+        "by_route": {route: {k: v for k, v in per_route[route].items() if k != "world_admission_rate"} for route in routes},
+        "paired_admission_contrast": {
+            "second_minus_first": [second, first],
+            "point": point,
+            "ci95": [low, high],
+            "worlds_paired": len(complete),
+            "worlds_second_higher": sum(1 for w in complete if diff[w] > 0),
+            "worlds_first_higher": sum(1 for w in complete if diff[w] < 0),
+            "worlds_tied": sum(1 for w in complete if diff[w] == 0),
+        },
+        "reading": reading,
+        "winner_claim_allowed": False,
+        "inferential_model_ranking_allowed": False,
+    }
+
+
 def seal_analysis(bundle_root: Path | str, analysis: Mapping[str, Any]) -> dict[str, Any]:
     """Add ``reports/confirmatory_analysis.json`` to the bundle and re-seal its manifest."""
 
@@ -312,11 +438,15 @@ def main(argv: list[str] | None = None) -> int:
     contract = load_contract(arguments.contract)
     freeze = json.loads(arguments.contract.with_suffix(".freeze.json").read_text(encoding="utf-8"))
     bundle = arguments.bundle or publication_root_for(contract)
-    analysis = analyze(bundle, contract, freeze, reading=arguments.reading, run_root=arguments.run_root)
+    if len(contract["models"]) == 2:
+        analysis = analyze_two_routes(bundle, contract, freeze, reading=arguments.reading)
+    else:
+        analysis = analyze(bundle, contract, freeze, reading=arguments.reading, run_root=arguments.run_root)
     if arguments.seal:
         manifest = seal_analysis(bundle, analysis)
         print(json.dumps({"sealed": True, "manifest_sha256": manifest["manifest_sha256"]}))
-    print(json.dumps({k: analysis[k] for k in ("primary_admission_rate", "secondary_reference_delta_cents", "exclusions", "by_stratum")}))
+    keys = ("by_route", "paired_admission_contrast") if "by_route" in analysis else ("primary_admission_rate", "secondary_reference_delta_cents", "exclusions", "by_stratum")
+    print(json.dumps({k: analysis[k] for k in keys}))
     return 0
 
 
@@ -329,6 +459,7 @@ __all__ = [
     "DEFAULT_FREEZE_TEXT",
     "FREEZE_SCHEMA",
     "analyze",
+    "analyze_two_routes",
     "classify",
     "freeze_record",
     "seal_analysis",
