@@ -530,3 +530,18 @@ python -m aeread_families.procurement_allocation.information_case_matrix --surfa
 `confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
 generated after that prompt was frozen and its development result read.
 
+
+`relationship_v1/` is a six-world panel where the buyer sources the same BOM over
+four periods and supplier standing carries between them: a loyalty discount per
+consecutive award, a capacity reservation for the incumbent, and a retaliation
+markup for a supplier quoted and then dropped. Each world is refused at
+generation unless the exact four-period optimum beats both a period-by-period
+optimizer and a never-switch rule by five percent. Design, references and the
+choices made are in
+[`relationship_design.md`](../../docs/families/procurement-allocation/relationship_design.md).
+Regenerate, or print the three references per world, with:
+
+```bash
+python -m aeread_families.procurement_allocation.relationship_case_matrix --write
+python -m aeread_families.procurement_allocation.relationship_case_matrix --screen
+```

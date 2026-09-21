@@ -16,9 +16,16 @@ from .environment import (
     register_plugin,
     solve_full_information_upper_bound,
 )
+from .relationship import (
+    RelationshipBound,
+    solve_loyal_reference,
+    solve_myopic_reference,
+    solve_relationship_upper_bound,
+)
 from .runner import (
     CASE_PATH,
     PROMPT,
+    RELATIONSHIP_PROMPT,
     ProcurementAllocationSetup,
     SequenceResponseProvider,
     build_offline_setup,
@@ -39,10 +46,12 @@ __all__ = [
     "PHASE_ID",
     "PLUGIN_ID",
     "PROMPT",
+    "RELATIONSHIP_PROMPT",
     "SCORER_ID",
     "ProcurementAllocationMeasurementScorer",
     "ProcurementAllocationPlugin",
     "ProcurementAllocationSetup",
+    "RelationshipBound",
     "SequenceResponseProvider",
     "UpperBoundResult",
     "build_offline_setup",
@@ -58,4 +67,7 @@ __all__ = [
     "replay_procurement_allocation_receipt",
     "run_fixture_script",
     "solve_full_information_upper_bound",
+    "solve_loyal_reference",
+    "solve_myopic_reference",
+    "solve_relationship_upper_bound",
 ]
