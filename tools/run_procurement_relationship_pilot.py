@@ -263,7 +263,35 @@ def _public_trace(execution: Any) -> list[dict[str, Any]]:
     return trace
 
 
+def _live_client() -> tuple[OpenRouterChatClient, Any]:
+    """The kernel's OpenRouter adapter over an SDK client this tool can close.
+
+    The adapter builds its own SDK client when given none and never closes
+    it; closed at interpreter exit instead, after the loop is gone, it printed
+    a closed-event-loop traceback on the first run. Owning the SDK client
+    here lets the cell close it while the loop is still open.
+    """
+    from openai import AsyncOpenAI
+
+    sdk_client = AsyncOpenAI(
+        api_key=os.environ["OPENROUTER_API_KEY"],
+        base_url="https://openrouter.ai/api/v1",
+        max_retries=0,
+    )
+    return OpenRouterChatClient(sdk_client=sdk_client), sdk_client
+
+
 async def _run_one(plan: Mapping[str, Any], row: Mapping[str, Any], run_root: Path) -> dict[str, Any]:
+    client, sdk_client = _live_client()
+    try:
+        return await _run_one_with(plan, row, run_root, client)
+    finally:
+        await sdk_client.close()
+
+
+async def _run_one_with(
+    plan: Mapping[str, Any], row: Mapping[str, Any], run_root: Path, client: OpenRouterChatClient
+) -> dict[str, Any]:
     setup = _setup_for(plan, row)
     cell = setup.plan.cells[0]
     evidence_root = _cell_root(run_root, row) / "evidence"
@@ -275,7 +303,7 @@ async def _run_one(plan: Mapping[str, Any], row: Mapping[str, Any], run_root: Pa
             registry=setup.registry,
             evidence_root=evidence_root,
             prompt_sources=setup.prompt_sources,
-            providers={"openrouter": OpenRouterChatClient()},
+            providers={"openrouter": client},
             pricing=setup.pricing,
             harnesses=setup.harnesses,
         )
