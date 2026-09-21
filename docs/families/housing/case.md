@@ -317,8 +317,9 @@ takes `--provider openrouter --route google_gemini_38_flash` or `--route xai_gro
 
 **Status.** Environment, endpoint, gate and scripted bracket are implemented and
 tested. No live result is claimed: the only live cells so far are a development probe
-from a local run root, recorded in the incident log (HL-O-01, HL-T-01), and any
-campaign on this world is a new identity with its own contract, pilot and profile.
+from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
+campaign identity on this world, the descriptive single-route pilot
+`housing_lemons_refusal_pilot_v1`, is specified in the [QC profile](qc.md) §20.
 
 ## 6. Metrics
 

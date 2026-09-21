@@ -713,3 +713,67 @@ the zero-attempt
 [`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
 and the pacing-aware canonical
 [`fact_manifest.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).
+
+## 20. Lemons refusal pilot campaign
+
+The first campaign identity on the lemons world (case contract §5c) is
+[`housing_lemons_refusal_pilot_v1`](../../../configs/housing_lemons_refusal_pilot_v1.json),
+driven by `aeread_families.housing.lemons_campaign`. It is descriptive and
+single-route: one live tenant profile (Gemini 3.8 Flash via Google AI Studio)
+on a frozen pack of gate-admitted worlds, with the three scripted tenant
+policies run through the same runner on the same pack as controls. The
+primary estimand is `tenant_net_payoff`; the contrast is live minus the
+`inspect_then_sign` reference per world. It may claim no winner and no ranking.
+
+**Pack.** Six tenants, four listings, four rounds, share 0.5, loss 1000, fee 25,
+the family admission rule. Seeds are walked from 100000: the first admitted
+world is the full-trajectory world (100000), then each stratum fills to twelve
+worlds in stream order. The strata are declared slices, `favourite_is_lemon`
+and `favourite_is_sound`, where the favourite is the listing most tenants rank
+first by value-if-sound gain. The stream was scanned to seed 100030, six worlds
+excluded. The design gate re-derives the pack from the rule and refuses a
+contract whose seed lists differ from what the rule yields.
+
+**Gates.** The campaign SOP's first five, through the shared gate history:
+
+```bash
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through provider_free_validation
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through full_trajectory
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through variance_pilot
+```
+
+`design_contract` seals the pack facts, the plan and profile digests, and the
+worst case in integer cents (49 cells x $0.30, with the stage ceilings of $0.50
+and $6.00 binding first). `provider_free_validation` runs all 75 scripted cells
+with receipt verification and replay and refuses a policy whose runner score
+differs from the offline gate's. `profile_admission` probes the three lemons
+action schemas three times each. `full_trajectory` is one live cell;
+`variance_pilot` is 24 worlds x 2 inference seeds, executed world by world in
+ascending seed order. Set `OPENROUTER_API_KEY` before the paid gates.
+
+**Limits in the contract.** Per-profile cost ceiling $0.30 per cell, four action
+attempts with the declared retryable conditions, 120 s per action, the two stage
+ceilings, and `max_consecutive_operational_failures: 3`: after three failed
+cells in a row the stage halts, seals the untouched cells as `not_attempted`
+typed missingness, and fails its gate. A later attempt reuses the completed
+cells of earlier attempts and re-executes only failed ones under a new evidence
+root, so no cell is rerun in place and no completed cell is paid for twice.
+
+**Analysis.** Five endpoints in declared order, overall and per stratum, each a
+mean over worlds with a 95% percentile interval from a world-clustered bootstrap
+of 10000 draws; one `random.Random(20260921)` stream serves every interval in
+that order, so two analysts with the contract get the same numbers. Cells that
+signed an uninspected lemon, that fell below sign-anything, and that beat the
+reference are counted beside the intervals. Operational failures are reported
+as missingness, never as zero scores.
+
+**Status.** The design and provider-free gates pass offline (the test suite
+runs them). No paid gate has run under this identity; the two development cells
+recorded as HL-O-01 were run outside it. Publication is a separate step after
+`variance_pilot` and lands under `evidence/housing/housing_lemons_refusal_pilot_v1/`.
