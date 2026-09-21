@@ -157,6 +157,22 @@ AMENDMENT_DECLINE_NOTE = (
     "invalid. A walk ends the project at the outside option and may state its reason "
     "in message."
 )
+#: Interface 4 (DC-D-11): the contract parser applies rules between fields
+#: that a JSON schema cannot express, and a model composing its own package
+#: (rather than copying a counter) trips them without ever being told. Every
+#: relational rule the parsers raise is listed here, in the parser's words.
+RELATIONAL_RULES_NOTE = (
+    " Structured terms are also checked against each other, and an offer that "
+    "breaks any of these is refused as invalid: a service ramp_schedule cannot begin "
+    "before service_commencement_month, its months must be strictly increasing, its "
+    "capacity non-decreasing and never above committed_capacity_kw, and its final "
+    "capacity must equal committed_capacity_kw; a customer_termination_option_month "
+    "cannot precede service commencement or follow the initial term; EPC payment "
+    "months must be strictly increasing, cannot precede notice_to_proceed_month, and "
+    "the payments must sum exactly to contract_price_cents; a loan's maturity_month "
+    "cannot precede draw_start_month and its interest_reserve_cents cannot exceed "
+    "maximum_commitment_cents."
+)
 
 
 def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
@@ -168,7 +184,13 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     Every other case keeps v1 byte for byte, so the sealed campaigns' prompt
     digests do not move."""
 
-    if developer_interface(case_payload) >= 3:
+    interface = developer_interface(case_payload)
+    if interface >= 4:
+        return (
+            f"datacenter_{scope_version}_developer_prompt_v4",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + RELATIONAL_RULES_NOTE,
+        )
+    if interface >= 3:
         return (
             f"datacenter_{scope_version}_developer_prompt_v3",
             DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE,
