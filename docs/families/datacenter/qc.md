@@ -421,6 +421,24 @@ cells; seeds averaged within the world; missingness ceiling 10% of planned
 cells; no early stop; predeclared slice by stratum; no winner, ranking or
 causal claim, one route. Gates 1-3 pass on the holdout without a key.
 
+**Interface-3 pilot (2026-09-21).** `evidence/datacenter_development/datacenter_development_v2_world_panel_interface3_pilot_v1/`:
+the same 24 worlds and two seeds as the first pilot, at developer interface 3
+(`worlds_v3`). 48 of 48 cells completed, $3.36; 15 cells were re-executed as
+recorded further attempts after a network outage turned the last seven worlds
+into instant `transport` failures (DC-O-03, DC-T-08). The harness check holds:
+**0 amendment-phase deaths** (the first pilot had 28 of 48). They did not
+become admissions: 44 of 48 cells declined the amendment, 34 stacks completed
+but were not funded, and in every one of them site control expired before
+commercial operation — the model had the executed land (expiry 22-23, no
+extension), the EPC completion month and the capacity schedule in view and
+answered "no amendment required". Admitted 6 of 48 (first pilot 7), 5 of 24
+worlds on any seed (7), 1 on both (4); 3 cells walked with a stated reason,
+now valid walks; 4 exhausted the power rounds; 1 non-JSON. Read against the
+first confirmatory's 0.42 ceiling: that bound counted stacks whose site control
+covered COD, and the model declines the amendment that would have made it so.
+The gap the first confirmatory hid was an interface gap; what the interface
+now shows is a cross-agreement error, scored as `completed_but_unfinanced`.
+
 **Confirmatory result (2026-09-20).** `evidence/datacenter_development/datacenter_development_v2_world_panel_confirmatory_v1/`,
 with the predeclared analysis sealed in as `reports/confirmatory_analysis.json` (reproduced by `aeread_families.datacenter_development.confirmatory`, DC-T-07):
 72 of 72 cells completed, no operational failure, $5.34 exact. **Admission rate
