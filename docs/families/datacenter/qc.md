@@ -13,8 +13,9 @@
 `construct_validity=partial`,
 `attribution_and_controls=partial`,
 `confirmatory_reliability=passed` for the
-`datacenter_development_v2_world_panel_confirmatory_v1` track and `partial`
-for the family, and
+`datacenter_development_v2_world_panel_confirmatory_v1` and
+`datacenter_development_v2_world_panel_interface3_confirmatory_v1` tracks and
+`partial` for the family, and
 `normative_datacenter_profile=partial`.
 
 As audited on 2026-09-19 this profile read `task_distribution_admission=failed`,
@@ -387,7 +388,7 @@ one project.
 
 ## 5. Confirmatory reliability and publication
 
-**Status: passed for the confirmatory track** (`datacenter_development_v2_world_panel_confirmatory_v1`), `partial` for the family: one route, descriptive, and the Gate 1-4 blockers still stand.
+**Status: passed for two confirmatory tracks** (`datacenter_development_v2_world_panel_confirmatory_v1`, `datacenter_development_v2_world_panel_interface3_confirmatory_v1`), `partial` for the family: one route, descriptive, and the Gate 1-4 blockers still stand.
 
 **Design contract (2026-09-19).** `configs/datacenter_development_v2_world_panel_v1.json`
 with `world_campaign.py`: the 24-world pack pinned by digest, one route
@@ -438,6 +439,28 @@ first confirmatory's 0.42 ceiling: that bound counted stacks whose site control
 covered COD, and the model declines the amendment that would have made it so.
 The gap the first confirmatory hid was an interface gap; what the interface
 now shows is a cross-agreement error, scored as `completed_but_unfinanced`.
+
+**Second confirmatory (2026-09-21).** `evidence/datacenter_development/datacenter_development_v2_world_panel_interface3_confirmatory_v1/`,
+frozen by `confirmatory.write_freeze` on a fresh held-out pack
+(`worlds_v3_holdout`, master seed 20280920, developer interface 3) with the
+first confirmatory's design, and analysed by `confirmatory.analyze` with the
+analysis sealed in: 72 of 72 cells, 0 operational failures, $5.26 exact,
+attended. The predeclared harness check passed — 0 amendment-phase
+exclusions. **Admission over worlds 0.208, 95% world-clustered bootstrap
+0.111-0.306**; 11 of 24 worlds on at least one seed, none on all three.
+66 of 72 cells declined the amendment; site control expired before commercial
+operation in 46 of the 49 unfunded stacks, 17 carried the 40 MW power counter,
+10 a funding shortfall. Five walks stated a reason — four refusing a written
+20-30% advance rate the lender's message had disavowed — and are valid walks.
+Admitted cells sit 0.61 billion cents below the reference on average (95%
+-1.44 to +0.06; 8 of 15 above it); 12 of the 15 were admitted after a
+decline that happened to leave site control long enough. Read against the
+first confirmatory (0.25, 0.15-0.35, another pack, interface 2): descriptive
+only, as the freeze declares; the interface gap is closed and admission did
+not rise, because the developer declines the amendment that would carry site
+control through operation. What may be claimed: one route's descriptive
+admission rate and reference gap on fresh held-out worlds, with no harness
+exclusion left in the count.
 
 **Confirmatory result (2026-09-20).** `evidence/datacenter_development/datacenter_development_v2_world_panel_confirmatory_v1/`,
 with the predeclared analysis sealed in as `reports/confirmatory_analysis.json` (reproduced by `aeread_families.datacenter_development.confirmatory`, DC-T-07):
@@ -491,7 +514,7 @@ campaign identity, never under this one.
 | Environment and verifier | deterministic ledger with sources-equals-uses and rollforward identities, leakage tests for all six ids, provider-free success goldens, typed missingness | **Partial:** replay copies a flag over 531 published rows instead of recomputing; no identities for `stack_cashflow.py`; five golden kinds missing on three ids |
 | Construct validity and baselines | a scripted reference per case; the opt-in `construct_controls` guard (strict dominance by a declared margin, two-sided price bands); walk-away and adopt-every-counter as scored controls on the curated case and all 24 worlds (`datacenter_v2_scored_controls_v1`) | **Partial:** no random or adaptive policy; the guard covers `construct_controls` cases only, so the sealed `001` case and the 1.0.0/1.1.0 identities keep their dominated reference |
 | Attribution and controls | claim status, digests and route snapshots on all 33 contracts; byte-identical paired conditions; typed missingness | **Partial:** one independent cluster in 19 of 30 bundles, five at most; 0 of 10 exposure-qualified pairs in one campaign |
-| Confirmatory reliability | one frozen confirmatory on the held-out pack (`datacenter_development_v2_world_panel_confirmatory_v1`): 72 of 72 cells, predeclared endpoints, world-clustered bootstrap, the analysis sealed into the bundle | **Passed for that track, partial for the family:** one route, descriptive; the amendment phase's missing decline (DC-D-10) biases admission down — measured 0.25, upper bound 0.42 — and closes only under a new identity |
+| Confirmatory reliability | two frozen confirmatories on disjoint held-out packs (`…confirmatory_v1` under interface 2, `…interface3_confirmatory_v1` under interface 3): 72 of 72 cells each, predeclared endpoints, world-clustered bootstrap, analyses sealed into the bundles by `confirmatory.py` | **Passed for both tracks, partial for the family:** one route, descriptive, no random control rate per world; the second run carries no harness exclusion (0 amendment-phase deaths) and reads 0.208 (0.111-0.306) |
 
 ## 7. Registers
 
@@ -534,10 +557,12 @@ to five clusters, as a diagnostic**. Specifically permitted:
   what the integrated V4 to V11 series actually measured;
 - descriptive completion, validity and compliance rates with their typed
   missingness;
-- on the held-out world pack, one route's descriptive admission rate (0.25,
-  95% world-clustered bootstrap 0.15-0.35) and its gap from the scripted
-  reference, labelled as descriptive and as biased down by the amendment
-  phase's missing decline (DC-D-10; upper bound 0.42).
+- on the held-out world packs, one route's descriptive admission rate and
+  its gap from the scripted reference: 0.25 (95% world-clustered bootstrap
+  0.15-0.35) under interface 2, biased down by the amendment phase's missing
+  decline (DC-D-10), and 0.208 (0.111-0.306) under interface 3 on a fresh
+  pack with no harness exclusion in the count; the two are not a before-after
+  comparison.
 
 Not permitted, and not currently claimed anywhere: a model winner, an
 inferential ranking, a population or project generalization, a causal condition

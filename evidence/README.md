@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 81 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 64 directories under a benchmark folder and
+All 82 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 65 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -36,7 +36,7 @@ appropriate section below when they land.
 | Benchmark | Campaigns and registers | Preserved top-level paths |
 |---|---:|---:|
 | [Commercial state calibration](#commercial-state-calibration) | 1 | 0 |
-| [Datacenter development](#datacenter-development) | 16 | 0 |
+| [Datacenter development](#datacenter-development) | 17 | 0 |
 | [Datacenter development terms](#datacenter-development-terms) | 19 | 0 |
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
@@ -116,6 +116,12 @@ navigation index does not change the control or any sealed artifact. See the
   48 of 48 cells, $3.36, 15 recorded further attempts after a network outage):
   0 amendment-phase deaths, 44 declines, 34 unfunded stacks with site control
   short of COD, 6 admitted; exploratory, no winner, ranking or causal claim;
+- [datacenter_development_v2_world_panel_interface3_confirmatory_v1](datacenter_development/datacenter_development_v2_world_panel_interface3_confirmatory_v1/): the
+  second frozen confirmatory, on a fresh held-out pack at developer interface
+  3 (Gemini 3.8 Flash, 24 worlds x 3 seeds, 72 of 72 cells, $5.26 exact) with
+  the predeclared analysis sealed in by `confirmatory.py`; harness check
+  passed (0 amendment-phase exclusions), admission 0.208 (95% 0.111-0.306),
+  one route, descriptive, no winner, ranking or causal claim;
 - [datacenter_development_v2_world_panel_v1](datacenter_development/datacenter_development_v2_world_panel_v1/): the first
   variance pilot on the 24-world pack (Gemini 3.8 Flash, two seeds, 47 of 48
   cells, $2.52 lower bound), exploratory, published as run with the DC-D-07
