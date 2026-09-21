@@ -186,6 +186,48 @@ def classify_world_by_policy_separation(
     return ADMIT
 
 
+#: Repeated-sourcing verdicts. A world whose T-period optimum a single-period
+#: optimizer already reaches has no intertemporal content; one that a
+#: never-switch rule reaches has no switching decision. Either way the periods
+#: are decoration on the single-period family, and the world is not admitted.
+TRIVIAL_MYOPIC = "reject: trivial (myopic)"
+TRIVIAL_LOYAL = "reject: trivial (loyal)"
+
+
+def classify_relationship_world(
+    *,
+    upper_bound: float,
+    myopic: float,
+    loyal: float,
+    outside_option: float,
+    minimum_relative_margin: float = MINIMUM_RELATIVE_SPREAD,
+) -> str:
+    """Admission verdict for a repeated-sourcing world.
+
+    ``upper_bound`` is the exact T-period optimum, ``myopic`` the value of
+    optimizing each period on its own and ``loyal`` the value of re-awarding
+    the first period's choice throughout; ``outside_option`` is the summed
+    defer value. All three references are full-information, so this is a
+    statement about the world, never about a buyer: the intertemporal
+    structure must be worth a material fraction of what the world pays.
+    """
+    if not math.isfinite(minimum_relative_margin) or minimum_relative_margin <= 0:
+        raise ValueError("minimum_relative_margin must be finite and positive")
+    values = (upper_bound, myopic, loyal, outside_option)
+    if not all(math.isfinite(float(value)) for value in values):
+        return UNMEASURED
+    if upper_bound <= outside_option:
+        return FLOORED
+    if myopic > upper_bound + 1e-6 or loyal > upper_bound + 1e-6:
+        raise ValueError("a reference exceeds the T-period optimum; the bound is not a bound")
+    material = minimum_relative_margin * max(abs(upper_bound), 1.0)
+    if upper_bound - myopic < material:
+        return TRIVIAL_MYOPIC
+    if upper_bound - loyal < material:
+        return TRIVIAL_LOYAL
+    return ADMIT
+
+
 def within_world_variance(control_outcomes: Sequence[float]) -> float:
     """Sample variance of a world's control outcomes.
 
@@ -219,7 +261,9 @@ def replay_baseline_outcome(
     family_case = plugin.validate_payload(payload)
     phase = plugin.phases(family_case)[0]
     state = plugin.initial_state(family_case, None)
-    for _ in range(int(family_case["interaction"]["max_actions"])):
+    # The phase cap is the episode's whole budget: one period's actions for
+    # the single-period family, every period's under repeated sourcing.
+    for _ in range(int(phase.max_logical_actions)):
         if state["done"]:
             break
         observation = plugin.observe(family_case, state, "buyer", phase)
@@ -368,7 +412,10 @@ __all__ = [
     "SATURATED",
     "SCREEN_BASELINES",
     "TRIVIAL",
+    "TRIVIAL_LOYAL",
+    "TRIVIAL_MYOPIC",
     "UNMEASURED",
+    "classify_relationship_world",
     "classify_world",
     "classify_world_by_policy_separation",
     "classify_world_continuous",

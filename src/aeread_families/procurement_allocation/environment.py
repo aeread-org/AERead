@@ -41,6 +41,8 @@ from aeread.shared_runner.task.scheduler import (
     TransitionResult,
 )
 
+from . import relationship
+
 
 FAMILY_ID = "procurement_allocation_v1"
 FAMILY_VERSION = "1.0.0"
@@ -323,6 +325,10 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             )
         _positive_int(noise.get("seed"), "interaction.sample_noise.seed")
 
+    # Repeated sourcing is opt-in and declared, like sampling noise: a case
+    # without the block is the single-period family and scores as before.
+    relationship.validate_periods(interaction, objective, suppliers)
+
     required_variants = policy.get("required_variant_by_component")
     inquiry_fields = policy.get("inquiry_fields")
     award_requires = policy.get("award_requires")
@@ -462,6 +468,7 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             _positive_int(negotiation.get(field), f"{path}.private_terms.negotiation.{field}")
         if not isinstance(negotiation.get("supplier_paid_return_freight_available"), bool):
             raise ValueError(f"{path} supplier freight flexibility must be boolean")
+        relationship.validate_relationship(terms, f"{path}.private_terms")
     if components_seen != set(bom):
         raise ValueError("every BOM component requires at least one supplier")
     return data
@@ -589,7 +596,11 @@ def evaluate_award(
 ) -> dict[str, Any]:
     """Evaluate a terminal award in buyer contribution-margin units."""
     objective = family_case["objective"]
-    suppliers = _supplier_by_id(family_case)
+    # Read-only index: the evaluator only reads each supplier's true yield, and
+    # copying the whole panel per call was thirty seconds of a T-period bound.
+    suppliers = {
+        str(supplier["supplier_id"]): supplier for supplier in family_case["suppliers"]
+    }
     required_variants = family_case["policy"]["required_variant_by_component"]
     violations: list[str] = []
     seen_suppliers: set[str] = set()
@@ -760,6 +771,18 @@ def solve_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperB
     # optimum. Screening many seeds otherwise repeats the same enumeration four
     # times per policy/seed (validation and scoring). Copy the cached result so
     # callers cannot corrupt a later certificate through its nested award plan.
+    if relationship.periods_declared(family_case):
+        # The same certificate shape over T periods: one line per awarded
+        # supplier per period, the margin summed across the horizon.
+        bound = relationship.solve_relationship_upper_bound(family_case)
+        return UpperBoundResult(
+            contribution_margin_usd=bound.contribution_margin_usd,
+            award_plan=tuple(line for plan in bound.period_plans for line in plan),
+            completed_kits=bound.completed_kits,
+            cash_spend_usd=bound.cash_spend_usd,
+            actions_required=bound.actions_required,
+            elapsed_days=bound.elapsed_days,
+        )
     economic = _plain(family_case)
     economic["interaction"].pop("sample_noise", None)
     economic["interaction"].pop("counter_feedback", None)
@@ -956,7 +979,13 @@ def procurement_allocation_measurement_leaf(
                     "buyer-visible listings and acquired claims/offers/samples; reference "
                     "relaxes supplier-term information while charging required actions"
                 ),
-                horizon="one sourcing episode through the declared delivery deadline",
+                horizon=(
+                    f"{relationship.period_count(family_case)} consecutive sourcing "
+                    "periods, each through its declared delivery deadline, with "
+                    "supplier standing carried between them"
+                    if relationship.periods_declared(family_case)
+                    else "one sourcing episode through the declared delivery deadline"
+                ),
                 environment_condition="pinned synthetic supplier response policies",
                 opponent_condition="deterministic supplier acceptance limits in the case",
                 validity_domain=domain,
@@ -1075,12 +1104,23 @@ class ProcurementAllocationPlugin:
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _validate_payload(payload)
         upper = solve_full_information_upper_bound(data)
-        if upper.contribution_margin_usd <= data["objective"]["defer_value_usd"]:
+        outside_option = sum(
+            float(objective["defer_value_usd"])
+            for objective in relationship.period_schedule(data)
+        )
+        if upper.contribution_margin_usd <= outside_option:
             raise ValueError("development case requires a positive ordering upper bound")
         return data
 
     def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
-        del family_case, run
+        del run
+        state = self._single_period_initial_state()
+        if relationship.periods_declared(family_case):
+            state.update(relationship.period_state_fields(family_case))
+        return state
+
+    @staticmethod
+    def _single_period_initial_state() -> dict[str, Any]:
         return {
             "done": False,
             "termination_reason": None,
@@ -1100,7 +1140,10 @@ class ProcurementAllocationPlugin:
         }
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
-        max_actions = int(family_case["interaction"]["max_actions"])
+        # The kernel cap is per episode; the case budget is per period.
+        max_actions = int(family_case["interaction"]["max_actions"]) * relationship.period_count(
+            family_case
+        )
         return (
             PhaseSpec(
                 phase_id=PHASE_ID,
@@ -1128,8 +1171,13 @@ class ProcurementAllocationPlugin:
         phase: PhaseSpec,
     ) -> dict[str, Any]:
         del seat, phase
-        return {
-            "objective": _plain(family_case["objective"]),
+        periodic = relationship.periods_declared(family_case)
+        observation = {
+            "objective": (
+                relationship.period_objective(family_case, int(state["period"]))
+                if periodic
+                else _plain(family_case["objective"])
+            ),
             "policy": _plain(family_case["policy"]),
             "supplier_listings": [
                 {
@@ -1148,6 +1196,15 @@ class ProcurementAllocationPlugin:
             "verified_samples": _plain(state["quality_evidence"]),
             "award_checks": _plain(state["award_checks"]),
         }
+        if periodic:
+            # The buyer sees which period it is in, the whole demand plan, and
+            # what actually arrived from every earlier award. Standing is not
+            # shown: reputation is what the buyer forms from this history.
+            observation["period"] = int(state["period"])
+            observation["periods"] = relationship.period_count(family_case)
+            observation["period_schedule"] = relationship.period_schedule(family_case)
+            observation["history"] = _plain(state["history"])
+        return observation
 
     def parse_action(
         self,
@@ -1298,6 +1355,21 @@ class ProcurementAllocationPlugin:
         action = _plain(envelope.action)
         action_type = action["action"]
         supplier = _supplier_by_id(family_case).get(action.get("supplier_id", ""))
+        periodic = relationship.periods_declared(family_case)
+        if periodic:
+            next_state["total_actions_used"] += 1
+            if supplier is not None:
+                # Every channel this period speaks with the supplier's standing
+                # applied: verbal terms, the formal quote, and the floor a
+                # counter is tested against.
+                supplier = relationship.effective_supplier(
+                    supplier, next_state["relationship"][str(supplier["supplier_id"])]
+                )
+        scoring_case = (
+            relationship.period_case(family_case, int(next_state["period"]))
+            if periodic
+            else family_case
+        )
         interaction = family_case["interaction"]
         consequences: dict[str, Any] = {"action": action_type}
         if action_type == "inquire":
@@ -1379,6 +1451,10 @@ class ProcurementAllocationPlugin:
             next_state["information_cost_usd"] += interaction["quote_cost_usd"]
             version = next_state["offer_versions"].get(action["supplier_id"], 0) + 1
             offer = _base_offer(supplier, version=version, issued_day=next_state["elapsed_days"])
+            if supplier.get("relationship_applied") is not None:
+                # A formal quote states the loyalty programme it was priced
+                # under, so the relationship is learnable at quote time.
+                offer["relationship"] = _plain(supplier["relationship_applied"])
             next_state["offer_versions"][action["supplier_id"]] = version
             next_state["offers"][offer["offer_id"]] = offer
             next_state["latest_offer_by_supplier"][action["supplier_id"]] = offer["offer_id"]
@@ -1514,7 +1590,7 @@ class ProcurementAllocationPlugin:
             # violations, kits, and margin are exactly what submitting these
             # lines now would yield.
             projection = evaluate_award(
-                family_case,
+                scoring_case,
                 award_lines=_plain(action["award_lines"]),
                 offers=next_state["offers"],
                 quality_evidence=next_state["quality_evidence"],
@@ -1563,6 +1639,12 @@ class ProcurementAllocationPlugin:
         ):
             next_state["done"] = True
             next_state["termination_reason"] = "interaction_budget_exhausted"
+        if periodic and next_state["done"]:
+            # An award, a defer or an exhausted budget ends the period, not
+            # the episode; the close scores it, realizes delivery, moves every
+            # supplier's standing and, unless this was the last period, opens
+            # the next one with the period-local state reset.
+            relationship.close_period(family_case, next_state, consequences)
         return TransitionResult(
             state=next_state,
             next_phase_id=None if next_state["done"] else PHASE_ID,
@@ -1572,10 +1654,9 @@ class ProcurementAllocationPlugin:
     def terminal(
         self, family_case: Mapping[str, Any], state: Mapping[str, Any]
     ) -> dict[str, Any] | None:
-        del family_case
         if not state["done"]:
             return None
-        return {
+        terminal = {
             "reason": state["termination_reason"],
             "failure_code": state["failure_code"],
             "actions_used": state["actions_used"],
@@ -1587,10 +1668,24 @@ class ProcurementAllocationPlugin:
             "award_checks": _plain(state["award_checks"]),
             "defer_reason": state["defer_reason"],
         }
+        if relationship.periods_declared(family_case):
+            terminal.update(
+                {
+                    "period": int(state["period"]),
+                    "periods": relationship.period_count(family_case),
+                    "total_actions_used": int(state["total_actions_used"]),
+                    "period_results": _plain(state["period_results"]),
+                    "history": _plain(state["history"]),
+                    "relationship": _plain(state["relationship"]),
+                }
+            )
+        return terminal
 
     def outcome(
         self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
     ) -> dict[str, Any]:
+        if relationship.periods_declared(family_case):
+            return self._period_outcome(family_case, terminal)
         upper = solve_full_information_upper_bound(family_case)
         if terminal["reason"] == "submitted":
             evaluation = evaluate_award(
@@ -1647,6 +1742,76 @@ class ProcurementAllocationPlugin:
             "action_count": int(terminal["actions_used"]),
             "violations": list(evaluation["violations"]),
             "failure_code": terminal["failure_code"],
+        }
+
+    def _period_outcome(
+        self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Cumulative margin over every period against the T-period bound.
+
+        The primary is the sum of period margins, each scored exactly as a
+        single-period award is. ``feasible`` requires every period to have
+        ended by an award that passed its gates or by an explicit defer;
+        ``feasible_award`` requires every period to have been awarded.
+        """
+        upper = solve_full_information_upper_bound(family_case)
+        results = relationship.complete_period_results(family_case, terminal)
+        final = results[-1]
+        value = round(sum(float(row["contribution_margin_usd"]) for row in results), 8)
+        decision = "failed" if final["decision"] == "unplayed" else final["decision"]
+        awarded_rows = [
+            row for row in results if row["decision"] == "award" and row["feasible"]
+        ]
+        delivery = [line for row in results for line in row["delivery"]]
+        on_time = sum(1 for line in delivery if line["on_time"])
+        schedule = relationship.period_schedule(family_case)
+        myopic = relationship.solve_myopic_reference(family_case)
+        loyal = relationship.solve_loyal_reference(family_case)
+        return {
+            "decision": decision,
+            "termination_reason": terminal["reason"],
+            "feasible": all(bool(row["feasible"]) for row in results),
+            "feasible_award": bool(awarded_rows) and len(awarded_rows) == len(results),
+            "contribution_margin_usd": value,
+            "raw_contribution_margin_usd": round(
+                sum(
+                    float(row.get("raw_contribution_margin_usd", row["contribution_margin_usd"]))
+                    for row in results
+                ),
+                8,
+            ),
+            "upper_bound_usd": upper.contribution_margin_usd,
+            "regret_to_upper_bound_usd": round(max(0.0, upper.contribution_margin_usd - value), 8),
+            "completed_kits": int(sum(int(row["completed_kits"]) for row in results)),
+            "target_kits": int(sum(int(objective["target_kits"]) for objective in schedule)),
+            "cash_spend_usd": round(sum(float(row["cash_spend_usd"]) for row in results), 8),
+            "information_cost_usd": round(
+                sum(float(row["information_cost_usd"]) for row in results), 8
+            ),
+            "expected_recovery_usd": round(
+                sum(float(row.get("expected_recovery_usd", 0.0)) for row in results), 8
+            ),
+            "total_cost_usd": round(sum(float(row["total_cost_usd"]) for row in results), 8),
+            "elapsed_days": int(sum(int(row["elapsed_days"]) for row in results)),
+            "action_count": int(terminal["total_actions_used"]),
+            "violations": [
+                f"period_{row['period']}:{violation}"
+                for row in results
+                for violation in row["violations"]
+            ],
+            "failure_code": terminal["failure_code"],
+            "periods": relationship.period_count(family_case),
+            "periods_awarded": len(awarded_rows),
+            "period_decisions": [row["decision"] for row in results],
+            "period_margins": [float(row["contribution_margin_usd"]) for row in results],
+            "period_results": results,
+            "switches": relationship.count_switches(results),
+            "awarded_lines": len(delivery),
+            "realized_on_time_rate": (
+                round(on_time / len(delivery), 8) if delivery else None
+            ),
+            "myopic_reference_usd": myopic.contribution_margin_usd,
+            "loyal_reference_usd": loyal.contribution_margin_usd,
         }
 
     def build_scorer(

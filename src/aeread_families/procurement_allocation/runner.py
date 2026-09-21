@@ -94,6 +94,23 @@ return recovery, financing, information cost, and shortfall penalties. Do not tr
 displayed listing price or verbal statement as a binding offer.
 """
 
+RELATIONSHIP_PROMPT = PROMPT + """
+This episode runs over several sourcing periods. Each period you source the same
+bill of materials again under that period's objective (the observation lists the
+whole demand plan as period_schedule). A period ends when you submit an award,
+defer, or run out of actions; the next period then begins with the action budget,
+elapsed days, and information cost reset, and every formal offer lapsed. Verified
+samples persist: a supplier qualified once stays qualified.
+
+What you did last period changes what suppliers offer this period. A formal offer
+states the relationship terms it was priced under (loyalty discount per
+consecutive award and its cap, incumbent capacity bonus, retaliation markup for a
+supplier quoted and then dropped). The history in the observation records what
+actually arrived from each earlier award: on-time or not, and defective units.
+Nothing else reports supplier reliability; form your own view from it. Optimize
+the total contribution margin over all periods, not the current period alone.
+"""
+
 RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS = frozenset(
     {"rate_limit", "provider_5xx"}
 )
@@ -463,7 +480,7 @@ def build_offline_setup(
                 "top_p": None,
             },
             "budgets": {
-                "max_logical_actions": 10,
+                "max_logical_actions": int(case.episode.max_logical_actions),
                 "timeout_seconds": 60.0,
                 "max_cost_usd": 0.0,
             },
@@ -679,7 +696,7 @@ def build_openrouter_setup(
                 "top_p": None,
             },
             "budgets": {
-                "max_logical_actions": 10,
+                "max_logical_actions": int(template.case.episode.max_logical_actions),
                 "timeout_seconds": timeout_seconds,
                 "max_cost_usd": max_cost_usd,
             },
