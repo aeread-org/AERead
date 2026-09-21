@@ -1,12 +1,19 @@
 #!/usr/bin/env python
-"""One live pass over the six repeated-sourcing worlds on a frozen route.
+"""Live passes over the six repeated-sourcing worlds on a frozen route.
 
 Three steps, each its own invocation, so what was planned is on disk before
 anything is spent and what was spent can be re-audited without a key:
 
-    prepare  --run-root runs/<id>   freeze route, seed, ceilings, sources, cases
-    execute  --run-root runs/<id>   one episode per world, sequential, receipts
-    replay   --run-root runs/<id>   re-audit every receipt from disk, no provider
+    prepare  --run-root runs/<id> --campaign-id <id> --seeds 73201 73202 73203
+    execute  --run-root runs/<id>      one episode per world x seed, sequential
+    replay   --run-root runs/<id>      re-audit every receipt from disk, no provider
+
+A seed binds two things: the inference seed sent to the route, and the
+world's ``delivery_seed``, which is re-sealed into a per-seed episode case so
+the delivery history the buyer sees from period two onward differs between
+seeds while the economic world, its bound and its references do not. The
+independent unit is still the world; the summary's interval resamples worlds
+and carries every seed of a world together.
 
 Every limit that can end a run is in the frozen plan: the per-trajectory cost
 ceiling, the run ceiling, the attempt count, the timeout and the route pins. A
@@ -19,9 +26,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import hashlib
 import json
 import os
+import random
+import statistics
 import subprocess
 import sys
 import time
@@ -33,7 +43,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 
 from aeread.shared_runner.model_call.harness import MinimalChatHarness  # noqa: E402
-from aeread.shared_runner.run.resolver import canonical_json_bytes  # noqa: E402
+from aeread.shared_runner.run.resolver import (  # noqa: E402
+    canonical_json_bytes,
+    case_content_sha256,
+)
+from aeread.shared_runner.schemas import CaseManifest  # noqa: E402
 from aeread.shared_runner.task.evaluation import audit_family_receipt  # noqa: E402
 from aeread.shared_runner.task.execution import (  # noqa: E402
     OpenRouterChatClient,
@@ -53,8 +67,10 @@ from aeread_families.procurement_allocation.relationship_case_matrix import (  #
 )
 from aeread_families.procurement_grounding import OpenRouterRoute  # noqa: E402
 
-CAMPAIGN_ID = "procurement_allocation_relationship_gemini38_flash_pilot_v1"
 PROMPT_ID = "procurement_relationship_prompt_v1"
+DEFAULT_SEEDS = (73101,)
+BOOTSTRAP_SEED = 20260921
+BOOTSTRAP_RESAMPLES = 10_000
 
 #: The datacenter campaigns' Gemini route, prices as reviewed there on
 #: 2026-09-03; the price caps refuse a repriced endpoint rather than pay it.
@@ -77,8 +93,6 @@ ROUTE = OpenRouterRoute(
 )
 
 CONTRACT = {
-    "campaign_id": CAMPAIGN_ID,
-    "inference_seed": 73101,
     "temperature": 0.0,
     "max_output_tokens": 1800,
     "timeout_seconds": 180.0,
@@ -89,6 +103,8 @@ CONTRACT = {
     "concurrency": 1,
     "prompt_id": PROMPT_ID,
     "prompt_sha256": hashlib.sha256(RELATIONSHIP_PROMPT.encode("utf-8")).hexdigest(),
+    "cluster_level": "economic_world",
+    "bootstrap": {"seed": BOOTSTRAP_SEED, "resamples": BOOTSTRAP_RESAMPLES, "unit": "world"},
 }
 
 SOURCE_FILES = (
@@ -151,19 +167,35 @@ def _write_json(path: Path, value: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def episode_case(world: Mapping[str, Any], seed: int) -> dict[str, Any]:
+    """The world re-sealed with this seed's delivery draws, its economics untouched."""
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed <= 0:
+        raise ValueError("seed must be a positive integer")
+    result = copy.deepcopy(dict(world))
+    result["case_id"] = f"{world['case_id']}.delivery_{seed}"
+    result["payload"]["interaction"]["periods"]["delivery_seed"] = seed
+    result["content_sha256"] = "0" * 64
+    result["content_sha256"] = case_content_sha256(CaseManifest.from_dict(result))
+    return result
+
+
 # --------------------------------------------------------------------------
 # prepare
 # --------------------------------------------------------------------------
 
 
-def prepare(run_root: Path) -> dict[str, Any]:
+def prepare(run_root: Path, *, campaign_id: str, seeds: Sequence[int]) -> dict[str, Any]:
     plan_path = run_root / "plan.json"
     if plan_path.exists():
         raise SystemExit(f"{plan_path} exists; a frozen plan is never rewritten")
-    cases = []
+    if not seeds or len(set(seeds)) != len(seeds):
+        raise SystemExit("seeds must be non-empty and distinct")
+    worlds = []
+    cells = []
     for path in CASE_PATHS:
         case = load_case(path)
-        cases.append(
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        worlds.append(
             {
                 "slug": path.stem,
                 "case_id": case.case_id,
@@ -172,10 +204,27 @@ def prepare(run_root: Path) -> dict[str, Any]:
                 "max_logical_actions": case.episode.max_logical_actions,
             }
         )
+        for seed in seeds:
+            derived = episode_case(raw, seed)
+            relative = Path("cases") / f"{path.stem}__seed_{seed}.json"
+            _write_json(run_root / relative, derived)
+            cells.append(
+                {
+                    "slug": path.stem,
+                    "seed": int(seed),
+                    "world_case_id": case.case_id,
+                    "case_id": derived["case_id"],
+                    "content_sha256": derived["content_sha256"],
+                    "path": str(relative),
+                }
+            )
     plan = {
         **CONTRACT,
+        "campaign_id": campaign_id,
+        "seeds": [int(seed) for seed in seeds],
         "route": _route_record(),
-        "cases": cases,
+        "worlds": worlds,
+        "cells": cells,
         "sources": source_hashes(),
         "git_head": _git_head(),
         "prepared_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -195,10 +244,14 @@ def read_plan(run_root: Path) -> dict[str, Any]:
             name for name, digest in source_hashes().items() if plan["sources"].get(name) != digest
         )
         raise SystemExit(f"sources changed since the plan was frozen: {drifted}")
-    for row in plan["cases"]:
+    for row in plan["worlds"]:
         case = load_case(REPOSITORY_ROOT / row["path"])
         if case.content_sha256 != row["content_sha256"]:
-            raise SystemExit(f"case {row['case_id']} changed since the plan was frozen")
+            raise SystemExit(f"world {row['case_id']} changed since the plan was frozen")
+    for cell in plan["cells"]:
+        case = load_case(run_root / cell["path"])
+        if case.content_sha256 != cell["content_sha256"]:
+            raise SystemExit(f"episode case {cell['case_id']} changed since the plan was frozen")
     return plan
 
 
@@ -207,11 +260,11 @@ def read_plan(run_root: Path) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
-def _setup_for(plan: Mapping[str, Any], row: Mapping[str, Any]):
+def _setup_for(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path):
     return build_openrouter_setup(
         ROUTE,
-        case_path=REPOSITORY_ROOT / row["path"],
-        seed=int(plan["inference_seed"]),
+        case_path=run_root / cell["path"],
+        seed=int(cell["seed"]),
         max_output_tokens=int(plan["max_output_tokens"]),
         timeout_seconds=float(plan["timeout_seconds"]),
         max_cost_usd=float(plan["max_cost_usd_per_trajectory"]),
@@ -223,8 +276,26 @@ def _setup_for(plan: Mapping[str, Any], row: Mapping[str, Any]):
     )
 
 
-def _cell_root(run_root: Path, row: Mapping[str, Any]) -> Path:
-    return run_root / "cells" / row["slug"]
+def _cell_root(run_root: Path, cell: Mapping[str, Any]) -> Path:
+    return run_root / "cells" / cell["slug"] / f"seed_{cell['seed']}"
+
+
+def _live_client() -> tuple[OpenRouterChatClient, Any]:
+    """The kernel's OpenRouter adapter over an SDK client this tool can close.
+
+    The adapter builds its own SDK client when given none and never closes
+    it; closed at interpreter exit instead, after the loop is gone, it printed
+    a closed-event-loop traceback on the first run. Owning the SDK client
+    here lets the cell close it while the loop is still open.
+    """
+    from openai import AsyncOpenAI
+
+    sdk_client = AsyncOpenAI(
+        api_key=os.environ["OPENROUTER_API_KEY"],
+        base_url="https://openrouter.ai/api/v1",
+        max_retries=0,
+    )
+    return OpenRouterChatClient(sdk_client=sdk_client), sdk_client
 
 
 def _public_trace(execution: Any) -> list[dict[str, Any]]:
@@ -263,43 +334,32 @@ def _public_trace(execution: Any) -> list[dict[str, Any]]:
     return trace
 
 
-def _live_client() -> tuple[OpenRouterChatClient, Any]:
-    """The kernel's OpenRouter adapter over an SDK client this tool can close.
-
-    The adapter builds its own SDK client when given none and never closes
-    it; closed at interpreter exit instead, after the loop is gone, it printed
-    a closed-event-loop traceback on the first run. Owning the SDK client
-    here lets the cell close it while the loop is still open.
-    """
-    from openai import AsyncOpenAI
-
-    sdk_client = AsyncOpenAI(
-        api_key=os.environ["OPENROUTER_API_KEY"],
-        base_url="https://openrouter.ai/api/v1",
-        max_retries=0,
-    )
-    return OpenRouterChatClient(sdk_client=sdk_client), sdk_client
-
-
-async def _run_one(plan: Mapping[str, Any], row: Mapping[str, Any], run_root: Path) -> dict[str, Any]:
+async def _run_one(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path) -> dict[str, Any]:
     client, sdk_client = _live_client()
     try:
-        return await _run_one_with(plan, row, run_root, client)
+        return await _run_one_with(plan, cell, run_root, client)
     finally:
         await sdk_client.close()
 
 
 async def _run_one_with(
-    plan: Mapping[str, Any], row: Mapping[str, Any], run_root: Path, client: OpenRouterChatClient
+    plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path, client: OpenRouterChatClient
 ) -> dict[str, Any]:
-    setup = _setup_for(plan, row)
-    cell = setup.plan.cells[0]
-    evidence_root = _cell_root(run_root, row) / "evidence"
+    setup = _setup_for(plan, cell, run_root)
+    plan_cell = setup.plan.cells[0]
+    evidence_root = _cell_root(run_root, cell) / "evidence"
     started = time.perf_counter()
+    identity = {
+        "slug": cell["slug"],
+        "seed": int(cell["seed"]),
+        "world_case_id": cell["world_case_id"],
+        "case_id": cell["case_id"],
+        "case_content_sha256": cell["content_sha256"],
+    }
     try:
         execution = await execute_plan_cell(
             plan=setup.plan,
-            cell_id=cell.cell_id,
+            cell_id=plan_cell.cell_id,
             registry=setup.registry,
             evidence_root=evidence_root,
             prompt_sources=setup.prompt_sources,
@@ -322,10 +382,17 @@ async def _run_one_with(
         ]
         finish_reasons = Counter(str(call.finish_reason) for call in calls)
         outcome = json.loads(canonical_json_bytes(execution.episode_result.outcome))
+        trace = _public_trace(execution)
+        actions = Counter(str(row["action"]) for row in trace)
+        quoted = sorted(
+            {
+                supplier_id
+                for period in outcome["period_results"]
+                for supplier_id in period.get("quoted_supplier_ids", [])
+            }
+        )
         return {
-            "slug": row["slug"],
-            "case_id": row["case_id"],
-            "case_content_sha256": row["content_sha256"],
+            **identity,
             "status": "completed",
             "decision": outcome["decision"],
             "termination_reason": outcome["termination_reason"],
@@ -343,9 +410,17 @@ async def _run_one_with(
             "myopic_reference_usd": outcome["myopic_reference_usd"],
             "loyal_reference_usd": outcome["loyal_reference_usd"],
             "regret_to_upper_bound_usd": outcome["regret_to_upper_bound_usd"],
+            "advantage_over_myopic_usd": round(
+                float(outcome["contribution_margin_usd"]) - float(outcome["myopic_reference_usd"]), 8
+            ),
             "violations": outcome["violations"],
             "information_cost_usd": outcome["information_cost_usd"],
             "action_count": len(execution.action_executions),
+            "action_counts": dict(sorted(actions.items())),
+            "counters": int(actions.get("counter_offer", 0)),
+            "inquiries": int(actions.get("inquire", 0)),
+            "suppliers_quoted": quoted,
+            "suppliers_quoted_count": len(quoted),
             "provider_call_count": len(calls),
             "finish_reasons": dict(sorted(finish_reasons.items())),
             "input_tokens": sum(call.input_tokens for call in calls),
@@ -360,21 +435,19 @@ async def _run_one_with(
             "inclusion_status": receipt.inclusion_status,
             "elapsed_seconds": round(time.perf_counter() - started, 3),
             "period_results": outcome["period_results"],
-            "action_trace": _public_trace(execution),
+            "action_trace": trace,
         }
     except Exception as error:  # noqa: BLE001 - typed into the row, never rerun
         failure_sha256 = None
         try:
             failure = finalize_procurement_allocation_failure(
-                setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error
+                setup=setup, cell_id=plan_cell.cell_id, evidence_root=evidence_root, error=error
             )
             failure_sha256 = failure.receipt_sha256
         except Exception as inner:  # noqa: BLE001
             failure_sha256 = f"unrecorded: {type(inner).__name__}: {inner}"
         return {
-            "slug": row["slug"],
-            "case_id": row["case_id"],
-            "case_content_sha256": row["content_sha256"],
+            **identity,
             "status": "failed",
             "error_type": type(error).__name__,
             "error": str(error)[:2000],
@@ -387,11 +460,10 @@ def execute(run_root: Path) -> dict[str, Any]:
     plan = read_plan(run_root)
     if not os.environ.get("OPENROUTER_API_KEY"):
         raise SystemExit("OPENROUTER_API_KEY is not set")
-    results_path = run_root / "results.json"
     rows: list[dict[str, Any]] = []
     spent = 0.0
-    for row in plan["cases"]:
-        result_path = _cell_root(run_root, row) / "result.json"
+    for cell in plan["cells"]:
+        result_path = _cell_root(run_root, cell) / "result.json"
         if result_path.exists():
             existing = json.loads(result_path.read_text(encoding="utf-8"))
             rows.append(existing)
@@ -400,39 +472,105 @@ def execute(run_root: Path) -> dict[str, Any]:
         if spent >= float(plan["max_cost_usd_total"]):
             rows.append(
                 {
-                    "slug": row["slug"],
-                    "case_id": row["case_id"],
+                    "slug": cell["slug"],
+                    "seed": int(cell["seed"]),
+                    "case_id": cell["case_id"],
                     "status": "not_run",
                     "reason": f"run ceiling {plan['max_cost_usd_total']} reached at {spent:.4f}",
                 }
             )
             continue
-        result = asyncio.run(_run_one(plan, row, run_root))
+        result = asyncio.run(_run_one(plan, cell, run_root))
         _write_json(result_path, result)
         rows.append(result)
         spent += float(result.get("cost_usd", 0.0))
+        label = f"{cell['slug']}/seed_{cell['seed']}"
         print(
-            f"{row['slug']:26s} {result['status']:9s} "
+            f"{label:38s} {result['status']:9s} "
             + (
                 f"margin={result['contribution_margin_usd']:.2f} bound={result['upper_bound_usd']:.2f} "
                 f"regret={result['regret_to_upper_bound_usd']:.2f} awarded={result['periods_awarded']}/{result['periods']} "
-                f"switches={result['switches']} cost=${result['cost_usd']:.4f}"
+                f"counters={result['counters']} quoted={result['suppliers_quoted_count']} cost=${result['cost_usd']:.4f}"
                 if result["status"] == "completed"
                 else f"{result.get('error_type')}: {result.get('error', '')[:120]}"
             ),
             flush=True,
         )
     summary = summarize(plan, rows)
-    _write_json(results_path, summary)
+    _write_json(run_root / "results.json", summary)
     return summary
+
+
+# --------------------------------------------------------------------------
+# summary
+# --------------------------------------------------------------------------
+
+
+def _bootstrap_interval(cluster_means: Sequence[float]) -> list[float] | None:
+    """Percentile interval of the mean over worlds, resampling whole worlds."""
+    if len(cluster_means) < 2:
+        return None
+    generator = random.Random(BOOTSTRAP_SEED)
+    count = len(cluster_means)
+    draws = []
+    for _ in range(BOOTSTRAP_RESAMPLES):
+        sample = [cluster_means[generator.randrange(count)] for _ in range(count)]
+        draws.append(sum(sample) / count)
+    draws.sort()
+    lower = draws[int(0.025 * (BOOTSTRAP_RESAMPLES - 1))]
+    upper = draws[int(0.975 * (BOOTSTRAP_RESAMPLES - 1))]
+    return [round(lower, 8), round(upper, 8)]
+
+
+def _world_summary(slug: str, rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    completed = [row for row in rows if row.get("status") == "completed"]
+    regrets = [float(row["regret_to_upper_bound_usd"]) for row in completed]
+    advantages = [float(row["advantage_over_myopic_usd"]) for row in completed]
+    return {
+        "slug": slug,
+        "cells": len(rows),
+        "completed": len(completed),
+        "upper_bound_usd": completed[0]["upper_bound_usd"] if completed else None,
+        "myopic_reference_usd": completed[0]["myopic_reference_usd"] if completed else None,
+        "loyal_reference_usd": completed[0]["loyal_reference_usd"] if completed else None,
+        "mean_regret_usd": round(statistics.mean(regrets), 8) if regrets else None,
+        "regret_by_seed": {str(row["seed"]): float(row["regret_to_upper_bound_usd"]) for row in completed},
+        "within_world_regret_variance": (
+            round(statistics.variance(regrets), 8) if len(regrets) > 1 else 0.0
+        ),
+        "mean_advantage_over_myopic_usd": round(statistics.mean(advantages), 8) if advantages else None,
+        "periods_awarded": sum(int(row["periods_awarded"]) for row in completed),
+        "periods": sum(int(row["periods"]) for row in completed),
+        "counters": sum(int(row["counters"]) for row in completed),
+        "inquiries": sum(int(row["inquiries"]) for row in completed),
+        "switches": sum(int(row["switches"]) for row in completed),
+        "suppliers_quoted_by_seed": {
+            str(row["seed"]): row["suppliers_quoted"] for row in completed
+        },
+        "distinct_routines": len(
+            {
+                json.dumps([r["action"] + ":" + str(r.get("supplier_id", "")) for r in row["action_trace"]])
+                for row in completed
+            }
+        ),
+        "cost_usd": round(sum(float(row.get("cost_usd", 0.0)) for row in rows), 8),
+    }
 
 
 def summarize(plan: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     completed = [row for row in rows if row.get("status") == "completed"]
+    by_world: dict[str, list[Mapping[str, Any]]] = {}
+    for row in rows:
+        by_world.setdefault(str(row["slug"]), []).append(row)
+    worlds = [_world_summary(slug, cells) for slug, cells in by_world.items()]
+    measured = [world for world in worlds if world["completed"] > 0]
+    regret_means = [world["mean_regret_usd"] for world in measured]
+    advantage_means = [world["mean_advantage_over_myopic_usd"] for world in measured]
     return {
         "campaign_id": plan["campaign_id"],
         "plan_sha256": plan["plan_sha256"],
         "route": plan["route"],
+        "seeds": plan["seeds"],
         "cells": len(rows),
         "completed": len(completed),
         "failed": sum(1 for row in rows if row.get("status") == "failed"),
@@ -440,18 +578,30 @@ def summarize(plan: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> dic
         "cost_usd": round(sum(float(row.get("cost_usd", 0.0)) for row in rows), 8),
         "input_tokens": sum(int(row.get("input_tokens", 0)) for row in rows),
         "output_tokens": sum(int(row.get("output_tokens", 0)) for row in rows),
-        "mean_regret_usd": (
-            round(sum(float(row["regret_to_upper_bound_usd"]) for row in completed) / len(completed), 8)
-            if completed
-            else None
+        "worlds_measured": len(measured),
+        "cluster_level": plan["cluster_level"],
+        "mean_regret_usd": round(statistics.mean(regret_means), 8) if regret_means else None,
+        "mean_regret_usd_95_world_bootstrap": _bootstrap_interval(regret_means),
+        "mean_advantage_over_myopic_usd": (
+            round(statistics.mean(advantage_means), 8) if advantage_means else None
         ),
+        "mean_advantage_over_myopic_usd_95_world_bootstrap": _bootstrap_interval(advantage_means),
         "periods_awarded": sum(int(row.get("periods_awarded", 0)) for row in completed),
         "periods": sum(int(row.get("periods", 0)) for row in completed),
+        "counters": sum(int(row.get("counters", 0)) for row in completed),
+        "inquiries": sum(int(row.get("inquiries", 0)) for row in completed),
+        "switches": sum(int(row.get("switches", 0)) for row in completed),
+        "claim_scope": (
+            "one route, descriptive; the interval resamples worlds and says nothing "
+            "about other routes, other worlds or the model in general"
+        ),
+        "worlds": worlds,
         "rows": [
             {
                 key: row.get(key)
                 for key in (
                     "slug",
+                    "seed",
                     "status",
                     "decision",
                     "termination_reason",
@@ -459,12 +609,16 @@ def summarize(plan: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> dic
                     "periods_awarded",
                     "period_decisions",
                     "switches",
+                    "counters",
+                    "inquiries",
+                    "suppliers_quoted",
                     "realized_on_time_rate",
                     "contribution_margin_usd",
                     "upper_bound_usd",
                     "myopic_reference_usd",
                     "loyal_reference_usd",
                     "regret_to_upper_bound_usd",
+                    "advantage_over_myopic_usd",
                     "violations",
                     "action_count",
                     "cost_usd",
@@ -487,29 +641,27 @@ def summarize(plan: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> dic
 def replay(run_root: Path) -> dict[str, Any]:
     plan = read_plan(run_root)
     report: dict[str, Any] = {"campaign_id": plan["campaign_id"], "cells": {}}
-    for row in plan["cases"]:
-        result_path = _cell_root(run_root, row) / "result.json"
-        receipt_path = _cell_root(run_root, row) / "evidence" / "evaluation_receipt.json"
+    for cell in plan["cells"]:
+        label = f"{cell['slug']}/seed_{cell['seed']}"
+        result_path = _cell_root(run_root, cell) / "result.json"
         if not result_path.exists():
-            report["cells"][row["slug"]] = "no result recorded"
+            report["cells"][label] = "no result recorded"
             continue
         result = json.loads(result_path.read_text(encoding="utf-8"))
         if result.get("status") != "completed":
-            report["cells"][row["slug"]] = f"{result.get('status')}: not replayable"
+            report["cells"][label] = f"{result.get('status')}: not replayable"
             continue
-        receipt_paths = sorted(_cell_root(run_root, row).glob("evidence/**/evaluation_receipt.json"))
+        receipt_paths = sorted(_cell_root(run_root, cell).glob("evidence/**/evaluation_receipt.json"))
         if not receipt_paths:
-            report["cells"][row["slug"]] = "receipt missing"
+            report["cells"][label] = "receipt missing"
             continue
-        setup = _setup_for(plan, row)
+        setup = _setup_for(plan, cell, run_root)
         audit = audit_family_receipt(setup=setup, receipt_path=receipt_paths[0])
         recorded = json.loads(receipt_paths[0].read_text(encoding="utf-8"))
-        matches = recorded.get("receipt_sha256") == result["receipt_sha256"]
-        report["cells"][row["slug"]] = {
-            "receipt_sha256_matches_result": matches,
+        report["cells"][label] = {
+            "receipt_sha256_matches_result": recorded.get("receipt_sha256") == result["receipt_sha256"],
             "audit": json.loads(canonical_json_bytes(audit)),
         }
-        del receipt_path
     _write_json(run_root / "replay.json", report)
     return report
 
@@ -518,17 +670,57 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("step", choices=("prepare", "execute", "replay"))
     parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument("--campaign-id", default=None, help="prepare: the frozen campaign identity")
+    parser.add_argument(
+        "--seeds", type=int, nargs="+", default=list(DEFAULT_SEEDS), help="prepare: one cell per world per seed"
+    )
     arguments = parser.parse_args(argv)
     run_root = arguments.run_root.resolve()
     if arguments.step == "prepare":
-        plan = prepare(run_root)
-        print(json.dumps({k: plan[k] for k in ("campaign_id", "plan_sha256", "git_head")}, indent=2))
+        if not arguments.campaign_id:
+            raise SystemExit("prepare requires --campaign-id")
+        plan = prepare(run_root, campaign_id=arguments.campaign_id, seeds=arguments.seeds)
+        print(
+            json.dumps(
+                {k: plan[k] for k in ("campaign_id", "plan_sha256", "git_head", "seeds")}
+                | {"cells": len(plan["cells"])},
+                indent=2,
+            )
+        )
     elif arguments.step == "execute":
         summary = execute(run_root)
-        print(json.dumps({k: summary[k] for k in ("completed", "failed", "not_run", "cost_usd", "mean_regret_usd")}, indent=2))
+        print(
+            json.dumps(
+                {
+                    k: summary[k]
+                    for k in (
+                        "completed",
+                        "failed",
+                        "not_run",
+                        "cost_usd",
+                        "mean_regret_usd",
+                        "mean_regret_usd_95_world_bootstrap",
+                        "mean_advantage_over_myopic_usd",
+                        "mean_advantage_over_myopic_usd_95_world_bootstrap",
+                        "counters",
+                        "inquiries",
+                        "switches",
+                    )
+                },
+                indent=2,
+            )
+        )
     else:
         report = replay(run_root)
-        print(json.dumps({slug: (cell if isinstance(cell, str) else cell["receipt_sha256_matches_result"]) for slug, cell in report["cells"].items()}, indent=2))
+        print(
+            json.dumps(
+                {
+                    label: (cell if isinstance(cell, str) else cell["receipt_sha256_matches_result"])
+                    for label, cell in report["cells"].items()
+                },
+                indent=2,
+            )
+        )
     return 0
 
 
