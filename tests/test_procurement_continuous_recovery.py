@@ -129,6 +129,12 @@ def test_new_identity_and_seed_bind_actual_case_bytes():
 def campaign_fixture(tmp_path):
     repository = recovery.REPOSITORY_ROOT
     screen = json.loads((repository / 'evidence/procurement_allocation/procurement_allocation_unified_regret_v1/reports/admission.json').read_text())
+    # The sealed screen pins the source bytes it was made with, and the live
+    # campaign rightly refuses to dispatch under any other bytes. This test
+    # exercises recovery mechanics, not that freeze: re-pin the fixture to the
+    # current sources so an environment change cannot turn it red (defect 12).
+    screen = recovery._seal({**{k: v for k, v in screen.items() if k != 'artifact_sha256'},
+                             'implementation_pins': recovery.original_pins()})
     cases = [build_candidate(i) for i in (2, 9, 11, 23, 25, 31)]
     log = tmp_path / 'fixture-suite.log'
     log.write_text('1782 passed in 1.00s')
