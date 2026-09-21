@@ -31,6 +31,29 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
+# Listing quality for the lemons world (``lemons.py``). A bid world has no
+# ``quality`` attribute and none of the machinery below touches it.
+SOUND = 1
+LEMON = 0
+QUALITY_LABEL = {SOUND: "sound", LEMON: "lemon"}
+
+
+def posterior_lemon_probability(
+    lemon_count: int, num_listings: int, inspections: Sequence[int]
+) -> float:
+    """Lemon probability of an uninspected listing given a tenant's own inspections.
+
+    The lemon count is declared world data, so a tenant that has found ``k`` lemons
+    among ``n`` inspections knows ``lemon_count - k`` remain among the
+    ``num_listings - n`` it has not inspected.
+    """
+    uninspected = num_listings - len(inspections)
+    if uninspected <= 0:
+        return 0.0
+    known_lemons = sum(1 for quality in inspections if quality == LEMON)
+    return min(1.0, max(0.0, (lemon_count - known_lemons) / uninspected))
+
+
 @dataclass(frozen=True)
 class Listing:
     listing_id: int
@@ -363,7 +386,22 @@ class HousingMarket:
         self._holds: Dict[int, Hold] = {}
         self.rejected: Dict[int, set] = {t: set() for t in range(world.num_tenants)}
         self.wasted_contacts = 0
-        self.phase = "finished" if self.finished else "contact"
+        # Lemons-world state. Empty and never consulted for a bid world, so the
+        # bid world's snapshots, economics and phases are byte for byte as before.
+        self.lemons = hasattr(world, "quality")
+        self.inspected: Dict[int, Dict[int, int]] = {
+            t: {} for t in range(world.num_tenants)
+        }
+        self.inspection_spend: Dict[int, float] = {
+            t: 0.0 for t in range(world.num_tenants)
+        }
+        self.commit_decisions: List[Dict[str, Any]] = []
+        self.phase = "finished" if self.finished else self.round_start_phase
+
+    @property
+    def round_start_phase(self) -> str:
+        """A lemons round opens with inspection; a bid round with contact."""
+        return "inspect" if self.lemons else "contact"
 
     # -- state -------------------------------------------------------------
     @property
@@ -423,16 +461,42 @@ class HousingMarket:
                 ),
                 "wtp": "1200 + 220 * weighted_attribute_score",
             }
+        elif self.lemons:
+            out.update(self._lemons_tenant_view(tenant_id))
         else:
             out["private_values"] = list(self.world.values[tenant_id])
         return out
+
+    def _lemons_tenant_view(self, tenant_id: int) -> Dict[str, Any]:
+        """What a tenant knows in a lemons world: value if sound, the declared lemon
+        count, and its own inspections. True values and quality stay hidden."""
+        world = self.world
+        return {
+            "private_values_if_sound": list(world.values_if_sound[tenant_id]),
+            "lemon_count": world.lemon_count,
+            "lemon_share": world.lemon_share,
+            "lemon_loss": world.lemon_loss,
+            "inspection_cost": world.inspection_cost,
+            "inspections": [
+                {"listing_id": listing_id, "quality": QUALITY_LABEL[quality]}
+                for listing_id, quality in sorted(self.inspected[tenant_id].items())
+            ],
+            "inspection_spend": round(self.inspection_spend[tenant_id], 2),
+            "valuation_note": (
+                "a sound listing is worth private_values_if_sound[listing_id]; a lemon "
+                "is worth lemon_loss less; lemon_count of the listings are lemons at "
+                "the same rent_asked; only an inspection (inspection_cost each, one per "
+                "round) reveals quality; your payoff is value minus rent minus "
+                "inspection spend, and zero minus inspection spend if you sign nothing"
+            ),
+        }
 
     def landlord_observation(self, listing_id: int) -> Dict[str, Any]:
         """Information visible to one landlord, including only its own inbox."""
         if not self._valid_listing(listing_id):
             raise ValueError(f"unknown listing {listing_id!r}")
         listing = next(row for row in self.board() if row["listing_id"] == listing_id)
-        return {
+        out: Dict[str, Any] = {
             "role": "landlord",
             "listing_id": listing_id,
             "round_index": self.round_index,
@@ -441,6 +505,9 @@ class HousingMarket:
             "private_cost": self.world.costs[listing_id],
             "inbox": tuple(self._offers.get(listing_id, ())),
         }
+        if self.lemons:
+            out["quality"] = QUALITY_LABEL[self.world.quality[listing_id]]
+        return out
 
     @staticmethod
     def _valid_id(value: Any) -> bool:
@@ -468,6 +535,43 @@ class HousingMarket:
         return ActionVerdict(actor_id, phase, outcome, reason, reference_id)
 
     # -- phases ------------------------------------------------------------
+    def submit_inspections(self, requests: Dict[int, Any]) -> PhaseResult:
+        """Apply one frozen inspection batch: each unmatched tenant may pay to learn
+        one open listing's quality. Invalid requests become passes and cost nothing."""
+        self._require_phase("inspect")
+        verdicts: Dict[int, ActionVerdict] = {}
+        actor_ids = set(self.unmatched_tenants()) | set(requests)
+        for t in sorted(actor_ids, key=lambda value: (type(value).__name__, repr(value))):
+            if not self._valid_tenant(t):
+                verdicts[t] = self._verdict(t, "inspect", "pass", "unknown_tenant")
+                continue
+            if t in self._matched:
+                verdicts[t] = self._verdict(t, "inspect", "pass", "unavailable_tenant")
+                continue
+            listing_id = requests.get(t)
+            if listing_id is None:
+                verdicts[t] = self._verdict(t, "inspect", "pass", "missing_action")
+                continue
+            if not self._valid_listing(listing_id):
+                verdicts[t] = self._verdict(t, "inspect", "pass", "unknown_listing")
+                continue
+            if listing_id in self._taken:
+                verdicts[t] = self._verdict(t, "inspect", "pass", "unavailable_listing")
+                continue
+            if listing_id in self.inspected[t]:
+                verdicts[t] = self._verdict(t, "inspect", "pass", "already_inspected")
+                continue
+            self.inspected[t][listing_id] = self.world.quality[listing_id]
+            self.inspection_spend[t] = round(
+                self.inspection_spend[t] + self.world.inspection_cost, 2
+            )
+            verdicts[t] = self._verdict(
+                t, "inspect", "applied",
+                reference_id=f"inspection:r{self.round_index}:t{t}:l{listing_id}",
+            )
+        self.phase = "contact"
+        return PhaseResult(phase="inspect", verdicts=verdicts)
+
     def submit_offers(self, offers: Dict[int, Any]) -> PhaseResult:
         """Apply one frozen contact batch; invalid seat actions become passes."""
         self._require_phase("contact")
@@ -668,12 +772,86 @@ class HousingMarket:
             verdicts[tenant_id] = self._verdict(
                 tenant_id, "commit", "applied", reference_id=hold.hold_id
             )
+        if self.lemons:
+            # Every hold faced this round is a refusal decision: an expired or
+            # invalid commit declined the hold just as a walk did.
+            for tenant_id, hold in sorted(self._holds.items()):
+                signed = self.signed_rent.get(tenant_id) == hold.rent and (
+                    (tenant_id, hold.listing_id) in self.pairs
+                )
+                self.commit_decisions.append(
+                    self._commit_decision(tenant_id, hold, signed=signed)
+                )
         self.pairs.sort()
         self._offers = {}
         self._holds = {}
         self.round_index += 1
-        self.phase = "finished" if self.finished else "contact"
+        self.phase = "finished" if self.finished else self.round_start_phase
         return PhaseResult(phase="commit", verdicts=verdicts)
+
+    # -- lemons accounting -------------------------------------------------
+    def expected_value(self, tenant_id: int, listing_id: int) -> float:
+        """A tenant's expected value for a listing given only its own inspections."""
+        world = self.world
+        known = self.inspected[tenant_id]
+        if listing_id in known:
+            return float(world.values[tenant_id][listing_id])
+        probability = posterior_lemon_probability(
+            world.lemon_count, world.num_listings, list(known.values())
+        )
+        return round(
+            float(world.values_if_sound[tenant_id][listing_id])
+            - probability * float(world.lemon_loss),
+            2,
+        )
+
+    def _commit_decision(self, tenant_id: int, hold: Hold, *, signed: bool) -> Dict[str, Any]:
+        expected = self.expected_value(tenant_id, hold.listing_id)
+        return {
+            "round_index": hold.round_index,
+            "tenant_id": tenant_id,
+            "listing_id": hold.listing_id,
+            "rent": hold.rent,
+            "informed": hold.listing_id in self.inspected[tenant_id],
+            "expected_value": expected,
+            "quality": QUALITY_LABEL[self.world.quality[hold.listing_id]],
+            "decision": "sign" if signed else "walk",
+            "correct": (expected >= hold.rent) if signed else (expected <= hold.rent),
+        }
+
+    def lemons_accounting(self) -> Dict[str, Any]:
+        """The principal's ledger: payoffs net of inspection spend, and whether each
+        refusal decision matched the tenant's own expected value."""
+        if not self.lemons:
+            raise ValueError("lemons accounting is defined only for a lemons world")
+        economics = self.economics()
+        spend = {t: round(self.inspection_spend[t], 2) for t in range(self.world.num_tenants)}
+        net = {
+            t: round(economics.tenant_payoffs[t] - spend[t], 2)
+            for t in range(self.world.num_tenants)
+        }
+        decisions = [dict(row) for row in self.commit_decisions]
+        correct = sum(1 for row in decisions if row["correct"])
+        lemon_pairs = [
+            (t, l) for t, l in self.pairs if self.world.quality[l] == LEMON
+        ]
+        return {
+            "tenant_inspection_spend": spend,
+            "tenant_net_payoffs": net,
+            "tenant_net_total": round(sum(net.values()), 2),
+            "net_social_welfare": round(economics.social_welfare - sum(spend.values()), 2),
+            "inspection_count": sum(len(known) for known in self.inspected.values()),
+            "commit_decisions": decisions,
+            "abstention_decision_count": len(decisions),
+            "abstention_correct_count": correct,
+            "abstention_correctness_rate": (
+                round(correct / len(decisions), 12) if decisions else None
+            ),
+            "lemon_signings": len(lemon_pairs),
+            "uninspected_lemon_signings": sum(
+                1 for t, l in lemon_pairs if l not in self.inspected[t]
+            ),
+        }
 
     def result(self) -> Assignment:
         total = round(sum(self.world.values[t][l] - self.world.costs[l] for t, l in self.pairs), 2)

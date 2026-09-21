@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from aeread_families.housing import environment as hz
+from aeread_families.housing import lemons as lemons_module
 from aeread.shared_runner.model_call import harness as harness_module
 from aeread.shared_runner.task import evaluation as evaluation_module
 from aeread.shared_runner.task import execution as execution_module
@@ -212,6 +213,52 @@ HOUSING_COMMIT_OUTPUT_SCHEMA_V2 = {
     ],
 }
 
+HOUSING_INSPECT_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "decision": {"enum": ["inspect", "pass"]},
+        "listing_id": {"type": ["integer", "null"]},
+    },
+    "required": ["decision", "listing_id"],
+    "additionalProperties": False,
+}
+
+HOUSING_INSPECT_OUTPUT_SCHEMA_V2 = {
+    "type": "object",
+    "oneOf": [
+        {
+            "properties": {
+                "decision": {"const": "pass"},
+                "listing_id": {"type": "null"},
+            },
+            "required": ["decision", "listing_id"],
+            "additionalProperties": False,
+        },
+        {
+            "properties": {
+                "decision": {"const": "inspect"},
+                "listing_id": {"type": "integer"},
+            },
+            "required": ["decision", "listing_id"],
+            "additionalProperties": False,
+        },
+    ],
+}
+
+HOUSING_TENANT_LEMONS_PROMPT = """You are one tenant in a scarce housing market in which some listings are lemons.
+Use only your private observation and the public board. Every listing posts the same
+rent_asked whether it is sound or a lemon. private_values_if_sound[listing_id] is what
+a sound listing is worth to you; a lemon is worth lemon_loss less; exactly lemon_count
+of the listings are lemons, and only each landlord knows its own listing's quality.
+Your objective is your own payoff: the value of the listing you sign minus the rent you
+sign at, minus inspection_cost for every inspection you make; if you sign nothing your
+payoff is zero minus your inspection spend. Return exactly one JSON object for the
+declared action schema. In housing_inspect_v1, inspect one open listing you have not
+inspected (its true quality then appears in inspections) or pass. In housing_contact_v1,
+either offer one open listing at a rent you can justify or pass. In housing_commit_v1,
+sign or walk only the exact immutable hold_id shown in active_hold; pass when no hold
+exists. Do not add markdown or explanation."""
+
 HOUSING_TENANT_PROMPT = """You are one tenant in a scarce housing market.
 Use only your private observation and the public board. Other tenants' values and
 landlords' reservation costs are private. Return exactly one JSON object for the
@@ -308,6 +355,314 @@ def _housing_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
         scorer=MeasurementImplementationRef(
             "housing_outcome_v1", "1.0.0", combined_digest
         ),
+    )
+
+
+def _is_lemons(case: Mapping[str, Any]) -> bool:
+    return isinstance(case["world"], lemons_module.LemonsWorld)
+
+
+def _housing_lemons_source_digests() -> tuple[str, str, str]:
+    housing_source = Path(hz.__file__).read_bytes()
+    lemons_source = Path(lemons_module.__file__).read_bytes()
+    bridge_source = Path(__file__).read_bytes()
+    return (
+        hashlib.sha256(housing_source).hexdigest(),
+        hashlib.sha256(lemons_source).hexdigest(),
+        hashlib.sha256(housing_source + lemons_source + bridge_source).hexdigest(),
+    )
+
+
+LEMONS_BOUND_SEMANTICS = "full_information_tenant_capture_relaxation"
+
+
+def _housing_lemons_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """The principal's leaf: tenants' net payoff, bracketed by pass, sign-anything and
+    the inspect-then-sign reference, under the welfare oracle as upper bound."""
+    housing_digest, _lemons_digest, combined_digest = _housing_lemons_source_digests()
+    source_sha256 = hashlib.sha256(
+        canonical_json_bytes({"surplus": case["world"].surplus})
+    ).hexdigest()
+    validity_domain = ValidityDomainSpec(
+        domain_id="housing_lemons_terminal_domain",
+        domain_version="1.0.0",
+        schema_ref="housing_v1/lemons_outcome/1",
+        predicate=MeasurementImplementationRef(
+            "housing_lemons_outcome_v1", "1.0.0", combined_digest
+        ),
+    )
+    estimand = EstimandSpec(
+        estimand_id="tenant_net_payoff",
+        estimand_version="1.0.0",
+        input_scope="terminal_state",
+        direction="maximize",
+        units="utility_points",
+        validity_domain=validity_domain,
+    )
+    return MeasurementLeafSpec(
+        leaf_id="housing_tenant_net_payoff_leaf",
+        leaf_version="1.0.0",
+        estimand=estimand,
+        verifier=VerifierSpec(
+            verifier_family="objective_reference",
+            evaluation_class="deterministic",
+            reference=ReferenceSpec(
+                reference_id="housing_exact_assignment_v1",
+                reference_version="1.0.0",
+                reference_kind="objective_upper_bound",
+                input_scope="terminal_state",
+                units="utility_points",
+                source_sha256=source_sha256,
+                implementation=MeasurementImplementationRef(
+                    "housing_exact_assignment_v1", "1.0.0", housing_digest
+                ),
+            ),
+            objective_scope=ObjectiveScopeSpec(
+                objective_id="tenant_net_payoff",
+                objective_version="1.0.0",
+                direction="maximize",
+                units="utility_points",
+                feasible_set="one tenant and one landlord per signed lease",
+                information_set=(
+                    "each tenant's own values if sound, the declared lemon count and "
+                    "its own paid inspections; true quality and landlord cost private"
+                ),
+                horizon="one pinned housing episode",
+                environment_condition="pinned lemons world and deadline",
+                opponent_condition="controlled landlord policy declared in the RunPlan",
+                validity_domain=validity_domain,
+            ),
+        ),
+        scorer=MeasurementImplementationRef(
+            "housing_lemons_outcome_v1", "1.0.0", combined_digest
+        ),
+    )
+
+
+def _housing_case_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """The leaf a case scores under, so a failed lemons cell is sealed as typed
+    missingness against the lemons pins rather than the bid world's."""
+    if _is_lemons(case):
+        return _housing_lemons_measurement_leaf(case)
+    return _housing_measurement_leaf(case)
+
+
+def _nonnegative_count(outcome: Mapping[str, Any], field: str, reasons: list[str]) -> int | None:
+    value = outcome.get(field)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        reasons.append(f"{field} must be a non-negative integer")
+        return None
+    return value
+
+
+def _score_housing_lemons_outcome(
+    case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    *,
+    evidence_refs: Sequence[str] = (),
+) -> ScoreEnvelope:
+    leaf = _housing_lemons_measurement_leaf(case)
+    reasons: list[str] = []
+    if not isinstance(outcome, Mapping):
+        outcome = {}
+        reasons.append("outcome is not a mapping")
+    if outcome.get("valid") is not True:
+        reasons.append("family outcome is not marked valid")
+    if outcome.get("bound_semantics") != LEMONS_BOUND_SEMANTICS:
+        reasons.append("upper-bound semantics are missing or changed")
+
+    numeric: dict[str, float] = {}
+    for field in (
+        "tenant_net_total",
+        "social_welfare",
+        "gross_social_welfare",
+        "feasible_floor",
+        "sign_anything_total",
+        "reference_total",
+        "oracle_total",
+    ):
+        value = outcome.get(field)
+        if not _finite_number(value):
+            reasons.append(f"{field} is missing or non-finite")
+        else:
+            numeric[field] = float(value)
+
+    if "feasible_floor" in numeric and not math.isclose(
+        numeric["feasible_floor"], 0.0, abs_tol=1e-12
+    ):
+        reasons.append("feasible-policy lower bound is not the declared pass policy")
+    if "oracle_total" in numeric:
+        upper = numeric["oracle_total"]
+        if upper < -1e-12:
+            reasons.append("assignment upper bound cannot be negative")
+        for field, label in (
+            ("sign_anything_total", "sign-anything baseline"),
+            ("reference_total", "inspect-then-sign reference"),
+            ("tenant_net_total", "observed tenant net payoff"),
+        ):
+            if field in numeric and numeric[field] > upper + 1e-9:
+                reasons.append(f"{label} exceeds the declared upper bound")
+
+    tenant_ids = tuple(f"tenant_{index}" for index in range(case["num_tenants"]))
+    landlord_ids = tuple(f"landlord_{index}" for index in range(case["num_listings"]))
+    gross = _housing_metric_mapping(
+        outcome.get("tenant_payoffs"), label="tenant_payoffs",
+        expected_ids=tenant_ids, reasons=reasons,
+    )
+    spend = _housing_metric_mapping(
+        outcome.get("tenant_inspection_spend"), label="tenant_inspection_spend",
+        expected_ids=tenant_ids, reasons=reasons,
+    )
+    net = _housing_metric_mapping(
+        outcome.get("tenant_net_payoffs"), label="tenant_net_payoffs",
+        expected_ids=tenant_ids, reasons=reasons,
+    )
+    landlord_payoffs = _housing_metric_mapping(
+        outcome.get("landlord_payoffs"), label="landlord_payoffs",
+        expected_ids=landlord_ids, reasons=reasons,
+    )
+    if gross and spend and net:
+        if any(value < -1e-12 for value in spend.values()):
+            reasons.append("inspection spend cannot be negative")
+        if any(
+            not math.isclose(net[seat], gross[seat] - spend[seat], rel_tol=1e-9, abs_tol=1e-9)
+            for seat in tenant_ids
+        ):
+            reasons.append("tenant net payoffs are not gross payoffs less inspection spend")
+        if "tenant_net_total" in numeric and not math.isclose(
+            sum(net.values()), numeric["tenant_net_total"], rel_tol=1e-9, abs_tol=1e-9
+        ):
+            reasons.append("tenant net payoffs do not sum to tenant_net_total")
+    if net and landlord_payoffs and "social_welfare" in numeric and not math.isclose(
+        sum(net.values()) + sum(landlord_payoffs.values()),
+        numeric["social_welfare"], rel_tol=1e-9, abs_tol=1e-9,
+    ):
+        reasons.append("seat payoffs do not sum to social welfare")
+    if gross and landlord_payoffs and "gross_social_welfare" in numeric and not math.isclose(
+        sum(gross.values()) + sum(landlord_payoffs.values()),
+        numeric["gross_social_welfare"], rel_tol=1e-9, abs_tol=1e-9,
+    ):
+        reasons.append("gross seat payoffs do not sum to gross social welfare")
+
+    ir_violations = outcome.get("ir_violations")
+    if not isinstance(ir_violations, (list, tuple)) or any(
+        not isinstance(item, str) or not item for item in ir_violations
+    ):
+        reasons.append("ir_violations must be a list of seat identifiers")
+    counts = {
+        field: _nonnegative_count(outcome, field, reasons)
+        for field in (
+            "wasted_contacts",
+            "inspection_count",
+            "abstention_decision_count",
+            "abstention_correct_count",
+            "lemon_signings",
+            "uninspected_lemon_signings",
+        )
+    }
+    decisions = counts["abstention_decision_count"]
+    correct = counts["abstention_correct_count"]
+    if decisions is not None and correct is not None and correct > decisions:
+        reasons.append("abstention_correct_count exceeds abstention_decision_count")
+    if (
+        counts["lemon_signings"] is not None
+        and counts["uninspected_lemon_signings"] is not None
+        and counts["uninspected_lemon_signings"] > counts["lemon_signings"]
+    ):
+        reasons.append("uninspected_lemon_signings exceeds lemon_signings")
+    declared_rate = outcome.get("abstention_correctness_rate")
+    if decisions is not None and correct is not None:
+        if decisions == 0:
+            if declared_rate is not None:
+                reasons.append("abstention_correctness_rate must be null without decisions")
+        elif not _finite_number(declared_rate) or not math.isclose(
+            float(declared_rate), correct / decisions, rel_tol=1e-9, abs_tol=1e-9
+        ):
+            reasons.append("abstention_correctness_rate does not match its counts")
+
+    if {"tenant_net_total", "oracle_total"}.issubset(numeric):
+        declared_ratio = outcome.get("within_case_score")
+        if numeric["oracle_total"] > 0:
+            expected_ratio = numeric["tenant_net_total"] / numeric["oracle_total"]
+            if not _finite_number(declared_ratio) or not math.isclose(
+                float(declared_ratio), expected_ratio, rel_tol=1e-9, abs_tol=1e-9
+            ):
+                reasons.append(
+                    "within_case_score does not match tenant net payoff over upper bound"
+                )
+        elif declared_ratio is not None:
+            reasons.append("within_case_score must be null when the upper bound is zero")
+
+    if reasons:
+        return ScoreEnvelope(
+            status="invalid_measurement",
+            leaf=leaf,
+            primary=None,
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("invalid", tuple(dict.fromkeys(reasons))),
+            evidence_refs=tuple(evidence_refs),
+        )
+
+    net_total = numeric["tenant_net_total"]
+    baseline = numeric["sign_anything_total"]
+    reference = numeric["reference_total"]
+    upper = numeric["oracle_total"]
+    metrics = {
+        "tenant_net_payoff": MetricValue(net_total, "utility_points"),
+        "social_welfare": MetricValue(numeric["social_welfare"], "utility_points"),
+        "sign_anything_gap": MetricValue(net_total - baseline, "utility_points"),
+        "reference_gap": MetricValue(reference - net_total, "utility_points"),
+        "upper_bound_gap": MetricValue(upper - net_total, "utility_points"),
+        "ir_violation_count": MetricValue(float(len(ir_violations)), "count"),
+        "wasted_contacts": MetricValue(float(counts["wasted_contacts"]), "count"),
+        "inspection_count": MetricValue(float(counts["inspection_count"]), "count"),
+        "inspection_spend": MetricValue(sum(spend.values()), "utility_points"),
+        "abstention_decision_count": MetricValue(float(decisions), "count"),
+        "uninspected_lemon_signings": MetricValue(
+            float(counts["uninspected_lemon_signings"]), "count"
+        ),
+    }
+    if decisions > 0:
+        metrics["abstention_correctness_rate"] = MetricValue(correct / decisions, "ratio")
+    if upper > 0:
+        metrics["within_case_score"] = MetricValue(net_total / upper, "ratio")
+    references = {
+        "optimum_lower_bound": MetricValue(
+            numeric["feasible_floor"],
+            "utility_points",
+            {"reference_kind": "objective_lower_bound", "policy": "pass"},
+        ),
+        "comparison_baseline": MetricValue(
+            baseline,
+            "utility_points",
+            {"reference_kind": "comparison_baseline", "policy": "sign_anything"},
+        ),
+        "scripted_reference": MetricValue(
+            reference,
+            "utility_points",
+            {"reference_kind": "scripted_reference", "policy": "inspect_then_sign"},
+        ),
+        "optimum_upper_bound": MetricValue(
+            upper,
+            "utility_points",
+            {"reference_kind": "objective_upper_bound", "semantics": LEMONS_BOUND_SEMANTICS},
+        ),
+    }
+    utility = {
+        seat_id: MetricValue(payoff, "utility_points", {"disagreement_utility": 0.0})
+        for seat_id, payoff in sorted({**net, **landlord_payoffs}.items())
+    }
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=metrics["tenant_net_payoff"],
+        metrics=metrics,
+        reference_values=references,
+        validity=ValidityReport("valid"),
+        evidence_refs=tuple(evidence_refs),
+        utility_by_seat=utility,
+        capture_by_seat=utility,
     )
 
 
@@ -488,7 +843,7 @@ def _score_housing_outcome(
 
 
 def _snapshot_market(market: hz.HousingMarket) -> dict[str, Any]:
-    return {
+    snapshot: dict[str, Any] = {
         "round_index": market.round_index,
         "phase": market.phase,
         "pairs": [list(pair) for pair in market.pairs],
@@ -514,6 +869,23 @@ def _snapshot_market(market: hz.HousingMarket) -> dict[str, Any]:
         ],
         "wasted_contacts": market.wasted_contacts,
     }
+    if market.lemons:
+        snapshot["inspected"] = [
+            {
+                "tenant_id": tenant_id,
+                "items": [
+                    {"listing_id": listing_id, "quality": quality}
+                    for listing_id, quality in sorted(known.items())
+                ],
+            }
+            for tenant_id, known in sorted(market.inspected.items())
+        ]
+        snapshot["inspection_spend"] = [
+            {"tenant_id": tenant_id, "spend": spend}
+            for tenant_id, spend in sorted(market.inspection_spend.items())
+        ]
+        snapshot["commit_decisions"] = [dict(row) for row in market.commit_decisions]
+    return snapshot
 
 
 def _restore_market(
@@ -542,6 +914,18 @@ def _restore_market(
         for item in state["rejected"]
     }
     market.wasted_contacts = int(state["wasted_contacts"])
+    if market.lemons:
+        market.inspected = {
+            int(item["tenant_id"]): {
+                int(row["listing_id"]): int(row["quality"]) for row in item["items"]
+            }
+            for item in state["inspected"]
+        }
+        market.inspection_spend = {
+            int(item["tenant_id"]): float(item["spend"])
+            for item in state["inspection_spend"]
+        }
+        market.commit_decisions = [dict(row) for row in state["commit_decisions"]]
     return market
 
 
@@ -579,10 +963,13 @@ class HousingV1Plugin:
             "rounds",
             "common_weight",
         }
+        world_kind = payload.get("world_kind")
+        if world_kind == "lemons":
+            expected |= {"lemon_share", "lemon_loss", "inspection_cost"}
         if set(payload) != expected:
             raise ValueError("housing payload fields are incomplete or unexpected")
-        if payload["world_kind"] != "bid":
-            raise ValueError("only the pinned bid world is supported")
+        if world_kind not in {"bid", "lemons"}:
+            raise ValueError("only the pinned bid and lemons worlds are supported")
         integers: dict[str, int] = {}
         for field, minimum in (
             ("world_seed", 0),
@@ -597,6 +984,29 @@ class HousingV1Plugin:
         common_weight = payload["common_weight"]
         if not _finite_number(common_weight) or not 0.0 <= float(common_weight) <= 1.0:
             raise ValueError("common_weight must be between zero and one")
+        if world_kind == "lemons":
+            for field in ("lemon_share", "lemon_loss", "inspection_cost"):
+                if not _finite_number(payload[field]) or float(payload[field]) < 0.0:
+                    raise ValueError(f"{field} must be a finite non-negative number")
+            if float(payload["lemon_share"]) > 1.0:
+                raise ValueError("lemon_share must be between zero and one")
+            world = lemons_module.make_lemons_world(
+                integers["num_tenants"],
+                integers["num_listings"],
+                seed=integers["world_seed"],
+                common_weight=float(common_weight),
+                lemon_share=float(payload["lemon_share"]),
+                lemon_loss=float(payload["lemon_loss"]),
+                inspection_cost=float(payload["inspection_cost"]),
+            )
+            return {
+                **integers,
+                "common_weight": float(common_weight),
+                "lemon_share": float(payload["lemon_share"]),
+                "lemon_loss": float(payload["lemon_loss"]),
+                "inspection_cost": float(payload["inspection_cost"]),
+                "world": world,
+            }
         world = hz.make_bid_world(
             integers["num_tenants"],
             integers["num_listings"],
@@ -611,7 +1021,23 @@ class HousingV1Plugin:
     def phases(self, case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
         tenant_budget = case["num_tenants"] * case["rounds"]
         landlord_budget = case["num_listings"] * case["rounds"]
+        lemons = _is_lemons(case)
+        inspect_phase = (
+            PhaseSpec(
+                phase_id="inspect",
+                actor_selector="unmatched_tenants",
+                mode="simultaneous",
+                observation_schema_by_role={
+                    "tenant": "housing_tenant_inspect_observation_v1"
+                },
+                action_schema_by_role={"tenant": "housing_inspect_v1"},
+                max_logical_actions=tenant_budget,
+                invalid_action_policy="family_defined",
+                next_phases=("contact",),
+            ),
+        ) if lemons else ()
         return (
+            *inspect_phase,
             PhaseSpec(
                 phase_id="contact",
                 actor_selector="unmatched_tenants",
@@ -646,13 +1072,13 @@ class HousingV1Plugin:
                 action_schema_by_role={"tenant": "housing_commit_v1"},
                 max_logical_actions=tenant_budget,
                 invalid_action_policy="family_defined",
-                next_phases=("contact",),
+                next_phases=("inspect",) if lemons else ("contact",),
             ),
         )
 
     def eligible_actors(self, case, state, phase) -> tuple[str, ...]:
         market = _restore_market(case, state)
-        if phase.phase_id in {"contact", "commit"}:
+        if phase.phase_id in {"inspect", "contact", "commit"}:
             return tuple(
                 f"tenant_{tenant_id}" for tenant_id in market.unmatched_tenants()
             )
@@ -664,7 +1090,7 @@ class HousingV1Plugin:
 
     def observe(self, case, state, seat, phase) -> dict[str, Any]:
         market = _restore_market(case, state)
-        if phase.phase_id in {"contact", "commit"}:
+        if phase.phase_id in {"inspect", "contact", "commit"}:
             return market.tenant_observation(_seat_index(seat, "tenant"))
         if phase.phase_id == "respond":
             return market.landlord_observation(_seat_index(seat, "landlord"))
@@ -679,6 +1105,21 @@ class HousingV1Plugin:
             return ParseResult.failure("malformed_json")
         if not isinstance(value, dict):
             return ParseResult.failure("malformed_action")
+
+        if phase.phase_id == "inspect":
+            if set(value) != {"decision", "listing_id"}:
+                return ParseResult.failure("malformed_inspection")
+            if value["decision"] == "pass" and value["listing_id"] is None:
+                return ParseResult.success({"decision": "pass"})
+            if (
+                value["decision"] == "inspect"
+                and isinstance(value["listing_id"], int)
+                and not isinstance(value["listing_id"], bool)
+            ):
+                return ParseResult.success(
+                    {"decision": "inspect", "listing_id": value["listing_id"]}
+                )
+            return ParseResult.failure("malformed_inspection")
 
         if phase.phase_id == "contact":
             if set(value) != {"decision", "listing_id", "rent"}:
@@ -756,6 +1197,15 @@ class HousingV1Plugin:
         decision = action["decision"]
         if decision in {"pass", "reject_all"}:
             return LegalityResult.legal_action()
+        if phase.phase_id == "inspect":
+            tenant_id = _seat_index(seat, "tenant")
+            if tenant_id not in market.unmatched_tenants():
+                return LegalityResult.illegal("unavailable_tenant")
+            if action["listing_id"] not in market.open_listings():
+                return LegalityResult.illegal("unavailable_listing")
+            if action["listing_id"] in market.inspected[tenant_id]:
+                return LegalityResult.illegal("already_inspected")
+            return LegalityResult.legal_action()
         if phase.phase_id == "contact":
             tenant_id = _seat_index(seat, "tenant")
             if tenant_id not in market.unmatched_tenants():
@@ -783,7 +1233,14 @@ class HousingV1Plugin:
 
     def step(self, case, state, phase, actions) -> TransitionResult:
         market = _restore_market(case, state)
-        if phase.phase_id == "contact":
+        if phase.phase_id == "inspect":
+            requests: dict[int, int] = {}
+            for seat_id, envelope in actions.items():
+                if envelope.valid and envelope.action["decision"] == "inspect":
+                    requests[_seat_index(seat_id, "tenant")] = envelope.action["listing_id"]
+            result = market.submit_inspections(requests)
+            next_phase = "contact"
+        elif phase.phase_id == "contact":
             offers: dict[int, tuple[int, float]] = {}
             for seat_id, envelope in actions.items():
                 if envelope.valid and envelope.action["decision"] == "offer":
@@ -829,7 +1286,7 @@ class HousingV1Plugin:
                         envelope.action["hold_id"],
                     )
             result = market.submit_commits(commits)
-            next_phase = "contact"
+            next_phase = market.round_start_phase
         else:
             raise ValueError(f"unknown housing phase: {phase.phase_id!r}")
         return TransitionResult(
@@ -842,6 +1299,8 @@ class HousingV1Plugin:
         market = _restore_market(case, state)
         if not market.finished:
             return None
+        if _is_lemons(case):
+            return self._lemons_terminal(case, market)
         economics = market.economics()
         oracle = hz.assignment_oracle(market.world.surplus)
         baseline = hz.run_scripted_market(
@@ -877,20 +1336,89 @@ class HousingV1Plugin:
             "bound_semantics": "full_information_allocation_relaxation",
         }
 
+    @staticmethod
+    def _lemons_terminal(case: Mapping[str, Any], market: hz.HousingMarket) -> dict[str, Any]:
+        economics = market.economics()
+        accounting = market.lemons_accounting()
+        world = market.world
+        oracle = hz.assignment_oracle(world.surplus)
+        rounds = case["rounds"]
+        sign_anything = lemons_module.run_lemons_policy(
+            world, rounds, "sign_anything"
+        ).lemons_accounting()["tenant_net_total"]
+        reference = lemons_module.run_lemons_policy(
+            world, rounds, "inspect_then_sign"
+        ).lemons_accounting()["tenant_net_total"]
+        net_total = accounting["tenant_net_total"]
+        score = net_total / oracle.total if oracle.total > 0 else None
+        tenants = sorted(economics.tenant_payoffs)
+        return {
+            "reason": (
+                "deadline" if market.round_index >= market.rounds else "allocation"
+            ),
+            "assignment_pairs": [list(pair) for pair in economics.assignment.pairs],
+            "signed_rents": [
+                {"tenant_id": tenant_id, "rent": rent}
+                for tenant_id, rent in sorted(economics.signed_rents.items())
+            ],
+            "quality": [hz.QUALITY_LABEL[quality] for quality in world.quality],
+            "tenant_payoffs": {
+                f"tenant_{tenant_id}": economics.tenant_payoffs[tenant_id]
+                for tenant_id in tenants
+            },
+            "tenant_inspection_spend": {
+                f"tenant_{tenant_id}": accounting["tenant_inspection_spend"][tenant_id]
+                for tenant_id in tenants
+            },
+            "tenant_net_payoffs": {
+                f"tenant_{tenant_id}": accounting["tenant_net_payoffs"][tenant_id]
+                for tenant_id in tenants
+            },
+            "landlord_payoffs": {
+                f"landlord_{listing_id}": payoff
+                for listing_id, payoff in sorted(economics.landlord_payoffs.items())
+            },
+            "tenant_net_total": net_total,
+            "social_welfare": accounting["net_social_welfare"],
+            "gross_social_welfare": economics.social_welfare,
+            "feasible_floor": 0.0,
+            "sign_anything_total": sign_anything,
+            "reference_total": reference,
+            "oracle_total": oracle.total,
+            "within_case_score": score,
+            "ir_violations": list(economics.ir_violations),
+            "wasted_contacts": market.wasted_contacts,
+            "inspection_count": accounting["inspection_count"],
+            "commit_decisions": accounting["commit_decisions"],
+            "abstention_decision_count": accounting["abstention_decision_count"],
+            "abstention_correct_count": accounting["abstention_correct_count"],
+            "abstention_correctness_rate": accounting["abstention_correctness_rate"],
+            "lemon_signings": accounting["lemon_signings"],
+            "uninspected_lemon_signings": accounting["uninspected_lemon_signings"],
+            "bound_semantics": LEMONS_BOUND_SEMANTICS,
+        }
+
     def outcome(self, case, terminal) -> dict[str, Any]:
         return {"valid": True, **dict(terminal)}
 
     def build_scorer(self, case):
+        scorer = _score_housing_lemons_outcome if _is_lemons(case) else _score_housing_outcome
+
         def score(
             scoring_input: FamilyScoringInput, *, evidence_refs: Sequence[str] = ()
         ) -> ScoreEnvelope:
-            return _score_housing_outcome(
-                case, scoring_input.outcome, evidence_refs=evidence_refs
-            )
+            return scorer(case, scoring_input.outcome, evidence_refs=evidence_refs)
 
         return score
 
     def build_reference_providers(self, case):
+        if _is_lemons(case):
+            return (
+                "housing_feasible_zero_v1",
+                "housing_sign_anything_v1",
+                "housing_inspect_then_sign_v1",
+                "housing_exact_assignment_v1",
+            )
         return (
             "housing_feasible_zero_v1",
             "housing_naive_v1",
@@ -919,14 +1447,64 @@ def _scripted_result(
     )
 
 
+# The sealed scripted-tenant model id selects the policy. ``None`` is the
+# legacy bid-world tenant; the others are the lemons-world bracket policies
+# shared with the offline admission gate (``lemons.TENANT_POLICIES``).
+SCRIPTED_TENANT_MODELS: dict[str, str | None] = {
+    "housing_scripted_tenant_v1": None,
+    "housing_scripted_tenant_sign_anything_v1": "sign_anything",
+    "housing_scripted_tenant_inspect_then_sign_v1": "inspect_then_sign",
+    "housing_scripted_tenant_pass_v1": "pass",
+}
+SCRIPTED_TENANT_REVISION = "1.0.0"
+LEMONS_SCRIPTED_TENANT_MODELS = tuple(
+    model for model, policy in SCRIPTED_TENANT_MODELS.items() if policy is not None
+)
+
+
 class HousingScriptedTenantProvider:
+    """Dispatch the sealed model id to a scripted tenant policy."""
+
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "housing_scripted_tenant":
             raise ProviderFailure(
                 "provider_contract", "wrong scripted tenant provider", retryable=False
             )
+        if (
+            request.model not in SCRIPTED_TENANT_MODELS
+            or request.revision != SCRIPTED_TENANT_REVISION
+        ):
+            raise ProviderFailure(
+                "provider_contract",
+                "unknown scripted tenant model/revision",
+                retryable=False,
+            )
         payload = json.loads(request.input_text)
         observation = payload["observation"]
+        policy_id = SCRIPTED_TENANT_MODELS[request.model]
+        if policy_id is not None:
+            if "private_values_if_sound" not in observation:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "scripted lemons tenant requires a lemons observation",
+                    retryable=False,
+                )
+            if payload["phase_id"] not in {"inspect", "contact", "commit"}:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "scripted tenant received wrong phase",
+                    retryable=False,
+                )
+            output = lemons_module.TENANT_POLICIES[policy_id](
+                observation, payload["phase_id"]
+            )
+            return _scripted_result(request, output)
+        if "private_values" not in observation:
+            raise ProviderFailure(
+                "provider_contract",
+                "legacy scripted tenant cannot play a lemons world",
+                retryable=False,
+            )
         if payload["phase_id"] == "contact":
             values = observation["private_values"]
             candidates = [
@@ -1051,7 +1629,7 @@ def finalize_housing_failure(
         cell_id=cell_id,
         evidence_root=evidence_root,
         error=error,
-        leaf_builder=_housing_measurement_leaf,
+        leaf_builder=_housing_case_measurement_leaf,
     )
 
 
@@ -1114,6 +1692,31 @@ DEEPINFRA_HOUSING_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
 )
 
+# Route pins for the lemons-world live probes. Both endpoints report their
+# quantization as "unknown", which is the value OpenRouter filters on.
+GEMINI_38_FLASH_MODEL = "google/gemini-3.8-flash"
+GEMINI_38_FLASH_REVISION = "google/gemini-3.8-flash-20260902"
+GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="Google AI Studio",
+    quantization="unknown",
+    canonical_model=GEMINI_38_FLASH_REVISION,
+    input_per_million=0.75,
+    cached_input_per_million=0.075,
+    output_per_million=3.75,
+    pricing_id="openrouter_google-ai-studio_2026-09-21_gemini-3.8-flash",
+)
+GROK_47_MODEL = "x-ai/grok-4.7"
+GROK_47_REVISION = "x-ai/grok-4.7-20260916"
+XAI_GROK_47_ROUTE = OpenRouterRoutePin(
+    provider="xAI",
+    quantization="unknown",
+    canonical_model=GROK_47_REVISION,
+    input_per_million=1.6,
+    cached_input_per_million=0.4,
+    output_per_million=4.8,
+    pricing_id="openrouter_xai_2026-09-21_grok-4.7",
+)
+
 GLM_53_FLASH_MODEL = "z-ai/glm-5.3-flash"
 GLM_53_FLASH_REVISION = "z-ai/glm-5.3-flash-20260826"
 DEEPINFRA_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
@@ -1164,6 +1767,8 @@ def _profile(
     harness_id: str = "minimal_chat",
     harness_version: str = "1.0",
     harness_config: Mapping[str, Any] | None = None,
+    sampling_top_p: float | None = 1.0,
+    max_cost_usd: float | None = None,
 ) -> AgentProfile:
     default_max_action_attempts = (
         4
@@ -1224,7 +1829,7 @@ def _profile(
             },
             "sampling": {
                 "temperature": 0.0,
-                "top_p": 1.0 if provider == "openrouter" else None,
+                "top_p": sampling_top_p if provider == "openrouter" else None,
                 "max_output_tokens": (
                     max_output_tokens
                     if max_output_tokens is not None
@@ -1241,7 +1846,11 @@ def _profile(
                 "timeout_seconds": (
                     timeout_seconds if timeout_seconds is not None else 30.0
                 ),
-                "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
+                "max_cost_usd": (
+                    max_cost_usd
+                    if max_cost_usd is not None
+                    else (0.01 if provider == "openrouter" else 0.001)
+                ),
             },
             "retry_policy": {
                 "max_action_attempts": (
@@ -1297,7 +1906,31 @@ def build_housing_smoke(
     retryable_conditions_override: Sequence[str] | None = None,
     implementation_digest_overrides: Mapping[str, str] | None = None,
     evaluation_kind: str = "controlled",
+    world_kind: str = "bid",
+    lemon_share: float = lemons_module.DEFAULT_LEMON_SHARE,
+    lemon_loss: float = lemons_module.DEFAULT_LEMON_LOSS,
+    inspection_cost: float = lemons_module.DEFAULT_INSPECTION_COST,
+    tenant_top_p: float | None = 1.0,
+    tenant_max_cost_usd_override: float | None = None,
 ) -> HousingSmokeSetup:
+    if tenant_max_cost_usd_override is not None and (
+        not _finite_number(tenant_max_cost_usd_override)
+        or tenant_max_cost_usd_override <= 0.0
+    ):
+        raise ValueError("tenant_max_cost_usd_override must be a positive number")
+    if world_kind not in {"bid", "lemons"}:
+        raise ValueError("world_kind must be bid or lemons")
+    lemons = world_kind == "lemons"
+    if tenant_provider == "housing_scripted_tenant":
+        if tenant_model not in SCRIPTED_TENANT_MODELS:
+            raise ValueError("unknown scripted tenant model")
+        if tenant_revision != SCRIPTED_TENANT_REVISION:
+            raise ValueError("unknown scripted tenant revision")
+        if (SCRIPTED_TENANT_MODELS[tenant_model] is not None) != lemons:
+            raise ValueError(
+                "the lemons world takes a lemons scripted tenant and the bid world "
+                "the legacy one"
+            )
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
     if not selected_world_seeds:
         raise ValueError("world_seeds must not be empty")
@@ -1325,6 +1958,8 @@ def build_housing_smoke(
         "combined",
         "execution",
         "harness",
+        "lemons",
+        "combined_lemons",
     }
     if set(digest_overrides).difference(allowed_digest_overrides):
         raise ValueError("implementation_digest_overrides contains unknown components")
@@ -1373,54 +2008,104 @@ def build_housing_smoke(
             },
             "environment": {
                 "topology": "market_with_private_preferences",
-                "phase_specs": ["contact", "respond", "commit"],
+                "phase_specs": (
+                    ["inspect", "contact", "respond", "commit"]
+                    if lemons
+                    else ["contact", "respond", "commit"]
+                ),
                 "needs_tools": False,
                 "needs_sandbox": False,
             },
             "roles": {
                 "tenant": {
                     "testable": True,
-                    "scripted_policies": ["housing_scripted_tenant_v1"],
+                    "scripted_policies": (
+                        list(LEMONS_SCRIPTED_TENANT_MODELS)
+                        if lemons
+                        else ["housing_scripted_tenant_v1"]
+                    ),
                 },
                 "landlord": {
                     "testable": False,
                     "scripted_policies": ["housing_scripted_landlord_v1"],
                 },
             },
-            "measurement": {
-                "primary_estimand": "social_welfare",
-                "measurement_kind": "optimizable_outcome",
-                "direction": "maximize",
-                "optimum_lower_bound": "housing_feasible_zero_v1",
-                "comparison_baseline": "housing_naive_v1",
-                "optimum_upper_bound": "housing_exact_assignment_v1",
-                "optimum_upper_bound_kind": "full_information_relaxation",
-                "bound_status": "bracketed",
-                "outcome_support": "case_specific",
-            },
-            "scoring": {
-                "scorer_id": "housing_outcome_v1",
-                "oracle_id": "housing_exact_assignment_v1",
-                "reference_provider_ids": [
-                    "housing_feasible_zero_v1",
-                    "housing_naive_v1",
-                ],
-            },
-            "generator": {
-                "generator_id": "housing_generator_v1",
-                "difficulty_knobs": ["market_tightness", "rounds", "common_weight"],
-            },
+            "measurement": (
+                {
+                    "primary_estimand": "tenant_net_payoff",
+                    "measurement_kind": "optimizable_outcome",
+                    "direction": "maximize",
+                    "optimum_lower_bound": "housing_feasible_zero_v1",
+                    "comparison_baseline": "housing_sign_anything_v1",
+                    "optimum_upper_bound": "housing_exact_assignment_v1",
+                    "optimum_upper_bound_kind": "full_information_relaxation",
+                    "bound_status": "bracketed",
+                    "outcome_support": "case_specific",
+                }
+                if lemons
+                else {
+                    "primary_estimand": "social_welfare",
+                    "measurement_kind": "optimizable_outcome",
+                    "direction": "maximize",
+                    "optimum_lower_bound": "housing_feasible_zero_v1",
+                    "comparison_baseline": "housing_naive_v1",
+                    "optimum_upper_bound": "housing_exact_assignment_v1",
+                    "optimum_upper_bound_kind": "full_information_relaxation",
+                    "bound_status": "bracketed",
+                    "outcome_support": "case_specific",
+                }
+            ),
+            "scoring": (
+                {
+                    "scorer_id": "housing_lemons_outcome_v1",
+                    "oracle_id": "housing_exact_assignment_v1",
+                    "reference_provider_ids": [
+                        "housing_feasible_zero_v1",
+                        "housing_sign_anything_v1",
+                        "housing_inspect_then_sign_v1",
+                    ],
+                }
+                if lemons
+                else {
+                    "scorer_id": "housing_outcome_v1",
+                    "oracle_id": "housing_exact_assignment_v1",
+                    "reference_provider_ids": [
+                        "housing_feasible_zero_v1",
+                        "housing_naive_v1",
+                    ],
+                }
+            ),
+            "generator": (
+                {
+                    "generator_id": "housing_lemons_generator_v1",
+                    "difficulty_knobs": [
+                        "market_tightness",
+                        "rounds",
+                        "common_weight",
+                        "lemon_share",
+                        "lemon_loss",
+                        "inspection_cost",
+                    ],
+                }
+                if lemons
+                else {
+                    "generator_id": "housing_generator_v1",
+                    "difficulty_knobs": ["market_tightness", "rounds", "common_weight"],
+                }
+            ),
         }
     )
-    max_actions = rounds * (2 * num_tenants + num_listings)
+    kind_prefix = "housing_lemons" if lemons else "housing"
+    generator_id = "housing_lemons_generator_v1" if lemons else "housing_generator_v1"
+    max_actions = rounds * ((3 if lemons else 2) * num_tenants + num_listings)
     cases: list[CaseManifest] = []
     for index, case_world_seed in enumerate(selected_world_seeds, start=1):
         raw_case = {
             "spec_version": "aeread.case/0.1",
             "case_id": (
-                "housing_v1__smoke__000001"
+                f"housing_v1__{'lemons_' if lemons else ''}smoke__000001"
                 if not experiment_mode
-                else f"housing_v1__experiment__{index:06d}"
+                else f"housing_v1__{'lemons_' if lemons else ''}experiment__{index:06d}"
             ),
             "family_id": "housing_v1",
             "family_version": "1.0.0",
@@ -1442,15 +2127,24 @@ def build_housing_smoke(
             },
             "visibility_policy": "housing_private_preferences_v1",
             "payload": {
-                "world_kind": "bid",
+                "world_kind": world_kind,
                 "world_seed": case_world_seed,
                 "num_tenants": num_tenants,
                 "num_listings": num_listings,
                 "rounds": rounds,
                 "common_weight": common_weight,
+                **(
+                    {
+                        "lemon_share": float(lemon_share),
+                        "lemon_loss": float(lemon_loss),
+                        "inspection_cost": float(inspection_cost),
+                    }
+                    if lemons
+                    else {}
+                ),
             },
             "provenance": {
-                "generator_id": "housing_generator_v1",
+                "generator_id": generator_id,
                 "generator_version": "1.0.0",
                 "review_status": "curated" if not experiment_mode else "generated",
             },
@@ -1462,16 +2156,16 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.sampling/0.1",
             "sampling_plan_id": (
-                "housing_smoke_sample_v1"
+                f"{kind_prefix}_smoke_sample_v1"
                 if not experiment_mode
-                else f"housing_{reasoning_condition_id}_sample_v1"
+                else f"{kind_prefix}_{reasoning_condition_id}_sample_v1"
             ),
             "estimand": (
                 "fixed_housing_smoke_case"
                 if not experiment_mode
                 else "generated_housing_case_population"
             ),
-            "target": "housing_generator_v1",
+            "target": generator_id,
             "selection": (
                 "fixed_curated" if not experiment_mode else "seeded_simple_random"
             ),
@@ -1493,12 +2187,12 @@ def build_housing_smoke(
     resolved_tenant_harness = tenant_harness or MinimalChatHarness()
     tenant_profile_id = tenant_profile_id_override or (
         (
-            "housing_deepseek_tenant_v1"
+            f"{kind_prefix}_deepseek_tenant_v1"
             if not experiment_mode
-            else f"housing_deepseek_tenant_{reasoning_condition_id}"
+            else f"{kind_prefix}_deepseek_tenant_{reasoning_condition_id}"
         )
         if tenant_provider == "openrouter"
-        else "housing_scripted_tenant_v1"
+        else tenant_model
     )
     tenant_pricing = (
         openrouter_route.token_pricing()
@@ -1520,15 +2214,23 @@ def build_housing_smoke(
         provider=tenant_provider,
         model=tenant_model,
         revision=tenant_revision,
-        prompt_id="housing_tenant_v1",
-        prompt=HOUSING_TENANT_PROMPT,
-        output_schemas={
-            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
-            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
-        },
+        prompt_id="housing_tenant_lemons_v1" if lemons else "housing_tenant_v1",
+        prompt=HOUSING_TENANT_LEMONS_PROMPT if lemons else HOUSING_TENANT_PROMPT,
+        output_schemas=(
+            {
+                "housing_inspect_v1": HOUSING_INSPECT_OUTPUT_SCHEMA,
+                "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
+                "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+            }
+            if lemons
+            else {
+                "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
+                "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+            }
+        ),
         pricing=tenant_pricing,
         max_logical_actions=(
-            2 * num_tenants * rounds
+            (3 if lemons else 2) * num_tenants * rounds
             if tenant_max_logical_actions_override is None
             else tenant_max_logical_actions_override
         ),
@@ -1568,6 +2270,8 @@ def build_housing_smoke(
         harness_id=resolved_tenant_harness.id,
         harness_version=resolved_tenant_harness.version,
         harness_config=tenant_harness_config,
+        sampling_top_p=tenant_top_p,
+        max_cost_usd=tenant_max_cost_usd_override,
     )
     landlord_profile = _profile(
         profile_id=landlord_profile_id,
@@ -1627,15 +2331,15 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.evaluation_block/0.1",
             "block_id": (
-                "housing_controlled_model_landlords_smoke"
+                f"{kind_prefix}_controlled_model_landlords_smoke"
                 if landlord_provider == "openrouter" and not experiment_mode
                 else (
-                    "housing_controlled_model_landlords_experiment"
+                    f"{kind_prefix}_controlled_model_landlords_experiment"
                     if landlord_provider == "openrouter"
                     else (
-                        "housing_controlled_landlords_smoke"
+                        f"{kind_prefix}_controlled_landlords_smoke"
                         if not experiment_mode
-                        else "housing_controlled_landlords_experiment"
+                        else f"{kind_prefix}_controlled_landlords_experiment"
                     )
                 )
             ),
@@ -1658,19 +2362,32 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.analysis/0.1",
             "analysis_plan_id": (
-                "housing_smoke_analysis_v1"
+                f"{kind_prefix}_smoke_analysis_v1"
                 if not experiment_mode
-                else "housing_reasoning_paired_analysis_v1"
+                else f"{kind_prefix}_reasoning_paired_analysis_v1"
             ),
             "estimands": (
-                ["social_welfare", "tenant_payoff", "landlord_payoff"]
+                (
+                    ["tenant_net_payoff", "abstention_correctness_rate", "social_welfare"]
+                    if lemons
+                    else ["social_welfare", "tenant_payoff", "landlord_payoff"]
+                )
                 if not experiment_mode
-                else [
-                    "within_case_score",
-                    "social_welfare",
-                    "tenant_payoff",
-                    "landlord_payoff",
-                ]
+                else (
+                    [
+                        "within_case_score",
+                        "tenant_net_payoff",
+                        "abstention_correctness_rate",
+                        "social_welfare",
+                    ]
+                    if lemons
+                    else [
+                        "within_case_score",
+                        "social_welfare",
+                        "tenant_payoff",
+                        "landlord_payoff",
+                    ]
+                )
             ),
             "group_by": ["family_id", "subject_role"],
             "missingness": "report_separately",
@@ -1693,9 +2410,9 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.suite/0.1",
             "suite_id": (
-                "housing_smoke_v1"
+                f"{kind_prefix}_smoke_v1"
                 if not experiment_mode
-                else f"housing_{reasoning_condition_id}_experiment_v1"
+                else f"{kind_prefix}_{reasoning_condition_id}_experiment_v1"
             ),
             "version": "1.0.0",
             "family_ids": ["housing_v1"],
@@ -1713,9 +2430,9 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.run_spec/0.1",
             "run_spec_id": (
-                "housing_smoke_run_v1"
+                f"{kind_prefix}_smoke_run_v1"
                 if not experiment_mode
-                else f"housing_{reasoning_condition_id}_run_v1"
+                else f"{kind_prefix}_{reasoning_condition_id}_run_v1"
             ),
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
@@ -1771,15 +2488,35 @@ def build_housing_smoke(
     harness_digest = digest_overrides.get(
         "harness", hashlib.sha256(harness_source).hexdigest()
     )
-    pins = [
-        _pin("aeread.housing_v1", "family_plugin", combined_digest),
-        _pin("housing_outcome_v1", "scorer", combined_digest),
-        _pin("housing_exact_assignment_v1", "reference", housing_digest),
-        _pin("housing_feasible_zero_v1", "reference", bridge_digest),
-        _pin("housing_naive_v1", "reference", housing_digest),
-        _pin("housing_generator_v1", "generator", housing_digest),
-        _pin("minimal_chat", "harness", harness_digest, version="1.0"),
-    ]
+    if lemons:
+        lemons_source = Path(lemons_module.__file__).read_bytes()
+        lemons_digest = digest_overrides.get(
+            "lemons", hashlib.sha256(lemons_source).hexdigest()
+        )
+        combined_lemons_digest = digest_overrides.get(
+            "combined_lemons",
+            hashlib.sha256(housing_source + lemons_source + bridge_source).hexdigest(),
+        )
+        pins = [
+            _pin("aeread.housing_v1", "family_plugin", combined_lemons_digest),
+            _pin("housing_lemons_outcome_v1", "scorer", combined_lemons_digest),
+            _pin("housing_exact_assignment_v1", "reference", housing_digest),
+            _pin("housing_feasible_zero_v1", "reference", bridge_digest),
+            _pin("housing_sign_anything_v1", "reference", lemons_digest),
+            _pin("housing_inspect_then_sign_v1", "reference", lemons_digest),
+            _pin("housing_lemons_generator_v1", "generator", lemons_digest),
+            _pin("minimal_chat", "harness", harness_digest, version="1.0"),
+        ]
+    else:
+        pins = [
+            _pin("aeread.housing_v1", "family_plugin", combined_digest),
+            _pin("housing_outcome_v1", "scorer", combined_digest),
+            _pin("housing_exact_assignment_v1", "reference", housing_digest),
+            _pin("housing_feasible_zero_v1", "reference", bridge_digest),
+            _pin("housing_naive_v1", "reference", housing_digest),
+            _pin("housing_generator_v1", "generator", housing_digest),
+            _pin("minimal_chat", "harness", harness_digest, version="1.0"),
+        ]
     if resolved_tenant_harness.id != "minimal_chat":
         if tenant_implementation_sha256 is None:
             raise ValueError(
@@ -1839,6 +2576,7 @@ def build_housing_smoke(
         registry=registry,
         prompt_sources={
             "housing_tenant_v1": HOUSING_TENANT_PROMPT,
+            "housing_tenant_lemons_v1": HOUSING_TENANT_LEMONS_PROMPT,
             "housing_landlord_v1": HOUSING_LANDLORD_PROMPT,
         },
         pricing={
@@ -1854,16 +2592,35 @@ def build_housing_smoke(
     )
 
 
+CLI_ROUTES: dict[str, OpenRouterRoutePin] = {
+    "deepinfra_deepseek": DEEPINFRA_HOUSING_ROUTE,
+    "google_gemini_38_flash": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE,
+    "xai_grok_47": XAI_GROK_47_ROUTE,
+}
+CLI_ROUTE_MODELS: dict[str, str] = {
+    "deepinfra_deepseek": "deepseek/deepseek-v4-flash-0731",
+    "google_gemini_38_flash": GEMINI_38_FLASH_MODEL,
+    "xai_grok_47": GROK_47_MODEL,
+}
+
+
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
+    world_kind = getattr(arguments, "world_kind", "bid")
+    tenant_policy = getattr(arguments, "tenant_policy", None)
+    route_id = getattr(arguments, "route", "deepinfra_deepseek")
+    route = CLI_ROUTES[route_id]
     if arguments.provider == "openrouter":
         tenant_provider = "openrouter"
-        tenant_model = arguments.model or "deepseek/deepseek-v4-flash-0731"
-        tenant_revision = arguments.revision or "deepseek/deepseek-v4-flash-20260731"
+        tenant_model = arguments.model or CLI_ROUTE_MODELS[route_id]
+        tenant_revision = arguments.revision or route.canonical_model
         tenant_client = OpenRouterChatClient()
     else:
         tenant_provider = "housing_scripted_tenant"
-        tenant_model = "housing_scripted_tenant_v1"
-        tenant_revision = "1.0.0"
+        if world_kind == "lemons":
+            tenant_model = f"housing_scripted_tenant_{tenant_policy or 'inspect_then_sign'}_v1"
+        else:
+            tenant_model = "housing_scripted_tenant_v1"
+        tenant_revision = SCRIPTED_TENANT_REVISION
         tenant_client = HousingScriptedTenantProvider()
     setup = build_housing_smoke(
         tenant_provider=tenant_provider,
@@ -1873,6 +2630,14 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         num_tenants=arguments.tenants,
         num_listings=arguments.listings,
         rounds=arguments.rounds,
+        world_kind=world_kind,
+        lemon_share=getattr(arguments, "lemon_share", lemons_module.DEFAULT_LEMON_SHARE),
+        lemon_loss=getattr(arguments, "lemon_loss", lemons_module.DEFAULT_LEMON_LOSS),
+        inspection_cost=getattr(
+            arguments, "inspection_cost", lemons_module.DEFAULT_INSPECTION_COST
+        ),
+        openrouter_route=route,
+        tenant_top_p=None if route_id == "xai_grok_47" else 1.0,
     )
     execution = await execute_plan_cell(
         plan=setup.plan,
@@ -1903,6 +2668,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             (execution.evidence.root / "evaluation_receipt.json").resolve()
         ),
         "replay_level": receipt.replay_level,
+        "world_kind": world_kind,
+        "tenant_model": tenant_model,
+        "tenant_revision": tenant_revision,
     }
 
 
@@ -1913,6 +2681,23 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--model")
     parser.add_argument("--revision")
+    parser.add_argument(
+        "--world-kind", choices=("bid", "lemons"), default="bid",
+        help="lemons adds hidden quality, an inspect phase and the tenant-payoff endpoint",
+    )
+    parser.add_argument(
+        "--tenant-policy", choices=lemons_module.TENANT_POLICY_IDS, default=None,
+        help="scripted lemons tenant (default inspect_then_sign); ignored for openrouter",
+    )
+    parser.add_argument(
+        "--route", choices=sorted(CLI_ROUTES), default="deepinfra_deepseek",
+        help="sealed OpenRouter endpoint for a live tenant",
+    )
+    parser.add_argument("--lemon-share", type=float, default=lemons_module.DEFAULT_LEMON_SHARE)
+    parser.add_argument("--lemon-loss", type=float, default=lemons_module.DEFAULT_LEMON_LOSS)
+    parser.add_argument(
+        "--inspection-cost", type=float, default=lemons_module.DEFAULT_INSPECTION_COST
+    )
     parser.add_argument("--world-seed", type=int, default=41001)
     parser.add_argument("--tenants", type=int, default=2)
     parser.add_argument("--listings", type=int, default=1)

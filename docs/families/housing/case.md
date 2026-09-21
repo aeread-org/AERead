@@ -223,6 +223,103 @@ the 299 of 300 generated seeds with `U > 0` are: naive 0.847 (sd 0.122) and adap
 0.835 (sd 0.127). These establish executable within-case comparisons, not universal
 scores or evidence that the suite is saturated.
 
+## 5c. Refusal under adverse selection: the lemons world
+
+`make_lemons_world` (`lemons.py`) is the pinned bid world plus quality. A declared
+`lemon_share` of the listings, rounded half up to an exact `lemon_count`, are lemons
+that post the same ask as sound units. A lemon is worth `lemon_loss` less to every
+tenant and costs its landlord `lemon_loss` less (floored at zero), so a lemon lease
+carries the surplus of a sound one and the welfare oracle is blind to quality by
+construction: a lemon signed at the ask still adds `value - cost` to welfare while
+the tenant seat loses. That is why this world is not scored on welfare. It is the
+first of the extensions in the economic-primitives design (refusal under adverse
+selection); solicitation and a concession schedule for scripted landlords, which
+that design also names, are not built here.
+
+**Phases.** `inspect -> contact -> respond -> commit`, one new phase per round. In
+`inspect` each unmatched tenant may pay `inspection_cost` to learn one open listing's
+quality (`{"decision": "inspect", "listing_id": 2}` or pass). The result is private
+to that tenant and persists across rounds; an invalid, leased, or repeated request is
+a pass that costs nothing (`unknown_listing`, `unavailable_listing`,
+`already_inspected`). The other three phases are the bid world's. The bid world keeps
+its three phases, its state bytes and its `economics()` unchanged, so every sealed
+campaign replays as before; the `lemons` payload adds `lemon_share`, `lemon_loss` and
+`inspection_cost`, and the plugin refuses either payload shape with the other's fields.
+
+**Information.** A tenant sees `private_values_if_sound`, the declared
+`lemon_count`, `lemon_share`, `lemon_loss` and `inspection_cost`, and its own
+`inspections`; never a true value or a quality it has not paid for. A landlord sees
+its own listing's `quality` beside its private cost. The tenant prompt states the
+objective in one sentence: value minus rent minus inspection spend, and zero minus
+inspection spend if nothing is signed.
+
+**Endpoint.** The primary estimand is the principal's outcome, `tenant_net_payoff`:
+the sum over tenants of signed value minus signed rent minus inspection spend, leaf
+`housing_tenant_net_payoff_leaf`, scorer `housing_lemons_outcome_v1`. Its bracket is
+`L = 0` (the `pass` policy), the comparison baseline `B` (`sign_anything`), the
+scripted reference `R` (`inspect_then_sign`), and `U`, the same max-weight matching
+on true surplus, now read as the most the tenants could capture under full
+information. `within_case_score = tenant_net_payoff / U` and is negative when the
+tenants lose. Welfare net of inspection spend, per-seat payoffs, `ir_violations` and
+`wasted_contacts` are reported as secondaries, as are `inspection_count`,
+`inspection_spend`, `lemon_signings` and `uninspected_lemon_signings`.
+
+**Abstention correctness.** Every hold a tenant faces at commit is a refusal
+decision, including a hold it lets expire. The decision is correct when the tenant
+signed and its expected value covered the rent, or declined and it did not. Expected
+value is the true value once inspected and otherwise
+`value_if_sound - p * lemon_loss`, with `p` the tenant's own posterior,
+`(lemon_count - lemons it has found) / (listings it has not inspected)`. The rule
+judges the decision against the information set, not the outcome: signing an
+uninspected unit that turns out sound is still wrong when the pooled expectation was
+below the rent. `abstention_correctness_rate` is null when no hold was faced.
+
+**Scripted tenant policies.** Three, each a function of the tenant observation alone,
+so the offline gate and the runner's scripted provider run the same code
+(`lemons.TENANT_POLICIES`, selected by the sealed model id
+`housing_scripted_tenant_<policy>_v1`):
+
+| policy | inspect | contact | commit |
+|---|---|---|---|
+| `sign_anything` | never | ask + 1 on the open listing with the largest value-if-sound gain | sign any hold at or below value-if-sound |
+| `pass` | never | never | pass |
+| `inspect_then_sign` | the best uninspected open listing whose gain, weighted by its chance of being sound under the posterior, exceeds the fee | ask + 1 on the best listing it has verified sound | sign only a verified-sound hold at or below its value |
+
+The legacy `housing_scripted_tenant_v1` plays the bid world only; the provider refuses
+a model id it does not know or a policy paired with the wrong world.
+
+**Admission.** A lemons world is admitted only when the ordering the design asks
+for holds on it with declared margins, normalized by `U`
+(`lemons.DEFAULT_ADMISSION_RULE`): at least one lemon and one sound listing, `U > 0`,
+`B / U <= -0.05`, `R / U >= 0.05`, and `(R - B) / U >= 0.25`. Over world seeds 0 to
+299 at six tenants, four listings and four rounds, with `python -m
+aeread_families.housing.lemons --seeds 300` and the flags named in the table:
+
+| lemon share | lemon loss | inspection cost | admitted | ordering holds | median `B / U` | median `R / U` |
+|---|---|---|---|---|---|---|
+| 0.5 | 1000 | 25 (default) | 0.760 | 0.857 | -0.486 | 0.179 |
+| 0.5 | 1500 | 25 | 0.813 | 0.893 | -1.083 | 0.179 |
+| 0.5 | 800 | 25 | 0.540 | 0.737 | -0.251 | 0.179 |
+| 0.5 | 1000 | 50 | 0.327 | 0.517 | -0.486 | 0.016 |
+| 0.5 | 1000 | 10 | 0.897 | 0.940 | -0.486 | 0.289 |
+
+The inspection fee is the lever that decides whether the scripted reference clears
+its margin, because six tenants searching the same four listings pay for about twelve
+inspections between them; the lemon loss is the lever on how far sign-anything falls.
+Every exclusion is named per world (`failed_requirements`), and a world that fails is
+excluded, never edited.
+
+**Reproduce.** `pytest tests/test_housing_lemons.py -q` covers the world, the market,
+the policies, the gate, the plugin and the plan-to-receipt-to-replay path;
+`python -m aeread_families.housing.runner --world-kind lemons --tenant-policy
+inspect_then_sign --run-root runs/lemons_smoke` runs one scripted cell. A live tenant
+takes `--provider openrouter --route google_gemini_38_flash` or `--route xai_grok_47`.
+
+**Status.** Environment, endpoint, gate and scripted bracket are implemented and
+tested. No live result is claimed: the only live cells so far are a development probe
+from a local run root, recorded in the incident log (HL-O-01, HL-T-01), and any
+campaign on this world is a new identity with its own contract, pilot and profile.
+
 ## 6. Metrics
 
 | metric | definition |
