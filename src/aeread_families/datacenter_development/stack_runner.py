@@ -56,6 +56,7 @@ from .stack_environment import (
     AGREEMENT_TYPE_BY_KEY,
     CO_PROPOSER_BY_KEY,
     COUNTERPART_BY_KEY,
+    JV_PARTNER_CONDUCT,
     DataCenterStackPlugin,
     SCOPE_CONFIG,
     SCORER_ID,
@@ -172,7 +173,9 @@ JOINT_VENTURE_NOTE = (
     " Before the power agreement comes a joint venture: one utility feeder can serve "
     "your site and the adjacent developer's. The observation's jv_package gives the feeder's "
     "capacity and cost and each site's capacity; partner_announcement is what the adjacent "
-    "developer has stated it will fund, before you act. In jv_developer_offer return "
+    "developer has stated it will fund, before you act, and partner_record lists the feeders "
+    "it built earlier in this territory, what it announced then and what it funded. In "
+    "jv_developer_offer return "
     '{"decision": "offer", "share_bps": <basis points of feeder_cost_cents you will fund>, '
     '"message": <text>} or {"decision": "decline", "share_bps": null, "message": <text or null>}; '
     "the partner names its own share at the same time, the utility signs the feeder only "
@@ -197,7 +200,7 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     if scope_version == "v3":
         # The joint venture presupposes interface 3 (a decline exists).
         return (
-            "datacenter_v3_developer_prompt_v3.1",
+            "datacenter_v3_developer_prompt_v3.2",
             DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE,
         )
     if developer_interface(case_payload) >= 3:
@@ -1385,22 +1388,25 @@ class StackScriptedPartnerProvider:
             and item.get("share_bps") is not None
         ]
         last_developer_share = int(developer_offers[-1]["share_bps"]) if developer_offers else None
+        conduct = JV_PARTNER_CONDUCT.get(policy)
+        if conduct is None:
+            raise ProviderFailure("provider_contract", f"unknown partner policy {policy}", retryable=False)
         if phase.endswith("_offer"):
-            if policy == "pro_rata":
+            # What the partner does is its conduct, not its announcement: a
+            # bluffing partner funds pro rata, a posturing one covers the rest.
+            if conduct == "pro_rata":
                 share = own_share
-            elif policy == "conditional":
+            elif conduct == "conditional":
                 share = own_share if last_developer_share is None or last_developer_share >= developer_fair else 0
-            elif policy == "generous":
-                share = 10_000 if last_developer_share is None else max(own_share, 10_000 - last_developer_share)
             else:
-                raise ProviderFailure("provider_contract", f"unknown partner policy {policy}", retryable=False)
+                share = 10_000 if last_developer_share is None else max(own_share, 10_000 - last_developer_share)
             output = {"decision": "offer", "share_bps": share, "message": f"{policy} partner offers {share} bps."}
         elif phase.endswith("_commit"):
             latest = observation.get("latest_offer") or {}
             terms = latest.get("terms") or {}
             partner_share = int(terms.get("partner_share_bps", -1))
             accepted = observation["accepted_offer_id"]
-            if policy == "pro_rata" and partner_share > own_share:
+            if conduct == "pro_rata" and partner_share > own_share:
                 # Pro rata pays its capacity share and no more; a developer
                 # that funds more than its own share is not refused for it.
                 output = {"decision": "decline", "offer_id": accepted}

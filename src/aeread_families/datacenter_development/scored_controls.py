@@ -72,7 +72,7 @@ BUNDLES: dict[str, dict[str, Path]] = {
     # unless the partner covers the feeder.
     "datacenter_v3_jv_scored_controls_v1": {
         "scope": "v3",
-        "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in (1, 2, 3)],
+        "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in (1, 2, 3, 4, 5, 6)],
         "policies": tuple(DEVELOPER_POLICIES),
     },
 }
@@ -305,10 +305,16 @@ Four provider-free developer policies -- the scripted reference funding its
 capacity share of the shared feeder, walking away at the first offer, adopting
 every counter (which opens the joint venture at nothing and then takes whatever
 share the utility's counter assigns), and the free rider, which offers nothing
-toward the feeder in every round -- run through the real scheduler on the three
-curated joint-venture cases ({cases}), one per scripted partner type: pro-rata,
-conditional and generous. Every trajectory is finalised, verified and replayed
-offline.
+toward the feeder in every round -- run through the real scheduler on the six
+curated joint-venture cases ({cases}). The first three are the sincere stratum,
+one per partner type that does what it announced (pro-rata, conditional,
+generous), three joint-offer rounds. The last three are the credibility
+stratum, one joint-offer round each, where the partner's announcement can be
+untrue and its public record of earlier feeders is the only evidence: a
+bluffing partner that announces full coverage and funds pro rata, a generous
+partner whose record shows it kept its word, and a posturing partner that
+announces pro rata and covers the rest. Every trajectory is finalised, verified
+and replayed offline.
 
 - cases: {summary['case_count']}; trajectories: {summary['trajectory_count']}, all included, all replay-verified
 - the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} cases

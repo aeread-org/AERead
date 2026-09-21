@@ -25,6 +25,7 @@ from .contracts import (
     EpcAgreement,
     ExecutedAgreement,
     JvAgreement,
+    _basis_points,
     LandAgreement,
     LoanAgreement,
     PowerAgreement,
@@ -94,7 +95,20 @@ CO_PROPOSER_BY_KEY = {"jv": "partner"}
 #: capacity share and no more; ``conditional`` does the same only while the
 #: developer's last offer covered the developer's capacity share, otherwise
 #: offers nothing; ``generous`` covers whatever the developer left unfunded.
-JV_PARTNER_POLICIES = ("pro_rata", "conditional", "generous")
+#: The last two say one thing and do another: ``bluffing`` announces that it
+#: will cover whatever is left and funds its own share and no more;
+#: ``posturing`` announces its own share and no more, and covers whatever is
+#: left. A case may give the partner a public record of earlier feeders (what
+#: it announced, what it funded), which is the only evidence of its word.
+JV_PARTNER_POLICIES = ("pro_rata", "conditional", "generous", "bluffing", "posturing")
+#: What each partner type does at the joint offer, whatever it announced.
+JV_PARTNER_CONDUCT = {
+    "pro_rata": "pro_rata",
+    "conditional": "conditional",
+    "generous": "generous",
+    "bluffing": "pro_rata",
+    "posturing": "generous",
+}
 AGREEMENT_TYPE_BY_KEY = {
     **{key: key for key in ("land", "power", "epc", "service", "loan", "jv")},
     "land_amendment": "land",
@@ -611,7 +625,7 @@ def _partner_announcement(family_case: Mapping[str, Any]) -> dict[str, Any]:
     package = _jv_package(family_case)
     own = _capacity_share_bps(package, "partner")
     policy = family_case["scripted_partner"]["policy"]
-    if policy == "generous":
+    if policy in {"generous", "bluffing"}:
         return {
             "share_bps": 10_000,
             "statement": "We will fund whatever share of the feeder cost you leave unfunded, up to all of it.",
@@ -662,11 +676,21 @@ class DataCenterStackPlugin:
             payload_fields.add("scripted_partner")
         _exact(data, payload_fields, "payload")
         if self.joint_venture:
-            partner = _exact(data["scripted_partner"], {"policy"}, "scripted_partner")
+            partner_fields = {"policy"}
+            if "record" in data["scripted_partner"]:
+                partner_fields.add("record")
+            partner = _exact(data["scripted_partner"], partner_fields, "scripted_partner")
             if partner["policy"] not in JV_PARTNER_POLICIES:
                 raise ValueError(
                     f"scripted_partner.policy must be one of {JV_PARTNER_POLICIES}"
                 )
+            record = partner.get("record", [])
+            if not isinstance(record, list):
+                raise ValueError("scripted_partner.record must be an array")
+            for index, entry in enumerate(record):
+                entry = _exact(entry, {"announced_share_bps", "funded_share_bps"}, f"scripted_partner.record[{index}]")
+                for field in ("announced_share_bps", "funded_share_bps"):
+                    _basis_points(entry[field], f"scripted_partner.record[{index}].{field}")
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
@@ -936,6 +960,9 @@ class DataCenterStackPlugin:
                 # developer works out what a fair share is from the capacities.
                 observation["jv_package"] = _plain(_jv_package(family_case))
                 observation["partner_announcement"] = _partner_announcement(family_case)
+                # Earlier feeders the partner built in this territory, on the
+                # public record: what it said it would fund and what it did.
+                observation["partner_record"] = _plain(family_case["scripted_partner"].get("record", []))
         elif key in CO_PROPOSER_BY_KEY and seat == CO_PROPOSER_BY_KEY[key]:
             package = _jv_package(family_case)
             observation.update(

@@ -132,8 +132,9 @@ navigation index does not change the control or any sealed artifact. See the
   sealed in; one route, descriptive admission rate 0.25 (95% 0.15-0.35), no
   winner, ranking, or causal claim;
 - [datacenter_v3_jv_scored_controls_v1](datacenter_development/datacenter_v3_jv_scored_controls_v1/): the V3 shared-feeder
-  joint venture's provider-free controls on three curated cases, one per
-  scripted partner type, the partner's position stated before anyone offers:
+  joint venture's provider-free controls on six curated cases: three sincere
+  partner types and three whose announcement can be untrue, judged only by a
+  public record of earlier feeders, the position stated before anyone offers:
   the fair-share reference is admitted everywhere; the free rider beats it by
   18,000 cents where the partner covers the whole feeder and trails it by the
   30,000-cent solo interconnection premium otherwise; regenerated, never edited;
