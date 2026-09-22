@@ -57,7 +57,7 @@ from aeread.shared_runner.task.execution import (
 )
 from aeread_families.procurement_grounding import OpenRouterRoute
 
-from .relationship_case_matrix import CASE_PATHS
+from .relationship_case_matrix import CASE_PATHS, pack_case_paths
 from .runner import (
     RELATIONSHIP_PROMPT,
     build_openrouter_setup,
@@ -303,6 +303,13 @@ def route_from_record(record: Mapping[str, Any]) -> OpenRouterRoute:
         reasoning_effort=record["reasoning_effort"],
         temperature_supported=bool(record["temperature_supported"]),
     )
+
+
+def pack_paths(name: str) -> tuple[Path, ...]:
+    """The worlds of a committed pack: the curated six, or a generated pack by manifest order."""
+    if name == "relationship_v1":
+        return tuple(CASE_PATHS)
+    return pack_case_paths(name)
 
 
 def write_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -1110,6 +1117,7 @@ __all__ = [
     "compare",
     "episode_case",
     "execute",
+    "pack_paths",
     "prepare",
     "public_trace",
     "publish",

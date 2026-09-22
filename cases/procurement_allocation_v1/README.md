@@ -545,3 +545,16 @@ Regenerate, or print the three references per world, with:
 python -m aeread_families.procurement_allocation.relationship_case_matrix --write
 python -m aeread_families.procurement_allocation.relationship_case_matrix --screen
 ```
+
+`relationship_dev_v2/` and `relationship_holdout_v1/` are generated packs on the
+same six strata: seed `s` in a pack's domain is offered to stratum `(s − start)
+mod 6`, its numbers are drawn from declared ranges by a generator seeded with `s`,
+and it is admitted only when the screen admits it; every world declares binomial
+sample noise so a campaign seed reaches the buyer's evidence. The two seed domains
+are disjoint and `pack.json` in each directory records the rule, every refusal
+and the public-observation policies' outcome per world. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.relationship_case_matrix --pack relationship_dev_v2 --write
+python -m aeread_families.procurement_allocation.relationship_case_matrix --pack relationship_holdout_v1 --write
+```

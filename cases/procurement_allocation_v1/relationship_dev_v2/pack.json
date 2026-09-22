@@ -1,0 +1,630 @@
+{
+  "schema_version": "aeread.procurement_relationship_pack/0.1",
+  "pack": "relationship_dev_v2",
+  "generator_id": "procurement_allocation_relationship_pack_v1",
+  "generator_version": "1.0.0",
+  "split": "dev",
+  "seed_domain": {
+    "start": 2420000,
+    "scan_limit": 60
+  },
+  "selection_rule": "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the stratum's declared ranges by a generator seeded with s; the world is admitted when classify_relationship_world admits it at 0.05 and the stratum is not yet full at 2; every world declares binomial sample noise",
+  "minimum_relative_margin": 0.05,
+  "per_stratum": 2,
+  "seeds_scanned": 36,
+  "admitted": 12,
+  "complete": true,
+  "admission_rate": 0.6667,
+  "worlds": [
+    {
+      "slug": "loyalty_investment_2420000",
+      "stratum": "loyalty_investment",
+      "world_seed": 2420000,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.loyalty_investment_2420000",
+      "content_sha256": "b722706f488886f0ef0b3f1b56873c76f18ef35660b7faf6dbd0121814a72121",
+      "upper_bound_usd": 403.34887384,
+      "myopic_usd": 382.93678764,
+      "loyal_usd": 382.93678764,
+      "shopping_usd": 380.47824075,
+      "headroom_over_myopic": 0.050607,
+      "headroom_over_loyal": 0.050607,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 403.34887384,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 240.65839784,
+          "contribution_margin_usd": 162.690476,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 240.65839784,
+          "contribution_margin_usd": 162.690476,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 240.65839784,
+          "contribution_margin_usd": 162.690476,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "loyalty_investment_2420006",
+      "stratum": "loyalty_investment",
+      "world_seed": 2420006,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.loyalty_investment_2420006",
+      "content_sha256": "e8a8203f49d77c0be901098f6d3cb1d0bda6602a5b5b6ad2ef258a833b884a03",
+      "upper_bound_usd": 403.90486295,
+      "myopic_usd": 382.72552136,
+      "loyal_usd": 382.72552136,
+      "shopping_usd": 380.41422877,
+      "headroom_over_myopic": 0.052436,
+      "headroom_over_loyal": 0.052436,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 403.90486295,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 242.24431963,
+          "contribution_margin_usd": 161.66054332,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 242.24431963,
+          "contribution_margin_usd": 161.66054332,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 242.24431963,
+          "contribution_margin_usd": 161.66054332,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "qualification_investment_2420001",
+      "stratum": "qualification_investment",
+      "world_seed": 2420001,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.qualification_investment_2420001",
+      "content_sha256": "25c327e1c3b52a16b978b020ddc2f2ca13364dc6bacab20fe432398dd40f4b2f",
+      "upper_bound_usd": 399.72541994,
+      "myopic_usd": 373.90710988,
+      "loyal_usd": 373.90710988,
+      "shopping_usd": 371.32151742,
+      "headroom_over_myopic": 0.06459,
+      "headroom_over_loyal": 0.06459,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 399.72541994,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 166.23502034,
+          "contribution_margin_usd": 233.4903996,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 166.23502034,
+          "contribution_margin_usd": 233.4903996,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 166.23502034,
+          "contribution_margin_usd": 233.4903996,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "qualification_investment_2420007",
+      "stratum": "qualification_investment",
+      "world_seed": 2420007,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.qualification_investment_2420007",
+      "content_sha256": "5ad86715f61bb5dd83f58df4e7bd1ad1c43cd600abbf1c72428baff4b7306b54",
+      "upper_bound_usd": 406.51693305,
+      "myopic_usd": 381.51269636,
+      "loyal_usd": 381.51269636,
+      "shopping_usd": 379.04471873,
+      "headroom_over_myopic": 0.061508,
+      "headroom_over_loyal": 0.061508,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 406.51693305,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 164.69472122,
+          "contribution_margin_usd": 241.82221183,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 164.69472122,
+          "contribution_margin_usd": 241.82221183,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 164.69472122,
+          "contribution_margin_usd": 241.82221183,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "demand_ramp_2420002",
+      "stratum": "demand_ramp",
+      "world_seed": 2420002,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.demand_ramp_2420002",
+      "content_sha256": "a1675fc4d3f366b96fcac1088bfa2787bf74140553264d7ab4e1cff3b43f3a2b",
+      "upper_bound_usd": 417.96403944,
+      "myopic_usd": 388.88129469,
+      "loyal_usd": 84.75819938,
+      "shopping_usd": 385.54247336,
+      "headroom_over_myopic": 0.069582,
+      "headroom_over_loyal": 0.797212,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 417.96403944,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 154.73332107,
+          "contribution_margin_usd": 263.23071837,
+          "periods_awarded": 4,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 154.73332107,
+          "contribution_margin_usd": 263.23071837,
+          "periods_awarded": 4,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 154.73332107,
+          "contribution_margin_usd": 263.23071837,
+          "periods_awarded": 4,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "demand_ramp_2420014",
+      "stratum": "demand_ramp",
+      "world_seed": 2420014,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.demand_ramp_2420014",
+      "content_sha256": "70ad37d9e363bc4a4a023d248e223bab230e71fd9a1c4684b96c54dbac16e67c",
+      "upper_bound_usd": 431.70644134,
+      "myopic_usd": 397.36759439,
+      "loyal_usd": 85.1787758,
+      "shopping_usd": 394.55610754,
+      "headroom_over_myopic": 0.079542,
+      "headroom_over_loyal": 0.802693,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 431.70644134,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 154.5667808,
+          "contribution_margin_usd": 277.13966054,
+          "periods_awarded": 4,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 154.5667808,
+          "contribution_margin_usd": 277.13966054,
+          "periods_awarded": 4,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 154.5667808,
+          "contribution_margin_usd": 277.13966054,
+          "periods_awarded": 4,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "incumbent_capacity_2420003",
+      "stratum": "incumbent_capacity",
+      "world_seed": 2420003,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.incumbent_capacity_2420003",
+      "content_sha256": "b95e76595f5c968502275df2a438fbba4c8adc31e779c5123fd0ae3ef7d84520",
+      "upper_bound_usd": 412.8691158,
+      "myopic_usd": 385.85539232,
+      "loyal_usd": 385.85539232,
+      "shopping_usd": 383.55056653,
+      "headroom_over_myopic": 0.065429,
+      "headroom_over_loyal": 0.065429,
+      "optimum_switches": 1,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 412.8691158,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 229.15518951,
+          "contribution_margin_usd": 183.71392629,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 229.15518951,
+          "contribution_margin_usd": 183.71392629,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 229.15518951,
+          "contribution_margin_usd": 183.71392629,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "incumbent_capacity_2420009",
+      "stratum": "incumbent_capacity",
+      "world_seed": 2420009,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.incumbent_capacity_2420009",
+      "content_sha256": "3ebfd3789da165772b18a73d557cf6038cdb318af7fe085014edcf462e8aedcd",
+      "upper_bound_usd": 402.5560953,
+      "myopic_usd": 379.39220876,
+      "loyal_usd": 379.39220876,
+      "shopping_usd": 377.08307177,
+      "headroom_over_myopic": 0.057542,
+      "headroom_over_loyal": 0.057542,
+      "optimum_switches": 1,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 402.5560953,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 228.94934271,
+          "contribution_margin_usd": 173.60675259,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 228.94934271,
+          "contribution_margin_usd": 173.60675259,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 228.94934271,
+          "contribution_margin_usd": 173.60675259,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "retaliation_trap_2420004",
+      "stratum": "retaliation_trap",
+      "world_seed": 2420004,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.retaliation_trap_2420004",
+      "content_sha256": "6f7a95c29667570c2c996f3e27766a29aacc12aaf52e41dcf2e23a002984bfc6",
+      "upper_bound_usd": 437.7266982,
+      "myopic_usd": 407.52833373,
+      "loyal_usd": 407.52833373,
+      "shopping_usd": 404.85105118,
+      "headroom_over_myopic": 0.068989,
+      "headroom_over_loyal": 0.068989,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 437.7266982,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 440.9266982,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 440.9266982,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 440.9266982,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "retaliation_trap_2420016",
+      "stratum": "retaliation_trap",
+      "world_seed": 2420016,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.retaliation_trap_2420016",
+      "content_sha256": "f36c0c39f123ca43cfe2aab0da902478179ccc3a37af6e258d9984d10d0ec2de",
+      "upper_bound_usd": 415.78176603,
+      "myopic_usd": 387.32385122,
+      "loyal_usd": 387.32385122,
+      "shopping_usd": 384.36933464,
+      "headroom_over_myopic": 0.068444,
+      "headroom_over_loyal": 0.068444,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 415.78176603,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 418.98176603,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 418.98176603,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 418.98176603,
+          "contribution_margin_usd": -3.2,
+          "periods_awarded": 0,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "unreliable_incumbent_2420005",
+      "stratum": "unreliable_incumbent",
+      "world_seed": 2420005,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.unreliable_incumbent_2420005",
+      "content_sha256": "3f191310708d6695a48892878b9ab2559478688246f199fd3646e27c13cdf976",
+      "upper_bound_usd": 420.52654882,
+      "myopic_usd": 395.93828,
+      "loyal_usd": 395.93828,
+      "shopping_usd": 393.44147124,
+      "headroom_over_myopic": 0.05847,
+      "headroom_over_loyal": 0.05847,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 420.52654882,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 211.18015877,
+          "contribution_margin_usd": 209.34639005,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 211.18015877,
+          "contribution_margin_usd": 209.34639005,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 220.80546085,
+          "contribution_margin_usd": 199.72108797,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    },
+    {
+      "slug": "unreliable_incumbent_2420035",
+      "stratum": "unreliable_incumbent",
+      "world_seed": 2420035,
+      "case_id": "procurement_allocation_v1.relationship_dev_v2.unreliable_incumbent_2420035",
+      "content_sha256": "fd1919e5740202ded40aea0d9f680f48e6d891c61c13aa117760d54695e03044",
+      "upper_bound_usd": 411.33633769,
+      "myopic_usd": 388.78681617,
+      "loyal_usd": 388.78681617,
+      "shopping_usd": 386.37380629,
+      "headroom_over_myopic": 0.05482,
+      "headroom_over_loyal": 0.05482,
+      "optimum_switches": 0,
+      "public_policies": {
+        "defer": {
+          "regret_to_upper_bound_usd": 411.33633769,
+          "contribution_margin_usd": 0.0,
+          "periods_awarded": 0,
+          "switches": 0
+        },
+        "displayed_price_greedy": {
+          "regret_to_upper_bound_usd": 210.35825219,
+          "contribution_margin_usd": 200.9780855,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "listing_claim_fit": {
+          "regret_to_upper_bound_usd": 210.35825219,
+          "contribution_margin_usd": 200.9780855,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "semantic_hint": {
+          "regret_to_upper_bound_usd": 221.41496075,
+          "contribution_margin_usd": 189.92137694,
+          "periods_awarded": 3,
+          "switches": 0
+        }
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "world_seed": 2420008,
+      "stratum": "demand_ramp",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420010,
+      "stratum": "retaliation_trap",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420011,
+      "stratum": "unreliable_incumbent",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420012,
+      "stratum": "loyalty_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420013,
+      "stratum": "qualification_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420015,
+      "stratum": "incumbent_capacity",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420017,
+      "stratum": "unreliable_incumbent",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420018,
+      "stratum": "loyalty_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420019,
+      "stratum": "qualification_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420020,
+      "stratum": "demand_ramp",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420021,
+      "stratum": "incumbent_capacity",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420022,
+      "stratum": "retaliation_trap",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420023,
+      "stratum": "unreliable_incumbent",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420024,
+      "stratum": "loyalty_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420025,
+      "stratum": "qualification_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420026,
+      "stratum": "demand_ramp",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420027,
+      "stratum": "incumbent_capacity",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420028,
+      "stratum": "retaliation_trap",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420029,
+      "stratum": "unreliable_incumbent",
+      "verdict": "reject: trivial (myopic)"
+    },
+    {
+      "world_seed": 2420030,
+      "stratum": "loyalty_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420031,
+      "stratum": "qualification_investment",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420032,
+      "stratum": "demand_ramp",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420033,
+      "stratum": "incumbent_capacity",
+      "verdict": "stratum full"
+    },
+    {
+      "world_seed": 2420034,
+      "stratum": "retaliation_trap",
+      "verdict": "stratum full"
+    }
+  ],
+  "public_policies": [
+    "defer",
+    "displayed_price_greedy",
+    "listing_claim_fit",
+    "semantic_hint"
+  ],
+  "claim_scope": "synthetic worlds selected by rule; the references are full-information solvers, not a model",
+  "manifest_sha256": "e6283b39d2839ee2dee6cf5b9fa576c50662bd4806a1e21dea8f57c6cf14866f"
+}

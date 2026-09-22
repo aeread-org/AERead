@@ -21,17 +21,19 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import os
+import random
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 
 from .case_matrix import REQUIRED_VARIANTS, _supplier
 from .environment import ProcurementAllocationPlugin
-from .headroom_screen import ADMIT, classify_relationship_world
+from .headroom_screen import ADMIT, classify_relationship_world, replay_baseline_outcome
 from .relationship import (
     period_schedule,
     solve_loyal_reference,
@@ -41,11 +43,28 @@ from .relationship import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CASE_ROOT = REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "relationship_v1"
+CASES_ROOT = REPOSITORY_ROOT / "cases" / "procurement_allocation_v1"
+CASE_ROOT = CASES_ROOT / "relationship_v1"
 GENERATOR_ID = "procurement_allocation_relationship_case_matrix_v1"
 GENERATOR_VERSION = "1.0.0"
 PERIODS = 4
 MAX_ACTIONS = 10
+
+#: Generated packs: the stratum parameters are sampled from declared ranges
+#: by a generator seeded with the world seed, every world declares noisy
+#: verification so a campaign seed reaches the evidence the buyer reads, and a
+#: world enters a pack only when the screen admits it. The two domains are
+#: disjoint so a holdout is never a development world under another seed.
+PACK_GENERATOR_ID = "procurement_allocation_relationship_pack_v1"
+PACK_GENERATOR_VERSION = "1.0.0"
+PACK_SCHEMA = "aeread.procurement_relationship_pack/0.1"
+PACKS: dict[str, dict[str, Any]] = {
+    "relationship_dev_v2": {"seed_start": 2420000, "per_stratum": 2, "scan_limit": 60, "split": "dev"},
+    "relationship_holdout_v1": {"seed_start": 2430000, "per_stratum": 2, "scan_limit": 60, "split": "holdout"},
+}
+#: The public-observation policies whose per-world outcome every pack manifest
+#: publishes, the Gate 1 baseline facts a live control is read against.
+PACK_POLICIES = ("defer", "displayed_price_greedy", "listing_claim_fit", "semantic_hint")
 
 #: The intertemporal structure must be worth this fraction of the T-period
 #: optimum against both references. Same materiality as the Gate 1 screen.
@@ -308,7 +327,15 @@ def _definitions() -> tuple[dict[str, Any], ...]:
     )
 
 
-def _build_case(definition: Mapping[str, Any], *, screen: bool = True) -> dict[str, Any]:
+def _build_case(
+    definition: Mapping[str, Any],
+    *,
+    screen: bool = True,
+    pack: str = "relationship_v1",
+    split: str = "dev",
+    generator: tuple[str, str] = (GENERATOR_ID, GENERATOR_VERSION),
+    sample_noise: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     knobs = definition["objective"]
     periods: dict[str, Any] = {
         "count": PERIODS,
@@ -316,12 +343,24 @@ def _build_case(definition: Mapping[str, Any], *, screen: bool = True) -> dict[s
     }
     if definition.get("overrides"):
         periods["overrides"] = copy.deepcopy(definition["overrides"])
+    interaction: dict[str, Any] = {
+        "max_actions": MAX_ACTIONS,
+        "inquiry_days": 1,
+        "quote_days": 1,
+        "counter_days": 1,
+        "inquiry_cost_usd": 0.05,
+        "quote_cost_usd": 0.1,
+        "counter_cost_usd": 0.15,
+        "periods": periods,
+    }
+    if sample_noise is not None:
+        interaction["sample_noise"] = dict(sample_noise)
     raw: dict[str, Any] = {
         "spec_version": CaseManifest.SPEC_VERSION,
-        "case_id": f"procurement_allocation_v1.relationship_v1.{definition['slug']}",
+        "case_id": f"procurement_allocation_v1.{pack}.{definition['slug']}",
         "family_id": "procurement_allocation_v1",
         "family_version": "1.0.0",
-        "split": "dev",
+        "split": split,
         "world_seed": definition["world_seed"],
         "seats": [{"id": "buyer", "role": "buyer"}],
         "episode": {
@@ -349,16 +388,7 @@ def _build_case(definition: Mapping[str, Any], *, screen: bool = True) -> dict[s
                 "defer_value_usd": knobs.get("defer", 0.0),
                 "bom": definition["bom"],
             },
-            "interaction": {
-                "max_actions": MAX_ACTIONS,
-                "inquiry_days": 1,
-                "quote_days": 1,
-                "counter_days": 1,
-                "inquiry_cost_usd": 0.05,
-                "quote_cost_usd": 0.1,
-                "counter_cost_usd": 0.15,
-                "periods": periods,
-            },
+            "interaction": interaction,
             "policy": {
                 "required_variant_by_component": {
                     component: REQUIRED_VARIANTS[component]
@@ -381,9 +411,9 @@ def _build_case(definition: Mapping[str, Any], *, screen: bool = True) -> dict[s
             "suppliers": copy.deepcopy(definition["suppliers"]),
         },
         "provenance": {
-            "generator_id": GENERATOR_ID,
-            "generator_version": GENERATOR_VERSION,
-            "review_status": "curated",
+            "generator_id": generator[0],
+            "generator_version": generator[1],
+            "review_status": "curated" if generator[0] == GENERATOR_ID else "generated",
         },
         "content_sha256": "0" * 64,
     }
@@ -456,6 +486,280 @@ def write_case_matrix(root: Path | str = CASE_ROOT) -> tuple[Path, ...]:
     return tuple(written)
 
 
+
+# --------------------------------------------------------------------------
+# Generated packs: sampled strata, admitted by the screen over a seed stream
+# --------------------------------------------------------------------------
+
+
+def _sample_definition(stratum: str, seed: int) -> dict[str, Any]:
+    """One world of ``stratum`` with its numbers drawn from declared ranges.
+
+    The draws are a pure function of the world seed. Ranges sit around the
+    hand-tuned values of the six curated worlds and are wide enough that the
+    screen refuses a fair share of draws: that refusal rate is published in
+    the pack manifest, so a pack is a selection by rule and not by hand.
+    """
+    draw = random.Random(f"{PACK_GENERATOR_ID}:{stratum}:{seed}")
+    uniform = lambda low, high, places=4: round(draw.uniform(low, high), places)  # noqa: E731
+    bom = {"esp32_s3_n8r8": 1, "ssd1306_oled_096": 1}
+    objective = {"revenue": 10.0, "penalty": 3.0, "budget": 150.0, "deadline": 14}
+    definition: dict[str, Any] = {
+        "slug": f"{stratum}_{seed}",
+        "stratum": stratum,
+        "world_seed": seed,
+        "product_id": f"display_controller_{stratum}_{seed}",
+        "bom": bom,
+        "objective": objective,
+    }
+    if stratum in ("loyalty_investment", "retaliation_trap"):
+        spot = uniform(3.05, 3.35)
+        per_award = uniform(0.06, 0.10)
+        retaliation = uniform(0.10, 0.20) if stratum == "retaliation_trap" else uniform(0.04, 0.10)
+        controllers = [
+            _related("esp32_s3_n8r8", "spot", unit_price=spot, programme=_programme(retaliation=retaliation)),
+            _related(
+                "esp32_s3_n8r8",
+                "partner",
+                unit_price=round(spot * (1 + uniform(0.015, 0.04)), 4),
+                programme=_programme(per_award=per_award, cap=round(3 * per_award, 4), retaliation=retaliation),
+            ),
+        ]
+        if stratum == "loyalty_investment":
+            displays = _plain_pair("ssd1306_oled_096", price=uniform(1.15, 1.35))
+        else:
+            north = uniform(1.18, 1.32)
+            markup = uniform(0.10, 0.20)
+            displays = [
+                _related("ssd1306_oled_096", "north", unit_price=north, programme=_programme(per_award=0.02, cap=0.06, retaliation=markup)),
+                _related(
+                    "ssd1306_oled_096",
+                    "south",
+                    unit_price=round(north - uniform(0.005, 0.02), 4),
+                    lead_time=8,
+                    programme=_programme(per_award=0.02, cap=0.06, retaliation=markup),
+                ),
+            ]
+        definition["suppliers"] = [*controllers, *displays]
+    elif stratum in ("qualification_investment", "unreliable_incumbent"):
+        known = uniform(1.30, 1.45)
+        displays = [
+            _related("ssd1306_oled_096", "known", unit_price=known),
+            _related(
+                "ssd1306_oled_096",
+                "unproven",
+                unit_price=round(known * uniform(0.66, 0.75), 4),
+                sample_cost=uniform(8.0, 11.0, 2),
+                sample_days=draw.choice((2, 3, 4)),
+            ),
+        ]
+        if stratum == "qualification_investment":
+            controllers = _plain_pair("esp32_s3_n8r8", price=uniform(3.10, 3.30))
+        else:
+            reliable = uniform(3.15, 3.35)
+            controllers = [
+                _related(
+                    "esp32_s3_n8r8",
+                    "flaky",
+                    unit_price=round(reliable - uniform(0.20, 0.35), 4),
+                    on_time=uniform(0.80, 0.90, 3),
+                    yield_rate=0.97,
+                    programme=_programme(per_award=0.04, cap=0.12),
+                    verbal_bias={"on_time_probability": 0.98, "lead_time_days": 6},
+                ),
+                _related("esp32_s3_n8r8", "reliable", unit_price=reliable, programme=_programme(per_award=0.04, cap=0.12)),
+            ]
+        definition["suppliers"] = [*controllers, *displays]
+    elif stratum == "demand_ramp":
+        definition["objective"] = {**objective, "budget": 250.0}
+        definition["overrides"] = [
+            {"target_kits": 10, "minimum_service_kits": 8},
+            {"target_kits": 10, "minimum_service_kits": 8},
+            {"target_kits": 30, "minimum_service_kits": 24},
+            {"target_kits": 30, "minimum_service_kits": 24},
+        ]
+        small = uniform(2.95, 3.15)
+        per_award = uniform(0.06, 0.10)
+        definition["suppliers"] = [
+            _related("esp32_s3_n8r8", "small", unit_price=small, capacity=10, moq=10, order_step=10),
+            _related(
+                "esp32_s3_n8r8",
+                "scale",
+                unit_price=round(small + uniform(0.15, 0.35), 4),
+                capacity=30,
+                moq=10,
+                order_step=10,
+                programme=_programme(per_award=per_award, cap=round(3 * per_award, 4)),
+            ),
+            _related("ssd1306_oled_096", "steady", unit_price=uniform(1.15, 1.35), capacity=30),
+            _related("ssd1306_oled_096", "slow", unit_price=uniform(1.35, 1.50), capacity=30, lead_time=11, on_time=0.96),
+        ]
+    elif stratum == "incumbent_capacity":
+        steady = uniform(3.20, 3.40)
+        per_award = uniform(0.06, 0.10)
+        definition["suppliers"] = [
+            _related(
+                "esp32_s3_n8r8",
+                "flex",
+                unit_price=round(steady + uniform(-0.05, 0.05), 4),
+                capacity=10,
+                moq=10,
+                order_step=10,
+                programme=_programme(per_award=per_award, cap=round(3 * per_award, 4), bonus=10),
+            ),
+            _related("esp32_s3_n8r8", "steady", unit_price=steady),
+            *_plain_pair("ssd1306_oled_096", price=uniform(1.15, 1.35)),
+        ]
+    else:
+        raise ValueError(f"unknown stratum: {stratum}")
+    return definition
+
+
+def _policy_outcomes(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """The public-observation policies' outcomes on one world, per policy."""
+    outcomes: dict[str, Any] = {}
+    for policy in PACK_POLICIES:
+        outcome = replay_baseline_outcome(payload, policy)
+        outcomes[policy] = (
+            None
+            if outcome is None
+            else {
+                "regret_to_upper_bound_usd": outcome["regret_to_upper_bound_usd"],
+                "contribution_margin_usd": outcome["contribution_margin_usd"],
+                "periods_awarded": outcome["periods_awarded"],
+                "switches": outcome["switches"],
+            }
+        )
+    return outcomes
+
+
+def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Walk the pack's seed stream and admit worlds by the screen.
+
+    Seed ``s`` in the stream is offered to stratum ``s - seed_start mod 6``;
+    a draw the screen refuses is recorded with its verdict and the stream
+    moves on. The walk stops when every stratum holds ``per_stratum``
+    admitted worlds or ``scan_limit`` seeds have been scanned, in which case
+    the pack is short and says so.
+    """
+    spec = dict(spec or PACKS[name])
+    seed_start = int(spec["seed_start"])
+    per_stratum = int(spec["per_stratum"])
+    scan_limit = int(spec["scan_limit"])
+    admitted: dict[str, list[dict[str, Any]]] = {stratum: [] for stratum in CASE_SLUGS}
+    excluded: list[dict[str, Any]] = []
+    cases: list[dict[str, Any]] = []
+    scanned = 0
+    for offset in range(scan_limit):
+        if all(len(rows) >= per_stratum for rows in admitted.values()):
+            break
+        seed = seed_start + offset
+        stratum = CASE_SLUGS[offset % len(CASE_SLUGS)]
+        scanned += 1
+        if len(admitted[stratum]) >= per_stratum:
+            excluded.append({"world_seed": seed, "stratum": stratum, "verdict": "stratum full"})
+            continue
+        definition = _sample_definition(stratum, seed)
+        try:
+            raw = _build_case(
+                definition,
+                screen=False,
+                pack=name,
+                split=str(spec["split"]),
+                generator=(PACK_GENERATOR_ID, PACK_GENERATOR_VERSION),
+                sample_noise={"model": "binomial", "seed": seed + 500_000},
+            )
+        except ValueError as error:
+            excluded.append({"world_seed": seed, "stratum": stratum, "verdict": f"invalid: {error}"[:200]})
+            continue
+        verdict = screen_world(raw["payload"])
+        if verdict["verdict"] != ADMIT:
+            excluded.append({"world_seed": seed, "stratum": stratum, "verdict": verdict["verdict"]})
+            continue
+        row = {
+            "slug": definition["slug"],
+            "stratum": stratum,
+            "world_seed": seed,
+            "case_id": raw["case_id"],
+            "content_sha256": raw["content_sha256"],
+            "upper_bound_usd": verdict["upper_bound_usd"],
+            "myopic_usd": verdict["myopic_usd"],
+            "loyal_usd": verdict["loyal_usd"],
+            "shopping_usd": verdict["shopping_usd"],
+            "headroom_over_myopic": round(
+                (verdict["upper_bound_usd"] - verdict["myopic_usd"]) / verdict["upper_bound_usd"], 6
+            ),
+            "headroom_over_loyal": round(
+                (verdict["upper_bound_usd"] - verdict["loyal_usd"]) / verdict["upper_bound_usd"], 6
+            ),
+            "optimum_switches": verdict["optimum_switches"],
+            "public_policies": _policy_outcomes(raw["payload"]),
+        }
+        admitted[stratum].append(row)
+        cases.append(raw)
+    manifest = {
+        "schema_version": PACK_SCHEMA,
+        "pack": name,
+        "generator_id": PACK_GENERATOR_ID,
+        "generator_version": PACK_GENERATOR_VERSION,
+        "split": spec["split"],
+        "seed_domain": {"start": seed_start, "scan_limit": scan_limit},
+        "selection_rule": (
+            "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the "
+            "stratum's declared ranges by a generator seeded with s; the world is admitted when "
+            f"classify_relationship_world admits it at {MINIMUM_RELATIVE_MARGIN} and the stratum "
+            f"is not yet full at {per_stratum}; every world declares binomial sample noise"
+        ),
+        "minimum_relative_margin": MINIMUM_RELATIVE_MARGIN,
+        "per_stratum": per_stratum,
+        "seeds_scanned": scanned,
+        "admitted": sum(len(rows) for rows in admitted.values()),
+        "complete": all(len(rows) >= per_stratum for rows in admitted.values()),
+        "admission_rate": round(
+            sum(len(rows) for rows in admitted.values())
+            / max(1, sum(1 for row in excluded if row["verdict"] != "stratum full") + sum(len(rows) for rows in admitted.values())),
+            4,
+        ),
+        "worlds": [row for stratum in CASE_SLUGS for row in admitted[stratum]],
+        "excluded": excluded,
+        "public_policies": list(PACK_POLICIES),
+        "claim_scope": "synthetic worlds selected by rule; the references are full-information solvers, not a model",
+    }
+    manifest["manifest_sha256"] = hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {"manifest": manifest, "cases": cases}
+
+
+def pack_root(name: str) -> Path:
+    return CASES_ROOT / name
+
+
+def pack_case_paths(name: str) -> tuple[Path, ...]:
+    """The committed worlds of a pack, in manifest order."""
+    manifest = json.loads((pack_root(name) / "pack.json").read_text(encoding="utf-8"))
+    return tuple(pack_root(name) / f"{row['slug']}.json" for row in manifest["worlds"])
+
+
+def write_pack(name: str, *, root: Path | str | None = None) -> tuple[Path, ...]:
+    built = build_pack(name)
+    destination = Path(root) if root is not None else pack_root(name)
+    destination.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for case in built["cases"]:
+        path = destination / f"{case['case_id'].rsplit('.', 1)[-1]}.json"
+        temporary = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(case, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+        written.append(path)
+    manifest_path = destination / "pack.json"
+    temporary = manifest_path.with_suffix(f".json.{os.getpid()}.tmp")
+    temporary.write_text(json.dumps(built["manifest"], indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, manifest_path)
+    written.append(manifest_path)
+    return tuple(written)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
@@ -464,7 +768,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="print the three references and the verdict for every definition",
     )
+    parser.add_argument(
+        "--pack",
+        choices=sorted(PACKS),
+        default=None,
+        help="build a generated pack (sampled strata, noisy verification, admitted by rule) instead of the curated six",
+    )
     arguments = parser.parse_args(argv)
+    if arguments.pack:
+        if arguments.write:
+            for path in write_pack(arguments.pack):
+                print(path)
+        else:
+            built = build_pack(arguments.pack)
+            print(json.dumps({k: v for k, v in built["manifest"].items() if k != "worlds"}, indent=2))
+            for row in built["manifest"]["worlds"]:
+                print(row["slug"], row["headroom_over_myopic"], row["headroom_over_loyal"])
+        return 0
     if arguments.screen:
         # Unscreened on purpose: this is how a retune sees what it did.
         for definition in _definitions():
@@ -489,8 +809,15 @@ __all__ = [
     "CASE_SLUGS",
     "GENERATOR_ID",
     "MINIMUM_RELATIVE_MARGIN",
+    "PACKS",
+    "PACK_GENERATOR_ID",
+    "PACK_POLICIES",
     "PERIODS",
     "build_case_matrix",
+    "build_pack",
+    "pack_case_paths",
+    "pack_root",
     "screen_world",
     "write_case_matrix",
+    "write_pack",
 ]

@@ -289,9 +289,15 @@ admitted them (optimum beats myopic and loyal by 5% of the bound). Seeds bind
 the inference seed and the world's `delivery_seed`; on these worlds
 verification is perfect, so the seed never reaches the first prompt and the
 seeds of a world are repeats on a deterministic route, exactly the §7 rule
-(incident P-D-01). No holdout exists; no seed domain is bound. Measured headroom
-against the live control is what the two campaigns below record, not what
-admitted the worlds.
+(incident P-D-01). Two generated packs replace that for the next campaigns:
+`relationship_dev_v2` (seed domain 2420000+, 36 scanned, 12 admitted, 67%) and
+`relationship_holdout_v1` (2430000+, 42 scanned, 12 admitted, 52%), selected by
+the rule their `pack.json` states, every refusal recorded with its verdict, every
+world declaring binomial sample noise so campaign seeds are replicates, and each
+manifest carrying the four public-observation policies' outcome per world. The
+domains are disjoint; the holdout has not been read by any live cell. Measured
+headroom against the live control is what the two campaigns below record, not
+what admitted the worlds.
 
 | Campaign | Route | Cells | Cost | Mean regret (95% world bootstrap) | vs myopic | Status |
 |---|---|---:|---:|---|---|---|
@@ -303,10 +309,10 @@ Paired on identical worlds and seeds, Gemini's regret is 73.20 below GLM's
 spent GLM identities (v1, v2) are recorded in the incident log (P-O-01, P-O-02)
 and never resumed.
 
-**Gate status for this construct.** Gate 1 `partial`: valid, distinct,
-digest-stable worlds with certified bounds, but authored rather than
-rule-selected, seed-degenerate on four of six worlds, and without a holdout
-domain. Gate 2 `passed`: every cell replayed live and re-audited from disk,
+**Gate status for this construct.** Gate 1 `partial`: the two campaigns ran
+on authored, seed-degenerate worlds; rule-selected packs with noisy
+verification and a disjoint holdout now exist but no campaign has run on them,
+so their measured control headroom is unrecorded. Gate 2 `passed`: every cell replayed live and re-audited from disk,
 the bound is attained by replaying its own plan through the environment, and a
 brute-force enumeration agrees with it. Gate 3 `partial`: no-op (`defer`),
 public policies, myopic, loyal and shopping references and an attainable
@@ -317,9 +323,9 @@ frozen plan, two routes paired on the same cells, cluster declared as the
 world. Gate 5 `failed`: no variance-pilot panel selected by rule, no
 confirmatory freeze, no holdout.
 
-**What unblocks it, in order.** Worlds that declare `sample_noise`, so the
-seed reaches the evidence the buyer reads from period one and seeds become
-replicates; a generator that samples the stratum parameters and admits by the
-screen over a seed stream, with development and holdout domains disjoint; the
-public policies run and published per world; then a frozen confirmatory on
-the holdout. Until then any number above is a development result.
+**What unblocks it, in order.** A variance pilot on `relationship_dev_v2`
+(12 worlds, three or more seeds, one route) to measure the live control's
+headroom and the within-world variance the noisy verification now permits;
+then a frozen confirmatory on `relationship_holdout_v1` sized on that
+variance, with a second route paired on the same cells. Until then any number
+above is a development result.
