@@ -3148,6 +3148,10 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("datacenter_development_v1", "1.0.0"),
         ("datacenter_development_v1", "1.1.0"),
         ("datacenter_development_v1", "2.0.0"),
+        # 3.0.0 is the shared-feeder joint venture (a partner seat and a
+        # jointly proposed agreement); its scoring-contract fixture is the
+        # same follow-up as 2.0.0's.
+        ("datacenter_development_v1", "3.0.0"),
         # #63 enrols the datacenter sub-families and a 2.1.0 of the base
         # family as trusted. Their scorers now take FamilyScoringInput
         # (#144), but none has a scoring-contract fixture yet; that is the

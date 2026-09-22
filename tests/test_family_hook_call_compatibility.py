@@ -175,6 +175,7 @@ KNOWN_UNRESOLVABLE_IN_PLAIN_ENV: dict[tuple[str, str], str] = {
     ("single_offer_v1", "1.0.0"): "no environment module; registered by its own campaign code",
     ("datacenter_development_v1", "1.1.0"): "versioned plugin registered by datacenter campaign code",
     ("datacenter_development_v1", "2.0.0"): "versioned plugin registered by datacenter campaign code",
+    ("datacenter_development_v1", "3.0.0"): "versioned plugin registered by datacenter campaign code (the shared-feeder joint venture, #214), like 2.0.0",
     ("kernel_contract_reference_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
     ("kernel_contract_sequential_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
     # Added the day the ratchet landed: #147 enrolled these keys as trusted
