@@ -316,3 +316,15 @@ def test_publish_seals_a_verifiable_bundle_from_a_kernel_cell(tmp_path: Path) ->
         campaign.publish(run_root, publication_root=bundle, setup_builder=offline_builder)
     text = (bundle / "README.md").read_text(encoding="utf-8")
     assert "No winner" in text and "development_qualification" in text
+
+
+def test_prepare_on_a_generated_pack_reseeds_the_sample_noise(tmp_path: Path) -> None:
+    paths = campaign.pack_paths("relationship_holdout_v1")
+    assert len(paths) == 12
+    plan = campaign.prepare(tmp_path / "run", campaign_id="holdout_probe", seeds=(3, 4), case_paths=paths[:2])
+    assert len(plan["cells"]) == 4
+    for cell in plan["cells"]:
+        case = json.loads((tmp_path / "run" / cell["path"]).read_text(encoding="utf-8"))
+        assert case["payload"]["interaction"]["sample_noise"]["seed"] == cell["seed"]
+        assert case["payload"]["interaction"]["periods"]["delivery_seed"] == cell["seed"]
+    assert campaign.pack_paths("relationship_v1") == tuple(CASE_PATHS)

@@ -37,6 +37,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--seeds", type=int, nargs="+", default=list(campaign.DEFAULT_SEEDS), help="prepare: one cell per world per seed"
     )
+    parser.add_argument(
+        "--pack",
+        default="relationship_v1",
+        help="prepare: which committed pack to run (relationship_v1, relationship_dev_v2, relationship_holdout_v1)",
+    )
     parser.add_argument("--against", type=Path, default=None, help="compare: the other run root")
     parser.add_argument("--publication-root", type=Path, default=None, help="publish: override the evidence path")
     arguments = parser.parse_args(argv)
@@ -46,7 +51,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not arguments.campaign_id:
             raise SystemExit("prepare requires --campaign-id")
         plan = campaign.prepare(
-            run_root, campaign_id=arguments.campaign_id, seeds=arguments.seeds, route_id=arguments.route
+            run_root,
+            campaign_id=arguments.campaign_id,
+            seeds=arguments.seeds,
+            route_id=arguments.route,
+            case_paths=campaign.pack_paths(arguments.pack),
         )
         print(
             json.dumps(

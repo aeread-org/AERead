@@ -1,0 +1,295 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "procurement_allocation_v1.relationship_holdout_v1.qualification_investment_2430031",
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "split": "holdout",
+  "world_seed": 2430031,
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "episode": {
+    "max_logical_actions": 40,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "payload": {
+    "objective": {
+      "product_id": "display_controller_qualification_investment_2430031",
+      "target_kits": 20,
+      "minimum_service_kits": 16,
+      "revenue_per_completed_kit_usd": 10.0,
+      "shortfall_penalty_per_kit_usd": 3.0,
+      "cash_budget_usd": 150.0,
+      "deadline_days": 14,
+      "defect_detection_days": 10,
+      "working_capital_horizon_days": 45,
+      "annual_financing_rate": 0.12,
+      "defer_value_usd": 0.0,
+      "bom": {
+        "esp32_s3_n8r8": 1,
+        "ssd1306_oled_096": 1
+      }
+    },
+    "interaction": {
+      "max_actions": 10,
+      "inquiry_days": 1,
+      "quote_days": 1,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "quote_cost_usd": 0.1,
+      "counter_cost_usd": 0.15,
+      "periods": {
+        "count": 4,
+        "delivery_seed": 2530031
+      },
+      "sample_noise": {
+        "model": "binomial",
+        "seed": 2930031
+      }
+    },
+    "policy": {
+      "required_variant_by_component": {
+        "esp32_s3_n8r8": "esp32_s3_devkitc_1_n8r8",
+        "ssd1306_oled_096": "096in_128x64_four_pin_i2c_ssd1306"
+      },
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ]
+    },
+    "suppliers": [
+      {
+        "supplier_id": "esp32_s3_n8r8_steady",
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "supplier_name": "Synthetic esp32_s3_n8r8 steady supplier",
+          "displayed_unit_price_usd": 2.741816,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "base_unit_price_usd": 3.1157,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 30,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 2.928758,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          },
+          "relationship": {
+            "loyalty_discount_per_award": 0.0,
+            "loyalty_discount_cap": 0.0,
+            "incumbent_capacity_bonus": 0,
+            "retaliation_markup": 0.0
+          }
+        }
+      },
+      {
+        "supplier_id": "esp32_s3_n8r8_slow",
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "supplier_name": "Synthetic esp32_s3_n8r8 slow supplier",
+          "displayed_unit_price_usd": 3.070848,
+          "claimed_lead_time_days": 9,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "base_unit_price_usd": 3.4896,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 11,
+          "on_time_probability": 0.96,
+          "payment_terms_days": 30,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 2,
+            "verified_yield_rate": 0.98,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 3.280224,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          },
+          "relationship": {
+            "loyalty_discount_per_award": 0.0,
+            "loyalty_discount_cap": 0.0,
+            "incumbent_capacity_bonus": 0,
+            "retaliation_markup": 0.0
+          }
+        }
+      },
+      {
+        "supplier_id": "ssd1306_oled_096_known",
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "supplier_name": "Synthetic ssd1306_oled_096 known supplier",
+          "displayed_unit_price_usd": 1.197768,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306",
+          "base_unit_price_usd": 1.3611,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 30,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 1.279434,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          },
+          "relationship": {
+            "loyalty_discount_per_award": 0.0,
+            "loyalty_discount_cap": 0.0,
+            "incumbent_capacity_bonus": 0,
+            "retaliation_markup": 0.0
+          }
+        }
+      },
+      {
+        "supplier_id": "ssd1306_oled_096_unproven",
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "supplier_name": "Synthetic ssd1306_oled_096 unproven supplier",
+          "displayed_unit_price_usd": 0.85316,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306",
+          "base_unit_price_usd": 0.9695,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 30,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 8.41,
+            "sample_lead_time_days": 2
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 0.91133,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          },
+          "relationship": {
+            "loyalty_discount_per_award": 0.0,
+            "loyalty_discount_cap": 0.0,
+            "incumbent_capacity_bonus": 0,
+            "retaliation_markup": 0.0
+          }
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_relationship_pack_v1",
+    "generator_version": "1.0.0",
+    "review_status": "generated"
+  },
+  "content_sha256": "ec8e3a26db9e97081b87d56da0eb64a62c0dcaf17330f92d5f41cae5e82a3daf"
+}

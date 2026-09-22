@@ -146,6 +146,32 @@ every world but the ramp; there the myopic buyer switches twice and the loyal
 buyer defers the two volume periods. The optimum switches once on
 `incumbent_capacity` (split, then single-source) and nowhere else.
 
+### 3.1 Generated packs: selected by rule, in disjoint seed domains
+
+The six worlds above are authored. Two packs are generated:
+`cases/procurement_allocation_v1/relationship_dev_v2/` (seed domain from
+2420000) and `relationship_holdout_v1/` (from 2430000). Seed `s` is offered
+to stratum `(s − start) mod 6`, its numbers are drawn from the stratum's
+declared ranges by a generator seeded with `s`, and the world is admitted
+when the screen admits it and the stratum is not yet full at two. Every
+generated world declares binomial `sample_noise`, so a campaign seed, which
+is re-sealed into it, reaches the evidence the buyer reads from period one
+and seeds become replicates rather than repeats (P-D-01). Each pack's
+`pack.json` records the rule, the seeds scanned, every exclusion with its
+verdict, the admission rate, and per world the bound, the three references,
+the headroom fractions and the outcome of each public-observation policy.
+
+| Pack | Domain | Scanned | Admitted | Refused (all `trivial (myopic)`) | Admission rate |
+|---|---|---:|---:|---:|---:|
+| `relationship_dev_v2` | 2420000+ | 36 | 12 | 6 | 67% |
+| `relationship_holdout_v1` | 2430000+ | 42 | 12 | 11 | 52% |
+
+On both packs the displayed-price-greedy policy scores below deferral on the
+retaliation worlds: it quotes both suppliers and drops one every period, and
+the markups it provokes push its margin negative. That is the trap doing its
+work on a naive anchor. The holdout was generated after the prompt and the
+tool were frozen and no live cell has read it.
+
 ## 4. Choices the design left open, and what was chosen
 
 - **Discount on the quote, not only the floor.** §4 says "a loyalty
@@ -353,8 +379,8 @@ of §6 stays a described local run.
   supplier and pushing back on one become decisions with a price.
 - A variance pilot: the six worlds at three or more seeds on one route, then
   a frozen confirmatory on a held-out pack, before any interval is quoted.
-- A held-out pack of new worlds, generated after the prompt and tool are
-  frozen and not read before the run; the six worlds here were tuned by hand
-  against the screen, and more worlds is what the interval needs.
+- A frozen confirmatory on `relationship_holdout_v1`, powered on the
+  world variance of a variance pilot on `relationship_dev_v2`; both packs
+  exist and neither has been run.
 - A menu adapter if a finite-choice route such as Jev is ever wanted in
   this seat, reported as its own interface condition.

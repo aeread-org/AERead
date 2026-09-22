@@ -694,3 +694,76 @@ def test_outcome_and_screen_carry_the_shopping_reference() -> None:
         episode.play({"action": "defer", "reason": "skip"})
     outcome = episode.outcome()
     assert outcome["shopping_reference_usd"] == verdict["shopping_usd"]
+
+
+# --------------------------------------------------------------------------
+# Generated packs: selected by rule, noisy verification, disjoint domains
+# --------------------------------------------------------------------------
+
+from aeread_families.procurement_allocation.relationship_case_matrix import (  # noqa: E402
+    PACKS,
+    PACK_GENERATOR_ID,
+    PACK_POLICIES,
+    _build_case,
+    _sample_definition,
+    pack_case_paths,
+    pack_root,
+)
+from aeread.shared_runner.run.resolver import case_content_sha256  # noqa: E402
+from aeread.shared_runner.schemas import CaseManifest  # noqa: E402
+import hashlib  # noqa: E402
+
+
+@pytest.mark.parametrize("name", sorted(PACKS))
+def test_pack_manifest_and_worlds_verify(name: str) -> None:
+    manifest = json.loads((pack_root(name) / "pack.json").read_text(encoding="utf-8"))
+    body = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    assert hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest() == manifest["manifest_sha256"]
+    assert manifest["complete"] is True and manifest["admitted"] == 12
+    assert manifest["generator_id"] == PACK_GENERATOR_ID
+    assert manifest["seed_domain"]["start"] == PACKS[name]["seed_start"]
+    assert all(row["verdict"] != "admit" for row in manifest["excluded"])
+    assert 0 < manifest["admission_rate"] < 1
+    paths = pack_case_paths(name)
+    assert len(paths) == 12
+    strata = {}
+    for path, row in zip(paths, manifest["worlds"]):
+        case = load_case(path)  # verifies the content digest
+        assert case.case_id == row["case_id"] and case.content_sha256 == row["content_sha256"]
+        assert case.payload["interaction"]["sample_noise"] == {"model": "binomial", "seed": row["world_seed"] + 500_000}
+        assert case.payload["interaction"]["periods"]["count"] == 4
+        assert case.split == PACKS[name]["split"]
+        assert set(row["public_policies"]) == set(PACK_POLICIES)
+        assert row["headroom_over_myopic"] >= 0.05 and row["headroom_over_loyal"] >= 0.05
+        strata[row["stratum"]] = strata.get(row["stratum"], 0) + 1
+    assert strata == {slug: 2 for slug in CASE_SLUGS}
+
+
+def test_pack_domains_are_disjoint_and_worlds_regenerate_from_their_seed() -> None:
+    domains = {name: range(spec["seed_start"], spec["seed_start"] + spec["scan_limit"]) for name, spec in PACKS.items()}
+    names = sorted(domains)
+    assert set(domains[names[0]]).isdisjoint(domains[names[1]])
+    for name in names:
+        manifest = json.loads((pack_root(name) / "pack.json").read_text(encoding="utf-8"))
+        row = manifest["worlds"][0]
+        rebuilt = _build_case(
+            _sample_definition(row["stratum"], row["world_seed"]),
+            screen=False,
+            pack=name,
+            split=PACKS[name]["split"],
+            generator=(PACK_GENERATOR_ID, manifest["generator_version"]),
+            sample_noise={"model": "binomial", "seed": row["world_seed"] + 500_000},
+        )
+        committed = json.loads((pack_root(name) / f"{row['slug']}.json").read_text(encoding="utf-8"))
+        assert canonical_json_bytes(rebuilt) == canonical_json_bytes(committed)
+        assert case_content_sha256(CaseManifest.from_dict(committed)) == row["content_sha256"]
+
+
+def test_sampled_definitions_are_a_pure_function_of_the_seed() -> None:
+    first = _sample_definition("loyalty_investment", 2420000)
+    second = _sample_definition("loyalty_investment", 2420000)
+    other = _sample_definition("loyalty_investment", 2420001)
+    assert canonical_json_bytes(first) == canonical_json_bytes(second)
+    assert canonical_json_bytes(first) != canonical_json_bytes(other)
+    with pytest.raises(ValueError, match="unknown stratum"):
+        _sample_definition("no_such_stratum", 1)
