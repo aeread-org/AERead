@@ -72,25 +72,52 @@ DEFAULT_SEEDS = (73101,)
 BOOTSTRAP_SEED = 20260921
 BOOTSTRAP_RESAMPLES = 10_000
 
-#: The datacenter campaigns' Gemini route, prices as reviewed there on
-#: 2026-09-03; the price caps refuse a repriced endpoint rather than pay it.
-ROUTE = OpenRouterRoute(
-    profile_id="procurement_relationship_gemini38_flash_aistudio_v1",
-    model="google/gemini-3.8-flash",
-    revision="google/gemini-3.8-flash-20260902",
-    route_provider="Google AI Studio",
-    quantization="unknown",
-    pricing=TokenPricing(
-        input_per_million=0.75,
-        cached_input_per_million=0.075,
-        output_per_million=3.75,
-        pricing_id="openrouter_2026-09-03_gemini38_flash_aistudio_procurement_relationship_v1",
+#: Routes this tool may freeze. Prices are the ones the sealed campaigns
+#: reviewed (Gemini on 2026-09-03 for the datacenter panels, GLM on
+#: 2026-09-03 for the procurement scaffold campaigns); the price caps refuse a
+#: repriced endpoint rather than pay it. Both are chat routes through the
+#: kernel's OpenRouter client, so a paired contrast between them changes the
+#: route and nothing else. Jev (`typesafe/jev-1.13`) is not listed: it is a
+#: finite-choice decisions endpoint without seed, temperature or reasoning,
+#: and putting it in this seat needs a menu adapter, which is a different
+#: interface and therefore a different treatment.
+ROUTES: dict[str, OpenRouterRoute] = {
+    "gemini38_flash_aistudio": OpenRouterRoute(
+        profile_id="procurement_relationship_gemini38_flash_aistudio_v1",
+        model="google/gemini-3.8-flash",
+        revision="google/gemini-3.8-flash-20260902",
+        route_provider="Google AI Studio",
+        quantization="unknown",
+        pricing=TokenPricing(
+            input_per_million=0.75,
+            cached_input_per_million=0.075,
+            output_per_million=3.75,
+            pricing_id="openrouter_2026-09-03_gemini38_flash_aistudio_procurement_relationship_v1",
+        ),
+        max_prompt_price_per_million="1.35",
+        max_completion_price_per_million="6.75",
+        reasoning_effort="low",
+        temperature_supported=True,
     ),
-    max_prompt_price_per_million="1.35",
-    max_completion_price_per_million="6.75",
-    reasoning_effort="low",
-    temperature_supported=True,
-)
+    "glm53_flash_parasail": OpenRouterRoute(
+        profile_id="procurement_relationship_glm53_flash_parasail_v1",
+        model="z-ai/glm-5.3-flash",
+        revision="z-ai/glm-5.3-flash-20260826",
+        route_provider="Parasail",
+        quantization="fp8",
+        pricing=TokenPricing(
+            input_per_million=0.15,
+            cached_input_per_million=0.03,
+            output_per_million=0.50,
+            pricing_id="openrouter_2026-09-03_glm53_flash_parasail_procurement_relationship_v1",
+        ),
+        max_prompt_price_per_million="0.15",
+        max_completion_price_per_million="0.50",
+        reasoning_effort="low",
+        temperature_supported=True,
+    ),
+}
+DEFAULT_ROUTE = "gemini38_flash_aistudio"
 
 CONTRACT = {
     "temperature": 0.0,
@@ -142,24 +169,46 @@ def _git_head() -> str:
         return "unknown"
 
 
-def _route_record() -> dict[str, Any]:
+def _route_record(route: OpenRouterRoute) -> dict[str, Any]:
     return {
-        "profile_id": ROUTE.profile_id,
-        "model": ROUTE.model,
-        "revision": ROUTE.revision,
-        "route_provider": ROUTE.route_provider,
-        "quantization": ROUTE.quantization,
+        "profile_id": route.profile_id,
+        "model": route.model,
+        "revision": route.revision,
+        "route_provider": route.route_provider,
+        "quantization": route.quantization,
         "pricing": {
-            "input_per_million": ROUTE.pricing.input_per_million,
-            "cached_input_per_million": ROUTE.pricing.cached_input_per_million,
-            "output_per_million": ROUTE.pricing.output_per_million,
-            "pricing_id": ROUTE.pricing.pricing_id,
+            "input_per_million": route.pricing.input_per_million,
+            "cached_input_per_million": route.pricing.cached_input_per_million,
+            "output_per_million": route.pricing.output_per_million,
+            "pricing_id": route.pricing.pricing_id,
         },
-        "max_prompt_price_per_million": ROUTE.max_prompt_price_per_million,
-        "max_completion_price_per_million": ROUTE.max_completion_price_per_million,
-        "reasoning_effort": ROUTE.reasoning_effort,
-        "temperature_supported": ROUTE.temperature_supported,
+        "max_prompt_price_per_million": route.max_prompt_price_per_million,
+        "max_completion_price_per_million": route.max_completion_price_per_million,
+        "reasoning_effort": route.reasoning_effort,
+        "temperature_supported": route.temperature_supported,
     }
+
+
+def _route_from_record(record: Mapping[str, Any]) -> OpenRouterRoute:
+    """The frozen plan's route, so execute and replay never read the code's table."""
+    pricing = record["pricing"]
+    return OpenRouterRoute(
+        profile_id=str(record["profile_id"]),
+        model=str(record["model"]),
+        revision=str(record["revision"]),
+        route_provider=str(record["route_provider"]),
+        quantization=str(record["quantization"]),
+        pricing=TokenPricing(
+            input_per_million=float(pricing["input_per_million"]),
+            cached_input_per_million=float(pricing["cached_input_per_million"]),
+            output_per_million=float(pricing["output_per_million"]),
+            pricing_id=str(pricing["pricing_id"]),
+        ),
+        max_prompt_price_per_million=str(record["max_prompt_price_per_million"]),
+        max_completion_price_per_million=str(record["max_completion_price_per_million"]),
+        reasoning_effort=record["reasoning_effort"],
+        temperature_supported=bool(record["temperature_supported"]),
+    )
 
 
 def _write_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -184,12 +233,16 @@ def episode_case(world: Mapping[str, Any], seed: int) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
-def prepare(run_root: Path, *, campaign_id: str, seeds: Sequence[int]) -> dict[str, Any]:
+def prepare(
+    run_root: Path, *, campaign_id: str, seeds: Sequence[int], route_id: str = DEFAULT_ROUTE
+) -> dict[str, Any]:
     plan_path = run_root / "plan.json"
     if plan_path.exists():
         raise SystemExit(f"{plan_path} exists; a frozen plan is never rewritten")
     if not seeds or len(set(seeds)) != len(seeds):
         raise SystemExit("seeds must be non-empty and distinct")
+    if route_id not in ROUTES:
+        raise SystemExit(f"unknown route {route_id!r}; known: {sorted(ROUTES)}")
     worlds = []
     cells = []
     for path in CASE_PATHS:
@@ -222,7 +275,8 @@ def prepare(run_root: Path, *, campaign_id: str, seeds: Sequence[int]) -> dict[s
         **CONTRACT,
         "campaign_id": campaign_id,
         "seeds": [int(seed) for seed in seeds],
-        "route": _route_record(),
+        "route_id": route_id,
+        "route": _route_record(ROUTES[route_id]),
         "worlds": worlds,
         "cells": cells,
         "sources": source_hashes(),
@@ -239,11 +293,17 @@ def read_plan(run_root: Path) -> dict[str, Any]:
     declared = plan["plan_sha256"]
     if _digest({key: value for key, value in plan.items() if key != "plan_sha256"}) != declared:
         raise SystemExit("plan.json does not digest to its own plan_sha256")
-    if plan["sources"] != source_hashes():
-        drifted = sorted(
-            name for name, digest in source_hashes().items() if plan["sources"].get(name) != digest
-        )
-        raise SystemExit(f"sources changed since the plan was frozen: {drifted}")
+    current = source_hashes()
+    drifted = sorted(name for name, digest in current.items() if plan["sources"].get(name) != digest)
+    family_drift = [name for name in drifted if not name.startswith("tools/")]
+    if family_drift:
+        # The family sources decide what a cell measures; a changed one is a
+        # new identity. The tool's own bytes are recorded but not enforced,
+        # so a later fix to reporting does not lock earlier runs out of
+        # replay (the DC-T-06 shape).
+        raise SystemExit(f"family sources changed since the plan was frozen: {family_drift}")
+    if drifted:
+        print(f"note: tool bytes differ from the frozen plan ({drifted}); family sources unchanged", file=sys.stderr)
     for row in plan["worlds"]:
         case = load_case(REPOSITORY_ROOT / row["path"])
         if case.content_sha256 != row["content_sha256"]:
@@ -262,7 +322,7 @@ def read_plan(run_root: Path) -> dict[str, Any]:
 
 def _setup_for(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path):
     return build_openrouter_setup(
-        ROUTE,
+        _route_from_record(plan["route"]),
         case_path=run_root / cell["path"],
         seed=int(cell["seed"]),
         max_output_tokens=int(plan["max_output_tokens"]),
@@ -666,27 +726,105 @@ def replay(run_root: Path) -> dict[str, Any]:
     return report
 
 
+# --------------------------------------------------------------------------
+# compare: two runs on the same worlds and seeds, paired by world
+# --------------------------------------------------------------------------
+
+
+def compare(run_root: Path, against: Path) -> dict[str, Any]:
+    """Paired contrast of this run against another on identical worlds and seeds.
+
+    The difference is taken per world and seed, averaged within the world, and
+    the interval resamples worlds. Nothing here ranks: two routes on six
+    curated worlds give a paired descriptive contrast with an interval, which
+    is the most the design allows.
+    """
+    left = json.loads((run_root / "results.json").read_text(encoding="utf-8"))
+    right = json.loads((against / "results.json").read_text(encoding="utf-8"))
+    if left["seeds"] != right["seeds"]:
+        raise SystemExit("runs were made on different seeds; no pairing")
+    left_rows = {(row["slug"], row["seed"]): row for row in left["rows"] if row.get("status") == "completed"}
+    right_rows = {(row["slug"], row["seed"]): row for row in right["rows"] if row.get("status") == "completed"}
+    keys = sorted(set(left_rows) & set(right_rows))
+    if not keys:
+        raise SystemExit("no completed cell is shared by both runs")
+    for key in keys:
+        if left_rows[key]["upper_bound_usd"] != right_rows[key]["upper_bound_usd"]:
+            raise SystemExit(f"bound differs on {key}; the runs are not on the same world")
+    per_world: dict[str, dict[str, list[float]]] = {}
+    for slug, seed in keys:
+        entry = per_world.setdefault(slug, {"regret": [], "margin": [], "counters": [], "quoted": []})
+        entry["regret"].append(
+            float(left_rows[(slug, seed)]["regret_to_upper_bound_usd"])
+            - float(right_rows[(slug, seed)]["regret_to_upper_bound_usd"])
+        )
+        entry["margin"].append(
+            float(left_rows[(slug, seed)]["contribution_margin_usd"])
+            - float(right_rows[(slug, seed)]["contribution_margin_usd"])
+        )
+        entry["counters"].append(
+            float(left_rows[(slug, seed)]["counters"]) - float(right_rows[(slug, seed)]["counters"])
+        )
+        entry["quoted"].append(
+            float(len(left_rows[(slug, seed)]["suppliers_quoted"]))
+            - float(len(right_rows[(slug, seed)]["suppliers_quoted"]))
+        )
+    worlds = {
+        slug: {name: round(statistics.mean(values), 8) for name, values in entry.items()}
+        for slug, entry in per_world.items()
+    }
+    regret_deltas = [worlds[slug]["regret"] for slug in sorted(worlds)]
+    report = {
+        "left_campaign_id": left["campaign_id"],
+        "right_campaign_id": right["campaign_id"],
+        "left_route": left["route"]["model"],
+        "right_route": right["route"]["model"],
+        "direction": "left minus right, per world and seed, averaged within world",
+        "paired_cells": len(keys),
+        "worlds": len(worlds),
+        "mean_regret_delta_usd": round(statistics.mean(regret_deltas), 8),
+        "mean_regret_delta_usd_95_world_bootstrap": _bootstrap_interval(regret_deltas),
+        "worlds_left_lower_regret": sum(1 for value in regret_deltas if value < 0),
+        "worlds_right_lower_regret": sum(1 for value in regret_deltas if value > 0),
+        "per_world": worlds,
+        "claim_scope": "paired descriptive contrast on curated worlds; no ranking",
+    }
+    _write_json(run_root / f"comparison_vs_{right['campaign_id']}.json", report)
+    return report
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("step", choices=("prepare", "execute", "replay"))
+    parser.add_argument("step", choices=("prepare", "execute", "replay", "compare"))
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--campaign-id", default=None, help="prepare: the frozen campaign identity")
+    parser.add_argument("--route", default=DEFAULT_ROUTE, choices=sorted(ROUTES), help="prepare: the route to freeze")
     parser.add_argument(
         "--seeds", type=int, nargs="+", default=list(DEFAULT_SEEDS), help="prepare: one cell per world per seed"
     )
+    parser.add_argument("--against", type=Path, default=None, help="compare: the other run root")
     arguments = parser.parse_args(argv)
     run_root = arguments.run_root.resolve()
     if arguments.step == "prepare":
         if not arguments.campaign_id:
             raise SystemExit("prepare requires --campaign-id")
-        plan = prepare(run_root, campaign_id=arguments.campaign_id, seeds=arguments.seeds)
+        plan = prepare(
+            run_root, campaign_id=arguments.campaign_id, seeds=arguments.seeds, route_id=arguments.route
+        )
         print(
             json.dumps(
-                {k: plan[k] for k in ("campaign_id", "plan_sha256", "git_head", "seeds")}
+                {k: plan[k] for k in ("campaign_id", "route_id", "plan_sha256", "git_head", "seeds")}
                 | {"cells": len(plan["cells"])},
                 indent=2,
             )
         )
+    elif arguments.step == "compare":
+        if arguments.against is None:
+            raise SystemExit("compare requires --against")
+        report = compare(run_root, arguments.against.resolve())
+        print(json.dumps({k: v for k, v in report.items() if k != "per_world"}, indent=2))
+        for slug, row in sorted(report["per_world"].items()):
+            print(f"{slug:26s} regret delta {row['regret']:8.2f}  counters {row['counters']:+.2f}  quoted {row['quoted']:+.2f}")
     elif arguments.step == "execute":
         summary = execute(run_root)
         print(
