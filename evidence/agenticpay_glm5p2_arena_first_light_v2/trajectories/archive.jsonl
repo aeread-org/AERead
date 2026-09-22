@@ -1,0 +1,6 @@
+{"case_id":"agenticpay.bilateral.basic.task1","cost_usd":0.0112792,"inclusion_status":"included","primary":0.18571428571428572,"receipt_replayed":true,"receipt_sha256":"8da542cd1ec71ecdf47eff9b8777bd633f69c40176d576c7165151dd73ef5258","status":"ok"}
+{"case_id":"agenticpay.bilateral.basic.task2","failure_condition":"execution_failure","failure_type":"SchedulerContractError","status":"operational_failure"}
+{"case_id":"agenticpay.bilateral.basic.task3","cost_usd":0.024894460000000004,"inclusion_status":"included","primary":1.0,"receipt_replayed":true,"receipt_sha256":"69d8dab5b53344c7c05a93ba8f0d15078c978f77674412aadc0c7e6e5f61a764","status":"ok"}
+{"case_id":"agenticpay.bilateral.realistic.s01_beauty_product","failure_condition":"length","failure_type":"SchedulerContractError","status":"operational_failure"}
+{"case_id":"agenticpay.bilateral.realistic.s11_taxi_1","failure_condition":"length","failure_type":"SchedulerContractError","status":"operational_failure"}
+{"case_id":"agenticpay.bilateral.realistic.s21_rent_house_1","failure_condition":"length","failure_type":"SchedulerContractError","status":"operational_failure"}
