@@ -1767,6 +1767,7 @@ class ProcurementAllocationPlugin:
         schedule = relationship.period_schedule(family_case)
         myopic = relationship.solve_myopic_reference(family_case)
         loyal = relationship.solve_loyal_reference(family_case)
+        shopping = relationship.solve_shopping_reference(family_case)
         return {
             "decision": decision,
             "termination_reason": terminal["reason"],
@@ -1812,6 +1813,7 @@ class ProcurementAllocationPlugin:
             ),
             "myopic_reference_usd": myopic.contribution_margin_usd,
             "loyal_reference_usd": loyal.contribution_margin_usd,
+            "shopping_reference_usd": shopping.contribution_margin_usd,
         }
 
     def build_scorer(

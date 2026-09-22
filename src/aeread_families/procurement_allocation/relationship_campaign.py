@@ -913,7 +913,7 @@ def _readme(plan: Mapping[str, Any], summary: Mapping[str, Any], comparisons: Se
         f"reasoning effort {route['reasoning_effort']}, temperature {plan['temperature']}",
         f"- Seeds: {', '.join(str(seed) for seed in plan['seeds'])}; worlds: {len(plan['worlds'])}; "
         f"cells: {summary['cells']}, completed {summary['completed']}, failed {summary['failed']}, "
-        f"not attempted {summary['not_attempted']}",
+        f"not attempted {summary.get('not_attempted', summary.get('not_run', 0))}",
         f"- Cost: ${summary['cost_usd']:.4f} reported; {summary['input_tokens']} input and "
         f"{summary['output_tokens']} output tokens",
         f"- Mean regret to the bound over worlds: {summary['mean_regret_usd']} "
@@ -921,7 +921,7 @@ def _readme(plan: Mapping[str, Any], summary: Mapping[str, Any], comparisons: Se
         f"- Mean margin against the myopic reference: {summary['mean_advantage_over_myopic_usd']} "
         f"(95% {advantage[0]} to {advantage[1]})",
         f"- Periods awarded: {summary['periods_awarded']} of {summary['periods']}; counters "
-        f"{summary['counters']}; inquiries {summary['inquiries']}; switches {summary['switches']}",
+        f"{summary.get('counters', 0)}; inquiries {summary.get('inquiries', 0)}; switches {summary['switches']}",
         "",
         "Seeds reach the buyer only through delivery history from period two on; "
         "where the route is deterministic the seeds of a world are repeats, and the "

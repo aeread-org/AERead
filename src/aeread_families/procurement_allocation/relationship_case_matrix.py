@@ -37,6 +37,7 @@ from .relationship import (
     solve_loyal_reference,
     solve_myopic_reference,
     solve_relationship_upper_bound,
+    solve_shopping_reference,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -406,6 +407,7 @@ def screen_world(payload: Mapping[str, Any]) -> dict[str, Any]:
     bound = solve_relationship_upper_bound(payload)
     myopic = solve_myopic_reference(payload)
     loyal = solve_loyal_reference(payload)
+    shopping = solve_shopping_reference(payload)
     outside = sum(float(row["defer_value_usd"]) for row in period_schedule(payload))
     verdict = classify_relationship_world(
         upper_bound=bound.contribution_margin_usd,
@@ -419,6 +421,7 @@ def screen_world(payload: Mapping[str, Any]) -> dict[str, Any]:
         "upper_bound_usd": bound.contribution_margin_usd,
         "myopic_usd": myopic.contribution_margin_usd,
         "loyal_usd": loyal.contribution_margin_usd,
+        "shopping_usd": shopping.contribution_margin_usd,
         "optimum_switches": bound.switches,
         "myopic_switches": myopic.switches,
         "optimum_path": [

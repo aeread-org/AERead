@@ -906,19 +906,29 @@ class _Solver:
         awarded: tuple[int, ...],
         entries: tuple[_Entry, ...],
         prequalify: tuple[int, ...],
+        extra_quotes: int = 0,
     ) -> _Path | None:
         """Best feasible period plan awarding exactly ``awarded``.
 
         ``prequalify`` names suppliers sampled this period without an award, so
         a later period with a tight action budget, deadline or cash budget
-        finds them already qualified. The prequalification's action, days and
-        cost are charged here, where they fall.
+        finds them already qualified. ``extra_quotes`` are quotes taken from
+        suppliers that will not be awarded, which only the shopping reference
+        pays for. Both are charged here, where they fall.
         """
-        extra_actions = len(prequalify)
-        extra_days = sum(self._sample_terms(index)[0] for index in prequalify)
-        extra_cost = round(sum(self._sample_terms(index)[1] for index in prequalify), 8)
+        extra_actions = len(prequalify) + int(extra_quotes)
+        extra_days = sum(self._sample_terms(index)[0] for index in prequalify) + int(
+            extra_quotes
+        ) * int(self.interaction["quote_days"])
+        extra_cost = round(
+            sum(self._sample_terms(index)[1] for index in prequalify)
+            + int(extra_quotes) * float(self.interaction["quote_cost_usd"]),
+            8,
+        )
         max_actions = int(self.interaction["max_actions"])
-        prequalified_ids = tuple(str(self.suppliers[index]["supplier_id"]) for index in prequalify)
+        prequalified_ids = tuple(str(self.suppliers[index]["supplier_id"]) for index in prequalify) + (
+            (f"extra_quotes:{int(extra_quotes)}",) if extra_quotes else ()
+        )
         best: _Path | None = None
         for candidate in self._candidates(period, awarded, entries):
             actions = candidate["actions"] + extra_actions
@@ -965,18 +975,27 @@ class _Solver:
                 best = path
         return best
 
-    def defer_path(self, period: int, prequalify: tuple[int, ...]) -> _Path:
+    def defer_path(
+        self, period: int, prequalify: tuple[int, ...], extra_quotes: int = 0
+    ) -> _Path:
         objective = period_objective(self.case, period)
-        cost = round(sum(self._sample_terms(index)[1] for index in prequalify), 8)
-        days = sum(self._sample_terms(index)[0] for index in prequalify)
+        cost = round(
+            sum(self._sample_terms(index)[1] for index in prequalify)
+            + int(extra_quotes) * float(self.interaction["quote_cost_usd"]),
+            8,
+        )
+        days = sum(self._sample_terms(index)[0] for index in prequalify) + int(
+            extra_quotes
+        ) * int(self.interaction["quote_days"])
         signature = (
             (),
-            tuple(str(self.suppliers[index]["supplier_id"]) for index in prequalify),
+            tuple(str(self.suppliers[index]["supplier_id"]) for index in prequalify)
+            + ((f"extra_quotes:{int(extra_quotes)}",) if extra_quotes else ()),
         )
         margin = round(float(objective["defer_value_usd"]) - cost, 8)
         return _Path(
             margin=margin,
-            actions=1 + len(prequalify),
+            actions=1 + len(prequalify) + int(extra_quotes),
             cash=cost,
             elapsed=days,
             kits=0,
@@ -988,16 +1007,24 @@ class _Solver:
     # -- the dynamic programme --------------------------------------------------
 
     def _next(
-        self, standing: tuple[_Entry, ...], awarded: tuple[int, ...], prequalify: tuple[int, ...]
+        self,
+        standing: tuple[_Entry, ...],
+        awarded: tuple[int, ...],
+        prequalify: tuple[int, ...],
+        *,
+        quoted_everyone: bool = False,
     ) -> tuple[_Entry, ...]:
         # A full-information solver quotes only what it awards, so nothing on
         # its path is ever quoted and dropped; the transition rule is still the
-        # environment's, applied with quoted == awarded.
+        # environment's, applied with quoted == awarded. The shopping reference
+        # quotes everyone, so every supplier it drops retaliates next period.
         awarded_set = set(awarded)
         moved: list[_Entry] = []
         for index, entry in enumerate(standing):
             consecutive, retaliation, qualified = _advance_tuple(
-                entry, awarded=index in awarded_set, quoted=index in awarded_set
+                entry,
+                awarded=index in awarded_set,
+                quoted=quoted_everyone or index in awarded_set,
             )
             moved.append((consecutive, retaliation, qualified or index in prequalify))
         return tuple(moved)
@@ -1052,15 +1079,26 @@ class _Solver:
 
     # -- references ---------------------------------------------------------------
 
-    def _best_now(self, period: int, standing: tuple[_Entry, ...]) -> tuple[_Path, tuple[int, ...]]:
-        """The period-optimal plan, the future ignored. Never prequalifies."""
+    def _best_now(
+        self, period: int, standing: tuple[_Entry, ...], *, shopping: bool = False
+    ) -> tuple[_Path, tuple[int, ...]]:
+        """The period-optimal plan, the future ignored. Never prequalifies.
+
+        With ``shopping`` the buyer quotes every supplier before choosing, and
+        pays for every quote it does not award.
+        """
         indices = tuple(range(len(self.suppliers)))
-        best = self.defer_path(period, ())
+        count = len(indices)
+        best = self.defer_path(period, (), extra_quotes=count if shopping else 0)
         best_set: tuple[int, ...] = ()
-        for size in range(1, len(indices) + 1):
+        for size in range(1, count + 1):
             for awarded in itertools.combinations(indices, size):
                 head = self.best_for_set(
-                    period, awarded, tuple(standing[index] for index in awarded), ()
+                    period,
+                    awarded,
+                    tuple(standing[index] for index in awarded),
+                    (),
+                    extra_quotes=(count - size) if shopping else 0,
                 )
                 if head is not None and head.key > best.key:
                     best, best_set = head, awarded
@@ -1074,6 +1112,24 @@ class _Solver:
             head, awarded = self._best_now(period, standing)
             heads.append(head)
             standing = self._next(standing, awarded, ())
+        for head in reversed(heads):
+            path = path.prepend(head)
+        return _bound(path)
+
+    def shopping(self) -> RelationshipBound:
+        """Myopic and shopping: quote everyone each period, award the best, pay for it.
+
+        The naive anchor the retaliation worlds are built for. A dropped
+        supplier raises its schedule next period, so the shopper's later
+        choices are made among suppliers it has already offended.
+        """
+        standing = self.initial()
+        heads: list[_Path] = []
+        for period in range(1, self.count + 1):
+            head, awarded = self._best_now(period, standing, shopping=True)
+            heads.append(head)
+            standing = self._next(standing, awarded, (), quoted_everyone=True)
+        path = _EMPTY
         for head in reversed(heads):
             path = path.prepend(head)
         return _bound(path)
@@ -1128,9 +1184,11 @@ def _economic_payload(family_case: Mapping[str, Any]) -> bytes:
 
 
 @lru_cache(maxsize=64)
-def _cached_references(payload: bytes) -> tuple[RelationshipBound, RelationshipBound, RelationshipBound]:
+def _cached_references(
+    payload: bytes,
+) -> tuple[RelationshipBound, RelationshipBound, RelationshipBound, RelationshipBound]:
     solver = _Solver(json.loads(payload))
-    return solver.solve(), solver.myopic(), solver.loyal()
+    return solver.solve(), solver.myopic(), solver.loyal(), solver.shopping()
 
 
 def solve_relationship_upper_bound(family_case: Mapping[str, Any]) -> RelationshipBound:
@@ -1146,6 +1204,11 @@ def solve_myopic_reference(family_case: Mapping[str, Any]) -> RelationshipBound:
 def solve_loyal_reference(family_case: Mapping[str, Any]) -> RelationshipBound:
     """The first period's optimum, re-awarded every period after."""
     return copy.deepcopy(_cached_references(_economic_payload(family_case))[2])
+
+
+def solve_shopping_reference(family_case: Mapping[str, Any]) -> RelationshipBound:
+    """Myopic, and quoting every supplier every period: the naive anchor."""
+    return copy.deepcopy(_cached_references(_economic_payload(family_case))[3])
 
 
 __all__ = [
@@ -1174,6 +1237,7 @@ __all__ = [
     "solve_loyal_reference",
     "solve_myopic_reference",
     "solve_relationship_upper_bound",
+    "solve_shopping_reference",
     "validate_periods",
     "validate_relationship",
 ]

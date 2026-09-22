@@ -1,7 +1,8 @@
 # Procurement over periods: the award as a relationship
 
-**Status:** built, offline-verified, one live pilot and one three-seed
-variance run; no campaign identity sealed as evidence. Implements §4 of the [economic primitives extension
+**Status:** built, offline-verified; one live pilot, one three-seed variance
+run and a second route on the same cells, the last two sealed as
+`development_qualification` bundles. No confirmatory identity. Implements §4 of the [economic primitives extension
 design](../../research/economic_primitives_extension_design.md) (PR #213).
 
 **What it adds.** The single-period family ends at `submit_award`. A case
@@ -289,6 +290,63 @@ supplier (`loyalty_investment` on all three seeds, `demand_ramp` on two,
 negotiating, which says the loyalty discount roughly pays for the missing
 negotiation and no more.
 
+### 6.2 Second route: GLM 5.3 Flash on the same cells, and the paired contrast
+
+Jev (`typesafe/jev-1.13`) was asked for as the second route and could not
+take the seat: it is a finite-choice decisions endpoint without seed,
+temperature or reasoning, so it needs a menu adapter, and a menu is a
+different interface, which would confound route with interface. The
+family's own chat route, GLM 5.3 Flash on Parasail, ran instead on the
+identical worlds, seeds and family bytes as the Gemini run
+(`procurement_allocation_relationship_glm53_flash_variance_v3`, 2026-09-21).
+Two earlier identities were spent and are recorded: v1 on Parasail's shared
+pool returning 429 with no retry declared (P-O-01, P-T-07), v2 on my own
+error of restoring edited family sources under the running campaign, which
+the scorer hashes from disk at finalize (P-O-02, P-J-03). v3 declared three
+attempts with retries on rate limits and 5xx and a stop after three
+consecutive failures; it needed neither.
+
+Eighteen of eighteen cells, $0.1978, 1,181,601 input and 45,040 output
+tokens. Mean regret over worlds $109.02 (95% world bootstrap 73.38 to
+144.48); margin against the myopic reference −$84.88 (−120.50 to −49.67).
+Sixty-two of 72 periods awarded: ten awards were submitted and rejected,
+nine for `minimum_service_not_met` and three for a supplier without a
+verified sample, each scoring the period at its information cost. GLM
+explores where Gemini did not: 34 inquiries, 4 counters, a third supplier
+quoted in nine cells, six switches, three distinct routines on five of six
+worlds. It also loses periods that Gemini never lost.
+
+| World | Gemini regret by seed | GLM regret by seed | GLM lost periods |
+|---|---|---|---:|
+| `loyalty_investment` | 21.09, 21.09, 21.09 | 47.37, 47.42, 47.42 | 0 |
+| `qualification_investment` | 44.39 ×3 | 134.10, 44.49, 44.59 | 1 |
+| `demand_ramp` | 37.68, 20.47, 20.47 | 49.26, 198.54, 201.15 | 2 |
+| `incumbent_capacity` | 50.05 ×3 | 140.41, 124.05, 124.10 | 3 |
+| `retaliation_trap` | 21.65, 20.84, 46.14 | 147.94, 47.98, 48.18 | 1 |
+| `unreliable_incumbent` | 43.61 ×3 | 43.86, 235.19, 236.24 | 3 |
+
+**Paired contrast.** Per world and seed, averaged within world, Gemini's
+regret is $73.20 below GLM's (95% world bootstrap −106.53 to −40.66), lower
+on six of six worlds. This is a descriptive paired contrast between two
+routes on six curated worlds, with an interval; it ranks nothing, and the
+difference is dominated by GLM's rejected awards rather than by either
+route's handling of the relationship.
+
+**The shopping reference.** A fourth full-information reference now sits
+beside the others: myopic, and quoting every supplier every period, so
+every supplier it drops retaliates next period. On the six worlds it lands
+$2.33 to $3.30 under the myopic reference (386.27, 378.31, 391.91, 378.44,
+389.20, 389.65), the price of the extra quotes and of the days they cost
+against the deadline. Every outcome and the screen now carry it. It is a
+control, not a guard: the screen still admits on the myopic and loyal
+margins.
+
+**Published.** Both runs are sealed under `evidence/procurement_allocation/`
+as `development_qualification` bundles with the frozen plan, every cell and
+period row, the receipt projections, the re-audit from disk, the kernel
+trajectory grain and each other's paired comparison. The single-seed pilot
+of §6 stays a described local run.
+
 ## 7. Open
 
 - Solicitation (§2.1) and the concession schedule (§2.2), so that finding a
@@ -298,7 +356,5 @@ negotiation and no more.
 - A held-out pack of new worlds, generated after the prompt and tool are
   frozen and not read before the run; the six worlds here were tuned by hand
   against the screen, and more worlds is what the interval needs.
-- Whether the myopic reference should also *shop*, quoting every supplier
-  each period and paying the retaliation it provokes; today it quotes only
-  what it awards, which makes it a bound on period-wise play rather than a
-  portrait of it.
+- A menu adapter if a finite-choice route such as Jev is ever wanted in
+  this seat, reported as its own interface condition.
