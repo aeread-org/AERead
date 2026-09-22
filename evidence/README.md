@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 83 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 66 directories under a benchmark folder and
+All 84 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 67 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -132,12 +132,19 @@ navigation index does not change the control or any sealed artifact. See the
   sealed in; one route, descriptive admission rate 0.25 (95% 0.15-0.35), no
   winner, ranking, or causal claim;
 - [datacenter_v3_jv_scored_controls_v1](datacenter_development/datacenter_v3_jv_scored_controls_v1/): the V3 shared-feeder
-  joint venture's provider-free controls on six curated cases: three sincere
-  partner types and three whose announcement can be untrue, judged only by a
-  public record of earlier feeders, the position stated before anyone offers:
-  the fair-share reference is admitted everywhere; the free rider beats it by
-  18,000 cents where the partner covers the whole feeder and trails it by the
-  30,000-cent solo interconnection premium otherwise; regenerated, never edited;
+  joint venture's provider-free controls on six curated cases (three sincere
+  partner types, three whose announcement can be untrue, judged only by a
+  public record of earlier feeders): five policies, 30 trajectories; the
+  reference funds the share the record licenses and is the best response
+  6 of 6; the free rider is under-funded 4 of 6 and the fair share over-funded
+  2 of 6, the coalition endpoint's two rejected arms; regenerated, never edited;
+- [datacenter_v3_jv_world_controls_v1](datacenter_development/datacenter_v3_jv_world_controls_v1/): the same five
+  policies over the generated joint-venture pack (`worlds_v3_jv`, a sampled
+  feeder, partner type, record and round count over each of the 24 sealed
+  interface-3 worlds; 24 of 47 draws admitted by the construct guard): 120
+  trajectories, the reference the best response 24 of 24, the free rider
+  under-funded 13 of 24, the fair share over-funded 11 of 24; regenerated,
+  never edited;
 
 ### Datacenter development terms
 

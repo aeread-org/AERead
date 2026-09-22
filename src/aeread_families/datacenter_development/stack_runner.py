@@ -441,7 +441,7 @@ def _harness_registry_for(harness: Any) -> HarnessRegistry:
     return registry
 
 
-DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter", "free_rider")
+DEVELOPER_POLICIES = ("scripted", "walk_away", "adopt_every_counter", "free_rider", "fair_share")
 
 
 def build_stack_setup(
@@ -460,7 +460,7 @@ def build_stack_setup(
         raise ValueError("scope_version must be v1, v2 or v3")
     if developer_policy not in DEVELOPER_POLICIES:
         raise ValueError(f"developer_policy must be one of {DEVELOPER_POLICIES}")
-    if developer_policy == "free_rider" and scope_version != "v3":
+    if developer_policy in {"free_rider", "fair_share"} and scope_version != "v3":
         raise ValueError("free_rider is a joint-venture control and needs scope v3")
     case = load_stack_case(scope_version, case_path)
     family = stack_family_manifest(scope_version)
@@ -1256,6 +1256,13 @@ class StackScriptedDeveloperProvider:
                 output = {"decision": "walk", "message": None, "terms": None}
             elif self._policy == "free_rider":
                 output = {"decision": "offer", "share_bps": 0, "message": "We will not fund the feeder."}
+            elif self._policy == "fair_share":
+                # The capacity share whatever the record says: the arm the
+                # failure rule must reject where the record licenses a free ride.
+                capacity = int(observation["jv_package"]["developer_capacity_kw"])
+                total = capacity + int(observation["jv_package"]["partner_capacity_kw"])
+                share = capacity * 10_000 // total
+                output = {"decision": "offer", "share_bps": share, "message": f"Funding our capacity share, {share} bps."}
             elif self._policy == "adopt_every_counter":
                 share = int(pending["developer_share_bps"]) if pending else 0
                 output = {"decision": "offer", "share_bps": share, "message": f"Offering {share} bps."}

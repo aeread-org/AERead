@@ -27,6 +27,7 @@ import io
 import json
 import statistics
 import tempfile
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,7 @@ from .stack_runner import (
     replay_stack_receipt,
     run_stack_offline,
 )
+from .jv_worlds import DEFAULT_OUTPUT_ROOT as JV_WORLDS_ROOT
 from .stack_worlds import DEFAULT_OUTPUT_ROOT as WORLDS_ROOT
 from .stack_worlds import load_pack_manifest
 
@@ -75,6 +77,16 @@ BUNDLES: dict[str, dict[str, Path]] = {
         "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in (1, 2, 3, 4, 5, 6)],
         "policies": tuple(DEVELOPER_POLICIES),
     },
+    # The same five policies over the generated joint-venture pack: sampled
+    # capacities, feeder costs, partner types, records and rounds over the 24
+    # sealed interface-3 worlds. This is the falsifiability proof of the
+    # coalition endpoint measured across worlds rather than shown on six.
+    "datacenter_v3_jv_world_controls_v1": {
+        "scope": "v3",
+        "cases": [],
+        "worlds": JV_WORLDS_ROOT,
+        "policies": tuple(DEVELOPER_POLICIES),
+    },
 }
 DEFAULT_BUNDLE_ROOT = REPOSITORY_ROOT / "evidence" / "datacenter_development" / PUBLICATION_ID
 CURATED_CASE = BUNDLES[PUBLICATION_ID]["curated"]
@@ -94,6 +106,9 @@ COLUMNS = (
     "inclusion_status",
     "run_plan_sha256",
     "replay_verified",
+    # The coalition endpoint's failure rule, judged per trajectory (V3 only;
+    # V2 rows carry an empty string).
+    "coalition_decision",
 )
 
 
@@ -103,7 +118,7 @@ def bundle_root_for(publication_id: str = PUBLICATION_ID) -> Path:
 
 def _cases(publication_id: str = PUBLICATION_ID) -> list[tuple[str, Path]]:
     sources = BUNDLES[publication_id]
-    curated = sources.get("cases") or [sources["curated"]]
+    curated = sources["cases"] if "cases" in sources else [sources["curated"]]
     cases = [("curated", path) for path in curated]
     if "worlds" in sources:
         manifest = load_pack_manifest(sources["worlds"])
@@ -147,6 +162,7 @@ async def _run(case_path: Path, policy: str, evidence_root: Path, scope: str = "
         # the case, the policy profile and every implementation.
         "run_plan_sha256": setup.plan.plan_sha256,
         "replay_verified": replayed == receipt,
+        "coalition_decision": str((outcome.get("coalition") or {}).get("coalition_decision", "")),
     }
 
 
@@ -206,6 +222,10 @@ def summarize(
             }
         )
     world_rows = [item for item in per_case if item["source"] == "world_pack"]
+    decisions = {
+        policy: dict(sorted(Counter(str(row["coalition_decision"]) for row in rows if row["policy"] == policy).items()))
+        for policy in _policies(publication_id)
+    } if any(row.get("coalition_decision") for row in rows) else {}
     return {
         "schema_version": "aeread.datacenter_scored_controls_summary/0.1",
         "publication_id": publication_id,
@@ -239,6 +259,11 @@ def summarize(
                 {str(item["adoption_termination"]) for item in world_rows}
             ),
         },
+        # Gate 5 item 7: the two synthetic arms the failure rule must reject.
+        # `free_rider` is under_funded wherever the record does not license a
+        # free ride; `fair_share` is over_funded wherever it does; `scripted`
+        # is the best response everywhere.
+        "coalition_decisions_by_policy": decisions,
         "per_case": per_case,
         "winner_claim_allowed": False,
         "inferential_model_ranking_allowed": False,
@@ -297,7 +322,10 @@ is what a subject's score is read against, not a subject.
 
 
 def _jv_readme(summary: Mapping[str, Any], publication_id: str) -> str:
-    cases = ", ".join(f"`{path.stem}`" for path in BUNDLES[publication_id]["cases"])
+    sources = BUNDLES[publication_id]
+    if "worlds" in sources:
+        return _jv_pack_readme(summary, publication_id)
+    cases = ", ".join(f"`{path.stem}`" for path in sources["cases"])
     lever = ", ".join(f"{int(item['reference_over_free_rider_cents']):,}" for item in summary["per_case"])
     return f"""# Scored controls for the V3 joint venture
 
@@ -314,9 +342,13 @@ untrue and its public record of earlier feeders is the only evidence: a
 bluffing partner that announces full coverage and funds pro rata, a generous
 partner whose record shows it kept its word, and a posturing partner that
 announces pro rata and covers the rest. Every trajectory is finalised, verified
-and replayed offline.
+and replayed offline. The reference funds the share the partner's record
+licenses (zero where every recorded feeder was funded in full, the capacity
+share otherwise); `free_rider` and `fair_share` are the two synthetic arms of
+the coalition endpoint's failure rule.
 
 - cases: {summary['case_count']}; trajectories: {summary['trajectory_count']}, all included, all replay-verified
+- coalition decisions by policy: {_decisions_line(summary)}
 - the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} cases
 - the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} cases
 - adopting every counter is admitted in {summary['adoption_admitted_in']} of {summary['case_count']} cases
@@ -331,6 +363,41 @@ solo stack still finances at the utility's solo interconnection price, and it
 trails the reference by that premium. This bundle is derived only from
 committed cases and the family engine and is regenerated, never edited. No
 claim about any model is made here.
+"""
+
+
+def _decisions_line(summary: Mapping[str, Any]) -> str:
+    return "; ".join(
+        f"{policy} " + ", ".join(f"{decision} {count}" for decision, count in counts.items())
+        for policy, counts in summary.get("coalition_decisions_by_policy", {}).items()
+    )
+
+
+def _jv_pack_readme(summary: Mapping[str, Any], publication_id: str) -> str:
+    world = summary["world_pack"]
+    split = BUNDLES[publication_id]["worlds"].name
+    return f"""# Scored controls for the V3 joint-venture worlds
+
+Five provider-free developer policies -- the scripted reference funding the
+share the partner's record licenses, walking away at the first offer, adopting
+every counter, the free rider (nothing toward the feeder, whatever the
+evidence) and the fair share (its capacity share, whatever the evidence) --
+run through the real scheduler on every world of
+`cases/datacenter_development_v1/{split}/`: a sampled joint venture laid over
+each of the 24 sealed interface-3 worlds. Every trajectory is finalised,
+verified and replayed offline.
+
+- worlds: {world['world_count']}; trajectories: {summary['trajectory_count']}, all included, all replay-verified
+- the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} worlds
+- the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} worlds
+- coalition decisions by policy: {_decisions_line(summary)}
+
+The last line is the coalition endpoint's falsifiability proof (QC profile,
+Gate 5 item 7): the rule classifies the reference as the best response on
+every world, rejects the free rider wherever the record does not license a
+free ride, and rejects the fair share wherever it does. This bundle is derived
+only from committed cases and the family engine and is regenerated, never
+edited. No claim about any model is made here.
 """
 
 
@@ -366,7 +433,8 @@ def write_bundle(
                     "curated_cases": {
                         path.stem: load_stack_case(_scope(publication_id), path).content_sha256
                         for path in sources["cases"]
-                    }
+                    },
+                    **({"world_pack_sha256": load_pack_manifest(sources["worlds"])["artifact_sha256"]} if "worlds" in sources else {}),
                 }
                 if "cases" in sources
                 else {

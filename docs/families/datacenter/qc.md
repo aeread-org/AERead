@@ -323,6 +323,60 @@ informed policy that uses the counterparty's stated reasons, shortcut tests on
 the prompt surface, and a beatability rule predeclared before any live subject
 is read against these anchors.
 
+**Joint venture, scope V3 (2026-09-21, PR #214).** The coalition primitive
+adds a partner seat, a jointly proposed feeder agreement and a fourth and
+fifth scored control. Its endpoint is the developer's coalition decision, and
+that endpoint has a stated failure rule, because the probes showed a subject
+whose every choice was payoff-maximising, including free-riding on a partner
+that had announced it would cover the rest, and a rule that cannot call that
+either right or wrong guards nothing (Gate 5, item 7).
+
+*The rule.* The developer's objective is its own equity NPV. The partner's
+announcement is cheap talk; its public record of earlier feeders (what it
+announced, what it funded) is the only evidence. **Free-riding is the correct
+answer exactly when the record is non-empty and every recorded feeder was
+funded in full by the partner; otherwise the developer's capacity share is.**
+Funding less than the evidence requires is `under_funded` (the coalition
+fails and the developer pays the solo price, or it rode on cheap talk and
+happened to be covered, which the rule counts the same); funding more is
+`over_funded` (money left on the table); the reference funds the licensed
+share and is `best_response` by construction, enforced in
+`validate_payload`. The classification is written into every outcome's
+`coalition` block as `record_best_response_share_bps` and
+`coalition_decision`, implemented once in
+`stack_environment.record_best_response_share_bps`. A consequence the reader
+must accept: on the sincere generous case (003, no record) Gemini's four free
+rides earned 18,000 each and are classified `under_funded`, because the
+benchmark scores the decision against the evidence, not the outcome.
+
+*The two synthetic arms the rule must reject.* `free_rider` offers nothing
+whatever the record shows; `fair_share` offers the capacity share whatever
+the record shows. On the six curated cases
+(`datacenter_v3_jv_scored_controls_v1`, 30 trajectories) the rule classifies
+the reference `best_response` 6 of 6, the free rider `under_funded` 4 of 6,
+the fair share `over_funded` 2 of 6. On the generated pack
+(`datacenter_v3_jv_world_controls_v1`, 24 worlds, 120 trajectories) the
+reference is `best_response` 24 of 24, the free rider `under_funded` 13 of
+24, the fair share `over_funded` 11 of 24. Both arms fail the rule somewhere
+and the reference nowhere; a subject that always free-rides and one that
+always pays its share both score below the reference on the pack.
+
+*The generator.* `python -m aeread_families.datacenter_development.jv_worlds`
+lays a sampled joint venture over each of the 24 sealed interface-3 worlds:
+the partner's capacity is a sampled multiple of the developer's contracted
+power (0.5x to 3x), the feeder's cost a sampled multiple of the solo
+interconnection price (1.3x to 2.4x), the partner one of five types with a
+sampled truthful record of 0 to 3 feeders, the joint offer one round or
+three. Every draw goes through the construct guard, and the guard's admission
+is measured across seeds rather than asserted: 24 of 47 draws admitted, 23
+refused as inert (the developer's share would not beat the solo price by the
+margin), an admission rate of 51%. The admitted pack has 7 pro-rata, 1
+conditional, 7 generous, 3 bluffing and 6 posturing partners, 6 worlds with no
+record, and 11 worlds where the record licenses a free ride. What the pack
+does not yet vary: records that are mixed or stale, and partner types that
+change conduct between feeders. Six curated cases are development
+qualification; this pack is the first thing a JV panel could be frozen on.
+
 **What changed on 2026-09-19.** Two live probes on the sealed V2 case (Gemini
 3.8 Flash and GPT-6 Astra, three seeds each, $1.10 in total) showed why the
 score hides everything: Gemini opened every agreement bidding *against itself*
@@ -493,7 +547,11 @@ legal terminal economic outcome and on the sealed V2 case beat the reference,
 as procurement's terminal feasibility once counted a deferral as a success.
 That is why the confirmatory's primary endpoint is admission — a completed
 stack the lender funds — and why walk-away and adopt-every-counter run as
-scored controls that fail it on every world.
+scored controls that fail it on every world. For scope V3 the coalition
+endpoint carries its own falsifying arms (§3, joint venture): `free_rider`
+fails the record rule on 13 of 24 generated worlds and `fair_share` on 11 of
+24, so the endpoint rejects both a subject that always rides and one that
+always pays.
 
 **Main blocker (2026-09-20):** one route and no random or blind control rate
 measured per world, so the confirmatory number is descriptive and compares

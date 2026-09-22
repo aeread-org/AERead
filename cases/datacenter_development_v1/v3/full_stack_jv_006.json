@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.v3.full_stack_jv_006",
-  "content_sha256": "84b32863054e83e5872f9dd201f6ca30f4718a14ae668fa5659c9387ec49d191",
+  "content_sha256": "e187c262f18168ef634d4c63fe8e948dd30c0c9bf30666bb42e8a40df9627396",
   "episode": {
     "max_logical_actions": 44,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 40000,
-      "developer_equity_npv_cents": -73000,
+      "developer_equity_npv_cents": -55000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": -33000
+      "total_project_npv_cents": -15000
     },
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
@@ -398,11 +398,11 @@
           "site_control"
         ],
         "developer_capacity_kw": 1000,
-        "developer_share_bps": 4000,
+        "developer_share_bps": 0,
         "feeder_capacity_kw": 2500,
         "feeder_cost_cents": 45000,
         "partner_capacity_kw": 1500,
-        "partner_share_bps": 6000
+        "partner_share_bps": 10000
       },
       "land_amendment_fields": [
         "site_control_expiry_month"

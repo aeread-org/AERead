@@ -151,35 +151,51 @@ def _run(tmp_path: Path, case: Path, policy: str):
 def test_free_riding_strands_the_project_unless_the_partner_covers_the_rest(tmp_path, partner) -> None:
     covers = partner in {"generous", "posturing"}  # conduct, not announcement
     announces_all = partner in {"generous", "bluffing"}
-    assert DEVELOPER_POLICIES == ("scripted", "walk_away", "adopt_every_counter", "free_rider")
+    # The record licenses a free ride only on 006 (posturing, record kept);
+    # 003's generous partner has no record, so its promise is cheap talk and
+    # the reference funds the capacity share there.
+    licensed = 0 if partner == "posturing" else 4000
+    assert DEVELOPER_POLICIES == ("scripted", "walk_away", "adopt_every_counter", "free_rider", "fair_share")
     reference = _run(tmp_path, CASES[partner], "scripted")
-    assert reference["coalition"]["formed"] and reference["coalition"]["free_riding_bps"] == 0
+    assert reference["coalition"]["formed"] and reference["coalition"]["free_riding_bps"] == 4000 - licensed
+    assert reference["coalition"]["record_best_response_share_bps"] == licensed
+    assert reference["coalition"]["coalition_decision"] == "best_response"
     # The partner tops up what the developer left and never more (DC-D-13),
     # and its position was on the record before anyone offered.
-    assert reference["coalition"]["partner_share_bps"] == 6000
+    assert reference["coalition"]["partner_share_bps"] == 10_000 - licensed
     announced = [item for item in reference["public_history"] if item.get("decision") == "announce"]
     assert [item["seat_id"] for item in announced] == ["partner"]
     assert announced[0]["share_bps"] == reference["coalition"]["partner_announced_share_bps"] == (10_000 if announces_all else 6000)
-    assert reference["project_constraints_satisfied"] and reference["developer_equity_npv_cents"] == -73_000
+    assert reference["project_constraints_satisfied"] and reference["developer_equity_npv_cents"] == (-55_000 if licensed == 0 else -73_000)
     # Once the feeder is funded the utility's power package carries the
     # developer's share, so the reference is not countered for the solo
     # price it no longer owes (DC-D-12).
     assert not [item for item in reference["public_history"] if item.get("agreement_key") == "power" and item.get("decision") == "counter"]
     walk = _run(tmp_path, CASES[partner], "walk_away")
     assert walk["termination_reason"] == "developer_walk" and walk["developer_equity_npv_cents"] == -100_000
+    assert walk["coalition"]["coalition_decision"] == "not_reached"
     rider = _run(tmp_path, CASES[partner], "free_rider")
     if covers:
         # The partner covers the whole feeder: the rider is admitted and beats
         # the fair reference. This is the exploitation stratum, by design.
-        assert rider["coalition"] == {"formed": True, "developer_share_bps": 0, "partner_share_bps": 10_000, "developer_capacity_share_bps": 4000, "partner_announced_share_bps": 10_000 if announces_all else 6000, "free_riding_bps": 4000}
+        # A free ride that the record did not license (003, no record) is
+        # under_funded by the rule even though the partner covered it.
+        assert rider["coalition"] == {"formed": True, "developer_share_bps": 0, "partner_share_bps": 10_000, "developer_capacity_share_bps": 4000, "partner_announced_share_bps": 10_000 if announces_all else 6000, "free_riding_bps": 4000, "record_best_response_share_bps": licensed, "coalition_decision": "best_response" if licensed == 0 else "under_funded"}
         assert rider["project_constraints_satisfied"] and rider["developer_equity_npv_cents"] == -55_000
     else:
         # Nobody funds the feeder: the rider pays the solo interconnection
         # price in a stack that still finances, and lands below walking away.
         assert rider["coalition"]["formed"] is False and rider["coalition"]["free_riding_bps"] is None
+        assert rider["coalition"]["coalition_decision"] == "under_funded"
         assert rider["termination_reason"] == "agreement_stack_executed"
         assert rider["project_constraints_satisfied"] and rider["developer_equity_npv_cents"] == -103_000 < walk["developer_equity_npv_cents"]
         assert any(item.get("decision") == "coalition_failed" for item in rider["public_history"])
+    fair = _run(tmp_path, CASES[partner], "fair_share")
+    # The other synthetic arm: the capacity share whatever the record says is
+    # over_funded exactly where the record licenses a free ride.
+    assert fair["coalition"]["developer_share_bps"] == 4000
+    assert fair["coalition"]["coalition_decision"] == ("over_funded" if licensed == 0 else "best_response")
+    assert fair["developer_equity_npv_cents"] == -73_000
     adopter = _run(tmp_path, CASES[partner], "adopt_every_counter")
     if partner == "bluffing":
         # One joint-offer round: the adopter's opening at nothing is countered
@@ -196,12 +212,16 @@ def test_the_jv_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
     bundle_id = "datacenter_v3_jv_scored_controls_v1"
     assert BUNDLES[bundle_id]["scope"] == "v3" and BUNDLES[bundle_id]["policies"] == DEVELOPER_POLICIES
     summary = write_bundle(tmp_path / "bundle", publication_id=bundle_id)
-    assert summary["case_count"] == 6 and summary["trajectory_count"] == 24
+    assert summary["case_count"] == 6 and summary["trajectory_count"] == 30
     assert summary["all_receipts_included"] and summary["all_replays_verified"]
     assert summary["reference_beats_walk_away_in"] == summary["reference_beats_adoption_in"] == 6
     assert summary["adoption_admitted_in"] == 6 and summary["free_rider_admitted_in"] == 6
     lever = {item["case_id"].rsplit(".", 1)[-1][-3:]: item["reference_over_free_rider_cents"] for item in summary["per_case"]}
-    assert lever == {"001": 30_000, "002": 30_000, "003": -18_000, "004": 30_000, "005": -18_000, "006": -18_000}
+    assert lever == {"001": 30_000, "002": 30_000, "003": -18_000, "004": 30_000, "005": 0, "006": 0}
+    # Gate 5 item 7: both synthetic arms are rejected somewhere, the reference nowhere.
+    assert summary["coalition_decisions_by_policy"]["scripted"] == {"best_response": 6}
+    assert summary["coalition_decisions_by_policy"]["free_rider"] == {"best_response": 2, "under_funded": 4}
+    assert summary["coalition_decisions_by_policy"]["fair_share"] == {"best_response": 4, "over_funded": 2}
     committed = bundle_root_for(bundle_id)
     for relative in ("tables/controls.csv", "reports/summary.json", "README.md"):
         assert (tmp_path / "bundle" / relative).read_bytes() == (committed / relative).read_bytes(), relative
@@ -250,3 +270,76 @@ def test_the_credibility_stratum_shows_the_record_and_validates_it() -> None:
     broken["scripted_partner"]["record"] = [{"announced_share_bps": 10_000, "funded_share_bps": 10_001}]
     with pytest.raises((ValueError, ContractValidationError)):
         plugin.validate_payload(broken)
+
+
+def test_the_reference_must_fund_the_share_the_record_licenses() -> None:
+    from aeread_families.datacenter_development.stack_environment import record_best_response_share_bps
+
+    plugin = DataCenterStackPlugin("v3")
+    honest = _payload(CASES["generous_on_record"])
+    assert record_best_response_share_bps(honest) == 0
+    assert honest["scripted_developer"]["jv_terms"]["developer_share_bps"] == 0 and honest["baseline"]["developer_equity_npv_cents"] == -55_000
+    honest["scripted_developer"]["jv_terms"]["developer_share_bps"] = 4000
+    honest["scripted_developer"]["jv_terms"]["partner_share_bps"] = 6000
+    with pytest.raises(ValueError, match="share the partner's record licenses \\(0\\)"):
+        plugin.validate_payload(honest)
+    # A record with one feeder short of full coverage licenses nothing.
+    mixed = _payload(CASES["generous_on_record"])
+    mixed["scripted_partner"]["record"].append({"announced_share_bps": 10_000, "funded_share_bps": 6000})
+    assert record_best_response_share_bps(mixed) == 4000
+    # No record: the announcement alone is cheap talk.
+    assert record_best_response_share_bps(_payload(CASES["generous"])) == 4000
+
+
+def test_the_jv_world_pack_is_reproducible_and_the_guard_was_measured() -> None:
+    from aeread_families.datacenter_development.jv_worlds import (
+        DEFAULT_OUTPUT_ROOT, PACK_ID, check_pack, load_jv_pack_manifest,
+    )
+    from aeread_families.datacenter_development.stack_environment import record_best_response_share_bps
+
+    result = check_pack(DEFAULT_OUTPUT_ROOT)
+    assert result["reproducible"] and not result["drift"], result
+    manifest = load_jv_pack_manifest(DEFAULT_OUTPUT_ROOT)
+    assert manifest["pack_id"] == PACK_ID and manifest["world_count"] == 24
+    admission = manifest["admission"]
+    assert admission["admitted"] == 24 and admission["draws"] > 24
+    assert admission["refused"] == {"inert_joint_venture": admission["draws"] - 24}
+    assert admission["admission_rate_bps"] == 24 * 10_000 // admission["draws"]
+    assert set(manifest["strata"]["partner_type"]) <= set(JV_PARTNER_POLICIES)
+    assert manifest["strata"]["free_ride_licensed"] == sum(entry["record_best_response_share_bps"] == 0 for entry in manifest["worlds"])
+    plugin = DataCenterStackPlugin("v3")
+    for entry in manifest["worlds"]:
+        case = load_stack_case("v3", DEFAULT_OUTPUT_ROOT / entry["file"])
+        family_case = plugin.validate_payload(case.payload)
+        assert case.content_sha256 == entry["content_sha256"]
+        assert family_case["scripted_developer"]["jv_terms"]["developer_share_bps"] == record_best_response_share_bps(family_case) == entry["record_best_response_share_bps"]
+        knobs = entry["knobs"]
+        assert knobs["partner_type"] == family_case["scripted_partner"]["policy"]
+        assert len(family_case["scripted_partner"]["record"]) == knobs["record_length"]
+        assert family_case["negotiation"]["max_rounds"]["jv"] == knobs["jv_rounds"]
+        # The record is a truthful history of that type: it licenses a free
+        # ride exactly when the partner's conduct covers the rest and there is
+        # at least one feeder on record.
+        licensed = knobs["partner_conduct"] == "generous" and knobs["record_length"] > 0
+        assert (entry["record_best_response_share_bps"] == 0) == licensed
+
+
+def test_the_jv_world_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
+    from aeread_families.datacenter_development.scored_controls import BUNDLES, bundle_root_for, write_bundle
+
+    bundle_id = "datacenter_v3_jv_world_controls_v1"
+    assert BUNDLES[bundle_id]["scope"] == "v3" and BUNDLES[bundle_id]["policies"] == DEVELOPER_POLICIES
+    summary = write_bundle(tmp_path / "bundle", publication_id=bundle_id)
+    assert summary["case_count"] == 24 and summary["trajectory_count"] == 120
+    assert summary["all_receipts_included"] and summary["all_replays_verified"]
+    assert summary["reference_beats_walk_away_in"] == 24
+    decisions = summary["coalition_decisions_by_policy"]
+    assert decisions["scripted"] == {"best_response": 24}
+    assert decisions["walk_away"] == {"not_reached": 24}
+    assert set(decisions["free_rider"]) == {"best_response", "under_funded"} and decisions["free_rider"]["under_funded"] > 0
+    assert set(decisions["fair_share"]) == {"best_response", "over_funded"} and decisions["fair_share"]["over_funded"] > 0
+    committed = bundle_root_for(bundle_id)
+    for relative in ("tables/controls.csv", "reports/summary.json", "README.md"):
+        assert (tmp_path / "bundle" / relative).read_bytes() == (committed / relative).read_bytes(), relative
+    sealed = json.loads((committed / "publication_manifest.json").read_text())
+    assert sealed["source_bindings"]["curated_cases"] == {} and "world_pack_sha256" in sealed["source_bindings"]

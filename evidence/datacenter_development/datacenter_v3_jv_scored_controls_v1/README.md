@@ -13,13 +13,17 @@ untrue and its public record of earlier feeders is the only evidence: a
 bluffing partner that announces full coverage and funds pro rata, a generous
 partner whose record shows it kept its word, and a posturing partner that
 announces pro rata and covers the rest. Every trajectory is finalised, verified
-and replayed offline.
+and replayed offline. The reference funds the share the partner's record
+licenses (zero where every recorded feeder was funded in full, the capacity
+share otherwise); `free_rider` and `fair_share` are the two synthetic arms of
+the coalition endpoint's failure rule.
 
-- cases: 6; trajectories: 24, all included, all replay-verified
+- cases: 6; trajectories: 30, all included, all replay-verified
+- coalition decisions by policy: scripted best_response 6; walk_away not_reached 6; adopt_every_counter best_response 4, under_funded 2; free_rider best_response 2, under_funded 4; fair_share best_response 4, over_funded 2
 - the reference beats walking away in 6 of 6 cases
 - the reference beats adopting every counter in 6 of 6 cases
 - adopting every counter is admitted in 6 of 6 cases
-- the free rider is admitted in 6 of 6 cases; the reference clears it by 30,000, 30,000, -18,000, 30,000, -18,000, -18,000 cents per case
+- the free rider is admitted in 6 of 6 cases; the reference clears it by 30,000, 30,000, -18,000, 30,000, 0, 0 cents per case
 
 The reference is the fair share, not the highest NPV. The partner states its
 position before anyone offers, so the developer knows what a free ride is

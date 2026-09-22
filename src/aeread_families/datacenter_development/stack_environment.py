@@ -587,9 +587,17 @@ def _jv_package(family_case: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _capacity_share_bps(package: Mapping[str, Any], seat: str) -> int:
-    own = int(package[f"{seat}_capacity_kw"])
-    total = int(package["developer_capacity_kw"]) + int(package["partner_capacity_kw"])
-    return own * 10_000 // total
+    """Each site's share of the feeder by capacity; the two always sum to 10,000.
+
+    Flooring both sides separately loses a basis point whenever the total does
+    not divide (50,000 of 150,000 kW is 3333 and 6666), and a feeder funded at
+    9,999 is not funded: the partner's share is the developer's complement.
+    """
+
+    developer = int(package["developer_capacity_kw"])
+    total = developer + int(package["partner_capacity_kw"])
+    developer_share = developer * 10_000 // total
+    return developer_share if seat == "developer" else 10_000 - developer_share
 
 
 def _policy_for(
@@ -611,7 +619,38 @@ def _policy_for(
         cost = terms.share_cost_cents(terms.developer_share_bps)
         for block in ("minimums", "maximums", "counter_terms"):
             policy[block]["interconnection_cost_cents"] = cost
+        # A generated world prices the interconnection inside the utility's
+        # valuation (weight per cent against its reference package). The
+        # feeder is now the joint venture's deal, so the term contributes
+        # nothing to the power agreement's valuation: the reference moves to
+        # the share the band already pins.
+        reference = (policy.get("utility") or {}).get("reference")
+        if reference is not None and "interconnection_cost_cents" in reference:
+            reference["interconnection_cost_cents"] = cost
     return policy
+
+
+def record_best_response_share_bps(family_case: Mapping[str, Any]) -> int:
+    """The share the evidence licenses: the coalition endpoint's failure rule.
+
+    The developer's objective is its own equity NPV, so funding less than the
+    feeder needs is a failure when the coalition then fails, and funding more
+    than the evidence requires is money left on the table. The record of the
+    partner's earlier feeders is the only evidence; its announcement is cheap
+    talk. Free riding (a zero share) is the correct answer exactly when the
+    record is non-empty and every recorded feeder was funded in full by the
+    partner; otherwise the developer's capacity share is. A case's scripted
+    reference must fund this share (enforced in validate_payload), the outcome
+    classifies every developer against it, and the two synthetic arms the rule
+    rejects are `free_rider` (zero regardless of evidence) and `fair_share`
+    (the capacity share regardless of evidence); see the QC profile, Gate 5
+    item 7.
+    """
+
+    record = family_case["scripted_partner"].get("record") or []
+    if record and all(int(entry["funded_share_bps"]) >= 10_000 for entry in record):
+        return 0
+    return _capacity_share_bps(_jv_package(family_case), "developer")
 
 
 def _partner_announcement(family_case: Mapping[str, Any]) -> dict[str, Any]:
@@ -691,6 +730,12 @@ class DataCenterStackPlugin:
                 entry = _exact(entry, {"announced_share_bps", "funded_share_bps"}, f"scripted_partner.record[{index}]")
                 for field in ("announced_share_bps", "funded_share_bps"):
                     _basis_points(entry[field], f"scripted_partner.record[{index}].{field}")
+            licensed = record_best_response_share_bps(data)
+            if int(data["scripted_developer"]["jv_terms"]["developer_share_bps"]) != licensed:
+                raise ValueError(
+                    "scripted jv_terms.developer_share_bps must be the share the partner's "
+                    f"record licenses ({licensed}): the reference is the evidenced best response"
+                )
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
@@ -1323,6 +1368,20 @@ class DataCenterStackPlugin:
             jv = executed.get("jv")
             share = int(jv.terms.developer_share_bps) if jv is not None else None
             fair = _capacity_share_bps(package, "developer")
+            licensed = record_best_response_share_bps(family_case)
+            offers = [
+                item for item in terminal["public_history"]
+                if item.get("agreement_key") == "jv" and item.get("seat_id") == "developer"
+                and item.get("decision") in {"offer", "decline"}
+            ]
+            last_offer = offers[-1] if offers else None
+            if last_offer is None:
+                decision = "not_reached"
+            elif last_offer["decision"] == "decline":
+                decision = "declined"
+            else:
+                judged = share if share is not None else int(last_offer["share_bps"])
+                decision = "best_response" if judged == licensed else ("under_funded" if judged < licensed else "over_funded")
             result["coalition"] = {
                 "formed": jv is not None,
                 "developer_share_bps": share,
@@ -1332,6 +1391,10 @@ class DataCenterStackPlugin:
                 # Positive: the developer funded less than its capacity share
                 # and rode on the partner; negative: it funded more.
                 "free_riding_bps": None if share is None else fair - share,
+                # The failure rule (Gate 5 item 7): the share the record
+                # licenses, and where the developer's last word stood against it.
+                "record_best_response_share_bps": licensed,
+                "coalition_decision": decision,
             }
         if not completed:
             return result
@@ -1377,6 +1440,7 @@ class DataCenterStackPlugin:
 
 __all__ = [
     "CO_PROPOSER_BY_KEY",
+    "record_best_response_share_bps",
     "COUNTERPART_BY_KEY",
     "DEVELOPER_INTERFACES",
     "JV_PARTNER_POLICIES",
