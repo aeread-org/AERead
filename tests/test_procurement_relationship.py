@@ -650,3 +650,47 @@ def test_relationship_prompt_extends_the_single_period_prompt() -> None:
     assert RELATIONSHIP_PROMPT.startswith(PROMPT)
     assert "period_schedule" in RELATIONSHIP_PROMPT
     assert load_case(CASE_PATHS[0]).episode.max_logical_actions == 40
+
+
+# --------------------------------------------------------------------------
+# The shopping reference
+# --------------------------------------------------------------------------
+
+
+def test_shopping_reference_never_beats_myopic_and_pays_only_for_shopping() -> None:
+    for path in CASE_PATHS:
+        payload = json.loads(path.read_text(encoding="utf-8"))["payload"]
+        myopic = rel.solve_myopic_reference(payload)
+        shopping = rel.solve_shopping_reference(payload)
+        assert shopping.contribution_margin_usd <= myopic.contribution_margin_usd + 1e-6
+    # With free instantaneous quotes and no retaliation anywhere, shopping
+    # costs nothing and the two references coincide exactly.
+    payload = json.loads(CASE_PATHS[0].read_text(encoding="utf-8"))["payload"]
+    payload["interaction"]["quote_cost_usd"] = 0.0
+    payload["interaction"]["quote_days"] = 1  # validation requires a positive day count
+    payload["objective"]["deadline_days"] = 60
+    for supplier in payload["suppliers"]:
+        supplier["private_terms"]["relationship"]["retaliation_markup"] = 0.0
+    case = ProcurementAllocationPlugin().validate_payload(payload)
+    assert rel.solve_shopping_reference(case).contribution_margin_usd == pytest.approx(
+        rel.solve_myopic_reference(case).contribution_margin_usd, abs=1e-6
+    )
+    # Retaliation alone separates them once a dropped supplier is priced in.
+    for supplier in payload["suppliers"]:
+        supplier["private_terms"]["relationship"]["retaliation_markup"] = 0.5
+    case = ProcurementAllocationPlugin().validate_payload(payload)
+    assert rel.solve_shopping_reference(case).contribution_margin_usd <= rel.solve_myopic_reference(
+        case
+    ).contribution_margin_usd
+
+
+def test_outcome_and_screen_carry_the_shopping_reference() -> None:
+    payload = json.loads(CASE_PATHS[4].read_text(encoding="utf-8"))["payload"]
+    verdict = screen_world(payload)
+    assert verdict["shopping_usd"] <= verdict["myopic_usd"]
+    episode = _Episode(payload)
+    episode.play({"action": "defer", "reason": "skip"})
+    for _ in range(3):
+        episode.play({"action": "defer", "reason": "skip"})
+    outcome = episode.outcome()
+    assert outcome["shopping_reference_usd"] == verdict["shopping_usd"]
