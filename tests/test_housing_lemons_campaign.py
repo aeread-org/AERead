@@ -239,7 +239,13 @@ def test_live_stages_run_halt_and_resume_without_paying_twice(tmp_path):
         "README.md", "reports/design.json", "reports/variance_pilot.json", "reports/analysis.json",
         "qc/provider_free_validation.json", "qc/profile_admission.json", "tables/cells.jsonl",
         "tables/scripted_controls.jsonl", "trajectories/sanitized.jsonl",
+        "reports/variance_pilot_attempt_1.json",
     }
+    assert manifest["prior_pilot_attempts"] == 1
+    first_attempt = json.loads((bundle / "reports/variance_pilot_attempt_1.json").read_bytes())
+    assert [row["status"] for row in first_attempt["rows"]] == [
+        "completed", "operational_failure", "operational_failure", "not_attempted",
+    ]
     for relative, digest in manifest["artifacts"].items():
         payload = (bundle / relative).read_bytes()
         assert __import__("hashlib").sha256(payload).hexdigest() == digest

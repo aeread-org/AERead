@@ -239,6 +239,10 @@ Includes the preserved case-selection bundle at the evidence root.
   selected development configurations;
 - [housing_qc_goldens_v1](housing/housing_qc_goldens_v1/): six provider-free Housing environment/verifier
   golden receipts and their digest-bound QC report;
+- [housing_lemons_refusal_pilot_v1](housing/housing_lemons_refusal_pilot_v1/): the lemons world (refusal
+  under adverse selection) pilot, one Gemini 3.8 Flash tenant population on 24 gate-admitted worlds x 2
+  seeds with the three scripted controls on the same pack; descriptive, exploratory, both attempts
+  published, no winner claim;
 - [housing_model_sensitivity_openrouter_alt_v4](housing/housing_model_sensitivity_openrouter_alt_v4/),
   [housing_model_sensitivity_openrouter_alt_v5](housing/housing_model_sensitivity_openrouter_alt_v5/),
   [housing_model_sensitivity_openrouter_alt_v6](housing/housing_model_sensitivity_openrouter_alt_v6/),

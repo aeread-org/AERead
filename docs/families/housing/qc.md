@@ -773,7 +773,33 @@ signed an uninspected lemon, that fell below sign-anything, and that beat the
 reference are counted beside the intervals. Operational failures are reported
 as missingness, never as zero scores.
 
-**Status.** The design and provider-free gates pass offline (the test suite
-runs them). No paid gate has run under this identity; the two development cells
-recorded as HL-O-01 were run outside it. Publication is a separate step after
-`variance_pilot` and lands under `evidence/housing/housing_lemons_refusal_pilot_v1/`.
+**Result (2026-09-21, exploratory, no claim).** All five gates passed. The
+pilot needed two attempts: the first lost its network after 19 completed cells
+and the stop rule halted it (HL-O-03); the second reused those 19 and completed
+the pack, 48 of 48 cells, $4.30 for the campaign including the failed cells,
+costs exact. The sealed bundle is
+[`evidence/housing/housing_lemons_refusal_pilot_v1/`](../../../evidence/housing/housing_lemons_refusal_pilot_v1/),
+verified by recomputing every digest, re-driving all 49 live receipts through
+the environment (0 score mismatches) and recomputing the analysis from the
+published rows. Over 24 worlds, one Gemini 3.8 Flash tenant population:
+
+| endpoint (mean over worlds, 95% world-clustered interval) | overall | favourite is lemon | favourite is sound |
+|---|---|---|---|
+| tenant net payoff | 328.5 (248.0 to 405.8) | 301.4 (170.5 to 423.9) | 355.7 (264.2 to 445.1) |
+| within-case score (net / oracle) | 0.223 (0.171 to 0.271) | 0.188 (0.113 to 0.256) | 0.258 (0.194 to 0.318) |
+| abstention correctness | 0.993 (0.979 to 1.000) | 0.986 (0.958 to 1.000) | 1.000 |
+| cells signing an uninspected lemon | 2 of 48 | 2 of 24 | 0 of 24 |
+| live minus inspect-then-sign reference | -25.6 (-95.4 to 23.1) | -28.1 (-156.2 to 54.4) | -23.2 (-72.7 to 3.5) |
+| cells above the reference / below sign-anything | 34 / 0 | 14 / 0 | 20 / 0 |
+
+Read descriptively: the live tenant sits within the scripted bracket on every
+cell, never below sign-anything, above the inspect-then-sign reference on 34 of
+48 cells, and the paired difference to the reference is indistinguishable from
+zero at this size. Both uninspected lemon signings, and both negative cells, are
+the two seeds of one world (100025) in the favourite-is-lemon stratum, the only
+world where the pooled expectation of the popular listing exceeded the rent and
+the listing was a lemon. The two inference seeds gave identical net payoffs on
+16 of 24 worlds, so seed variance is small relative to world variance and a
+powered design should spend its budget on worlds. None of this ranks a model or
+supports a winner; a second route on the same pack would be a paired contrast,
+not a ranking.

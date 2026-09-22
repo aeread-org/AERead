@@ -1315,7 +1315,24 @@ def publish(
         {"stage": "full_trajectory", **row} for row in full["rows"]
     ] + [{"stage": "variance_pilot", **row} for row in pilot["rows"]]
     controls = [{"stage": "provider_free_validation", **row} for row in provider_free["rows"]]
+    # Every earlier attempt of the pilot stage is published too: its failed and
+    # not-attempted rows are the typed missingness the passed attempt reused
+    # around, and their cost is part of what the campaign spent.
+    prior_attempts: dict[str, dict[str, Any]] = {}
+    failed_attempt_cost = 0.0
+    for attempt in range(1, pilot["attempt_index"]):
+        path = _live_stage_root(run_root, "variance_pilot", attempt) / "summary.json"
+        if not path.exists():
+            continue
+        summary = read_sealed(path)
+        prior_attempts[f"reports/variance_pilot_attempt_{attempt}.json"] = summary
+        failed_attempt_cost += sum(
+            float(row.get("cost_usd", 0.0))
+            for row in summary["rows"]
+            if row.get("status") != "completed"
+        )
     files = {
+        **{relative: canonical_json_bytes(summary) + b"\n" for relative, summary in prior_attempts.items()},
         "reports/design.json": canonical_json_bytes(design) + b"\n",
         "reports/full_trajectory.json": canonical_json_bytes(full) + b"\n",
         "reports/variance_pilot.json": canonical_json_bytes(pilot) + b"\n",
@@ -1365,9 +1382,18 @@ def publish(
         inferential_model_ranking_allowed=False,
         cost_qualifier=pilot["cost_qualifier"],
         total_cost_usd=round(
-            float(pilot["total_cost_usd"]) + float(full["total_cost_usd"]) + float(admission["total_cost_usd"]),
+            float(pilot["total_cost_usd"])
+            + failed_attempt_cost
+            + float(full["total_cost_usd"])
+            + float(admission["total_cost_usd"]),
             6,
         ),
+        cost_basis=(
+            "profile admission + full trajectory + every variance-pilot cell, "
+            "including the failed cells of earlier attempts; completed cells reused "
+            "across attempts are counted once"
+        ),
+        prior_pilot_attempts=len(prior_attempts),
     )
     attempt_dirs = _live_attempt_dirs(full["rows"], full_root / LIVE_CONDITION_ID / "evidence")
     for prior in range(1, 100):
