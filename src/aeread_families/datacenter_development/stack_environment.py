@@ -91,6 +91,11 @@ COUNTERPART_BY_KEY = {
 #: simultaneous phase, and both must sign before the counterpart's signature
 #: executes the agreement.
 CO_PROPOSER_BY_KEY = {"jv": "partner"}
+#: What a developer with no record of its neighbour should assume: the share of
+#: developers in the territory that fund whatever is left. 5,000 is the mean of
+#: a uniform prior over a partner's coverage propensity, which is also what the
+#: estimator below returns for an empty record. A case may declare its own.
+DEFAULT_COVERAGE_PRIOR_BPS = 5_000
 #: How the scripted partner plays the joint venture. ``pro_rata`` funds its own
 #: capacity share and no more; ``conditional`` does the same only while the
 #: developer's last offer covered the developer's capacity share, otherwise
@@ -201,6 +206,8 @@ def _construct_controls(value: Any) -> dict[str, Any] | None:
         fields.add("developer_interface")
     if isinstance(value, dict) and "developer_objective_stated" in value:
         fields.add("developer_objective_stated")
+    if isinstance(value, dict) and "partner_coverage_prior_bps" in value:
+        fields.add("partner_coverage_prior_bps")
     controls = _exact(value, fields, "construct_controls")
     for flag in ("baseline_must_dominate_outside_option", "two_sided_price_bands"):
         if not isinstance(controls[flag], bool):
@@ -218,6 +225,11 @@ def _construct_controls(value: Any) -> dict[str, Any] | None:
     stated = controls.get("developer_objective_stated", False)
     if not isinstance(stated, bool):
         raise ValueError("construct_controls.developer_objective_stated must be a boolean")
+    if "partner_coverage_prior_bps" in controls:
+        _basis_points(
+            controls["partner_coverage_prior_bps"],
+            "construct_controls.partner_coverage_prior_bps",
+        )
     return controls
 
 
@@ -551,6 +563,16 @@ def _baseline_stack(
             agreement_key,
             family_case["scripted_developer"][f"{agreement_key}_terms"],
         )
+        if agreement_key == "jv" and not coalition_forms_at_share(
+            family_case, int(family_case["scripted_developer"]["jv_terms"]["developer_share_bps"])
+        ):
+            # The reference's own coalition does not form: the scripted partner
+            # will not fund the remainder at this share, so the baseline is the
+            # stack the reference actually reaches, paying the utility's solo
+            # interconnection price. Declaring the joint venture executed here
+            # would have made the case's baseline a path no control can walk
+            # and hidden it from the inert-lever guard below (DC-D-21).
+            continue
         offer = _make_offer(
             family_case=family_case,
             state=state,
@@ -649,27 +671,104 @@ def _policy_for(
     return policy
 
 
-def record_best_response_share_bps(family_case: Mapping[str, Any]) -> int:
-    """The share the evidence licenses: the coalition endpoint's failure rule.
+def coalition_forms_at_share(family_case: Mapping[str, Any], developer_share_bps: int) -> bool:
+    """Whether the scripted partner funds the remainder at this developer share.
 
-    The developer's objective is its own equity NPV, so funding less than the
-    feeder needs is a failure when the coalition then fails, and funding more
-    than the evidence requires is money left on the table. The record of the
-    partner's earlier feeders is the only evidence; its announcement is cheap
-    talk. Free riding (a zero share) is the correct answer exactly when the
-    record is non-empty and every recorded feeder was funded in full by the
-    partner; otherwise the developer's capacity share is. A case's scripted
-    reference must fund this share (enforced in validate_payload), the outcome
-    classifies every developer against it, and the two synthetic arms the rule
-    rejects are `free_rider` (zero regardless of evidence) and `fair_share`
-    (the capacity share regardless of evidence); see the QC profile, Gate 5
-    item 7.
+    The joint offer is simultaneous, so the partner cannot condition on the
+    developer's share in the first round: it offers its own capacity share, or
+    covers the remainder if its conduct is to cover. A feeder is funded only
+    when the two shares reach the whole, so a developer that offers its
+    capacity share is funded whatever the partner does, and one that offers
+    less is funded only by a partner that covers.
+    """
+
+    fair = _capacity_share_bps(_jv_package(family_case), "developer")
+    if developer_share_bps >= fair:
+        return True
+    return JV_PARTNER_CONDUCT[family_case["scripted_partner"]["policy"]] == "generous"
+
+
+def coverage_probability_bps(family_case: Mapping[str, Any]) -> int:
+    """How likely the partner is to fund whatever the developer leaves, in bps.
+
+    The partner's announcement is cheap talk. Its record of earlier feeders is
+    evidence: how often it funded a feeder in full, shrunk toward the
+    territory's prior by one success and one failure, which is the posterior
+    mean of its coverage propensity under a uniform prior over that propensity.
+    With no record the estimate is the declared prior itself, which the case
+    states in `construct_controls.partner_coverage_prior_bps` and the developer
+    reads in its observation, so no number the rule uses is one only the scorer
+    knows.
     """
 
     record = family_case["scripted_partner"].get("record") or []
-    if record and all(int(entry["funded_share_bps"]) >= 10_000 for entry in record):
+    if not record:
+        controls = family_case.get("construct_controls") or {}
+        return int(controls.get("partner_coverage_prior_bps", DEFAULT_COVERAGE_PRIOR_BPS))
+    full = sum(1 for entry in record if int(entry["funded_share_bps"]) >= 10_000)
+    # The posterior mean of the partner's coverage propensity under a uniform
+    # prior over it, which is the raw frequency shrunk toward the prior by one
+    # success and one failure. The raw frequency would read a single feeder as
+    # certainty and make the rule beatable in aggregate by a constant policy
+    # (DC-D-20); this estimator is the one the case declares and the one the
+    # generator's worlds are drawn from, so the licensed share is the best
+    # response to the process that produced the world.
+    return (full + 1) * 10_000 // (len(record) + 2)
+
+
+def coalition_expected_costs(family_case: Mapping[str, Any]) -> dict[str, int]:
+    """What each coalition choice is expected to cost, in cents times 10,000.
+
+    Only two shares can ever be best, which is why the rule has exactly two
+    synthetic arms. Offering the capacity share funds the feeder whatever the
+    partner does, so it costs the share of the feeder with certainty. Offering
+    anything less funds it only if the partner covers the remainder, so it
+    costs the developer's share with probability p and the solo interconnection
+    price otherwise; that expectation rises with the share offered, so the best
+    share below the capacity share is zero. Offering more than the capacity
+    share funds the feeder and costs more than the capacity share does. The
+    minimum is therefore at zero or at the capacity share, and nowhere else.
+
+    Both figures are scaled by 10,000 so the comparison is exact in integers.
+    """
+
+    package = _jv_package(family_case)
+    fair = _capacity_share_bps(package, "developer")
+    feeder = int(package["feeder_cost_cents"])
+    # What a failed coalition costs: the interconnection price the reference
+    # would pay on its own, which is the figure the cash flow books when no
+    # joint venture is executed.
+    solo = int(family_case["scripted_developer"]["power_terms"]["interconnection_cost_cents"])
+    probability = coverage_probability_bps(family_case)
+    return {
+        "coverage_probability_bps": probability,
+        "capacity_share_bps": fair,
+        "pay_share_scaled_cents": feeder * fair,
+        "free_ride_scaled_cents": (10_000 - probability) * solo,
+    }
+
+
+def record_best_response_share_bps(family_case: Mapping[str, Any]) -> int:
+    """The share the evidence licenses: the coalition endpoint's failure rule.
+
+    The developer's objective is its own equity NPV, so the correct share is
+    the one with the lowest expected cost given what the developer can see:
+    the partner's record, or the declared prior when there is no record. Free
+    riding is correct when a failed coalition is cheap enough in expectation,
+    which is what `coalition_expected_costs` compares; otherwise the capacity
+    share is. The rule is therefore the ex-ante best response, not the choice
+    that happened to pay: a subject can follow it and still be unlucky, and a
+    control can beat the reference on a single world without either being
+    wrong. A case's scripted reference must fund this share and the comparison
+    must not be a tie, both enforced in `validate_payload`; the outcome
+    classifies every developer against it; the two arms the rule rejects are
+    `free_rider` and `fair_share`. See the QC profile, Gate 5 item 7.
+    """
+
+    costs = coalition_expected_costs(family_case)
+    if costs["free_ride_scaled_cents"] < costs["pay_share_scaled_cents"]:
         return 0
-    return _capacity_share_bps(_jv_package(family_case), "developer")
+    return int(costs["capacity_share_bps"])
 
 
 def _partner_announcement(family_case: Mapping[str, Any]) -> dict[str, Any]:
@@ -749,11 +848,19 @@ class DataCenterStackPlugin:
                 entry = _exact(entry, {"announced_share_bps", "funded_share_bps"}, f"scripted_partner.record[{index}]")
                 for field in ("announced_share_bps", "funded_share_bps"):
                     _basis_points(entry[field], f"scripted_partner.record[{index}].{field}")
+            costs = coalition_expected_costs(data)
+            if costs["free_ride_scaled_cents"] == costs["pay_share_scaled_cents"]:
+                # A tie has no correct answer, so nothing can be measured
+                # against it: the case must not be drawn on the threshold.
+                raise ValueError(
+                    "construct_controls: the coalition choice is a tie at coverage probability "
+                    f"{costs['coverage_probability_bps']} basis points, so no share is the best response"
+                )
             licensed = record_best_response_share_bps(data)
             if int(data["scripted_developer"]["jv_terms"]["developer_share_bps"]) != licensed:
                 raise ValueError(
-                    "scripted jv_terms.developer_share_bps must be the share the partner's "
-                    f"record licenses ({licensed}): the reference is the evidenced best response"
+                    "scripted jv_terms.developer_share_bps must be the share the evidence "
+                    f"licenses ({licensed}): the reference is the ex-ante best response"
                 )
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
@@ -1027,6 +1134,13 @@ class DataCenterStackPlugin:
                 # Earlier feeders the partner built in this territory, on the
                 # public record: what it said it would fund and what it did.
                 observation["partner_record"] = _plain(family_case["scripted_partner"].get("record", []))
+                # Public: what the territory's developers do, which is all a
+                # developer facing an unrecorded neighbour has to go on.
+                observation["partner_coverage_prior_bps"] = int(
+                    (family_case.get("construct_controls") or {}).get(
+                        "partner_coverage_prior_bps", DEFAULT_COVERAGE_PRIOR_BPS
+                    )
+                )
         elif key in CO_PROPOSER_BY_KEY and seat == CO_PROPOSER_BY_KEY[key]:
             package = _jv_package(family_case)
             observation.update(
@@ -1388,6 +1502,7 @@ class DataCenterStackPlugin:
             share = int(jv.terms.developer_share_bps) if jv is not None else None
             fair = _capacity_share_bps(package, "developer")
             licensed = record_best_response_share_bps(family_case)
+            costs = coalition_expected_costs(family_case)
             offers = [
                 item for item in terminal["public_history"]
                 if item.get("agreement_key") == "jv" and item.get("seat_id") == "developer"
@@ -1413,6 +1528,9 @@ class DataCenterStackPlugin:
                 # The failure rule (Gate 5 item 7): the share the record
                 # licenses, and where the developer's last word stood against it.
                 "record_best_response_share_bps": licensed,
+                "coverage_probability_bps": costs["coverage_probability_bps"],
+                "expected_cost_of_paying_the_share_cents": costs["pay_share_scaled_cents"] // 10_000,
+                "expected_cost_of_free_riding_cents": costs["free_ride_scaled_cents"] // 10_000,
                 "coalition_decision": decision,
             }
         if not completed:
@@ -1459,6 +1577,10 @@ class DataCenterStackPlugin:
 
 __all__ = [
     "CO_PROPOSER_BY_KEY",
+    "DEFAULT_COVERAGE_PRIOR_BPS",
+    "coalition_expected_costs",
+    "coalition_forms_at_share",
+    "coverage_probability_bps",
     "record_best_response_share_bps",
     "COUNTERPART_BY_KEY",
     "DEVELOPER_INTERFACES",

@@ -340,9 +340,25 @@ and every generated JV world opts in; no sealed campaign does, so no published
 prompt digest moves. The three live probes on #214 predate the note and
 predate the rule, so they are descriptive only and cannot test it. The
 partner's announcement is cheap talk; its public record of earlier feeders
-(what it announced, what it funded) is the only evidence. **Free-riding is the correct
-answer exactly when the record is non-empty and every recorded feeder was
-funded in full by the partner; otherwise the developer's capacity share is.**
+(what it announced, what it funded) is the evidence. **The correct share is the
+one with the lower expected cost: free-riding costs nothing if the partner
+covers the remainder and the solo interconnection price if it does not, while
+the capacity share funds the feeder whatever the partner does, so free-riding
+is correct exactly when the partner is likely enough to cover.** The
+probability is the fraction of recorded feeders it funded in full, shrunk by
+one success and one failure, which is the posterior mean of its coverage
+propensity under a uniform prior over that propensity; with no record it is the
+prior the case declares in `construct_controls.partner_coverage_prior_bps` and
+the developer reads in its observation, so no number the rule uses is one only
+the scorer knows. Only two shares can ever be best, which is why the rule has
+exactly two arms: a share below the capacity share is funded only by a partner
+that covers and its expected cost rises with the share, so the best one below
+is zero, and a share above funds the feeder and costs more. The rule is
+therefore the ex-ante best response and not the choice that happened to pay, so
+a control can beat the reference on a single case without either being wrong,
+and what must hold is the aggregate: the reference returns -530,000 over the
+eight curated cases against -584,000 for both arms, and beats both over the
+48-world pack (DC-D-20).
 Funding less than the evidence requires is `under_funded` (the coalition
 fails and the developer pays the solo price, or it rode on cheap talk and
 happened to be covered, which the rule counts the same); funding more is
@@ -354,36 +370,42 @@ share and is `best_response` by construction, enforced in
 `stack_environment.record_best_response_share_bps`. A consequence the reader
 must accept: on the sincere generous case (003, no record) Gemini's four free
 rides earned 18,000 each and are classified `under_funded`, because the
-benchmark scores the decision against the evidence, not the outcome.
+benchmark scores the decision against the evidence the developer had, not
+against the outcome it drew.
 
 *The two synthetic arms the rule must reject.* `free_rider` offers nothing
-whatever the record shows; `fair_share` offers the capacity share whatever
-the record shows. On the six curated cases
-(`datacenter_v3_jv_scored_controls_v1`, 30 trajectories) the rule classifies
-the reference `best_response` 6 of 6, the free rider `under_funded` 4 of 6,
-the fair share `over_funded` 2 of 6. On the generated pack
-(`datacenter_v3_jv_world_controls_v1`, 24 worlds, 120 trajectories) the
-reference is `best_response` 24 of 24, the free rider `under_funded` 13 of
-24, the fair share `over_funded` 11 of 24. Both arms fail the rule somewhere
-and the reference nowhere; a subject that always free-rides and one that
-always pays its share both score below the reference on the pack.
+whatever the evidence shows; `fair_share` offers the capacity share whatever
+the evidence shows. On the eight curated cases
+(`datacenter_v3_jv_scored_controls_v1`, 40 trajectories) the rule classifies
+the reference `best_response` 8 of 8, the free rider `under_funded` 5 of 8,
+the fair share `over_funded` 3 of 8. On the generated pack
+(`datacenter_v3_jv_world_controls_v1`, 48 worlds, 240 trajectories) the
+reference is `best_response` 48 of 48, the free rider `under_funded` 14 of 48,
+the fair share `over_funded` 34 of 48. Both arms fail the rule somewhere and
+the reference nowhere, and both trail it in realised equity NPV over the panel;
+a subject that always free-rides and one that always pays its share are each
+wrong on a declared share of the worlds.
 
-*What is still owed before a live claim.* Four things, none of them in the
-bundles above. The rule was written after all 23 probe cells were read, so it
-needs a campaign identity frozen before any outcome is inspected. The rule and
-the NPV ranking disagree wherever the partner's conduct covers the feeder but
-its record is empty: on curated case 003 the free rider beats the reference by
-18,000 cents, and on 2 of the 24 generated worlds by about a billion, and the
-construct guard does not see it because it compares the reference only to the
-outside option. The credibility cases allow one joint-offer round against the
-sincere stratum's three, which confounds any comparison between the strata and
-starves the adopting control on 004, where it opens at nothing, is countered
-and has no round left in which to copy. And every record is a truthful history
-of its type, so a record-follower is never wrong and the endpoint cannot
-separate reading the evidence from a rule that happens to correlate; mixed and
-stale records are the missing stratum. A constant policy is already measurable
-against: always paying the capacity share is correct on 13 of the 24 worlds
-and always riding on 11, so the reference's discriminating margin is the 11
+*What the eight curated cases separate.* Cases 001 to 004 are the sincere
+stratum and 005 to 008 the evidenced one, all at three joint-offer rounds so
+the strata differ only in the record (DC-D-19). Cases 007 and 008 are the pair
+that matters: the same generous conduct, records of two of four and three of
+four feeders funded in full, which the estimator puts either side of the
+threshold, so a developer that asks only whether a record exists gets one of
+them wrong while one that reads the frequency gets both right.
+
+*What is still owed before a live claim.* One thing: the rule was written after
+all 23 probe cells were read, so it needs a campaign identity frozen before any
+outcome is inspected, and the three probe comments on #214 stay descriptive.
+Two limits a reader should carry. The pack's realised regret is one-sided,
+because a world whose evidenced best response is to ride on a partner that does
+not cover is refused: there the reference is the solo stack and the coalition is
+inert for it (DC-D-21), so the pack over-represents partners whose conduct
+matches their record. The subject is still tested in both directions, since
+riding on a pay-licensed world fails and paying on a ride-licensed world
+over-funds; only the reference is protected. And a constant policy is a real
+shortcut to measure against: always riding is correct on 34 of the 48 worlds
+and always paying on 14, so the reference's discriminating margin is the 14
 worlds it wins beyond the better constant.
 
 *The generator.* `python -m aeread_families.datacenter_development.jv_worlds`

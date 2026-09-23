@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.v3.full_stack_jv_006",
-  "content_sha256": "e743b43b70a8861708a620df9a7e726656908d6e5e80992129657c9cf647d58d",
+  "content_sha256": "251ddb165804417bb39189de20863049d4b8c46e4d05a3211d7cbac65c387903",
   "episode": {
     "max_logical_actions": 44,
     "termination": [
@@ -29,7 +29,7 @@
     "negotiation": {
       "max_rounds": {
         "epc": 2,
-        "jv": 1,
+        "jv": 3,
         "land": 2,
         "land_amendment": 2,
         "loan": 2,

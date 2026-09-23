@@ -132,19 +132,21 @@ navigation index does not change the control or any sealed artifact. See the
   sealed in; one route, descriptive admission rate 0.25 (95% 0.15-0.35), no
   winner, ranking, or causal claim;
 - [datacenter_v3_jv_scored_controls_v1](datacenter_development/datacenter_v3_jv_scored_controls_v1/): the V3 shared-feeder
-  joint venture's provider-free controls on six curated cases (three sincere
-  partner types, three whose announcement can be untrue, judged only by a
-  public record of earlier feeders): five policies, 30 trajectories; the
-  reference funds the share the record licenses and is the best response
-  6 of 6; the free rider is under-funded 4 of 6 and the fair share over-funded
-  2 of 6, the coalition endpoint's two rejected arms; regenerated, never edited;
+  joint venture's provider-free controls on eight curated cases: four sincere
+  partner types, two judged only by a public record of earlier feeders, and a
+  pair whose mixed records straddle the threshold with identical conduct. Five
+  policies, 40 trajectories; the reference funds the share the evidence
+  licenses and is the best response 8 of 8, the free rider is under-funded
+  5 of 8 and the fair share over-funded 3 of 8, and the reference beats both
+  arms once the cases are added up; regenerated, never edited;
 - [datacenter_v3_jv_world_controls_v1](datacenter_development/datacenter_v3_jv_world_controls_v1/): the same five
-  policies over the generated joint-venture pack (`worlds_v3_jv`, a sampled
-  feeder, partner type, record and round count over each of the 24 sealed
-  interface-3 worlds; 24 of 47 draws admitted by the construct guard): 120
-  trajectories, the reference the best response 24 of 24, the free rider
-  under-funded 13 of 24, the fair share over-funded 11 of 24; regenerated,
-  never edited;
+  policies over the generated joint-venture pack (`worlds_v3_jv`, two sampled
+  joint ventures over each of the 24 sealed interface-3 worlds, the partner's
+  record and its conduct drawn independently from a sampled propensity; 48 of
+  92 draws admitted by the construct guard): 240 trajectories, the reference
+  the best response 48 of 48, the free rider under-funded 14 of 48, the fair
+  share over-funded 34 of 48, and the reference beating both arms over the
+  panel; regenerated, never edited;
 
 ### Datacenter development terms
 

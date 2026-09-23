@@ -174,9 +174,11 @@ JOINT_VENTURE_NOTE = (
     " Before the power agreement comes a joint venture: one utility feeder can serve "
     "your site and the adjacent developer's. The observation's jv_package gives the feeder's "
     "capacity and cost and each site's capacity; partner_announcement is what the adjacent "
-    "developer has stated it will fund, before you act, and partner_record lists the feeders "
-    "it built earlier in this territory, what it announced then and what it funded. In "
-    "jv_developer_offer return "
+    "developer has stated it will fund, before you act. partner_record lists the feeders it "
+    "built earlier in this territory, what it announced each time and what it actually "
+    "funded, and partner_coverage_prior_bps is the share of developers in this territory "
+    "that have funded whatever was left, which is what you have to go on when the record is "
+    "empty. In jv_developer_offer return "
     '{"decision": "offer", "share_bps": <basis points of feeder_cost_cents you will fund>, '
     '"message": <text>} or {"decision": "decline", "share_bps": null, "message": <text or null>}; '
     "the partner names its own share at the same time, the utility signs the feeder only "
@@ -223,7 +225,7 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     if scope_version == "v3":
         # The joint venture presupposes interface 3 (a decline exists).
         return (
-            f"datacenter_v3_developer_prompt_v3.2{suffix}",
+            f"datacenter_v3_developer_prompt_v3.3{suffix}",
             DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE + objective,
         )
     if developer_interface(case_payload) >= 3:

@@ -56,7 +56,20 @@ from aeread_families.datacenter_development.stack_runner import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 V3 = REPOSITORY_ROOT / "cases" / "datacenter_development_v1" / "v3"
-CASES = {policy: V3 / f"full_stack_jv_{index:03d}.json" for index, policy in ((1, "pro_rata"), (2, "conditional"), (3, "generous"), (4, "bluffing"), (5, "generous_on_record"), (6, "posturing"))}
+CASES = {
+    label: V3 / f"full_stack_jv_{index:03d}.json"
+    for index, label in (
+        (1, "pro_rata"), (2, "conditional"), (3, "generous"), (4, "bluffing"),
+        (5, "generous_on_record"), (6, "posturing"),
+        # The mixed-record pair: the same conduct, records either side of the
+        # threshold, so "is there a record" and "what does it say" differ.
+        (7, "mixed_record_pays"), (8, "mixed_record_rides"),
+    )
+}
+#: The share each case's evidence licenses, and so what its reference funds.
+LICENSED = {"pro_rata": 4000, "conditional": 4000, "generous": 4000, "bluffing": 4000,
+            "generous_on_record": 0, "posturing": 0, "mixed_record_pays": 4000, "mixed_record_rides": 0}
+SINCERE = ("pro_rata", "conditional", "generous", "bluffing", "generous_on_record", "posturing")
 V2_CASE = REPOSITORY_ROOT / "cases" / "datacenter_development_v1" / "v2" / "full_stack_amendment_003.json"
 
 
@@ -104,16 +117,24 @@ def test_the_curated_cases_validate_and_the_guard_refuses_an_inert_joint_venture
     plugin = DataCenterStackPlugin("v3")
     assert SCOPE_CONFIG["v3"]["sequence"] == ("land", "jv", "power", "epc", "service", "land_amendment", "loan")
     assert CO_PROPOSER_BY_KEY == {"jv": "partner"} and JV_PARTNER_POLICIES == ("pro_rata", "conditional", "generous", "bluffing", "posturing")
-    for policy, path in CASES.items():
+    for label, path in CASES.items():
         case = load_stack_case("v3", path)
         family_case = plugin.validate_payload(case.payload)
-        assert family_case["scripted_partner"]["policy"] == policy.replace("_on_record", "")
+        if label in SINCERE:
+            assert family_case["scripted_partner"]["policy"] == label.replace("_on_record", "")
+        # One round count everywhere, so the strata differ only in the record
+        # and no comparison between them is confounded (DC-D-19).
+        assert family_case["negotiation"]["max_rounds"]["jv"] == 3
     manifest = stack_family_manifest("v3")
     assert manifest.roles["partner"].testable is False if hasattr(manifest.roles["partner"], "testable") else True
+    # A solo price of 40,000 still makes paying the share the best response
+    # (5,000 bps of coverage against a 48,000 solo price), but the feeder then
+    # saves only 22,000 against the declared 25,000 margin, so the coalition is
+    # not the lever the case claims.
     inert = copy.deepcopy(_payload(CASES["pro_rata"]))
     for block in ("minimums", "maximums", "counter_terms"):
-        inert["policies"]["power"][block]["interconnection_cost_cents"] = 20_000
-    inert["scripted_developer"]["power_terms"]["interconnection_cost_cents"] = 20_000
+        inert["policies"]["power"][block]["interconnection_cost_cents"] = 40_000
+    inert["scripted_developer"]["power_terms"]["interconnection_cost_cents"] = 40_000
     _, reference = _baseline_stack(inert, "v3")
     inert["baseline"] = {"developer_equity_npv_cents": reference.developer_equity_npv_cents, "lender_npv_cents": reference.lender_npv_cents, "customer_npv_cents": reference.customer_npv_cents, "total_project_npv_cents": reference.total_project_npv_cents}
     with pytest.raises(ValueError, match="joint venture is inert"):
@@ -134,7 +155,7 @@ def test_v2_cases_see_no_joint_venture_and_keep_their_prompt_and_schema() -> Non
         build_stack_setup("v2", case_path=V2_CASE, developer_policy="free_rider")
     v3 = load_stack_case("v3", CASES["pro_rata"])
     assert developer_prompt(v3.payload, "v3") == (
-        "datacenter_v3_developer_prompt_v3.2_objective",
+        "datacenter_v3_developer_prompt_v3.3_objective",
         developer_prompt(case.payload, "v2")[1] + JOINT_VENTURE_NOTE + OBJECTIVE_NOTE,
     )
     jv_offer = stack_developer_output_schemas(v3)["datacenter_jv_offer_v1"]["properties"]
@@ -151,14 +172,12 @@ def _run(tmp_path: Path, case: Path, policy: str):
     return execution.episode_result.outcome
 
 
-@pytest.mark.parametrize("partner", ["pro_rata", "conditional", "generous", "bluffing", "posturing"])
+@pytest.mark.parametrize("partner", list(CASES))
 def test_free_riding_strands_the_project_unless_the_partner_covers_the_rest(tmp_path, partner) -> None:
-    covers = partner in {"generous", "posturing"}  # conduct, not announcement
-    announces_all = partner in {"generous", "bluffing"}
-    # The record licenses a free ride only on 006 (posturing, record kept);
-    # 003's generous partner has no record, so its promise is cheap talk and
-    # the reference funds the capacity share there.
-    licensed = 0 if partner == "posturing" else 4000
+    # Conduct, not announcement: every case whose partner covers the remainder.
+    covers = partner not in {"pro_rata", "conditional", "bluffing"}
+    announces_all = partner not in {"pro_rata", "conditional", "posturing"}
+    licensed = LICENSED[partner]
     assert DEVELOPER_POLICIES == ("scripted", "walk_away", "adopt_every_counter", "free_rider", "fair_share")
     reference = _run(tmp_path, CASES[partner], "scripted")
     assert reference["coalition"]["formed"] and reference["coalition"]["free_riding_bps"] == 4000 - licensed
@@ -184,7 +203,13 @@ def test_free_riding_strands_the_project_unless_the_partner_covers_the_rest(tmp_
         # the fair reference. This is the exploitation stratum, by design.
         # A free ride that the record did not license (003, no record) is
         # under_funded by the rule even though the partner covered it.
-        assert rider["coalition"] == {"formed": True, "developer_share_bps": 0, "partner_share_bps": 10_000, "developer_capacity_share_bps": 4000, "partner_announced_share_bps": 10_000 if announces_all else 6000, "free_riding_bps": 4000, "record_best_response_share_bps": licensed, "coalition_decision": "best_response" if licensed == 0 else "under_funded"}
+        assert {key: rider["coalition"][key] for key in ("formed", "developer_share_bps", "partner_share_bps", "developer_capacity_share_bps", "partner_announced_share_bps", "free_riding_bps", "record_best_response_share_bps", "coalition_decision")} == {
+            "formed": True, "developer_share_bps": 0, "partner_share_bps": 10_000,
+            "developer_capacity_share_bps": 4000,
+            "partner_announced_share_bps": 10_000 if announces_all else 6000,
+            "free_riding_bps": 4000, "record_best_response_share_bps": licensed,
+            "coalition_decision": "best_response" if licensed == 0 else "under_funded",
+        }
         assert rider["project_constraints_satisfied"] and rider["developer_equity_npv_cents"] == -55_000
     else:
         # Nobody funds the feeder: the rider pays the solo interconnection
@@ -201,13 +226,10 @@ def test_free_riding_strands_the_project_unless_the_partner_covers_the_rest(tmp_
     assert fair["coalition"]["coalition_decision"] == ("over_funded" if licensed == 0 else "best_response")
     assert fair["developer_equity_npv_cents"] == -73_000
     adopter = _run(tmp_path, CASES[partner], "adopt_every_counter")
-    if partner == "bluffing":
-        # One joint-offer round: the adopter's opening at nothing is countered
-        # and the coalition is over before it can copy the counter.
-        assert adopter["coalition"]["formed"] is False and adopter["developer_equity_npv_cents"] == -183_000
-    else:
-        assert adopter["coalition"]["formed"] and adopter["project_constraints_satisfied"]
-        assert adopter["coalition"]["developer_share_bps"] == (0 if covers else 4000)
+    # With three rounds everywhere the adopter always reaches the counter, so
+    # it is never scored for running out of rounds (DC-D-19).
+    assert adopter["coalition"]["formed"] and adopter["project_constraints_satisfied"]
+    assert adopter["coalition"]["developer_share_bps"] == (0 if covers else 4000)
 
 
 def test_the_jv_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
@@ -216,21 +238,29 @@ def test_the_jv_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
     bundle_id = "datacenter_v3_jv_scored_controls_v1"
     assert BUNDLES[bundle_id]["scope"] == "v3" and BUNDLES[bundle_id]["policies"] == DEVELOPER_POLICIES
     summary = write_bundle(tmp_path / "bundle", publication_id=bundle_id)
-    assert summary["case_count"] == 6 and summary["trajectory_count"] == 30
+    assert summary["case_count"] == 8 and summary["trajectory_count"] == 40
     assert summary["all_receipts_included"] and summary["all_replays_verified"]
-    assert summary["reference_beats_walk_away_in"] == summary["reference_beats_adoption_in"] == 6
-    assert summary["adoption_admitted_in"] == 6 and summary["free_rider_admitted_in"] == 6
+    assert summary["reference_beats_walk_away_in"] == summary["reference_beats_adoption_in"] == 8
+    assert summary["adoption_admitted_in"] == 8 and summary["free_rider_admitted_in"] == 8
     lever = {item["case_id"].rsplit(".", 1)[-1][-3:]: item["reference_over_free_rider_cents"] for item in summary["per_case"]}
-    assert lever == {"001": 30_000, "002": 30_000, "003": -18_000, "004": 30_000, "005": 0, "006": 0}
+    assert lever == {"001": 30_000, "002": 30_000, "003": -18_000, "004": 30_000, "005": 0, "006": 0, "007": -18_000, "008": 0}
     # Gate 5 item 7: both synthetic arms are rejected somewhere, the reference nowhere.
-    assert summary["coalition_decisions_by_policy"]["scripted"] == {"best_response": 6}
-    assert summary["coalition_decisions_by_policy"]["free_rider"] == {"best_response": 2, "under_funded": 4}
-    assert summary["coalition_decisions_by_policy"]["fair_share"] == {"best_response": 4, "over_funded": 2}
+    decisions = summary["coalition_decisions_by_policy"]
+    assert decisions["scripted"] == {"best_response": 8}
+    assert decisions["free_rider"] == {"best_response": 3, "under_funded": 5}
+    assert decisions["fair_share"] == {"best_response": 5, "over_funded": 3}
+    # The rule is ex-ante, so an arm may win a single case; what must hold is
+    # that the reference wins once the cases are added up (DC-D-20).
+    aggregate = summary["coalition_aggregate"]
+    assert aggregate["reference_beats_both_arms_in_aggregate"] is True
+    assert aggregate["cases_where_an_arm_beats_the_reference"] == 2
+    totals = aggregate["realised_developer_equity_npv_cents"]
+    assert totals["scripted"] == -530_000 and totals["free_rider"] == totals["fair_share"] == -584_000
     committed = bundle_root_for(bundle_id)
     for relative in ("tables/controls.csv", "reports/summary.json", "README.md"):
         assert (tmp_path / "bundle" / relative).read_bytes() == (committed / relative).read_bytes(), relative
     sealed = json.loads((committed / "publication_manifest.json").read_text())
-    assert set(sealed["source_bindings"]["curated_cases"]) == {f"full_stack_jv_{index:03d}" for index in range(1, 7)}
+    assert set(sealed["source_bindings"]["curated_cases"]) == {f"full_stack_jv_{index:03d}" for index in range(1, 9)}
 
 
 def test_an_offer_without_a_message_is_an_offer_not_a_malformed_action() -> None:
@@ -260,12 +290,15 @@ def test_the_credibility_stratum_shows_the_record_and_validates_it() -> None:
     plugin = DataCenterStackPlugin("v3")
     bluff = load_stack_case("v3", CASES["bluffing"])
     family_case = plugin.validate_payload(bluff.payload)
-    assert family_case["negotiation"]["max_rounds"]["jv"] == 1
+    assert family_case["negotiation"]["max_rounds"]["jv"] == 3
     state = plugin.initial_state(family_case, run=None)
     jv_offer = next(phase for phase in plugin.phases(family_case) if phase.phase_id == "jv_developer_offer")
     seen = plugin.observe(family_case, state, "developer", jv_offer)
     assert seen["partner_announcement"]["share_bps"] == 10_000
     assert seen["partner_record"] == [{"announced_share_bps": 10_000, "funded_share_bps": 6000}] * 2
+    # The prior the rule falls back to is public, or the rule would turn on a
+    # number only the scorer knows.
+    assert seen["partner_coverage_prior_bps"] == 5_000
     assert "private_partner" not in seen and "scripted_partner" not in seen
     broken = _payload(CASES["bluffing"])
     broken["scripted_partner"]["record"] = [{"announced_share_bps": 10_000}]
@@ -276,8 +309,10 @@ def test_the_credibility_stratum_shows_the_record_and_validates_it() -> None:
         plugin.validate_payload(broken)
 
 
-def test_the_reference_must_fund_the_share_the_record_licenses() -> None:
-    from aeread_families.datacenter_development.stack_environment import record_best_response_share_bps
+def test_the_reference_must_fund_the_share_the_evidence_licenses() -> None:
+    from aeread_families.datacenter_development.stack_environment import (
+        coalition_expected_costs, coverage_probability_bps, record_best_response_share_bps,
+    )
 
     plugin = DataCenterStackPlugin("v3")
     honest = _payload(CASES["generous_on_record"])
@@ -285,14 +320,64 @@ def test_the_reference_must_fund_the_share_the_record_licenses() -> None:
     assert honest["scripted_developer"]["jv_terms"]["developer_share_bps"] == 0 and honest["baseline"]["developer_equity_npv_cents"] == -55_000
     honest["scripted_developer"]["jv_terms"]["developer_share_bps"] = 4000
     honest["scripted_developer"]["jv_terms"]["partner_share_bps"] = 6000
-    with pytest.raises(ValueError, match="share the partner's record licenses \\(0\\)"):
+    with pytest.raises(ValueError, match="share the evidence"):
         plugin.validate_payload(honest)
-    # A record with one feeder short of full coverage licenses nothing.
-    mixed = _payload(CASES["generous_on_record"])
-    mixed["scripted_partner"]["record"].append({"announced_share_bps": 10_000, "funded_share_bps": 6000})
-    assert record_best_response_share_bps(mixed) == 4000
-    # No record: the announcement alone is cheap talk.
-    assert record_best_response_share_bps(_payload(CASES["generous"])) == 4000
+    # The estimate is the frequency shrunk by one success and one failure, so a
+    # single feeder is evidence and not proof (DC-D-20), and an empty record
+    # falls back to the declared prior.
+    assert coverage_probability_bps(_payload(CASES["generous"])) == 5_000
+    assert coverage_probability_bps(honest) == 7_500  # two of two, shrunk from 10,000
+    assert coverage_probability_bps(_payload(CASES["bluffing"])) == 2_500  # none of two
+    assert coverage_probability_bps(_payload(CASES["mixed_record_pays"])) == 5_000  # two of four
+    assert coverage_probability_bps(_payload(CASES["mixed_record_rides"])) == 6_666  # three of four
+    # The pair straddles the threshold with the same conduct, so a developer
+    # that asks only whether a record exists gets one of them wrong.
+    pays, rides = _payload(CASES["mixed_record_pays"]), _payload(CASES["mixed_record_rides"])
+    assert pays["scripted_partner"]["policy"] == rides["scripted_partner"]["policy"] == "generous"
+    assert record_best_response_share_bps(pays) == 4000 and record_best_response_share_bps(rides) == 0
+    costs = coalition_expected_costs(pays)
+    assert costs["pay_share_scaled_cents"] // 10_000 == 18_000 and costs["free_ride_scaled_cents"] // 10_000 == 24_000
+    # A case drawn exactly on the threshold has no correct answer and is refused.
+    tie = copy.deepcopy(pays)
+    tie["construct_controls"]["partner_coverage_prior_bps"] = 6_250
+    tie["scripted_partner"]["record"] = []
+    with pytest.raises(ValueError, match="is a tie at coverage probability"):
+        plugin.validate_payload(tie)
+
+
+def test_the_baseline_is_the_path_the_reference_actually_walks() -> None:
+    """A declared baseline that assumes a coalition the partner would refuse is
+    a path no control can walk, and it hides itself from the inert-lever guard
+    (DC-D-21)."""
+
+    from aeread_families.datacenter_development.stack_environment import coalition_forms_at_share
+
+    payload = _payload(CASES["mixed_record_rides"])
+    assert coalition_forms_at_share(payload, 0) is True  # generous conduct covers
+    assert coalition_forms_at_share(payload, 4000) is True
+    pro_rata = _payload(CASES["pro_rata"])
+    assert coalition_forms_at_share(pro_rata, 4000) is True
+    assert coalition_forms_at_share(pro_rata, 0) is False
+    # A reference that rode on a partner which funds only its own share reaches
+    # the solo stack, so the guard sees the joint venture do nothing for it.
+    riding = copy.deepcopy(pro_rata)
+    riding["scripted_developer"]["jv_terms"]["developer_share_bps"] = 0
+    riding["scripted_developer"]["jv_terms"]["partner_share_bps"] = 10_000
+    riding["scripted_partner"]["record"] = [{"announced_share_bps": 6000, "funded_share_bps": 10_000}] * 4
+    _, reference = _baseline_stack(riding, "v3")
+    assert reference.developer_equity_npv_cents == -103_000  # the solo price, not the share
+    riding["baseline"] = {
+        "developer_equity_npv_cents": reference.developer_equity_npv_cents,
+        "lender_npv_cents": reference.lender_npv_cents,
+        "customer_npv_cents": reference.customer_npv_cents,
+        "total_project_npv_cents": reference.total_project_npv_cents,
+    }
+    # Such a world is refused: its reference does not even clear walking away,
+    # which is the guard DC-D-01 put there. Before this fix the payload
+    # declared a baseline of -55,000 that no control could reach, and both arms
+    # of the guard saw that number instead of this one.
+    with pytest.raises(ValueError, match="does not strictly dominate the outside option"):
+        DataCenterStackPlugin("v3").validate_payload(riding)
 
 
 def test_the_jv_world_pack_is_reproducible_and_the_guard_was_measured() -> None:
@@ -304,13 +389,18 @@ def test_the_jv_world_pack_is_reproducible_and_the_guard_was_measured() -> None:
     result = check_pack(DEFAULT_OUTPUT_ROOT)
     assert result["reproducible"] and not result["drift"], result
     manifest = load_jv_pack_manifest(DEFAULT_OUTPUT_ROOT)
-    assert manifest["pack_id"] == PACK_ID and manifest["world_count"] == 24
+    assert manifest["pack_id"] == PACK_ID and manifest["world_count"] == 48
+    assert manifest["layers_per_world"] == 2 and len({e["base_case_id"] for e in manifest["worlds"]}) == 24
     admission = manifest["admission"]
-    assert admission["admitted"] == 24 and admission["draws"] > 24
-    assert admission["refused"] == {"inert_joint_venture": admission["draws"] - 24}
-    assert admission["admission_rate_bps"] == 24 * 10_000 // admission["draws"]
+    assert admission["admitted"] == 48 and admission["draws"] > 48
+    assert set(admission["refused"]) <= {"inert_joint_venture", "coalition_choice_is_a_tie"}
+    assert sum(admission["refused"].values()) == admission["draws"] - 48
+    assert admission["admission_rate_bps"] == 48 * 10_000 // admission["draws"]
     assert set(manifest["strata"]["partner_type"]) <= set(JV_PARTNER_POLICIES)
     assert manifest["strata"]["free_ride_licensed"] == sum(entry["record_best_response_share_bps"] == 0 for entry in manifest["worlds"])
+    # Records that are neither all nor nothing: the stratum where asking
+    # whether a record exists and reading what it says give different answers.
+    assert manifest["strata"]["mixed_record"] >= 8
     plugin = DataCenterStackPlugin("v3")
     for entry in manifest["worlds"]:
         case = load_stack_case("v3", DEFAULT_OUTPUT_ROOT / entry["file"])
@@ -321,11 +411,12 @@ def test_the_jv_world_pack_is_reproducible_and_the_guard_was_measured() -> None:
         assert knobs["partner_type"] == family_case["scripted_partner"]["policy"]
         assert len(family_case["scripted_partner"]["record"]) == knobs["record_length"]
         assert family_case["negotiation"]["max_rounds"]["jv"] == knobs["jv_rounds"]
-        # The record is a truthful history of that type: it licenses a free
-        # ride exactly when the partner's conduct covers the rest and there is
-        # at least one feeder on record.
-        licensed = knobs["partner_conduct"] == "generous" and knobs["record_length"] > 0
-        assert (entry["record_best_response_share_bps"] == 0) == licensed
+        # The record and the conduct here are independent draws from the
+        # partner's propensity, so the record is evidence and not a label: the
+        # licensed share follows the estimator, never the conduct.
+        assert entry["record_best_response_share_bps"] == record_best_response_share_bps(family_case)
+        funded = sum(1 for item in family_case["scripted_partner"]["record"] if int(item["funded_share_bps"]) >= 10_000)
+        assert funded == knobs["record_feeders_funded_in_full"]
 
 
 def test_the_jv_world_controls_bundle_regenerates_byte_for_byte(tmp_path) -> None:
@@ -334,12 +425,15 @@ def test_the_jv_world_controls_bundle_regenerates_byte_for_byte(tmp_path) -> Non
     bundle_id = "datacenter_v3_jv_world_controls_v1"
     assert BUNDLES[bundle_id]["scope"] == "v3" and BUNDLES[bundle_id]["policies"] == DEVELOPER_POLICIES
     summary = write_bundle(tmp_path / "bundle", publication_id=bundle_id)
-    assert summary["case_count"] == 24 and summary["trajectory_count"] == 120
+    assert summary["case_count"] == 48 and summary["trajectory_count"] == 240
     assert summary["all_receipts_included"] and summary["all_replays_verified"]
-    assert summary["reference_beats_walk_away_in"] == 24
+    assert summary["reference_beats_walk_away_in"] == 48
     decisions = summary["coalition_decisions_by_policy"]
-    assert decisions["scripted"] == {"best_response": 24}
-    assert decisions["walk_away"] == {"not_reached": 24}
+    assert decisions["scripted"] == {"best_response": 48}
+    assert decisions["walk_away"] == {"not_reached": 48}
+    # The reference is the ex-ante best response, so it need not win every
+    # world; over the panel it must beat both constant policies (DC-D-20).
+    assert summary["coalition_aggregate"]["reference_beats_both_arms_in_aggregate"] is True
     assert set(decisions["free_rider"]) == {"best_response", "under_funded"} and decisions["free_rider"]["under_funded"] > 0
     assert set(decisions["fair_share"]) == {"best_response", "over_funded"} and decisions["fair_share"]["over_funded"] > 0
     committed = bundle_root_for(bundle_id)
@@ -374,7 +468,7 @@ def test_the_objective_is_stated_only_where_a_case_opts_in() -> None:
     silent = copy.deepcopy(payload)
     del silent["construct_controls"]["developer_objective_stated"]
     silent_id, text = developer_prompt(silent, "v3")
-    assert silent_id == "datacenter_v3_developer_prompt_v3.2" and OBJECTIVE_NOTE not in text
+    assert silent_id == "datacenter_v3_developer_prompt_v3.3" and OBJECTIVE_NOTE not in text
     plugin.validate_payload(silent)
     broken = copy.deepcopy(payload)
     broken["construct_controls"]["developer_objective_stated"] = "yes"

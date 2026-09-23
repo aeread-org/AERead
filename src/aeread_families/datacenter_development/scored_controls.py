@@ -74,7 +74,7 @@ BUNDLES: dict[str, dict[str, Path]] = {
     # unless the partner covers the feeder.
     "datacenter_v3_jv_scored_controls_v1": {
         "scope": "v3",
-        "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in (1, 2, 3, 4, 5, 6)],
+        "cases": [CASES_ROOT / "v3" / f"full_stack_jv_{index:03d}.json" for index in range(1, 9)],
         "policies": tuple(DEVELOPER_POLICIES),
     },
     # The same five policies over the generated joint-venture pack: sampled
@@ -226,6 +226,27 @@ def summarize(
         policy: dict(sorted(Counter(str(row["coalition_decision"]) for row in rows if row["policy"] == policy).items()))
         for policy in _policies(publication_id)
     } if any(row.get("coalition_decision") for row in rows) else {}
+    # The rule is the ex-ante best response, so a control can beat the
+    # reference on a single case without either being wrong. What must hold is
+    # the aggregate: over every case the reference's realised equity NPV beats
+    # both synthetic arms, because it minimises expected cost on each one.
+    totals = {
+        policy: sum(int(row["developer_equity_npv_cents"]) for row in rows if row["policy"] == policy)
+        for policy in _policies(publication_id)
+    } if decisions else {}
+    coalition_aggregate = {
+        "realised_developer_equity_npv_cents": totals,
+        "reference_beats_both_arms_in_aggregate": bool(totals)
+        and all(totals["scripted"] > totals[arm] for arm in ("free_rider", "fair_share") if arm in totals),
+        "cases_where_an_arm_beats_the_reference": sum(
+            any(
+                int(by_policy[arm]["developer_equity_npv_cents"]) > int(by_policy["scripted"]["developer_equity_npv_cents"])
+                for arm in ("free_rider", "fair_share")
+                if arm in by_policy
+            )
+            for by_policy in grouped.values()
+        ) if decisions else 0,
+    } if decisions else {}
     return {
         "schema_version": "aeread.datacenter_scored_controls_summary/0.1",
         "publication_id": publication_id,
@@ -264,6 +285,7 @@ def summarize(
         # free ride; `fair_share` is over_funded wherever it does; `scripted`
         # is the best response everywhere.
         "coalition_decisions_by_policy": decisions,
+        "coalition_aggregate": coalition_aggregate,
         "per_case": per_case,
         "winner_claim_allowed": False,
         "inferential_model_ranking_allowed": False,
@@ -342,10 +364,12 @@ untrue and its public record of earlier feeders is the only evidence: a
 bluffing partner that announces full coverage and funds pro rata, a generous
 partner whose record shows it kept its word, and a posturing partner that
 announces pro rata and covers the rest. Every trajectory is finalised, verified
-and replayed offline. The reference funds the share the partner's record
-licenses (zero where every recorded feeder was funded in full, the capacity
-share otherwise); `free_rider` and `fair_share` are the two synthetic arms of
-the coalition endpoint's failure rule.
+and replayed offline. The reference funds the share the evidence licenses: the
+one with the lower expected cost, given the fraction of recorded feeders the
+partner funded in full, or the territory's declared prior when there is no
+record. Because that is an ex-ante rule, a control can beat the reference on a
+single case; what must hold is the aggregate below. `free_rider` and
+`fair_share` are the two synthetic arms the rule rejects.
 
 - cases: {summary['case_count']}; trajectories: {summary['trajectory_count']}, all included, all replay-verified
 - coalition decisions by policy: {_decisions_line(summary)}
@@ -353,6 +377,8 @@ the coalition endpoint's failure rule.
 - the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} cases
 - adopting every counter is admitted in {summary['adoption_admitted_in']} of {summary['case_count']} cases
 - the free rider is admitted in {summary['free_rider_admitted_in']} of {summary['case_count']} cases; the reference clears it by {lever} cents per case
+- coalition decisions by policy: {_decisions_line(summary)}
+- realised equity NPV summed over the cases: {_aggregate_line(summary)}
 
 The reference is the fair share, not the highest NPV. The partner states its
 position before anyone offers, so the developer knows what a free ride is
@@ -364,6 +390,14 @@ trails the reference by that premium. This bundle is derived only from
 committed cases and the family engine and is regenerated, never edited. No
 claim about any model is made here.
 """
+
+
+def _aggregate_line(summary: Mapping[str, Any]) -> str:
+    aggregate = summary.get("coalition_aggregate") or {}
+    totals = aggregate.get("realised_developer_equity_npv_cents") or {}
+    body = ", ".join(f"{policy} {value:,}" for policy, value in totals.items())
+    verdict = "the reference beats both arms" if aggregate.get("reference_beats_both_arms_in_aggregate") else "the reference does NOT beat both arms"
+    return f"{body}; {verdict}; an arm wins on {aggregate.get('cases_where_an_arm_beats_the_reference')} single cases"
 
 
 def _decisions_line(summary: Mapping[str, Any]) -> str:
@@ -391,8 +425,9 @@ verified and replayed offline.
 - the reference beats walking away in {summary['reference_beats_walk_away_in']} of {summary['case_count']} worlds
 - the reference beats adopting every counter in {summary['reference_beats_adoption_in']} of {summary['case_count']} worlds
 - coalition decisions by policy: {_decisions_line(summary)}
+- realised equity NPV summed over the worlds: {_aggregate_line(summary)}
 
-The last line is the coalition endpoint's falsifiability proof (QC profile,
+The decision line is the coalition endpoint's falsifiability proof (QC profile,
 Gate 5 item 7): the rule classifies the reference as the best response on
 every world, rejects the free rider wherever the record does not license a
 free ride, and rejects the fair share wherever it does. This bundle is derived

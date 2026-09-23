@@ -41,6 +41,7 @@ from aeread.shared_runner.schemas import CaseManifest
 
 from .stack_environment import (
     FAMILY_ID,
+    DEFAULT_COVERAGE_PRIOR_BPS,
     JV_PARTNER_CONDUCT,
     JV_PARTNER_POLICIES,
     SCOPE_CONFIG,
@@ -68,7 +69,22 @@ PARTNER_CAPACITY_RATIOS_BPS = (5_000, 7_500, 12_500, 15_000, 20_000, 30_000)
 #: less than two, and at the top of the range the developer's share can exceed
 #: the solo price, which is the layer the guard refuses as inert.
 FEEDER_COST_RATIOS_BPS = (13_000, 15_000, 17_000, 19_000, 21_000, 24_000)
-RECORD_LENGTHS = (0, 1, 2, 3)
+#: A record of one feeder can only be all or nothing, so it cannot separate a
+#: developer that reads the frequency from one that checks whether a record
+#: exists at all; every non-empty length here can be mixed.
+RECORD_LENGTHS = (0, 2, 3, 4)
+#: Joint ventures drawn over each base world. Two makes the pack a panel of 48
+#: rather than 24, which halves the sampling noise in the aggregate the
+#: reference has to win (DC-D-20).
+LAYERS_PER_WORLD = 2
+#: The partner's propensity to fund whatever is left, drawn per world. Its
+#: record and its conduct here are independent draws from it, so the declared
+#: estimator is the best response to the process that produced the world and no
+#: constant policy can beat the reference in aggregate (DC-D-20). The grid's
+#: mean is the declared prior an empty record falls back to.
+COVERAGE_PROPENSITIES_BPS = (0, 2_500, 5_000, 7_500, 10_000)
+#: Which types announce full coverage, by conduct.
+TYPES_BY_COVERAGE = {True: ("generous", "posturing"), False: ("pro_rata", "conditional", "bluffing")}
 JV_ROUNDS = (1, 3)
 SEATS = (
     {"id": "developer", "role": "developer"},
@@ -90,12 +106,23 @@ def _capacity_share_bps(own_kw: int, other_kw: int) -> int:
     return own_kw * 10_000 // (own_kw + other_kw)
 
 
-def _record(policy: str, length: int, partner_share_bps: int) -> list[dict[str, int]]:
-    """A truthful history: what this type announces, what its conduct funds."""
+def _record(policy: str, covered: list[bool], partner_share_bps: int) -> list[dict[str, int]]:
+    """The partner's history: one entry per earlier feeder it built here.
+
+    Each entry is an independent draw from the partner's coverage propensity,
+    as its conduct on this feeder is, so a record is evidence and not a label.
+    A pack whose records always matched the conduct could not tell a developer
+    that reads the frequency from one that checks whether a record exists at
+    all, and a record-follower could never be wrong, which is what makes the
+    endpoint falsifiable on the subject's side rather than only on the
+    controls'.
+    """
 
     announced = 10_000 if policy in {"generous", "bluffing"} else partner_share_bps
-    funded = 10_000 if JV_PARTNER_CONDUCT[policy] == "generous" else partner_share_bps
-    return [{"announced_share_bps": announced, "funded_share_bps": funded} for _ in range(length)]
+    return [
+        {"announced_share_bps": announced, "funded_share_bps": 10_000 if full else partner_share_bps}
+        for full in covered
+    ]
 
 
 def draw_layer(base_payload: Mapping[str, Any], rng: random.Random) -> dict[str, Any]:
@@ -109,8 +136,13 @@ def draw_layer(base_payload: Mapping[str, Any], rng: random.Random) -> dict[str,
     feeder_kw = developer_kw + partner_kw
     cost_ratio = rng.choice(FEEDER_COST_RATIOS_BPS)
     feeder_cents = _round_hundred(solo_cents * cost_ratio // 10_000)
-    policy = rng.choice(JV_PARTNER_POLICIES)
+    # The partner's propensity, then its history and its conduct here as
+    # independent draws from it; the type is whichever one has that conduct.
+    propensity = rng.choice(COVERAGE_PROPENSITIES_BPS)
     length = rng.choice(RECORD_LENGTHS)
+    covered = [rng.randrange(10_000) < propensity for _ in range(length)]
+    covers_here = rng.randrange(10_000) < propensity
+    policy = rng.choice(TYPES_BY_COVERAGE[covers_here])
     rounds = rng.choice(JV_ROUNDS)
     developer_fair = _capacity_share_bps(developer_kw, partner_kw)
     partner_fair = 10_000 - developer_fair
@@ -124,7 +156,7 @@ def draw_layer(base_payload: Mapping[str, Any], rng: random.Random) -> dict[str,
     return {
         "package": package,
         "counter_shares": {"developer_share_bps": developer_fair, "partner_share_bps": partner_fair},
-        "partner": {"policy": policy, "record": _record(policy, length, partner_fair)},
+        "partner": {"policy": policy, "record": _record(policy, covered, partner_fair)},
         "rounds": rounds,
         "knobs": {
             "partner_capacity_ratio_bps": ratio,
@@ -132,6 +164,8 @@ def draw_layer(base_payload: Mapping[str, Any], rng: random.Random) -> dict[str,
             "partner_type": policy,
             "partner_conduct": JV_PARTNER_CONDUCT[policy],
             "record_length": length,
+            "record_feeders_funded_in_full": sum(covered),
+            "coverage_propensity_bps": propensity,
             "jv_rounds": rounds,
             "developer_capacity_share_bps": developer_fair,
             "developer_share_cost_cents": feeder_cents * developer_fair // 10_000,
@@ -140,12 +174,13 @@ def draw_layer(base_payload: Mapping[str, Any], rng: random.Random) -> dict[str,
     }
 
 
-def apply_layer(base: Mapping[str, Any], layer: Mapping[str, Any], *, index: int, master_seed: int, split: str) -> dict[str, Any]:
+def apply_layer(base: Mapping[str, Any], layer: Mapping[str, Any], *, index: int, master_seed: int, split: str, layer_index: int = 1) -> dict[str, Any]:
     """The V3 case document for a base world and a layer; validated, or raises."""
 
     payload = copy.deepcopy(dict(base["payload"]))
     payload["scope_version"] = SCOPE_VERSION
-    payload["scenario_id"] = f"datacenter_v3_jv_world_{base['case_id'].rsplit('.', 1)[1]}"
+    slug = f"{base['case_id'].rsplit('.', 1)[1]}_jv{layer_index}"
+    payload["scenario_id"] = f"datacenter_v3_jv_world_{slug}"
     package = layer["package"]
     payload["policies"]["jv"] = {
         "counter_terms": {**package, **layer["counter_shares"]},
@@ -165,6 +200,9 @@ def apply_layer(base: Mapping[str, Any], layer: Mapping[str, Any], *, index: int
     # The coalition decision is judged against the developer's objective, so
     # the prompt states it (Housing D-21; DC-D-18).
     payload["construct_controls"]["developer_objective_stated"] = True
+    # The prior is public because the rule uses it whenever the record is
+    # empty; a number only the scorer knows cannot be a best response.
+    payload["construct_controls"]["partner_coverage_prior_bps"] = DEFAULT_COVERAGE_PRIOR_BPS
     plugin = DataCenterStackPlugin(SCOPE_VERSION)
     # The baseline is what the engine says it is; the guard runs inside.
     try:
@@ -177,7 +215,7 @@ def apply_layer(base: Mapping[str, Any], layer: Mapping[str, Any], *, index: int
         plugin.validate_payload(payload)
     document = {
         "spec_version": CaseManifest.SPEC_VERSION,
-        "case_id": f"{FAMILY_ID}.{split}.{base['case_id'].rsplit('.', 1)[1]}",
+        "case_id": f"{FAMILY_ID}.{split}.{slug}",
         "family_id": FAMILY_ID,
         "family_version": SCOPE_CONFIG[SCOPE_VERSION]["family_version"],
         "split": split,
@@ -207,6 +245,8 @@ def _refusal(error: ValueError) -> str:
     message = str(error)
     if "joint venture is inert" in message:
         return "inert_joint_venture"
+    if "is a tie at coverage probability" in message:
+        return "coalition_choice_is_a_tie"
     if "does not strictly dominate" in message or "below the declared minimum" in message:
         return "baseline_margin"
     if "not acceptable" in message:
@@ -227,39 +267,47 @@ def generate_pack(
     entries: list[dict[str, Any]] = []
     refused: Counter[str] = Counter()
     draws_total = 0
-    for index, base_entry in enumerate(base_manifest["worlds"]):
+    index = 0
+    for base_entry in base_manifest["worlds"]:
         base = json.loads((Path(base_root) / base_entry["file"]).read_text(encoding="utf-8"))
         world_rng = random.Random(rng.getrandbits(64))
-        document = None
-        draws = 0
-        for _attempt in range(MAX_DRAWS_PER_WORLD):
-            layer = draw_layer(base["payload"], world_rng)
-            draws += 1
-            try:
-                document = apply_layer(base, layer, index=index, master_seed=master_seed, split=split)
-            except ValueError as error:
-                refused[_refusal(error)] += 1
-                continue
-            break
-        draws_total += draws
-        if document is None:
-            raise ValueError(f"no admitted joint-venture layer for {base['case_id']} in {MAX_DRAWS_PER_WORLD} draws")
-        cases.append(document)
-        entries.append(
-            {
-                "case_id": document["case_id"],
-                "file": f"{document['case_id'].rsplit('.', 1)[1]}.json",
-                "content_sha256": document["content_sha256"],
-                "world_seed": document["world_seed"],
-                "base_case_id": base["case_id"],
-                "base_content_sha256": base["content_sha256"],
-                "base_stratum": base_entry.get("stratum"),
-                "draws": draws,
-                "knobs": layer["knobs"],
-                "record_best_response_share_bps": document["payload"]["scripted_developer"]["jv_terms"]["developer_share_bps"],
-                "baseline_developer_equity_npv_cents": document["payload"]["baseline"]["developer_equity_npv_cents"],
-            }
-        )
+        for layer_index in range(1, LAYERS_PER_WORLD + 1):
+            document = None
+            draws = 0
+            for _attempt in range(MAX_DRAWS_PER_WORLD):
+                layer = draw_layer(base["payload"], world_rng)
+                draws += 1
+                try:
+                    document = apply_layer(
+                        base, layer, index=index, master_seed=master_seed, split=split, layer_index=layer_index
+                    )
+                except ValueError as error:
+                    refused[_refusal(error)] += 1
+                    continue
+                break
+            draws_total += draws
+            if document is None:
+                raise ValueError(
+                    f"no admitted joint-venture layer for {base['case_id']} in {MAX_DRAWS_PER_WORLD} draws"
+                )
+            cases.append(document)
+            entries.append(
+                {
+                    "case_id": document["case_id"],
+                    "file": f"{document['case_id'].rsplit('.', 1)[1]}.json",
+                    "content_sha256": document["content_sha256"],
+                    "world_seed": document["world_seed"],
+                    "base_case_id": base["case_id"],
+                    "base_content_sha256": base["content_sha256"],
+                    "base_stratum": base_entry.get("stratum"),
+                    "layer": layer_index,
+                    "draws": draws,
+                    "knobs": layer["knobs"],
+                    "record_best_response_share_bps": document["payload"]["scripted_developer"]["jv_terms"]["developer_share_bps"],
+                    "baseline_developer_equity_npv_cents": document["payload"]["baseline"]["developer_equity_npv_cents"],
+                }
+            )
+            index += 1
     manifest = {
         "schema_version": "aeread.datacenter_jv_world_pack/0.1",
         "pack_id": pack_id,
@@ -271,6 +319,7 @@ def generate_pack(
         "base_pack_id": base_manifest["pack_id"],
         "base_pack_sha256": base_manifest["artifact_sha256"],
         "world_count": len(entries),
+        "layers_per_world": LAYERS_PER_WORLD,
         # The construct guard measured across seeds: every draw either became
         # a world or was refused for a named reason.
         "admission": {
@@ -284,6 +333,23 @@ def generate_pack(
             "record_length": {str(k): v for k, v in sorted(Counter(e["knobs"]["record_length"] for e in entries).items())},
             "jv_rounds": {str(k): v for k, v in sorted(Counter(e["knobs"]["jv_rounds"] for e in entries).items())},
             "free_ride_licensed": sum(e["record_best_response_share_bps"] == 0 for e in entries),
+            # A record that neither always nor never funded in full: the
+            # stratum where "is there a record" and "what does it say" differ.
+            "mixed_record": sum(
+                0 < e["knobs"]["record_feeders_funded_in_full"] < e["knobs"]["record_length"]
+                for e in entries
+            ),
+            # The partner's conduct here against what its record suggested:
+            # where these differ, a developer that read the evidence correctly
+            # can still be worse off than one that guessed.
+            "record_contradicted_by_conduct": sum(
+                (e["knobs"]["partner_conduct"] == "generous") != (e["record_best_response_share_bps"] == 0)
+                for e in entries
+            ),
+            "coverage_propensity_bps": {
+                str(value): sum(e["knobs"]["coverage_propensity_bps"] == value for e in entries)
+                for value in COVERAGE_PROPENSITIES_BPS
+            },
         },
         "worlds": entries,
     }
