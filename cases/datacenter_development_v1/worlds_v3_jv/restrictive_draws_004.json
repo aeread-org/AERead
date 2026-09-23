@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.restrictive_draws_004",
-  "content_sha256": "2f2db13fd6e5fdbe16d74af2cda6c1572aa6646b3b3d14d19359bbd9a0bd2af7",
+  "content_sha256": "91a3e054c9700f1a453dac1acec1e1b56177b00ba27506ef1a326a1c080433f2",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 515200000,
       "two_sided_price_bands": true
     },

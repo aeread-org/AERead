@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.v3.full_stack_jv_001",
-  "content_sha256": "83b7cfdc1655475bb11c57972676802c8d2f108f6bc75d9d9ed5cfc2028903f6",
+  "content_sha256": "a0f1c332ca926cfd799cf95ef0f47f2a5d74ae6ce647a9012f3dcecf50fd6c29",
   "episode": {
     "max_logical_actions": 44,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 25000,
       "two_sided_price_bands": true
     },

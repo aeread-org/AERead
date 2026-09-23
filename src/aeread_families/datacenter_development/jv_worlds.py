@@ -162,6 +162,9 @@ def apply_layer(base: Mapping[str, Any], layer: Mapping[str, Any], *, index: int
         "partner_share_bps": 10_000 - licensed,
     }
     payload["construct_controls"]["developer_interface"] = 3
+    # The coalition decision is judged against the developer's objective, so
+    # the prompt states it (Housing D-21; DC-D-18).
+    payload["construct_controls"]["developer_objective_stated"] = True
     plugin = DataCenterStackPlugin(SCOPE_VERSION)
     # The baseline is what the engine says it is; the guard runs inside.
     try:

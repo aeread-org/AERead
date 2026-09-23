@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.revenue_without_bankability_001",
-  "content_sha256": "723f8848a736faf0a411f506d08ddbe2ec49ae0b00444aeedffe6bcb6f59458e",
+  "content_sha256": "82f2883f36ea30c1be0a299804b45eef08ff20fb761154a02ae61389407ca0f6",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 460000000,
       "two_sided_price_bands": true
     },

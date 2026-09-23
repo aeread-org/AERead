@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.verbal_written_divergence_002",
-  "content_sha256": "f590a42ee131059869a2075df9ab317adfbc2d7bb8f1590102015ae806b90d4a",
+  "content_sha256": "fb8451e4112b7523b02a18478791889bcb45e364278af357d2797993e090bb4b",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 460000000,
       "two_sided_price_bands": true
     },

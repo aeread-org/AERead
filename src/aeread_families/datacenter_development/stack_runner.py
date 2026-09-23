@@ -63,6 +63,7 @@ from .stack_environment import (
     TERM_PARSER_BY_TYPE,
     counter_reason,
     developer_interface,
+    developer_objective_stated,
     stack_family_manifest,
     terms_acceptable,
 )
@@ -188,28 +189,53 @@ JOINT_VENTURE_NOTE = (
 )
 
 
+#: What the developer is trying to achieve, stated only for a case that opts
+#: into `construct_controls.developer_objective_stated` (Housing D-21: a seat
+#: told how to format an action and nothing about what to want cannot be
+#: judged on what it chose). It states the payoff and the outside option and
+#: nothing about how to play: no band, no counterparty type, no share.
+OBJECTIVE_NOTE = (
+    " Your objective is the developer's equity net present value: the cash the project "
+    "returns to you over the horizon, after every price you agree to pay and every cost "
+    "you take on. A higher equity NPV is a better outcome for you, and it is what your "
+    "decisions are scored against. Signing is not by itself a success: a stack whose "
+    "numbers do not work can leave you worse off than never building, and the score also "
+    "records whether the project's financing succeeds without default, whether every "
+    "signature binds an accepted offer, and whether you negotiated in the declared "
+    "order. Walking away ends the project at a fixed outside option instead. Every cost "
+    "you agree to bear is yours, and a cost another party bears is not."
+)
+
+
 def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tuple[str, str]:
     """The developer prompt id and text for a case.
 
     A case that opts into `construct_controls` gets the v2 prompt, which adds
     the month-indexing note; one that opts into developer interface 3 gets the
-    v3 prompt, which also explains the amendment decline and the walk reason.
-    Every other case keeps v1 byte for byte, so the sealed campaigns' prompt
-    digests do not move."""
+    v3 prompt, which also explains the amendment decline and the walk reason;
+    one that opts into `developer_objective_stated` gets the objective note as
+    well, which every V3 case does. Every other case keeps its sealed prompt
+    byte for byte, so the published campaigns' prompt digests do not move."""
 
+    stated = developer_objective_stated(case_payload)
+    suffix = "_objective" if stated else ""
+    objective = OBJECTIVE_NOTE if stated else ""
     if scope_version == "v3":
         # The joint venture presupposes interface 3 (a decline exists).
         return (
-            "datacenter_v3_developer_prompt_v3.2",
-            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE,
+            f"datacenter_v3_developer_prompt_v3.2{suffix}",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE + objective,
         )
     if developer_interface(case_payload) >= 3:
         return (
-            f"datacenter_{scope_version}_developer_prompt_v3",
-            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE,
+            f"datacenter_{scope_version}_developer_prompt_v3{suffix}",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + objective,
         )
     if "construct_controls" in case_payload:
-        return f"datacenter_{scope_version}_developer_prompt_v2", DEVELOPER_PROMPT + MONTH_INDEXING_NOTE
+        return (
+            f"datacenter_{scope_version}_developer_prompt_v2{suffix}",
+            DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + objective,
+        )
     return f"datacenter_{scope_version}_developer_prompt_v1", DEVELOPER_PROMPT
 
 

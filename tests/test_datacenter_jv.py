@@ -44,6 +44,7 @@ from aeread_families.datacenter_development.stack_environment import (
 from aeread_families.datacenter_development.stack_runner import (
     DEVELOPER_POLICIES,
     JOINT_VENTURE_NOTE,
+    OBJECTIVE_NOTE,
     build_stack_setup,
     developer_prompt,
     finalize_stack_execution,
@@ -132,7 +133,10 @@ def test_v2_cases_see_no_joint_venture_and_keep_their_prompt_and_schema() -> Non
     with pytest.raises(ValueError, match="free_rider"):
         build_stack_setup("v2", case_path=V2_CASE, developer_policy="free_rider")
     v3 = load_stack_case("v3", CASES["pro_rata"])
-    assert developer_prompt(v3.payload, "v3") == ("datacenter_v3_developer_prompt_v3.2", developer_prompt(case.payload, "v2")[1] + JOINT_VENTURE_NOTE)
+    assert developer_prompt(v3.payload, "v3") == (
+        "datacenter_v3_developer_prompt_v3.2_objective",
+        developer_prompt(case.payload, "v2")[1] + JOINT_VENTURE_NOTE + OBJECTIVE_NOTE,
+    )
     jv_offer = stack_developer_output_schemas(v3)["datacenter_jv_offer_v1"]["properties"]
     assert jv_offer["decision"]["enum"] == ["offer", "decline"] and jv_offer["share_bps"]["anyOf"][0]["maximum"] == 10_000
 
@@ -343,3 +347,51 @@ def test_the_jv_world_controls_bundle_regenerates_byte_for_byte(tmp_path) -> Non
         assert (tmp_path / "bundle" / relative).read_bytes() == (committed / relative).read_bytes(), relative
     sealed = json.loads((committed / "publication_manifest.json").read_text())
     assert sealed["source_bindings"]["curated_cases"] == {} and "world_pack_sha256" in sealed["source_bindings"]
+
+
+def test_the_objective_is_stated_only_where_a_case_opts_in() -> None:
+    """A seat judged on what it chose has to be told what it is choosing for.
+
+    The prompt said how to format an action and nothing about what to want, so
+    `under_funded` and `over_funded` were read against a goal the model never
+    had (DC-D-18; Housing D-21 is the same defect in the landlord seat). The
+    note is opt-in, so every sealed campaign keeps its prompt digest.
+    """
+
+    plugin = DataCenterStackPlugin("v3")
+    payload = _payload(CASES["pro_rata"])
+    assert payload["construct_controls"]["developer_objective_stated"] is True
+    stated_id, stated = developer_prompt(payload, "v3")
+    assert stated_id.endswith("_objective") and stated.endswith(OBJECTIVE_NOTE)
+    # What it states is the score set: the primary leaf, the three indicator
+    # leaves and the outside option. It states nothing about how to play.
+    for phrase in ("equity net present value", "financing succeeds without default", "signature binds an accepted offer", "fixed outside option"):
+        assert phrase in OBJECTIVE_NOTE, phrase
+    # It must not smuggle in how to play the coalition: no partner, no record
+    # of earlier feeders, no share, no free ride.
+    for leak in ("partner", "record of", "share", "basis point", "free rid", "coalition", "feeder"):
+        assert leak not in OBJECTIVE_NOTE.lower(), leak
+    silent = copy.deepcopy(payload)
+    del silent["construct_controls"]["developer_objective_stated"]
+    silent_id, text = developer_prompt(silent, "v3")
+    assert silent_id == "datacenter_v3_developer_prompt_v3.2" and OBJECTIVE_NOTE not in text
+    plugin.validate_payload(silent)
+    broken = copy.deepcopy(payload)
+    broken["construct_controls"]["developer_objective_stated"] = "yes"
+    with pytest.raises(ValueError, match="developer_objective_stated must be a boolean"):
+        plugin.validate_payload(broken)
+
+
+def test_the_sealed_v1_and_v2_prompts_do_not_move() -> None:
+    import hashlib
+
+    for scope, path, prompt_id, digest in (
+        ("v1", "v1/power_epc_bankability_001.json", "datacenter_v1_developer_prompt_v1", "5798e0ab7a4fcdef"),
+        ("v2", "v2/full_stack_amendment_002.json", "datacenter_v2_developer_prompt_v2", "42c85a446022a196"),
+        ("v2", "v2/full_stack_amendment_003.json", "datacenter_v2_developer_prompt_v3", "b0512441444b8c9f"),
+    ):
+        case = load_stack_case(scope, REPOSITORY_ROOT / "cases" / "datacenter_development_v1" / path)
+        seen_id, text = developer_prompt(case.payload, scope)
+        assert seen_id == prompt_id, seen_id
+        assert hashlib.sha256(text.encode()).hexdigest()[:16] == digest, seen_id
+        assert OBJECTIVE_NOTE not in text

@@ -331,9 +331,16 @@ whose every choice was payoff-maximising, including free-riding on a partner
 that had announced it would cover the rest, and a rule that cannot call that
 either right or wrong guards nothing (Gate 5, item 7).
 
-*The rule.* The developer's objective is its own equity NPV. The partner's
-announcement is cheap talk; its public record of earlier feeders (what it
-announced, what it funded) is the only evidence. **Free-riding is the correct
+*The rule.* The developer's objective is its own equity NPV, and from
+2026-09-22 the prompt says so: a case that opts into
+`construct_controls.developer_objective_stated` gets a note stating the
+primary leaf, the three indicator leaves and the outside option, and nothing
+about how to play (DC-D-18, the same defect as Housing D-21). Every V3 case
+and every generated JV world opts in; no sealed campaign does, so no published
+prompt digest moves. The three live probes on #214 predate the note and
+predate the rule, so they are descriptive only and cannot test it. The
+partner's announcement is cheap talk; its public record of earlier feeders
+(what it announced, what it funded) is the only evidence. **Free-riding is the correct
 answer exactly when the record is non-empty and every recorded feeder was
 funded in full by the partner; otherwise the developer's capacity share is.**
 Funding less than the evidence requires is `under_funded` (the coalition
@@ -360,6 +367,24 @@ reference is `best_response` 24 of 24, the free rider `under_funded` 13 of
 24, the fair share `over_funded` 11 of 24. Both arms fail the rule somewhere
 and the reference nowhere; a subject that always free-rides and one that
 always pays its share both score below the reference on the pack.
+
+*What is still owed before a live claim.* Four things, none of them in the
+bundles above. The rule was written after all 23 probe cells were read, so it
+needs a campaign identity frozen before any outcome is inspected. The rule and
+the NPV ranking disagree wherever the partner's conduct covers the feeder but
+its record is empty: on curated case 003 the free rider beats the reference by
+18,000 cents, and on 2 of the 24 generated worlds by about a billion, and the
+construct guard does not see it because it compares the reference only to the
+outside option. The credibility cases allow one joint-offer round against the
+sincere stratum's three, which confounds any comparison between the strata and
+starves the adopting control on 004, where it opens at nothing, is countered
+and has no round left in which to copy. And every record is a truthful history
+of its type, so a record-follower is never wrong and the endpoint cannot
+separate reading the evidence from a rule that happens to correlate; mixed and
+stale records are the missing stratum. A constant policy is already measurable
+against: always paying the capacity share is correct on 13 of the 24 worlds
+and always riding on 11, so the reference's discriminating margin is the 11
+worlds it wins beyond the better constant.
 
 *The generator.* `python -m aeread_families.datacenter_development.jv_worlds`
 lays a sampled joint venture over each of the 24 sealed interface-3 worlds:

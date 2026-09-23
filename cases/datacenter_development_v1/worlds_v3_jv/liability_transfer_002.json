@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.liability_transfer_002",
-  "content_sha256": "e477bd48b43f54d0ab8442f57092a391ada3ae89780f6b0d6f85a08621546445",
+  "content_sha256": "c99f6589c1d5c2034157271dafdbfe1f07a09b52bb12c39220e84092ee304568",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 441600000,
       "two_sided_price_bands": true
     },

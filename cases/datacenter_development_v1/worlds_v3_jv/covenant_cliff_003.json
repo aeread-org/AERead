@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.covenant_cliff_003",
-  "content_sha256": "fc645181f84baf2b4f305adf03bbf55ceb861508062184218deddde7e219af0d",
+  "content_sha256": "3fbce66652ba9647a67103ecf77211eabb3fe2079a2797f14c6baebf23a58707",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 460000000,
       "two_sided_price_bands": true
     },

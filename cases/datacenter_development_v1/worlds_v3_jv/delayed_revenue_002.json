@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v3_jv.delayed_revenue_002",
-  "content_sha256": "7f07d082452be4f46a4786660de7d70fca50f2180c3627479061bafacc82d9ab",
+  "content_sha256": "a758397f6eeb9f4811afa1910037ba18a9a095f2c93d9c9cd7aa64fb4d723be5",
   "episode": {
     "max_logical_actions": 57,
     "termination": [
@@ -22,6 +22,7 @@
     "construct_controls": {
       "baseline_must_dominate_outside_option": true,
       "developer_interface": 3,
+      "developer_objective_stated": true,
       "minimum_baseline_margin_cents": 515200000,
       "two_sided_price_bands": true
     },

@@ -166,6 +166,20 @@ PRICE_BAND_FIELDS = frozenset(
 DEVELOPER_INTERFACES = (2, 3)
 
 
+def developer_objective_stated(family_case: Mapping[str, Any]) -> bool:
+    """Whether this case tells the developer what it is trying to achieve.
+
+    A prompt that says how to format an action and nothing about what to want
+    cannot support a judgment about what the model chose: scoring a seat
+    against an objective it was never given measures the reader's assumption,
+    not the model (Housing D-21, the same defect in the landlord seat). Off by
+    default so every sealed campaign keeps its prompt digest.
+    """
+
+    controls = family_case.get("construct_controls") or {}
+    return bool(controls.get("developer_objective_stated", False))
+
+
 def developer_interface(family_case: Mapping[str, Any]) -> int:
     """The developer interface a case opts into; 2 unless it says otherwise."""
 
@@ -185,6 +199,8 @@ def _construct_controls(value: Any) -> dict[str, Any] | None:
     }
     if isinstance(value, dict) and "developer_interface" in value:
         fields.add("developer_interface")
+    if isinstance(value, dict) and "developer_objective_stated" in value:
+        fields.add("developer_objective_stated")
     controls = _exact(value, fields, "construct_controls")
     for flag in ("baseline_must_dominate_outside_option", "two_sided_price_bands"):
         if not isinstance(controls[flag], bool):
@@ -199,6 +215,9 @@ def _construct_controls(value: Any) -> dict[str, Any] | None:
         raise ValueError(
             f"construct_controls.developer_interface must be one of {DEVELOPER_INTERFACES}"
         )
+    stated = controls.get("developer_objective_stated", False)
+    if not isinstance(stated, bool):
+        raise ValueError("construct_controls.developer_objective_stated must be a boolean")
     return controls
 
 
@@ -1446,6 +1465,7 @@ __all__ = [
     "JV_PARTNER_POLICIES",
     "DataCenterStackPlugin",
     "developer_interface",
+    "developer_objective_stated",
     "FAMILY_ID",
     "SCORER_ID",
     "SCOPE_CONFIG",

@@ -7,11 +7,11 @@
       "inert_joint_venture": 23
     }
   },
-  "artifact_sha256": "8bc30f5e5322d497d3f1de435ce4b91d319d33601cea48336e0b92a6aad5e135",
+  "artifact_sha256": "0c51b0efac26e594f82baa4a944c2461f3acaea8ad0d4c129e66ecb45d9c4489",
   "base_pack_id": "datacenter_development_v2_worlds_v3_interface3_v1",
   "base_pack_sha256": "a6210866bcca0d1c1f4792e68651b054ca44ced368a5dd08ce954cf8f0a405f8",
   "generator_id": "datacenter_v3_jv_world_generator",
-  "generator_sha256": "4b9724611189018a8f0a7ca25a51098e50a6320f2e7f721e8b43f6e51578762f",
+  "generator_sha256": "68bc5e8566ad97349cd90793719b5047b4f604db204586d283b696ad6fe5f112",
   "generator_version": "1.0.0",
   "master_seed": 20260921,
   "pack_id": "datacenter_development_v3_jv_worlds_v1",
@@ -45,7 +45,7 @@
       "base_stratum": "revenue_without_bankability",
       "baseline_developer_equity_npv_cents": 59972070520,
       "case_id": "datacenter_development_v1.worlds_v3_jv.revenue_without_bankability_001",
-      "content_sha256": "723f8848a736faf0a411f506d08ddbe2ec49ae0b00444aeedffe6bcb6f59458e",
+      "content_sha256": "82f2883f36ea30c1be0a299804b45eef08ff20fb761154a02ae61389407ca0f6",
       "draws": 1,
       "file": "revenue_without_bankability_001.json",
       "knobs": {
@@ -68,7 +68,7 @@
       "base_stratum": "revenue_without_bankability",
       "baseline_developer_equity_npv_cents": 71027783692,
       "case_id": "datacenter_development_v1.worlds_v3_jv.revenue_without_bankability_002",
-      "content_sha256": "34aabf35d5a3bcecf824e0c21d9de7e21c1f61cb5e30418ff4f211dd7c289e6b",
+      "content_sha256": "9ba975a3ca4a0e27c33ba25b80bd76054c276d3f83ac0d8e08575c771eda4008",
       "draws": 2,
       "file": "revenue_without_bankability_002.json",
       "knobs": {
@@ -91,7 +91,7 @@
       "base_stratum": "revenue_without_bankability",
       "baseline_developer_equity_npv_cents": 49403670277,
       "case_id": "datacenter_development_v1.worlds_v3_jv.revenue_without_bankability_003",
-      "content_sha256": "dcb702393ca02daa11d4ae8c77521b0baf36b86c9481b05290c5748581f91409",
+      "content_sha256": "87f417b88149629320af5f4c225fcb832759429984d02a353f5984110064a85e",
       "draws": 1,
       "file": "revenue_without_bankability_003.json",
       "knobs": {
@@ -114,7 +114,7 @@
       "base_stratum": "revenue_without_bankability",
       "baseline_developer_equity_npv_cents": 49927480443,
       "case_id": "datacenter_development_v1.worlds_v3_jv.revenue_without_bankability_004",
-      "content_sha256": "55f0acb27b2ed6604eb38768c3767838b4236681e2c7da4d66a99a120d16d398",
+      "content_sha256": "1812cc2ecb98fe535a36b43c3da0620ded96e60ddb3bcd7fd17dbe4150b02a21",
       "draws": 1,
       "file": "revenue_without_bankability_004.json",
       "knobs": {
@@ -137,7 +137,7 @@
       "base_stratum": "delayed_revenue",
       "baseline_developer_equity_npv_cents": 62213073619,
       "case_id": "datacenter_development_v1.worlds_v3_jv.delayed_revenue_001",
-      "content_sha256": "c895a84e766c0cbebb38de48357eb8fcbb88820a8c1d3abccb00e1d70a68e681",
+      "content_sha256": "32b337cd393509606b54fafc44e09ee636af552151ddb3445aa39a88c4ec3ebe",
       "draws": 1,
       "file": "delayed_revenue_001.json",
       "knobs": {
@@ -160,7 +160,7 @@
       "base_stratum": "delayed_revenue",
       "baseline_developer_equity_npv_cents": 54220951873,
       "case_id": "datacenter_development_v1.worlds_v3_jv.delayed_revenue_002",
-      "content_sha256": "7f07d082452be4f46a4786660de7d70fca50f2180c3627479061bafacc82d9ab",
+      "content_sha256": "a758397f6eeb9f4811afa1910037ba18a9a095f2c93d9c9cd7aa64fb4d723be5",
       "draws": 1,
       "file": "delayed_revenue_002.json",
       "knobs": {
@@ -183,7 +183,7 @@
       "base_stratum": "delayed_revenue",
       "baseline_developer_equity_npv_cents": 42742816444,
       "case_id": "datacenter_development_v1.worlds_v3_jv.delayed_revenue_003",
-      "content_sha256": "522fbb6751cfe36f342f371fd0978be1dec99e36503c89672c9d4f044be1b8dc",
+      "content_sha256": "cf98231746e7a3a6048584052c62fb10ca8d281952a49c9bfc74cc3f517be19d",
       "draws": 4,
       "file": "delayed_revenue_003.json",
       "knobs": {
@@ -206,7 +206,7 @@
       "base_stratum": "delayed_revenue",
       "baseline_developer_equity_npv_cents": 69489754101,
       "case_id": "datacenter_development_v1.worlds_v3_jv.delayed_revenue_004",
-      "content_sha256": "a55024d4038646ad44419cbc355b185005142da542c833c2ee5c076bd1746671",
+      "content_sha256": "40431cb53e4a4d8c15744b37f69e3cc7ef99dcf90d4a3a0043eb3153025f8b8a",
       "draws": 2,
       "file": "delayed_revenue_004.json",
       "knobs": {
@@ -229,7 +229,7 @@
       "base_stratum": "restrictive_draws",
       "baseline_developer_equity_npv_cents": 57204737576,
       "case_id": "datacenter_development_v1.worlds_v3_jv.restrictive_draws_001",
-      "content_sha256": "2302d1835574fbf52e6d76b625bf9b6ca16713ae1384ed42b2a3a149e3f8a2be",
+      "content_sha256": "1b1e31f102dc6ec3971a2d37fcd518987e501a4fb7df031fbfc89dacaec66a0d",
       "draws": 2,
       "file": "restrictive_draws_001.json",
       "knobs": {
@@ -252,7 +252,7 @@
       "base_stratum": "restrictive_draws",
       "baseline_developer_equity_npv_cents": 42300142455,
       "case_id": "datacenter_development_v1.worlds_v3_jv.restrictive_draws_002",
-      "content_sha256": "4caa10e24aa37e2c33f2d95bd4d8a196fd42bad8fde0b4b08c5c33a14c495bf6",
+      "content_sha256": "d5912bab2e216b4e09d8c272ab7bda8803efd0a85fb9b6c044c7d8c238f7c710",
       "draws": 3,
       "file": "restrictive_draws_002.json",
       "knobs": {
@@ -275,7 +275,7 @@
       "base_stratum": "restrictive_draws",
       "baseline_developer_equity_npv_cents": 50034412982,
       "case_id": "datacenter_development_v1.worlds_v3_jv.restrictive_draws_003",
-      "content_sha256": "eef32bcd8c92bed2e019ce3ac41575d95ec0162947c1841e1a5d50e24e0f20fb",
+      "content_sha256": "f80f70fd54e7e139ed8224762557c462ecbb7b9b152299dfc9949e8b00c8963f",
       "draws": 1,
       "file": "restrictive_draws_003.json",
       "knobs": {
@@ -298,7 +298,7 @@
       "base_stratum": "restrictive_draws",
       "baseline_developer_equity_npv_cents": 44995008984,
       "case_id": "datacenter_development_v1.worlds_v3_jv.restrictive_draws_004",
-      "content_sha256": "2f2db13fd6e5fdbe16d74af2cda6c1572aa6646b3b3d14d19359bbd9a0bd2af7",
+      "content_sha256": "91a3e054c9700f1a453dac1acec1e1b56177b00ba27506ef1a326a1c080433f2",
       "draws": 3,
       "file": "restrictive_draws_004.json",
       "knobs": {
@@ -321,7 +321,7 @@
       "base_stratum": "covenant_cliff",
       "baseline_developer_equity_npv_cents": 48323157476,
       "case_id": "datacenter_development_v1.worlds_v3_jv.covenant_cliff_001",
-      "content_sha256": "adc1c663cc269fbe7ea098613d7b37fbf74718982186e7ec1d760b7b74888cfe",
+      "content_sha256": "052e8abe71c1ee299139540193638052da76256d2dcaf7b4e493bf992730e40c",
       "draws": 1,
       "file": "covenant_cliff_001.json",
       "knobs": {
@@ -344,7 +344,7 @@
       "base_stratum": "covenant_cliff",
       "baseline_developer_equity_npv_cents": 49171687135,
       "case_id": "datacenter_development_v1.worlds_v3_jv.covenant_cliff_002",
-      "content_sha256": "828ac4b2984b3e5853ad3e7482a0ac42eb69c5cbd4c34fb06e88d7905ffe85fd",
+      "content_sha256": "1e362ca99e5fa49df85bf95a573e5c08ad4a75659f9b71e0022c8aedaa730566",
       "draws": 2,
       "file": "covenant_cliff_002.json",
       "knobs": {
@@ -367,7 +367,7 @@
       "base_stratum": "covenant_cliff",
       "baseline_developer_equity_npv_cents": 47504709367,
       "case_id": "datacenter_development_v1.worlds_v3_jv.covenant_cliff_003",
-      "content_sha256": "fc645181f84baf2b4f305adf03bbf55ceb861508062184218deddde7e219af0d",
+      "content_sha256": "3fbce66652ba9647a67103ecf77211eabb3fe2079a2797f14c6baebf23a58707",
       "draws": 3,
       "file": "covenant_cliff_003.json",
       "knobs": {
@@ -390,7 +390,7 @@
       "base_stratum": "covenant_cliff",
       "baseline_developer_equity_npv_cents": 50856514023,
       "case_id": "datacenter_development_v1.worlds_v3_jv.covenant_cliff_004",
-      "content_sha256": "2ff530d3e42bcf15c1ac7ea8b70c7c48a0fae17e16f1dfce16da64a5ee566c74",
+      "content_sha256": "4479b9222ef043aa3d2d3299509b2229bfbf4b06f5c61022ab73b5031a45ecd6",
       "draws": 2,
       "file": "covenant_cliff_004.json",
       "knobs": {
@@ -413,7 +413,7 @@
       "base_stratum": "liability_transfer",
       "baseline_developer_equity_npv_cents": 54319317552,
       "case_id": "datacenter_development_v1.worlds_v3_jv.liability_transfer_001",
-      "content_sha256": "f6b09a22e5935df4721ca087afe0452dcbc7d49e6a2dd7b7e89fcf94b036da78",
+      "content_sha256": "3c053ff027f67e1fee2d00594c169c468c01e9b9fd57ce616cd9c09d799aa741",
       "draws": 4,
       "file": "liability_transfer_001.json",
       "knobs": {
@@ -436,7 +436,7 @@
       "base_stratum": "liability_transfer",
       "baseline_developer_equity_npv_cents": 70974632624,
       "case_id": "datacenter_development_v1.worlds_v3_jv.liability_transfer_002",
-      "content_sha256": "e477bd48b43f54d0ab8442f57092a391ada3ae89780f6b0d6f85a08621546445",
+      "content_sha256": "c99f6589c1d5c2034157271dafdbfe1f07a09b52bb12c39220e84092ee304568",
       "draws": 1,
       "file": "liability_transfer_002.json",
       "knobs": {
@@ -459,7 +459,7 @@
       "base_stratum": "liability_transfer",
       "baseline_developer_equity_npv_cents": 68515084267,
       "case_id": "datacenter_development_v1.worlds_v3_jv.liability_transfer_003",
-      "content_sha256": "02c610e626ddc94a7ada3ec50bf6da5c8da7182c5e7cdc187644b5ca6efa0c53",
+      "content_sha256": "8254661d45028c88e9b22e35b9594e09b23a470ee1e4456c16099da2e56ecaa4",
       "draws": 1,
       "file": "liability_transfer_003.json",
       "knobs": {
@@ -482,7 +482,7 @@
       "base_stratum": "liability_transfer",
       "baseline_developer_equity_npv_cents": 71967699483,
       "case_id": "datacenter_development_v1.worlds_v3_jv.liability_transfer_004",
-      "content_sha256": "0ccab75b6416d09cd96b133aa9c3c0740bd2584c0d2baf479eaf0527f9505ed5",
+      "content_sha256": "7dc2140e695e5fdf2179c7ab4df8b400ff1550c63b86f8d78434bccf34dd3ed1",
       "draws": 3,
       "file": "liability_transfer_004.json",
       "knobs": {
@@ -505,7 +505,7 @@
       "base_stratum": "verbal_written_divergence",
       "baseline_developer_equity_npv_cents": 59608978367,
       "case_id": "datacenter_development_v1.worlds_v3_jv.verbal_written_divergence_001",
-      "content_sha256": "5b2b6217db79d59d8b15cff0c876adc61a9814fb071770a17dad43bb15ccbfa0",
+      "content_sha256": "f70afcf89d94f9560155dac46711ef17b5cb7701f4d7d4119f3360a3ff8059c4",
       "draws": 3,
       "file": "verbal_written_divergence_001.json",
       "knobs": {
@@ -528,7 +528,7 @@
       "base_stratum": "verbal_written_divergence",
       "baseline_developer_equity_npv_cents": 58826826173,
       "case_id": "datacenter_development_v1.worlds_v3_jv.verbal_written_divergence_002",
-      "content_sha256": "f590a42ee131059869a2075df9ab317adfbc2d7bb8f1590102015ae806b90d4a",
+      "content_sha256": "fb8451e4112b7523b02a18478791889bcb45e364278af357d2797993e090bb4b",
       "draws": 1,
       "file": "verbal_written_divergence_002.json",
       "knobs": {
@@ -551,7 +551,7 @@
       "base_stratum": "verbal_written_divergence",
       "baseline_developer_equity_npv_cents": 43073747769,
       "case_id": "datacenter_development_v1.worlds_v3_jv.verbal_written_divergence_003",
-      "content_sha256": "3b3723f90e97b2cbbba29c017b533d5959d50e8e3385c15767e373029a4d3c77",
+      "content_sha256": "99843df6efd930a325b5aa444d34f74d49eda52a6358d901ce218337b9e2bf16",
       "draws": 3,
       "file": "verbal_written_divergence_003.json",
       "knobs": {
@@ -574,7 +574,7 @@
       "base_stratum": "verbal_written_divergence",
       "baseline_developer_equity_npv_cents": 57228243341,
       "case_id": "datacenter_development_v1.worlds_v3_jv.verbal_written_divergence_004",
-      "content_sha256": "a084ca36fed71c075cd55656d25b9e7b841b8a13f8b3524942667cdcc370c9bb",
+      "content_sha256": "9d4b2870526f374d23d3c44742bfcce5443b34856d0f66826207d7a86b5dee87",
       "draws": 1,
       "file": "verbal_written_divergence_004.json",
       "knobs": {
