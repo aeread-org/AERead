@@ -1,0 +1,1774 @@
+{
+ "agenticpay_bilateral::AgenticpayBilateralPlugin": {
+  "module": "aeread_families.agenticpay_bilateral.environment",
+  "file": "src/aeread_families/agenticpay_bilateral/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root', 'bridge']"
+ },
+ "alympics_wac::AlympicsWacPlugin": {
+  "module": "aeread_families.alympics_wac.environment",
+  "file": "src/aeread_families/alympics_wac/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root']"
+ },
+ "amazonbarg::AmazonbargPlugin": {
+  "module": "aeread_families.amazonbarg.environment",
+  "file": "src/aeread_families/amazonbarg/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root']"
+ },
+ "aucarena::AucArenaPlugin": {
+  "module": "aeread_families.aucarena.environment",
+  "file": "src/aeread_families/aucarena/environment.py",
+  "variants": [
+   {
+    "case": "cases/aucarena/pilot/aucarena.pilot.degenerate_reference_01.json",
+    "phases": [
+     {
+      "phase_id": "bid_round",
+      "actor_selector": "eligible_bidders",
+      "mode": "simultaneous",
+      "next_phases": [
+       "bid_round"
+      ],
+      "action_schema_by_role": {
+       "bidder": "aucarena_bid_response_v1"
+      },
+      "max_logical_actions": 200,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "collusion::CollusionPlugin": {
+  "module": "aeread_families.collusion.environment",
+  "file": "src/aeread_families/collusion/environment.py",
+  "variants": [
+   {
+    "case": "cases/collusion/duopoly_pilot/collusion.duopoly.asymmetric-quality.alpha1.seed0.json",
+    "phases": [
+     {
+      "phase_id": "price_round",
+      "actor_selector": "both_firms",
+      "mode": "simultaneous",
+      "next_phases": [
+       "price_round"
+      ],
+      "action_schema_by_role": {
+       "pricing_agent": "collusion_price_submission_v1"
+      },
+      "max_logical_actions": 600,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "commercial_state_calibration::CommercialStatePlugin": {
+  "module": "aeread_families.commercial_state_calibration.environment",
+  "file": "src/aeread_families/commercial_state_calibration/environment.py",
+  "variants": [
+   {
+    "case": null,
+    "phases": [
+     {
+      "phase_id": "submit_commercial_state_report",
+      "actor_selector": "analyst_only",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "analyst": "commercial_state_report_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "consent_ir::ConsentIRPlugin": {
+  "module": "aeread_families.consent_ir.environment",
+  "file": "src/aeread_families/consent_ir/environment.py",
+  "variants": [
+   {
+    "case": "cases/consent_ir_v1/dev/visible_cycle_001.json",
+    "phases": [
+     {
+      "phase_id": "propose_cycle",
+      "actor_selector": "buyer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "buyer": "consent_ir_cycle_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "datacenter_development::CounterofferActionSchemaPlugin": {
+  "module": "aeread_families.datacenter_development.action_schema_environment",
+  "file": "src/aeread_families/datacenter_development/action_schema_environment.py",
+  "variants": [],
+  "notes": [
+   "default: no fixture validated (102 tried); phases(None): TypeError"
+  ]
+ },
+ "datacenter_development::CounterofferAdoptionPlugin": {
+  "module": "aeread_families.datacenter_development.adoption_environment",
+  "file": "src/aeread_families/datacenter_development/adoption_environment.py",
+  "variants": [],
+  "notes": [
+   "default: no fixture validated (102 tried); phases(None): TypeError"
+  ]
+ },
+ "datacenter_development::CounterofferAffordancePlugin": {
+  "module": "aeread_families.datacenter_development.affordance_environment",
+  "file": "src/aeread_families/datacenter_development/affordance_environment.py",
+  "variants": [],
+  "notes": [
+   "default: no fixture validated (102 tried); phases(None): TypeError"
+  ]
+ },
+ "datacenter_development::DataCenterDevelopmentPlugin": {
+  "module": "aeread_families.datacenter_development.environment",
+  "file": "src/aeread_families/datacenter_development/environment.py",
+  "variants": [
+   {
+    "case": "cases/datacenter_development_v1/dev/service_loan_bankability_001.json",
+    "phases": [
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "datacenter_development::DataCenterStackPlugin": {
+  "module": "aeread_families.datacenter_development.stack_environment",
+  "file": "src/aeread_families/datacenter_development/stack_environment.py",
+  "variants": [
+   {
+    "case": "cases/datacenter_development_v1/v2/full_stack_amendment_001.json",
+    "phases": [
+     {
+      "phase_id": "land_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_developer_offer",
+       "land_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_utility_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_utility_response",
+      "actor_selector": "utility",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer",
+       "power_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "utility": "datacenter_power_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_contractor_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_contractor_response",
+      "actor_selector": "contractor",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer",
+       "epc_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "contractor": "datacenter_epc_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer",
+       "land_amendment_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_amendment_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "init('v2',)"
+   },
+   {
+    "case": "cases/datacenter_development_v1/v2/full_stack_amendment_003.json",
+    "phases": [
+     {
+      "phase_id": "land_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_developer_offer",
+       "land_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_utility_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_utility_response",
+      "actor_selector": "utility",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer",
+       "power_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "utility": "datacenter_power_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_contractor_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_contractor_response",
+      "actor_selector": "contractor",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer",
+       "epc_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "contractor": "datacenter_epc_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_landowner_response",
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer",
+       "land_amendment_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_amendment_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "developer_interface": 3,
+    "init": "init('v2',)"
+   },
+   {
+    "case": "cases/datacenter_development_v1/worlds_v2/covenant_cliff_001.json",
+    "phases": [
+     {
+      "phase_id": "land_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_developer_offer",
+       "land_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_utility_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_utility_response",
+      "actor_selector": "utility",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer",
+       "power_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "utility": "datacenter_power_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_contractor_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_contractor_response",
+      "actor_selector": "contractor",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer",
+       "epc_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "contractor": "datacenter_epc_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer",
+       "land_amendment_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_amendment_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "init('v2',)"
+   },
+   {
+    "case": "cases/datacenter_development_v1/worlds_v3/covenant_cliff_001.json",
+    "phases": [
+     {
+      "phase_id": "land_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_landowner_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_developer_offer",
+       "land_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_utility_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_utility_response",
+      "actor_selector": "utility",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer",
+       "power_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "utility": "datacenter_power_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_contractor_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_contractor_response",
+      "actor_selector": "contractor",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer",
+       "epc_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "contractor": "datacenter_epc_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_landowner_response",
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_landowner_response",
+      "actor_selector": "landowner",
+      "mode": "single",
+      "next_phases": [
+       "land_amendment_developer_offer",
+       "land_amendment_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "landowner": "datacenter_land_amendment_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "land_amendment_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_land_amendment_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "developer_interface": 3,
+    "init": "init('v2',)"
+   },
+   {
+    "case": "cases/datacenter_development_v1/v1/power_epc_bankability_001.json",
+    "phases": [
+     {
+      "phase_id": "power_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "power_utility_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_utility_response",
+      "actor_selector": "utility",
+      "mode": "single",
+      "next_phases": [
+       "power_developer_offer",
+       "power_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "utility": "datacenter_power_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "power_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_power_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "epc_contractor_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_contractor_response",
+      "actor_selector": "contractor",
+      "mode": "single",
+      "next_phases": [
+       "epc_developer_offer",
+       "epc_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "contractor": "datacenter_epc_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "epc_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_epc_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "service_customer_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_customer_response",
+      "actor_selector": "customer",
+      "mode": "single",
+      "next_phases": [
+       "service_developer_offer",
+       "service_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "customer": "datacenter_service_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "service_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_service_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_offer",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [
+       "loan_lender_response"
+      ],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_offer_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_lender_response",
+      "actor_selector": "lender",
+      "mode": "single",
+      "next_phases": [
+       "loan_developer_offer",
+       "loan_developer_commit"
+      ],
+      "action_schema_by_role": {
+       "lender": "datacenter_loan_response_v1"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "loan_developer_commit",
+      "actor_selector": "developer",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "developer": "datacenter_loan_commit_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "init('v1',)"
+   }
+  ]
+ },
+ "datacenter_development_terms::DataCenterTermsPlugin": {
+  "module": "aeread_families.datacenter_development_terms.environment",
+  "file": "src/aeread_families/datacenter_development_terms/environment.py",
+  "variants": [
+   {
+    "case": null,
+    "phases": [
+     {
+      "phase_id": "submit_datacenter_development_terms_report",
+      "actor_selector": "analyst_only",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "analyst": "datacenter_development_terms_report_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "econagent_v1::EconAgentV1Plugin": {
+  "module": "aeread_families.econagent_v1.environment",
+  "file": "src/aeread_families/econagent_v1/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root']"
+ },
+ "econevals::EconevalsPlugin": {
+  "module": "aeread_families.econevals.environment",
+  "file": "src/aeread_families/econevals/environment.py",
+  "variants": [],
+  "error": "constructor needs ['bridge']"
+ },
+ "govsim::GovsimPlugin": {
+  "module": "aeread_families.govsim.environment",
+  "file": "src/aeread_families/govsim/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root', 'bridge']"
+ },
+ "housing::HousingV1Plugin": {
+  "module": "aeread_families.housing.runner",
+  "file": "src/aeread_families/housing/runner.py",
+  "variants": [],
+  "notes": [
+   "default: no fixture validated (0 tried); phases(None): TypeError"
+  ]
+ },
+ "negarena::NegarenaPlugin": {
+  "module": "aeread_families.negarena.environment",
+  "file": "src/aeread_families/negarena/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root', 'bridge']"
+ },
+ "procurement_allocation::ProcurementAllocationPlugin": {
+  "module": "aeread_families.procurement_allocation.environment",
+  "file": "src/aeread_families/procurement_allocation/environment.py",
+  "variants": [
+   {
+    "case": "cases/procurement_allocation_v1/blinded_v3/deadline_cost.json",
+    "phases": [
+     {
+      "phase_id": "buyer_procurement_turn",
+      "actor_selector": "buyer_only",
+      "mode": "single",
+      "next_phases": [
+       "buyer_procurement_turn"
+      ],
+      "action_schema_by_role": {
+       "buyer": "procurement_allocation_action_v1"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   },
+   {
+    "case": "cases/procurement_allocation_v1/continuous_candidates_v2/opaque/market_002.json",
+    "phases": [
+     {
+      "phase_id": "buyer_procurement_turn",
+      "actor_selector": "buyer_only",
+      "mode": "single",
+      "next_phases": [
+       "buyer_procurement_turn"
+      ],
+      "action_schema_by_role": {
+       "buyer": "procurement_allocation_action_v1"
+      },
+      "max_logical_actions": 9,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   },
+   {
+    "case": "cases/procurement_allocation_v1/duediligence_v1/labeled/decoy_variant_and_trap.json",
+    "phases": [
+     {
+      "phase_id": "buyer_procurement_turn",
+      "actor_selector": "buyer_only",
+      "mode": "single",
+      "next_phases": [
+       "buyer_procurement_turn"
+      ],
+      "action_schema_by_role": {
+       "buyer": "procurement_allocation_action_v1"
+      },
+      "max_logical_actions": 7,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "procurement_grounding::ProcurementGroundingPlugin": {
+  "module": "aeread_families.procurement_grounding.environment",
+  "file": "src/aeread_families/procurement_grounding/environment.py",
+  "variants": [
+   {
+    "case": "cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json",
+    "phases": [
+     {
+      "phase_id": "submit_procurement_assessment",
+      "actor_selector": "analyst_only",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "analyst": "procurement_grounding_report_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "refund::RefundV1Plugin": {
+  "module": "aeread_families.refund.runner",
+  "file": "src/aeread_families/refund/runner.py",
+  "variants": [
+   {
+    "case": "cases/refund_v1/dev/refund_v1.dev.clean.001.json",
+    "phases": [
+     {
+      "phase_id": "customer_message",
+      "actor_selector": "customer_only",
+      "mode": "single",
+      "next_phases": [
+       "support_response"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_customer_message_v1",
+       "support_agent": "refund_support_action_v1"
+      },
+      "max_logical_actions": 5,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "support_response",
+      "actor_selector": "support_agent_only",
+      "mode": "single",
+      "next_phases": [
+       "customer_message"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_customer_message_v1",
+       "support_agent": "refund_support_action_v1"
+      },
+      "max_logical_actions": 5,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "refund::RefundV21Plugin": {
+  "module": "aeread_families.refund.v2_runner",
+  "file": "src/aeread_families/refund/v2_runner.py",
+  "variants": [
+   {
+    "case": null,
+    "phases": [
+     {
+      "phase_id": "customer_message",
+      "actor_selector": "customer_only",
+      "mode": "single",
+      "next_phases": [
+       "intake_request"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "intake_request",
+      "actor_selector": "intake_only",
+      "mode": "single",
+      "next_phases": [
+       "customer_facts"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 3,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "customer_facts",
+      "actor_selector": "customer_only",
+      "mode": "single",
+      "next_phases": [
+       "policy_response"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "policy_response",
+      "actor_selector": "policy_only",
+      "mode": "single",
+      "next_phases": [
+       "customer_facts",
+       "customer_confirmation",
+       "payments_execute"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "customer_confirmation",
+      "actor_selector": "customer_only",
+      "mode": "single",
+      "next_phases": [
+       "payments_execute"
+      ],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "payments_execute",
+      "actor_selector": "payments_only",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "customer": "refund_v21_customer_action",
+       "intake": "refund_v21_intake_action",
+       "payments": "refund_v21_payments_action",
+       "policy": "refund_v21_policy_action"
+      },
+      "max_logical_actions": 2,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "single_offer::SingleOfferPlugin": {
+  "module": "aeread_families.single_offer.runner",
+  "file": "src/aeread_families/single_offer/runner.py",
+  "variants": [
+   {
+    "case": null,
+    "phases": [
+     {
+      "phase_id": "offer",
+      "actor_selector": "buyer_only",
+      "mode": "single",
+      "next_phases": [],
+      "action_schema_by_role": {
+       "buyer": "offer_v1"
+      },
+      "max_logical_actions": 1,
+      "invalid_action_policy": "reject"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ },
+ "steer::SteerPlugin": {
+  "module": "aeread_families.steer.environment",
+  "file": "src/aeread_families/steer/environment.py",
+  "variants": [],
+  "error": "constructor needs ['steer_data_root']"
+ },
+ "tau3_retail::Tau3RetailPlugin": {
+  "module": "aeread_families.tau3_retail.environment",
+  "file": "src/aeread_families/tau3_retail/environment.py",
+  "variants": [],
+  "error": "constructor needs ['upstream_root', 'bridge']"
+ },
+ "termsbench::TermsBenchPlugin": {
+  "module": "aeread_families.termsbench.environment",
+  "file": "src/aeread_families/termsbench/environment.py",
+  "variants": [
+   {
+    "case": "cases/termsbench/pilot/termsbench.candid.nodeal.1010011.json",
+    "phases": [
+     {
+      "phase_id": "agent_turn",
+      "actor_selector": "agent",
+      "mode": "single",
+      "next_phases": [
+       "counterpart_turn"
+      ],
+      "action_schema_by_role": {
+       "agent": "termsbench_agent_action_v1"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "counterpart_turn",
+      "actor_selector": "counterpart",
+      "mode": "single",
+      "next_phases": [
+       "agent_turn"
+      ],
+      "action_schema_by_role": {
+       "counterpart": "termsbench_counterpart_action_v1"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   },
+   {
+    "case": "cases/termsbench/pilot/termsbench.candid.nodeal.1010038.json",
+    "phases": [
+     {
+      "phase_id": "counterpart_turn",
+      "actor_selector": "counterpart",
+      "mode": "single",
+      "next_phases": [
+       "agent_turn"
+      ],
+      "action_schema_by_role": {
+       "counterpart": "termsbench_counterpart_action_v1"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     },
+     {
+      "phase_id": "agent_turn",
+      "actor_selector": "agent",
+      "mode": "single",
+      "next_phases": [
+       "counterpart_turn"
+      ],
+      "action_schema_by_role": {
+       "agent": "termsbench_agent_action_v1"
+      },
+      "max_logical_actions": 10,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
+   }
+  ]
+ }
+}

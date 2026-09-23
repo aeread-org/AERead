@@ -1,0 +1,606 @@
+<meta charset="utf-8">
+<title>AERead Examiner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#F7F6F2;--panel:#FFFFFF;--ink:#1D2024;--muted:#6C717A;--rule:#DAD7D0;--soft:#EFEDE7;
+ --accent:#2B5DA8;--accent-soft:#DCE6F6;--yes:#2F7D6D;--yes-soft:#DDEDE8;--partial:#B8620E;--partial-soft:#F6E5D3;--no:#A83232;--no-soft:#F5DEDE;--na:#8A8F98;--na-soft:#ECEBE7;
+ --sound:#2F7D6D;--lemon:#B8620E;--sound-soft:#DDEDE8;--lemon-soft:#F6E5D3;--bad:#A83232;--bad-soft:#F5DEDE;
+ --ph1:#8FA8D9;--ph2:#9BC7B5;--ph3:#E3C58A;--ph4:#D9A0A0;--ph5:#B7A6D9;--ph6:#A9C9E0;--ph7:#D8B9A3;--ph8:#C2D19A;
+ --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;--mono:"IBM Plex Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171B;--panel:#1D2026;--ink:#E7E8EB;--muted:#9AA0AA;--rule:#333740;--soft:#242830;
+ --accent:#7FA6E8;--accent-soft:#233352;--yes:#6CC4AE;--yes-soft:#1E3A34;--partial:#F0A15C;--partial-soft:#3D2B18;--no:#E88585;--no-soft:#3F2323;--na:#8A8F98;--na-soft:#262A31;
+ --sound:#6CC4AE;--lemon:#F0A15C;--sound-soft:#1E3A34;--lemon-soft:#3D2B18;--bad:#E88585;--bad-soft:#3F2323;
+ --ph1:#4B6395;--ph2:#3F7A66;--ph3:#8E7434;--ph4:#8A4C4C;--ph5:#5E4E8A;--ph6:#3E6A85;--ph7:#8A6448;--ph8:#6C7A3E}}
+:root[data-theme="dark"]{--bg:#15171B;--panel:#1D2026;--ink:#E7E8EB;--muted:#9AA0AA;--rule:#333740;--soft:#242830;
+ --accent:#7FA6E8;--accent-soft:#233352;--yes:#6CC4AE;--yes-soft:#1E3A34;--partial:#F0A15C;--partial-soft:#3D2B18;--no:#E88585;--no-soft:#3F2323;--na:#8A8F98;--na-soft:#262A31;
+ --sound:#6CC4AE;--lemon:#F0A15C;--sound-soft:#1E3A34;--lemon-soft:#3D2B18;--bad:#E88585;--bad-soft:#3F2323;
+ --ph1:#4B6395;--ph2:#3F7A66;--ph3:#8E7434;--ph4:#8A4C4C;--ph5:#5E4E8A;--ph6:#3E6A85;--ph7:#8A6448;--ph8:#6C7A3E}
+html,body{height:100%}body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.4;margin:0;padding-inline:max(16px,1.5vw);padding-block:10px 12px;box-sizing:border-box;display:flex;flex-direction:column}main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}#view{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:6px}.checklist td:nth-child(2){min-width:190px;white-space:normal}.checklist td:nth-child(4){min-width:240px;white-space:normal}.checklist td:nth-child(3){white-space:normal;min-width:120px}
+h1{font-size:18px;font-weight:600;margin:0;letter-spacing:-.01em}
+h2{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px}
+h3{font-size:13.5px;font-weight:600;margin:0 0 4px}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+a{color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px}
+.crumbs{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:13px;color:var(--muted)}
+.crumbs button{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font:inherit}
+.crumbs span.cur{color:var(--ink);font-weight:500}
+.lede{color:var(--muted);max-width:110ch;margin:0 0 8px;font-size:12.5px}
+select,button,input{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:5px 9px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.primary{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.tabs button.cur{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;background:var(--soft);color:var(--ink);border:1px solid var(--rule);white-space:nowrap}
+.chip.yes{background:var(--yes-soft);color:var(--yes);border-color:transparent}.chip.partial{background:var(--partial-soft);color:var(--partial);border-color:transparent}
+.chip.no{background:var(--no-soft);color:var(--no);border-color:transparent}.chip.na{background:var(--na-soft);color:var(--na);border-color:transparent}.chip.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.chip.sound{background:var(--sound-soft);color:var(--sound);border-color:transparent}.chip.lemon{background:var(--lemon-soft);color:var(--lemon);border-color:transparent}.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:9px 11px;min-width:0;box-sizing:border-box}
+.stack{display:grid;gap:8px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;align-items:start}
+.grid3{display:grid;grid-template-columns:var(--c1,360px) 8px minmax(0,1fr) 8px var(--c3,340px);gap:0 4px;align-items:stretch;height:100%;min-height:0}.grid3.rc{--c3:38px}.gut{cursor:col-resize;border-radius:3px;position:relative;touch-action:none}.gut::after{content:"";position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--rule);border-radius:2px}.gut:hover::after,.gut.on::after{background:var(--accent)}.gut.off{cursor:default;pointer-events:none}.grid3.rc>.col3{padding:6px 4px;overflow:hidden}.grid3.rc>.col3 .rbody{display:none}.grid3.rc>.col3 h2{writing-mode:vertical-rl;transform:rotate(180deg);margin:8px 0 0;font-size:10.5px;white-space:nowrap}.rtog{padding:1px 7px;font-size:12px;line-height:1.3}.grid3.rc>.col3 .rhdr{flex-direction:column;align-items:center;gap:4px}.rhdr{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px}.rhdr h2{margin:0}
+.rcard{border-top:1px solid var(--rule);padding:8px 0}.rcard:first-of-type{border-top:0}.rhead{font-size:12.5px;margin-bottom:4px}.rhead .mono{font-size:11.5px}.rctl{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:4px}.rctl select{padding:2px 6px;font-size:12px}.rcard .graph svg{max-width:100%;height:auto;color:var(--ink);display:block}.ivgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(700px,1fr));gap:4px 24px}.ivm{min-width:0}.grid3>.panel{overflow:auto;min-height:0;max-height:100%}.app{display:flex;flex-direction:column;height:100%;min-height:0;gap:8px}.app .grid3{flex:1 1 auto}
+@media (max-width:1100px){.grid3{grid-template-columns:1fr 1fr !important;gap:10px;height:auto}.grid3>.panel{max-height:none}.grid3 .col3{grid-column:1/-1}.grid3 .gut{display:none}.grid2{grid-template-columns:1fr}.app{height:auto}}
+@media (max-width:760px){.grid3{grid-template-columns:1fr !important}.grid3 .col3{grid-column:auto}}
+table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:3px 6px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--soft)}tr.cur td{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.chain button.cur{border-color:var(--accent);color:var(--accent)}
+.mini{display:inline-flex;gap:1px;height:8px;width:96px;border-radius:2px;overflow:hidden;vertical-align:middle}
+.mini i{display:block;height:100%}
+.mini .yes{background:var(--yes)}.mini .partial{background:var(--partial)}.mini .no{background:var(--no)}.mini .na{background:var(--na)}
+.stem{margin:10px 0 4px;font-weight:600;font-size:13px}
+.stemnote{color:var(--muted);font-size:12.5px;font-weight:400}
+details summary{cursor:pointer;color:var(--accent)}
+pre{background:var(--soft);border-radius:6px;padding:6px 8px;font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;max-height:220px;overflow:auto}
+.timeline{display:flex;flex-wrap:wrap;gap:2px;margin-top:6px;max-height:96px;overflow:auto;padding:2px}
+.tick{width:8px;height:15px;border-radius:2px;cursor:pointer;opacity:.75;position:relative;border:1px solid transparent}
+.tick.cur{outline:2px solid var(--accent);outline-offset:1px;opacity:1}.tick.invalid::after{content:"";position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--no)}
+.tick.result{width:5px;opacity:.5}
+.ph1{background:var(--ph1)}.ph2{background:var(--ph2)}.ph3{background:var(--ph3)}.ph4{background:var(--ph4)}.ph5{background:var(--ph5)}.ph6{background:var(--ph6)}.ph7{background:var(--ph7)}.ph8{background:var(--ph8)}
+
+.tick.lease::after{content:"";position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--ink)}
+.tick.badlease::after{background:var(--bad)}.tick.walk::after{content:"";position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;border:1px solid var(--ink);box-sizing:border-box}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.nav button{padding:4px 8px;font-size:12.5px}
+.legend{font-size:12px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.graph svg{display:block;height:auto;color:var(--ink);max-width:100%}.graph svg text.lab{font-family:var(--mono)}.graph svg text.sub{font-family:var(--sans)}.graph .gscroll{overflow-x:auto;padding-bottom:2px}.graph.full svg{max-width:none}
+.gwrap{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start}.gcard{min-width:0;flex:1 1 320px;max-width:100%}.gcard .graph{max-height:260px;overflow:auto}.gtoggle{font-size:11px;padding:2px 7px;margin-left:6px}
+.block{border-top:1px solid var(--rule);padding:6px 0}.block:first-of-type{border-top:0}
+.narr{font-size:13px;line-height:1.5}.narr p{margin:0 0 5px}.em{font-weight:600}.muted{color:var(--muted)}.pos{color:var(--yes)}.neg{color:var(--no)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;margin:0;flex:0 0 auto}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:5px 8px}
+.tile .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}.tile .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}.tile .s{font-size:10.5px;color:var(--muted)}
+.verd{display:grid;grid-template-columns:max-content max-content 1fr;gap:2px 10px;font-size:12.5px}
+.status{font-size:13px}.status .why{color:var(--muted);font-size:12.5px}
+.loading{color:var(--muted);padding:20px 0}
+label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.foot{display:none}.src{margin-left:auto;font-size:11px;color:var(--muted);border:1px dashed var(--rule);border-radius:999px;padding:1px 8px;cursor:help;white-space:nowrap}.src:hover,.src:focus-visible{color:var(--ink);border-color:var(--accent);outline:none}
+.kv.jv{grid-template-columns:minmax(70px,max-content) minmax(0,1fr)}.jv dt{font-family:var(--mono);font-size:11.5px;padding-top:1px;max-width:200px;overflow-wrap:anywhere;white-space:normal}.jv dd{min-width:0}.jd summary{overflow-wrap:anywhere}
+.col3 .kv.jv{grid-template-columns:minmax(60px,max-content) minmax(0,1fr)}.col3 .jv dt{max-width:130px}.col3 .jv dl.jv{display:block}.col3 .jv dl.jv dt{margin-top:4px}.col3 .jv dl.jv dd{margin-left:10px;margin-bottom:2px}.col3 .jt td{max-width:220px;min-width:90px}.col3 .jt{width:max-content;max-width:none}.jv dd .txt{white-space:pre-wrap;overflow-wrap:anywhere}.jv dl.jv{margin:0;border-left:2px solid var(--rule);padding-left:8px}
+.jt{font-size:11.5px}.jt th,.jt td{padding:2px 6px}.jt td{max-width:320px;overflow-wrap:anywhere}
+.jd summary{font-size:12px;color:var(--accent)}.jd pre{margin-top:4px}.jl{margin:0;padding-left:18px}.jl li{margin-bottom:3px}
+.diff{margin:0;padding-left:14px;font-size:11.5px;list-style:none}.diff li{margin:1px 0;overflow-wrap:anywhere}.diff .add{color:var(--yes)}.diff .rm{color:var(--no)}.diff .chg{color:var(--partial)}.diff .chg .em{color:var(--ink)}
+.basis{font-size:10.5px;color:var(--muted);white-space:nowrap}table.order td.what{white-space:normal;min-width:220px;max-width:300px;font-size:12px}table.order td.lin{white-space:normal;min-width:120px;font-size:11.5px}table.order td.idc{white-space:normal;min-width:230px;max-width:300px;overflow-wrap:anywhere}table.order td.ran{white-space:nowrap}tr.grp td{background:var(--soft);font-weight:600;font-size:12px;padding:5px 6px;white-space:normal}.runline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 2px;font-size:12.5px}.runline button{padding:3px 8px;font-size:12px}.runline .mono{font-size:12px}
+.mdlink{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:help}code{background:var(--soft);padding:0 3px;border-radius:3px}
+.banner{background:var(--partial-soft);color:var(--partial);border-radius:6px;padding:6px 9px;font-size:12.5px;margin:0 0 8px}
+.convo{margin:0;padding-left:0;list-style:none;font-size:12.5px}.convo li{border-left:2px solid var(--rule);padding:2px 0 2px 8px;margin-bottom:4px}.convo .who{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.ord{margin:4px 0 0;padding-left:26px;font-size:12px;max-height:210px;overflow:auto;font-variant-numeric:tabular-nums}.ord li{cursor:pointer;padding:1px 4px;border-radius:4px;overflow-wrap:anywhere}.ord li:hover{background:var(--soft)}.ord li.cur{background:var(--accent-soft);font-weight:600}.ord li.result{color:var(--muted)}.ord li.invalid .lab{color:var(--no)}.ord .ph{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px}.ord .who{font-family:var(--mono);font-size:11.5px}
+</style>
+<main>
+<div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><span class="src" id="src" tabindex="0" title="">source</span></div>
+<div id="view" class="loading">Loading the catalog…</div>
+<p class="foot" id="foot" hidden></p>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function md(v){let t=esc(v);t=t.replace(/`([^`\n]+)`/g,'<code>$1</code>');t=t.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');t=t.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g,'<span class="mdlink" title="$2">$1</span>');t=t.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:)]|$)/g,'$1<em>$2</em>');return t;}
+const fmt=(x,d=2)=>(x==null||isNaN(x))?'n/a':Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const money=x=>(x<0?'-':'')+'$'+fmt(Math.abs(x),x<1?4:2);
+const sign=x=>x>0?'+'+fmt(x):fmt(x);
+const STATE_LABEL={yes:'yes',partial:'partial',no:'no','not stated':'not stated'};
+const stateCls=s=>s==='yes'?'yes':s==='partial'?'partial':s==='no'?'no':'na';
+const PHASE_COLORS=['ph1','ph2','ph3','ph4','ph5','ph6','ph7','ph8'];
+let CAT=null, LENS={}, RESULTS={}; const campaignCache={}, lensCache={};
+function expandObj(cur,prev,prevAny){const out={};Object.entries(cur).forEach(([k,v])=>{const isO=v&&typeof v==='object'&&!Array.isArray(v);const keys=isO?Object.keys(v):[];if(isO&&v.$p===1&&keys.length===1)out[k]=prev?prev[k]:undefined;else if(isO&&v.$pa===1&&keys.length===1)out[k]=prevAny?prevAny[k]:undefined;else if(isO&&typeof v.$pp==='number'&&Array.isArray(v.t)&&keys.length===2)out[k]=((prev&&prev[k])||[]).slice(0,v.$pp).concat(v.t);else if(isO&&typeof v.$pe==='number'&&v.d&&Array.isArray(v.t)&&keys.length===3){const base=((prev&&prev[k])||[]).slice(0,v.$pe);Object.entries(v.d).forEach(([i,x])=>{base[Number(i)]=x;});out[k]=base.concat(v.t);}else out[k]=v;});return out;}
+function expandLens(lens){if(!lens||!lens.compact)return lens;lens.cases.forEach(c=>{const prevBySeat={};let prevState=null,prevAny=null;(c.phases||[]).forEach(ph=>{(ph.actions||[]).forEach(a=>{const o=a.observation;if(o&&typeof o==='object'&&!Array.isArray(o)){a.observation=expandObj(o,prevBySeat[a.seat],prevAny);prevBySeat[a.seat]=a.observation;prevAny=a.observation;}});const st=ph.post_state;if(st&&typeof st==='object'&&!Array.isArray(st)){if(prevState)ph.post_state=expandObj(st,prevState,null);prevState=ph.post_state;}});if(c.terminal&&c.outcome&&typeof c.terminal==='object'){Object.entries(c.terminal).forEach(([k,v])=>{if(v&&typeof v==='object'&&v.$o===1&&Object.keys(v).length===1)c.terminal[k]=c.outcome[k];});}});return lens;}
+async function loadLens(c){const m=LENS[c.id];if(!m||!m.file)return null;return lensCache[c.id]||(lensCache[c.id]=await getJSON(m.file).then(expandLens));}
+const lensNote=c=>{const m=LENS[c.id];if(!m||m.kind==='none'||!m.file)return 'action-level grain only';if(m.kind==='narrated')return 'full-detail lens: observations, market state and a narrated reading';if(m.kind==='sealed')return 'full-detail lens: observations, states and consequences from the sealed event logs';if(m.kind==='mixed')return `full detail for ${m.sealed} of ${m.cases} cases from sealed logs; the rest from case files`;return 'case definitions from the repository; the sealed logs for this run are not on this machine';};
+let route={view:'catalog',family:null,campaign:null,caseId:null,step:0};
+
+async function getJSON(path){const r=await fetch(path);if(!r.ok)throw new Error(path+' → '+r.status);const j=await r.json();if(!(j&&j.encoding==='gzip+base64'&&typeof j.payload==='string'))return j;if(typeof DecompressionStream==='undefined')throw new Error('this browser cannot inflate the data files (DecompressionStream missing)');const bin=atob(j.payload);const buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);const text=await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return JSON.parse(text);}
+function save(){try{localStorage.setItem('aeread-examiner-route',JSON.stringify(route));}catch(e){}}
+function crumbs(){
+  const parts=[`<button data-go="catalog">Catalog</button>`];
+  if(route.family) parts.push('›',`<button data-go="family">${esc(CAT.family_label[route.family]||route.family)}</button>`);
+  if(route.campaign) parts.push('›',`<button data-go="campaign" class="mono">${esc(route.campaign)}</button>`);
+  if(route.view==='results'&&route.campaign) parts.push('›',`<span class="cur">results</span>`);
+  if(route.caseId){const cd=route.campaign&&campaignCache[route.campaign];const kk=cd&&cd.cases.find(x=>x.receipt_sha256===route.caseId||(x.cell_id+'|'+x.episode_attempt_id)===route.caseId);parts.push('›',`<span class="cur mono">${esc(kk?kk.case_id+' · '+(kk.receipt_sha256||'').slice(0,10):String(route.caseId).slice(0,16))}</span>`);}
+  $('crumbs').innerHTML=parts.join(' ');
+  $('crumbs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const g=b.dataset.go; if(g==='catalog'){route={view:'catalog',family:null,campaign:null,caseId:null,step:0};} else if(g==='family'){route.view='catalog';route.campaign=null;route.caseId=null;} else {route.view='campaign';route.caseId=null;} render();}));
+}
+const byId=id=>CAT.campaigns.find(c=>c.id===id);
+function miniBar(check){const counts={yes:0,partial:0,no:0,na:0};check.forEach(i=>counts[stateCls(i.state)]++);const n=check.length||1;return `<span class="mini" title="${esc(Object.entries(counts).map(([k,v])=>k+' '+v).join(', '))}">${Object.entries(counts).map(([k,v])=>v?`<i class="${k}" style="width:${100*v/n}%"></i>`:'').join('')}</span>`;}
+
+// ---------------- declared graphs per family ----------------
+function familyGraphs(family){const pkg={datacenter_development_terms:'datacenter_development_terms'}[family]||family;return ((CAT.declared_graphs||{})[pkg]||[]).filter(v=>Array.isArray(v.nodes)&&v.nodes.length);}
+function graphCard(v,current){const g={nodes:v.nodes,edges:v.edges,entry:v.nodes[0]};const sim=Object.values(v.modes||{}).filter(m=>m==='simultaneous').length;return `<div class="gcard"><div class="muted" style="font-size:11.5px;margin-bottom:3px"><span class="mono">${esc(v.plugin)}</span>${v.variant?` · ${esc(v.variant)}`:''} · ${v.nodes.length} phase${v.nodes.length!==1?'s':''}, ${v.edges.length} edge${v.edges.length!==1?'s':''}${sim?`, ${sim} simultaneous`:''}${v.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</div><div class="graph">${graphSvg(g,current||null,null,v.modes,v.actors)}</div></div>`;}
+function wireGraphToggles(){document.querySelectorAll('[data-gt]').forEach(b=>b.addEventListener('click',()=>{const g=b.closest('.gcard, .panel').querySelector('.graph');g.classList.toggle('full');b.textContent=g.classList.contains('full')?'fit':'full size';}));}
+function campaignGraphs(c,observed){const vs=familyGraphs(c.family);if(observed&&observed.nodes&&observed.nodes.length){const m=vs.find(v=>observed.nodes.every(n=>v.nodes.includes(n)));if(m)return {variants:[m],note:'declared graph matched to the phases in this bundle\'s trajectory grain'};return {variants:[{plugin:'observed',variant:'from the sealed grain',nodes:observed.nodes,edges:observed.edges,modes:{},actors:{}}],note:'no declared graph covers the phases seen; drawn from the observed transitions'};}
+  if(vs.length>1){const id=c.id;const pick=vs.filter(v=>(/v2|counteroffer|interaction|objective/.test(id)&&/v2/.test(v.variant||''))||(/lemons/.test(id)&&/lemons/.test(v.variant||'')));if(pick.length)return {variants:pick,note:'declared variants matching this identity\'s scope; no trajectory grain to confirm'};}
+  return {variants:vs,note:vs.length>1?'every declared variant for this family; no trajectory grain to pick one':'the family\'s declared graph'};}
+
+// ---------------- catalog ----------------
+function renderCatalog(){
+  const fams=CAT.families.slice().sort((a,b)=>CAT.campaigns.filter(c=>c.family===b).length-CAT.campaigns.filter(c=>c.family===a).length);
+  if(!route.family) route.family=fams[0];
+  const tabs=fams.map(f=>`<button data-f="${f}" class="${f===route.family?'cur':''}">${esc(CAT.family_label[f]||f)} <span class="muted">${CAT.campaigns.filter(c=>c.family===f).length}</span></button>`).join('');
+  const list=CAT.campaigns.filter(c=>c.family===route.family).slice().sort((a,b)=>((a.order||{}).rank||1e9)-((b.order||{}).rank||1e9));
+  const cellsOf=c=>{const g=c.grain||{};const planned=(c.facts.find(f=>f.key==='planned_cells')||{}).value,done=(c.facts.find(f=>f.key==='completed_cells')||{}).value;return planned!=null?`${done??'?'} / ${planned}`:(g.cases!=null?`${g.cases} cases`:(g.legacy_rows?`${g.legacy_rows} rows`:'—'));};
+  const issuesOf=c=>c.issues.length?`${c.issues.length}${c.issues.some(i=>i.state==='open')?` <span class="chip no">${c.issues.filter(i=>i.state==='open').length} open</span>`:''}`:'<span class="muted">none</span>';
+  const costOf=c=>{const g=c.grain||{};return c.manifest.total_cost_usd!=null?money(c.manifest.total_cost_usd):(g.cost_usd?money(g.cost_usd):'—');};
+  const trajOf=c=>c.trajectory_file?((c.grain||{}).source==='sealed_logs'?'<span class="chip yes" title="the bundle publishes cell rows only; the steps come from the sealed event logs on this machine">sealed logs</span>':'<span class="chip yes">step grain</span>'):((c.grain||{}).legacy_rows?'<span class="chip na">cell rows</span>':`<span class="chip na" title="${esc((LENS[c.id]||{}).note||'no step grain published and no sealed logs on this machine')}">none</span>`);
+  const BASIS_SHORT={'sealed receipts on this machine':'receipts on disk','first commit naming it':'first commit','date in the identity':'date in id','created_date in its reports':'report date'};
+  const ranOf=c=>{const o=c.order||{};if(!o.at)return '<span class="muted">unknown</span>';const t=o.at.replace('T',' ').slice(0,16);const w=o.window;const title=`${o.basis}${w?` · ${w.receipts} receipts written ${w.start.replace('T',' ')} to ${w.end.replace('T',' ')}`:''}${o.git?` · first commit ${o.git.commit} ${o.git.date.slice(0,10)}: ${o.git.subject}`:''}`;return `<span class="mono" title="${esc(title)}">${esc(t)}</span><div class="basis" title="${esc(title)}">${esc(BASIS_SHORT[o.basis]||o.basis)}${w&&w.end&&w.end!==w.start?' · to '+esc(w.end.slice(11,16)):''}</div>`;};
+  const rankOf=id=>{const m=byId(id);return m&&m.order?`<button class="runnav" data-id="${esc(id)}">#${m.order.rank}</button>`:esc(id);};
+  const lineageOf=c=>{const parts=[];if(c.chain.length>1)parts.push(`${esc(c.version||'')} of ${c.chain.length} in <span class="mono">${esc(c.stem)}</span>`);const o=c.order||{};(o.refs||[]).forEach(r=>parts.push(`builds on ${rankOf(r)}`));(o.referred_by||[]).forEach(r=>parts.push(`used by ${rankOf(r)}`));return parts.join('<br>')||'<span class="muted">standalone</span>';};
+  const stems={}; list.forEach(c=>{(stems[c.stem]=stems[c.stem]||[]).push(c);});
+  const stemOrder=Object.entries(stems).sort((a,b)=>Math.min(...a[1].map(c=>(c.order||{}).rank||1e9))-Math.min(...b[1].map(c=>(c.order||{}).rank||1e9)));
+  const rowOf=c=>`<tr class="click" data-id="${esc(c.id)}"><td class="mono">${c.order?c.order.rank:''}</td><td class="ran">${ranOf(c)}</td><td class="idc"><span class="mono">${esc(c.id)}</span> <span class="chip ${c.chain.latest?'acc':''}">${esc(c.version||c.date||'—')}${c.variant?' · '+esc(c.variant):''}</span></td><td class="what">${md((c.order||{}).summary||'')}${(c.order||{}).claim?`<div class="basis" style="white-space:normal">claim: ${esc(c.order.claim.replace(/_/g,' '))}</div>`:''}</td><td>${esc(c.status.label)}</td><td>${issuesOf(c)}</td><td>${miniBar(c.checklist)}</td><td>${trajOf(c)}</td><td class="lin">${lineageOf(c)}</td></tr>`;
+  const rows=stemOrder.map(([stem,members])=>{members.sort((a,b)=>a.chain.position-b.chain.position);const first=members[0],last=members[members.length-1];const head=members.length>1?`<tr class="grp"><td colspan="9">chain <span class="mono">${esc(stem)}</span> · ${members.length} versions, ${esc(first.version||first.date||'')} → ${esc(last.version||last.date||'')} · first ran ${esc(((first.order||{}).at||'unknown').replace('T',' ').slice(0,16))} · latest <span class="mono">${esc(last.id)}</span></td></tr>`:'';return head+members.map(rowOf).join('');}).join('');
+  const groups=`<div class="stem">Run order <span class="stemnote">· ${list.length} bundle${list.length!==1?'s':''}. Version chains stay together, in chain order; chains are placed by when their first version ran. # is each run's place in the family by time. “Ran” is when the bundle's sealed receipts were written on this machine, or else the first commit that names the identity (day precision).</span></div><div class="scroll"><table class="order"><thead><tr><th>#</th><th>ran</th><th>identity</th><th>what this run is (README)</th><th>status (as stated)</th><th>incident rows</th><th>validity checklist</th><th>trajectories</th><th>lineage</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const famRows=(CAT.family_incidents[route.family]||[]);
+  const famIssues=famRows.length?`<details style="margin-top:14px"><summary>${famRows.length} incident rows in this family's sections (all versions)</summary><div class="scroll"><table><thead><tr><th>id</th><th>state</th><th>section</th><th>defect</th><th>disposition</th></tr></thead><tbody>${famRows.map(r=>`<tr><td class="mono">${esc(r.id)}</td><td><span class="chip ${r.state==='open'?'no':r.state==='fixed'?'yes':'na'}">${esc(r.state)}</span></td><td>${esc(r.section)}</td><td style="white-space:normal">${md(r.defect)}</td><td style="white-space:normal">${md(r.disposition)}</td></tr>`).join('')}</tbody></table></div></details>`:'';
+  const fg=familyGraphs(route.family);
+  const graphs=fg.length?`<details class="panel" style="margin-bottom:8px" open><summary style="font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Phase graph${fg.length>1?'s':''} declared by the ${esc(CAT.family_label[route.family]||route.family)} plugin${fg.length>1?'s':''}</summary><div class="gwrap" style="margin-top:6px">${fg.map(v=>graphCard(v)).join('')}</div></details>`:'';
+  $('view').className='';
+  $('view').innerHTML=`<p class="lede">Every published campaign bundle, grouped by version chain with chains in the order they first ran (# is each run's place in the family by time). Status is what the bundle and the QC profile state, never inferred beyond their words; the validity bar summarises the checklist on each campaign's page (green yes, amber partial, red no, grey not stated). Click a row.</p><div class="tabs">${tabs}</div>${graphs}${groups}${famIssues}`;
+  $('view').querySelectorAll('.runnav').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.view='campaign';route.campaign=b.dataset.id;route.caseId=null;render();}));
+  $('view').querySelectorAll('.tabs button[data-f]').forEach(b=>b.addEventListener('click',()=>{route.family=b.dataset.f;render();}));wireGraphToggles();
+  $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='campaign';route.campaign=tr.dataset.id;route.caseId=null;render();}));
+}
+
+// ---------------- campaign ----------------
+function renderCampaign(){
+  const c=byId(route.campaign); route.family=c.family;
+  const chain=c.chain.members.map(id=>{const m=byId(id);return `<button data-id="${esc(id)}" class="${id===c.id?'cur':''}" title="${esc(m.status.label)}">${esc(m.version||m.date||id)}${m.variant?' · '+esc(m.variant):''}</button>`;}).join('<span class="muted">→</span>');
+  const o=c.order||{};const prevRun=o.prev?byId(o.prev):null,nextRun=o.next?byId(o.next):null;
+  const runline=`<div class="runline"><span class="chip acc">run #${o.rank||'?'} of ${o.of||'?'} in ${esc(CAT.family_label[c.family]||c.family)}</span><span class="muted">ran <span class="mono">${esc(o.at?o.at.replace('T',' ').slice(0,16):'unknown')}</span> · ${esc(o.basis||'')}</span>${prevRun?`<button class="runnav" data-id="${esc(prevRun.id)}" title="${esc(prevRun.id)}">‹ #${prevRun.order.rank} ${esc(prevRun.stem)}${prevRun.version?' '+esc(prevRun.version):''}</button>`:'<span class="muted">first run in the family</span>'}${nextRun?`<button class="runnav" data-id="${esc(nextRun.id)}" title="${esc(nextRun.id)}">#${nextRun.order.rank} ${esc(nextRun.stem)}${nextRun.version?' '+esc(nextRun.version):''} ›</button>`:'<span class="muted">latest run in the family</span>'}${(o.refs||[]).length?`<span class="muted">builds on ${o.refs.map(r=>`<button class="runnav" data-id="${esc(r)}">#${(byId(r).order||{}).rank} ${esc(r)}</button>`).join(' ')}</span>`:''}${(o.referred_by||[]).length?`<span class="muted">used by ${o.referred_by.map(r=>`<button class="runnav" data-id="${esc(r)}">#${(byId(r).order||{}).rank} ${esc(r)}</button>`).join(' ')}</span>`:''}</div>`;
+  const st=c.status;
+  const why=[st.claim_status?`manifest claim_status: <code>${esc(st.claim_status)}</code>`:null, st.readme_sentence?`README: “${md(st.readme_sentence)}”`:null, ...st.fact_evidence.map(e=>`report: <code>${esc(e)}</code>`)].filter(Boolean);
+  const check=c.checklist.map(i=>`<tr><td><span class="chip ${stateCls(i.state)}">${esc(STATE_LABEL[i.state]||i.state)}</span></td><td style="white-space:normal">${esc(i.item)}</td><td>${esc(i.gate==='0-5'?'all':'Gate '+i.gate+' · '+(CAT.gate_names[i.gate]||''))}</td><td style="white-space:normal">${md(i.detail)}</td><td class="mono muted" style="white-space:normal">${esc(i.source)}</td></tr>`).join('');
+  const facts=c.facts.map(f=>`<tr><td class="mono">${esc(f.key)}</td><td style="white-space:normal">${esc(typeof f.value==='object'?JSON.stringify(f.value):f.value)}</td><td class="mono muted">${esc(f.file)}</td></tr>`).join('');
+  const issues=c.issues.length?c.issues.map(i=>`<tr><td class="mono">${esc(i.id)}</td><td><span class="chip ${i.state==='open'?'no':i.state==='fixed'?'yes':'na'}">${esc(i.state)}</span></td><td class="muted">${esc(i.link)}</td><td style="white-space:normal">${md(i.defect)}</td><td style="white-space:normal">${md(i.disposition)}</td></tr>`).join(''):'<tr><td colspan="5" class="muted">no incident row names this identity or its section</td></tr>';
+  const qc=c.qc.sections.length?c.qc.sections.map(s=>`<div class="block"><div><span class="em">${esc(s.heading)}</span> <span class="muted mono">${esc(s.path||'')}</span></div>${s.gate_sentences.map(x=>`<p style="margin:4px 0">${md(x)}</p>`).join('')}${s.status_sentences.filter(x=>!s.gate_sentences.includes(x)).slice(0,4).map(x=>`<p class="muted" style="margin:4px 0">${md(x)}</p>`).join('')}</div>`).join(''):'<p class="muted">The family QC profile does not mention this identity.</p>';
+  const g=c.grain||{};
+  const cg=campaignGraphs(c, g.phases?{nodes:g.phases,edges:[]}:null);
+  const prov=g.source==='sealed_logs'?`<p class="muted" style="margin:0 0 6px;font-size:12px">The bundle itself publishes ${g.legacy_rows?g.legacy_rows+' cell-level rows and ':''}no step grain. The steps below were read from the sealed event logs on this machine, matched to the bundle by receipt digest, so they are the runs the bundle reports on but not part of the published artefact.</p>`:'';
+  const traj=c.trajectory_file?`${prov}<dl class="kv"><dt>cases</dt><dd>${g.cases}</dd><dt>steps</dt><dd>${g.rows} (${g.steps_per_case} per case)</dd><dt>phases seen</dt><dd class="mono">${esc((g.phases||[]).join(', '))}</dd><dt>profiles</dt><dd>${g.profiles} (${g.scripted_profiles} scripted) <span class="mono muted">${esc((g.profile_ids||[]).join(', '))}</span></dd><dt>invalid steps</dt><dd>${g.invalid_steps}</dd><dt>provider cost in grain</dt><dd>${money(g.cost_usd||0)}</dd></dl><div class="nav"><button class="primary" id="examine">Examine cases step by step</button></div>`:(g.legacy_rows?`<p class="muted">This bundle publishes ${g.legacy_rows} cell-level rows without a step grain, so it can be reviewed here but not stepped through.</p>`:`<p class="muted">Nothing to step through: ${esc((LENS[c.id]||{}).note||'no step grain is published for this bundle and no sealed attempt directory on this machine matches it')}.</p>`);
+  $('view').className='';
+  $('view').innerHTML=`<div class="stack">
+  <section class="panel"><h2>${esc(CAT.family_label[c.family]||c.family)} · version ${c.chain.position} of ${c.chain.length} in <span class="mono">${esc(c.stem)}</span></h2>
+   <h3 class="mono" style="font-size:16px">${esc(c.id)}</h3><div class="chain">${chain}</div>${runline}
+   <div class="status"><span class="chip ${c.chain.latest?'acc':''}">${c.chain.latest?'latest in chain':'earlier version'}</span> <span class="em">${esc(st.label)}</span>${c.manifest.cost_qualifier?` · cost ${esc(c.manifest.cost_qualifier)}`:''}${c.manifest.total_cost_usd!=null?` · ${money(c.manifest.total_cost_usd)}`:''}${c.source_receipts?` · ${c.source_receipts} source receipts`:''}<div class="why">${why.length?why.join('<br>'):'no status sentence found in the manifest, reports or README; treat as published with the claims stated in its README'}</div></div>
+   ${c.readme.excerpt?`<details style="margin-top:6px"><summary class="muted" style="font-size:12px">README excerpt · <span class="mono">${esc(c.path)}/README.md</span></summary><p style="margin:6px 0 0;max-width:110ch">${md(c.readme.excerpt)}</p></details>`:''}
+  </section>
+  <section class="panel"><div class="bar" style="margin:0"><h2 style="margin:0">Results</h2>${(RESULTS[c.id]&&(RESULTS[c.id].tables||RESULTS[c.id].intervals))?`<span class="muted" style="font-size:12.5px">${RESULTS[c.id].tables} numeric table${RESULTS[c.id].tables!==1?'s':''}, ${RESULTS[c.id].intervals} interval estimate${RESULTS[c.id].intervals!==1?'s':''} and ${RESULTS[c.id].headline} headline numbers published by this bundle</span><button class="primary" id="open-results">Open charts</button>`:'<span class="muted" style="font-size:12.5px">this bundle publishes no numeric tables the examiner can chart</span>'}</div></section>
+  <div class="grid2">
+   <section class="panel"><h2>Construct validity checklist</h2><p class="muted" style="margin:0 0 6px;font-size:12px">Each line is a fact the bundle or the repository states, mapped to the QC gate it serves. “Not stated” means the bundle does not carry the fact, not that it fails.</p><div class="scroll"><table class="checklist"><thead><tr><th>state</th><th>check</th><th>gate</th><th>what the evidence says</th><th>source</th></tr></thead><tbody>${check}</tbody></table></div></section>
+   <div class="stack">
+    <section class="panel"><h2>Phase graph</h2><p class="muted" style="font-size:12px;margin:0 0 4px">${esc(cg.note)}</p><div class="gwrap">${cg.variants.map(v=>graphCard(v)).join('')}</div></section>
+    <section class="panel"><h2>Trajectories</h2>${traj}</section>
+   </div>
+  </div>
+  <section class="panel"><h2>Incident log rows</h2><div class="scroll"><table><thead><tr><th>id</th><th>state</th><th>link</th><th>defect</th><th>disposition</th></tr></thead><tbody>${issues}</tbody></table></div></section>
+  <div class="grid2">
+   <section class="panel"><h2>QC profile says</h2>${qc}</section>
+   <section class="panel"><details><summary style="font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Facts read from reports · ${c.facts.length}</summary><div class="scroll" style="margin-top:6px"><table><thead><tr><th>key</th><th>value</th><th>file</th></tr></thead><tbody>${facts||'<tr><td colspan="3" class="muted">none</td></tr>'}</tbody></table></div></details></section>
+  </div></div>`;
+  $('view').querySelectorAll('.chain button, .runnav').forEach(b=>b.addEventListener('click',()=>{route.campaign=b.dataset.id;route.caseId=null;render();}));
+  const ex=$('examine'); if(ex) ex.addEventListener('click',()=>{route.view='cases';render();});wireGraphToggles();
+  const orb=$('open-results'); if(orb) orb.addEventListener('click',()=>{route.view='results';route.caseId=null;render();});
+}
+
+// ---------------- results page ----------------
+async function renderResultsPage(){
+  const c=byId(route.campaign); if(!c){route.view='catalog';return render();}
+  $('view').className='loading'; $('view').textContent='Loading the bundle\'s numeric tables…';
+  const res=await loadResults(c);
+  $('view').className='';
+  $('view').innerHTML=`<section class="panel"><div class="bar" style="margin:0 0 6px"><h3 class="mono" style="margin:0;font-size:15px">${esc(c.id)}</h3><span class="chip">${esc(c.status.label)}</span><span class="muted" style="font-size:12.5px">${esc(CAT.family_label[c.family]||c.family)} · run #${(c.order||{}).rank||'?'} of ${(c.order||{}).of||'?'}</span><button id="back-campaign">‹ campaign page</button>${c.trajectory_file?'<button id="examine2">Examine cases step by step</button>':''}</div><p class="muted" style="margin:0;font-size:12.5px">${md(c.readme.excerpt||'')}</p></section><section class="panel" id="results" style="margin-top:8px"></section>`;
+  $('back-campaign').addEventListener('click',()=>{route.view='campaign';render();});
+  const ex=$('examine2'); if(ex) ex.addEventListener('click',()=>{route.view='cases';render();});
+  renderResults(c,res);
+}
+
+// ---------------- cases ----------------
+async function renderCases(){
+  const c=byId(route.campaign);
+  $('view').className='loading'; $('view').textContent='Loading trajectories…';
+  const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));
+  const numericKeys=(()=>{const counts={};data.cases.forEach(k=>Object.entries(k.outcome_row||{}).forEach(([key,v])=>{if(typeof v==='number'||(typeof v==='string'&&v!==''&&!isNaN(Number(v))&&key.indexOf('sha256')<0)){counts[key]=(counts[key]||0)+1;}}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!/sha|index|seed|id$/.test(k)).slice(0,4);})();
+  const seedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='world_seed'||x.endsWith('.world_seed'));return key?r[key]:null;};const hasSeed=data.cases.some(k=>seedOf(k)!=null);const iseedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='inference_seed'||x.endsWith('.inference_seed'));return key?r[key]:null;};const hasISeed=data.cases.some(k=>iseedOf(k)!=null);const archOf=id=>{const m=String(id).match(/^(.*?)(?:\.|_)?(\d+)$/);return m?{arch:m[1],n:m[2]}:{arch:id,n:''};};
+  const rows=data.cases.map(k=>`<tr class="click" data-case="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}"><td class="mono">${esc(k.case_id)}</td>${hasSeed?`<td class="mono muted" title="world seed: each numbered case of an archetype is a separately sampled world">${esc(seedOf(k)??'—')}</td>`:''}${hasISeed?`<td class="mono muted" title="inference seed: the same world run again with a different model sampling seed">${esc(iseedOf(k)??'—')}</td>`:''}<td class="mono muted">${esc(k.episode_attempt_id.slice(-8))}</td><td class="mono" style="white-space:normal">${esc(k.profiles.join(', '))}</td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td><td>${k.invalid_steps?`<span class="chip no">${k.invalid_steps}</span>`:'0'}</td><td>${money(k.cost)}</td>${numericKeys.map(key=>`<td>${esc(k.outcome_row&&k.outcome_row[key]!=null?(typeof k.outcome_row[key]==='number'?fmt(k.outcome_row[key],2):k.outcome_row[key]):'—')}</td>`).join('')}</tr>`).join('');
+  $('view').className='';
+  $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cases · ${esc(lensNote(c))}</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">One row per sealed episode attempt. Outcome columns are read from the bundle's own tables when they join on the receipt digest. Click a row to step through it.</p><div class="scroll"><table><thead><tr><th>case</th>${hasSeed?'<th>world seed</th>':''}${hasISeed?'<th>inference seed</th>':''}<th>attempt</th><th>profiles</th><th>steps</th><th>invalid</th><th>cost</th>${numericKeys.map(k=>`<th>${esc(k.replace(/^[a-z_]+\./,''))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='step';route.caseId=tr.dataset.case;route.step=0;render();}));
+}
+
+// ---------------- graph layout (generic) ----------------
+function layout(nodes,edges,entry){
+  const est=t=>t.length*(t.length>30?6.3:7.1);const longest=Math.max(...nodes.map(n=>n.length));
+  const wrap=longest>34;const lines=n=>{if(!wrap||n.length<=34)return [n];const cuts=[...n].map((c,i)=>c==='_'?i:-1).filter(i=>i>3&&i<n.length-4);const mid=n.length/2;const cut=cuts.length?cuts.reduce((b,i)=>Math.abs(i-mid)<Math.abs(b-mid)?i:b):Math.floor(mid)-1;return [n.slice(0,cut+1),n.slice(cut+1)];};
+  const widest=Math.max(...nodes.flatMap(n=>lines(n).map(est)));const NODE_W=Math.max(150,Math.min(300,Math.round(widest)+22)),NODE_H=wrap?60:46,GX=56,GY=20;
+  const stackLike=nodes.length>=6&&nodes.every(n=>/_(offer|response|commit)$/.test(n));
+  const pos={};let W,H;
+  if(stackLike){
+    const keyOf=id=>id.split('_').slice(0,-2).join('_')||id.split('_')[0]; const order=[];nodes.forEach(n=>{const k=keyOf(n);if(!order.includes(k))order.push(k);});
+    const rows={offer:0,response:1,commit:2};
+    nodes.forEach(n=>{const kind=n.split('_').pop();pos[n]=[30+order.indexOf(keyOf(n))*(NODE_W+GX),30+(rows[kind]||0)*(NODE_H+44)];});
+    W=30+order.length*(NODE_W+GX)-GX+40;H=30+3*(NODE_H+44)+10;
+  } else if(nodes.length>=3&&nodes.length<=6&&(()=>{const nxt={};nodes.forEach(n=>nxt[n]=new Set());edges.forEach(e=>{if(nxt[e.from]&&e.to!==e.from)nxt[e.from].add(e.to);});let cur=entry&&nodes.includes(entry)?entry:nodes[0];const seen=[cur];for(let i=1;i<nodes.length;i++){const outs=[...nxt[cur]].filter(n=>!seen.includes(n));if(outs.length!==1)return false;cur=outs[0];seen.push(cur);}return nxt[cur].has(seen[0]);})()){
+    // a simple cycle: walk it, first half down the left column, second half up the right
+    const nxt={};nodes.forEach(n=>nxt[n]=new Set());edges.forEach(e=>{if(nxt[e.from]&&e.to!==e.from)nxt[e.from].add(e.to);});
+    let cur=entry&&nodes.includes(entry)?entry:nodes[0];const order=[cur];for(let i=1;i<nodes.length;i++){cur=[...nxt[cur]].filter(n=>!order.includes(n))[0];order.push(cur);}
+    const half=Math.ceil(order.length/2);
+    order.forEach((n,i)=>{const col=i<half?0:1;const row=i<half?i:(order.length-1-i);pos[n]=[30+col*(NODE_W+GX+30),30+row*(NODE_H+40)];});
+    W=30+2*(NODE_W+GX+30)-GX-30+40;H=30+half*(NODE_H+40)+10;
+  } else {
+    const nxt={};nodes.forEach(n=>nxt[n]=[]);edges.forEach(e=>{if(nxt[e.from]&&nodes.includes(e.to))nxt[e.from].push(e.to);});
+    const depth={};const start=entry&&nodes.includes(entry)?entry:nodes[0];depth[start]=0;const q=[start];
+    while(q.length){const u=q.shift();nxt[u].forEach(v=>{if(depth[v]==null){depth[v]=depth[u]+1;q.push(v);}});}
+    nodes.forEach(n=>{if(depth[n]==null)depth[n]=Math.max(0,...Object.values(depth))+1;});
+    const byLayer={};nodes.forEach(n=>{(byLayer[depth[n]]=byLayer[depth[n]]||[]).push(n);});
+    const ncols=Math.max(...Object.keys(byLayer).map(Number))+1,nrows=Math.max(...Object.values(byLayer).map(a=>a.length));
+    W=30+ncols*(NODE_W+GX)-GX+40;H=50+nrows*(NODE_H+GY)-GY+60;
+    Object.entries(byLayer).forEach(([col,list])=>{const total=list.length*(NODE_H+GY)-GY;const y0=50+(nrows*(NODE_H+GY)-GY-total)/2;list.forEach((n,i)=>pos[n]=[30+Number(col)*(NODE_W+GX),y0+i*(NODE_H+GY)]);});
+  }
+  return {pos,W,H,NODE_W,NODE_H,lines,est};
+}
+function graphSvg(graph,current,round,modes,actors){
+  const {pos,W,H,NODE_W,NODE_H,lines,est}=layout(graph.nodes,graph.edges,graph.entry);
+  let s=`<svg viewBox="0 0 ${W} ${Math.max(H,140)}" width="${Math.min(W, 1400)}" role="img" aria-label="phase graph, current phase ${esc(current)}"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>`;
+  let back=0;
+  graph.edges.forEach(e=>{if(!pos[e.from]||!pos[e.to])return;const [ax,ay]=pos[e.from],[bx,by]=pos[e.to];
+    if(e.from===e.to){const cx=ax+NODE_W/2;s+=`<path d="M${cx+16},${ay} C${cx+36},${ay-40} ${cx-36},${ay-40} ${cx-16},${ay}" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>`;return;}
+    if(bx>ax){s+=`<line x1="${ax+NODE_W}" y1="${ay+NODE_H/2}" x2="${bx-2}" y2="${by+NODE_H/2}" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>`;}
+    else if(bx===ax){const dir=by>ay?1:-1;const off=dir>0?-14:14;s+=`<line x1="${ax+NODE_W/2+off}" y1="${dir>0?ay+NODE_H:ay}" x2="${bx+NODE_W/2+off}" y2="${dir>0?by-2:by+NODE_H+2}" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>`;}
+    else if(by===ay){s+=`<line x1="${ax}" y1="${ay+NODE_H/2}" x2="${bx+NODE_W+2}" y2="${by+NODE_H/2}" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>`;}
+    else{back++;const drop=36+14*back;const x1=ax+NODE_W/2,y1=ay+NODE_H,x2=bx+NODE_W/2,y2=by+NODE_H+2,base=Math.max(y1,y2)+drop;s+=`<path d="M${x1},${y1} C${x1},${base} ${x2},${base} ${x2},${y2}" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>`;}
+  });
+  graph.nodes.forEach(n=>{const [x,y]=pos[n];const on=n===current;const sim=(modes||{})[n]==='simultaneous';
+    s+=`<rect x="${x}" y="${y}" width="${NODE_W}" height="${NODE_H}" rx="6" fill="${on?'var(--accent)':'var(--panel)'}" stroke="${on?'var(--accent)':'currentColor'}" stroke-width="1.3"/>`;
+    if(sim)s+=`<rect x="${x+4}" y="${y+4}" width="${NODE_W-8}" height="${NODE_H-8}" rx="4" fill="none" stroke="${on?'var(--panel)':'currentColor'}" stroke-width=".8" opacity=".8"/>`;
+    const ls=lines(n);const fs=ls.some(l=>l.length>30)?10:11.5;const lh=fs+2;const top=y+(NODE_H-11-ls.length*lh)/2+fs;
+    ls.forEach((l,li)=>{const fit=est(l)>NODE_W-10?` textLength="${NODE_W-10}" lengthAdjust="spacingAndGlyphs"`:'';s+=`<text class="lab" x="${x+NODE_W/2}" y="${top+li*lh}" text-anchor="middle" font-size="${fs}"${fit} fill="${on?'var(--panel)':'currentColor'}">${esc(l)}</text>`;});
+    const sub=(actors||{})[n]?String((actors||{})[n]):'';if(sub)s+=`<text class="sub" x="${x+NODE_W/2}" y="${y+NODE_H-11}" text-anchor="middle" font-size="10" fill="${on?'var(--panel)':'var(--muted)'}">${esc(sub.length>26?sub.slice(0,25)+'…':sub)}</text>`;});
+  if(round!=null)s+=`<text x="${W-10}" y="${Math.max(H,140)-8}" text-anchor="end" font-size="11" fill="var(--muted)">round ${round}</text>`;
+  return '<div class="gscroll">'+s+'</svg></div>';
+}
+function pickGraph(c,observed){
+  const pkg={datacenter_development_terms:'datacenter_development_terms'}[c.family]||c.family;
+  const decl=(CAT.declared_graphs||{})[pkg]||[];
+  const obsNodes=new Set(observed.nodes);
+  const match=decl.find(d=>observed.nodes.every(n=>d.nodes.includes(n)));
+  if(match) return {graph:{nodes:match.nodes,edges:match.edges,entry:match.nodes[0],basis:`declared by ${match.plugin}${match.variant?' ('+match.variant+')':''}`},modes:match.modes,actors:match.actors};
+  return {graph:observed,modes:{},actors:{}};
+}
+
+// ---------------- step view (generic + lens) ----------------
+async function renderStep(){
+  const c=byId(route.campaign);
+  const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));crumbs();
+  const [cell,attempt]=String(route.caseId).split('|');
+  const k=data.cases.find(x=>x.receipt_sha256===route.caseId)||data.cases.find(x=>x.cell_id===cell&&x.episode_attempt_id===attempt);
+  if(!k){route.view='cases';return render();}
+  const lens=await loadLens(c);const lensMeta=LENS[c.id]||{};
+  const lensCase=lens?lens.cases.find(x=>x.receipt_sha256===k.receipt_sha256):null;
+  if(lensCase&&lensMeta.kind==='narrated'&&lens.world_kind==='lemons'&&lens.worlds){return renderLens(c,k,lens,lensCase);}
+  if(lensCase&&lensCase.kind==='sealed'&&lensCase.phases&&lensCase.phases.length){return renderSealed(c,k,data,lens,lensCase);}
+  const world=lensCase&&lensCase.world?lensCase.world:null;
+  if(!k.steps){$('view').className='';$('view').innerHTML=`<section class="panel"><h3>No step rows for this case</h3><p class="muted">The campaign file is thin (its steps live in the lens), but no lens record matched this receipt. Rebuild the lens or restore the full campaign file.</p></section>`;return;}
+  // group steps into phase instances by contiguous phase id
+  const phases=[];k.steps.forEach(s=>{const last=phases[phases.length-1];if(!last||last.phase!==s.phase){phases.push({phase:s.phase,steps:[]});}phases[phases.length-1].steps.push(s);});
+  const steps=[];phases.forEach((p,pi)=>{p.steps.forEach((s,si)=>steps.push({pi,si,p,s}));});
+  route.step=Math.min(route.step,steps.length-1);const cur=steps[route.step];
+  const {graph,modes,actors}=pickGraph(c,data.graph);
+  const phaseIdx={};graph.nodes.forEach((n,i)=>phaseIdx[n]=i);
+  const ticks=steps.map((st,i)=>`<div class="tick ${PHASE_COLORS[(phaseIdx[st.s.phase]??i)%8]} ${i===route.step?'cur':''} ${st.s.outcome&&st.s.outcome.valid===false?'invalid':''}" data-i="${i}" title="${esc(`${i+1}. ${st.s.phase} · ${st.s.seat} · ${st.s.action?JSON.stringify(st.s.action).slice(0,80):'—'}`)}"></div>`).join('');
+  const others=cur.p.steps.filter(x=>x!==cur.s).map(x=>`<li><span class="mono">${esc(x.seat)}</span>: <span class="mono">${esc(JSON.stringify(x.action)).slice(0,120)}</span>${x.outcome&&x.outcome.valid===false?` <span class="chip no">${esc(x.outcome.failure_code||'invalid')}</span>`:''}</li>`).join('');
+  const s=cur.s, pv=s.provider||{};
+  const outcomeRow=k.outcome_row?Object.entries(k.outcome_row).filter(([key,v])=>!/sha256|_id$|_key$|ordinal/.test(key)&&v!==null&&v!==''&&v!==undefined).slice(0,18).map(([key,v])=>`<dt class="mono">${esc(key.replace(/^[a-z_]+\./,''))}</dt><dd>${esc(typeof v==='number'?(Number.isInteger(v)?String(v):fmt(v,3)):String(v))}</dd>`).join(''):'';
+  $('view').className='';
+  $('view').innerHTML=`<div class="app"><div class="grid3">
+  <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div>
+   <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${k.steps.length} actions · ${phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
+   <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>● red dot = invalid action</span></div>
+   <div class="nav"><button data-d="-1e9">⇤</button><button data-d="-1">‹ step</button><button data-d="1">step ›</button><button data-d="1e9">⇥</button></div><div class="legend">← → move one step</div>
+   ${orderHtml(steps.map((st,i)=>({phase:st.s.phase,seat:st.s.seat,label:actionLabel({parsed:{action:st.s.action},provider:{failures:(st.s.provider&&st.s.provider.failures||[]).map(f=>({condition:f}))}}),result:false,invalid:st.s.outcome&&st.s.outcome.valid===false,cls:PHASE_COLORS[(phaseIdx[st.s.phase]??i)%8]})),route.step)}
+   <h2 style="margin-top:12px">Case outcome (bundle tables)</h2>${outcomeRow?`<dl class="kv">${outcomeRow}</dl>`:'<p class="muted" style="font-size:12.5px">no table row joins this receipt</p>'}
+  </section>
+  <section class="panel"><div class="bar" style="margin-bottom:6px"><span class="em" style="font-size:16px"><span class="mono">${esc(s.phase)}</span> · ${esc(s.seat)}</span><span class="chip">action ${cur.si+1} of ${cur.p.steps.length} in this phase instance</span><span class="chip">step ${route.step+1} of ${steps.length}</span></div>
+   <div class="block"><h3>Who</h3><dl class="kv"><dt>seat</dt><dd class="mono">${esc(s.seat)}</dd><dt>role</dt><dd>${esc(s.role||'—')}</dd><dt>profile</dt><dd class="mono">${esc(s.profile||'—')}</dd><dt>phase mode</dt><dd>${esc(modes[s.phase]||'—')}${actors[s.phase]?` · actor selector <span class="mono">${esc(actors[s.phase])}</span>`:''}</dd></dl></div>
+   <div class="block"><h3>Action as parsed</h3><pre>${esc(JSON.stringify(s.action,null,1))}</pre></div>
+   <div class="block"><h3>Gates</h3><dl class="kv"><dt>parse</dt><dd>${s.parse&&s.parse.ok!==false&&!(s.parse.error_code)?'ok':`<span class="neg">failed${s.parse&&s.parse.error_code?': '+esc(s.parse.error_code):''}</span>`}</dd><dt>legality</dt><dd>${s.legal?(s.legal.legal?'legal':`<span class="neg">illegal: ${esc(s.legal.reason||'')}</span>`):'—'}</dd><dt>accepted by scheduler</dt><dd>${s.outcome?(s.outcome.valid?'yes':`<span class="neg">no (${esc(s.outcome.failure_code||s.outcome.status||'invalid')}) → the family applies its invalid-action policy</span>`):'—'}</dd>${s.tools?`<dt>tools</dt><dd class="mono">${esc(JSON.stringify(s.tools)).slice(0,200)}</dd>`:''}</dl></div>
+   <div class="block"><h3>Provider</h3><dl class="kv"><dt>calls</dt><dd>${pv.calls}${pv.attempts>1?` over <span class="neg">${pv.attempts} attempts</span> (${esc((pv.failures||[]).join(', '))})`:''}</dd><dt>tokens</dt><dd>${pv.in} in / ${pv.out} out${pv.reasoning?` (${pv.reasoning} reasoning)`:''}</dd><dt>cost</dt><dd>${money(pv.cost||0)}${pv.cost_unknown?` <span class="muted">(${pv.cost_unknown} call${pv.cost_unknown>1?'s':''} with unknown cost)</span>`:''}</dd><dt>finish</dt><dd>${esc((pv.finish||[]).join(', ')||'—')}</dd></dl></div>
+   <div class="block"><h3>Others acting in the same phase instance</h3>${others?`<ul style="margin:0;padding-left:18px">${others}</ul>`:'<p class="muted">none</p>'}</div>
+  </section>
+  <section class="panel col3"><h2>Context before this action</h2><p class="banner">The sealed observations and state for this run are not on this machine, so the seat's exact view cannot be shown. Below: what earlier actions in this episode said, and the case definition from the repository.</p>
+   ${(()=>{const prior=steps.slice(0,route.step).map(x=>x.s).map((x,idx)=>{const m=(x.action&&typeof x.action==='object')?(['message','text','note','rationale','reason','statement'].map(kk=>x.action[kk]).find(v=>typeof v==='string'&&v.trim())):null;const lab=(x.action&&typeof x.action==='object')?(x.action.decision||x.action.action||x.action.type||''):'';return `<li><span class="who">step ${idx+1} · ${esc(x.phase)} · ${esc(x.seat)}</span>${lab?` <span class="chip" style="font-size:10.5px">${esc(String(lab))}</span>`:''}${m?`<div class="txt">${esc(m.length>400?m.slice(0,398)+'…':m)}</div>`:''}</li>`;});return prior.length?`<ul class="convo" style="max-height:260px;overflow:auto">${prior.join('')}</ul>`:'<p class="muted" style="font-size:12px">this is the first action of the episode</p>';})()}
+   ${world?`<details style="margin-top:8px" open><summary>Case definition · ${esc(world.source)}</summary>${world.seats?`<p class="muted" style="font-size:12px;margin:4px 0">seats: ${esc(world.seats.map(x=>x.id+(x.role&&x.role!==x.id?' ('+x.role+')':'')).join(', '))}</p>`:''}${jv(world.payload||{})}</details>`:'<p class="muted" style="font-size:12px">no repository case file matches this case id</p>'}<h2 style="margin-top:12px">Case</h2><dl class="kv"><dt>case</dt><dd class="mono">${esc(k.case_id)}</dd><dt>cell</dt><dd class="mono">${esc(k.cell_id)}</dd><dt>attempt</dt><dd class="mono">${esc(k.episode_attempt_id)}</dd><dt>receipt</dt><dd class="mono">${esc((k.receipt_sha256||'').slice(0,16))}…</dd><dt>profiles</dt><dd class="mono">${esc(k.profiles.join(', '))}</dd><dt>invalid steps</dt><dd>${k.invalid_steps}</dd><dt>provider cost</dt><dd>${money(k.cost)}</dd></dl>
+   <details style="margin-top:10px"><summary>Phase sequence</summary><p class="mono" style="font-size:12px;overflow-wrap:anywhere">${phases.map((p,i)=>`<span class="${i===cur.pi?'em':'muted'}">${esc(p.phase)}</span>`).join(' → ')}</p>
+   </details><details style="margin-top:6px"><summary>What this campaign says</summary><p class="muted" style="font-size:12.5px;margin:0 0 8px">${md(c.readme.excerpt||'')}</p></details></section></div></div>`;
+  wireGraphToggles();
+  $('view').querySelectorAll('.tick, .ord li').forEach(t=>t.addEventListener('click',()=>{route.step=Number(t.dataset.i);render();}));
+  $('view').querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{route.step=Math.max(0,Math.min(steps.length-1,route.step+Number(b.dataset.d)));render();}));
+  document.querySelector('.tick.cur')?.scrollIntoView({block:'nearest'});document.querySelector('.ord li.cur')?.scrollIntoView({block:'nearest'});
+}
+
+// ---------------- housing lemons lens (full detail) ----------------
+const seatNum=s=>parseInt(String(s).split('_')[1],10);
+function lensSteps(c){const steps=[];let pre=null;c.phases.forEach((p,pi)=>{const round=p.post_state?(p.phase_id==='commit'?p.post_state.round_index-1:p.post_state.round_index):(pre?pre.round_index:0);p.actions.forEach((a,ai)=>steps.push({kind:'action',pi,ai,phase:p.phase_id,round,pre,a,p}));steps.push({kind:'result',pi,phase:p.phase_id,round,pre,p});pre=p.post_state;});return steps;}
+function stateView(s){const v={holds:{},holdByListing:{},leases:{},leaseByListing:{},insp:{},spend:{},rejected:{},matched:new Set(),taken:new Set()};if(!s)return v;(s.holds||[]).forEach(h=>{v.holds[h.tenant_id]=h;v.holdByListing[h.listing_id]=h;});(s.pairs||[]).forEach(([t,l])=>{v.leases[t]=l;v.leaseByListing[l]=t;v.matched.add(t);v.taken.add(l);});(s.signed_rents||[]).forEach(r=>{v.leases[r.tenant_id+'_rent']=r.rent;});(s.inspected||[]).forEach(row=>{v.insp[row.tenant_id]={};row.items.forEach(it=>v.insp[row.tenant_id][it.listing_id]=(it.quality===0||it.quality==='lemon')?'lemon':'sound');});(s.inspection_spend||[]).forEach(r=>v.spend[r.tenant_id]=r.spend);(s.rejected||[]).forEach(r=>v.rejected[r.tenant_id]=new Set(r.listing_ids));return v;}
+function posterior(w,known){const n=w.listings.length,k=Object.keys(known||{}).length,found=Object.values(known||{}).filter(q=>q==='lemon').length;if(n-k<=0)return 0;return Math.min(1,Math.max(0,(w.lemon_count-found)/(n-k)));}
+const truthChip=q=>`<span class="chip ${q}">${q}</span>`;
+function actionText(s){const a=s.a.parsed&&s.a.parsed.action;if(!a)return `unparseable (${s.a.parsed?s.a.parsed.error_code:'no parse'})`;switch(a.decision){case 'inspect':return `inspect listing ${a.listing_id}`;case 'offer':return `offer ${fmt(a.rent)} on listing ${a.listing_id}`;case 'accept':return `accept ${a.offer_id}`;case 'counter':return `counter ${fmt(a.counter_rent)} to ${a.offer_id}`;case 'reject_all':return 'reject all offers';case 'sign':return `sign ${a.hold_id}`;case 'walk':return `walk from ${a.hold_id}`;default:return a.decision;}}
+function verdictFor(p,actor){const v=(p.verdicts||[]).find(v=>v.actor_id===actor);if(!v)return '<span class="muted">none recorded</span>';return v.outcome==='applied'?`applied${v.reference_id?` → <span class="mono">${esc(v.reference_id)}</span>`:''}`:`<span class="neg">pass (${esc(v.reason)})</span>`;}
+function renderLens(c,k,lens,lc){
+  const w=lens.worlds[lc.world_seed]; const steps=lensSteps(lc); route.step=Math.min(route.step,steps.length-1); const s=steps[route.step]; const pre=stateView(s.pre);
+  const graph={nodes:['inspect','contact','respond','commit'],edges:[{from:'inspect',to:'contact'},{from:'contact',to:'respond'},{from:'respond',to:'commit'},{from:'commit',to:'inspect'}],entry:'inspect',basis:'declared by HousingV1Plugin (lemons world)'};
+  const modes={inspect:'simultaneous',contact:'simultaneous',respond:'simultaneous',commit:'simultaneous'}, actors={inspect:'unmatched tenants',contact:'unmatched tenants',respond:'open landlords',commit:'unmatched tenants'};
+  const o=lc.outcome;
+  const ticks=steps.map((st,i)=>{let cls=`tick ${['ph1','ph2','ph3','ph4'][graph.nodes.indexOf(st.phase)]} ${st.kind==='result'?'result':''} ${i===route.step?'cur':''}`;
+    if(st.kind==='action'&&st.phase==='commit'&&st.a.parsed&&st.a.parsed.action){const d=st.a.parsed.action.decision;if(d==='sign'){cls+=' lease';const h=(st.pre&&st.pre.holds||[]).find(h=>h.hold_id===st.a.parsed.action.hold_id);if(h&&w.listings[h.listing_id].quality==='lemon'&&!(stateView(st.pre).insp[seatNum(st.a.seat)]||{})[h.listing_id])cls+=' badlease';}if(d==='walk')cls+=' walk';}
+    return `<div class="${cls}" data-i="${i}" title="${esc(`${i+1}. round ${st.round} · ${st.phase}${st.kind==='action'?' · '+st.a.seat+' · '+actionText(st):' · phase result'}`)}"></div>`;}).join('');
+  const tiles=[['tenant net payoff',sign(o.tenant_net_total),`oracle ${fmt(o.oracle_total)} → score ${fmt(o.within_case_score,3)}`,o.tenant_net_total<0?'neg':'pos'],['vs inspect-then-sign',sign(o.tenant_net_total-o.reference_total),`reference ${fmt(o.reference_total)}`,(o.tenant_net_total-o.reference_total)<0?'neg':'pos'],['vs sign-anything',sign(o.tenant_net_total-o.sign_anything_total),`baseline ${fmt(o.sign_anything_total)}`,''],['refusal decisions',`${o.abstention_correct_count} / ${o.abstention_decision_count}`,'correct in expectation',''],['lemons signed',`${o.lemon_signings}`,`${o.uninspected_lemon_signings} uninspected`,o.uninspected_lemon_signings?'neg':''],['inspections',`${o.inspection_count}`,'paid at 25 each','']].map(([kk,v,ss,cls])=>`<div class="tile"><div class="k">${kk}</div><div class="v ${cls}">${v}</div><div class="s">${ss}</div></div>`).join('');
+  const mid = s.kind==='action'?lensAction(s,w,pre,lc):lensResult(s,w,pre,lc);
+  $('view').className='';
+  $('view').innerHTML=`<div class="app"><div class="tiles">${tiles}</div><div class="grid3">
+   <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis)}</span></h2><div class="graph">${graphSvg(graph,s.phase,s.round,modes,actors)}</div><div class="muted" style="font-size:12px;margin-top:3px">eligible: ${esc(s.p.eligible.join(', '))}</div>
+    <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${steps.filter(x=>x.kind==='action').length} actions · ${lc.phases.length} phases</span></h2><div class="timeline">${ticks}</div>
+    <div class="legend"><span><i class="sw ph1"></i>inspect</span><span><i class="sw ph2"></i>contact</span><span><i class="sw ph3"></i>respond</span><span><i class="sw ph4"></i>commit</span><span>narrow tick = phase result</span><span>● lease · red = uninspected lemon · ○ walk</span></div>
+    <div class="nav"><button data-d="-1e9">⇤</button><button data-d="-1">‹ step</button><button data-d="1">step ›</button><button data-d="1e9">⇥</button></div><div class="legend">← → move one step · <label class="tog"><input type="checkbox" id="truth" ${route.truth===false?'':'checked'}> show ground truth</label></div>
+    ${orderHtml(steps.map(st=>({phase:st.phase,round:st.round,seat:st.kind==='action'?st.a.seat:null,label:st.kind==='action'?actionText(st):'',result:st.kind==='result',invalid:st.kind==='action'&&st.a.valid===false,cls:['ph1','ph2','ph3','ph4'][graph.nodes.indexOf(st.phase)]})),route.step)}
+    <h2 style="margin-top:12px">Same world</h2><div class="chain">${lens.cases.filter(x=>x.world_seed===lc.world_seed).map(x=>`<button data-receipt="${esc(x.receipt_sha256)}" class="${x.id===lc.id?'cur':''}">${esc(x.source==='live'?'live · seed '+x.replicate:x.source.replace(/_/g,' '))} ${sign(x.outcome.tenant_net_total)}</button>`).join('')}</div></section>
+   <section class="panel">${mid}</section>
+   <section class="panel col3">${lensMarket(s,w,pre)}</section></div></div>`;
+  $('view').querySelectorAll('.tick, .ord li').forEach(t=>t.addEventListener('click',()=>{route.step=Number(t.dataset.i);render();}));
+  $('view').querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{route.step=Math.max(0,Math.min(steps.length-1,route.step+Number(b.dataset.d)));render();}));
+  $('truth').addEventListener('change',e=>{route.truth=e.target.checked;render();});
+  $('view').querySelectorAll('.chain button').forEach(b=>b.addEventListener('click',()=>{const data=campaignCache[c.id];const kk=data.cases.find(x=>x.receipt_sha256===b.dataset.receipt);if(kk){route.caseId=kk.receipt_sha256||(kk.cell_id+'|'+kk.episode_attempt_id);route.step=0;render();}}));
+  document.querySelector('.tick.cur')?.scrollIntoView({block:'nearest'});document.querySelector('.ord li.cur')?.scrollIntoView({block:'nearest'});
+}
+function lensAction(s,w,pre,lc){
+  const showTruth=route.truth!==false; const a=s.a,t=seatNum(a.seat),isTenant=a.role==='tenant',act=a.parsed&&a.parsed.action; let saw='',narr='';
+  const vs=l=>w.tenants[t].values_if_sound[l], vt=l=>w.tenants[t].values_true[l];
+  if(isTenant){const known=pre.insp[t]||{},p=posterior(w,known),hold=pre.holds[t];
+    const rows=w.listings.map(l=>{const st=pre.taken.has(l.id)?'leased':(pre.holdByListing[l.id]?'held':'open');const kq=known[l.id];return `<tr><td>${l.id}</td><td>${fmt(l.ask,0)}</td><td>${fmt(vs(l.id),0)}</td><td>${kq?truthChip(kq):`<span class="muted">unknown (p lemon ${fmt(p,2)})</span>`}</td><td>${st}${(pre.rejected[t]||new Set()).has(l.id)?' · rejected me':''}</td>${showTruth?`<td>${truthChip(l.quality)}</td>`:''}</tr>`;}).join('');
+    saw=`<div class="block"><h3>What tenant ${t} could see</h3><dl class="kv"><dt>round</dt><dd>${s.round} of ${w.rounds}</dd><dt>inspected so far</dt><dd>${Object.keys(known).length} · spend ${fmt(pre.spend[t]||0,0)}</dd><dt>active hold</dt><dd>${hold?`listing ${hold.listing_id} at ${fmt(hold.rent)} (<span class="mono">${esc(hold.hold_id)}</span>)`:'none'}</dd><dt>declared</dt><dd>${w.lemon_count} of ${w.listings.length} listings are lemons · a lemon is worth ${fmt(w.lemon_loss,0)} less · fee ${fmt(w.inspection_cost,0)}</dd></dl><div class="scroll" style="margin-top:6px"><table><thead><tr><th>listing</th><th>ask</th><th>value if sound</th><th>known quality</th><th>status</th>${showTruth?'<th>truth</th>':''}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    if(!act) narr=`<p>Unparseable response: the scheduler records a pass for tenant ${t}.</p>`;
+    else if(s.phase==='inspect'){ if(act.decision==='pass') narr=`<p>Tenant ${t} does not inspect this round.</p>`; else {const l=w.listings[act.listing_id]; if(!l) narr=`<p>Listing ${act.listing_id} does not exist; the environment records a pass.</p>`; else {const gain=vs(l.id)-l.ask,ev=(1-p)*gain; narr=`<p>Tenant ${t} pays ${fmt(w.inspection_cost,0)} to inspect listing ${l.id} (ask ${fmt(l.ask,0)}). ${showTruth?`Truth: <span class="em">${l.quality}</span>, worth ${fmt(vt(l.id),0)} to this tenant (${fmt(vs(l.id),0)} if sound).`:''}</p><p>Posterior lemon probability before inspecting ${fmt(p,2)}; gain if sound ${sign(gain)}; expected gain unlocked ${sign(ev)} against a fee of ${fmt(w.inspection_cost,0)} — ${ev>w.inspection_cost?'pays for itself in expectation.':'does not pay for itself in expectation.'}</p>`;}}}
+    else if(s.phase==='contact'){ if(act.decision==='pass') narr=`<p>Tenant ${t} makes no offer this round.</p>`; else {const l=w.listings[act.listing_id]; if(!l) narr=`<p>Listing ${act.listing_id} does not exist.</p>`; else {const kq=known[l.id],ev=kq?vt(l.id):vs(l.id)-p*w.lemon_loss,realized=vt(l.id)-act.rent; narr=`<p>Tenant ${t} offers <span class="em">${fmt(act.rent)}</span> on listing ${l.id} (ask ${fmt(l.ask,0)}). It ${kq?`<span class="em">knows</span> it is ${kq}`:`has <span class="em">not inspected</span> it (p lemon ${fmt(p,2)})`}.</p><p>Expected value under what it knew ${fmt(ev)} ${ev>=act.rent?'≥':'<'} ${fmt(act.rent)} → ${ev>=act.rent?'positive':'<span class="neg">negative</span>'} in expectation.${showTruth?` Truth: <span class="em">${l.quality}</span>; signed at this rent the realized gain would be <span class="${realized<0?'neg':'pos'}">${sign(realized)}</span>.`:''}</p>`;}}}
+    else if(s.phase==='commit'){ if(!hold) narr=`<p>No hold this round${act.decision!=='pass'?`; the <span class="mono">${esc(act.decision)}</span> is recorded as a pass`:''}.</p>`; else {const l=w.listings[hold.listing_id],kq=known[l.id],ev=kq?vt(l.id):vs(l.id)-p*w.lemon_loss,realized=vt(l.id)-hold.rent;const dec=(s.p.post_state&&s.p.post_state.commit_decisions||[]).find(d=>d.tenant_id===t&&d.round_index===hold.round_index);const decided=act.decision==='sign'?'signs':act.decision==='walk'?'walks away from':'lets expire';
+      narr=`<p>Tenant ${t} <span class="em">${decided}</span> the hold on listing ${l.id} at ${fmt(hold.rent)}. It ${kq?`knew it is ${kq}`:`had <span class="em">not inspected</span> it (p lemon ${fmt(p,2)})`}; expected value ${fmt(ev)} ${ev>=hold.rent?'≥':'<'} rent.</p>${dec?`<p>Refusal decision: <span class="chip ${dec.correct?'sound':'bad'}">${dec.correct?'correct':'incorrect'} in expectation</span> (${dec.informed?'informed':'uninformed'}, expected ${fmt(dec.expected_value)}).</p>`:''}${act.decision==='sign'&&showTruth?`<p>Truth: <span class="em">${l.quality}</span>. Realized payoff on this lease <span class="${realized<0?'neg':'pos'}">${sign(realized)}</span> before inspection spend${!kq&&l.quality==='lemon'?' — <span class="neg">an uninspected lemon signed</span>':''}.</p>`:''}`;}}
+  } else { const l=w.listings[t]; const inbox=a.inbox||[];
+    saw=`<div class="block"><h3>What landlord ${t} could see</h3><dl class="kv"><dt>listing</dt><dd>${t} · ask ${fmt(l.ask,0)} · private cost ${fmt(l.cost)} · quality ${truthChip(l.quality)} (the landlord knows this)</dd><dt>inbox</dt><dd>${inbox.length?inbox.map(o=>`tenant ${o.tenant_id} offers ${fmt(o.rent)} <span class="mono muted">${esc(o.offer_id)}</span>`).join('<br>'):'no offers'}</dd></dl></div>`;
+    if(!act) narr='<p>Unparseable; pass, every offer rejected.</p>'; else if(act.decision==='reject_all') narr=`<p>Landlord ${t} rejects ${inbox.length?`all ${inbox.length} offer(s)`:'nothing (empty inbox)'}; no hold.</p>`; else {const o=inbox.find(o=>o.offer_id===act.offer_id); if(!o) narr='<p>Referenced an offer not in the inbox; pass.</p>'; else if(act.decision==='accept') narr=`<p>Landlord ${t} accepts tenant ${o.tenant_id}'s ${fmt(o.rent)} — ${o.rent>=l.cost?`at or above cost ${fmt(l.cost)}`:`<span class="neg">below cost ${fmt(l.cost)}</span>`} — creating a binding hold; other offers are rejected.</p>`; else narr=`<p>Landlord ${t} counters tenant ${o.tenant_id} at ${fmt(act.counter_rent)} (offer ${fmt(o.rent)}, ask ${fmt(l.ask,0)}, cost ${fmt(l.cost)}); the counter becomes a hold.</p>`;}}
+  const pv=a.provider||{};
+  return `<div class="bar" style="margin-bottom:6px"><span class="em" style="font-size:16px">Round ${s.round} · <span class="mono">${s.phase}</span> · ${esc(a.seat)}</span><span class="chip">action ${s.ai+1} of ${s.p.actions.length}</span><span class="chip acc">${esc(actionText(s))}</span></div>${saw}
+  <div class="block"><h3>Action and gates</h3><dl class="kv"><dt>parsed</dt><dd class="mono">${a.parsed?esc(JSON.stringify(a.parsed.action)):'—'}</dd><dt>parse</dt><dd>${a.parsed&&a.parsed.ok?'ok':`<span class="neg">failed: ${esc(a.parsed?a.parsed.error_code:'none')}</span>`}</dd><dt>legality</dt><dd>${a.legal&&a.legal.legal?'legal':`<span class="neg">illegal: ${esc(a.legal?a.legal.reason:'—')}</span>`}</dd><dt>accepted</dt><dd>${a.valid?'yes':`<span class="neg">no (${esc(a.failure_code||'invalid')}) → counts as a pass</span>`}</dd><dt>environment verdict</dt><dd>${verdictFor(s.p,t)}</dd><dt>provider</dt><dd>${lc.source==='live'?`${pv.calls} call · ${pv.input_tokens} in / ${pv.output_tokens} out${pv.reasoning_tokens?` (${pv.reasoning_tokens} reasoning)`:''} · ${money(pv.cost_usd)} · finish ${esc((pv.finish_reasons||[]).join(', '))}${pv.attempts>1?` · <span class="neg">${pv.attempts} attempts (${esc(pv.retry_reasons.join(', '))})</span>`:''}`:`scripted policy <span class="mono">${esc(a.profile||lc.model)}</span>`}</dd></dl></div>
+  <div class="block narr"><h3>What it means</h3>${narr}</div>`;
+}
+function lensResult(s,w,pre,lc){
+  const showTruth=route.truth!==false; const post=s.p.post_state; const verd=(s.p.verdicts||[]).map(v=>`<span>${s.phase==='respond'?'landlord':'tenant'} ${v.actor_id}</span><span>${v.outcome==='applied'?'applied':'<span class="neg">pass</span>'}</span><span class="muted">${esc(v.reason||v.reference_id||'')}</span>`).join('');
+  const ch=[];
+  if(s.phase==='inspect')(post.inspected||[]).forEach(r=>r.items.forEach(it=>{if(!(pre.insp[r.tenant_id]||{})[it.listing_id])ch.push(`tenant ${r.tenant_id} learned listing ${it.listing_id} is ${truthChip(it.quality)}`);}));
+  if(s.phase==='contact')(s.p.inbox||[]).forEach(ib=>ib.offers.forEach(o=>ch.push(`offer ${fmt(o.rent)} from tenant ${o.tenant_id} delivered to landlord ${ib.listing_id}`)));
+  if(s.phase==='respond'){(s.p.holds||[]).forEach(h=>ch.push(`hold: tenant ${h.tenant_id} on listing ${h.listing_id} at ${fmt(h.rent)}`));(post.rejected||[]).forEach(r=>{const before=pre.rejected[r.tenant_id]||new Set();r.listing_ids.filter(l=>!before.has(l)).forEach(l=>ch.push(`tenant ${r.tenant_id} rejected by landlord ${l}`));});}
+  if(s.phase==='commit'){(post.pairs||[]).forEach(([t,l])=>{if(!pre.matched.has(t)){const rent=(post.signed_rents.find(r=>r.tenant_id===t)||{}).rent,q=w.listings[l].quality,known=(pre.insp[t]||{})[l];ch.push(`<span class="em">lease</span>: tenant ${t} takes listing ${l} at ${fmt(rent)}${showTruth?` (${q}${!known&&q==='lemon'?', <span class="neg">uninspected</span>':''}; realized ${sign(w.tenants[t].values_true[l]-rent)})`:''}`);}});(post.commit_decisions||[]).slice((s.pre&&s.pre.commit_decisions||[]).length).forEach(d=>ch.push(`refusal decision: tenant ${d.tenant_id} ${d.decision} listing ${d.listing_id} at ${fmt(d.rent)}, ${d.informed?'informed':'uninformed'}, expected ${fmt(d.expected_value)} → <span class="chip ${d.correct?'sound':'bad'}">${d.correct?'correct':'incorrect'}</span>`));if(!ch.length)ch.push('no lease signed this round');}
+  const ended=s.pi===lc.phases.length-1;const o=lc.outcome;
+  return `<div class="bar" style="margin-bottom:6px"><span class="em" style="font-size:16px">Round ${s.round} · <span class="mono">${s.phase}</span> · phase result</span><span class="chip">${s.p.actions.length} actions on one frozen state</span></div>
+  <div class="block"><h3>Verdicts</h3><div class="verd">${verd||'<span class="muted">none</span>'}</div></div><div class="block"><h3>State changes</h3><ul style="margin:0;padding-left:18px">${ch.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+  <div class="block"><h3>After this phase</h3><dl class="kv"><dt>leases</dt><dd>${(post.pairs||[]).length} of ${w.listings.length}</dd><dt>open holds</dt><dd>${(post.holds||[]).length}</dd><dt>unmatched tenants</dt><dd>${w.tenants.length-(post.pairs||[]).length}</dd><dt>next</dt><dd>${ended?`<span class="em">episode ends</span> (${esc(o.reason)})`:`<span class="mono">${esc(lc.phases[s.pi+1].phase_id)}</span>`}</dd></dl></div>
+  ${ended?`<div class="block narr"><h3>Episode outcome</h3><p>Tenant net payoff <span class="em ${o.tenant_net_total<0?'neg':'pos'}">${sign(o.tenant_net_total)}</span>; reference ${sign(o.reference_total)}, sign-anything ${sign(o.sign_anything_total)}, oracle ${fmt(o.oracle_total)}. ${o.abstention_correct_count} of ${o.abstention_decision_count} refusal decisions correct in expectation; ${o.uninspected_lemon_signings} uninspected lemon(s) signed; IR violations: ${o.ir_violations.length?esc(o.ir_violations.join(', ')):'none'}.</p></div>`:''}`;
+}
+function lensMarket(s,w,pre){
+  const showTruth=route.truth!==false; const actor=s.kind==='action'?s.a.seat:null;
+  const lrows=w.listings.map(l=>{const h=pre.holdByListing[l.id],lt=pre.leaseByListing[l.id];const st=lt!=null?`leased to tenant ${lt} at ${fmt(pre.leases[lt+'_rent'])}`:h?`held by tenant ${h.tenant_id} at ${fmt(h.rent)}`:'open';const who=w.tenants.filter(t=>(pre.insp[t.id]||{})[l.id]).map(t=>t.id);return `<tr class="${actor==='landlord_'+l.id?'cur':''}"><td>${l.id}</td><td>${fmt(l.ask,0)}</td>${showTruth?`<td>${truthChip(l.quality)}</td><td>${fmt(l.cost)}</td>`:''}<td>${st}</td><td>${who.length?who.join(', '):'—'}</td></tr>`;}).join('');
+  const trows=w.tenants.map(t=>{const known=pre.insp[t.id]||{},l=pre.leases[t.id],rent=pre.leases[t.id+'_rent'],spend=pre.spend[t.id]||0;const running=(l!=null?t.values_true[l]-rent:0)-spend;const hold=pre.holds[t.id];return `<tr class="${actor==='tenant_'+t.id?'cur':''}"><td>${t.id}</td><td>${l!=null?`listing ${l} at ${fmt(rent)}`:hold?`hold on ${hold.listing_id}`:'searching'}</td><td>${Object.keys(known).length?Object.entries(known).map(([k,q])=>`${k}:<span style="color:var(--${q})">${q[0]}</span>`).join(' '):'—'}</td><td>${fmt(spend,0)}</td><td class="${running<0?'neg':running>0?'pos':''}">${sign(running)}</td><td>${w.oracle_pairs.filter(p=>p[0]===t.id).map(p=>'listing '+p[1]).join('')||'unhoused'}</td></tr>`;}).join('');
+  return `<h2>Market at this step ${s.kind==='action'?'(frozen state the seat acted on)':'(after the phase)'}</h2><div class="scroll"><table><thead><tr><th>listing</th><th>ask</th>${showTruth?'<th>truth</th><th>landlord cost</th>':''}<th>status</th><th>inspected by</th></tr></thead><tbody>${lrows}</tbody></table></div><h2 style="margin-top:12px">Tenants</h2><div class="scroll"><table><thead><tr><th>tenant</th><th>position</th><th>knows</th><th>spend</th><th>running net</th><th>oracle match</th></tr></thead><tbody>${trows}</tbody></table></div><p class="muted" style="font-size:12px;margin:8px 0 0">${showTruth?'Truth columns are what no tenant sees until it inspects; the landlord knows its own listing. ':''}Running net = true value minus rent if leased, minus inspection spend.</p>`;
+}
+
+function orderHtml(items,cur){return `<h2 style="margin-top:10px">Step order <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${items.length} steps, in the order the scheduler ran them</span></h2><ol class="ord">${items.map((it,i)=>`<li class="${i===cur?'cur':''} ${it.result?'result':''} ${it.invalid?'invalid':''}" data-i="${i}" title="step ${i+1}"><i class="ph ${it.cls||''}"></i>${it.round!=null?`<span class="muted">r${it.round} · </span>`:''}<span class="who">${esc(it.phase)}</span>${it.result?' · <span class="lab">phase result</span>':` · ${esc(it.seat)} · <span class="lab">${esc(it.label)}</span>`}</li>`).join('')}</ol>`;}
+// ---------------- generic sealed-event lens (every family) ----------------
+const fmtNum=x=>Number.isInteger(x)?String(x):(Math.abs(x)>=1000?fmt(x,2):String(Math.round(x*10000)/10000));
+function jvCell(x,depth){if(x&&typeof x==='object'){const s=JSON.stringify(x);if(s.length<=70)return `<span class="mono">${esc(s)}</span>`;return `<details class="jd"><summary>${Array.isArray(x)?x.length+' items':Object.keys(x).length+' fields'}</summary><pre>${esc(JSON.stringify(x,null,1))}</pre></details>`;}return jv(x,depth);}
+function jv(v,depth=0){
+  if(v===null||v===undefined)return '<span class="muted">null</span>';
+  if(typeof v==='number')return fmtNum(v);
+  if(typeof v==='boolean')return `<span class="mono">${v}</span>`;
+  if(typeof v!=='object')return `<span class="txt">${esc(String(v))}</span>`;
+  if(Array.isArray(v)){
+    if(!v.length)return '<span class="muted">empty</span>';
+    if(v.every(x=>x===null||typeof x!=='object'))return `<span class="txt">${esc(v.map(x=>typeof x==='number'?fmtNum(x):String(x)).join(', '))}</span>`;
+    if(v.every(x=>x&&typeof x==='object'&&!Array.isArray(x))&&v.length<=80){const cols=[];v.forEach(x=>Object.keys(x).forEach(k=>{if(!cols.includes(k))cols.push(k);}));
+      if(cols.length<=12)return `<div class="scroll"><table class="jt"><thead><tr>${cols.map(k=>`<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${v.map(x=>`<tr>${cols.map(k=>`<td>${k in x?jvCell(x[k],depth+1):'<span class="muted">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+    return `<ol class="jl">${v.map(x=>`<li>${jv(x,depth+1)}</li>`).join('')}</ol>`;
+  }
+  const keys=Object.keys(v);if(!keys.length)return '<span class="muted">empty</span>';
+  if(depth>=2)return `<details class="jd"><summary>${keys.length} field${keys.length!==1?'s':''}: ${esc(keys.slice(0,6).join(', '))}${keys.length>6?'…':''}</summary><pre>${esc(JSON.stringify(v,null,1))}</pre></details>`;
+  return `<dl class="kv jv">${keys.map(k=>`<dt>${esc(k)}</dt><dd>${jv(v[k],depth+1)}</dd>`).join('')}</dl>`;
+}
+function flat(v,prefix,out){if(v&&typeof v==='object'){const keys=Array.isArray(v)?v.map((_,i)=>i):Object.keys(v);if(!keys.length){out[prefix||'(root)']=Array.isArray(v)?'[]':'{}';return out;}keys.forEach(k=>flat(v[k],prefix?prefix+'.'+k:String(k),out));return out;}out[prefix||'(root)']=typeof v==='string'?v:JSON.stringify(v);return out;}
+function diffPaths(a,b){const fa=flat(a,'',{}),fb=flat(b,'',{});const added=[],removed=[],changed=[];Object.keys(fb).forEach(k=>{if(!(k in fa))added.push([k,fb[k]]);else if(fa[k]!==fb[k])changed.push([k,fa[k],fb[k]]);});Object.keys(fa).forEach(k=>{if(!(k in fb))removed.push([k,fa[k]]);});return {added,removed,changed,same:Object.keys(fb).length-added.length-changed.length};}
+function diffHtml(d,cap=40){const items=[];d.changed.forEach(([k,a,b])=>items.push(`<li class="chg"><span class="mono">${esc(k)}</span>: ${esc(a.length>90?a.slice(0,88)+'…':a)} → <span class="em">${esc(b.length>90?b.slice(0,88)+'…':b)}</span></li>`));d.added.forEach(([k,b])=>items.push(`<li class="add">+ <span class="mono">${esc(k)}</span> = ${esc(b.length>140?b.slice(0,138)+'…':b)}</li>`));d.removed.forEach(([k,a])=>items.push(`<li class="rm">− <span class="mono">${esc(k)}</span> (was ${esc(a.length>90?a.slice(0,88)+'…':a)})</li>`));if(!items.length)return '<p class="muted" style="margin:0">nothing changed</p>';return `<ul class="diff">${items.slice(0,cap).join('')}${items.length>cap?`<li class="muted">… ${items.length-cap} more</li>`:''}</ul><p class="muted" style="margin:3px 0 0;font-size:11.5px">${d.changed.length} changed · ${d.added.length} added · ${d.removed.length} removed · ${d.same} unchanged leaves</p>`;}
+function unflatten(map){const root={};Object.entries(map).forEach(([path,val])=>{if(path==='(root)')return;const parts=path.split('.');let cur=root;parts.forEach((seg,i)=>{const last=i===parts.length-1;const key=/^\d+$/.test(seg)?Number(seg):seg;if(last){cur[key]=val;}else{const nextIsIdx=/^\d+$/.test(parts[i+1]);if(cur[key]==null)cur[key]=nextIsIdx?[]:{};cur=cur[key];}});});const fix=o=>{if(Array.isArray(o))return o.filter(x=>x!==undefined).map(fix);if(o&&typeof o==='object'){Object.keys(o).forEach(k=>{o[k]=fix(o[k]);});return o;}return o;};return fix(root);}
+function parseLeaf(v){try{return JSON.parse(v);}catch(e){return v;}}
+function stateBeyondView(state,obs){const fs=flat(state,'',{}),fo=flat(obs||{},'',{});const seen=new Set(Object.entries(fo).map(([k,v])=>k.split('.').pop()+'='+v));const hidden={},shared={};Object.entries(fs).forEach(([k,v])=>{(seen.has(k.split('.').pop()+'='+v)?shared:hidden)[k]=parseLeaf(v);});return {hidden:unflatten(hidden),hiddenCount:Object.keys(hidden).length,sharedCount:Object.keys(shared).length};}
+function sealedSteps(lc){const steps=[];let pre=null,preSha=null;lc.phases.forEach((p,pi)=>{p.actions.forEach((a,ai)=>steps.push({kind:'action',pi,ai,phase:p.phase_id,pre,preSha,a,p}));steps.push({kind:'result',pi,phase:p.phase_id,pre,preSha,p});if(p.post_state){pre=p.post_state;preSha=p.post_state_sha256;}});return steps;}
+function actionLabel(a){const act=a.parsed&&a.parsed.action;if(!act)return a.parsed&&a.parsed.error_code?`unparseable (${a.parsed.error_code})`:(a.provider&&a.provider.failures&&a.provider.failures.length?`provider failed (${a.provider.failures[0].condition||'error'})`:'no action');if(typeof act!=='object')return String(act);const d=act.decision||act.action||act.type||act.kind;const parts=[];if(d)parts.push(String(d));['listing_id','offer_id','hold_id','supplier_id','agreement_key','stage_id','rent','counter_rent','amount','price_cents','quantity'].forEach(k=>{if(act[k]!==undefined&&act[k]!==null&&typeof act[k]!=='object')parts.push(`${k.replace(/_id$/,'')} ${typeof act[k]==='number'?fmtNum(act[k]):act[k]}`);});if(!parts.length)parts.push(Object.keys(act).slice(0,3).join(', '));return parts.join(' · ');}
+function messageOf(act){if(!act||typeof act!=='object')return null;for(const k of ['message','text','note','rationale','reason','statement'])if(typeof act[k]==='string'&&act[k].trim())return act[k];return null;}
+function scoreTiles(lc,k){const t=[];const sc=lc.score||{};if(sc.primary&&sc.primary.value!=null)t.push([(sc.estimand&&sc.estimand.estimand_id||'primary score').replace(/_/g,' '),fmtNum(sc.primary.value)+(sc.primary.unit?' '+sc.primary.unit:''),sc.estimand?`${sc.estimand.direction||''} · leaf ${(k.primary_leaf||'')}`:'primary leaf',sc.primary.value<0?'neg':'']);
+  const o=lc.outcome||lc.terminal||{};const dec=o.decision||o.termination_reason||o.reason||o.status;if(dec)t.push(['outcome',esc(String(dec)).replace(/_/g,' '),o.termination_reason&&o.decision?esc(String(o.termination_reason)).replace(/_/g,' '):'family outcome','']);
+  const metrics=sc.metrics||{};Object.entries(metrics).slice(0,3).forEach(([name,m])=>t.push([name.replace(/_/g,' '),fmtNum(m.value)+(m.unit&&m.unit!=='indicator'?' '+m.unit:''),'score metric','']));
+  const acts=lc.phases.reduce((n,p)=>n+p.actions.length,0),inv=lc.phases.reduce((n,p)=>n+p.actions.filter(a=>a.valid===false).length,0),cost=lc.phases.reduce((n,p)=>n+p.actions.reduce((m,a)=>m+(a.provider.cost_usd||0),0),0);
+  t.push(['actions',String(acts),`${lc.phases.length} phase instance${lc.phases.length!==1?'s':''}${inv?` · <span class="neg">${inv} invalid</span>`:''}`,'']);t.push(['provider cost',money(cost),lc.receipt_status?`receipt ${esc(lc.receipt_status)}`:'','']);
+  if(lc.failure)t.push(['attempt failure',esc(lc.failure.condition||'failed'),esc(lc.failure.failure_class||''),'neg']);
+  return t.slice(0,7).map(([kk,v,ss,cls])=>`<div class="tile"><div class="k">${kk}</div><div class="v ${cls}">${v}</div><div class="s">${ss}</div></div>`).join('');}
+async function renderSealed(c,k,data,lens,lc){
+  const steps=sealedSteps(lc);if(!steps.length){route.view='cases';return render();}route.step=Math.min(route.step,steps.length-1);const s=steps[route.step];
+  const {graph,modes,actors}=pickGraph(c,data.graph);const phaseIdx={};graph.nodes.forEach((n,i)=>phaseIdx[n]=i);
+  const ticks=steps.map((st,i)=>`<div class="tick ${PHASE_COLORS[(phaseIdx[st.phase]??st.pi)%8]} ${st.kind==='result'?'result':''} ${i===route.step?'cur':''} ${st.kind==='action'&&st.a.valid===false?'invalid':''}" data-i="${i}" title="${esc(`${i+1}. ${st.phase}${st.kind==='action'?' · '+st.a.seat+' · '+actionLabel(st.a):' · phase result'}`)}"></div>`).join('');
+  const siblings=lens.cases.filter(x=>x.case_id===lc.case_id);
+  const world=lc.world;const models=Object.entries(lc.profiles||{}).map(([pid,p])=>`<li><span class="mono">${esc(pid)}</span>${p.model&&p.model.model?` → ${esc(p.model.model)}${p.model.provider?' via '+esc(p.model.provider):''}`:(p.policy_id?` → policy ${esc(p.policy_id)}`:'')}</li>`).join('');
+  const mid=s.kind==='action'?sealedAction(s,steps,lens,lc):sealedResult(s,lc);
+  const stateTitle=s.kind==='action'?'State beyond the seat\'s view':'State after this phase';const st=s.kind==='action'?s.pre:(s.p.post_state||s.pre);
+  let stateHtml,hiddenCount=null;
+  if(!st){stateHtml=`<p class="muted" style="font-size:12.5px">The initial state is not written to the event log, only its digest <span class="mono">${esc((s.p.pre_state_sha256||'').slice(0,16))}…</span>. What the seat saw is in the middle panel; the first logged state appears after this phase's result.</p>`;}
+  else if(s.kind==='action'&&s.a.observation&&typeof s.a.observation==='object'){const b=stateBeyondView(st,s.a.observation);hiddenCount=b.hiddenCount;stateHtml=`<p class="muted" style="font-size:12px;margin:0 0 6px">${b.sharedCount} of ${b.sharedCount+b.hiddenCount} state values were also in the seat's observation (middle panel); ${b.hiddenCount?`the ${b.hiddenCount} below were not.`:'nothing was hidden from this seat.'}</p>${b.hiddenCount?jv(b.hidden):''}<details class="jd" style="margin-top:8px"><summary>Full state the seat acted on (${b.sharedCount+b.hiddenCount} values)</summary>${jv(st)}</details>`;}
+  else{stateHtml=jv(st);}
+  const rightOpen=route.rightOpen!==undefined?route.rightOpen:!(s.kind==='action'&&(hiddenCount===0||!st));
+  $('view').className='';
+  $('view').innerHTML=`<div class="app"><div class="tiles">${scoreTiles(lc,k)}</div><div class="grid3 ${rightOpen?'':'rc'}">
+   <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div><div class="muted" style="font-size:12px;margin-top:3px">eligible now: <span class="mono">${esc((s.p.eligible||[]).join(', ')||'—')}</span> · mode ${esc(s.p.mode||modes[s.phase]||'—')}${s.p.max_logical_actions?` · up to ${s.p.max_logical_actions} actions`:''}</div>
+    <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${steps.filter(x=>x.kind==='action').length} actions · ${lc.phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
+    <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>narrow tick = phase result · ● invalid</span></div>
+    <div class="nav"><button data-d="-1e9">⇤</button><button data-d="-1">‹ step</button><button data-d="1">step ›</button><button data-d="1e9">⇥</button></div><div class="legend">← → move one step</div>
+    ${orderHtml(steps.map(st=>({phase:st.phase,seat:st.kind==='action'?st.a.seat:null,label:st.kind==='action'?actionLabel(st.a):'',result:st.kind==='result',invalid:st.kind==='action'&&st.a.valid===false,cls:PHASE_COLORS[(phaseIdx[st.phase]??st.pi)%8]})),route.step)}
+    ${siblings.length>1?`<h2 style="margin-top:12px">Same case</h2><div class="chain">${siblings.map(x=>`<button data-receipt="${esc(x.receipt_sha256)}" class="${x.receipt_sha256===lc.receipt_sha256?'cur':''}">${esc(x.cell_id.slice(-6))}${x.replicate_index!=null?' · rep '+x.replicate_index:''}${x.failure?' · failed':''}</button>`).join('')}</div>`:''}
+    <details style="margin-top:10px"><summary>Case definition${world?` · ${esc(world.source)}`:''}</summary>${models?`<p class="muted" style="font-size:12px;margin:6px 0 2px">seats and models</p><ul style="margin:0 0 6px;padding-left:18px;font-size:12px">${models}</ul>`:''}${lc.cell&&lc.cell.profile_by_seat?`<p class="muted" style="font-size:12px;margin:0 0 6px">profile by seat: <span class="mono">${esc(JSON.stringify(lc.cell.profile_by_seat))}</span></p>`:''}${world?jv(world.payload||{}):'<p class="muted">no case definition on this machine</p>'}${world&&world.overrides?`<p class="muted" style="font-size:12px;margin:6px 0 2px">overrides for this campaign</p>${jv(world.overrides)}`:''}</details>
+    <details style="margin-top:6px"><summary>What this campaign says</summary><p class="muted" style="font-size:12.5px;margin:4px 0 0">${md(c.readme.excerpt||'')}</p></details>
+    <p class="muted" style="font-size:11.5px;margin:8px 0 0">Sealed source: <span class="mono">${esc(lc.source||'')}</span> · receipt <span class="mono">${esc(lc.receipt_sha256.slice(0,16))}…</span></p></section>
+   <section class="panel">${mid}</section>
+   <section class="panel col3"><div class="rhdr"><h2>${stateTitle}${hiddenCount!==null?` <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${hiddenCount} hidden</span>`:''}</h2><button class="rtog" data-rt title="${rightOpen?'collapse this panel':'expand this panel'}">${rightOpen?'⟩':'⟨'}</button></div><div class="rbody">${stateHtml}</div></section></div></div>`;
+  $('view').querySelector('[data-rt]').addEventListener('click',()=>{route.rightOpen=!rightOpen;render();});
+  wireGraphToggles();
+  $('view').querySelectorAll('.tick, .ord li').forEach(t=>t.addEventListener('click',()=>{route.step=Number(t.dataset.i);render();}));
+  $('view').querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{route.step=Math.max(0,Math.min(steps.length-1,route.step+Number(b.dataset.d)));render();}));
+  $('view').querySelectorAll('.chain button').forEach(b=>b.addEventListener('click',()=>{const kk=data.cases.find(x=>x.receipt_sha256===b.dataset.receipt);if(kk){route.caseId=kk.receipt_sha256||(kk.cell_id+'|'+kk.episode_attempt_id);route.step=0;render();}}));
+  document.querySelector('.tick.cur')?.scrollIntoView({block:'nearest'});document.querySelector('.ord li.cur')?.scrollIntoView({block:'nearest'});
+}
+function sealedAction(s,steps,lens,lc){
+  const a=s.a,pv=a.provider||{};const act=a.parsed&&a.parsed.action;
+  let prev=null;for(let i=steps.indexOf(s)-1;i>=0;i--){const x=steps[i];if(x.kind==='action'&&x.a.seat===a.seat&&x.a.observation){prev=x;break;}}
+  const obs=a.observation;const obsHtml=obs==null?'<p class="muted">no observation recorded for this action</p>':jv(obs);
+  const changed=prev?diffPaths(prev.a.observation,obs):null;
+  const ins=a.instructions_key&&lens.instructions?lens.instructions[a.instructions_key]:null;
+  const others=s.p.actions.filter(x=>x!==a).map(x=>`<li><span class="mono">${esc(x.seat)}</span>: ${esc(actionLabel(x))}${x.valid===false?` <span class="chip no">${esc(x.failure_code||'invalid')}</span>`:''}</li>`).join('');
+  const verdict=(()=>{const cq=s.p.consequences;if(!cq)return null;if(Array.isArray(cq.verdicts)){const v=cq.verdicts.find(v=>v.actor_id===a.seat||String(v.actor_id)===String(a.seat).split('_').pop());if(v)return v.outcome==='applied'?`applied${v.reference_id?' → <span class="mono">'+esc(v.reference_id)+'</span>':''}`:`<span class="neg">${esc(v.outcome||'pass')}${v.reason?' ('+esc(v.reason)+')':''}</span>`;}if(cq[a.seat])return jvCell(cq[a.seat],2);return null;})();
+  const msg=messageOf(act);
+  return `<div class="bar" style="margin-bottom:6px"><span class="em" style="font-size:16px"><span class="mono">${esc(s.phase)}</span> · ${esc(a.seat)}${a.role&&a.role!==a.seat?` <span class="muted">(${esc(a.role)})</span>`:''}</span><span class="chip">action ${s.ai+1} of ${s.p.actions.length}</span><span class="chip">step ${steps.indexOf(s)+1} of ${steps.length}</span><span class="chip ${a.valid===false?'no':(a.valid?'yes':'na')}">${a.valid===false?esc(a.failure_code||'invalid'):(a.valid?'accepted':'no verdict')}</span></div>
+  <div class="block"><h3>What ${esc(a.seat)} saw</h3>${changed?`<details class="jd" ${changed.added.length+changed.changed.length+changed.removed.length?'open':''}><summary>Changed since ${esc(a.seat)} last acted (step ${steps.indexOf(prev)+1})</summary>${diffHtml(changed,24)}</details>`:'<p class="muted" style="font-size:12px;margin:0 0 4px">first observation for this seat</p>'}<details class="jd" open><summary>Full observation as delivered to the seat</summary>${obsHtml}</details>${ins?`<details class="jd"><summary>Instructions the model was given (${ins.length.toLocaleString()} chars)</summary><pre style="max-height:320px">${esc(ins)}</pre></details>`:''}</div>
+  <div class="block"><h3>Action</h3><p style="margin:0 0 4px"><span class="chip acc">${esc(actionLabel(a))}</span></p>${msg?`<p class="txt" style="margin:0 0 6px;font-size:12.5px">“${esc(msg)}”</p>`:''}${act!=null?jv(act):'<p class="muted">nothing parsed</p>'}${a.raw?`<details class="jd" style="margin-top:4px"><summary>Raw model text (${a.raw.length.toLocaleString()} chars)</summary><pre style="max-height:320px">${esc(a.raw)}</pre></details>`:''}</div>
+  <div class="block"><h3>Gates</h3><dl class="kv"><dt>parse</dt><dd>${a.parsed?(a.parsed.ok!==false&&!a.parsed.error_code?'ok':`<span class="neg">failed: ${esc(a.parsed.error_code||'')}${a.parsed.message?' · '+esc(a.parsed.message):''}</span>`):'<span class="muted">not reached</span>'}</dd><dt>legality</dt><dd>${a.legal?(a.legal.legal?'legal':`<span class="neg">illegal: ${esc(a.legal.reason||'')}</span>`):'<span class="muted">not reached</span>'}</dd><dt>accepted by scheduler</dt><dd>${a.valid===true?'yes':a.valid===false?`<span class="neg">no (${esc(a.failure_code||'invalid')}) → the family's invalid-action policy applies</span>`:'<span class="muted">no verdict recorded (attempt did not complete)</span>'}</dd>${verdict?`<dt>environment verdict</dt><dd>${verdict}</dd>`:''}<dt>phase instance</dt><dd>${esc(s.p.status||'not closed')}${s.p.failure?` · <span class="neg">${esc(JSON.stringify(s.p.failure)).slice(0,200)}</span>`:''}</dd></dl></div>
+  <div class="block"><h3>Provider</h3><dl class="kv"><dt>model</dt><dd>${a.model?`<span class="mono">${esc(a.model)}</span>${a.provider_name?' via '+esc(a.provider_name):''}`:(a.profile?`<span class="mono">${esc(a.profile)}</span>`:'—')}</dd>${a.sampling?`<dt>sampling</dt><dd class="mono" style="font-size:11.5px">${esc(Object.entries(a.sampling).map(([k,v])=>k+'='+v).join(' '))}</dd>`:''}<dt>calls</dt><dd>${pv.calls||0}${pv.attempts>1?` over <span class="neg">${pv.attempts} attempts</span>${pv.retry_reasons&&pv.retry_reasons.length?' ('+esc(pv.retry_reasons.join(', '))+')':''}`:''}</dd><dt>tokens</dt><dd>${pv.input_tokens||0} in / ${pv.output_tokens||0} out${pv.reasoning_tokens?` (${pv.reasoning_tokens} reasoning)`:''}</dd><dt>cost</dt><dd>${money(pv.cost_usd||0)}</dd><dt>finish</dt><dd>${esc((pv.finish_reasons||[]).filter(Boolean).join(', ')||'—')}</dd>${pv.failures&&pv.failures.length?`<dt>failures</dt><dd class="neg">${pv.failures.map(f=>esc((f.condition||'error')+(f.status_code?' '+f.status_code:'')+(f.message?': '+f.message:''))).join('<br>')}</dd>`:''}</dl></div>
+  <div class="block"><h3>Others acting in the same phase instance</h3>${others?`<ul style="margin:0;padding-left:18px">${others}</ul>`:'<p class="muted" style="margin:0">none</p>'}</div>`;
+}
+function sealedResult(s,lc){
+  const p=s.p;const post=p.post_state;const last=s.pi===lc.phases.length-1;
+  const cq=p.consequences;const cqHtml=cq==null?'<p class="muted" style="margin:0">no transition recorded for this phase instance'+(p.status==='failed'||lc.failure?' (the attempt failed before the environment stepped)':'')+'</p>':jv(cq);
+  const diff=post?(s.pre?diffHtml(diffPaths(s.pre,post),40):`<p class="muted" style="margin:0">first logged state (${Object.keys(flat(post,'',{})).length} leaves); the state before it is known only by digest</p>`):'<p class="muted" style="margin:0">no state written</p>';
+  const next=p.next_phase_id||(last?null:(lc.phases[s.pi+1]||{}).phase_id);
+  const sc=lc.score||{};const metrics=Object.entries(sc.metrics||{});const refs=Object.entries(sc.reference_values||{});
+  return `<div class="bar" style="margin-bottom:6px"><span class="em" style="font-size:16px"><span class="mono">${esc(s.phase)}</span> · phase result</span><span class="chip">${p.actions.length} action${p.actions.length!==1?'s':''} on one frozen state</span><span class="chip ${p.status==='succeeded'?'yes':p.status==='failed'?'no':'na'}">${esc(p.status||'not closed')}</span></div>
+  <div class="block"><h3>Consequences recorded by the environment</h3>${cqHtml}</div>
+  <div class="block"><h3>State changes</h3>${diff}</div>
+  <div class="block"><h3>After this phase</h3><dl class="kv"><dt>next</dt><dd>${last?`<span class="em">episode ends</span>${lc.terminal&&(lc.terminal.reason||lc.terminal.termination_reason)?` (${esc(lc.terminal.reason||lc.terminal.termination_reason)})`:''}`:(next?`<span class="mono">${esc(next)}</span>`:'—')}</dd>${p.post_state_sha256?`<dt>state digest</dt><dd class="mono">${esc(p.post_state_sha256.slice(0,16))}…</dd>`:''}</dl></div>
+  ${last?`<div class="block"><h3>Episode outcome</h3>${lc.outcome?jv(lc.outcome):(lc.terminal?jv(lc.terminal):'<p class="muted" style="margin:0">no outcome recorded'+(lc.failure?': '+esc(lc.failure.condition||'attempt failed'):'')+'</p>')}${lc.terminal&&lc.outcome?`<details class="jd" style="margin-top:4px"><summary>Terminal state</summary>${jv(lc.terminal)}</details>`:''}</div>
+  ${sc.primary||metrics.length?`<div class="block"><h3>Score</h3><div class="scroll"><table class="jt"><thead><tr><th>metric</th><th>value</th><th>unit</th></tr></thead><tbody>${sc.primary?`<tr class="cur"><td>primary${sc.estimand&&sc.estimand.estimand_id?` · ${esc(sc.estimand.estimand_id)}`:''}</td><td>${fmtNum(sc.primary.value)}</td><td>${esc(sc.primary.unit||'')}</td></tr>`:''}${metrics.map(([n,m])=>`<tr><td>${esc(n)}</td><td>${fmtNum(m.value)}</td><td>${esc(m.unit||'')}</td></tr>`).join('')}${refs.map(([n,m])=>`<tr><td class="muted">reference · ${esc(n)}</td><td>${fmtNum(m.value)}</td><td>${esc(m.unit||'')}</td></tr>`).join('')}</tbody></table></div></div>`:''}`:''}`;
+}
+
+// ---------------- results panel (campaign page): charts of whatever numeric tables the bundle publishes ----------------
+const resultsCache={}, resultsUI={};
+function rng(seed){let a=seed>>>0;return()=>{a+=0x6D2B79F5;let t=Math.imul(a^(a>>>15),1|a);t^=t+Math.imul(t^(t>>>7),61|t);return((t^(t>>>14))>>>0)/4294967296;};}
+const mean=xs=>xs.reduce((a,b)=>a+b,0)/xs.length;
+function bootCI(xs,seed=7,B=600){if(xs.length<2)return [xs[0]??0,xs[0]??0];const r=rng(seed);const ms=[];for(let b=0;b<B;b++){let s=0;for(let i=0;i<xs.length;i++)s+=xs[Math.floor(r()*xs.length)];ms.push(s/xs.length);}ms.sort((a,b)=>a-b);return [ms[Math.floor(0.025*B)],ms[Math.min(B-1,Math.floor(0.975*B))]];}
+function niceTicks(lo,hi,n=5){if(lo===hi){lo-=1;hi+=1;}const step0=(hi-lo)/n;const mag=Math.pow(10,Math.floor(Math.log10(step0)));const norm=step0/mag;const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;const start=Math.ceil(lo/step)*step;const ticks=[];for(let v=start;v<=hi+1e-9&&ticks.length<12;v+=step)ticks.push(+v.toFixed(10));return ticks;}
+const fmtTick=v=>Math.abs(v)>=1e9?(v/1e9).toFixed(1)+'B':Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e4?(v/1e3).toFixed(0)+'k':(Number.isInteger(v)?String(v):String(+v.toPrecision(3)));
+const numOf=v=>typeof v==='number'&&isFinite(v)?v:(typeof v==='boolean'?(v?1:0):null);
+function axis(x,lo,hi,top,H,W){let s='';niceTicks(lo,hi).forEach(t=>{s+=`<line x1="${x(t)}" y1="${top}" x2="${x(t)}" y2="${H-26}" stroke="currentColor" opacity=".12"/><text x="${x(t)}" y="${H-10}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(fmtTick(t))}</text>`;});if(lo<0&&hi>0)s+=`<line x1="${x(0)}" y1="${top}" x2="${x(0)}" y2="${H-26}" stroke="currentColor" opacity=".45"/>`;return s;}
+function stripChart(rows,groupKey,metric){
+  const groups={};rows.forEach(r=>{const v=numOf(r[metric]);if(v===null)return;const g=groupKey?String(r[groupKey]??'—'):'all rows';(groups[g]=groups[g]||[]).push(v);});
+  const names=Object.keys(groups).sort((a,b)=>mean(groups[b])-mean(groups[a]));if(!names.length)return '<p class="muted">no numeric values for this metric</p>';
+  const all=names.flatMap(n=>groups[n]);let lo=Math.min(...all),hi=Math.max(...all);if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
+  const W=680,L=190,R=20,rowH=26,top=8,H=top+names.length*rowH+34;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(metric)} by ${esc(groupKey||'all rows')}">`+axis(x,lo,hi,top,H,W);
+  names.forEach((n,i)=>{const xs=groups[n];const cy=top+i*rowH+rowH/2;const r=rng(i+11);const [c1,c2]=bootCI(xs,i+3);const m=mean(xs);
+    s+=`<text x="${L-8}" y="${cy+4}" text-anchor="end" font-size="11" fill="currentColor">${esc(n.length>24?n.slice(0,23)+'…':n)} <tspan fill="var(--muted)">n=${xs.length}</tspan></text>`;
+    xs.forEach(v=>{s+=`<circle cx="${x(v)}" cy="${cy+(r()-0.5)*12}" r="3" fill="currentColor" opacity=".35"><title>${esc(n)}: ${esc(fmtNum(v))}</title></circle>`;});
+    if(xs.length>1)s+=`<line x1="${x(c1)}" y1="${cy}" x2="${x(c2)}" y2="${cy}" stroke="var(--accent)" stroke-width="3" opacity=".8"><title>mean ${esc(fmtNum(m))} · 95% bootstrap interval ${esc(fmtNum(c1))} to ${esc(fmtNum(c2))} · n=${xs.length}</title></line>`;
+    s+=`<line x1="${x(m)}" y1="${cy-8}" x2="${x(m)}" y2="${cy+8}" stroke="var(--accent)" stroke-width="3"><title>mean ${esc(fmtNum(m))}</title></line>`;});
+  return s+'</svg>';
+}
+function barChart(rows,labelKey,metric){
+  const items=rows.map(r=>[String(r[labelKey]??'—'),numOf(r[metric])]).filter(([,v])=>v!==null).slice(0,40);if(!items.length)return '<p class="muted">no numeric values for this metric</p>';
+  const vals=items.map(x=>x[1]);let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(lo===hi)hi=lo+1;const W=680,L=210,R=80,rowH=20,top=6,H=top+items.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(metric)} by ${esc(labelKey)}">`+axis(x,lo,hi,top,H,W);
+  items.forEach(([n,v],i)=>{const y=top+i*rowH;const x0=x(0),x1=x(v);s+=`<text x="${L-8}" y="${y+14}" text-anchor="end" font-size="11" fill="currentColor">${esc(n.length>28?n.slice(0,27)+'…':n)}</text><rect x="${Math.min(x0,x1)}" y="${y+4}" width="${Math.max(1,Math.abs(x1-x0))}" height="${rowH-8}" fill="var(--accent)" opacity=".75"><title>${esc(n)}: ${esc(fmtNum(v))}</title></rect><text x="${Math.max(x0,x1)+4}" y="${y+14}" font-size="10" fill="var(--muted)">${esc(fmtNum(v))}</text>`;});
+  return s+'</svg>';
+}
+function intervalChart(ivs){
+  const items=ivs.filter(v=>typeof v.lo==='number'&&typeof v.hi==='number');if(!items.length)return '';
+  const byMetric={};items.forEach(v=>{const parts=v.path.split('.');const m=parts[parts.length-1];(byMetric[m]=byMetric[m]||[]).push({...v,row:parts.slice(0,-1).join('.')||v.file});});
+  return Object.entries(byMetric).map(([m,rows])=>{let lo=Math.min(...rows.map(v=>Math.min(v.lo,v.point??v.lo))),hi=Math.max(...rows.map(v=>Math.max(v.hi,v.point??v.hi)));if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*.08;lo-=pad;hi+=pad;const W=680,L=300,R=24,rowH=22,top=6,H=top+rows.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+    let s=`<div class="ivm"><div class="muted" style="font-size:12px;margin:6px 0 2px"><span class="em" style="color:var(--ink)">${esc(m)}</span> · ${rows.length} estimate${rows.length!==1?'s':''}</div><svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(m)} interval estimates">`+axis(x,lo,hi,top,H,W);
+    rows.forEach((v,i)=>{const cy=top+i*rowH+rowH/2;const lab=v.row;const crosses=v.lo<0&&v.hi>0;const col=crosses?'var(--partial)':'var(--accent)';
+      s+=`<text x="${L-8}" y="${cy+4}" text-anchor="end" font-size="10.5" fill="currentColor"><title>${esc(v.file)} · ${esc(v.path)}</title>${esc(lab.length>44?'…'+lab.slice(-43):lab)}</text><line x1="${x(v.lo)}" y1="${cy}" x2="${x(v.hi)}" y2="${cy}" stroke="${col}" stroke-width="3"><title>${esc(v.path)}: ${esc(fmtNum(v.lo))} to ${esc(fmtNum(v.hi))}${v.n?' · n='+v.n:''}</title></line>${typeof v.point==='number'?`<circle cx="${x(v.point)}" cy="${cy}" r="4" fill="var(--panel)" stroke="${col}" stroke-width="2"><title>point ${esc(fmtNum(v.point))}</title></circle>`:''}`;});
+    return s+'</svg></div>';}).join('');
+}
+async function loadResults(c){if(resultsCache[c.id]!==undefined)return resultsCache[c.id];try{resultsCache[c.id]=await getJSON('data/results/'+c.id+'.json');}catch(e){resultsCache[c.id]=null;}return resultsCache[c.id];}
+function tableCard(t,i,st){
+  const metricRank=m=>(/margin|score|npv|payoff|regret|utility|welfare|delta|effect/i.test(m)?0:(/accuracy|rate|kits|feasible|compliance|harvest|survival|gini|value|mean/i.test(m)?1:2))+(/token|cost|elapsed|latency|count|seconds|order|ordinal|ceiling|budget/i.test(m)?3:0);
+  const hints=(t._hints||[]).map(h=>String(h).toLowerCase());let hinted=null;for(const h of hints){const m=t.numeric.find(m=>h.includes(m.toLowerCase())||m.toLowerCase().includes(h));if(m){hinted=m;break;}}
+  const metric=t.numeric.includes(st.metric)?st.metric:(hinted||t.numeric.slice().sort((a,b)=>metricRank(a)-metricRank(b))[0]);const cats=t.categorical||[];const labelOK=t.label&&!cats.includes(t.label)&&new Set(t.rows.map(r=>r[t.label])).size<=24;
+  const GROUP_PREF=['arm','condition','treatment','surface','model_id','route','candidate_id','policy','stratum','archetype','scenario','seat_id','profile_id','inference_seed','source'];
+  const groupOpts=['none',...cats,...(labelOK?[t.label]:[])];const usable=cats.filter(k=>{const n=new Set(t.rows.map(r=>r[k])).size;return n>=2&&n<=12;});const auto=usable.slice().sort((a,b)=>{const ia=GROUP_PREF.indexOf(a),ib=GROUP_PREF.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);})[0]||'none';const group=groupOpts.includes(st.group)?st.group:auto;
+  const chart=(group==='none'&&t.label&&t.rows.length<=40)?barChart(t.rows,t.label,metric):stripChart(t.rows,group==='none'?null:group,metric);
+  return `<div class="rcard" data-i="${i}"><div class="rhead"><span class="mono">${esc(t.file)}</span> <span class="muted">· ${esc(t.path)} · ${t.row_count} rows${t.note?' · '+esc(t.note):''}</span></div><div class="rctl"><label>metric <select data-k="metric">${t.numeric.map(m=>`<option ${m===metric?'selected':''}>${esc(m)}</option>`).join('')}</select></label><label>group by <select data-k="group">${groupOpts.map(g=>`<option ${g===group?'selected':''}>${esc(g)}</option>`).join('')}</select></label></div><div class="graph">${chart}</div><div class="legend" style="margin-top:2px">${(group==='none'&&t.label&&t.rows.length<=40)?'<span>bar = the row\'s value</span>':'<span>● one row</span><span><b style="color:var(--accent)">|</b> group mean</span><span><b style="color:var(--accent)">▬</b> 95% bootstrap interval of the mean (600 seeded resamples of the rows, treated as independent; computed here, not by the bundle)</span>'}</div><details class="jd"><summary>rows (${t.rows.length} of ${t.row_count})</summary>${jv(t.rows.slice(0,60))}</details></div>`;
+}
+function renderResults(c,res){
+  const el=$('results');if(!el)return;
+  if(!res||(!res.tables.length&&!res.intervals.length)){el.innerHTML='<h2>Results</h2><p class="muted" style="margin:0">This bundle publishes no numeric tables or interval estimates the examiner can chart.</p>';return;}
+  const st=resultsUI[c.id]=resultsUI[c.id]||{};
+  const rank=h=>(/rate|admission|mean|delta|score|margin|npv|regret|effect|fraction|share|median|payoff/i.test(h.path)?0:1)+(/cost|ceiling|max_|count|tokens|seed|budget/i.test(h.path)?2:0);
+  const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(h.path.split('.').slice(-2).join('.'))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(h.file.replace(/^reports\//,''))}</div></div>`).join('');
+  const ivs=res.intervals||[];const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40))}</div></div>`:'';
+  res.tables.forEach(t=>{t._hints=res.primary_hints||[];});
+  const cards=res.tables.map((t,i)=>tableCard(t,i,st[i]=st[i]||{})).join('');
+  const hintLine=(res.primary_hints||[]).length?`<p class="muted" style="margin:0 0 6px;font-size:12.5px">The bundle names its guarded or primary metric: <span class="mono">${esc(res.primary_hints.join(', '))}</span>. Charts open on that metric where a table carries it.</p>`:'';
+  el.innerHTML=`<h2>Results <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· every numeric table and interval the bundle publishes, charted as published. Dots are rows; the bar is a 95% bootstrap interval of the group mean and the tick its mean (computed here, not by the bundle).</span></h2>${hintLine}${head?`<div class="tiles" style="margin-bottom:8px">${head}</div>`:''}${ivHtml}${cards}`;
+  el.querySelectorAll('.rcard select').forEach(sel=>sel.addEventListener('change',()=>{const i=Number(sel.closest('.rcard').dataset.i);st[i][sel.dataset.k]=sel.value;renderResults(c,res);}));
+}
+
+// ---------------- draggable column gutters for the three-panel views ----------------
+function colWidths(){try{const v=JSON.parse(localStorage.getItem('aeread-examiner-cols')||'null');if(v&&v.c1&&v.c3)return v;}catch(e){}return {c1:360,c3:340};}
+function wireGutters(){const grid=document.querySelector('.grid3');if(!grid||grid.querySelector('.gut'))return;const panels=[...grid.children];if(panels.length!==3)return;
+  const g1=document.createElement('div'),g2=document.createElement('div');g1.className='gut';g2.className='gut';g1.title=g2.title='drag to resize · double-click to reset';panels[0].after(g1);panels[1].after(g2);
+  const w=colWidths();grid.style.setProperty('--c1',w.c1+'px');if(!grid.classList.contains('rc'))grid.style.setProperty('--c3',w.c3+'px');else g2.classList.add('off');
+  const start=(gut,which)=>e=>{if(e.button!==undefined&&e.button!==0)return;e.preventDefault();gut.classList.add('on');gut.setPointerCapture&&gut.setPointerCapture(e.pointerId);const x0=e.clientX,r=grid.getBoundingClientRect();const cur=colWidths();const c1=parseFloat(getComputedStyle(grid).getPropertyValue('--c1'))||cur.c1,c3=parseFloat(getComputedStyle(grid).getPropertyValue('--c3'))||cur.c3;
+    const move=ev=>{const dx=ev.clientX-x0;if(which===1){const n=Math.max(220,Math.min(r.width-c3-320,c1+dx));grid.style.setProperty('--c1',n+'px');}else{const n=Math.max(180,Math.min(r.width-c1-320,c3-dx));grid.style.setProperty('--c3',n+'px');}};
+    const up=()=>{gut.classList.remove('on');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);const v={c1:parseFloat(grid.style.getPropertyValue('--c1'))||c1,c3:grid.classList.contains('rc')?cur.c3:(parseFloat(grid.style.getPropertyValue('--c3'))||c3)};try{localStorage.setItem('aeread-examiner-cols',JSON.stringify(v));}catch(err){}};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);};
+  g1.addEventListener('pointerdown',start(g1,1));g2.addEventListener('pointerdown',start(g2,2));
+  [g1,g2].forEach(g=>g.addEventListener('dblclick',()=>{try{localStorage.removeItem('aeread-examiner-cols');}catch(e){}grid.style.setProperty('--c1','360px');if(!grid.classList.contains('rc'))grid.style.setProperty('--c3','340px');}));}
+// ---------------- router ----------------
+async function render(){
+  save(); crumbs();
+  try{
+    if(route.view==='catalog')renderCatalog();
+    else if(route.view==='campaign')renderCampaign();
+    else if(route.view==='cases')await renderCases();
+    else if(route.view==='results')await renderResultsPage();
+    else if(route.view==='step')await renderStep();
+    wireGutters();
+  }catch(e){$('view').className='';$('view').innerHTML=`<section class="panel"><h3>Could not render this view</h3><p class="muted">${esc(e.message)}</p><p><button id="back">Back to catalog</button></p></section>`;$('back').addEventListener('click',()=>{route={view:'catalog',family:null,campaign:null,caseId:null,step:0};render();});}
+  const c=route.campaign?byId(route.campaign):null;
+  $('src').title=`Generated from the AERead repository on branch ${CAT.generated_from.branch}: publication manifests and reports under ${CAT.generated_from.evidence_root}, the sanitized trajectory grain, ${CAT.generated_from.incident_log}, and the family QC profiles. ${CAT.campaigns.length} bundles, ${CAT.campaigns.filter(x=>x.trajectory_file).length} with a step grain.` + (c?` Current: ${c.id}.`:'');
+}
+document.addEventListener('keydown',e=>{if(route.view!=='step'||e.target.tagName==='SELECT')return;if(e.key==='ArrowRight'){route.step++;render();e.preventDefault();}if(e.key==='ArrowLeft'){route.step=Math.max(0,route.step-1);render();e.preventDefault();}});
+Promise.all([getJSON('data/catalog.json'),getJSON('data/lens/index.json').catch(()=>({})),getJSON('data/results/index.json').catch(()=>({}))]).then(([cat,lens,res])=>{CAT=cat;LENS=lens||{};RESULTS=res||{}; try{const saved=JSON.parse(localStorage.getItem('aeread-examiner-route')||'null'); if(saved&&saved.view&&(!saved.campaign||byId(saved.campaign)))route=saved;}catch(e){} if(route.view==='step'||route.view==='cases'){if(!route.campaign||!byId(route.campaign))route={view:'catalog',family:null,campaign:null,caseId:null,step:0};} render();}).catch(e=>{$('view').className='';$('view').innerHTML=`<section class="panel"><h3>The catalog could not be loaded</h3><p class="muted">${esc(e.message)}</p></section>`;});
+})();
+</script>
