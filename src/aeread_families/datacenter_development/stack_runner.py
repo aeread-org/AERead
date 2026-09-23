@@ -178,7 +178,8 @@ JOINT_VENTURE_NOTE = (
     "built earlier in this territory, what it announced each time and what it actually "
     "funded, and partner_coverage_prior_bps is the share of developers in this territory "
     "that have funded whatever was left, which is what you have to go on when the record is "
-    "empty. In jv_developer_offer return "
+    "empty. solo_interconnection_cost_cents is what connecting your site alone would cost you "
+    "instead, if no feeder is funded. In jv_developer_offer return "
     '{"decision": "offer", "share_bps": <basis points of feeder_cost_cents you will fund>, '
     '"message": <text>} or {"decision": "decline", "share_bps": null, "message": <text or null>}; '
     "the partner names its own share at the same time, the utility signs the feeder only "
@@ -225,7 +226,7 @@ def developer_prompt(case_payload: Mapping[str, Any], scope_version: str) -> tup
     if scope_version == "v3":
         # The joint venture presupposes interface 3 (a decline exists).
         return (
-            f"datacenter_v3_developer_prompt_v3.3{suffix}",
+            f"datacenter_v3_developer_prompt_v3.4{suffix}",
             DEVELOPER_PROMPT + MONTH_INDEXING_NOTE + AMENDMENT_DECLINE_NOTE + JOINT_VENTURE_NOTE + objective,
         )
     if developer_interface(case_payload) >= 3:

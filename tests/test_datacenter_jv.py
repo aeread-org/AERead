@@ -155,7 +155,7 @@ def test_v2_cases_see_no_joint_venture_and_keep_their_prompt_and_schema() -> Non
         build_stack_setup("v2", case_path=V2_CASE, developer_policy="free_rider")
     v3 = load_stack_case("v3", CASES["pro_rata"])
     assert developer_prompt(v3.payload, "v3") == (
-        "datacenter_v3_developer_prompt_v3.3_objective",
+        "datacenter_v3_developer_prompt_v3.4_objective",
         developer_prompt(case.payload, "v2")[1] + JOINT_VENTURE_NOTE + OBJECTIVE_NOTE,
     )
     jv_offer = stack_developer_output_schemas(v3)["datacenter_jv_offer_v1"]["properties"]
@@ -468,7 +468,7 @@ def test_the_objective_is_stated_only_where_a_case_opts_in() -> None:
     silent = copy.deepcopy(payload)
     del silent["construct_controls"]["developer_objective_stated"]
     silent_id, text = developer_prompt(silent, "v3")
-    assert silent_id == "datacenter_v3_developer_prompt_v3.3" and OBJECTIVE_NOTE not in text
+    assert silent_id == "datacenter_v3_developer_prompt_v3.4" and OBJECTIVE_NOTE not in text
     plugin.validate_payload(silent)
     broken = copy.deepcopy(payload)
     broken["construct_controls"]["developer_objective_stated"] = "yes"

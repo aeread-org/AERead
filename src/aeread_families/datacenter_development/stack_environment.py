@@ -743,6 +743,7 @@ def coalition_expected_costs(family_case: Mapping[str, Any]) -> dict[str, int]:
     return {
         "coverage_probability_bps": probability,
         "capacity_share_bps": fair,
+        "solo_interconnection_cost_cents": solo,
         "pay_share_scaled_cents": feeder * fair,
         "free_ride_scaled_cents": (10_000 - probability) * solo,
     }
@@ -848,6 +849,16 @@ class DataCenterStackPlugin:
                 entry = _exact(entry, {"announced_share_bps", "funded_share_bps"}, f"scripted_partner.record[{index}]")
                 for field in ("announced_share_bps", "funded_share_bps"):
                     _basis_points(entry[field], f"scripted_partner.record[{index}].{field}")
+            # The quote the developer is shown must be the one a failed
+            # coalition charges it, or the rule turns on a number the subject
+            # cannot see (DC-D-22).
+            floor = data["policies"]["power"]["minimums"].get("interconnection_cost_cents")
+            quoted = int(data["scripted_developer"]["power_terms"]["interconnection_cost_cents"])
+            if floor is not None and int(floor) != quoted:
+                raise ValueError(
+                    "construct_controls: the solo interconnection quote shown at the joint "
+                    f"venture ({quoted}) is not the utility's floor ({int(floor)})"
+                )
             costs = coalition_expected_costs(data)
             if costs["free_ride_scaled_cents"] == costs["pay_share_scaled_cents"]:
                 # A tie has no correct answer, so nothing can be measured
@@ -1141,6 +1152,14 @@ class DataCenterStackPlugin:
                         "partner_coverage_prior_bps", DEFAULT_COVERAGE_PRIOR_BPS
                     )
                 )
+                # What connecting alone would cost: the best standalone quote
+                # the utility will accept, and exactly the figure a failed
+                # coalition makes the developer pay. Without it the choice
+                # cannot be worked out from the observation at all, however
+                # much the developer knows about the partner (DC-D-22).
+                observation["solo_interconnection_cost_cents"] = coalition_expected_costs(
+                    family_case
+                )["solo_interconnection_cost_cents"]
         elif key in CO_PROPOSER_BY_KEY and seat == CO_PROPOSER_BY_KEY[key]:
             package = _jv_package(family_case)
             observation.update(

@@ -394,6 +394,30 @@ four feeders funded in full, which the estimator puts either side of the
 threshold, so a developer that asks only whether a record exists gets one of
 them wrong while one that reads the frequency gets both right.
 
+*Is the rule answerable, and how hard is it?* Two things had to be true and
+one of them was not. The comparison needs the solo interconnection price, and
+until 2026-09-22 the observation did not carry it: the utility's policy is
+private and its power counter arrives only after the joint venture is over, so
+every coalition decision the benchmark scored was a guess about a number the
+subject had not been given (DC-D-22). The observation now carries
+`solo_interconnection_cost_cents`, and `validate_payload` refuses a case where
+that figure is not the utility's own floor, so the number shown and the number
+charged cannot drift apart. The second thing does hold: the licensed share is
+the same whether the subject shrinks the record's frequency or reads it raw, on
+8 of 8 curated cases and 48 of 48 pack worlds, so no subject is marked wrong
+for choosing a reasonable estimator, and the arithmetic is two products and a
+comparison.
+
+With the quote visible, Gemini 3.8 Flash reaches the licensed share on **9 of
+12 curated cells** (one seed on 001 to 004, two on 005 to 008, $0.79). The three
+misses are the two behaviours the cases were built to separate, not arithmetic
+slips: on 003 it rode on an announcement of full coverage from a partner with no
+record at all, and on 008, both seeds, it paid its pro-rata share against a
+record of three feeders in four funded in full, falling back to capacity and
+ignoring the evidence. It rides correctly on 005 and 006, where the record is
+unanimous, which is why the mixed record in 008 is the discriminating case.
+Qualification only: these are curated cases, not a frozen campaign.
+
 *What is still owed before a live claim.* One thing: the rule was written after
 all 23 probe cells were read, so it needs a campaign identity frozen before any
 outcome is inspected, and the three probe comments on #214 stay descriptive.
