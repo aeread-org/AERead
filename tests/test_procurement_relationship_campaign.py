@@ -328,3 +328,124 @@ def test_prepare_on_a_generated_pack_reseeds_the_sample_noise(tmp_path: Path) ->
         assert case["payload"]["interaction"]["sample_noise"]["seed"] == cell["seed"]
         assert case["payload"]["interaction"]["periods"]["delivery_seed"] == cell["seed"]
     assert campaign.pack_paths("relationship_v1") == tuple(CASE_PATHS)
+
+
+# --------------------------------------------------------------------------
+# Observation layout and temperature (P-D-05, P-D-06)
+# --------------------------------------------------------------------------
+
+
+def _drive_offline(tmp_path: Path, *, observation_layout: str):
+    """One scripted episode through the kernel; returns the requests it sent."""
+
+    from aeread.shared_runner.task.execution import execute_plan_cell
+    from aeread_families.procurement_allocation.runner import SequenceResponseProvider
+
+    plan = _plan(tmp_path / observation_layout, seeds=(5,))
+    run_root = tmp_path / observation_layout / "run"
+    cell = plan["cells"][0]
+    setup = build_offline_setup(case_path=run_root / cell["path"], observation_layout=observation_layout)
+    provider = SequenceResponseProvider(_script())
+    asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / observation_layout / "evidence",
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": provider},
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+            harnesses=setup.harnesses,
+        )
+    )
+    assert provider.exhausted
+    return provider.requests
+
+
+def _common_prefix(left: str, right: str) -> int:
+    size = 0
+    for a, b in zip(left, right):
+        if a != b:
+            break
+        size += 1
+    return size
+
+
+def test_stable_prefix_layout_keeps_every_field_exactly_once() -> None:
+    from aeread_families.procurement_allocation import environment
+    from aeread_families.procurement_allocation.runner import CASE_PATH
+
+    periodic_plugin = environment.ProcurementAllocationPlugin()
+    for path, periodic in ((WORLD, True), (CASE_PATH, False)):
+        family_case = periodic_plugin.validate_payload(json.loads(Path(path).read_text(encoding="utf-8"))["payload"])
+        state = periodic_plugin.initial_state(family_case, None)
+        phase = periodic_plugin.phases(family_case)[0]
+        flat = periodic_plugin.observe(family_case, state, "buyer", phase)
+        arranged = environment.arrange_observation(flat, periodic=periodic)
+        regrouped = {**arranged["context"], **arranged["negotiation"], **arranged["state"]}
+        if "history" in arranged:
+            regrouped["history"] = arranged["history"]
+        assert regrouped == flat
+        seen = [*arranged["context"], *arranged["negotiation"], *arranged["state"], *(["history"] if "history" in arranged else [])]
+        assert len(seen) == len(set(seen)) == len(flat)
+        assert ("objective" in arranged["context"]) is (not periodic)
+
+
+def test_stable_prefix_requests_reuse_the_previous_call_and_flat_ones_do_not(tmp_path: Path) -> None:
+    stable = _drive_offline(tmp_path, observation_layout="stable_prefix_v1")
+    flat = _drive_offline(tmp_path, observation_layout="flat_v1")
+    assert len(stable) == len(flat) == 14
+    # Same prompt, same decisions: only the grouping of the observation differs.
+    assert {r.instructions for r in stable} == {r.instructions for r in flat}
+    assert json.loads(stable[0].input_text)["observation_schema"] == "procurement_allocation_observation_stable_prefix_v1"
+    assert json.loads(flat[0].input_text)["observation_schema"] == "procurement_allocation_observation_v1"
+    for previous, current in zip(stable, stable[1:]):
+        rendered = current.input_text
+        # Everything up to the start of the changing groups is reusable: the
+        # context block always, and history whenever no period closed.
+        context_end = rendered.index('"history"') if '"history"' in rendered else rendered.index('"negotiation"')
+        assert _common_prefix(previous.input_text, rendered) >= context_end
+    # The flat layout diverges at actions_left, inside the first hundred bytes.
+    assert max(_common_prefix(a.input_text, b.input_text) for a, b in zip(flat, flat[1:])) < 100
+    reuse_stable = sum(_common_prefix(a.input_text, b.input_text) for a, b in zip(stable, stable[1:]))
+    total = sum(len(b.input_text) for b in stable[1:])
+    assert reuse_stable / total > 0.5
+
+
+def test_new_plans_default_to_temperature_one_and_the_stable_layout(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.environment import family_manifest
+
+    plan = _plan(tmp_path, seeds=(5,))
+    assert plan["temperature"] == 1.0
+    assert plan["observation_layout"] == "stable_prefix_v1"
+    setup = campaign.setup_for(plan, plan["cells"][0], tmp_path / "run")
+    assert setup.plan.agent_profiles[0].sampling.temperature == 1.0
+    family = family_manifest().family
+    plugin = setup.registry.resolve(family.id, family.version, family.plugin_id)
+    assert plugin.observation_layout == "stable_prefix_v1"
+
+
+def test_plans_frozen_before_the_fields_existed_rebuild_as_they_ran(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.environment import family_manifest
+
+    plan = dict(_plan(tmp_path, seeds=(5,)))
+    plan.pop("observation_layout")
+    plan["temperature"] = 0.0
+    setup = campaign.setup_for(plan, plan["cells"][0], tmp_path / "run")
+    assert setup.plan.agent_profiles[0].sampling.temperature == 0.0
+    family = family_manifest().family
+    plugin = setup.registry.resolve(family.id, family.version, family.plugin_id)
+    assert plugin.observation_layout == "flat_v1"
+
+
+def test_setup_refuses_an_unknown_layout_or_an_out_of_range_temperature(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.runner import build_openrouter_setup
+
+    plan = _plan(tmp_path, seeds=(5,))
+    route = campaign.route_from_record(plan["route"])
+    case_path = tmp_path / "run" / plan["cells"][0]["path"]
+    with pytest.raises(ValueError, match="observation layout"):
+        build_openrouter_setup(route, seed=5, case_path=case_path, observation_layout="sideways")
+    with pytest.raises(ValueError, match="temperature"):
+        build_openrouter_setup(route, seed=5, case_path=case_path, temperature=2.5)

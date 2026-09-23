@@ -329,3 +329,18 @@ headroom and the within-world variance the noisy verification now permits;
 then a frozen confirmatory on `relationship_holdout_v1` sized on that
 variance, with a second route paired on the same cells. Until then any number
 above is a development result.
+
+**Controls for the next identity, and what the dev_v2 pilot changed.** The
+both-route variance pilot on `relationship_dev_v2` (12 worlds x 5 seeds) halted
+on provider credit after 28 Gemini and 16 GLM cells (P-O-03) and is recorded,
+not published. What it settled: both routes beat every observation-only policy
+on every world they reached, Gemini sits on the myopic reference and GLM well
+below it, and GLM breaches minimum service in 8 of 16 cells against 0 of 28. It
+also showed three defects in the design this section described: declared sample
+noise does not make seeds replicates (P-D-03), `retaliation_trap` has no
+informative observation-only baseline (P-D-04), and the plan's temperature was
+never applied (P-D-05). New plans therefore default to `temperature: 1.0` on
+every route and to the `stable_prefix_v1` observation layout (P-D-06), which
+holds the same fields grouped so the provider can cache the prefix. Both are
+frozen in the plan; campaigns run under them are not pooled with the
+temperature-0, flat-layout campaigns in the table above.
