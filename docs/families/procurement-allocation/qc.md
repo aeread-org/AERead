@@ -341,6 +341,8 @@ noise does not make seeds replicates (P-D-03), `retaliation_trap` has no
 informative observation-only baseline (P-D-04), and the plan's temperature was
 never applied (P-D-05). New plans therefore default to `temperature: 1.0` on
 every route and to the `stable_prefix_v1` observation layout (P-D-06), which
-holds the same fields grouped so the provider can cache the prefix. Both are
+holds the same fields grouped so the provider can cache the prefix (on
+Gemini the calls are too short for its ~4k-token cache blocks, so the saving
+there is nil; it is for routes with fine-grained prefix caching). Both are
 frozen in the plan; campaigns run under them are not pooled with the
 temperature-0, flat-layout campaigns in the table above.
