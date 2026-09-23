@@ -121,11 +121,18 @@ ROUTES: dict[str, OpenRouterRoute] = {
 DEFAULT_ROUTE = "gemini38_flash_aistudio"
 
 CONTRACT: dict[str, Any] = {
-    "temperature": 0.0,
+    # One declared temperature for every route. 1.0 samples each model's own
+    # distribution, so seeds are replicates on a deterministic route too; at
+    # 0.0 one route returned its single most likely path while another still
+    # varied, and the paired contrast compared a mode with a mean (P-D-05).
+    "temperature": 1.0,
+    # Episode-constant fields first so the provider can cache the prefix;
+    # plans frozen before this field existed ran the flat layout (P-D-06).
+    "observation_layout": "stable_prefix_v1",
     "max_output_tokens": 1800,
     "timeout_seconds": 180.0,
     "max_cost_usd_per_trajectory": 0.60,
-    "max_cost_usd_total": 4.00,
+    "max_cost_usd_total": 9.00,
     # Retries cover only zero-cost provider conditions (a 429 or a 5xx that
     # billed nothing); a model's own malformed action is never retried.
     "max_action_attempts": 3,
@@ -384,6 +391,7 @@ def prepare(
             )
     plan = {
         **CONTRACT,
+        "temperature": CONTRACT["temperature"] if ROUTES[route_id].temperature_supported else None,
         "campaign_id": campaign_id,
         "seeds": [int(seed) for seed in seeds],
         "route_id": route_id,
@@ -449,6 +457,10 @@ def setup_for(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path):
         retry_backoff=plan.get("retry_backoff"),
         retry_base_seconds=float(plan.get("retry_base_seconds", 2.0)),
         retry_after_max_seconds=float(plan.get("retry_after_max_seconds", 60.0)),
+        # Plans frozen before these fields existed ran at the temperature they
+        # declare and on the flat layout; replaying them rebuilds exactly that.
+        temperature=plan.get("temperature"),
+        observation_layout=str(plan.get("observation_layout", "flat_v1")),
     )
 
 

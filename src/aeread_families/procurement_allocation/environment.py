@@ -1092,6 +1092,43 @@ def family_manifest() -> FamilyManifest:
     )
 
 
+#: How the buyer's observation is grouped. ``flat_v1`` is the layout every
+#: sealed campaign ran under and stays the default. ``stable_prefix_v1`` holds
+#: the same fields, each exactly once, grouped so that a provider's prefix
+#: cache can reuse the previous call: the kernel renders the decision as
+#: sorted-key JSON, so the group names are chosen to sort in the order
+#: ``context`` (fixed for the episode), ``history`` (grows once a period),
+#: ``negotiation`` (``conversation`` first, which grows every call), ``state``
+#: (the counters and everything else that moves). Under the flat layout the
+#: first field is ``actions_left``, which changes on every call, so nothing
+#: past the system prompt was ever reusable.
+OBSERVATION_LAYOUTS = ("flat_v1", "stable_prefix_v1")
+OBSERVATION_SCHEMA_BY_LAYOUT = {
+    "flat_v1": "procurement_allocation_observation_v1",
+    "stable_prefix_v1": "procurement_allocation_observation_stable_prefix_v1",
+}
+#: Fields built from the case alone, so they cannot change within an episode.
+#: ``objective`` joins them only when the case has no periods: under
+#: repeated sourcing it is the current period's objective.
+CONTEXT_FIELDS = ("policy", "supplier_listings", "periods", "period_schedule")
+NEGOTIATION_FIELDS = ("conversation", "formal_offers", "verbal_claims")
+
+
+def arrange_observation(observation: Mapping[str, Any], *, periodic: bool) -> dict[str, Any]:
+    """Group a flat observation as ``stable_prefix_v1``; every field lands once."""
+
+    context_fields = CONTEXT_FIELDS if periodic else (*CONTEXT_FIELDS, "objective")
+    placed = {*context_fields, *NEGOTIATION_FIELDS, "history"}
+    arranged: dict[str, Any] = {
+        "context": {key: observation[key] for key in context_fields if key in observation},
+        "negotiation": {key: observation[key] for key in NEGOTIATION_FIELDS if key in observation},
+        "state": {key: value for key, value in observation.items() if key not in placed},
+    }
+    if "history" in observation:
+        arranged["history"] = observation["history"]
+    return arranged
+
+
 def register_plugin(
     registry: PluginRegistry, *, plugin: "ProcurementAllocationPlugin | None" = None
 ) -> "ProcurementAllocationPlugin":
@@ -1101,6 +1138,13 @@ def register_plugin(
 
 
 class ProcurementAllocationPlugin:
+    def __init__(self, *, observation_layout: str = "flat_v1") -> None:
+        if observation_layout not in OBSERVATION_LAYOUTS:
+            raise ValueError(
+                f"unknown observation layout {observation_layout!r}; known: {list(OBSERVATION_LAYOUTS)}"
+            )
+        self.observation_layout = observation_layout
+
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _validate_payload(payload)
         upper = solve_full_information_upper_bound(data)
@@ -1149,7 +1193,7 @@ class ProcurementAllocationPlugin:
                 phase_id=PHASE_ID,
                 actor_selector="buyer_only",
                 mode="single",
-                observation_schema_by_role={"buyer": "procurement_allocation_observation_v1"},
+                observation_schema_by_role={"buyer": OBSERVATION_SCHEMA_BY_LAYOUT[self.observation_layout]},
                 action_schema_by_role={"buyer": "procurement_allocation_action_v1"},
                 max_logical_actions=max_actions,
                 invalid_action_policy="family_defined",
@@ -1204,6 +1248,8 @@ class ProcurementAllocationPlugin:
             observation["periods"] = relationship.period_count(family_case)
             observation["period_schedule"] = relationship.period_schedule(family_case)
             observation["history"] = _plain(state["history"])
+        if self.observation_layout == "stable_prefix_v1":
+            return arrange_observation(observation, periodic=periodic)
         return observation
 
     def parse_action(

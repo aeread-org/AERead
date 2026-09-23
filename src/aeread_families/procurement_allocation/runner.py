@@ -376,6 +376,7 @@ def build_offline_setup(
     case_path: Path | str = CASE_PATH,
     prompt: str = PROMPT,
     prompt_id: str = "procurement_allocation_prompt_v1",
+    observation_layout: str = "flat_v1",
 ) -> ProcurementAllocationSetup:
     if not prompt.strip():
         raise ValueError("prompt cannot be empty")
@@ -506,7 +507,7 @@ def build_offline_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register_trusted(family, ProcurementAllocationPlugin())
+    registry.register_trusted(family, ProcurementAllocationPlugin(observation_layout=observation_layout))
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)
@@ -576,6 +577,8 @@ def build_openrouter_setup(
     retry_backoff: str | None = None,
     retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
+    temperature: float | None = 0.0,
+    observation_layout: str = "flat_v1",
 ) -> ProcurementAllocationSetup:
     if seed < 0:
         raise ValueError("seed must be non-negative")
@@ -623,10 +626,18 @@ def build_openrouter_setup(
         or retry_after_max_seconds <= 0
     ):
         raise ValueError("retry_after_max_seconds must be finite and positive")
+    if temperature is not None and (
+        isinstance(temperature, bool)
+        or not isinstance(temperature, (int, float))
+        or not math.isfinite(float(temperature))
+        or not 0.0 <= float(temperature) <= 2.0
+    ):
+        raise ValueError("temperature must be None or finite in [0, 2]")
     template = build_offline_setup(
         case_path=case_path,
         prompt=prompt,
         prompt_id=prompt_id,
+        observation_layout=observation_layout,
     )
     resolved_harness = harness or MinimalChatHarness()
     runtime = (
@@ -690,7 +701,14 @@ def build_openrouter_setup(
                 "rationale_visibility": "hidden",
             },
             "sampling": {
-                "temperature": 0.0 if route.temperature_supported else None,
+                # The caller's declared temperature, not a constant here: a
+                # sampling control that lives only in code is invisible to the
+                # plan that claims to freeze it (P-D-05).
+                "temperature": (
+                    None
+                    if not route.temperature_supported or temperature is None
+                    else float(temperature)
+                ),
                 "max_output_tokens": max_output_tokens,
                 "seed": seed,
                 "top_p": None,
