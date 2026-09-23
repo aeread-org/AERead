@@ -1,0 +1,928 @@
+{
+ "agenticpay_bilateral": [
+  {
+   "file": "src/aeread_families/agenticpay_bilateral/environment.py",
+   "line": 445,
+   "in": "AgenticpayBilateralPlugin::phases",
+   "conditions": [],
+   "phase_id": "buyer_turn",
+   "actor_selector": "buyer",
+   "mode": "single",
+   "next_phases": [
+    "seller_turn"
+   ],
+   "action_schema_by_role": {
+    "buyer": "agenticpay_bilateral_buyer_message_v1"
+   },
+   "observation_schema_by_role": {
+    "buyer": "agenticpay_bilateral_buyer_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  },
+  {
+   "file": "src/aeread_families/agenticpay_bilateral/environment.py",
+   "line": 455,
+   "in": "AgenticpayBilateralPlugin::phases",
+   "conditions": [],
+   "phase_id": "seller_turn",
+   "actor_selector": "seller",
+   "mode": "single",
+   "next_phases": [
+    "buyer_turn"
+   ],
+   "action_schema_by_role": {
+    "seller": "agenticpay_bilateral_seller_message_v1"
+   },
+   "observation_schema_by_role": {
+    "seller": "agenticpay_bilateral_seller_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "alympics_wac": [
+  {
+   "file": "src/aeread_families/alympics_wac/environment.py",
+   "line": 652,
+   "in": "AlympicsWacPlugin::phases",
+   "conditions": [],
+   "phase_id": "bid",
+   "actor_selector": "survival_players",
+   "mode": "simultaneous",
+   "next_phases": [
+    "bid"
+   ],
+   "action_schema_by_role": {
+    "player": "alympics_wac_bid_action_v1"
+   },
+   "observation_schema_by_role": {
+    "player": "alympics_wac_bid_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "amazonbarg": [
+  {
+   "file": "src/aeread_families/amazonbarg/environment.py",
+   "line": 386,
+   "in": "AmazonbargPlugin::phases",
+   "conditions": [],
+   "phase_id": "buyer_turn",
+   "actor_selector": "buyer",
+   "mode": "single",
+   "next_phases": [
+    "seller_turn"
+   ],
+   "action_schema_by_role": {
+    "buyer": "amazonbarg_reply_v1"
+   },
+   "observation_schema_by_role": {
+    "buyer": "amazonbarg_buyer_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  },
+  {
+   "file": "src/aeread_families/amazonbarg/environment.py",
+   "line": 396,
+   "in": "AmazonbargPlugin::phases",
+   "conditions": [],
+   "phase_id": "seller_turn",
+   "actor_selector": "seller",
+   "mode": "single",
+   "next_phases": [
+    "buyer_turn"
+   ],
+   "action_schema_by_role": {
+    "seller": "amazonbarg_reply_v1"
+   },
+   "observation_schema_by_role": {
+    "seller": "amazonbarg_seller_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "aucarena": [
+  {
+   "file": "src/aeread_families/aucarena/environment.py",
+   "line": 303,
+   "in": "AucArenaPlugin::phases",
+   "conditions": [],
+   "phase_id": "bid_round",
+   "actor_selector": "eligible_bidders",
+   "mode": "simultaneous",
+   "next_phases": [
+    "bid_round"
+   ],
+   "action_schema_by_role": {
+    "bidder": "aucarena_bid_response_v1"
+   },
+   "observation_schema_by_role": {
+    "bidder": "aucarena_bid_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "MAX_LOGICAL_ACTIONS"
+   }
+  }
+ ],
+ "collusion": [
+  {
+   "file": "src/aeread_families/collusion/environment.py",
+   "line": 370,
+   "in": "CollusionPlugin::phases",
+   "conditions": [],
+   "phase_id": "price_round",
+   "actor_selector": "both_firms",
+   "mode": "simultaneous",
+   "next_phases": [
+    "price_round"
+   ],
+   "action_schema_by_role": {
+    "pricing_agent": "collusion_price_submission_v1"
+   },
+   "observation_schema_by_role": {
+    "pricing_agent": "collusion_price_round_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "commercial_state_calibration": [
+  {
+   "file": "src/aeread_families/commercial_state_calibration/environment.py",
+   "line": 500,
+   "in": "CommercialStatePlugin::phases",
+   "conditions": [],
+   "phase_id": "submit_commercial_state_report",
+   "actor_selector": "analyst_only",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "analyst": "commercial_state_report_v1"
+   },
+   "observation_schema_by_role": {
+    "analyst": "commercial_state_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  }
+ ],
+ "consent_ir": [
+  {
+   "file": "src/aeread_families/consent_ir/environment.py",
+   "line": 321,
+   "in": "ConsentIRPlugin::phases",
+   "conditions": [],
+   "phase_id": "propose_cycle",
+   "actor_selector": "buyer",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "buyer": "consent_ir_cycle_v1"
+   },
+   "observation_schema_by_role": {
+    "buyer": "consent_ir_visible_values_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  }
+ ],
+ "datacenter_development": [
+  {
+   "file": "src/aeread_families/datacenter_development/action_schema_environment.py",
+   "line": 122,
+   "in": "CounterofferActionSchemaPlugin::phases",
+   "conditions": [
+    "if phase.phase_id == _phase_id(\"land\", \"response\")",
+    "for phase"
+   ],
+   "phase_id": "land_developer_accept_counteroffer",
+   "actor_selector": "developer",
+   "mode": "single",
+   "next_phases": {
+    "dynamic": "(_phase_id(\"land\", \"commit\"),)",
+    "items": [
+     {
+      "dynamic": "_phase_id(\"land\", \"commit\")"
+     }
+    ]
+   },
+   "action_schema_by_role": {
+    "developer": "datacenter_land_accept_counteroffer_v1"
+   },
+   "observation_schema_by_role": {
+    "developer": "datacenter_stack_developer_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 331,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 332,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 333,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 334,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 335,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/environment.py",
+   "line": 336,
+   "in": "DataCenterDevelopmentPlugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/stack_environment.py",
+   "line": 640,
+   "in": "DataCenterStackPlugin::phases",
+   "conditions": [
+    "for index, key"
+   ],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/stack_environment.py",
+   "line": 650,
+   "in": "DataCenterStackPlugin::phases",
+   "conditions": [
+    "for index, key"
+   ],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/datacenter_development/stack_environment.py",
+   "line": 660,
+   "in": "DataCenterStackPlugin::phases",
+   "conditions": [
+    "for index, key"
+   ],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  }
+ ],
+ "datacenter_development_terms": [
+  {
+   "file": "src/aeread_families/datacenter_development_terms/environment.py",
+   "line": 232,
+   "in": "DataCenterTermsPlugin::phases",
+   "conditions": [],
+   "phase_id": "submit_datacenter_development_terms_report",
+   "actor_selector": "analyst_only",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "analyst": "datacenter_development_terms_report_v1"
+   },
+   "observation_schema_by_role": {
+    "analyst": "datacenter_development_terms_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  }
+ ],
+ "econagent_v1": [
+  {
+   "file": "src/aeread_families/econagent_v1/environment.py",
+   "line": 431,
+   "in": "EconAgentV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "agent_month",
+   "actor_selector": "all_agents",
+   "mode": "simultaneous",
+   "next_phases": [
+    "agent_month"
+   ],
+   "action_schema_by_role": {
+    "agent": "econagent_v1_month_ack_v1"
+   },
+   "observation_schema_by_role": {
+    "agent": "econagent_v1_month_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "n_agents * episode_length"
+   }
+  }
+ ],
+ "econevals": [
+  {
+   "file": "src/aeread_families/econevals/environment.py",
+   "line": 358,
+   "in": "EconevalsPlugin::phases",
+   "conditions": [],
+   "phase_id": "period",
+   "actor_selector": "agent",
+   "mode": "single",
+   "next_phases": [
+    "period"
+   ],
+   "action_schema_by_role": {
+    "assistant": "econevals_period_action_v1"
+   },
+   "observation_schema_by_role": {
+    "assistant": "econevals_period_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "govsim": [
+  {
+   "file": "src/aeread_families/govsim/environment.py",
+   "line": 497,
+   "in": "GovsimPlugin::phases",
+   "conditions": [],
+   "phase_id": "harvest",
+   "actor_selector": "persona",
+   "mode": "simultaneous",
+   "next_phases": [
+    "discuss"
+   ],
+   "action_schema_by_role": {
+    "persona": "govsim_harvest_action_v1"
+   },
+   "observation_schema_by_role": {
+    "persona": "govsim_harvest_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "harvest_and_reflect_budget"
+   }
+  },
+  {
+   "file": "src/aeread_families/govsim/environment.py",
+   "line": 507,
+   "in": "GovsimPlugin::phases",
+   "conditions": [],
+   "phase_id": "discuss",
+   "actor_selector": "persona",
+   "mode": "single",
+   "next_phases": [
+    "reflect"
+   ],
+   "action_schema_by_role": {
+    "persona": "govsim_discuss_action_v1"
+   },
+   "observation_schema_by_role": {
+    "persona": "govsim_discuss_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "discuss_budget"
+   }
+  },
+  {
+   "file": "src/aeread_families/govsim/environment.py",
+   "line": 517,
+   "in": "GovsimPlugin::phases",
+   "conditions": [],
+   "phase_id": "reflect",
+   "actor_selector": "persona",
+   "mode": "simultaneous",
+   "next_phases": [
+    "harvest"
+   ],
+   "action_schema_by_role": {
+    "persona": "govsim_reflect_action_v1"
+   },
+   "observation_schema_by_role": {
+    "persona": "govsim_reflect_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "harvest_and_reflect_budget"
+   }
+  }
+ ],
+ "housing": [
+  {
+   "file": "src/aeread_families/housing/runner.py",
+   "line": 615,
+   "in": "HousingV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "contact",
+   "actor_selector": "unmatched_tenants",
+   "mode": "simultaneous",
+   "next_phases": [
+    "respond"
+   ],
+   "action_schema_by_role": {
+    "tenant": "housing_contact_v1"
+   },
+   "observation_schema_by_role": {
+    "tenant": "housing_tenant_contact_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "tenant_budget"
+   }
+  },
+  {
+   "file": "src/aeread_families/housing/runner.py",
+   "line": 627,
+   "in": "HousingV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "respond",
+   "actor_selector": "open_landlords",
+   "mode": "simultaneous",
+   "next_phases": [
+    "commit"
+   ],
+   "action_schema_by_role": {
+    "landlord": "housing_respond_v1"
+   },
+   "observation_schema_by_role": {
+    "landlord": "housing_landlord_respond_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "landlord_budget"
+   }
+  },
+  {
+   "file": "src/aeread_families/housing/runner.py",
+   "line": 639,
+   "in": "HousingV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "commit",
+   "actor_selector": "unmatched_tenants",
+   "mode": "simultaneous",
+   "next_phases": [
+    "contact"
+   ],
+   "action_schema_by_role": {
+    "tenant": "housing_commit_v1"
+   },
+   "observation_schema_by_role": {
+    "tenant": "housing_tenant_commit_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "tenant_budget"
+   }
+  }
+ ],
+ "negarena": [
+  {
+   "file": "src/aeread_families/negarena/environment.py",
+   "line": 307,
+   "in": "NegarenaPlugin::phases",
+   "conditions": [],
+   "phase_id": "red_turn",
+   "actor_selector": {
+    "dynamic": "RED"
+   },
+   "mode": "single",
+   "next_phases": [
+    "blue_turn"
+   ],
+   "action_schema_by_role": {
+    "{'dynamic': 'RED'}": "negarena_seat_action_v1"
+   },
+   "observation_schema_by_role": {
+    "{'dynamic': 'RED'}": "negarena_seat_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  },
+  {
+   "file": "src/aeread_families/negarena/environment.py",
+   "line": 317,
+   "in": "NegarenaPlugin::phases",
+   "conditions": [],
+   "phase_id": "blue_turn",
+   "actor_selector": {
+    "dynamic": "BLUE"
+   },
+   "mode": "single",
+   "next_phases": [
+    "red_turn"
+   ],
+   "action_schema_by_role": {
+    "{'dynamic': 'BLUE'}": "negarena_seat_action_v1"
+   },
+   "observation_schema_by_role": {
+    "{'dynamic': 'BLUE'}": "negarena_seat_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "procurement_allocation": [
+  {
+   "file": "src/aeread_families/procurement_allocation/environment.py",
+   "line": 1105,
+   "in": "ProcurementAllocationPlugin::phases",
+   "conditions": [],
+   "phase_id": "buyer_procurement_turn",
+   "actor_selector": "buyer_only",
+   "mode": "single",
+   "next_phases": [
+    "buyer_procurement_turn"
+   ],
+   "action_schema_by_role": {
+    "buyer": "procurement_allocation_action_v1"
+   },
+   "observation_schema_by_role": {
+    "buyer": "procurement_allocation_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "procurement_grounding": [
+  {
+   "file": "src/aeread_families/procurement_grounding/environment.py",
+   "line": 481,
+   "in": "ProcurementGroundingPlugin::phases",
+   "conditions": [],
+   "phase_id": "submit_procurement_assessment",
+   "actor_selector": "analyst_only",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "analyst": "procurement_grounding_report_v1"
+   },
+   "observation_schema_by_role": {
+    "analyst": "procurement_grounding_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  }
+ ],
+ "refund": [
+  {
+   "file": "src/aeread_families/refund/runner.py",
+   "line": 643,
+   "in": "RefundV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "customer_message",
+   "actor_selector": "customer_only",
+   "mode": "single",
+   "next_phases": [
+    "support_response"
+   ],
+   "action_schema_by_role": {
+    "customer": "refund_customer_message_v1",
+    "support_agent": "refund_support_action_v1"
+   },
+   "observation_schema_by_role": {
+    "customer": "refund_customer_observation_v1",
+    "support_agent": "refund_support_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 5
+  },
+  {
+   "file": "src/aeread_families/refund/runner.py",
+   "line": 659,
+   "in": "RefundV1Plugin::phases",
+   "conditions": [],
+   "phase_id": "support_response",
+   "actor_selector": "support_agent_only",
+   "mode": "single",
+   "next_phases": [
+    "customer_message"
+   ],
+   "action_schema_by_role": {
+    "customer": "refund_customer_message_v1",
+    "support_agent": "refund_support_action_v1"
+   },
+   "observation_schema_by_role": {
+    "customer": "refund_customer_observation_v1",
+    "support_agent": "refund_support_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 5
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 116,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 117,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 118,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 119,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 120,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  },
+  {
+   "file": "src/aeread_families/refund/v2_runner.py",
+   "line": 121,
+   "in": "RefundV21Plugin::phases",
+   "conditions": [],
+   "phase_id": null,
+   "actor_selector": null,
+   "mode": null,
+   "next_phases": null,
+   "action_schema_by_role": null,
+   "observation_schema_by_role": null,
+   "invalid_action_policy": null,
+   "max_logical_actions": null
+  }
+ ],
+ "single_offer": [
+  {
+   "file": "src/aeread_families/single_offer/runner.py",
+   "line": 82,
+   "in": "SingleOfferPlugin::phases",
+   "conditions": [],
+   "phase_id": "offer",
+   "actor_selector": "buyer_only",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "buyer": "offer_v1"
+   },
+   "observation_schema_by_role": {
+    "buyer": "private_value_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": 1
+  }
+ ],
+ "steer": [
+  {
+   "file": "src/aeread_families/steer/environment.py",
+   "line": 240,
+   "in": "SteerPlugin::phases",
+   "conditions": [],
+   "phase_id": "answer_question",
+   "actor_selector": "agent_only",
+   "mode": "single",
+   "next_phases": [],
+   "action_schema_by_role": {
+    "assistant": "steer_option_choice_v1"
+   },
+   "observation_schema_by_role": {
+    "assistant": "steer_question_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": 1
+  }
+ ],
+ "tau3_retail": [
+  {
+   "file": "src/aeread_families/tau3_retail/environment.py",
+   "line": 303,
+   "in": "Tau3RetailPlugin::phases",
+   "conditions": [],
+   "phase_id": "user_turn",
+   "actor_selector": "user",
+   "mode": "single",
+   "next_phases": [
+    "assistant_turn"
+   ],
+   "action_schema_by_role": {
+    "user": "tau3_retail_user_message_v1"
+   },
+   "observation_schema_by_role": {
+    "user": "tau3_retail_user_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  },
+  {
+   "file": "src/aeread_families/tau3_retail/environment.py",
+   "line": 313,
+   "in": "Tau3RetailPlugin::phases",
+   "conditions": [],
+   "phase_id": "assistant_turn",
+   "actor_selector": "assistant",
+   "mode": "single",
+   "next_phases": [
+    "user_turn"
+   ],
+   "action_schema_by_role": {
+    "assistant": "tau3_retail_assistant_burst_v1"
+   },
+   "observation_schema_by_role": {
+    "assistant": "tau3_retail_assistant_observation_v1"
+   },
+   "invalid_action_policy": "reject",
+   "max_logical_actions": {
+    "dynamic": "max_actions"
+   }
+  }
+ ],
+ "termsbench": [
+  {
+   "file": "src/aeread_families/termsbench/environment.py",
+   "line": 222,
+   "in": "TermsBenchPlugin::phases",
+   "conditions": [],
+   "phase_id": "agent_turn",
+   "actor_selector": "agent",
+   "mode": "single",
+   "next_phases": [
+    "counterpart_turn"
+   ],
+   "action_schema_by_role": {
+    "agent": "termsbench_agent_action_v1"
+   },
+   "observation_schema_by_role": {
+    "agent": "termsbench_agent_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "horizon"
+   }
+  },
+  {
+   "file": "src/aeread_families/termsbench/environment.py",
+   "line": 232,
+   "in": "TermsBenchPlugin::phases",
+   "conditions": [],
+   "phase_id": "counterpart_turn",
+   "actor_selector": "counterpart",
+   "mode": "single",
+   "next_phases": [
+    "agent_turn"
+   ],
+   "action_schema_by_role": {
+    "counterpart": "termsbench_counterpart_action_v1"
+   },
+   "observation_schema_by_role": {
+    "counterpart": "termsbench_counterpart_observation_v1"
+   },
+   "invalid_action_policy": "family_defined",
+   "max_logical_actions": {
+    "dynamic": "horizon"
+   }
+  }
+ ]
+}

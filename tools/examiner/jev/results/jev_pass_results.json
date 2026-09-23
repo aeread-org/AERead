@@ -1,0 +1,3420 @@
+{
+ "results": {
+  "procurement": [
+   {
+    "key": "58e3dec5c9",
+    "bytes": 6998,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 45.36280617,
+     "margin": 41.00113336,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.53
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "f40f6bdfd4",
+    "bytes": 7410,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 45.36280617,
+     "margin": 41.00113336,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.44
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "1fb864bd4a",
+    "bytes": 7031,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 45.36280617,
+     "margin": 41.00113336,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.66
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.97
+     ],
+     "attention": [
+      "medium",
+      0.45
+     ]
+    }
+   },
+   {
+    "key": "f25e8b830a",
+    "bytes": 7398,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 45.36280617,
+     "margin": 41.00113336,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.52
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.39
+     ]
+    }
+   },
+   {
+    "key": "6a232d9209",
+    "bytes": 7445,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 45.36280617,
+     "margin": 41.00113336,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.55
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "ee8a2536b1",
+    "bytes": 6887,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "deferred",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 88.93393953,
+     "margin": -2.57,
+     "decision": "defer",
+     "kits": 0
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.42
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "high",
+      0.6
+     ]
+    }
+   },
+   {
+    "key": "64d1e56676",
+    "bytes": 5609,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 3.63708045,
+     "margin": 49.35436782,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.92
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.49
+     ]
+    }
+   },
+   {
+    "key": "cee1dba5d1",
+    "bytes": 7488,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 3.40626371,
+     "margin": 49.58518456,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.72
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.48
+     ]
+    }
+   },
+   {
+    "key": "86f3c946e6",
+    "bytes": 6895,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 3.25693085,
+     "margin": 49.73451742,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.62
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.45
+     ]
+    }
+   },
+   {
+    "key": "e5dd915608",
+    "bytes": 5631,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 3.63708045,
+     "margin": 49.35436782,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.91
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.42
+     ]
+    }
+   },
+   {
+    "key": "3df7837d69",
+    "bytes": 5773,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 3.63708045,
+     "margin": 49.35436782,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.87
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.52
+     ]
+    }
+   },
+   {
+    "key": "6825ad4612",
+    "bytes": 7474,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 4.66708045,
+     "margin": 48.32436782,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.64
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "77659e95f8",
+    "bytes": 6745,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 41.73127763,
+     "margin": 51.55880572,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.52
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.45
+     ]
+    }
+   },
+   {
+    "key": "7896d458d8",
+    "bytes": 7746,
+    "truth": {
+     "arm": "control",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 43.38127763,
+     "margin": 49.90880572,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.43
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.91
+     ],
+     "attention": [
+      "high",
+      0.54
+     ]
+    }
+   },
+   {
+    "key": "922b2f605f",
+    "bytes": 8376,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 9,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 41.40878864,
+     "margin": 51.88129471,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.47
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "f8a5c37ca2",
+    "bytes": 6262,
+    "truth": {
+     "arm": "control",
+     "n_actions": 6,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 41.73127763,
+     "margin": 51.55880572,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.68
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.89
+     ],
+     "attention": [
+      "medium",
+      0.43
+     ]
+    }
+   },
+   {
+    "key": "284e410e3a",
+    "bytes": 5628,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 40.38127763,
+     "margin": 52.90880572,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.93
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.49
+     ]
+    }
+   },
+   {
+    "key": "28d232d3f0",
+    "bytes": 6084,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 6,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 40.38127763,
+     "margin": 52.90880572,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.84
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "43dca12c14",
+    "bytes": 6936,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 3.96371582,
+     "margin": 59.60948373,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.45
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "7b0d92deae",
+    "bytes": 7740,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 2.5273255,
+     "margin": 61.04587405,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.83
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.43
+     ]
+    }
+   },
+   {
+    "key": "005371e2bf",
+    "bytes": 8650,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 9,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 2.48691015,
+     "margin": 61.0862894,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.9
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "870ab21469",
+    "bytes": 5580,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 2.98371582,
+     "margin": 60.58948373,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.89
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.44
+     ]
+    }
+   },
+   {
+    "key": "36b81b4f97",
+    "bytes": 7690,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 2.54155412,
+     "margin": 61.03164543,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.74
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.44
+     ]
+    }
+   },
+   {
+    "key": "b3a085cd96",
+    "bytes": 5644,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 2.98371582,
+     "margin": 60.58948373,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.9
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.43
+     ]
+    }
+   },
+   {
+    "key": "526ef6ae2e",
+    "bytes": 8182,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 9,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 8.49440934,
+     "margin": 77.75454518,
+     "decision": "award",
+     "kits": 18
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.62
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.44
+     ]
+    }
+   },
+   {
+    "key": "776f493fbe",
+    "bytes": 7119,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 38.29943291,
+     "margin": 47.94952161,
+     "decision": "award",
+     "kits": 14
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.49
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.71
+     ],
+     "attention": [
+      "medium",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "0743e0c937",
+    "bytes": 5717,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 45.63404398,
+     "margin": 40.61491054,
+     "decision": "award",
+     "kits": 12
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.87
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.52
+     ]
+    }
+   },
+   {
+    "key": "c6009242cf",
+    "bytes": 7691,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 42.5589391,
+     "margin": 43.69001542,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.93
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.52
+     ]
+    }
+   },
+   {
+    "key": "70843032ca",
+    "bytes": 6182,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 6,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 33.24547763,
+     "margin": 53.00347689,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.83
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.51
+     ]
+    }
+   },
+   {
+    "key": "b250726b5c",
+    "bytes": 5624,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 33.24547763,
+     "margin": 53.00347689,
+     "decision": "award",
+     "kits": 13
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.91
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.51
+     ]
+    }
+   },
+   {
+    "key": "7ff337cfb5",
+    "bytes": 7023,
+    "truth": {
+     "arm": "control",
+     "n_actions": 7,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 64.89534546,
+     "margin": 19.02881704,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.49
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.94
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "be48214daa",
+    "bytes": 6390,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 6,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49001,
+     "regret": 55.69882355,
+     "margin": 28.22533895,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.78
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.42
+     ]
+    }
+   },
+   {
+    "key": "9076a85b74",
+    "bytes": 7551,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 64.89534546,
+     "margin": 19.02881704,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.42
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.98
+     ],
+     "attention": [
+      "medium",
+      0.45
+     ]
+    }
+   },
+   {
+    "key": "9a6b455198",
+    "bytes": 7936,
+    "truth": {
+     "arm": "control",
+     "n_actions": 8,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49002,
+     "regret": 65.72534546,
+     "margin": 18.19881704,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "wasted_actions",
+      0.53
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      0.95
+     ],
+     "attention": [
+      "medium",
+      0.48
+     ]
+    }
+   },
+   {
+    "key": "6b2cd40a85",
+    "bytes": 6157,
+    "truth": {
+     "arm": "treatment",
+     "n_actions": 6,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 55.69882355,
+     "margin": 28.22533895,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.88
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.48
+     ]
+    }
+   },
+   {
+    "key": "f7b8c0e6c3",
+    "bytes": 5738,
+    "truth": {
+     "arm": "control",
+     "n_actions": 5,
+     "invalid": 0,
+     "dup_actions": 0,
+     "reason": "submitted",
+     "profile": "{\"buyer\": \"procurement_glm53_flash_parasail_v1_procurement_allocation\"}",
+     "seed": 49003,
+     "regret": 55.69882355,
+     "margin": 28.22533895,
+     "decision": "award",
+     "kits": 11
+    },
+    "jev": {
+     "primary_issue": [
+      "none",
+      0.86
+     ],
+     "claims_contradicted": [
+      "no_contradiction",
+      1
+     ],
+     "attention": [
+      "low",
+      0.42
+     ]
+    }
+   }
+  ],
+  "lemons": [
+   {
+    "key": "live__w100000__r0",
+    "bytes": 9128,
+    "truth": {
+     "stratum": "full_trajectory",
+     "uls": [
+      "tenant_3"
+     ],
+     "lemon_signings": 1,
+     "ir_violations": [
+      "tenant:3"
+     ]
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "tenant_3",
+      0.59
+     ],
+     "lemon_lease_count": [
+      "one",
+      0.97
+     ],
+     "attention": [
+      "high",
+      0.46
+     ]
+    }
+   },
+   {
+    "key": "live__w100001__r0",
+    "bytes": 10001,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "low",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "live__w100001__r1",
+    "bytes": 10001,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100002__r0",
+    "bytes": 10131,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.37
+     ]
+    }
+   },
+   {
+    "key": "live__w100002__r1",
+    "bytes": 10131,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.37
+     ]
+    }
+   },
+   {
+    "key": "live__w100003__r0",
+    "bytes": 9647,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100003__r1",
+    "bytes": 9647,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100004__r0",
+    "bytes": 9638,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.96
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.34
+     ]
+    }
+   },
+   {
+    "key": "live__w100004__r1",
+    "bytes": 10377,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100005__r0",
+    "bytes": 10965,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.96
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.54
+     ]
+    }
+   },
+   {
+    "key": "live__w100005__r1",
+    "bytes": 10715,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.95
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.58
+     ]
+    }
+   },
+   {
+    "key": "live__w100006__r0",
+    "bytes": 10872,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100006__r1",
+    "bytes": 11085,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100007__r0",
+    "bytes": 9618,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.46
+     ]
+    }
+   },
+   {
+    "key": "live__w100007__r1",
+    "bytes": 9618,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.43
+     ]
+    }
+   },
+   {
+    "key": "live__w100008__r0",
+    "bytes": 9647,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.44
+     ]
+    }
+   },
+   {
+    "key": "live__w100008__r1",
+    "bytes": 9618,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.46
+     ]
+    }
+   },
+   {
+    "key": "live__w100009__r0",
+    "bytes": 9573,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.97
+     ],
+     "attention": [
+      "high",
+      0.44
+     ]
+    }
+   },
+   {
+    "key": "live__w100009__r1",
+    "bytes": 9573,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.96
+     ],
+     "attention": [
+      "high",
+      0.52
+     ]
+    }
+   },
+   {
+    "key": "live__w100010__r0",
+    "bytes": 9544,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.36
+     ]
+    }
+   },
+   {
+    "key": "live__w100010__r1",
+    "bytes": 10159,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.96
+     ],
+     "attention": [
+      "medium",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "live__w100011__r0",
+    "bytes": 9601,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "low",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100011__r1",
+    "bytes": 9601,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.35
+     ]
+    }
+   },
+   {
+    "key": "live__w100012__r0",
+    "bytes": 10075,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.97
+     ],
+     "attention": [
+      "high",
+      0.42
+     ]
+    }
+   },
+   {
+    "key": "live__w100012__r1",
+    "bytes": 10103,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "high",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "live__w100015__r0",
+    "bytes": 10120,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.42
+     ]
+    }
+   },
+   {
+    "key": "live__w100015__r1",
+    "bytes": 10186,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.39
+     ]
+    }
+   },
+   {
+    "key": "live__w100016__r0",
+    "bytes": 10622,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.62
+     ]
+    }
+   },
+   {
+    "key": "live__w100016__r1",
+    "bytes": 10585,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.53
+     ]
+    }
+   },
+   {
+    "key": "live__w100017__r0",
+    "bytes": 9842,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.96
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.37
+     ]
+    }
+   },
+   {
+    "key": "live__w100017__r1",
+    "bytes": 9842,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "low",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100018__r0",
+    "bytes": 9590,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "high",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "live__w100018__r1",
+    "bytes": 9590,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.97
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "high",
+      0.45
+     ]
+    }
+   },
+   {
+    "key": "live__w100021__r0",
+    "bytes": 11198,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "high",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100021__r1",
+    "bytes": 10752,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.65
+     ]
+    }
+   },
+   {
+    "key": "live__w100022__r0",
+    "bytes": 10066,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100022__r1",
+    "bytes": 10103,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "live__w100023__r0",
+    "bytes": 10476,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100023__r1",
+    "bytes": 10664,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "high",
+      0.47
+     ]
+    }
+   },
+   {
+    "key": "live__w100025__r0",
+    "bytes": 9062,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [
+      "tenant_3"
+     ],
+     "lemon_signings": 1,
+     "ir_violations": [
+      "tenant:3"
+     ]
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.54
+     ],
+     "lemon_lease_count": [
+      "one",
+      0.98
+     ],
+     "attention": [
+      "medium",
+      0.4
+     ]
+    }
+   },
+   {
+    "key": "live__w100025__r1",
+    "bytes": 9244,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [
+      "tenant_5"
+     ],
+     "lemon_signings": 1,
+     "ir_violations": [
+      "tenant:5"
+     ]
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.63
+     ],
+     "lemon_lease_count": [
+      "one",
+      0.9
+     ],
+     "attention": [
+      "high",
+      0.49
+     ]
+    }
+   },
+   {
+    "key": "live__w100027__r0",
+    "bytes": 10561,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.36
+     ]
+    }
+   },
+   {
+    "key": "live__w100027__r1",
+    "bytes": 10533,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.99
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "medium",
+      0.36
+     ]
+    }
+   },
+   {
+    "key": "live__w100028__r0",
+    "bytes": 9553,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.84
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "low",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100028__r1",
+    "bytes": 9553,
+    "truth": {
+     "stratum": "favourite_is_lemon",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.9
+     ],
+     "lemon_lease_count": [
+      "zero",
+      0.99
+     ],
+     "attention": [
+      "low",
+      0.36
+     ]
+    }
+   },
+   {
+    "key": "live__w100029__r0",
+    "bytes": 10168,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.38
+     ]
+    }
+   },
+   {
+    "key": "live__w100029__r1",
+    "bytes": 10168,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      0.98
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100030__r0",
+    "bytes": 10777,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.41
+     ]
+    }
+   },
+   {
+    "key": "live__w100030__r1",
+    "bytes": 10626,
+    "truth": {
+     "stratum": "favourite_is_sound",
+     "uls": [],
+     "lemon_signings": 0,
+     "ir_violations": []
+    },
+    "jev": {
+     "uninspected_lemon_signer": [
+      "none",
+      1
+     ],
+     "lemon_lease_count": [
+      "zero",
+      1
+     ],
+     "attention": [
+      "medium",
+      0.38
+     ]
+    }
+   }
+  ],
+  "dc_adoption_v3": [
+   {
+    "key": "808a13d265",
+    "bytes": 6618,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "d58fc7e2c5",
+    "bytes": 6618,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.83
+     ]
+    }
+   },
+   {
+    "key": "f691902975",
+    "bytes": 6618,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.89
+     ]
+    }
+   },
+   {
+    "key": "511532568b",
+    "bytes": 6618,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.89
+     ]
+    }
+   },
+   {
+    "key": "828e6957f8",
+    "bytes": 6633,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.96
+     ]
+    }
+   },
+   {
+    "key": "94e6598f9d",
+    "bytes": 6618,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "73acbc95c6",
+    "bytes": 6624,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.86
+     ]
+    }
+   },
+   {
+    "key": "b8ba4473a4",
+    "bytes": 6613,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.91
+     ]
+    }
+   },
+   {
+    "key": "cf4d5cfbbf",
+    "bytes": 6624,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.87
+     ]
+    }
+   },
+   {
+    "key": "31fe192a71",
+    "bytes": 6624,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "5e4e6d53d0",
+    "bytes": 6624,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "77902175af",
+    "bytes": 6624,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.84
+     ]
+    }
+   },
+   {
+    "key": "978943467f",
+    "bytes": 2233,
+    "truth": {
+     "adoption_count": null,
+     "opportunities": null,
+     "executed": null,
+     "integrity": null,
+     "prefix": null,
+     "walked": false,
+     "n_dev_actions": 1,
+     "invalid": 1,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "no_counter_seen",
+      0.93
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.86
+     ]
+    }
+   },
+   {
+    "key": "bb4e9c4f31",
+    "bytes": 2233,
+    "truth": {
+     "adoption_count": null,
+     "opportunities": null,
+     "executed": null,
+     "integrity": null,
+     "prefix": null,
+     "walked": false,
+     "n_dev_actions": 1,
+     "invalid": 1,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "no_counter_seen",
+      0.93
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.88
+     ]
+    }
+   },
+   {
+    "key": "c0150d7f23",
+    "bytes": 2233,
+    "truth": {
+     "adoption_count": null,
+     "opportunities": null,
+     "executed": null,
+     "integrity": null,
+     "prefix": null,
+     "walked": false,
+     "n_dev_actions": 1,
+     "invalid": 1,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "no_counter_seen",
+      0.93
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.88
+     ]
+    }
+   },
+   {
+    "key": "28429f0e24",
+    "bytes": 6628,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.84
+     ]
+    }
+   },
+   {
+    "key": "da65282fdc",
+    "bytes": 6628,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.8
+     ]
+    }
+   },
+   {
+    "key": "eeb244323c",
+    "bytes": 6681,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.84
+     ]
+    }
+   }
+  ],
+  "dc_affordance_v1": [
+   {
+    "key": "902a3c3676",
+    "bytes": 5783,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "9e0fd3bdf9",
+    "bytes": 5783,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "e7424206e0",
+    "bytes": 5787,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.93
+     ]
+    }
+   },
+   {
+    "key": "ee9146e213",
+    "bytes": 5799,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "f511f9bd3c",
+    "bytes": 5799,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "1154d392b8",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "791cda0f61",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "9959be3ab5",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.95
+     ]
+    }
+   },
+   {
+    "key": "9f32b28012",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.96
+     ]
+    }
+   },
+   {
+    "key": "f3adf5da6a",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      1
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.93
+     ]
+    }
+   },
+   {
+    "key": "1a8c76176f",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.81
+     ]
+    }
+   },
+   {
+    "key": "35a10eee7a",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "3a5dbe3ab7",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.82
+     ]
+    }
+   },
+   {
+    "key": "c77a84e2b5",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.82
+     ]
+    }
+   },
+   {
+    "key": "fcab031255",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "mistral32"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.84
+     ]
+    }
+   },
+   {
+    "key": "55a0e3eeca",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.81
+     ]
+    }
+   },
+   {
+    "key": "8700e91c49",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.85
+     ]
+    }
+   },
+   {
+    "key": "9363ca833b",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.82
+     ]
+    }
+   },
+   {
+    "key": "d8a68147d6",
+    "bytes": 6608,
+    "truth": {
+     "adoption_count": 1,
+     "opportunities": 1,
+     "executed": 1,
+     "integrity": true,
+     "prefix": true,
+     "walked": false,
+     "n_dev_actions": 3,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "adopted_counter_verbatim",
+      1
+     ],
+     "signed": [
+      "yes",
+      1
+     ],
+     "attention": [
+      "low",
+      0.84
+     ]
+    }
+   },
+   {
+    "key": "f5ed4559d9",
+    "bytes": 6593,
+    "truth": {
+     "adoption_count": 0,
+     "opportunities": 1,
+     "executed": 0,
+     "integrity": false,
+     "prefix": false,
+     "walked": false,
+     "n_dev_actions": 2,
+     "invalid": 0,
+     "model": "qwen3_235b"
+    },
+    "jev": {
+     "counter_handling": [
+      "ignored_counter",
+      0.99
+     ],
+     "signed": [
+      "no",
+      1
+     ],
+     "attention": [
+      "high",
+      0.82
+     ]
+    }
+   }
+  ]
+ },
+ "calls": 123,
+ "cost_usd": 0.016896222000000002
+}

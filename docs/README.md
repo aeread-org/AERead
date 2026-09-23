@@ -138,6 +138,7 @@ documents so they survive moves.
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
+- [Can a decision model classify agency in trajectories? A Jev probe](research/jev_trajectory_triage_2026-09-22.md) (tooling: [`tools/examiner/`](../tools/examiner/README.md))
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

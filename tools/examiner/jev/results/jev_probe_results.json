@@ -1,0 +1,656 @@
+{
+ "card": [
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 2250,
+   "s": 0.33,
+   "tokens": null,
+   "cost": 4.0782e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.96,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 2265,
+   "s": 0.49,
+   "tokens": null,
+   "cost": 4.1034e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.94,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 2250,
+   "s": 0.27,
+   "tokens": null,
+   "cost": 4.0782e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.95,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 2265,
+   "s": 0.26,
+   "tokens": null,
+   "cost": 4.1034e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.94,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 2265,
+   "s": 0.17,
+   "tokens": null,
+   "cost": 4.1034e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.93,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 2233,
+   "s": 0.36,
+   "tokens": null,
+   "cost": 4.0488e-05,
+   "end": [
+    "deferred",
+    1,
+    "deferred"
+   ],
+   "sampled_before_award": [
+    "no",
+    0.93,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    0.85,
+    "yes"
+   ],
+   "signal": [
+    "signal_deferred",
+    0.98,
+    "signal_deferred"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 2214,
+   "s": 0.43,
+   "tokens": null,
+   "cost": 4.0362e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.95,
+    "none"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 2262,
+   "s": 0.36,
+   "tokens": null,
+   "cost": 4.1118e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.95,
+    "none"
+   ]
+  }
+ ],
+ "trace": [
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 6482,
+   "s": 0.27,
+   "tokens": null,
+   "cost": 9.9456e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.93,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 6844,
+   "s": 0.3,
+   "tokens": null,
+   "cost": 0.000104118,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.94,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 6522,
+   "s": 0.22,
+   "tokens": null,
+   "cost": 9.7356e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.93,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 6821,
+   "s": 0.31,
+   "tokens": null,
+   "cost": 0.000104622,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.93,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 6869,
+   "s": 0.26,
+   "tokens": null,
+   "cost": 0.000104496,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.94,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 6385,
+   "s": 0.43,
+   "tokens": null,
+   "cost": 9.66e-05,
+   "end": [
+    "deferred",
+    1,
+    "deferred"
+   ],
+   "sampled_before_award": [
+    "no",
+    0.94,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    0.63,
+    "yes"
+   ],
+   "signal": [
+    "signal_deferred",
+    1,
+    "signal_deferred"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 5193,
+   "s": 0.3,
+   "tokens": null,
+   "cost": 8.4168e-05,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.93,
+    "none"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 6865,
+   "s": 2.62,
+   "tokens": null,
+   "cost": 0.000111888,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.92,
+    "none"
+   ]
+  }
+ ],
+ "full": [
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 47296,
+   "s": 1.11,
+   "tokens": null,
+   "cost": 0.000840168,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.9,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49001",
+   "bytes": 55161,
+   "s": 0.35,
+   "tokens": null,
+   "cost": 0.000984354,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.92,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 47509,
+   "s": 0.76,
+   "tokens": null,
+   "cost": 0.000836052,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.92,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49002",
+   "bytes": 54591,
+   "s": 0.41,
+   "tokens": null,
+   "cost": 0.000976248,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.9,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 54839,
+   "s": 0.38,
+   "tokens": null,
+   "cost": 0.000976752,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.88,
+    "none"
+   ]
+  },
+  {
+   "case": ".19d98fdd3446464e.sample_49003",
+   "bytes": 46068,
+   "s": 1.19,
+   "tokens": null,
+   "cost": 0.000821226,
+   "end": [
+    "deferred",
+    1,
+    "deferred"
+   ],
+   "sampled_before_award": [
+    "no",
+    0.95,
+    "yes"
+   ],
+   "feasible": [
+    "no",
+    0.53,
+    "yes"
+   ],
+   "signal": [
+    "signal_deferred",
+    1,
+    "signal_deferred"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 29579,
+   "s": 1.34,
+   "tokens": null,
+   "cost": 0.000540414,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.87,
+    "none"
+   ]
+  },
+  {
+   "case": ".84b108f1e2a5730d.sample_49001",
+   "bytes": 53692,
+   "s": 1.37,
+   "tokens": null,
+   "cost": 0.000991368,
+   "end": [
+    "submitted",
+    1,
+    "submitted"
+   ],
+   "sampled_before_award": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "feasible": [
+    "yes",
+    1,
+    "yes"
+   ],
+   "signal": [
+    "none",
+    0.9,
+    "none"
+   ]
+  }
+ ]
+}

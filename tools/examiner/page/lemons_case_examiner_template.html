@@ -1,0 +1,314 @@
+<title>Lemons Case Examiner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#F7F6F2;--panel:#FFFFFF;--ink:#1D2024;--muted:#6C717A;--rule:#DAD7D0;--soft:#EFEDE7;
+ --accent:#2B5DA8;--accent-soft:#DCE6F6;--sound:#2F7D6D;--sound-soft:#DDEDE8;--lemon:#B8620E;--lemon-soft:#F6E5D3;--bad:#A83232;--bad-soft:#F5DEDE;
+ --ph-inspect:#8FA8D9;--ph-contact:#9BC7B5;--ph-respond:#E3C58A;--ph-commit:#D9A0A0;
+ --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;--mono:"IBM Plex Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171B;--panel:#1D2026;--ink:#E7E8EB;--muted:#9AA0AA;--rule:#333740;--soft:#242830;
+ --accent:#7FA6E8;--accent-soft:#233352;--sound:#6CC4AE;--sound-soft:#1E3A34;--lemon:#F0A15C;--lemon-soft:#3D2B18;--bad:#E88585;--bad-soft:#3F2323;
+ --ph-inspect:#4B6395;--ph-contact:#3F7A66;--ph-respond:#8E7434;--ph-commit:#8A4C4C}}
+:root[data-theme="dark"]{--bg:#15171B;--panel:#1D2026;--ink:#E7E8EB;--muted:#9AA0AA;--rule:#333740;--soft:#242830;
+ --accent:#7FA6E8;--accent-soft:#233352;--sound:#6CC4AE;--sound-soft:#1E3A34;--lemon:#F0A15C;--lemon-soft:#3D2B18;--bad:#E88585;--bad-soft:#3F2323;
+ --ph-inspect:#4B6395;--ph-contact:#3F7A66;--ph-respond:#8E7434;--ph-commit:#8A4C4C}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;margin:0;padding-inline:max(16px,2.5vw);padding-block:18px 48px}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em}
+h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px}
+h3{font-size:15px;font-weight:600;margin:0 0 6px}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+.top{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+.top .lede{color:var(--muted);max-width:70ch;flex:1 1 320px;margin:0}
+select,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:var(--soft);color:var(--ink);border:1px solid var(--rule)}
+.chip.sound{background:var(--sound-soft);color:var(--sound);border-color:transparent}.chip.lemon{background:var(--lemon-soft);color:var(--lemon);border-color:transparent}
+.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}.chip.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:0 0 14px}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.tile .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}.tile .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}.tile .s{font-size:11.5px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr) 380px;gap:14px;align-items:start}
+@media (max-width:1100px){.grid{grid-template-columns:1fr 1fr}.col3{grid-column:1/-1}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}.col3{grid-column:auto}}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;min-width:0}
+.graph svg{display:block;max-width:100%;height:auto;color:var(--ink)}
+.timeline{display:flex;flex-wrap:wrap;gap:2px;margin-top:10px}
+.tick{width:9px;height:18px;border-radius:2px;border:1px solid transparent;cursor:pointer;opacity:.75;position:relative}
+.tick.result{width:5px;opacity:.5}.tick.cur{outline:2px solid var(--accent);outline-offset:1px;opacity:1}
+.tick.lease::after{content:"";position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--ink)}
+.tick.badlease::after{background:var(--bad)}.tick.walk::after{content:"";position:absolute;left:50%;top:-6px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;border:1px solid var(--ink);box-sizing:border-box}
+.ph-inspect{background:var(--ph-inspect)}.ph-contact{background:var(--ph-contact)}.ph-respond{background:var(--ph-respond)}.ph-commit{background:var(--ph-commit)}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.nav button{padding:5px 9px;font-size:12.5px}
+.legend{font-size:12px;color:var(--muted);margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.step .head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin-bottom:8px}
+.step .head .where{font-size:16px;font-weight:600}
+.block{border-top:1px solid var(--rule);padding:8px 0}.block:first-of-type{border-top:0}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.narr{font-size:14px;line-height:1.55}.narr p{margin:0 0 6px}.narr .em{font-weight:600}
+.verd{display:grid;grid-template-columns:max-content max-content 1fr;gap:2px 10px;font-size:12.5px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--rule);vertical-align:top;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+tr.cur-seat td{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+.compare{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.compare button{font-size:12px;padding:3px 8px;border-radius:999px}.compare button.cur{border-color:var(--accent);color:var(--accent)}
+.muted{color:var(--muted)}.pos{color:var(--sound)}.neg{color:var(--bad)}
+.foot{color:var(--muted);font-size:12.5px;margin-top:16px;max-width:90ch}
+label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+</style>
+<main>
+<div class="top">
+ <h1>Lemons Case Examiner</h1>
+ <p class="lede">Every sealed trajectory of the housing lemons pilot, action by action, placed on the family's phase graph. Pick a case, then step. Ground truth (which listings are lemons) is shown to you, and each card says whether the acting seat knew it.</p>
+</div>
+<div class="top">
+ <label for="case-select" class="muted">Case</label>
+ <select id="case-select"></select>
+ <span id="case-chips"></span>
+ <label class="tog"><input type="checkbox" id="truth-toggle" checked> show ground truth</label>
+</div>
+<div class="tiles" id="tiles"></div>
+<div class="grid">
+ <section class="panel graph col1">
+  <h2>Phase graph</h2>
+  <div id="graph"></div>
+  <div id="eligible" class="muted" style="font-size:12.5px;margin-top:6px"></div>
+  <h2 style="margin-top:12px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0" id="tl-count"></span></h2>
+  <div class="timeline" id="timeline"></div>
+  <div class="legend"><span><i class="sw ph-inspect"></i>inspect</span><span><i class="sw ph-contact"></i>contact</span><span><i class="sw ph-respond"></i>respond</span><span><i class="sw ph-commit"></i>commit</span><span>narrow tick = phase result</span><span>● lease signed</span><span>○ walked</span></div>
+  <div class="nav">
+   <button id="b-first" title="first step">⇤</button><button id="b-pphase" title="previous phase">« phase</button><button id="b-prev" title="previous step (←)">‹ step</button>
+   <button id="b-next" title="next step (→)">step ›</button><button id="b-nphase" title="next phase">phase »</button><button id="b-last" title="last step">⇥</button>
+  </div>
+  <div class="legend">← → move one step · shift+← → one phase</div>
+  <h2 style="margin-top:12px">Same world, other cases</h2>
+  <div class="compare" id="compare"></div>
+ </section>
+ <section class="panel step col2" id="step"></section>
+ <section class="panel col3" id="market"></section>
+</div>
+<p class="foot" id="foot"></p>
+</main>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){
+const D = JSON.parse(document.getElementById('data').textContent);
+const cases = D.cases; const worlds = D.worlds;
+const PH = ['inspect','contact','respond','commit'];
+const fmt = (x, d=2) => (x==null||isNaN(x)) ? 'n/a' : Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const money = x => (x<0?'-':'')+'$'+fmt(Math.abs(x),2);
+const sign = x => x>0?'+'+fmt(x):fmt(x);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const seatNum = s => parseInt(String(s).split('_')[1],10);
+const srcLabel = {live:'Gemini 3.8 Flash (live)',inspect_then_sign:'scripted: inspect then sign',sign_anything:'scripted: sign anything',pass:'scripted: pass'};
+
+// ---------- steps: actions plus one "phase result" per phase ----------
+function buildSteps(c){
+  const steps=[]; let pre=null;
+  c.phases.forEach((p,pi)=>{
+    const round = p.post_state ? (p.phase_id==='commit'? p.post_state.round_index-1 : p.post_state.round_index) : (pre?pre.round_index:0);
+    p.actions.forEach((a,ai)=>steps.push({kind:'action',pi,ai,phase:p.phase_id,round,pre,a,p}));
+    steps.push({kind:'result',pi,phase:p.phase_id,round,pre,p});
+    pre=p.post_state;
+  });
+  return steps;
+}
+function stateView(s){ // pre-state → lookups
+  const v={holds:{},holdByListing:{},leases:{},leaseByListing:{},insp:{},spend:{},rejected:{},matched:new Set(),taken:new Set()};
+  if(!s) return v;
+  (s.holds||[]).forEach(h=>{v.holds[h.tenant_id]=h; v.holdByListing[h.listing_id]=h;});
+  (s.pairs||[]).forEach(([t,l])=>{v.leases[t]=l; v.leaseByListing[l]=t; v.matched.add(t); v.taken.add(l);});
+  (s.signed_rents||[]).forEach(r=>{v.leases[r.tenant_id+'_rent']=r.rent;});
+  (s.inspected||[]).forEach(row=>{v.insp[row.tenant_id]={}; row.items.forEach(it=>v.insp[row.tenant_id][it.listing_id]=it.quality);});
+  (s.inspection_spend||[]).forEach(r=>v.spend[r.tenant_id]=r.spend);
+  (s.rejected||[]).forEach(r=>v.rejected[r.tenant_id]=new Set(r.listing_ids));
+  return v;
+}
+function posterior(w, known){ // tenant's own posterior lemon probability for an uninspected listing
+  const n=w.listings.length, k=Object.keys(known||{}).length, found=Object.values(known||{}).filter(q=>q==='lemon').length;
+  if(n-k<=0) return 0; return Math.min(1,Math.max(0,(w.lemon_count-found)/(n-k)));
+}
+
+// ---------- rendering ----------
+let cur=null, steps=[], idx=0, showTruth=true;
+const $=id=>document.getElementById(id);
+
+function fillSelect(){
+  const sel=$('case-select'); sel.innerHTML='';
+  const bySeed={}; cases.forEach(c=>{(bySeed[c.world_seed]=bySeed[c.world_seed]||[]).push(c);});
+  Object.keys(bySeed).map(Number).sort((a,b)=>a-b).forEach(seed=>{
+    const g=document.createElement('optgroup'); g.label=`world ${seed} · ${bySeed[seed][0].stratum.replace(/_/g,' ')}`;
+    bySeed[seed].forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=`${srcLabel[c.source]}${c.source==='live'?' · seed '+c.replicate:''} · net ${sign(c.outcome.tenant_net_total)}`;g.appendChild(o);});
+    sel.appendChild(g);
+  });
+  sel.addEventListener('change',()=>load(sel.value));
+}
+function load(id, step=0){
+  cur=cases.find(c=>c.id===id); steps=buildSteps(cur); idx=Math.min(step,steps.length-1);
+  $('case-select').value=id;
+  try{localStorage.setItem('lemons-examiner-case',id);}catch(e){}
+  const o=cur.outcome, w=worlds[cur.world_seed];
+  $('case-chips').innerHTML=`<span class="chip">${esc(cur.stratum.replace(/_/g,' '))}</span> <span class="chip ${cur.source==='live'?'acc':''}">${esc(srcLabel[cur.source])}</span> <span class="chip mono">${esc(cur.model)}</span>${cur.reused_from_attempt?` <span class="chip">reused from attempt ${cur.reused_from_attempt}</span>`:''}`;
+  const vsRef=o.tenant_net_total-o.reference_total, vsB=o.tenant_net_total-o.sign_anything_total;
+  $('tiles').innerHTML=[
+    ['tenant net payoff',sign(o.tenant_net_total),`of oracle ${fmt(o.oracle_total)} → score ${fmt(o.within_case_score,3)}`, o.tenant_net_total<0?'neg':'pos'],
+    ['vs inspect-then-sign',sign(vsRef),`reference ${fmt(o.reference_total)}`, vsRef<0?'neg':'pos'],
+    ['vs sign-anything',sign(vsB),`baseline ${fmt(o.sign_anything_total)}`, vsB<0?'neg':'pos'],
+    ['refusal decisions',`${o.abstention_correct_count} / ${o.abstention_decision_count}`,`correct in expectation`, (o.abstention_decision_count&&o.abstention_correct_count<o.abstention_decision_count)?'neg':''],
+    ['lemons signed',`${o.lemon_signings}`,`${o.uninspected_lemon_signings} uninspected`, o.uninspected_lemon_signings?'neg':''],
+    ['inspections',`${o.inspection_count}`,`${money(Object.values(o.tenant_inspection_spend).reduce((a,b)=>a+b,0)).replace('$','')} spent (utility)`,''],
+    ['leases',`${o.assignment_pairs.length} / ${w.listings.length}`,`${o.ir_violations.length} IR violations · ended by ${o.reason}`,o.ir_violations.length?'neg':''],
+    ['provider cost',money(cur.cost_usd||0),cur.source==='live'?`${steps.filter(s=>s.kind==='action').length} model calls`:'scripted, no provider',''],
+  ].map(([k,v,s,cls])=>`<div class="tile"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`).join('');
+  $('compare').innerHTML=cases.filter(c=>c.world_seed===cur.world_seed).map(c=>`<button data-id="${c.id}" class="${c.id===cur.id?'cur':''}">${esc(c.source==='live'?'live · seed '+c.replicate:c.source.replace(/_/g,' '))} ${sign(c.outcome.tenant_net_total)}</button>`).join('');
+  $('compare').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>load(b.dataset.id,0)));
+  drawTimeline(); render();
+}
+function drawTimeline(){
+  const tl=$('timeline'); tl.innerHTML='';
+  $('tl-count').textContent=`${steps.filter(s=>s.kind==='action').length} actions · ${cur.phases.length} phases · ${cur.phases[cur.phases.length-1].post_state.round_index} rounds`;
+  const w=worlds[cur.world_seed];
+  steps.forEach((s,i)=>{
+    const t=document.createElement('div'); t.className=`tick ph-${s.phase}`+(s.kind==='result'?' result':'');
+    let title=`${i+1}. round ${s.round} · ${s.phase}`;
+    if(s.kind==='action'){ title+=` · ${s.a.seat} · ${actionText(s)}`;
+      if(s.phase==='commit' && s.a.parsed&&s.a.parsed.action){ const d=s.a.parsed.action.decision; if(d==='sign'){t.classList.add('lease'); const h=(s.pre&&s.pre.holds||[]).find(h=>h.hold_id===s.a.parsed.action.hold_id); if(h&&w.listings[h.listing_id].quality==='lemon'&&!(stateView(s.pre).insp[seatNum(s.a.seat)]||{})[h.listing_id]) t.classList.add('badlease');} if(d==='walk') t.classList.add('walk'); } }
+    else title+=' · phase result';
+    t.title=title; t.addEventListener('click',()=>{idx=i;render();}); tl.appendChild(t);
+  });
+}
+function actionText(s){
+  const a=s.a.parsed&&s.a.parsed.action; if(!a) return `unparseable (${s.a.parsed?s.a.parsed.error_code:'no parse'})`;
+  switch(a.decision){case 'inspect':return `inspect listing ${a.listing_id}`;case 'offer':return `offer ${fmt(a.rent)} on listing ${a.listing_id}`;case 'accept':return `accept ${a.offer_id}`;case 'counter':return `counter ${fmt(a.counter_rent)} to ${a.offer_id}`;case 'reject_all':return 'reject all offers';case 'sign':return `sign ${a.hold_id}`;case 'walk':return `walk from ${a.hold_id}`;default:return a.decision;}
+}
+function graphSvg(phase, round){
+  const pos={inspect:[40,30],contact:[220,30],respond:[220,150],commit:[40,150]}; const W=160,H=54;
+  let s=`<svg viewBox="0 0 420 240" role="img" aria-label="phase graph with ${phase} highlighted, round ${round}"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>`;
+  const edges=[['inspect','contact'],['contact','respond'],['respond','commit'],['commit','inspect']];
+  edges.forEach(([a,b])=>{const [ax,ay]=pos[a],[bx,by]=pos[b];let x1,y1,x2,y2;
+    if(a==='inspect'){x1=ax+W;y1=ay+H/2;x2=bx-2;y2=by+H/2;} else if(a==='contact'){x1=ax+W/2;y1=ay+H;x2=bx+W/2;y2=by-2;} else if(a==='respond'){x1=ax;y1=ay+H/2;x2=bx+W+2;y2=by+H/2;} else {x1=ax+W/2;y1=ay;x2=bx+W/2;y2=by+H+2;}
+    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>`;});
+  s+=`<text x="210" y="122" text-anchor="middle" font-size="12" fill="var(--muted)">round ${round}</text>`;
+  PH.forEach(p=>{const [x,y]=pos[p]; const on=p===phase;
+    s+=`<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="7" fill="${on?'var(--accent)':'var(--panel)'}" stroke="${on?'var(--accent)':'currentColor'}" stroke-width="1.4"/><rect x="${x+4}" y="${y+4}" width="${W-8}" height="${H-8}" rx="5" fill="none" stroke="${on?'var(--panel)':'currentColor'}" stroke-width=".8" opacity=".8"/>`;
+    s+=`<text x="${x+W/2}" y="${y+23}" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="${on?'var(--panel)':'currentColor'}">${p}</text><text x="${x+W/2}" y="${y+40}" text-anchor="middle" font-size="10.5" fill="${on?'var(--panel)':'var(--muted)'}">${esc(D.phase_actors[p])}</text>`;});
+  return s+'</svg>';
+}
+function render(){
+  const s=steps[idx], w=worlds[cur.world_seed], pre=stateView(s.pre);
+  $('graph').innerHTML=graphSvg(s.phase,s.round);
+  $('eligible').textContent=`eligible this phase: ${s.p.eligible.join(', ')} · ${s.p.mode} (all act on one frozen state)`;
+  document.querySelectorAll('.tick').forEach((t,i)=>t.classList.toggle('cur',i===idx));
+  const curTick=document.querySelector('.tick.cur'); if(curTick) curTick.scrollIntoView({block:'nearest',inline:'nearest'});
+  $('step').innerHTML = s.kind==='action'? renderAction(s,w,pre) : renderResult(s,w,pre);
+  $('market').innerHTML = renderMarket(s,w,pre);
+  $('foot').textContent=`Case ${cur.id} · receipt ${cur.receipt_sha256.slice(0,16)}… · campaign ${D.campaign_id} · step ${idx+1} of ${steps.length}. Observations, actions, parse and legality results, verdicts and post-states are read from the sealed event log; the world is regenerated from the case seed.`;
+}
+function renderAction(s,w,pre){
+  const a=s.a, t=seatNum(a.seat), isTenant=a.role==='tenant', act=a.parsed&&a.parsed.action;
+  let saw='', narr='';
+  if(isTenant){
+    const known=pre.insp[t]||{}, p=posterior(w,known), hold=pre.holds[t];
+    const rows=w.listings.map(l=>{const st=pre.taken.has(l.id)?'leased':(pre.holdByListing[l.id]?'held':'open'); const kq=known[l.id];
+      return `<tr><td>${l.id}</td><td>${fmt(l.ask,0)}</td><td>${fmt(w.tenants[t].values_if_sound[l.id],0)}</td><td>${kq?`<span class="chip ${kq}">${kq}</span>`:`<span class="muted">unknown (p lemon ${fmt(p,2)})</span>`}</td><td>${st}${(pre.rejected[t]||new Set()).has(l.id)?' · rejected me':''}</td>${showTruth?`<td>${truthChip(l.quality)}</td>`:''}</tr>`;}).join('');
+    saw=`<div class="block"><h3>What tenant ${t} could see</h3><dl class="kv"><dt>round</dt><dd>${s.round} of ${w.rounds}</dd><dt>inspected so far</dt><dd>${Object.keys(known).length} listing(s) · spend ${fmt(pre.spend[t]||0,0)}</dd><dt>active hold</dt><dd>${hold?`listing ${hold.listing_id} at rent ${fmt(hold.rent)} (<span class="mono">${esc(hold.hold_id)}</span>)`:'none'}</dd><dt>declared</dt><dd>${w.lemon_count} of ${w.listings.length} listings are lemons · a lemon is worth ${fmt(w.lemon_loss,0)} less · inspection fee ${fmt(w.inspection_cost,0)}</dd></dl>
+    <div class="scroll" style="margin-top:6px"><table><thead><tr><th>listing</th><th>ask</th><th>value if sound</th><th>known quality</th><th>status</th>${showTruth?'<th>truth</th>':''}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    narr=tenantNarration(s,w,pre,t,act,known,p,hold);
+  } else {
+    const l=w.listings[t]; const inbox=a.inbox||[];
+    saw=`<div class="block"><h3>What landlord ${t} could see</h3><dl class="kv"><dt>listing</dt><dd>${t} · ask ${fmt(l.ask,0)} · private cost ${fmt(l.cost)} · quality ${truthChip(l.quality)} (the landlord knows this)</dd><dt>inbox</dt><dd>${inbox.length?inbox.map(o=>`tenant ${o.tenant_id} offers ${fmt(o.rent)} <span class="mono muted">${esc(o.offer_id)}</span>`).join('<br>'):'no offers'}</dd></dl></div>`;
+    narr=landlordNarration(s,w,t,act,inbox,l);
+  }
+  const gate=`<div class="block"><h3>Action and gates</h3><dl class="kv">
+   <dt>parsed action</dt><dd class="mono">${a.parsed?esc(JSON.stringify(a.parsed.action)):'—'}</dd>
+   <dt>parse</dt><dd>${a.parsed&&a.parsed.ok?'ok':`<span class="neg">failed: ${esc(a.parsed?a.parsed.error_code:'none')}</span>`}</dd>
+   <dt>legality</dt><dd>${a.legal&&a.legal.legal?'legal':`<span class="neg">illegal: ${esc(a.legal?a.legal.reason:'—')}</span>`}</dd>
+   <dt>accepted by scheduler</dt><dd>${a.valid?'yes':`<span class="neg">no (${esc(a.failure_code||'invalid')}) → counts as a pass</span>`}</dd>
+   <dt>environment verdict</dt><dd>${verdictFor(s.p,t)}</dd>
+   <dt>provider</dt><dd>${cur.source==='live'?`${a.provider.calls} call${a.provider.calls!==1?'s':''} · ${a.provider.input_tokens} in / ${a.provider.output_tokens} out tokens${a.provider.reasoning_tokens?` (${a.provider.reasoning_tokens} reasoning)`:''} · ${money(a.provider.cost_usd)} · finish ${esc(a.provider.finish_reasons.join(', ')||'—')}${a.provider.attempts>1?` · <span class="neg">${a.provider.attempts} attempts (${esc(a.provider.retry_reasons.join(', '))})</span>`:''}`:`scripted policy <span class="mono">${esc(a.profile||cur.model)}</span>, no provider call`}</dd>
+  </dl></div>`;
+  return `<div class="head"><span class="where">Round ${s.round} · <span class="mono">${s.phase}</span> · ${esc(a.seat)}</span><span class="chip">action ${s.ai+1} of ${s.p.actions.length} in this phase</span><span class="chip acc">${esc(actionText(s))}</span></div>${saw}${gate}<div class="block narr"><h3>What it means</h3>${narr}</div>`;
+}
+function truthChip(q){return `<span class="chip ${q}">${q}</span>`;}
+function verdictFor(p,actor){const v=(p.verdicts||[]).find(v=>v.actor_id===actor); if(!v) return '<span class="muted">none recorded</span>'; return v.outcome==='applied'?`applied${v.reference_id?` → <span class="mono">${esc(v.reference_id)}</span>`:''}`:`<span class="neg">pass (${esc(v.reason)})</span>`;}
+function tenantNarration(s,w,pre,t,act,known,p,hold){
+  if(!act) return `<p>The response could not be parsed, so the scheduler records a pass for tenant ${t}.</p>`;
+  const vs=l=>w.tenants[t].values_if_sound[l], vt=l=>w.tenants[t].values_true[l];
+  if(s.phase==='inspect'){
+    if(act.decision==='pass') return `<p>Tenant ${t} chose not to inspect this round.${Object.keys(known).length?` It already knows ${Object.keys(known).length} listing(s).`:''} An inspection would have cost ${fmt(w.inspection_cost,0)}.</p>`;
+    const l=w.listings[act.listing_id]; if(!l) return `<p>Tenant ${t} asked to inspect listing ${act.listing_id}, which does not exist; the environment records a pass.</p>`;
+    const gain=vs(l.id)-l.ask, ev=(1-p)*gain;
+    return `<p>Tenant ${t} pays ${fmt(w.inspection_cost,0)} to inspect listing ${l.id} (ask ${fmt(l.ask,0)}). ${showTruth?`Truth: it is <span class="em">${l.quality}</span>, worth ${fmt(vt(l.id),0)} to this tenant (${fmt(vs(l.id),0)} if sound).`:''}</p><p>Before inspecting, its posterior lemon probability for this listing was ${fmt(p,2)}; the gain if sound is ${sign(gain)}, so the expected gain unlocked by inspecting was ${sign(ev)} against a fee of ${fmt(w.inspection_cost,0)} — ${ev>w.inspection_cost?'the inspection pays for itself in expectation.':'the inspection does not pay for itself in expectation.'}</p>`;
+  }
+  if(s.phase==='contact'){
+    if(act.decision==='pass') return `<p>Tenant ${t} makes no offer this round.</p>`;
+    const l=w.listings[act.listing_id]; if(!l) return `<p>Tenant ${t} offered on listing ${act.listing_id}, which does not exist.</p>`;
+    const kq=known[l.id], ev=kq?vt(l.id):vs(l.id)-p*w.lemon_loss, realized=vt(l.id)-act.rent;
+    return `<p>Tenant ${t} offers <span class="em">${fmt(act.rent)}</span> on listing ${l.id} (ask ${fmt(l.ask,0)}). It ${kq?`<span class="em">knows</span> the listing is ${kq}`:`has <span class="em">not inspected</span> it (posterior lemon probability ${fmt(p,2)})`}.</p><p>Expected value under what it knew: ${fmt(ev)} ${ev>=act.rent?'≥':'<'} ${fmt(act.rent)} → the offer is ${ev>=act.rent?'positive':'<span class="neg">negative</span>'} in expectation.${showTruth?` Truth: the listing is <span class="em">${l.quality}</span>; if this rent is signed the realized gain is <span class="${realized<0?'neg':'pos'}">${sign(realized)}</span>.`:''}</p><p class="muted">The landlord accepts any offer at or above its private cost (${showTruth?fmt(l.cost):'hidden'}) and counters the best below-cost offer at the midpoint to the ask.</p>`;
+  }
+  if(s.phase==='commit'){
+    if(!hold) return `<p>Tenant ${t} has no hold this round${act.decision!=='pass'?`, yet submitted <span class="mono">${esc(act.decision)}</span>; the environment records a pass`:''}.</p>`;
+    const l=w.listings[hold.listing_id], kq=known[l.id], ev=kq?vt(l.id):vs(l.id)-p*w.lemon_loss, realized=vt(l.id)-hold.rent;
+    const dec=(s.p.post_state&&s.p.post_state.commit_decisions||[]).find(d=>d.tenant_id===t&&d.round_index===hold.round_index);
+    const decided=act.decision==='sign'?'signs':act.decision==='walk'?'walks away from':'lets expire';
+    let out=`<p>Tenant ${t} <span class="em">${decided}</span> the hold on listing ${l.id} at rent ${fmt(hold.rent)}. It ${kq?`knew the listing is ${kq}`:`had <span class="em">not inspected</span> it (posterior lemon probability ${fmt(p,2)})`}; expected value ${fmt(ev)} ${ev>=hold.rent?'≥':'<'} rent.</p>`;
+    if(dec) out+=`<p>Refusal decision recorded: <span class="chip ${dec.correct?'sound':'bad'}">${dec.correct?'correct':'incorrect'} in expectation</span> (${dec.informed?'informed':'uninformed'}, expected ${fmt(dec.expected_value)}, decided ${dec.decision}).</p>`;
+    if(act.decision==='sign') out+=`<p>${showTruth?`Truth: the listing is <span class="em">${l.quality}</span>. Realized payoff on this lease: <span class="${realized<0?'neg':'pos'}">${sign(realized)}</span> before inspection spend${!kq&&l.quality==='lemon'?' — <span class="neg">an uninspected lemon signed</span>':''}.`:''}</p>`;
+    else if(showTruth) out+=`<p>Truth: the listing is ${l.quality}; signing would have realized ${sign(realized)}.</p>`;
+    return out;
+  }
+  return '';
+}
+function landlordNarration(s,w,t,act,inbox,l){
+  if(!act) return `<p>Unparseable response; the environment records a pass and rejects every offer.</p>`;
+  if(act.decision==='reject_all') return `<p>Landlord ${t} rejects ${inbox.length?`all ${inbox.length} offer(s)`:'nothing (its inbox was empty)'}; no hold is created.</p>`;
+  const o=inbox.find(o=>o.offer_id===act.offer_id);
+  if(!o) return `<p>Landlord ${t} referenced an offer that is not in its inbox; the environment records a pass.</p>`;
+  if(act.decision==='accept') return `<p>Landlord ${t} accepts tenant ${o.tenant_id}'s offer of ${fmt(o.rent)} — ${o.rent>=l.cost?`at or above its private cost ${fmt(l.cost)}`:`<span class="neg">below its cost ${fmt(l.cost)}</span>`} — creating a binding hold. Every other offer on this listing is rejected.</p>`;
+  return `<p>Landlord ${t} counters tenant ${o.tenant_id} at ${fmt(act.counter_rent)} (offer ${fmt(o.rent)}, ask ${fmt(l.ask,0)}, cost ${fmt(l.cost)}); the counter becomes a hold the tenant may sign or walk. Other offers are rejected.</p>`;
+}
+function renderResult(s,w,pre){
+  const post=s.p.post_state, postV=stateView(post);
+  const verd=(s.p.verdicts||[]).map(v=>`<span>${s.phase==='respond'?'landlord':'tenant'} ${v.actor_id}</span><span>${v.outcome==='applied'?'applied':`<span class="neg">pass</span>`}</span><span class="muted">${esc(v.reason||v.reference_id||'')}</span>`).join('');
+  let changes=[];
+  if(s.phase==='inspect'){(post.inspected||[]).forEach(r=>r.items.forEach(it=>{const before=(pre.insp[r.tenant_id]||{})[it.listing_id]; if(!before) changes.push(`tenant ${r.tenant_id} learned listing ${it.listing_id} is <span class="chip ${it.quality}">${it.quality}</span>`);}));}
+  if(s.phase==='contact'){(s.p.inbox||[]).forEach(ib=>ib.offers.forEach(o=>changes.push(`offer ${fmt(o.rent)} from tenant ${o.tenant_id} delivered to landlord ${ib.listing_id}`)));}
+  if(s.phase==='respond'){(s.p.holds||[]).forEach(h=>changes.push(`hold created: tenant ${h.tenant_id} on listing ${h.listing_id} at ${fmt(h.rent)} <span class="mono muted">${esc(h.hold_id)}</span>`)); (post.rejected||[]).forEach(r=>{const before=pre.rejected[r.tenant_id]||new Set(); r.listing_ids.filter(l=>!before.has(l)).forEach(l=>changes.push(`tenant ${r.tenant_id} was rejected by landlord ${l}`));});}
+  if(s.phase==='commit'){(post.pairs||[]).forEach(([t,l])=>{if(!pre.matched.has(t)){const rent=(post.signed_rents.find(r=>r.tenant_id===t)||{}).rent; const q=w.listings[l].quality, known=(pre.insp[t]||{})[l]; changes.push(`<span class="em">lease signed</span>: tenant ${t} takes listing ${l} at ${fmt(rent)}${showTruth?` (${q}${!known&&q==='lemon'?', <span class="neg">uninspected</span>':''}; realized ${sign(w.tenants[t].values_true[l]-rent)})`:''}`);}});
+    (post.commit_decisions||[]).slice((s.pre&&s.pre.commit_decisions||[]).length).forEach(d=>changes.push(`refusal decision: tenant ${d.tenant_id} ${d.decision} on listing ${d.listing_id} at ${fmt(d.rent)}, ${d.informed?'informed':'uninformed'}, expected ${fmt(d.expected_value)} → <span class="chip ${d.correct?'sound':'bad'}">${d.correct?'correct':'incorrect'}</span>`));
+    if(!changes.length) changes.push('no lease signed this round');}
+  const ended = s.pi===cur.phases.length-1;
+  return `<div class="head"><span class="where">Round ${s.round} · <span class="mono">${s.phase}</span> · phase result</span><span class="chip">${s.p.actions.length} actions applied to one frozen state</span></div>
+  <div class="block"><h3>Verdicts</h3><div class="verd">${verd||'<span class="muted">none</span>'}</div></div>
+  <div class="block"><h3>State changes</h3><ul style="margin:0;padding-left:18px">${changes.map(c=>`<li>${c}</li>`).join('')}</ul></div>
+  <div class="block"><h3>After this phase</h3><dl class="kv"><dt>leases</dt><dd>${(post.pairs||[]).length} of ${w.listings.length} listings</dd><dt>open holds</dt><dd>${(post.holds||[]).length}</dd><dt>unmatched tenants</dt><dd>${w.tenants.length-(post.pairs||[]).length}</dd><dt>wasted contacts</dt><dd>${post.wasted_contacts}</dd><dt>next phase</dt><dd>${ended?`<span class="em">episode ends</span> (${esc(cur.outcome.reason)})`:`<span class="mono">${esc(cur.phases[s.pi+1].phase_id)}</span>`}</dd></dl></div>
+  ${ended?`<div class="block narr"><h3>Episode outcome</h3><p>Tenant net payoff <span class="em ${cur.outcome.tenant_net_total<0?'neg':'pos'}">${sign(cur.outcome.tenant_net_total)}</span>; inspect-then-sign reference ${sign(cur.outcome.reference_total)}, sign-anything ${sign(cur.outcome.sign_anything_total)}, oracle ${fmt(cur.outcome.oracle_total)}. ${cur.outcome.abstention_correct_count} of ${cur.outcome.abstention_decision_count} refusal decisions correct in expectation; ${cur.outcome.uninspected_lemon_signings} uninspected lemon(s) signed; IR violations: ${cur.outcome.ir_violations.length?esc(cur.outcome.ir_violations.join(', ')):'none'}.</p></div>`:''}`;
+}
+function renderMarket(s,w,pre){
+  const actor = s.kind==='action'?s.a.seat:null;
+  const lrows=w.listings.map(l=>{const h=pre.holdByListing[l.id], lt=pre.leaseByListing[l.id];
+    const st=lt!=null?`leased to tenant ${lt} at ${fmt(pre.leases[lt+'_rent'])}`:h?`held by tenant ${h.tenant_id} at ${fmt(h.rent)}`:'open';
+    const who=w.tenants.filter(t=>(pre.insp[t.id]||{})[l.id]).map(t=>t.id);
+    return `<tr class="${actor==='landlord_'+l.id?'cur-seat':''}"><td>${l.id}</td><td>${fmt(l.ask,0)}</td>${showTruth?`<td>${truthChip(l.quality)}</td><td>${fmt(l.cost)}</td>`:''}<td>${st}</td><td>${who.length?who.join(', '):'—'}</td></tr>`;}).join('');
+  const trows=w.tenants.map(t=>{const known=pre.insp[t.id]||{}, l=pre.leases[t.id], rent=pre.leases[t.id+'_rent'], spend=pre.spend[t.id]||0;
+    const running=(l!=null?t.values_true[l]-rent:0)-spend; const hold=pre.holds[t.id];
+    return `<tr class="${actor==='tenant_'+t.id?'cur-seat':''}"><td>${t.id}</td><td>${l!=null?`listing ${l} at ${fmt(rent)}`:hold?`hold on ${hold.listing_id}`:'searching'}</td><td>${Object.keys(known).length?Object.entries(known).map(([k,q])=>`${k}:<span class="${q}" style="color:var(--${q})">${q[0]}</span>`).join(' '):'—'}</td><td>${fmt(spend,0)}</td><td class="${running<0?'neg':running>0?'pos':''}">${sign(running)}</td><td>${w.oracle_pairs.filter(p=>p[0]===t.id).map(p=>'listing '+p[1]).join('')||'unhoused'}</td></tr>`;}).join('');
+  return `<h2>Market at this step ${s.kind==='action'?'(frozen state the seat acted on)':'(after the phase)'}</h2>
+  <div class="scroll"><table><thead><tr><th>listing</th><th>ask</th>${showTruth?'<th>truth</th><th>landlord cost</th>':''}<th>status</th><th>inspected by</th></tr></thead><tbody>${lrows}</tbody></table></div>
+  <h2 style="margin-top:12px">Tenants</h2>
+  <div class="scroll"><table><thead><tr><th>tenant</th><th>position</th><th>knows</th><th>spend</th><th>running net</th><th>oracle match</th></tr></thead><tbody>${trows}</tbody></table></div>
+  <p class="muted" style="font-size:12px;margin:8px 0 0">${showTruth?'Truth columns are what no tenant sees until it inspects; the landlord knows its own listing. ':''}Running net = true value minus rent if leased, minus inspection spend. The oracle match is the full-information max-weight assignment.</p>`;
+}
+// ---------- navigation ----------
+function step(d){idx=Math.max(0,Math.min(steps.length-1,idx+d));render();}
+function stepPhase(d){let i=idx; const p=steps[idx].pi; if(d>0){while(i<steps.length-1&&steps[i].pi===p)i++;} else {while(i>0&&steps[i].pi===p)i--; const q=steps[i].pi; while(i>0&&steps[i-1].pi===q)i--;} idx=i;render();}
+$('b-prev').onclick=()=>step(-1);$('b-next').onclick=()=>step(1);$('b-first').onclick=()=>{idx=0;render();};$('b-last').onclick=()=>{idx=steps.length-1;render();};
+$('b-pphase').onclick=()=>stepPhase(-1);$('b-nphase').onclick=()=>stepPhase(1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return; if(e.key==='ArrowRight'){e.shiftKey?stepPhase(1):step(1);e.preventDefault();} if(e.key==='ArrowLeft'){e.shiftKey?stepPhase(-1):step(-1);e.preventDefault();}});
+$('truth-toggle').addEventListener('change',e=>{showTruth=e.target.checked;render();});
+fillSelect();
+let start=null; try{start=localStorage.getItem('lemons-examiner-case');}catch(e){}
+if(!start||!cases.find(c=>c.id===start)) start=(cases.find(c=>c.id==='live__w100025__r0')||cases[0]).id;
+load(start,0);
+})();
+</script>
