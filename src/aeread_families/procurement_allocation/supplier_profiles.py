@@ -105,7 +105,7 @@ class Profile:
         )
         badges = ", ".join(b for b, on in (("Gold", self.gold), ("Verified", self.verified)) if on) or "no badges"
         return (
-            f"{self.supplier_id}: {self.years_on_platform} years on the platform, {self.orders} orders; "
+            f"{self.supplier_id}: {self.years_on_platform} year{'' if self.years_on_platform == 1 else 's'} on the platform, {self.orders} orders; "
             f"{r} ({breakdown}); {on_time}; {badges}; replies within {self.response_hours}h"
         )
 
@@ -533,18 +533,26 @@ def build_pack(seeds_per_cell: int = 2, base_seed: int = 2440000, market: Mappin
     return worlds
 
 
+def _pct(ps: Sequence[float]) -> str:
+    return "/".join(f"{p * 100:g}%" for p in ps)
+
+
 def market_facts_text(market: Mapping[str, Any] = MARKET) -> str:
     """The declared market, as the buyer would be told it."""
     t = market["type"]
     return (
         f"About {market['prior_bad']['established']:.0%} of suppliers with {market['years']['established'][0]}+ years "
-        f"on the platform, and {market['prior_bad']['new']:.0%} of newer ones, ship bad lots: a bad supplier's units are "
+        f"on the platform, and {market['prior_bad']['new']:.0%} of those with {market['years']['new'][0]}-{market['years']['new'][1]} years, ship bad lots: a bad supplier's units are "
         f"defective {t['bad']['defect_rate']:.0%} of the time (a good one's {t['good']['defect_rate']:.0%}), it is on time "
         f"{t['bad']['on_time']:.0%} of the time (good {t['good']['on_time']:.0%}), and {t['bad']['problem_order']:.0%} of its "
-        f"orders have a problem (good {t['good']['problem_order']:.0%}). About {market['review_rate']:.0%} of orders get a "
-        f"review; ratings run high: a problem order still gets five stars {market['stars_problem'][0]:.0%} of the time. "
-        f"{market['brushing']['probability']:.0%} of bad suppliers buy fake five-star reviews (about "
-        f"{market['brushing']['mean_fake']:.0f}). The on-time record counts only protected orders (about "
+        f"orders have a problem (good {t['good']['problem_order']:.0%}). About {market['review_rate']:.0%} of genuine orders get a "
+        f"review. Genuine orders average {market['orders_per_year']['established']:.0f} a year for established suppliers and "
+        f"{market['orders_per_year']['new']:.0f} a year for newer ones (a supplier under a year old counts as half a year). "
+        f"Ratings run high: a review of an order without a problem gives 5/4/3/2/1 stars with probability "
+        f"{_pct(market['stars_ok'])}, and of an order with a problem {_pct(market['stars_problem'])}. "
+        f"{market['brushing']['probability']:.0%} of bad suppliers buy fake orders, on average "
+        f"{market['brushing']['mean_fake']:.0f}, each with a five-star review; fake orders count in the order total but are "
+        f"never protected. The on-time record counts only protected orders (about "
         f"{market['protected_share']:.0%} of orders). Gold is a paid membership held by "
         f"{market['badges']['gold']['good']:.0%} of suppliers of either kind; Verified checks the company, not the product "
         f"({market['badges']['verified']['good']:.0%} of good and {market['badges']['verified']['bad']:.0%} of bad suppliers "
