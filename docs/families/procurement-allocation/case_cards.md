@@ -59,7 +59,7 @@ approached at all: the streak resets, and no grievance.
   consecutive award.
 - **Suppliers:** ESP32 spot vs partner, the partner 1.5-4% dearer today with a
   6-10% discount per consecutive award, capped at three awards; both retaliate
-  4-10%. OLED: two plain suppliers.
+  4-10%. OLED: steady, and slow (12% dearer, 11-day lead, so late for any order after day 3).
 - **Reference:** partner every period. Its price falls each period while spot's
   stays flat.
 - **Traps:** buying spot because it is cheaper today (D2); the gap grows every
@@ -84,7 +84,7 @@ approached at all: the streak resets, and no grievance.
 - **Decision:** pay once to qualify a cheaper unproven supplier, recovered over
   later periods but not within one.
 - **Suppliers:** OLED known vs unproven, 25-34% cheaper, with an $8-11 sample
-  taking 2-4 days. Controllers: two plain suppliers.
+  taking 2-4 days. Controllers: steady, and slow (12% dearer, 11-day lead, so late for any order after day 3).
 - **Reference:** sample the unproven display in period 1 and buy it every
   period. Samples persist across periods.
 - **Traps:** never sampling (D2); sampling late or after other checks so the
@@ -120,8 +120,8 @@ approached at all: the streak resets, and no grievance.
 - **Decision:** split once to become a supplier's incumbent, then single-source
   at a growing discount.
 - **Suppliers:** ESP32 flex, capacity 10 rising to 20 once it is the incumbent,
-  with a 6-10% loyalty discount per award; steady, capacity 20. OLED: two plain
-  suppliers.
+  with a 6-10% loyalty discount per award; steady, capacity 20. OLED: steady,
+  and slow (12% dearer, 11-day lead, so late for any order after day 3).
 - **Reference:** period 1 splits the controllers between flex and steady; from
   period 2 flex alone. The only stratum where the reference switches.
 - **Traps:** single-sourcing steady throughout (D2).
