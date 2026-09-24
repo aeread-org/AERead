@@ -72,7 +72,7 @@ pre{background:var(--soft);border-radius:6px;padding:6px 8px;font-family:var(--m
 .block{border-top:1px solid var(--rule);padding:6px 0}.block:first-of-type{border-top:0}
 .narr{font-size:13px;line-height:1.5}.narr p{margin:0 0 5px}.em{font-weight:600}.muted{color:var(--muted)}.pos{color:var(--yes)}.neg{color:var(--no)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;margin:0;flex:0 0 auto}
-.tile{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:5px 8px}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:5px 8px;min-width:0}.tile .k,.tile .s{overflow-wrap:anywhere}
 .tile .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}.tile .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}.tile .s{font-size:10.5px;color:var(--muted)}
 .verd{display:grid;grid-template-columns:max-content max-content 1fr;gap:2px 10px;font-size:12.5px}
 .status{font-size:13px}.status .why{color:var(--muted);font-size:12.5px}
@@ -339,7 +339,7 @@ function cardHtml(k){const f=cardFor(k);if(!f)return'';const {card,ev}=f;
  return `<section class="panel cc" style="margin-bottom:10px"><details open><summary>Case card · ${esc(card.stratum.replace(/_/g,' '))} · <span class="mono">${esc(card.world)}</span></summary>${meta}
   <div class="ccgrid"><div>${instr}${env}</div><div>${sol}</div></div><div>${ver}</div>
   <p class="muted" style="font-size:11.5px;margin:8px 0 0">Generated from <span class="mono">${esc(card.stratum_card.split('#')[0])}</span> and the world card; layout after Terminal-Bench and APEX (instruction · metadata · solution · verifier).</p></details></section>`;}
-const GLOSS={
+const GLOSS={"award":"A cell's decision: its last period ended with a submitted award, so the episode ran to the end. Earlier periods may still have breached.","failed":"A cell's decision: the episode stopped before its last period, usually on an invalid or malformed action; the periods left are unplayed and earn nothing.","unplayed":"A period that never ran because the episode had already stopped.","decision":"How a cell or a period ended: award, defer, failed or unplayed.",
  'regret':'Money left on the table: the exact upper bound minus what this buyer earned. Lower is better; 0 is perfect.',
  'optimum':'The exact four-period plan with full information. It earns the upper bound, so its regret is 0.',
  'myopic':'A full-information buyer that maximises each period on its own and ignores later periods.',
@@ -679,11 +679,11 @@ function barChart(rows,labelKey,metric){
   items.forEach(([n,v],i)=>{const y=top+i*rowH;const x0=x(0),x1=x(v);s+=`<text x="${L-8}" y="${y+14}" text-anchor="end" font-size="11" fill="currentColor">${esc(n.length>28?n.slice(0,27)+'…':n)}</text><rect x="${Math.min(x0,x1)}" y="${y+4}" width="${Math.max(1,Math.abs(x1-x0))}" height="${rowH-8}" fill="var(--accent)" opacity=".75"><title>${esc(n)}: ${esc(fmtNum(v))}</title></rect><text x="${Math.max(x0,x1)+4}" y="${y+14}" font-size="10" fill="var(--muted)">${esc(fmtNum(v))}</text>`;});
   return s+'</svg>';
 }
-function intervalChart(ivs){
+function intervalChart(ivs,c){
   const items=ivs.filter(v=>typeof v.lo==='number'&&typeof v.hi==='number');if(!items.length)return '';
   const byMetric={};items.forEach(v=>{const parts=v.path.split('.');const m=parts[parts.length-1];(byMetric[m]=byMetric[m]||[]).push({...v,row:parts.slice(0,-1).join('.')||v.file});});
   return Object.entries(byMetric).map(([m,rows])=>{let lo=Math.min(...rows.map(v=>Math.min(v.lo,v.point??v.lo))),hi=Math.max(...rows.map(v=>Math.max(v.hi,v.point??v.hi)));if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*.08;lo-=pad;hi+=pad;const W=680,L=300,R=24,rowH=22,top=6,H=top+rows.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
-    let s=`<div class="ivm"><div class="muted" style="font-size:12px;margin:6px 0 2px"><span class="em" style="color:var(--ink)">${esc(m)}</span> · ${rows.length} estimate${rows.length!==1?'s':''}</div><svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(m)} interval estimates">`+axis(x,lo,hi,top,H,W);
+    let s=`<div class="ivm"><div class="muted" style="font-size:12px;margin:6px 0 2px"><span class="em" style="color:var(--ink)">${esc(tileKey(m,c))}</span> · ${rows.length} estimate${rows.length!==1?'s':''}</div><svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(m)} interval estimates">`+axis(x,lo,hi,top,H,W);
     rows.forEach((v,i)=>{const cy=top+i*rowH+rowH/2;const lab=v.row;const crosses=v.lo<0&&v.hi>0;const col=crosses?'var(--partial)':'var(--accent)';
       s+=`<text x="${L-8}" y="${cy+4}" text-anchor="end" font-size="10.5" fill="currentColor"><title>${esc(v.file)} · ${esc(v.path)}</title>${esc(lab.length>44?'…'+lab.slice(-43):lab)}</text><line x1="${x(v.lo)}" y1="${cy}" x2="${x(v.hi)}" y2="${cy}" stroke="${col}" stroke-width="3"><title>${esc(v.path)}: ${esc(fmtNum(v.lo))} to ${esc(fmtNum(v.hi))}${v.n?' · n='+v.n:''}</title></line>${typeof v.point==='number'?`<circle cx="${x(v.point)}" cy="${cy}" r="4" fill="var(--panel)" stroke="${col}" stroke-width="2"><title>point ${esc(fmtNum(v.point))}</title></circle>`:''}`;});
     return s+'</svg></div>';}).join('');
@@ -698,13 +698,17 @@ function tableCard(t,i,st){
   const chart=(group==='none'&&t.label&&t.rows.length<=40)?barChart(t.rows,t.label,metric):stripChart(t.rows,group==='none'?null:group,metric);
   return `<div class="rcard" data-i="${i}"><div class="rhead"><span class="mono">${esc(t.file)}</span> <span class="muted">· ${esc(t.path)} · ${t.row_count} rows${t.note?' · '+esc(t.note):''}</span></div><div class="rctl"><label>metric <select data-k="metric">${t.numeric.map(m=>`<option ${m===metric?'selected':''}>${esc(m)}</option>`).join('')}</select></label><label>group by <select data-k="group">${groupOpts.map(g=>`<option ${g===group?'selected':''}>${esc(g)}</option>`).join('')}</select></label></div><div class="graph">${chart}</div><div class="legend" style="margin-top:2px">${(group==='none'&&t.label&&t.rows.length<=40)?'<span>bar = the row\'s value</span>':'<span>● one row</span><span><b style="color:var(--accent)">|</b> group mean</span><span><b style="color:var(--accent)">▬</b> 95% bootstrap interval of the mean (600 seeded resamples of the rows, treated as independent; computed here, not by the bundle)</span>'}</div><details class="jd"><summary>rows (${t.rows.length} of ${t.row_count})</summary>${jv(t.rows.slice(0,60))}</details></div>`;
 }
+// Headline tiles: a readable label (the last two path segments, underscores as
+// spaces) and a short source; the full file and path stay in the hover title.
+const tileKey=(path,c)=>{let k=path.split('.').slice(-2).join(' · ').replace(/_/g,' ');const cmp=c&&CARDS&&CARDS.comparisons&&CARDS.comparisons[c.id];if(cmp){const short=m=>String(m||'').split('/').pop();k=k.replace(/\bleft\b/g,short(cmp.left_model)).replace(/\bright\b/g,short(cmp.right_model));}return k;};
+const tileSource=file=>{const f=String(file).replace(/^reports\//,'').replace(/\.json$/,'');const m=f.match(/^(comparison|confirmatory)_vs_/);return m?m[1]+' report':f.replace(/_/g,' ');};
 function renderResults(c,res){
   const el=$('results');if(!el)return;
   if(!res||(!res.tables.length&&!res.intervals.length)){el.innerHTML='<h2>Results</h2><p class="muted" style="margin:0">This bundle publishes no numeric tables or interval estimates the examiner can chart.</p>';return;}
   const st=resultsUI[c.id]=resultsUI[c.id]||{};
   const rank=h=>(/rate|admission|mean|delta|score|margin|npv|regret|effect|fraction|share|median|payoff/i.test(h.path)?0:1)+(/cost|ceiling|max_|count|tokens|seed|budget/i.test(h.path)?2:0);
-  const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(h.path.split('.').slice(-2).join('.'))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(h.file.replace(/^reports\//,''))}</div></div>`).join('');
-  const ivs=res.intervals||[];const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40))}</div></div>`:'';
+  const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(tileKey(h.path,c))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(tileSource(h.file))}</div></div>`).join('');
+  const ivs=res.intervals||[];const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40),c)}</div></div>`:'';
   res.tables.forEach(t=>{t._hints=res.primary_hints||[];});
   const cards=res.tables.map((t,i)=>tableCard(t,i,st[i]=st[i]||{})).join('');
   const hintLine=(res.primary_hints||[]).length?`<p class="muted" style="margin:0 0 6px;font-size:12.5px">The bundle names its guarded or primary metric: <span class="mono">${esc(res.primary_hints.join(', '))}</span>. Charts open on that metric where a table carries it.</p>`:'';
