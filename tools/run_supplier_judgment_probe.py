@@ -23,6 +23,7 @@ import json
 import math
 import os
 import random
+import socket
 import sys
 import threading
 import time
@@ -36,6 +37,19 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from aeread_families.procurement_allocation import supplier_profiles as sp  # noqa: E402
+
+# On this network Python's urllib tries IPv6 first and each attempt hangs about
+# 150 s before falling back (curl races both families and never sees it; P-T-10).
+# Prefer IPv4 for this tool only.
+_getaddrinfo = socket.getaddrinfo
+
+
+def _prefer_ipv4(host, *args, **kwargs):  # type: ignore[no-untyped-def]
+    found = _getaddrinfo(host, *args, **kwargs)
+    return [r for r in found if r[0] == socket.AF_INET] or found
+
+
+socket.getaddrinfo = _prefer_ipv4
 
 API = "https://openrouter.ai/api/v1/chat/completions"
 PROBE_ID = "supplier_judgment_probe_v1"
