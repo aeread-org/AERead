@@ -163,6 +163,9 @@ FAMILY_SOURCES = (
 #: runs out of replay (the DC-T-06 shape).
 TOOL_SOURCES = (
     "src/aeread_families/procurement_allocation/relationship_campaign.py",
+    # The confirmatory's pre-registered analysis: its digest is frozen into the
+    # plan with everything else, so it provably predates the results.
+    "src/aeread_families/procurement_allocation/relationship_confirmatory.py",
     "tools/run_procurement_relationship_pilot.py",
 )
 
@@ -353,6 +356,7 @@ def prepare(
     seeds: Sequence[int],
     route_id: str = DEFAULT_ROUTE,
     case_paths: Sequence[Path] = CASE_PATHS,
+    preregistration: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     plan_path = run_root / "plan.json"
     if plan_path.exists():
@@ -402,6 +406,11 @@ def prepare(
         "git_head": _git_head(),
         "prepared_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    if preregistration is not None:
+        # Sealed into plan_sha256 with the rest: the outcomes and the decision
+        # rule are fixed before the first cell runs.
+        plan["preregistration"] = dict(preregistration)
+        plan["claim_status"] = "confirmatory"
     plan["plan_sha256"] = _digest(plan)
     write_json(plan_path, plan)
     return plan
@@ -935,8 +944,13 @@ def _readme(plan: Mapping[str, Any], summary: Mapping[str, Any], comparisons: Se
         "(`interaction.periods`, design §4): one live buyer route on the committed "
         "worlds, every seed re-sealed into the world's delivery draws, scored against "
         "the exact four-period bound with the myopic, loyal and shopping references "
-        "beside it. Claim status: `development_qualification`. No winner and no model "
-        "ranking may be read from this bundle.",
+        f"beside it. Claim status: `{plan.get('claim_status', 'development_qualification')}`. "
+        + (
+            "The claims are the pre-registered outcomes in `reports/confirmatory_vs_*.json` and "
+            "nothing beyond them; no winner and no statement about the models in general."
+            if plan.get("preregistration")
+            else "No winner and no model ranking may be read from this bundle."
+        ),
         "",
         f"- Route: `{route['model']}` (`{route['revision']}` via {route['route_provider']}), "
         f"reasoning effort {route['reasoning_effort']}, temperature {plan['temperature']}",
@@ -1061,6 +1075,9 @@ def publish(
         files[f"reports/comparison_vs_{comparison['right_campaign_id']}.json"] = (
             canonical_json_bytes(comparison) + b"\n"
         )
+    for path in sorted(run_root.glob("confirmatory_vs_*.json")):
+        report = json.loads(path.read_text(encoding="utf-8"))
+        files[f"reports/confirmatory_vs_{report['right_campaign_id']}.json"] = canonical_json_bytes(report) + b"\n"
     for name, payload in files.items():
         assert_public_payload(name, payload)
         atomic_publish(bundle / name, payload)
@@ -1085,7 +1102,7 @@ def publish(
             "exporter_sha256": _sha256(Path(__file__)),
             "source_receipt_sha256s": sorted(receipt_digests),
         },
-        claim_status="development_qualification",
+        claim_status=plan.get("claim_status", "development_qualification"),
         winner_claim_allowed=False,
         inferential_model_ranking_allowed=False,
         cluster_level=plan["cluster_level"],

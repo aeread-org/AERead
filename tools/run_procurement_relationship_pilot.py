@@ -28,7 +28,7 @@ from aeread_families.procurement_allocation import relationship_campaign as camp
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("step", choices=("prepare", "execute", "replay", "compare", "publish"))
+    parser.add_argument("step", choices=("prepare", "execute", "replay", "compare", "confirmatory", "publish"))
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--campaign-id", default=None, help="prepare: the frozen campaign identity")
     parser.add_argument(
@@ -42,7 +42,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="relationship_v1",
         help="prepare: which committed pack to run (relationship_v1, relationship_dev_v2, relationship_holdout_v1)",
     )
-    parser.add_argument("--against", type=Path, default=None, help="compare: the other run root")
+    parser.add_argument("--against", type=Path, default=None, help="compare / confirmatory: the other run root")
+    parser.add_argument(
+        "--confirmatory",
+        action="store_true",
+        help="prepare: freeze the pre-registration of relationship_confirmatory into the plan",
+    )
     parser.add_argument("--publication-root", type=Path, default=None, help="publish: override the evidence path")
     arguments = parser.parse_args(argv)
     run_root = arguments.run_root.resolve()
@@ -50,12 +55,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     if arguments.step == "prepare":
         if not arguments.campaign_id:
             raise SystemExit("prepare requires --campaign-id")
+        preregistration = None
+        if arguments.confirmatory:
+            from aeread_families.procurement_allocation.relationship_confirmatory import PREREGISTRATION
+
+            if arguments.pack != PREREGISTRATION["pack"] or list(arguments.seeds) != PREREGISTRATION["seeds"]:
+                raise SystemExit(
+                    f"a confirmatory plan runs pack {PREREGISTRATION['pack']} on seeds {PREREGISTRATION['seeds']}"
+                )
+            preregistration = PREREGISTRATION
         plan = campaign.prepare(
             run_root,
             campaign_id=arguments.campaign_id,
             seeds=arguments.seeds,
             route_id=arguments.route,
             case_paths=campaign.pack_paths(arguments.pack),
+            preregistration=preregistration,
         )
         print(
             json.dumps(
@@ -107,6 +122,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(
                 f"{slug:26s} regret delta {row['regret']:8.2f}  counters {row['counters']:+.2f}  quoted {row['quoted']:+.2f}"
             )
+        return 0
+
+    if arguments.step == "confirmatory":
+        if arguments.against is None:
+            raise SystemExit("confirmatory requires --against")
+        from aeread_families.procurement_allocation.relationship_confirmatory import write
+
+        report = write(run_root, arguments.against.resolve())
+        print(json.dumps({k: v for k, v in report.items() if k != "O3_vs_deadline_aware"}, indent=2, default=str))
+        for side, row in report["O3_vs_deadline_aware"].items():
+            print(side, "vs deadline_aware:", row["mean"], row["interval_95"], row["worlds_model_better"], "worlds better,", row["verdict"])
         return 0
 
     manifest = campaign.publish(run_root, publication_root=arguments.publication_root)

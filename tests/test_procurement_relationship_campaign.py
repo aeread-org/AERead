@@ -449,3 +449,64 @@ def test_setup_refuses_an_unknown_layout_or_an_out_of_range_temperature(tmp_path
         build_openrouter_setup(route, seed=5, case_path=case_path, observation_layout="sideways")
     with pytest.raises(ValueError, match="temperature"):
         build_openrouter_setup(route, seed=5, case_path=case_path, temperature=2.5)
+
+
+# --------------------------------------------------------------------------
+# The pre-registered confirmatory analysis
+# --------------------------------------------------------------------------
+
+
+def _confirmatory_pair(tmp_path: Path, rows_left, rows_right, *, preregistered=True):
+    from aeread_families.procurement_allocation.relationship_confirmatory import PREREGISTRATION
+
+    roots = []
+    for name, rows in (("left", rows_left), ("right", rows_right)):
+        plan = campaign.prepare(
+            tmp_path / name,
+            campaign_id=f"conf_{name}",
+            seeds=(11, 12),
+            route_id="gemini38_flash_aistudio" if name == "left" else "glm53_flash_parasail",
+            case_paths=(WORLD,),
+            preregistration=PREREGISTRATION if preregistered else None,
+        )
+        built = [dict(_completed_row(cell, regret=regret), violations=violations) for cell, (regret, violations) in zip(plan["cells"], rows)]
+        (tmp_path / name / "results.json").write_text(json.dumps({"campaign_id": plan["campaign_id"], "rows": built}), encoding="utf-8")
+        roots.append(tmp_path / name)
+    return roots
+
+
+def test_prepare_seals_the_preregistration_and_marks_the_plan_confirmatory(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import PREREGISTRATION
+
+    left, _ = _confirmatory_pair(tmp_path, [(20.0, []), (20.0, [])], [(50.0, []), (50.0, [])])
+    plan = campaign.read_plan(left)  # verifies plan_sha256 over the pre-registration too
+    assert plan["preregistration"] == PREREGISTRATION and plan["claim_status"] == "confirmatory"
+    assert "src/aeread_families/procurement_allocation/relationship_confirmatory.py" in plan["sources"]
+
+
+def test_confirmatory_analysis_computes_the_three_outcomes(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import analyse
+
+    left, right = _confirmatory_pair(
+        tmp_path,
+        [(20.0, []), (30.0, [])],
+        [(40.0, []), (200.0, ["period_1:minimum_service_not_met"])],
+    )
+    report = analyse(left, right, baseline=lambda payload: {"regret_to_upper_bound_usd": 100.0})
+    assert report["O1_breach_rate"]["left"] == 0.0 and report["O1_breach_rate"]["right"] == 0.5
+    assert report["O1_breach_rate"]["paired_difference"]["mean"] == pytest.approx(-0.5)
+    # O2 uses valid cells only: left mean 25, right's only valid cell 40.
+    assert report["O2_regret_on_valid_orders"]["paired_difference"]["mean"] == pytest.approx(-15.0)
+    # O3: baseline 100 minus model regret, per model.
+    assert report["O3_vs_deadline_aware"]["left"]["mean"] == pytest.approx(75.0)
+    assert report["O3_vs_deadline_aware"]["right"]["mean"] == pytest.approx(-20.0)
+    # One world cannot separate anything under a world bootstrap: the interval is a point.
+    assert report["O1_breach_rate"]["verdict"] == "left breaches less"
+
+
+def test_confirmatory_analysis_refuses_a_plan_frozen_without_the_preregistration(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import analyse
+
+    left, right = _confirmatory_pair(tmp_path, [(20.0, []), (20.0, [])], [(50.0, []), (50.0, [])], preregistered=False)
+    with pytest.raises(ValueError, match="pre-registration"):
+        analyse(left, right, baseline=lambda payload: {"regret_to_upper_bound_usd": 100.0})
