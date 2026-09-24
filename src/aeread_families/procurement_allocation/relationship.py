@@ -375,7 +375,7 @@ def realize_delivery(
         arrives = elapsed_days + int(offer["lead_time_days"]) <= int(objective["deadline_days"])
         on_time = arrives and _uniform(
             seed, f"on_time:{period}:{supplier_id}"
-        ) < float(offer["on_time_probability"])
+        ) < env.true_on_time(suppliers[supplier_id], offer)
         yield_rate = float(
             suppliers[supplier_id]["private_terms"]["quality"]["verified_yield_rate"]
         )
@@ -1072,7 +1072,10 @@ class _Solver:
         return best
 
     def initial(self) -> tuple[_Entry, ...]:
-        return tuple((0, 0, False) for _ in self.suppliers)
+        # Where the award contract needs no sample, every supplier starts
+        # qualified: the full-information bound never pays to verify.
+        qualified = "verified_sample" not in self.case["policy"]["award_requires"]
+        return tuple((0, 0, qualified) for _ in self.suppliers)
 
     def solve(self) -> RelationshipBound:
         return _bound(self.value(1, self.initial()))
