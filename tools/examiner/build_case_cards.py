@@ -199,7 +199,8 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
             for row in rows:
                 if row.get("status") != "completed" or row.get("regret_to_upper_bound_usd") is None:
                     continue
-                w = out.setdefault(row["slug"], {"regrets": [], "breaches": 0})
+                w = out.setdefault(row["slug"], {"regrets": [], "breaches": 0, "flags": []})
+                w["flags"].append(1.0 if row.get("violations") else 0.0)
                 w["regrets"].append(float(row["regret_to_upper_bound_usd"]))
                 w["breaches"] += bool(row.get("violations"))
             return out
@@ -213,11 +214,27 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
                 "left_breach_rate": lw[slug]["breaches"] / len(lw[slug]["regrets"]),
                 "right_breach_rate": rw[slug]["breaches"] / len(rw[slug]["regrets"]),
                 "left_cells": len(lw[slug]["regrets"]), "right_cells": len(rw[slug]["regrets"]),
+                # seed spread within the world (min-max), not an interval: a world has only 3-5 seeds
+                "left_spread": [min(lw[slug]["regrets"]), max(lw[slug]["regrets"])],
+                "right_spread": [min(rw[slug]["regrets"]), max(rw[slug]["regrets"])],
             })
+        import random as _random
+        def world_boot(per_world_values: dict, resamples: int = 10_000, seed: int = 20260924):
+            """Mean of per-world means, with a 95% world-clustered bootstrap interval (the world is the unit)."""
+            worlds = sorted(k for k, v in per_world_values.items() if v)
+            if not worlds:
+                return None, [None, None]
+            means = {k: sum(v) / len(v) for k, v in per_world_values.items() if v}
+            rng = _random.Random(seed)
+            draws = sorted(sum(means[worlds[rng.randrange(len(worlds))]] for _ in worlds) / len(worlds) for _ in range(resamples))
+            return sum(means.values()) / len(means), [draws[int(0.025 * resamples)], draws[int(0.975 * resamples) - 1]]
         def overall(side):
+            pw = lw if side == "left" else rw
             rows = [r for r in (left if side == "left" else right) if r.get("status") == "completed" and r.get("regret_to_upper_bound_usd") is not None]
-            return {"cells": len(rows), "mean_regret": sum(float(r["regret_to_upper_bound_usd"]) for r in rows) / len(rows) if rows else None,
-                    "breach_rate": sum(bool(r.get("violations")) for r in rows) / len(rows) if rows else None}
+            regret, regret_ci = world_boot({k: v["regrets"] for k, v in pw.items()})
+            breach, breach_ci = world_boot({k: v["flags"] for k, v in pw.items()})
+            return {"cells": len(rows), "worlds": len(pw), "mean_regret": regret, "mean_regret_ci": regret_ci,
+                    "breach_rate": breach, "breach_rate_ci": breach_ci}
         comparisons[left_dir.name] = {
             "left_id": left_dir.name, "right_id": right_dir.name,
             "left_model": report.get("left_route"), "right_model": report.get("right_route"),
