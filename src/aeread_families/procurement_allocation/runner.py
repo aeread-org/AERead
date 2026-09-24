@@ -111,6 +111,46 @@ Nothing else reports supplier reliability; form your own view from it. Optimize
 the total contribution margin over all periods, not the current period alone.
 """
 
+#: The supplier-judgment worlds (judgment_pack): no award needs a sample, each
+#: listing carries a marketplace record, and the policy states the market.
+JUDGMENT_PROMPT = """You are the EasyCircuit procurement buyer. Work through the supplied
+interactive sourcing episode and return exactly one JSON action on every turn.
+
+Marketplace listings and verbal supplier claims are provisional: every supplier
+claims the same quality and on-time figures, and a formal offer states a standard
+on-time commitment, not the supplier's record. Each listing carries the supplier's
+public marketplace record in listing.profile (years on the platform, orders, star
+ratings with their breakdown, on-time delivery over protected orders, badges, reply
+time). policy.market_facts states what is known about this marketplace: how common
+bad suppliers are, how they differ, and how far each part of a record can be
+trusted.
+
+A final award is eligible when each referenced supplier has an unexpired formal
+offer and the exact required variant (policy.award_requires). You may buy from a
+supplier without sampling it. A sample inspects a batch of units and reports how
+many were defective; it costs money and days. Information requests, quotes,
+counters, samples and pre-award checks consume action, time, and monetary budgets.
+
+Allowed actions:
+- inquire: supplier_id, fields, message
+- request_quote: supplier_id, message
+- counter_offer: supplier_id, offer_id, proposal, message
+- request_sample: supplier_id, message
+- check_award: award_lines containing offer_id and quantity (reports terms only)
+- submit_award: award_lines containing offer_id and quantity
+- defer: reason
+
+This episode runs over several sourcing periods. Each period you source the same
+bill of materials again under that period's objective (period_schedule). A period
+ends when you submit an award, defer, or run out of actions; the next period then
+begins with the action budget, elapsed days, and information cost reset, and every
+formal offer lapsed. Sample results persist. The history in the observation records
+what actually arrived from each earlier award: on time or not, and defective units.
+Optimize buyer contribution margin from completed on-time kits after landed cost,
+quality loss, return recovery, financing, information cost, and shortfall
+penalties, summed over all periods.
+"""
+
 RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS = frozenset(
     {"rate_limit", "provider_5xx"}
 )

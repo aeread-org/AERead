@@ -59,6 +59,7 @@ from aeread_families.procurement_grounding import OpenRouterRoute
 
 from .relationship_case_matrix import CASE_PATHS, pack_case_paths
 from .runner import (
+    JUDGMENT_PROMPT,
     RELATIONSHIP_PROMPT,
     build_openrouter_setup,
     finalize_procurement_allocation_execution,
@@ -70,6 +71,10 @@ from .runner import (
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE_ROOT = REPOSITORY_ROOT / "evidence" / "procurement_allocation"
 PROMPT_ID = "procurement_relationship_prompt_v1"
+JUDGMENT_PROMPT_ID = "procurement_supplier_judgment_prompt_v1"
+#: Prompts a plan may name. A plan freezes its prompt_id and the prompt's
+#: digest; plans frozen before the registry name v1 and resolve to it.
+PROMPTS = {PROMPT_ID: RELATIONSHIP_PROMPT, JUDGMENT_PROMPT_ID: JUDGMENT_PROMPT}
 DEFAULT_SEEDS = (73101,)
 BOOTSTRAP_SEED = 20260921
 BOOTSTRAP_RESAMPLES = 10_000
@@ -154,6 +159,8 @@ CONTRACT: dict[str, Any] = {
 #: them and execute refuses to run under any others.
 FAMILY_SOURCES = (
     "src/aeread_families/procurement_allocation/environment.py",
+    "src/aeread_families/procurement_allocation/judgment_pack.py",
+    "src/aeread_families/procurement_allocation/supplier_profiles.py",
     "src/aeread_families/procurement_allocation/relationship.py",
     "src/aeread_families/procurement_allocation/relationship_case_matrix.py",
     "src/aeread_families/procurement_allocation/headroom_screen.py",
@@ -357,8 +364,11 @@ def prepare(
     route_id: str = DEFAULT_ROUTE,
     case_paths: Sequence[Path] = CASE_PATHS,
     preregistration: Mapping[str, Any] | None = None,
+    prompt_id: str = PROMPT_ID,
 ) -> dict[str, Any]:
     plan_path = run_root / "plan.json"
+    if prompt_id not in PROMPTS:
+        raise ValueError(f"unknown prompt {prompt_id!r}; known: {sorted(PROMPTS)}")
     if plan_path.exists():
         raise ValueError(f"{plan_path} exists; a frozen plan is never rewritten")
     if not seeds or len(set(seeds)) != len(seeds):
@@ -397,6 +407,8 @@ def prepare(
         **CONTRACT,
         "temperature": CONTRACT["temperature"] if ROUTES[route_id].temperature_supported else None,
         "campaign_id": campaign_id,
+        "prompt_id": prompt_id,
+        "prompt_sha256": hashlib.sha256(PROMPTS[prompt_id].encode("utf-8")).hexdigest(),
         "seeds": [int(seed) for seed in seeds],
         "route_id": route_id,
         "route": route_record(ROUTES[route_id]),
@@ -450,6 +462,13 @@ def read_plan(run_root: Path, *, enforce_sources: bool = True) -> dict[str, Any]
 # --------------------------------------------------------------------------
 
 
+def _plan_prompt(plan: Mapping[str, Any]) -> str:
+    prompt = PROMPTS[str(plan["prompt_id"])]
+    if hashlib.sha256(prompt.encode("utf-8")).hexdigest() != plan["prompt_sha256"]:
+        raise ValueError(f"prompt {plan['prompt_id']} differs from the plan's frozen digest")
+    return prompt
+
+
 def setup_for(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path):
     return build_openrouter_setup(
         route_from_record(plan["route"]),
@@ -459,7 +478,7 @@ def setup_for(plan: Mapping[str, Any], cell: Mapping[str, Any], run_root: Path):
         timeout_seconds=float(plan["timeout_seconds"]),
         max_cost_usd=float(plan["max_cost_usd_per_trajectory"]),
         harness=MinimalChatHarness(),
-        prompt=RELATIONSHIP_PROMPT,
+        prompt=_plan_prompt(plan),
         prompt_id=str(plan["prompt_id"]),
         max_action_attempts=int(plan["max_action_attempts"]),
         retryable_conditions=tuple(plan["retryable_conditions"]),

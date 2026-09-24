@@ -252,6 +252,13 @@ class Economics:
     sample_cost: float = 9.0
     incumbent_price: float = 1.40
     challenger_price: float = 1.00
+    #: Per-period value of buying the lot from (role, kind), when an environment
+    #: supplies its own economics; empty means the draft's price-plus-defects rule.
+    values: tuple[tuple[str, str, float], ...] = ()
+    #: What a delivered lot shows. "reveals": the supplier's kind, the draft's
+    #: declared simplification. "delivery": what the repeated-sourcing history
+    #: shows, late (no defect count) or on time with its defect count.
+    lot_signal: str = "reveals"
 
 
 @lru_cache(maxsize=None)
@@ -276,23 +283,44 @@ def _defect_dist(b: float, units: int, market: Mapping[str, Any]) -> list[tuple[
 Policy = Callable[[int, float, float, bool, bool], tuple[str | None, Callable[[float, float, int | None], str]]]
 
 
+def _lot_value(econ: Economics, market: Mapping[str, Any], buy: str, kind: str) -> float:
+    if econ.values:
+        return dict(((r, k), v) for r, k, v in econ.values)[(buy, kind)]
+    price = econ.incumbent_price if buy == "I" else econ.challenger_price
+    return -econ.lot_units * (price + market["type"][kind]["defect_rate"] * econ.revenue_per_unit)
+
+
+@lru_cache(maxsize=None)
+def _lot_likelihoods(signal: str, units: int, bad_rate: float, good_rate: float, bad_on_time: float, good_on_time: float) -> tuple[tuple[float, float], ...]:
+    """(P(outcome | bad), P(outcome | good)) for every outcome a lot can show."""
+    if signal == "reveals":
+        return ((1.0, 0.0), (0.0, 1.0))
+    bad, good = _pmf(units, bad_rate), _pmf(units, good_rate)
+    rows = [(1.0 - bad_on_time, 1.0 - good_on_time)]  # late: no defect count
+    rows += [(bad_on_time * bad[d], good_on_time * good[d]) for d in range(units + 1)]
+    return tuple(r for r in rows if r[0] > 1e-12 or r[1] > 1e-12)
+
+
 def _period_value(
     econ: Economics, market: Mapping[str, Any], buy: str, bI: float, bC: float,
     truth: Mapping[str, str] | None, cont: Callable[[float, float], float],
 ) -> float:
-    """Expected value of buying one lot from `buy` and continuing. A delivered
-    lot shows which kind the supplier is (declared to the buyer), so the belief
-    about `buy` becomes 0 or 1. Chance comes from the beliefs (ex ante) or from
-    the truth (realised)."""
-    price = econ.incumbent_price if buy == "I" else econ.challenger_price
+    """Expected value of buying one lot from `buy` and continuing. The lot is
+    worth its expected value under the supplier's kind; what it shows updates
+    the belief about `buy`. Chance comes from the beliefs (ex ante) or from the
+    truth (realised)."""
     b = bI if buy == "I" else bC
     chance_b = b if truth is None else (1.0 if truth[buy] == "bad" else 0.0)
-    total = 0.0
-    for kind, p, nb in (("bad", chance_b, 1.0), ("good", 1 - chance_b, 0.0)):
+    total = chance_b * _lot_value(econ, market, buy, "bad") + (1 - chance_b) * _lot_value(econ, market, buy, "good")
+    t = market["type"]
+    for pb, pg in _lot_likelihoods(
+        econ.lot_signal, econ.lot_units, t["bad"]["defect_rate"], t["good"]["defect_rate"], t["bad"]["on_time"], t["good"]["on_time"]
+    ):
+        p = chance_b * pb + (1 - chance_b) * pg
         if p <= 0:
             continue
-        cost = econ.lot_units * (price + market["type"][kind]["defect_rate"] * econ.revenue_per_unit)
-        total += p * (-cost + cont(nb if buy == "I" else bI, nb if buy == "C" else bC))
+        nb = b * pb / (b * pb + (1 - b) * pg) if (b * pb + (1 - b) * pg) > 0 else b
+        total += p * cont(nb if buy == "I" else bI, nb if buy == "C" else bC)
     return total
 
 
@@ -310,12 +338,7 @@ def solve(econ: Economics, bI: float, bC: float, market: Mapping[str, Any] = MAR
 
 def oracle_value(econ: Economics, truth: Mapping[str, str], market: Mapping[str, Any] = MARKET) -> float:
     """Full information: buy the better supplier every period, never sample."""
-    best = -math.inf
-    for x in ("I", "C"):
-        price = econ.incumbent_price if x == "I" else econ.challenger_price
-        d = market["type"][truth[x]]["defect_rate"]
-        best = max(best, -econ.periods * econ.lot_units * (price + d * econ.revenue_per_unit))
-    return best
+    return econ.periods * max(_lot_value(econ, market, x, truth[x]) for x in ("I", "C"))
 
 
 # Simple rules a buyer might follow instead of judging. They see only what a
@@ -537,7 +560,7 @@ def _pct(ps: Sequence[float]) -> str:
     return "/".join(f"{p * 100:g}%" for p in ps)
 
 
-def market_facts_text(market: Mapping[str, Any] = MARKET) -> str:
+def market_facts_text(market: Mapping[str, Any] = MARKET, *, lot_signal: str = "reveals") -> str:
     """The declared market, as the buyer would be told it."""
     t = market["type"]
     return (
@@ -556,7 +579,13 @@ def market_facts_text(market: Mapping[str, Any] = MARKET) -> str:
         f"{market['protected_share']:.0%} of orders). Gold is a paid membership held by "
         f"{market['badges']['gold']['good']:.0%} of suppliers of either kind; Verified checks the company, not the product "
         f"({market['badges']['verified']['good']:.0%} of good and {market['badges']['verified']['bad']:.0%} of bad suppliers "
-        f"hold it). Reply speed says nothing about quality. A sample tests the units you ask for and shows their defects; a delivered lot shows which kind the supplier is."
+        f"hold it). Reply speed says nothing about quality. " + (
+            "A sample tests the units you ask for and shows their defects; a delivered lot shows which kind the supplier is."
+            if lot_signal == "reveals"
+            else "A sample inspects a batch of units and reports how many were defective; batches can be repeated "
+            "and their counts accumulate. After each period the history shows, for every lot delivered, whether it "
+            "arrived on time and, if it did, how many of its units were defective; a late lot shows no defect count."
+        )
     )
 
 
