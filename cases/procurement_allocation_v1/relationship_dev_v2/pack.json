@@ -8,7 +8,7 @@
     "start": 2420000,
     "scan_limit": 60
   },
-  "selection_rule": "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the stratum's declared ranges by a generator seeded with s; the world is admitted when classify_relationship_world admits it at 0.05 and the stratum is not yet full at 2; every world declares binomial sample noise",
+  "selection_rule": "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the stratum's declared ranges by a generator seeded with s; the world is admitted when classify_relationship_world admits it at 0.05 and the stratum is not yet full at 2 and the deadline_aware observation-only baseline beats defer; every world declares binomial sample noise",
   "minimum_relative_margin": 0.05,
   "per_stratum": 2,
   "seeds_scanned": 36,
@@ -53,6 +53,12 @@
           "contribution_margin_usd": 162.690476,
           "periods_awarded": 3,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 43.98327948,
+          "contribution_margin_usd": 359.36559436,
+          "periods_awarded": 4,
+          "switches": 0
         }
       }
     },
@@ -93,6 +99,12 @@
           "contribution_margin_usd": 161.66054332,
           "periods_awarded": 3,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 44.76508515,
+          "contribution_margin_usd": 359.1397778,
+          "periods_awarded": 4,
+          "switches": 0
         }
       }
     },
@@ -129,6 +141,12 @@
           "switches": 0
         },
         "semantic_hint": {
+          "regret_to_upper_bound_usd": 166.23502034,
+          "contribution_margin_usd": 233.4903996,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "deadline_aware": {
           "regret_to_upper_bound_usd": 166.23502034,
           "contribution_margin_usd": 233.4903996,
           "periods_awarded": 3,
@@ -173,6 +191,12 @@
           "contribution_margin_usd": 241.82221183,
           "periods_awarded": 3,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 19.77159669,
+          "contribution_margin_usd": 386.74533636,
+          "periods_awarded": 4,
+          "switches": 0
         }
       }
     },
@@ -213,6 +237,12 @@
           "contribution_margin_usd": 263.23071837,
           "periods_awarded": 4,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 148.36162372,
+          "contribution_margin_usd": 269.60241572,
+          "periods_awarded": 4,
+          "switches": 1
         }
       }
     },
@@ -253,6 +283,12 @@
           "contribution_margin_usd": 277.13966054,
           "periods_awarded": 4,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 151.1964367,
+          "contribution_margin_usd": 280.51000464,
+          "periods_awarded": 4,
+          "switches": 1
         }
       }
     },
@@ -292,6 +328,12 @@
           "regret_to_upper_bound_usd": 229.15518951,
           "contribution_margin_usd": 183.71392629,
           "periods_awarded": 3,
+          "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 156.14197878,
+          "contribution_margin_usd": 256.72713702,
+          "periods_awarded": 4,
           "switches": 0
         }
       }
@@ -333,6 +375,12 @@
           "contribution_margin_usd": 173.60675259,
           "periods_awarded": 3,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 160.09157521,
+          "contribution_margin_usd": 242.46452009,
+          "periods_awarded": 4,
+          "switches": 0
         }
       }
     },
@@ -372,6 +420,12 @@
           "regret_to_upper_bound_usd": 440.9266982,
           "contribution_margin_usd": -3.2,
           "periods_awarded": 0,
+          "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 51.67588681,
+          "contribution_margin_usd": 386.05081139,
+          "periods_awarded": 4,
           "switches": 0
         }
       }
@@ -413,6 +467,12 @@
           "contribution_margin_usd": -3.2,
           "periods_awarded": 0,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 104.41599591,
+          "contribution_margin_usd": 311.36577012,
+          "periods_awarded": 4,
+          "switches": 0
         }
       }
     },
@@ -453,6 +513,12 @@
           "contribution_margin_usd": 199.72108797,
           "periods_awarded": 3,
           "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 204.91219127,
+          "contribution_margin_usd": 215.61435755,
+          "periods_awarded": 3,
+          "switches": 0
         }
       }
     },
@@ -491,6 +557,12 @@
         "semantic_hint": {
           "regret_to_upper_bound_usd": 221.41496075,
           "contribution_margin_usd": 189.92137694,
+          "periods_awarded": 3,
+          "switches": 0
+        },
+        "deadline_aware": {
+          "regret_to_upper_bound_usd": 210.35825219,
+          "contribution_margin_usd": 200.9780855,
           "periods_awarded": 3,
           "switches": 0
         }
@@ -623,8 +695,9 @@
     "defer",
     "displayed_price_greedy",
     "listing_claim_fit",
-    "semantic_hint"
+    "semantic_hint",
+    "deadline_aware"
   ],
   "claim_scope": "synthetic worlds selected by rule; the references are full-information solvers, not a model",
-  "manifest_sha256": "e6283b39d2839ee2dee6cf5b9fa576c50662bd4806a1e21dea8f57c6cf14866f"
+  "manifest_sha256": "a413e9c6e7c46dbf4fa70bee4f0de264a0624d7e1beeec600a5072233952157a"
 }

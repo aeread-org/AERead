@@ -33,7 +33,7 @@ from aeread.shared_runner.schemas import CaseManifest
 
 from .case_matrix import REQUIRED_VARIANTS, _supplier
 from .environment import ProcurementAllocationPlugin
-from .headroom_screen import ADMIT, classify_relationship_world, replay_baseline_outcome
+from .headroom_screen import ADMIT, classify_relationship_world, replay_baseline_outcome, replay_deadline_aware
 from .relationship import (
     period_schedule,
     solve_loyal_reference,
@@ -65,6 +65,11 @@ PACKS: dict[str, dict[str, Any]] = {
 #: The public-observation policies whose per-world outcome every pack manifest
 #: publishes, the Gate 1 baseline facts a live control is read against.
 PACK_POLICIES = ("defer", "displayed_price_greedy", "listing_claim_fit", "semantic_hint")
+#: The competent observation-only reference (P-D-07). Recorded beside the
+#: pinned policies, and a world is admitted only when it beats ``defer``: a
+#: world where no sensible buyer without hidden information beats doing
+#: nothing makes "beats the trivial policy" vacuous.
+COMPETENT_BASELINE = "deadline_aware"
 
 #: The intertemporal structure must be worth this fraction of the T-period
 #: optimum against both references. Same materiality as the Gate 1 screen.
@@ -630,7 +635,27 @@ def _policy_outcomes(payload: Mapping[str, Any]) -> dict[str, Any]:
                 "switches": outcome["switches"],
             }
         )
+    competent = replay_deadline_aware(payload)
+    outcomes[COMPETENT_BASELINE] = (
+        None
+        if competent is None
+        else {
+            "regret_to_upper_bound_usd": competent["regret_to_upper_bound_usd"],
+            "contribution_margin_usd": competent["contribution_margin_usd"],
+            "periods_awarded": competent["periods_awarded"],
+            "switches": competent["switches"],
+        }
+    )
     return outcomes
+
+
+def competent_baseline_beats_defer(outcomes: Mapping[str, Any]) -> bool:
+    competent, defer = outcomes.get(COMPETENT_BASELINE), outcomes.get("defer")
+    return (
+        competent is not None
+        and defer is not None
+        and competent["regret_to_upper_bound_usd"] < defer["regret_to_upper_bound_usd"] - 1e-9
+    )
 
 
 def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -676,6 +701,12 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
         if verdict["verdict"] != ADMIT:
             excluded.append({"world_seed": seed, "stratum": stratum, "verdict": verdict["verdict"]})
             continue
+        outcomes = _policy_outcomes(raw["payload"])
+        if not competent_baseline_beats_defer(outcomes):
+            excluded.append(
+                {"world_seed": seed, "stratum": stratum, "verdict": "reject: no competent observation-only baseline beats defer"}
+            )
+            continue
         row = {
             "slug": definition["slug"],
             "stratum": stratum,
@@ -693,7 +724,7 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
                 (verdict["upper_bound_usd"] - verdict["loyal_usd"]) / verdict["upper_bound_usd"], 6
             ),
             "optimum_switches": verdict["optimum_switches"],
-            "public_policies": _policy_outcomes(raw["payload"]),
+            "public_policies": outcomes,
         }
         admitted[stratum].append(row)
         cases.append(raw)
@@ -708,7 +739,8 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
             "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the "
             "stratum's declared ranges by a generator seeded with s; the world is admitted when "
             f"classify_relationship_world admits it at {MINIMUM_RELATIVE_MARGIN} and the stratum "
-            f"is not yet full at {per_stratum}; every world declares binomial sample noise"
+            f"is not yet full at {per_stratum} and the {COMPETENT_BASELINE} observation-only "
+            "baseline beats defer; every world declares binomial sample noise"
         ),
         "minimum_relative_margin": MINIMUM_RELATIVE_MARGIN,
         "per_stratum": per_stratum,
@@ -722,7 +754,7 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
         ),
         "worlds": [row for stratum in CASE_SLUGS for row in admitted[stratum]],
         "excluded": excluded,
-        "public_policies": list(PACK_POLICIES),
+        "public_policies": [*PACK_POLICIES, COMPETENT_BASELINE],
         "claim_scope": "synthetic worlds selected by rule; the references are full-information solvers, not a model",
     }
     manifest["manifest_sha256"] = hashlib.sha256(

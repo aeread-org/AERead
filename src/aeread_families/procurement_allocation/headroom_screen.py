@@ -26,7 +26,13 @@ from typing import Any, Iterable, Mapping, Sequence
 from aeread.shared_runner.task.scheduler import ActionEnvelope
 
 from .environment import ProcurementAllocationPlugin
-from .policy_baselines import choose_public_policy_action
+from .policy_baselines import (
+    _evidenced_yield,
+    _latest_offer,
+    _ranked_suppliers,
+    _valid_quantity,
+    choose_public_policy_action,
+)
 
 #: Deterministic public-observation policies. These replay offline and free, so
 #: the triviality test costs nothing and can be run on every candidate world.
@@ -257,6 +263,13 @@ def replay_baseline_outcome(
     payload: Mapping[str, Any], policy_id: str
 ) -> dict[str, Any] | None:
     """Preserve continuous outcomes instead of reducing the screen to a bool."""
+    return _replay_observation_policy(
+        payload, lambda observation: choose_public_policy_action(observation, policy_id=policy_id)
+    )
+
+
+def _replay_observation_policy(payload: Mapping[str, Any], choose: Any) -> dict[str, Any] | None:
+    """Play one episode with a rule that sees only the buyer's observation."""
     plugin = ProcurementAllocationPlugin()
     family_case = plugin.validate_payload(payload)
     phase = plugin.phases(family_case)[0]
@@ -267,7 +280,7 @@ def replay_baseline_outcome(
         if state["done"]:
             break
         observation = plugin.observe(family_case, state, "buyer", phase)
-        action = choose_public_policy_action(observation, policy_id=policy_id)
+        action = choose(observation)
         if action is None:
             return None
         parsed = plugin.parse_action(family_case, state, "buyer", phase, action)
@@ -292,6 +305,91 @@ def replay_baseline_outcome(
     if terminal is None:
         return None
     return plugin.outcome(family_case, terminal)
+
+
+def deadline_aware_action(observation: Mapping[str, Any]) -> dict[str, Any]:
+    """An observation-only buyer that does not throw away the period it is in.
+
+    The pinned public policies qualify every supplier before deciding and pad
+    each order for late-delivery risk. Under repeated sourcing the first costs
+    about a day an action and runs past the last day a lead time can still meet
+    the deadline, so they forfeit period 1 on most worlds; the second splits a
+    component across two suppliers once on-time is below 1, and after a
+    retaliation markup that padded order no longer fits the budget (P-D-07).
+    This rule changes those two habits and nothing else: it stops qualifying
+    once qualified capacity covers the target and only while an award could
+    still arrive in time, and it orders the target quantity, accepting the
+    stated delivery risk. It reads the same observation the model reads.
+    """
+    objective = observation["objective"]
+    day = int(observation["elapsed_days"])
+    actions_left = int(observation["actions_left"])
+    deadline = int(objective["deadline_days"])
+    required = observation["policy"]["required_variant_by_component"]
+    chosen: dict[str, list[tuple[Mapping[str, Any], Mapping[str, Any]]]] = {}
+    for component, units_per_kit in objective["bom"].items():
+        need = int(objective["target_kits"]) * int(units_per_kit)
+        capacity = 0.0
+        chosen[component] = []
+        for supplier in _ranked_suppliers(observation, component=component, policy_id="displayed_price_greedy"):
+            supplier_id = str(supplier["supplier_id"])
+            offer = _latest_offer(observation, supplier_id)
+            if offer is None or int(offer["expires_day"]) < day:
+                if actions_left <= 2:
+                    break
+                return {
+                    "action": "request_quote",
+                    "supplier_id": supplier_id,
+                    "message": "Issue a formal offer with complete commercial terms.",
+                }
+            if offer["variant_id"] != required[component]:
+                continue
+            lead = int(offer["lead_time_days"])
+            if day + lead > deadline:
+                continue
+            sample = observation["verified_samples"].get(supplier_id)
+            if not isinstance(sample, Mapping) or sample.get("variant_id") != offer.get("variant_id"):
+                if actions_left <= 1 or day + 1 + lead > deadline:
+                    continue
+                return {
+                    "action": "request_sample",
+                    "supplier_id": supplier_id,
+                    "message": "Provide an exact-variant qualification sample.",
+                }
+            chosen[component].append((offer, sample))
+            capacity += int(offer["capacity"]) * _evidenced_yield(sample)
+            if capacity + 1e-12 >= need:
+                break
+    award_lines: list[dict[str, Any]] = []
+    spend = float(observation["information_cost_usd"])
+    kits: list[int] = []
+    for component, units_per_kit in objective["bom"].items():
+        need = int(objective["target_kits"]) * int(units_per_kit)
+        covered = 0.0
+        expected = 0.0
+        for offer, sample in chosen[component]:
+            yield_rate = _evidenced_yield(sample)
+            if yield_rate <= 0:
+                continue
+            quantity = _valid_quantity(offer, (need - covered) / yield_rate)
+            award_lines.append({"offer_id": str(offer["offer_id"]), "quantity": quantity})
+            covered += quantity * yield_rate
+            expected += quantity * yield_rate * float(offer["on_time_probability"])
+            line = quantity * float(offer["unit_price_usd"]) + quantity * float(offer["shipping_per_unit_usd"])
+            spend += line * (1.0 + float(offer["duty_rate"]))
+            if covered + 1e-12 >= need:
+                break
+        kits.append(int(math.floor(expected / int(units_per_kit) + 1e-12)))
+    if not award_lines or min(kits) < int(objective["minimum_service_kits"]):
+        return {"action": "defer", "reason": "cannot meet minimum service in time"}
+    if spend > float(objective["cash_budget_usd"]) + 1e-9:
+        return {"action": "defer", "reason": "landed spend exceeds the cash budget"}
+    return {"action": "submit_award", "award_lines": award_lines}
+
+
+def replay_deadline_aware(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The competent observation-only reference; screen-only, outside ``POLICY_IDS``."""
+    return _replay_observation_policy(payload, deadline_aware_action)
 
 
 def replay_best_qualified(payload: Mapping[str, Any]) -> dict[str, Any] | None:
