@@ -214,6 +214,15 @@ def _supplier_by_id(family_case: Mapping[str, Any]) -> dict[str, dict[str, Any]]
 #: Sampling noise models a case may declare. Kept as a set so an unknown model
 #: is a validation error rather than a silent fallback to perfect verification.
 SAMPLE_NOISE_MODELS = frozenset({"binomial"})
+AWARD_CONTRACTS = (
+    frozenset({"unexpired_formal_offer", "verified_sample", "exact_variant"}),
+    frozenset({"unexpired_formal_offer", "exact_variant"}),
+)
+#: What ``check_award`` reports. ``full`` is the v1 dry run, which scores the
+#: lines on the supplier's true yield and so reveals it; ``terms_only`` reports
+#: only violations that do not depend on hidden quality (P-D-11).
+AWARD_CHECK_MODES = frozenset({"full", "terms_only"})
+QUALITY_DEPENDENT_VIOLATIONS = frozenset({"minimum_service_not_met"})
 
 
 def _binomial_defects(
@@ -297,6 +306,8 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         _finite_number(interaction.get(field), f"interaction.{field}", minimum=0.0)
     if interaction.get("counter_feedback", "legacy") not in {"legacy", "field_specific"}:
         raise ValueError("interaction.counter_feedback must be legacy or field_specific")
+    if interaction.get("award_check", "full") not in AWARD_CHECK_MODES:
+        raise ValueError(f"interaction.award_check must be one of {sorted(AWARD_CHECK_MODES)}")
 
     # Sampling noise is opt-in and declared, never implicit. A case that omits
     # the block keeps perfect verification, which is what every sealed panel was
@@ -342,12 +353,13 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         or not set(inquiry_fields) <= INQUIRY_FIELDS
     ):
         raise ValueError("policy.inquiry_fields contains unsupported or duplicate fields")
-    if not isinstance(award_requires, list) or set(award_requires) != {
-        "unexpired_formal_offer",
-        "verified_sample",
-        "exact_variant",
-    }:
-        raise ValueError("policy.award_requires does not match the v1 award contract")
+    # A world may declare that an award needs no verified sample: buying unseen
+    # is then a decision the buyer weighs, not a protocol error. Declared in the
+    # policy, which the buyer reads, so the rule is never hidden in code.
+    if not isinstance(award_requires, list) or len(award_requires) != len(set(award_requires)) or set(
+        award_requires
+    ) not in AWARD_CONTRACTS:
+        raise ValueError("policy.award_requires does not match a declared award contract")
 
     seen: set[str] = set()
     components_seen: set[str] = set()
@@ -379,6 +391,14 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             value = _finite_number(terms.get(field), f"{path}.private_terms.{field}", minimum=0.0)
             if field == "on_time_probability" and value > 1.0:
                 raise ValueError(f"{path}.private_terms.on_time_probability must be <= 1")
+        if "offer_on_time_probability" in terms:
+            stated = _finite_number(
+                terms["offer_on_time_probability"],
+                f"{path}.private_terms.offer_on_time_probability",
+                minimum=0.0,
+            )
+            if stated > 1.0:
+                raise ValueError(f"{path}.private_terms.offer_on_time_probability must be <= 1")
         for field in (
             "capacity",
             "moq",
@@ -492,7 +512,7 @@ def _base_offer(supplier: Mapping[str, Any], *, version: int, issued_day: int) -
         "moq": terms["moq"],
         "order_step": terms["order_step"],
         "lead_time_days": terms["lead_time_days"],
-        "on_time_probability": terms["on_time_probability"],
+        "on_time_probability": terms.get("offer_on_time_probability", terms["on_time_probability"]),
         "payment_terms_days": terms["payment_terms_days"],
         "return_policy": _plain(terms["return_policy"]),
         "negotiated": False,
@@ -585,6 +605,17 @@ def _quantity_values(offer: Mapping[str, Any]) -> tuple[int, ...]:
     return tuple(values)
 
 
+def true_on_time(supplier: Mapping[str, Any], offer: Mapping[str, Any]) -> float:
+    """The supplier's real on-time probability. A world that declares
+    ``offer_on_time_probability`` has its offers state that figure instead, so
+    the score and the delivery draw read the private term; otherwise the offer
+    carries the true value, as in every world authored before the field."""
+    terms = supplier["private_terms"]
+    if "offer_on_time_probability" in terms:
+        return float(terms["on_time_probability"])
+    return float(offer["on_time_probability"])
+
+
 def evaluate_award(
     family_case: Mapping[str, Any],
     *,
@@ -602,6 +633,7 @@ def evaluate_award(
         str(supplier["supplier_id"]): supplier for supplier in family_case["suppliers"]
     }
     required_variants = family_case["policy"]["required_variant_by_component"]
+    sample_required = "verified_sample" in family_case["policy"]["award_requires"]
     violations: list[str] = []
     seen_suppliers: set[str] = set()
     expected_units = {component: 0.0 for component in objective["bom"]}
@@ -631,13 +663,14 @@ def evaluate_award(
             violations.append(f"{supplier_id}.expired_offer")
         if offer["variant_id"] != required_variants[component]:
             violations.append(f"{supplier_id}.wrong_variant")
-        quality = quality_evidence.get(supplier_id)
-        if not isinstance(quality, Mapping) or quality.get("evidence_status") != "verified_sample":
-            violations.append(f"{supplier_id}.sample_not_verified")
-            continue
-        if quality.get("variant_id") != offer["variant_id"]:
-            violations.append(f"{supplier_id}.sample_variant_mismatch")
-            continue
+        if sample_required:
+            quality = quality_evidence.get(supplier_id)
+            if not isinstance(quality, Mapping) or quality.get("evidence_status") != "verified_sample":
+                violations.append(f"{supplier_id}.sample_not_verified")
+                continue
+            if quality.get("variant_id") != offer["variant_id"]:
+                violations.append(f"{supplier_id}.sample_variant_mismatch")
+                continue
         if quantity < offer["moq"]:
             violations.append(f"{supplier_id}.below_moq")
         if quantity > offer["capacity"]:
@@ -667,7 +700,7 @@ def evaluate_award(
             supplier["private_terms"]["quality"]["verified_yield_rate"]
         )
         arrives_in_time = elapsed_days + offer["lead_time_days"] <= objective["deadline_days"]
-        on_time_probability = float(offer["on_time_probability"]) if arrives_in_time else 0.0
+        on_time_probability = true_on_time(supplier, offer) if arrives_in_time else 0.0
         expected_units[component] += quantity * yield_rate * on_time_probability
 
         defects = quantity * (1.0 - yield_rate)
@@ -1653,6 +1686,20 @@ class ProcurementAllocationPlugin:
                 "contribution_margin_usd": float(projection["contribution_margin_usd"]),
                 "cash_spend_usd": float(projection["cash_spend_usd"]),
             }
+            if family_case["interaction"].get("award_check", "full") == "terms_only":
+                # Only what the terms decide: nothing computed from true yield
+                # or true on-time probability reaches the buyer.
+                violations = [
+                    v for v in projection["violations"] if v not in QUALITY_DEPENDENT_VIOLATIONS
+                ]
+                record = {
+                    "ordinal": record["ordinal"],
+                    "elapsed_days": record["elapsed_days"],
+                    "award_lines": record["award_lines"],
+                    "feasible": not violations,
+                    "violations": violations,
+                    "cash_spend_usd": record["cash_spend_usd"],
+                }
             next_state["award_checks"].append(record)
             next_state["conversation"].append(
                 {
@@ -1661,9 +1708,13 @@ class ProcurementAllocationPlugin:
                         "Pre-award check: "
                         + ("feasible" if record["feasible"] else "NOT feasible")
                         + f"; violations={record['violations']}; "
-                        f"completed_kits={record['completed_kits']}; "
-                        f"contribution_margin_usd={record['contribution_margin_usd']:.4f}; "
-                        f"cash_spend_usd={record['cash_spend_usd']:.4f}."
+                        + (
+                            f"completed_kits={record['completed_kits']}; "
+                            f"contribution_margin_usd={record['contribution_margin_usd']:.4f}; "
+                            if "completed_kits" in record
+                            else ""
+                        )
+                        + f"cash_spend_usd={record['cash_spend_usd']:.4f}."
                     ),
                 }
             )
