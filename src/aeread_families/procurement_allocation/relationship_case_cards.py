@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import hashlib
 
@@ -25,6 +25,7 @@ from .runner import RELATIONSHIP_PROMPT
 
 PROMPT_ID = "procurement_relationship_prompt_v1"
 PART_NAMES = {"esp32_s3_n8r8": "ESP32 controller", "ssd1306_oled_096": "OLED display"}
+PART_SHORT = {"esp32_s3_n8r8": "ESP32", "ssd1306_oled_096": "OLED"}
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CARDS_ROOT = REPOSITORY_ROOT / "docs" / "families" / "procurement-allocation" / "case_cards"
@@ -48,6 +49,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D1_orders_in_time",
             "check": "places a period-1 order that can still arrive by the deadline",
+            "criterion": f"Places the period-1 order by day {reference['latest_period_one_order_day']}, so it arrives by day {reference['deadline_days']}",
+            "negative_criterion": f"Defers period 1, or orders after day {reference['latest_period_one_order_day']} and misses minimum service",
+            "skill_tag": "Planning (time budget)",
             "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
             "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
             "reference": {
@@ -58,6 +62,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D2_reference_suppliers",
             "check": "buys from the suppliers the reference plan buys from, period by period",
+            "criterion": "Buys from " + " / ".join(" + ".join(s.split("_")[-1] for s in row["suppliers"]) for row in reference["per_period"]) + " in periods 1-4",
+            "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
+            "skill_tag": "Reasoning (across periods)",
             "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
             "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
             "reference": {"per_period": [row["suppliers"] for row in reference["per_period"]]},
@@ -65,6 +72,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D3_negotiates",
             "check": "wins a better offer by counter-offer and orders on it",
+            "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
+            "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
+            "skill_tag": "Negotiation",
             "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
             "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
             "reference": {
@@ -77,6 +87,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D4_minimum_service",
             "check": "meets minimum service in every period",
+            "criterion": "Delivers at least " + ", ".join(str(row["minimum_service_kits"]) for row in reference["per_period"]) + " kits in periods 1-4",
+            "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
+            "skill_tag": "Constraint satisfaction",
             "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
             "fails_when": "any period misses minimum service, including a period never played",
             "reference": {"minimum_service_kits": [row["minimum_service_kits"] for row in reference["per_period"]]},
@@ -84,6 +97,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D5_valid_execution",
             "check": "every action and award is valid and every period is played",
+            "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
+            "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
+            "skill_tag": "Protocol execution",
             "passes_when": "no violation among " + ", ".join(EXECUTION_VIOLATIONS),
             "fails_when": "any of them",
             "reference": None,
@@ -91,11 +107,64 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D6_beats_competent_rule",
             "check": "earns more than the deadline-aware observation-only rule",
+            "criterion": f"Regret below {reference['ladder'][COMPETENT_BASELINE]:.1f}, the deadline-aware rule that sees only what the buyer sees",
+            "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
+            "skill_tag": "Overall",
             "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
             "fails_when": "regret at or above it",
             "reference": {"deadline_aware_regret_usd": reference["ladder"][COMPETENT_BASELINE]},
         },
     ]
+
+
+def expert_steps(
+    per_period: list[dict[str, Any]],
+    latest_day: int,
+    deadline: int,
+    label: Callable[[str], str],
+    has_loyalty: Callable[[str], bool],
+) -> list[str]:
+    """The reference plan as numbered steps (APEX-style), stating only what the plan shows."""
+    first = per_period[0]
+    countered = [l for l in first["lines"] if l["paid_unit_price_usd"] < l["base_quoted_unit_price_usd"] - 1e-6]
+    at_quote = [l for l in first["lines"] if l not in countered]
+    steps = [
+        "Quote and sample only the suppliers the plan buys in period 1: "
+        + ", ".join(sorted({label(l["supplier_id"]) for l in first["lines"]}))
+        + f". Each action costs a day; order by day {latest_day} to arrive by day {deadline}.",
+    ]
+    negotiate = []
+    if countered:
+        negotiate.append(
+            "counter "
+            + "; ".join(f"{label(l['supplier_id'])} from ${l['base_quoted_unit_price_usd']:.3f} to ${l['paid_unit_price_usd']:.3f}" for l in countered)
+        )
+    if at_quote:
+        negotiate.append("pay the quoted price for " + ", ".join(label(l["supplier_id"]) for l in at_quote))
+    steps.append("Period 1 prices: " + "; ".join(negotiate) + ".")
+    steps.append(
+        "Period 1: award "
+        + " + ".join(f"{l['quantity']} x {label(l['supplier_id'])} at ${l['paid_unit_price_usd']:.3f}" for l in first["lines"])
+        + f"; margin ${first['margin_usd']:.2f}."
+    )
+    later = per_period[1:]
+    if all(row["suppliers"] == first["suppliers"] for row in later):
+        step = f"Periods 2-{len(per_period)}: award the same suppliers every period"
+    else:
+        step = f"Periods 2-{len(per_period)}: " + "; ".join(
+            f"p{row['period']} " + " + ".join(label(sid) for sid in row["suppliers"]) for row in later
+        )
+    falls = []
+    for line in first["lines"]:
+        prices = [line["paid_unit_price_usd"]] + [
+            next((l["paid_unit_price_usd"] for l in row["lines"] if l["supplier_id"] == line["supplier_id"]), None) for row in later
+        ]
+        if all(p is not None for p in prices) and prices[-1] < prices[0] - 1e-6:
+            cause = "loyalty discount" if has_loyalty(line["supplier_id"]) else "counter-offer"
+            falls.append(f"{label(line['supplier_id'])} ${prices[0]:.3f} to ${prices[-1]:.3f} ({cause})")
+    steps.append(step + ("; price falls for " + ", ".join(falls) if falls else "") + ".")
+    steps.append(f"Total margin ${sum(row['margin_usd'] for row in per_period):.2f}, the upper bound; any shortfall is regret.")
+    return steps
 
 
 def describe(task: Mapping[str, Any], suppliers: Mapping[str, Any]) -> str:
@@ -219,6 +288,40 @@ def world_card(pack: str, row: Mapping[str, Any], payload: Mapping[str, Any]) ->
         "diagnostic_checks": _checks(reference),
     }
     card["description"] = describe(card["task"], card["buyer_sees"])
+    def label(supplier_id: str) -> str:
+        return f"{PART_SHORT.get(suppliers[supplier_id]['component'], '')} {supplier_id.split('_')[-1]}".strip()
+
+    def has_loyalty(supplier_id: str) -> bool:
+        programme = suppliers[supplier_id]["private_terms"].get("relationship") or {}
+        return float(programme.get("loyalty_discount_per_award") or 0) > 0
+
+    card["reference_solution"]["expert_steps"] = expert_steps(
+        per_period, reference["latest_period_one_order_day"], reference["deadline_days"], label, has_loyalty
+    )
+    for check in card["diagnostic_checks"]:
+        if check["id"] == "D2_reference_suppliers":
+            paths = [" + ".join(label(sid) for sid in row["suppliers"]) for row in per_period]
+            check["criterion"] = (
+                f"Buys {paths[0]} in every period"
+                if len(set(paths)) == 1
+                else "Buys " + "; ".join(f"p{i + 1} {path}" for i, path in enumerate(paths))
+            )
+    card["reference_solution"]["oracle"] = "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information"
+    card["metadata"] = {
+        "category": row["stratum"],
+        "domain": "procurement, repeated sourcing",
+        "pack": pack,
+        "split": "holdout" if "holdout" in pack else "dev",
+        "world_seed": row["world_seed"],
+        "budget": f"{card['task']['periods']} periods x {card['task']['actions_per_period']} actions, one day each",
+        "scorer": "regret to the exact upper bound (USD)",
+        "difficulty": {
+            "rated_by_a_human": False,
+            "myopic_regret_usd": ladder["myopic"],
+            "deadline_aware_regret_usd": ladder[COMPETENT_BASELINE],
+            "defer_regret_usd": ladder["defer"],
+        },
+    }
     return card
 
 
