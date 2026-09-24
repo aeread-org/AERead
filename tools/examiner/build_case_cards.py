@@ -174,12 +174,19 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
             dirs = index.get(row["receipt_sha256"]) or []
             negotiation = negotiation_events(Path(dirs[0])) if dirs else None
             evaluations[row["receipt_sha256"]] = evaluate(card, row, periods.get(row["case_id"], []), negotiation)
+            evaluations[row["receipt_sha256"]]["seed"] = row.get("seed")
+    # Pre-registered confirmatory reports, keyed by the bundle (campaign) directory name.
+    confirmatory = {
+        path.parent.parent.name: json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(checkout.glob("evidence/**/reports/confirmatory_vs_*.json"))
+    }
     data = {
         "cards": cards,
         "strata": {key: value for key, value in prose.items() if "-" in key and key.replace("-", "_") in {c["stratum"] for c in cards.values()}},
         "common": {key: value for key, value in prose.items() if key in ("How to read a cell", "Common to every world", "Known limits")},
         "evaluations": evaluations,
         "prompts": prompts,
+        "confirmatory": confirmatory,
     }
     (out / "data").mkdir(parents=True, exist_ok=True)
     (out / "data" / "case_cards.json").write_text(json.dumps(data, sort_keys=True), encoding="utf-8")

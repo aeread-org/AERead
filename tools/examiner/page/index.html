@@ -96,9 +96,12 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 .jt td{overflow-wrap:break-word;word-break:normal}.jt td .txt{overflow-wrap:break-word}
 @media (max-width:1100px){.ccgrid{grid-template-columns:minmax(0,1fr)}}
 .app.withcard{height:auto}.app.withcard>.grid3{flex:0 0 auto;height:calc(100vh - 110px);min-height:520px}
+.glossbtn{margin-left:auto;margin-right:8px;font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--soft);color:var(--ink);cursor:pointer}.glosspanel{margin:6px 0}.glosspanel dl{font-size:12.5px}
+.sortbtn{font:inherit;text-transform:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}.dchip{padding:0 5px;margin-right:2px;font-size:10.5px}
 </style>
 <main>
-<div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><span class="src" id="src" tabindex="0" title="">source</span></div>
+<div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><button class="glossbtn" id="glossbtn" title="What the terms on these pages mean">glossary</button><span class="src" id="src" tabindex="0" title="">source</span></div>
+<section class="panel glosspanel" id="glosspanel" hidden></section>
 <div id="view" class="loading">Loading the catalog…</div>
 <p class="foot" id="foot" hidden></p>
 </main>
@@ -189,7 +192,7 @@ function renderCampaign(){
   const prov=g.source==='sealed_logs'?`<p class="muted" style="margin:0 0 6px;font-size:12px">The bundle itself publishes ${g.legacy_rows?g.legacy_rows+' cell-level rows and ':''}no step grain. The steps below were read from the sealed event logs on this machine, matched to the bundle by receipt digest, so they are the runs the bundle reports on but not part of the published artefact.</p>`:'';
   const traj=c.trajectory_file?`${prov}<dl class="kv"><dt>cases</dt><dd>${g.cases}</dd><dt>steps</dt><dd>${g.rows} (${g.steps_per_case} per case)</dd><dt>phases seen</dt><dd class="mono">${esc((g.phases||[]).join(', '))}</dd><dt>profiles</dt><dd>${g.profiles} (${g.scripted_profiles} scripted) <span class="mono muted">${esc((g.profile_ids||[]).join(', '))}</span></dd><dt>invalid steps</dt><dd>${g.invalid_steps}</dd><dt>provider cost in grain</dt><dd>${money(g.cost_usd||0)}</dd></dl><div class="nav"><button class="primary" id="examine">Examine cases step by step</button></div>`:(g.legacy_rows?`<p class="muted">This bundle publishes ${g.legacy_rows} cell-level rows without a step grain, so it can be reviewed here but not stepped through.</p>`:`<p class="muted">Nothing to step through: ${esc((LENS[c.id]||{}).note||'no step grain is published for this bundle and no sealed attempt directory on this machine matches it')}.</p>`);
   $('view').className='';
-  $('view').innerHTML=`<div class="stack">
+  $('view').innerHTML=`<div class="stack">${confirmatoryHtml(c)}
   <section class="panel"><h2>${esc(CAT.family_label[c.family]||c.family)} · version ${c.chain.position} of ${c.chain.length} in <span class="mono">${esc(c.stem)}</span></h2>
    <h3 class="mono" style="font-size:16px">${esc(c.id)}</h3><div class="chain">${chain}</div>${runline}
    <div class="status"><span class="chip ${c.chain.latest?'acc':''}">${c.chain.latest?'latest in chain':'earlier version'}</span> <span class="em">${esc(st.label)}</span>${c.manifest.cost_qualifier?` · cost ${esc(c.manifest.cost_qualifier)}`:''}${c.manifest.total_cost_usd!=null?` · ${money(c.manifest.total_cost_usd)}`:''}${c.source_receipts?` · ${c.source_receipts} source receipts`:''}<div class="why">${why.length?why.join('<br>'):'no status sentence found in the manifest, reports or README; treat as published with the claims stated in its README'}</div></div>
@@ -230,6 +233,7 @@ async function renderCases(){
   const c=byId(route.campaign);
   $('view').className='loading'; $('view').textContent='Loading trajectories…';
   const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));
+  await loadCards();if(CARDS&&data.cases.some(k=>CARDS.evaluations[k.receipt_sha256]))return renderCaseTable(c,data);
   const numericKeys=(()=>{const counts={};data.cases.forEach(k=>Object.entries(k.outcome_row||{}).forEach(([key,v])=>{if(typeof v==='number'||(typeof v==='string'&&v!==''&&!isNaN(Number(v))&&key.indexOf('sha256')<0)){counts[key]=(counts[key]||0)+1;}}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!/sha|index|seed|id$/.test(k)).slice(0,4);})();
   const seedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='world_seed'||x.endsWith('.world_seed'));return key?r[key]:null;};const hasSeed=data.cases.some(k=>seedOf(k)!=null);const iseedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='inference_seed'||x.endsWith('.inference_seed'));return key?r[key]:null;};const hasISeed=data.cases.some(k=>iseedOf(k)!=null);const archOf=id=>{const m=String(id).match(/^(.*?)(?:\.|_)?(\d+)$/);return m?{arch:m[1],n:m[2]}:{arch:id,n:''};};
   const rows=data.cases.map(k=>`<tr class="click" data-case="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}"><td class="mono">${esc(k.case_id)}</td>${hasSeed?`<td class="mono muted" title="world seed: each numbered case of an archetype is a separately sampled world">${esc(seedOf(k)??'—')}</td>`:''}${hasISeed?`<td class="mono muted" title="inference seed: the same world run again with a different model sampling seed">${esc(iseedOf(k)??'—')}</td>`:''}<td class="mono muted">${esc(k.episode_attempt_id.slice(-8))}</td><td class="mono" style="white-space:normal">${esc(k.profiles.join(', '))}</td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td><td>${k.invalid_steps?`<span class="chip no">${k.invalid_steps}</span>`:'0'}</td><td>${money(k.cost)}</td>${numericKeys.map(key=>`<td>${esc(k.outcome_row&&k.outcome_row[key]!=null?(typeof k.outcome_row[key]==='number'?fmt(k.outcome_row[key],2):k.outcome_row[key]):'—')}</td>`).join('')}</tr>`).join('');
@@ -326,12 +330,68 @@ function cardHtml(k){const f=cardFor(k);if(!f)return'';const {card,ev}=f;
   <table class="cct"><thead><tr><th>period</th><th>reference buys</th><th>this cell buys</th><th>ref. margin</th></tr></thead><tbody>${plan}</tbody></table>`;
  // 4. verifier (rubric: criterion, negative criterion, skill tag) and the score
  const crit=card.diagnostic_checks.map(c=>{const id=c.id.slice(0,2);const r=ev&&ev.checks[id];const cls=r?(r.verdict==='pass'?'yes':r.verdict==='fail'?'no':'na'):'na';return `<tr><td class="nw mono">${esc(id)}</td><td>${esc(c.criterion||c.check)}</td><td class="muted">${esc(c.negative_criterion||c.fails_when)}</td><td class="nw">${esc(c.skill_tag||'')}</td><td class="nw"><span class="chip ${cls}">${esc(r?r.verdict:'not evaluated')}</span></td><td class="muted">${esc(r?r.why:'')}</td></tr>`;}).join('');
- const lad=Object.entries(card.reference_ladder_regret_usd).concat(ev?[['this cell',ev.regret]]:[]).sort((a,b)=>a[1]-b[1]).map(([n,v])=>`<span class="chip ${n==='this cell'?'acc':''}">${esc(n)} ${fmt(v,1)}</span>`).join(' ');
+ const lad=Object.entries(card.reference_ladder_regret_usd).concat(ev?[['this cell',ev.regret]]:[]).sort((a,b)=>a[1]-b[1]).map(([n,v])=>`<span class="chip ${n==='this cell'?'acc':''}" title="${esc(gloss(n))}">${esc(n)} ${fmt(v,1)}</span>`).join(' ');
  const ver=`<h3>4 · Verifier <span class="muted">rubric and score for this cell</span></h3><table class="cct"><thead><tr><th>#</th><th>criterion</th><th>negative criterion</th><th>skill</th><th>result</th><th>evidence</th></tr></thead><tbody>${crit}</tbody></table>
   <p class="cctext" style="margin-top:8px"><strong>Score:</strong> regret to the exact bound, lower is better. Criteria diagnose; they do not score.</p><div style="display:flex;flex-wrap:wrap;gap:4px">${lad}</div>`;
  return `<section class="panel cc" style="margin-bottom:10px"><details open><summary>Case card · ${esc(card.stratum.replace(/_/g,' '))} · <span class="mono">${esc(card.world)}</span></summary>${meta}
   <div class="ccgrid"><div>${instr}${env}</div><div>${sol}${ver}</div></div>
   <p class="muted" style="font-size:11.5px;margin:8px 0 0">Generated from <span class="mono">${esc(card.stratum_card.split('#')[0])}</span> and the world card; layout after Terminal-Bench and APEX (instruction · metadata · solution · verifier).</p></details></section>`;}
+const GLOSS={
+ 'regret':'Money left on the table: the exact upper bound minus what this buyer earned. Lower is better; 0 is perfect.',
+ 'optimum':'The exact four-period plan with full information. It earns the upper bound, so its regret is 0.',
+ 'myopic':'A full-information buyer that maximises each period on its own and ignores later periods.',
+ 'loyal':'A full-information buyer that keeps its first-period suppliers for every period.',
+ 'shopping':'A full-information buyer that re-picks the cheapest supplier every period.',
+ 'deadline_aware':'A simple rule that sees only what the buyer sees: it qualifies suppliers while delivery is still possible and orders the target quantity. The bar a model should clear.',
+ 'defer':'Orders nothing and earns $0, so its regret is the whole upper bound.',
+ 'displayed_price_greedy':'Pinned public rule: ranks suppliers by displayed price and checks every one before ordering.',
+ 'listing_claim_fit':'Pinned public rule: ranks suppliers by how well their listing claims fit.',
+ 'semantic_hint':'Pinned public rule: ranks suppliers by text hints in their listings.',
+ 'this cell':'This run’s regret, placed among the reference policies.',
+ 'breach':'The run missed minimum service in some period or broke the protocol (check D4 or D5 failed).',
+ 'invalid steps':'Actions the environment rejected as malformed or illegal. Not the same as a breach.',
+ 'leaf':'The quantity the scorer optimises; here the buyer’s contribution margin in USD.',
+ 'score metric':'A number the scorer records beside the primary score.',
+ 'elapsed days':'Days used, summed over all periods. Each period has its own day-14 deadline.',
+ 'step grain':'The bundle publishes one row per action, so steps can be walked on this page.',
+ 'sealed logs':'The full event logs are on this machine, so every observation and hidden state is shown.',
+ 'confirmatory':'Frozen and pre-registered before any result; its stated outcomes may be claimed, nothing beyond them.',
+ 'development_qualification':'A development run: descriptive only, no claim.',
+ '(as described)':'The README calls the run confirmatory; the manifest itself carries no claim_status field.',
+ 'world':'One generated procurement scenario: suppliers, prices, demand. The unit of analysis.',
+ 'seed':'Which replicate of a world: re-seeds delivery draws and the model’s sampling.',
+ 'stratum':'The kind of decision a world tests (loyalty, retaliation, qualification, ...).',
+ 'cell':'One run of one model on one world at one seed.'
+};
+const gloss=t=>GLOSS[t]||GLOSS[String(t).toLowerCase()]||'';
+(()=>{const b=document.getElementById('glossbtn'),pn=document.getElementById('glosspanel');if(!b||!pn)return;pn.innerHTML=`<h2>Glossary</h2><dl class="kv">${Object.entries(GLOSS).map(([k2,v])=>`<dt class="mono">${esc(k2)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;b.addEventListener('click',()=>{pn.hidden=!pn.hidden;});})();
+const median=a=>{if(!a.length)return null;const q=[...a].sort((x,y)=>x-y);const h=q.length>>1;return q.length%2?q[h]:(q[h-1]+q[h])/2;};
+function renderCaseTable(c,data){
+ const profs=[...new Set(data.cases.flatMap(k=>k.profiles))];
+ const rows=data.cases.map(k=>{const ev=CARDS.evaluations[k.receipt_sha256]||null;const card=ev&&CARDS.cards[ev.world_case_id];const seed=(String(k.case_id).match(/delivery_(\d+)$/)||[])[1]||(ev&&ev.seed)||'';
+  const checks=ev?['D1','D2','D3','D4','D5','D6'].map(id=>{const r=ev.checks[id];const cls=r?(r.verdict==='pass'?'yes':r.verdict==='fail'?'no':'na'):'na';return `<span class="chip ${cls} dchip" title="${esc(id+': '+(r?r.verdict+' — '+r.why:'not evaluated'))}">${id}</span>`;}).join(''):'';
+  const breach=!!ev&&['D4','D5'].some(id=>ev.checks[id]&&ev.checks[id].verdict==='fail');return {k,ev,card,seed,checks,breach,regret:ev?ev.regret:null};});
+ if(route.sortRegret)rows.sort((a,b)=>(b.regret??-1)-(a.regret??-1));
+ const body=rows.map(r=>`<tr class="click" data-case="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}"><td>${esc(r.card?r.card.stratum.replace(/_/g,' '):'')}</td><td class="mono">${esc(r.card?r.card.world:r.k.case_id)}</td><td class="mono">${esc(r.seed)}</td><td class="mono" style="text-align:right">${r.regret!=null?fmt(r.regret,1):'—'}</td><td>${r.breach?'<span class="chip no">breach</span>':''}</td><td style="white-space:nowrap">${r.checks}</td><td>${r.k.steps?r.k.steps.length:(r.k.steps_count??'—')}</td><td>${r.k.invalid_steps?`<span class="chip no">${r.k.invalid_steps}</span>`:'0'}</td><td>${money(r.k.cost)}</td></tr>`).join('');
+ const scored=rows.filter(r=>r.regret!=null).map(r=>r.regret);const nb=rows.filter(r=>r.breach).length;
+ $('view').className='';
+ $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cells</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">Model: <span class="mono">${esc(profs.join(', '))}</span>. ${scored.length} cells scored: median regret ${fmt(median(scored),1)}, ${nb} with a breach. One row per run of one world; click a row for its case card and the step-by-step view. Hover a D-chip for its evidence, a header for its meaning.</p>
+  <div class="scroll"><table><thead><tr><th title="${esc(gloss('stratum'))}">stratum</th><th title="${esc(gloss('world'))}">world</th><th title="${esc(gloss('seed'))}">seed</th><th><button class="sortbtn" id="sortregret" title="${esc(gloss('regret'))} Click to sort.">regret ${route.sortRegret?'▼':'⇅'}</button></th><th title="${esc(gloss('breach'))}">breach</th><th title="D1 orders in time · D2 reference suppliers · D3 negotiates · D4 minimum service · D5 valid execution · D6 beats deadline_aware">checks D1–D6</th><th>steps</th><th title="${esc(gloss('invalid steps'))}">invalid steps</th><th>cost</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+ $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='step';route.caseId=tr.dataset.case;route.step=0;render();}));
+ const sb=$('sortregret');if(sb)sb.addEventListener('click',e=>{e.stopPropagation();route.sortRegret=!route.sortRegret;render();});
+}
+function confirmatoryHtml(c){const r=CARDS&&CARDS.confirmatory&&CARDS.confirmatory[c.id];if(!r)return'';
+ const L=r.left_route.split('/').pop(),R=r.right_route.split('/').pop();const nm=v=>String(v).replace(/\bleft\b/g,L).replace(/\bright\b/g,R);
+ const ci=x=>x&&x.interval_95&&x.interval_95[0]!=null?`${fmt(x.interval_95[0],2)} to ${fmt(x.interval_95[1],2)}`:'';
+ const vc=v=>`<span class="chip ${/not separated|not estimable/.test(v)?'na':'yes'}">${esc(nm(v))}</span>`;const pc=x=>x==null?'n/a':(x*100).toFixed(1)+'%';
+ const o1=r.O1_breach_rate,o2=r.O2_regret_on_valid_orders,o3=r.O3_vs_deadline_aware;
+ const rows=[
+  ['O1 breach rate',`${esc(L)} ${pc(o1.left)} of cells, ${esc(R)} ${pc(o1.right)}`,`${fmt(o1.paired_difference.mean,3)} (${ci(o1.paired_difference)})`,vc(o1.verdict)],
+  ['O2 regret on valid orders',`${esc(L)} minus ${esc(R)}, per world`,`${fmt(o2.paired_difference.mean,2)} USD (${ci(o2.paired_difference)})`,vc(o2.verdict)],
+  ...['left','right'].map(sd=>[`O3 vs deadline_aware`,`${esc(sd==='left'?L:R)}: baseline regret minus model regret; better on ${o3[sd].worlds_model_better} of ${o3[sd].worlds} worlds`,`${fmt(o3[sd].mean,1)} USD (${ci(o3[sd])})`,vc(o3[sd].verdict==='model better'?(sd==='left'?L:R)+' better':o3[sd].verdict)])];
+ return `<section class="panel"><h2>Pre-registered result · ${esc(r.preregistration)}</h2><p class="muted" style="font-size:12.5px;margin:0 0 6px">Outcomes, definitions and the decision rule were frozen before any cell ran. A direction counts only when its 95% world-bootstrap interval excludes zero. ${r.completed.left} of ${r.cells.left} and ${r.completed.right} of ${r.cells.right} cells completed.</p>
+  <table class="cct"><thead><tr><th>outcome</th><th>what is compared</th><th>estimate (95% interval)</th><th>verdict</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="nw">${x[0]}</td><td>${x[1]}</td><td class="nw mono">${x[2]}</td><td class="nw">${x[3]}</td></tr>`).join('')}</tbody></table>
+  <p class="muted" style="font-size:12px;margin:4px 0 0">Claim scope: ${esc(r.claim_scope)}. Deviations from the confirmatory standard are listed in the QC profile section below.</p></section>`;}
 async function renderStep(){
   await loadCards();
   const c=byId(route.campaign);
@@ -484,13 +544,13 @@ function stateBeyondView(state,obs){const fs=flat(state,'',{}),fo=flat(obs||{},'
 function sealedSteps(lc){const steps=[];let pre=null,preSha=null;lc.phases.forEach((p,pi)=>{p.actions.forEach((a,ai)=>steps.push({kind:'action',pi,ai,phase:p.phase_id,pre,preSha,a,p}));steps.push({kind:'result',pi,phase:p.phase_id,pre,preSha,p});if(p.post_state){pre=p.post_state;preSha=p.post_state_sha256;}});return steps;}
 function actionLabel(a){const act=a.parsed&&a.parsed.action;if(!act)return a.parsed&&a.parsed.error_code?`unparseable (${a.parsed.error_code})`:(a.provider&&a.provider.failures&&a.provider.failures.length?`provider failed (${a.provider.failures[0].condition||'error'})`:'no action');if(typeof act!=='object')return String(act);const d=act.decision||act.action||act.type||act.kind;const parts=[];if(d)parts.push(String(d));['listing_id','offer_id','hold_id','supplier_id','agreement_key','stage_id','rent','counter_rent','amount','price_cents','quantity'].forEach(k=>{if(act[k]!==undefined&&act[k]!==null&&typeof act[k]!=='object')parts.push(`${k.replace(/_id$/,'')} ${typeof act[k]==='number'?fmtNum(act[k]):act[k]}`);});if(!parts.length)parts.push(Object.keys(act).slice(0,3).join(', '));return parts.join(' · ');}
 function messageOf(act){if(!act||typeof act!=='object')return null;for(const k of ['message','text','note','rationale','reason','statement'])if(typeof act[k]==='string'&&act[k].trim())return act[k];return null;}
-function scoreTiles(lc,k){const t=[];const sc=lc.score||{};if(sc.primary&&sc.primary.value!=null)t.push([(sc.estimand&&sc.estimand.estimand_id||'primary score').replace(/_/g,' '),fmtNum(sc.primary.value)+(sc.primary.unit?' '+sc.primary.unit:''),sc.estimand?`${sc.estimand.direction||''} · leaf ${(k.primary_leaf||'')}`:'primary leaf',sc.primary.value<0?'neg':'']);
+function scoreTiles(lc,k){const t=[];const sc=lc.score||{};const cev=CARDS&&CARDS.evaluations&&CARDS.evaluations[k.receipt_sha256];if(cev)t.push(['regret',fmt(cev.regret,1)+' usd','to the exact bound \u00b7 lower is better','']);if(sc.primary&&sc.primary.value!=null)t.push([(sc.estimand&&sc.estimand.estimand_id||'primary score').replace(/_/g,' '),fmtNum(sc.primary.value)+(sc.primary.unit?' '+sc.primary.unit:''),sc.estimand?`${sc.estimand.direction||''} · leaf ${(k.primary_leaf||'')}`:'primary leaf',sc.primary.value<0?'neg':'']);
   const o=lc.outcome||lc.terminal||{};const dec=o.decision||o.termination_reason||o.reason||o.status;if(dec)t.push(['outcome',esc(String(dec)).replace(/_/g,' '),o.termination_reason&&o.decision?esc(String(o.termination_reason)).replace(/_/g,' '):'family outcome','']);
-  const metrics=sc.metrics||{};Object.entries(metrics).slice(0,3).forEach(([name,m])=>t.push([name.replace(/_/g,' '),fmtNum(m.value)+(m.unit&&m.unit!=='indicator'?' '+m.unit:''),'score metric','']));
+  const metrics=sc.metrics||{};Object.entries(metrics).slice(0,3).forEach(([name,m])=>t.push([name.replace(/_/g,' '),fmtNum(m.value)+(m.unit&&m.unit!=='indicator'?' '+m.unit:''),cev&&name==='elapsed_days'?'summed over all periods':'score metric','']));
   const acts=lc.phases.reduce((n,p)=>n+p.actions.length,0),inv=lc.phases.reduce((n,p)=>n+p.actions.filter(a=>a.valid===false).length,0),cost=lc.phases.reduce((n,p)=>n+p.actions.reduce((m,a)=>m+(a.provider.cost_usd||0),0),0);
   t.push(['actions',String(acts),`${lc.phases.length} phase instance${lc.phases.length!==1?'s':''}${inv?` · <span class="neg">${inv} invalid</span>`:''}`,'']);t.push(['provider cost',money(cost),lc.receipt_status?`receipt ${esc(lc.receipt_status)}`:'','']);
   if(lc.failure)t.push(['attempt failure',esc(lc.failure.condition||'failed'),esc(lc.failure.failure_class||''),'neg']);
-  return t.slice(0,7).map(([kk,v,ss,cls])=>`<div class="tile"><div class="k">${kk}</div><div class="v ${cls}">${v}</div><div class="s">${ss}</div></div>`).join('');}
+  const subKey=x=>/\bleaf\b/.test(x)?'leaf':/score metric/.test(x)?'score metric':'';return t.slice(0,8).map(([kk,v,ss,cls])=>`<div class="tile" title="${esc([gloss(kk),gloss(subKey(String(ss)))].filter(Boolean).join(' '))}"><div class="k">${kk}</div><div class="v ${cls}">${v}</div><div class="s">${ss}</div></div>`).join('');}
 async function renderSealed(c,k,data,lens,lc){
   const steps=sealedSteps(lc);if(!steps.length){route.view='cases';return render();}route.step=Math.min(route.step,steps.length-1);const s=steps[route.step];
   const {graph,modes,actors}=pickGraph(c,data.graph);const phaseIdx={};graph.nodes.forEach((n,i)=>phaseIdx[n]=i);
@@ -631,6 +691,7 @@ function wireGutters(){const grid=document.querySelector('.grid3');if(!grid||gri
 async function render(){
   save(); crumbs();
   try{
+    if(CARDS===undefined)await loadCards();
     if(route.view==='catalog')renderCatalog();
     else if(route.view==='campaign')renderCampaign();
     else if(route.view==='cases')await renderCases();
