@@ -50,18 +50,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 partner + OLED steady in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -82,12 +87,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -100,12 +108,15 @@
         "quoted": 1.1613
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -114,23 +125,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 45.2, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 45.2396
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -203,6 +221,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "loyalty_investment",
+    "difficulty": {
+     "deadline_aware_regret_usd": 45.2396,
+     "defer_regret_usd": 408.3605,
+     "myopic_regret_usd": 21.9104,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430000
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 45.2396,
@@ -216,6 +249,14 @@
     "shopping": 24.125
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 partner, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 partner from $3.373 to $3.170; OLED steady from $1.161 to $1.092.",
+     "Period 1: award 20 x ESP32 partner at $3.170 + 20 x OLED steady at $1.092; margin $94.91.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 partner $3.170 to $2.538 (loyalty discount).",
+     "Total margin $408.36, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -410,18 +451,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 partner + OLED steady in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -442,12 +488,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -460,12 +509,15 @@
         "quoted": 1.2169
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -474,23 +526,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 178.7, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 178.6876
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -563,6 +622,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "loyalty_investment",
+    "difficulty": {
+     "deadline_aware_regret_usd": 178.6876,
+     "defer_regret_usd": 408.364,
+     "myopic_regret_usd": 27.4381,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430006
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 178.6876,
@@ -576,6 +650,14 @@
     "shopping": 29.7276
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 partner, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 partner from $3.457 to $3.250; OLED steady from $1.217 to $1.144.",
+     "Period 1: award 20 x ESP32 partner at $3.250 + 20 x OLED steady at $1.144; margin $92.17.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 partner $3.250 to $2.354 (loyalty discount).",
+     "Total margin $408.36, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -770,18 +852,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 steady + OLED unproven in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -802,12 +889,15 @@
         "ssd1306_oled_096_unproven"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -820,12 +910,15 @@
         "quoted": 0.8704
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -834,23 +927,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 63.4, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 63.3832
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -923,6 +1023,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "qualification_investment",
+    "difficulty": {
+     "deadline_aware_regret_usd": 63.3832,
+     "defer_regret_usd": 404.3156,
+     "myopic_regret_usd": 23.1472,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430001
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 63.3832,
@@ -936,6 +1051,14 @@
     "shopping": 25.5632
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 steady, OLED unproven. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 steady from $3.234 to $3.040; pay the quoted price for OLED unproven.",
+     "Period 1: award 20 x ESP32 steady at $3.040 + 20 x OLED unproven at $0.870; margin $91.99.",
+     "Periods 2-4: award the same suppliers every period; price falls for OLED unproven $0.870 to $0.818 (counter-offer).",
+     "Total margin $404.32, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -1130,18 +1253,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 steady + OLED unproven in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -1162,12 +1290,15 @@
         "ssd1306_oled_096_unproven"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -1180,12 +1311,15 @@
         "quoted": 0.9695
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -1194,23 +1328,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 66.7, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 66.6789
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -1283,6 +1424,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "qualification_investment",
+    "difficulty": {
+     "deadline_aware_regret_usd": 66.6789,
+     "defer_regret_usd": 409.1363,
+     "myopic_regret_usd": 22.6314,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430031
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 66.6789,
@@ -1296,6 +1452,14 @@
     "shopping": 25.1152
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 steady, OLED unproven. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 steady from $3.116 to $2.929; OLED unproven from $0.970 to $0.911.",
+     "Period 1: award 20 x ESP32 steady at $2.929 + 20 x OLED unproven at $0.911; margin $95.68.",
+     "Periods 2-4: award the same suppliers every period.",
+     "Total margin $409.14, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -1490,18 +1654,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 scale + OLED steady in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -1522,12 +1691,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -1540,12 +1712,15 @@
         "quoted": 1.314
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 8, 8, 24, 24 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -1554,23 +1729,30 @@
        24,
        24
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 43.6, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 43.6208
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -1643,6 +1825,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "demand_ramp",
+    "difficulty": {
+     "deadline_aware_regret_usd": 43.6208,
+     "defer_regret_usd": 408.3006,
+     "myopic_regret_usd": 21.1049,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430002
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 43.6208,
@@ -1656,6 +1853,14 @@
     "shopping": 24.342
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 scale, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 scale from $3.357 to $3.155; OLED steady from $1.314 to $1.235.",
+     "Period 1: award 10 x ESP32 scale at $3.155 + 10 x OLED steady at $1.235; margin $38.96.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 scale $3.155 to $2.489 (loyalty discount).",
+     "Total margin $408.30, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -1850,18 +2055,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 scale + OLED steady in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -1882,12 +2092,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -1900,12 +2113,15 @@
         "quoted": 1.2244
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 8, 8, 24, 24 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -1914,23 +2130,30 @@
        24,
        24
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 153.1, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 153.1349
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -2003,6 +2226,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "demand_ramp",
+    "difficulty": {
+     "deadline_aware_regret_usd": 153.1349,
+     "defer_regret_usd": 421.2775,
+     "myopic_regret_usd": 26.0869,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430008
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 153.1349,
@@ -2016,6 +2254,14 @@
     "shopping": 29.3873
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 scale, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 scale from $3.317 to $3.118; OLED steady from $1.224 to $1.151.",
+     "Period 1: award 10 x ESP32 scale at $3.118 + 10 x OLED steady at $1.151; margin $40.23.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 scale $3.118 to $2.400 (loyalty discount).",
+     "Total margin $421.28, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -2210,18 +2456,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys p1 ESP32 flex + ESP32 steady + OLED steady; p2 ESP32 flex + OLED steady; p3 ESP32 flex + OLED steady; p4 ESP32 flex + OLED steady",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -2243,12 +2494,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -2265,12 +2519,15 @@
         "quoted": 1.162
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -2279,23 +2536,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 50.0, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 49.9528
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -2368,6 +2632,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "incumbent_capacity",
+    "difficulty": {
+     "deadline_aware_regret_usd": 49.9528,
+     "defer_regret_usd": 421.2281,
+     "myopic_regret_usd": 27.149,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430003
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 49.9528,
@@ -2381,6 +2660,14 @@
     "shopping": 29.3645
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 flex, ESP32 steady, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 flex from $3.248 to $3.053; pay the quoted price for ESP32 steady, OLED steady.",
+     "Period 1: award 10 x ESP32 flex at $3.053 + 10 x ESP32 steady at $3.218 + 20 x OLED steady at $1.162; margin $93.54.",
+     "Periods 2-4: p2 ESP32 flex + OLED steady; p3 ESP32 flex + OLED steady; p4 ESP32 flex + OLED steady; price falls for ESP32 flex $3.053 to $2.253 (loyalty discount), OLED steady $1.162 to $1.092 (counter-offer).",
+     "Total margin $421.23, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -2583,18 +2870,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys p1 ESP32 flex + ESP32 steady + OLED steady; p2 ESP32 flex + OLED steady; p3 ESP32 flex + OLED steady; p4 ESP32 flex + OLED steady",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -2616,12 +2908,15 @@
         "ssd1306_oled_096_steady"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -2638,12 +2933,15 @@
         "quoted": 1.1909
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -2652,23 +2950,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 52.1, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 52.1082
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -2741,6 +3046,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "incumbent_capacity",
+    "difficulty": {
+     "deadline_aware_regret_usd": 52.1082,
+     "defer_regret_usd": 416.014,
+     "myopic_regret_usd": 31.8253,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430009
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 52.1082,
@@ -2754,6 +3074,14 @@
     "shopping": 34.0797
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 flex, ESP32 steady, OLED steady. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 steady from $3.316 to $3.117; pay the quoted price for ESP32 flex, OLED steady.",
+     "Period 1: award 10 x ESP32 flex at $3.309 + 10 x ESP32 steady at $3.117 + 20 x OLED steady at $1.191; margin $91.33.",
+     "Periods 2-4: p2 ESP32 flex + OLED steady; p3 ESP32 flex + OLED steady; p4 ESP32 flex + OLED steady; price falls for ESP32 flex $3.309 to $2.256 (loyalty discount), OLED steady $1.191 to $1.119 (counter-offer).",
+     "Total margin $416.01, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -2956,18 +3284,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 6, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 6 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 6
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 partner + OLED south in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -2988,12 +3321,15 @@
         "ssd1306_oled_096_south"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -3006,12 +3342,15 @@
         "quoted": 1.2415
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -3020,23 +3359,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 165.8, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 165.7522
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -3109,6 +3455,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "retaliation_trap",
+    "difficulty": {
+     "deadline_aware_regret_usd": 165.7522,
+     "defer_regret_usd": 427.0543,
+     "myopic_regret_usd": 25.7651,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430010
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 165.7522,
@@ -3122,6 +3483,14 @@
     "shopping": 29.2695
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 partner, OLED south. Each action costs a day; order by day 6 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 partner from $3.158 to $2.968; OLED south from $1.242 to $1.167.",
+     "Period 1: award 20 x ESP32 partner at $2.968 + 20 x OLED south at $1.167; margin $97.54.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 partner $2.968 to $2.210 (loyalty discount), OLED south $1.167 to $1.097 (loyalty discount).",
+     "Total margin $427.05, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -3316,18 +3685,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 6, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 6 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 6
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 partner + OLED south in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -3348,12 +3722,15 @@
         "ssd1306_oled_096_south"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -3366,12 +3743,15 @@
         "quoted": 1.1781
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -3380,23 +3760,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 101.9, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 101.923
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -3469,6 +3856,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "retaliation_trap",
+    "difficulty": {
+     "deadline_aware_regret_usd": 101.923,
+     "defer_regret_usd": 434.8986,
+     "myopic_regret_usd": 28.993,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430022
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 101.923,
@@ -3482,6 +3884,14 @@
     "shopping": 32.4738
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 partner, OLED south. Each action costs a day; order by day 6 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 partner from $3.143 to $2.955; OLED south from $1.178 to $1.107.",
+     "Period 1: award 20 x ESP32 partner at $2.955 + 20 x OLED south at $1.107; margin $99.07.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 partner $2.955 to $2.151 (loyalty discount), OLED south $1.107 to $1.041 (loyalty discount).",
+     "Total margin $434.90, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -3676,18 +4086,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 reliable + OLED unproven in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -3708,12 +4123,15 @@
         "ssd1306_oled_096_unproven"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -3726,12 +4144,15 @@
         "quoted": 0.9567
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -3740,23 +4161,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 211.1, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 211.1277
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -3829,6 +4257,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "unreliable_incumbent",
+    "difficulty": {
+     "deadline_aware_regret_usd": 211.1277,
+     "defer_regret_usd": 405.3922,
+     "myopic_regret_usd": 21.3404,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430029
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 211.1277,
@@ -3842,6 +4285,14 @@
     "shopping": 23.888
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 reliable, OLED unproven. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: pay the quoted price for ESP32 reliable, OLED unproven.",
+     "Period 1: award 20 x ESP32 reliable at $3.297 + 20 x OLED unproven at $0.957; margin $86.37.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 reliable $3.297 to $2.728 (loyalty discount), OLED unproven $0.957 to $0.899 (counter-offer).",
+     "Total margin $405.39, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
@@ -4036,18 +4487,23 @@
    "diagnostic_checks": [
     {
      "check": "places a period-1 order that can still arrive by the deadline",
+     "criterion": "Places the period-1 order by day 7, so it arrives by day 14",
      "fails_when": "period 1 deferred, or ordered too late to meet minimum service",
      "id": "D1_orders_in_time",
+     "negative_criterion": "Defers period 1, or orders after day 7 and misses minimum service",
      "passes_when": "period_results[0].decision == 'award' and no 'minimum_service_not_met' in period 1",
      "reference": {
       "deadline_days": 14,
       "latest_order_day": 7
-     }
+     },
+     "skill_tag": "Planning (time budget)"
     },
     {
      "check": "buys from the suppliers the reference plan buys from, period by period",
+     "criterion": "Buys ESP32 reliable + OLED unproven in every period",
      "fails_when": "any period's awarded set differs (the usual case: the cheaper-looking supplier today)",
      "id": "D2_reference_suppliers",
+     "negative_criterion": "Buys from any other supplier in some period, typically the one that is cheapest today",
      "passes_when": "set(awarded[].supplier_id) equals the reference set in every period",
      "reference": {
       "per_period": [
@@ -4068,12 +4524,15 @@
         "ssd1306_oled_096_unproven"
        ]
       ]
-     }
+     },
+     "skill_tag": "Reasoning (across periods)"
     },
     {
      "check": "wins a better offer by counter-offer and orders on it",
+     "criterion": "Orders on an offer a supplier issued after accepting a counter-offer",
      "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
+     "negative_criterion": "Pays the quoted price on every award (no counter-offer, or none accepted)",
      "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
@@ -4086,12 +4545,15 @@
         "quoted": 0.912
        }
       }
-     }
+     },
+     "skill_tag": "Negotiation"
     },
     {
      "check": "meets minimum service in every period",
+     "criterion": "Delivers at least 16, 16, 16, 16 kits in periods 1-4",
      "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
+     "negative_criterion": "Falls short of minimum service in any period, or leaves a period unplayed",
      "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
@@ -4100,23 +4562,30 @@
        16,
        16
       ]
-     }
+     },
+     "skill_tag": "Constraint satisfaction"
     },
     {
      "check": "every action and award is valid and every period is played",
+     "criterion": "Every action parses and every award is to a sampled supplier within its capacity",
      "fails_when": "any of them",
      "id": "D5_valid_execution",
+     "negative_criterion": "Any malformed action, an award on an unverified sample or over capacity, or the action budget runs out",
      "passes_when": "no violation among sample_not_verified, over_capacity, malformed_procurement_action, episode_ended_before_period",
-     "reference": null
+     "reference": null,
+     "skill_tag": "Protocol execution"
     },
     {
      "check": "earns more than the deadline-aware observation-only rule",
+     "criterion": "Regret below 208.7, the deadline-aware rule that sees only what the buyer sees",
      "fails_when": "regret at or above it",
      "id": "D6_beats_competent_rule",
+     "negative_criterion": "Regret at or above that rule: no better than a simple competent policy",
      "passes_when": "regret_to_upper_bound_usd < reference_ladder.deadline_aware",
      "reference": {
       "deadline_aware_regret_usd": 208.6904
-     }
+     },
+     "skill_tag": "Overall"
     }
    ],
    "hidden_from_buyer": {
@@ -4189,6 +4658,21 @@
      "verified_yield_rate": 0.99
     }
    },
+   "metadata": {
+    "budget": "4 periods x 10 actions, one day each",
+    "category": "unreliable_incumbent",
+    "difficulty": {
+     "deadline_aware_regret_usd": 208.6904,
+     "defer_regret_usd": 423.7761,
+     "myopic_regret_usd": 22.9136,
+     "rated_by_a_human": false
+    },
+    "domain": "procurement, repeated sourcing",
+    "pack": "relationship_holdout_v1",
+    "scorer": "regret to the exact upper bound (USD)",
+    "split": "holdout",
+    "world_seed": 2430041
+   },
    "pack": "relationship_holdout_v1",
    "reference_ladder_regret_usd": {
     "deadline_aware": 208.6904,
@@ -4202,6 +4686,14 @@
     "shopping": 25.3228
    },
    "reference_solution": {
+    "expert_steps": [
+     "Quote and sample only the suppliers the plan buys in period 1: ESP32 reliable, OLED unproven. Each action costs a day; order by day 7 to arrive by day 14.",
+     "Period 1 prices: counter ESP32 reliable from $3.178 to $2.988; OLED unproven from $0.912 to $0.857.",
+     "Period 1: award 20 x ESP32 reliable at $2.988 + 20 x OLED unproven at $0.857; margin $95.69.",
+     "Periods 2-4: award the same suppliers every period; price falls for ESP32 reliable $2.988 to $2.629 (loyalty discount).",
+     "Total margin $423.78, the upper bound; any shortfall is regret."
+    ],
+    "oracle": "relationship.solve_relationship_upper_bound: exact four-period dynamic programme on full information",
     "per_period": [
      {
       "lines": [
