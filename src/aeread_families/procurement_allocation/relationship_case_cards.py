@@ -71,8 +71,8 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "id": "D4_minimum_service",
             "check": "meets minimum service in every period",
-            "passes_when": "no 'minimum_service_not_met' in any period",
-            "fails_when": "any period misses minimum service",
+            "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
+            "fails_when": "any period misses minimum service, including a period never played",
             "reference": {"minimum_service_kits": [row["minimum_service_kits"] for row in reference["per_period"]]},
         },
         {
