@@ -311,26 +311,34 @@ Paired on identical worlds and seeds, Gemini's regret is 73.20 below GLM's
 spent GLM identities (v1, v2) are recorded in the incident log (P-O-01, P-O-02)
 and never resumed.
 
-**Gate status for this construct.** Gate 1 `partial`: the two campaigns ran
-on authored, seed-degenerate worlds; rule-selected packs with noisy
-verification and a disjoint holdout now exist but no campaign has run on them,
-so their measured control headroom is unrecorded. Gate 2 `passed`: every cell replayed live and re-audited from disk,
-the bound is attained by replaying its own plan through the environment, and a
-brute-force enumeration agrees with it. Gate 3 `partial`: no-op (`defer`),
-public policies, myopic, loyal and shopping references and an attainable
-ceiling exist with a predeclared 5% beatability rule, but the public
-policies' per-world outcomes are not yet published in a panel manifest. Gate
-4 `partial`: one primary factor (the route), everything else pinned in the
-frozen plan, two routes paired on the same cells, cluster declared as the
-world. Gate 5 `failed`: no variance-pilot panel selected by rule, no
-confirmatory freeze, no holdout.
+**Gate status for this construct.** Gate 1 `passed`: the variance pilot and
+the confirmatory ran on rule-selected packs with disjoint seed domains, and the
+declared unit is the world (declared sample noise does not make seeds
+replicates on a deterministic route, P-D-03, so seeds add information only
+where the model's own sampling varies). Gate 2 `passed`: every cell replayed
+live and re-audited from disk, the bound is attained by replaying its own plan
+through the environment, and a brute-force enumeration agrees with it. Gate 3
+`passed`: no-op (`defer`), the four pinned public policies and the competent
+`deadline_aware` rule are published per world in the pack manifests, beside
+the myopic, loyal and shopping references and an attainable ceiling; admission
+requires `deadline_aware` to beat `defer` (P-D-07). Gate 4 `passed`: the paired
+plans differ only in route, verified key by key (P-D-02 records the earlier
+pair that did not). Gate 5 `passed`: a rule-selected variance pilot, a
+confirmatory pre-registered and frozen before any cell ran, and a holdout no
+live cell had read.
 
-**What unblocks it, in order.** A variance pilot on `relationship_dev_v2`
-(12 worlds, three or more seeds, one route) to measure the live control's
-headroom and the within-world variance the noisy verification now permits;
-then a frozen confirmatory on `relationship_holdout_v1` sized on that
-variance, with a second route paired on the same cells. Until then any number
-above is a development result.
+**Confirmatory result.** On `relationship_holdout_v1`, 12 worlds x 5 seeds, 60
+of 60 cells per route, all three pre-registered outcomes are supported (95%
+world-bootstrap intervals exclude zero). O1: Gemini breaches in 0 of 60 cells,
+GLM in 8 of 60; paired difference -0.133 (-0.233 to -0.050). O2: on valid
+orders Gemini's regret is 14.16 lower (8.96 to 19.21). O3: both beat the
+`deadline_aware` baseline on the same episodes, Gemini by 137.4 (108.2 to
+168.1) on 12 of 12 worlds and GLM by 104.2 (62.6 to 145.0) on 11 of 12. The
+claim is these three statements for these two routes, this prompt and the
+generator's worlds; nothing about the models in general. Against the dev pilot
+the direction of every comparison held and GLM's margins improved (breach rate
+13% against 29%). Bundles:
+`procurement_allocation_relationship_holdout_{gemini38,glm53}_flash_confirmatory_v1`.
 
 **Controls for the next identity, and what the dev_v2 pilot changed.** The
 both-route variance pilot on `relationship_dev_v2` (12 worlds x 5 seeds) halted
