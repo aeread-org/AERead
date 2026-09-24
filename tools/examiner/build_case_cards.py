@@ -143,8 +143,12 @@ def evaluate(card: dict, cell: dict, periods: list[dict], negotiation: dict | No
 def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
     index = json.loads(receipt_index.read_text(encoding="utf-8")) if receipt_index and receipt_index.exists() else {}
     cards: dict[str, dict] = {}
+    prompts: dict[str, dict] = {}
     for path in sorted(checkout.glob("docs/families/*/case_cards/*.json")):
-        for card in json.loads(path.read_text(encoding="utf-8"))["worlds"]:
+        pack = json.loads(path.read_text(encoding="utf-8"))
+        if pack.get("prompt"):
+            prompts[pack["pack"]] = pack["prompt"]
+        for card in pack["worlds"]:
             cards[card["case_id"]] = card
     prose: dict[str, dict] = {}
     for path in sorted(checkout.glob("docs/families/*/case_cards.md")):
@@ -175,6 +179,7 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
         "strata": {key: value for key, value in prose.items() if "-" in key and key.replace("-", "_") in {c["stratum"] for c in cards.values()}},
         "common": {key: value for key, value in prose.items() if key in ("How to read a cell", "Common to every world", "Known limits")},
         "evaluations": evaluations,
+        "prompts": prompts,
     }
     (out / "data").mkdir(parents=True, exist_ok=True)
     (out / "data" / "case_cards.json").write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
