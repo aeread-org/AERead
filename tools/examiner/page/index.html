@@ -95,6 +95,7 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 .cct td{padding:3px 6px;border-bottom:1px solid var(--rule);vertical-align:top;overflow-wrap:break-word;word-break:normal}.cct .nw{white-space:nowrap}.ccpre{white-space:pre-wrap;font-size:12px;max-height:340px;overflow:auto}
 .jt td{overflow-wrap:break-word;word-break:normal}.jt td .txt{overflow-wrap:break-word}
 @media (max-width:1100px){.ccgrid{grid-template-columns:minmax(0,1fr)}}
+.app.withcard{height:auto}.app.withcard>.grid3{flex:0 0 auto;height:calc(100vh - 110px);min-height:520px}
 </style>
 <main>
 <div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><span class="src" id="src" tabindex="0" title="">source</span></div>
@@ -355,7 +356,7 @@ async function renderStep(){
   const s=cur.s, pv=s.provider||{};
   const outcomeRow=k.outcome_row?Object.entries(k.outcome_row).filter(([key,v])=>!/sha256|_id$|_key$|ordinal/.test(key)&&v!==null&&v!==''&&v!==undefined).slice(0,18).map(([key,v])=>`<dt class="mono">${esc(key.replace(/^[a-z_]+\./,''))}</dt><dd>${esc(typeof v==='number'?(Number.isInteger(v)?String(v):fmt(v,3)):String(v))}</dd>`).join(''):'';
   $('view').className='';
-  $('view').innerHTML=`<div class="app">${cardHtml(k)}<div class="grid3">
+  $('view').innerHTML=`<div class="app ${cardFor(k)?'withcard':''}">${cardHtml(k)}<div class="grid3">
   <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div>
    <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${k.steps.length} actions · ${phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
    <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>● red dot = invalid action</span></div>
@@ -504,7 +505,7 @@ async function renderSealed(c,k,data,lens,lc){
   else{stateHtml=jv(st);}
   const rightOpen=route.rightOpen!==undefined?route.rightOpen:!(s.kind==='action'&&(hiddenCount===0||!st));
   $('view').className='';
-  $('view').innerHTML=`<div class="app"><div class="tiles">${scoreTiles(lc,k)}</div>${cardHtml(k)}<div class="grid3 ${rightOpen?'':'rc'}">
+  $('view').innerHTML=`<div class="app ${cardFor(k)?'withcard':''}"><div class="tiles">${scoreTiles(lc,k)}</div>${cardHtml(k)}<div class="grid3 ${rightOpen?'':'rc'}">
    <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div><div class="muted" style="font-size:12px;margin-top:3px">eligible now: <span class="mono">${esc((s.p.eligible||[]).join(', ')||'—')}</span> · mode ${esc(s.p.mode||modes[s.phase]||'—')}${s.p.max_logical_actions?` · up to ${s.p.max_logical_actions} actions`:''}</div>
     <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${steps.filter(x=>x.kind==='action').length} actions · ${lc.phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
     <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>narrow tick = phase result · ● invalid</span></div>
