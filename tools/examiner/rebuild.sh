@@ -28,6 +28,8 @@ echo "[5/7] full-detail lenses + trajectories synthesized from sealed logs"
 python3 "$T/build_general_lens.py" "$OUT" "$WT" "$T/receipt_index.json" | tail -1
 echo "[6/7] quantitative results per bundle (tables, intervals, headline numbers)"
 python3 "$T/build_results.py" "$OUT" "$WT"
+echo "[6b] case cards: family cards and their checks evaluated per cell"
+python3 "$T/build_case_cards.py" "$OUT" "$WT" "$T/receipt_index.json" || echo "  case cards failed; the page shows none"
 echo "[7/7] checks"
 python3 "$T/check_build.py" "$OUT"
 echo "done: serve with  cd $OUT && python3 -m http.server 8791 --bind 127.0.0.1"

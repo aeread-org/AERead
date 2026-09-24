@@ -51,6 +51,10 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    published. Bundles with neither get a stated reason in `data/lens/index.json`.
 6. `build_results.py`: tables, pivoted metric CSVs, merged arm reports,
    interval estimates and headline numbers for the charts page.
+6b. `build_case_cards.py`: a family's case cards (`docs/families/*/case_cards/*.json` and
+   `case_cards.md`) with each diagnostic check evaluated per published cell, from the
+   bundle tables and, for negotiation, the sealed events. The step view shows the card
+   as a full-width panel above the three columns.
 7. `check_build.py`: consistency and size checks, exit 1 on a hard problem.
 
 `page/index.html` is the whole app (vanilla JS); `rebuild.sh` copies it into

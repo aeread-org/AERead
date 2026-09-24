@@ -292,7 +292,21 @@ function pickGraph(c,observed){
 }
 
 // ---------------- step view (generic + lens) ----------------
+// Case cards (docs/families/*/case_cards): the family's per-world card and each diagnostic check evaluated on this cell.
+let CARDS;async function loadCards(){if(CARDS===undefined){try{CARDS=await getJSON('data/case_cards.json');}catch(e){CARDS=null;}}return CARDS;}
+function cardFor(k){if(!CARDS)return null;const ev=CARDS.evaluations[k.receipt_sha256]||null;let id=ev&&ev.world_case_id;if(!id)id=Object.keys(CARDS.cards).find(c=>String(k.case_id||'').startsWith(c));return id?{card:CARDS.cards[id],ev}:null;}
+function proseHtml(sec){if(!sec)return'';return (sec.paragraphs||[]).map(x=>`<p style="font-size:12.5px;margin:4px 0">${md(x)}</p>`).join('')+((sec.bullets||[]).length?`<ul style="margin:4px 0;padding-left:18px;font-size:12.5px">${sec.bullets.map(b=>`<li>${md(b)}</li>`).join('')}</ul>`:'');}
+function cardHtml(k){const f=cardFor(k);if(!f)return'';const {card,ev}=f;const short=s=>s.split('_').pop();
+ const checks=card.diagnostic_checks.map(c=>{const id=c.id.slice(0,2);const r=ev&&ev.checks[id];const cls=r?(r.verdict==='pass'?'yes':r.verdict==='fail'?'no':'na'):'na';return `<tr><td class="mono" style="white-space:nowrap">${esc(id)}</td><td>${esc(c.check)}</td><td><span class="chip ${cls}">${esc(r?r.verdict:'not evaluated')}</span></td><td class="muted">${esc(r?r.why:c.passes_when)}</td></tr>`;}).join('');
+ const plan=card.reference_solution.per_period.map(pp=>{const mine=ev&&ev.periods.find(x=>x.period===pp.period);const ref=pp.lines.map(l=>`${short(l.supplier_id)} $${l.paid_unit_price_usd.toFixed(3)}`).join(' + ');const got=mine?(mine.suppliers.length?mine.suppliers.map(s=>`${short(s)} $${Number(mine.prices[s]||0).toFixed(3)}`).join(' + '):mine.decision):'—';const same=mine&&JSON.stringify(mine.suppliers)===JSON.stringify(pp.suppliers);return `<tr><td>${pp.period}</td><td class="mono">${esc(ref)}</td><td class="mono ${mine&&!same?'neg':''}">${esc(got)}</td><td>${fmt(pp.margin_usd,1)}</td></tr>`;}).join('');
+ const lad=Object.entries(card.reference_ladder_regret_usd).concat(ev?[['this cell',ev.regret]]:[]).sort((a,b)=>a[1]-b[1]).map(([n,v])=>`<span class="chip ${n==='this cell'?'acc':''}">${esc(n)} ${fmt(v,1)}</span>`).join(' ');
+ return `<section class="panel" style="margin-bottom:10px"><details open><summary>Case card · ${esc(card.stratum.replace(/_/g,' '))} · <span class="mono">${esc(card.world)}</span></summary><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:6px"><div>${proseHtml(CARDS.strata[card.stratum.replace(/_/g,'-')])}
+  <h3 style="margin:8px 0 4px">Checks on this cell</h3><table class="jt"><tbody>${checks}</tbody></table></div><div>
+  <h3 style="margin:8px 0 4px">Reference plan vs this cell</h3><table class="jt"><thead><tr><th>period</th><th>reference buys</th><th>this cell buys</th><th>ref. margin</th></tr></thead><tbody>${plan}</tbody></table>
+  <h3 style="margin:8px 0 4px">Regret ladder</h3><div style="display:flex;flex-wrap:wrap;gap:4px">${lad}</div>
+  <p class="muted" style="font-size:11.5px;margin:6px 0 0">Stratum text from <span class="mono">${esc(card.stratum_card)}</span>; numbers from the generated world card. Checks diagnose; regret scores.</p></div></div></details></section>`;}
 async function renderStep(){
+  await loadCards();
   const c=byId(route.campaign);
   const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));crumbs();
   const [cell,attempt]=String(route.caseId).split('|');
@@ -315,7 +329,7 @@ async function renderStep(){
   const s=cur.s, pv=s.provider||{};
   const outcomeRow=k.outcome_row?Object.entries(k.outcome_row).filter(([key,v])=>!/sha256|_id$|_key$|ordinal/.test(key)&&v!==null&&v!==''&&v!==undefined).slice(0,18).map(([key,v])=>`<dt class="mono">${esc(key.replace(/^[a-z_]+\./,''))}</dt><dd>${esc(typeof v==='number'?(Number.isInteger(v)?String(v):fmt(v,3)):String(v))}</dd>`).join(''):'';
   $('view').className='';
-  $('view').innerHTML=`<div class="app"><div class="grid3">
+  $('view').innerHTML=`<div class="app">${cardHtml(k)}<div class="grid3">
   <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div>
    <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${k.steps.length} actions · ${phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
    <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>● red dot = invalid action</span></div>
@@ -464,7 +478,7 @@ async function renderSealed(c,k,data,lens,lc){
   else{stateHtml=jv(st);}
   const rightOpen=route.rightOpen!==undefined?route.rightOpen:!(s.kind==='action'&&(hiddenCount===0||!st));
   $('view').className='';
-  $('view').innerHTML=`<div class="app"><div class="tiles">${scoreTiles(lc,k)}</div><div class="grid3 ${rightOpen?'':'rc'}">
+  $('view').innerHTML=`<div class="app"><div class="tiles">${scoreTiles(lc,k)}</div>${cardHtml(k)}<div class="grid3 ${rightOpen?'':'rc'}">
    <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div><div class="muted" style="font-size:12px;margin-top:3px">eligible now: <span class="mono">${esc((s.p.eligible||[]).join(', ')||'—')}</span> · mode ${esc(s.p.mode||modes[s.phase]||'—')}${s.p.max_logical_actions?` · up to ${s.p.max_logical_actions} actions`:''}</div>
     <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${steps.filter(x=>x.kind==='action').length} actions · ${lc.phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
     <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>narrow tick = phase result · ● invalid</span></div>
