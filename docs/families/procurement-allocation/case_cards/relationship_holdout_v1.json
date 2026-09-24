@@ -98,9 +98,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -457,9 +457,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -816,9 +816,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -1175,9 +1175,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -1534,9 +1534,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        8,
@@ -1893,9 +1893,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        8,
@@ -2257,9 +2257,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -2629,9 +2629,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -2996,9 +2996,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -3355,9 +3355,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -3714,9 +3714,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
@@ -4073,9 +4073,9 @@
     },
     {
      "check": "meets minimum service in every period",
-     "fails_when": "any period misses minimum service",
+     "fails_when": "any period misses minimum service, including a period never played",
      "id": "D4_minimum_service",
-     "passes_when": "no 'minimum_service_not_met' in any period",
+     "passes_when": "no 'minimum_service_not_met' and no 'episode_ended_before_period' in any period",
      "reference": {
       "minimum_service_kits": [
        16,
