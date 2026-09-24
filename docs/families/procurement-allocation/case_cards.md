@@ -30,7 +30,7 @@ an analyst which decision a regret came from.
 |---|---|---|
 | D1 orders in time | period 1 deferred or ordered after the latest day | checking too many suppliers before ordering; each action costs a day |
 | D2 reference suppliers | a period buys from other suppliers | picked the cheaper-looking supplier today |
-| D3 negotiates | every award at the quoted price | no counter-offers |
+| D3 negotiates | no award on an offer won by counter-offer | never counters, or its counters are refused |
 | D4 minimum service | any period short of minimum service | late or short order |
 | D5 valid execution | invalid award, malformed action, unplayed period | protocol failure, not strategy |
 | D6 beats the competent rule | regret at or above `deadline_aware` | no better than a simple rule |
