@@ -93,7 +93,49 @@ def readme_excerpt(bundle: Path) -> dict:
     title = next((l.lstrip("# ").strip() for l in text.splitlines() if l.startswith("#")), None)
     paras = [para.strip() for para in re.split(r"\n\s*\n", text) if para.strip() and not para.strip().startswith("#")]
     excerpt = " ".join(paras[:2])
-    return {"title": title, "excerpt": short(re.sub(r"\s+", " ", excerpt), 700), "words": len(text.split())}
+    # The first sentences that say what the run is, skipping the provenance boilerplate many bundles open with.
+    boiler = re.compile(r"^(Sanitized, digest-bound|This bundle is the sanitized|Raw prompts|Raw provider state|`trajectories/sanitized|"
+                        r"Derived publication|The kernel trajectory grain|See `docs/)|remains? under (the )?ignored", re.I)
+    sentences = [x.strip() for para in paras for x in re.split(r"(?<=[.!?])\s+(?=[A-Z`])", re.sub(r"\s+", " ", para)) if x.strip()]
+    informative = [x for x in sentences if not boiler.search(x) and not x.startswith(("|", "-", "*"))]
+    summary = short(" ".join(informative[:2]), 260) if informative else None
+    return {"title": title, "excerpt": short(re.sub(r"\s+", " ", excerpt), 700), "summary": summary, "words": len(text.split())}
+
+
+def headline(bundle: Path, facts: list) -> str | None:
+    """What the run was, from facts every bundle can carry: the world pack and the cell count."""
+    parts = []
+    plan = read_json(bundle / "reports" / "plan.json")
+    if isinstance(plan, dict) and isinstance(plan.get("worlds"), list) and plan["worlds"]:
+        packs = sorted({Path(str(w.get("path", ""))).parent.name for w in plan["worlds"] if isinstance(w, dict)} - {""})
+        if packs:
+            parts.append(f"{len(plan['worlds'])} worlds from {', '.join(packs)}")
+    fact = {f["key"]: f["value"] for f in facts}
+    if isinstance(fact.get("planned_cells"), int) and isinstance(fact.get("completed_cells"), int):
+        parts.append(f"{fact['completed_cells']} of {fact['planned_cells']} cells completed")
+    return " · ".join(parts) or None
+
+
+def bundle_models(bundle: Path) -> list:
+    """Model ids the bundle's reports name (route or profile ``model`` fields), for a readable model column."""
+    found: set[str] = set()
+    def walk(node, depth):
+        if depth > 5:
+            return
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k in ("model", "requested_model") and isinstance(v, str) and re.fullmatch(r"[\w.-]+/[\w.:-]+", v):
+                    found.add(v)
+                else:
+                    walk(v, depth + 1)
+        elif isinstance(node, list):
+            for v in node[:50]:
+                walk(v, depth + 1)
+    for path in sorted((bundle / "reports").glob("*.json"))[:12] + [bundle / "publication_manifest.json"]:
+        d = read_json(path) if path.exists() else None
+        if d is not None:
+            walk(d, 0)
+    return sorted(found)[:6]
 
 
 def report_facts(bundle: Path) -> list:
@@ -169,6 +211,34 @@ def report_facts(bundle: Path) -> list:
     for key, f in flags.items():
         if key not in found:
             facts.append({"key": key, "value": f["value"], "file": f["file"] + " · " + ", ".join(f["keys"][:4])})
+    # Campaign bundles that report cell counts as summary {cells, completed, failed, not_attempted} and replay
+    # as replay.json {cells: {label: {receipt_sha256_matches_result: bool} | "<status>: not replayable"}}
+    # (the procurement repeated-sourcing campaigns). Only used where nothing above named the same fact.
+    present = {f["key"] for f in facts}
+    summary = read_json(bundle / "reports" / "summary.json")
+    if isinstance(summary, dict) and isinstance(summary.get("cells"), int) and isinstance(summary.get("completed"), int):
+        for key, source in (("planned_cells", "cells"), ("completed_cells", "completed"),
+                            ("operational_failure_cells", "failed"), ("not_attempted_cells", "not_attempted")):
+            if key not in present and isinstance(summary.get(source), int):
+                facts.append({"key": key, "value": summary[source], "file": "reports/summary.json"})
+    replay = read_json(bundle / "reports" / "replay.json")
+    if "replay_verified" not in present and isinstance(replay, dict) and isinstance(replay.get("cells"), dict):
+        checked = [v for v in replay["cells"].values() if isinstance(v, dict) and "receipt_sha256_matches_result" in v]
+        if checked:
+            matched = sum(1 for v in checked if v["receipt_sha256_matches_result"] is True)
+            facts.append({"key": "replay_verified", "value": matched == len(checked), "file": "reports/replay.json",
+                          "detail": f"{matched} of {len(checked)} completed cells replay to their recorded receipt"})
+    # Reference policies computed offline per world in the pack manifest the plan's worlds come from.
+    plan = read_json(bundle / "reports" / "plan.json")
+    if isinstance(plan, dict) and isinstance(plan.get("worlds"), list) and plan["worlds"]:
+        packs = {Path(str(w.get("path", ""))).parent for w in plan["worlds"] if isinstance(w, dict)}
+        for pack in sorted(packs):
+            manifest_path = EVID.parent / pack / "pack.json"
+            pm = read_json(manifest_path)
+            if isinstance(pm, dict) and pm.get("public_policies"):
+                facts.append({"key": "reference_policies", "value": ", ".join(pm["public_policies"]),
+                              "file": str(pack / "pack.json")})
+                break
     seen = set(); out = []
     for f in facts:
         k = (f["key"], json.dumps(f["value"], sort_keys=True, default=str))
@@ -334,7 +404,8 @@ def checklist(manifest, facts, grain_summary, issues, gate_hits) -> list:
     rv = fact("replay_verified")
     cell_rv = (grain_summary.get("cell_flags") or {}).get("replay_verified")
     if rv is not None:
-        add("Replay from sealed evidence reproduces scores", "2", "yes" if rv["value"] is True else "partial", f"replay_verified = {rv['value']} (a recorded flag; a review recomputes it)", rv["file"])
+        add("Replay from sealed evidence reproduces scores", "2", "yes" if rv["value"] is True else "partial",
+            f"replay_verified = {rv['value']}" + (f": {rv['detail']}" if rv.get("detail") else "") + " (a recorded flag; a review recomputes it)", rv["file"])
     elif cell_rv and cell_rv["total"]:
         add("Replay from sealed evidence reproduces scores", "2", "yes" if cell_rv["true"] == cell_rv["total"] else "partial",
             f"replay_verified true on {cell_rv['true']} of {cell_rv['total']} published cell rows (a recorded flag; a review recomputes it)", "tables/")
@@ -353,8 +424,13 @@ def checklist(manifest, facts, grain_summary, issues, gate_hits) -> list:
             f"confirmation status = {conf['value']}" + (f"; rule frozen before execution = {frozen['value']}" if frozen else "; freeze not stated"), conf["file"])
     ctrl = grain_summary.get("scripted_profiles", 0)
     if grain_summary.get("cases"):
-        add("Scripted controls or baselines present in the run", "3", "yes" if ctrl else "not stated",
-            f"{ctrl} scripted profile(s) among {grain_summary.get('profiles', 0)} profiles in the grain" if ctrl else "no scripted profile appears in the trajectory grain (controls may be in the reports)", "trajectories/sanitized.jsonl")
+        refs = fact("reference_policies")
+        if not ctrl and refs:
+            add("Scripted controls or baselines present in the run", "3", "partial",
+                f"no scripted seat ran; reference policies are computed offline per world in the pack manifest: {refs['value']}", refs["file"])
+        else:
+            add("Scripted controls or baselines present in the run", "3", "yes" if ctrl else "not stated",
+                f"{ctrl} scripted profile(s) among {grain_summary.get('profiles', 0)} profiles in the grain" if ctrl else "no scripted profile appears in the trajectory grain (controls may be in the reports)", "trajectories/sanitized.jsonl")
     gate_sent = [s for h in gate_hits.get("sections", []) for s in h["gate_sentences"]]
     fam_status = family_qc_status(grain_summary.get("family"))
     if gate_sent:
@@ -526,7 +602,7 @@ for bundle in bundles:
                                                     "winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed", "prior_pilot_attempts")},
         "artifact_count": len(manifest.get("artifacts") or {}) if isinstance(manifest.get("artifacts"), (dict, list)) else None,
         "source_receipts": len((manifest.get("source_bindings") or {}).get("source_receipt_sha256s") or []) if isinstance(manifest.get("source_bindings"), dict) else None,
-        "readme": readme, "facts": facts, "issues": issues, "qc": gate_hits, "status": status,
+        "readme": readme, "models": bundle_models(bundle), "headline": headline(bundle, facts), "facts": facts, "issues": issues, "qc": gate_hits, "status": status,
         "grain": grain_summary, "trajectory_file": traj_path,
         "checklist": checklist(manifest, facts, grain_summary, issues, gate_hits),
     })
