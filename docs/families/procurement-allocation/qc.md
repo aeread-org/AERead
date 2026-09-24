@@ -367,3 +367,16 @@ against it, Gemini (33.7) is well clear of a competent simple rule and GLM
 worlds and Gemini's on 1 (`qualification_investment_2420007`, 36.9 against
 19.8). That comparison, per world,
 is the construct check for the confirmatory.
+
+**Confirmatory, frozen before any cell ran.** Pre-registration
+`procurement_relationship_confirmatory_v1` in `relationship_confirmatory.py`
+(commit 4842974e): O1 breach rate, O2 regret on valid orders, O3 advantage over
+`deadline_aware` on the same episode; paired per world, 95% world bootstrap, a
+direction supported only when its interval excludes zero. Pack
+`relationship_holdout_v1` (never read by a live cell), seeds 76001-76005,
+temperature 1.0, `stable_prefix_v1`. Plans:
+`procurement_allocation_relationship_holdout_gemini38_flash_confirmatory_v1`
+`0f35817c526d35400abb72a3c1fd01a2bc8c11e6ef200449ca4e92ed94c33c44` and
+`procurement_allocation_relationship_holdout_glm53_flash_confirmatory_v1`
+`c3a2dd144c6120967018942f3638f8739eddee8aa9cfd25353e1901f6f85bae8`, differing
+only in route.
