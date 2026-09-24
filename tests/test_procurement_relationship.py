@@ -815,3 +815,26 @@ def test_admission_rejects_a_world_no_competent_baseline_beats(monkeypatch) -> N
     assert built["admitted"] == 0
     verdicts = {row["verdict"] for row in built["excluded"]}
     assert "reject: no competent observation-only baseline beats defer" in verdicts
+
+
+# --------------------------------------------------------------------------
+# Case cards for the analysis team
+# --------------------------------------------------------------------------
+
+
+def test_case_cards_are_fresh_and_agree_with_their_pack_manifests() -> None:
+    from aeread_families.procurement_allocation import relationship_case_cards as cards
+
+    assert cards.main(["--check"]) == 0, "regenerate: python -m aeread_families.procurement_allocation.relationship_case_cards"
+    for pack in cards.PACKS:
+        manifest = json.loads((pack_root(pack) / "pack.json").read_text(encoding="utf-8"))
+        committed = json.loads((cards.CARDS_ROOT / f"{pack}.json").read_text(encoding="utf-8"))
+        assert committed["pack_manifest_sha256"] == manifest["manifest_sha256"]
+        for card, row in zip(committed["worlds"], manifest["worlds"]):
+            assert card["content_sha256"] == row["content_sha256"]
+            assert card["reference_solution"]["upper_bound_usd"] == pytest.approx(row["upper_bound_usd"])
+            ladder = card["reference_ladder_regret_usd"]
+            assert ladder["defer"] == pytest.approx(row["public_policies"]["defer"]["regret_to_upper_bound_usd"])
+            assert ladder[COMPETENT_BASELINE] == pytest.approx(row["public_policies"][COMPETENT_BASELINE]["regret_to_upper_bound_usd"])
+            assert [check["id"][:2] for check in card["diagnostic_checks"]] == ["D1", "D2", "D3", "D4", "D5", "D6"]
+            assert set(card["buyer_sees"]) == set(card["hidden_from_buyer"])

@@ -167,9 +167,15 @@ the headroom fractions and the outcome of each public-observation policy.
 | `relationship_holdout_v1` | 2430000+ | 42 | 12 | 11 | 52% |
 
 On both packs the displayed-price-greedy policy scores below deferral on the
-retaliation worlds: it quotes both suppliers and drops one every period, and
-the markups it provokes push its margin negative. That is the trap doing its
-work on a naive anchor. The holdout was generated after the prompt and the
+retaliation worlds, and not in the way this paragraph first said ("quotes both
+suppliers and drops one every period"). Traced action by action (P-D-04,
+P-D-07): it quotes and samples all four suppliers in period 1, which runs the
+clock past the last day an order can arrive, so it orders nothing; every
+supplier it quoted and dropped marks up the next period; it re-quotes all four
+each period, pads its order for delivery risk, finds the marked-up basket over
+budget and orders nothing again. It never awards, and its negative margin is
+its information spend. The competent `deadline_aware` rule recorded beside it
+orders every period there. The holdout was generated after the prompt and the
 tool were frozen and no live cell has read it.
 
 ## 4. Choices the design left open, and what was chosen
