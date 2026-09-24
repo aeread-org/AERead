@@ -58,9 +58,9 @@ def _checks(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "id": "D3_negotiates",
-            "check": "pays below a supplier's quoted price at least once",
-            "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
-            "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+            "check": "wins a better offer by counter-offer and orders on it",
+            "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
+            "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
             "reference": {
                 "period_one_quote_vs_floor": {
                     row["supplier_id"]: {"quoted": row["base_quoted_unit_price_usd"], "floor": row["base_floor_unit_price_usd"]}

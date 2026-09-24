@@ -79,10 +79,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_partner": {
@@ -438,10 +438,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_partner": {
@@ -797,10 +797,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_steady": {
@@ -1156,10 +1156,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_steady": {
@@ -1515,10 +1515,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_scale": {
@@ -1874,10 +1874,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_scale": {
@@ -2234,10 +2234,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_flex": {
@@ -2606,10 +2606,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_flex": {
@@ -2977,10 +2977,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_partner": {
@@ -3336,10 +3336,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_partner": {
@@ -3695,10 +3695,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_reliable": {
@@ -4054,10 +4054,10 @@
      }
     },
     {
-     "check": "pays below a supplier's quoted price at least once",
-     "fails_when": "every award is at the quoted price (counters == 0 is the common signature)",
+     "check": "wins a better offer by counter-offer and orders on it",
+     "fails_when": "no counter-offer, none accepted, or no award on the accepted offer",
      "id": "D3_negotiates",
-     "passes_when": "some awarded unit_price_usd is below that supplier's quoted price",
+     "passes_when": "an award line uses an offer a supplier issued on accepting a counter-offer (sealed events)",
      "reference": {
       "period_one_quote_vs_floor": {
        "esp32_s3_n8r8_reliable": {
