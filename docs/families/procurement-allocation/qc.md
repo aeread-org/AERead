@@ -323,13 +323,21 @@ through the environment, and a brute-force enumeration agrees with it. Gate 3
 the myopic, loyal and shopping references and an attainable ceiling; admission
 requires `deadline_aware` to beat `defer` (P-D-07). Gate 4 `passed`: the paired
 plans differ only in route, verified key by key (P-D-02 records the earlier
-pair that did not). Gate 5 `passed`: a rule-selected variance pilot, a
+pair that did not). Gate 5 `partial`: a rule-selected variance pilot, a
 confirmatory pre-registered and frozen before any cell ran, and a holdout no
-live cell had read.
+live cell had read, but against the standard's checklist two items were not
+met before the run and cannot be added after it (P-D-08): no minimum
+meaningful effect, target power or attrition rule was declared (item 2; the 12
+clusters were set by the pack, not chosen from the pilot's variance), and O1
+is not falsifiable on its own (item 7): an always-defer buyer has zero
+breaches on all 12 holdout worlds while earning nothing. Predeclared slices and
+a reliability statement were not reported either (item 6).
 
 **Confirmatory result.** On `relationship_holdout_v1`, 12 worlds x 5 seeds, 60
 of 60 cells per route, all three pre-registered outcomes are supported (95%
-world-bootstrap intervals exclude zero). O1: Gemini breaches in 0 of 60 cells,
+world-bootstrap intervals exclude zero), with the Gate 5 deviations above. O1
+holds only read with O3, which rules out deferral: both routes ordered and beat
+`deadline_aware`. O1: Gemini breaches in 0 of 60 cells,
 GLM in 8 of 60; paired difference -0.133 (-0.233 to -0.050). O2: on valid
 orders Gemini's regret is 14.16 lower (8.96 to 19.21). O3: both beat the
 `deadline_aware` baseline on the same episodes, Gemini by 137.4 (108.2 to
