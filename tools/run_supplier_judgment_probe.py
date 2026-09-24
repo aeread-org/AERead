@@ -52,7 +52,7 @@ def _prefer_ipv4(host, *args, **kwargs):  # type: ignore[no-untyped-def]
 socket.getaddrinfo = _prefer_ipv4
 
 API = "https://openrouter.ai/api/v1/chat/completions"
-PROBE_ID = "supplier_judgment_probe_v1"
+PROBE_ID = "supplier_judgment_probe_v2"
 
 # Same routes and sampling as the repeated-sourcing confirmatory.
 ROUTES = {
