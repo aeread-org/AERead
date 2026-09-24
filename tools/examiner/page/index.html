@@ -96,11 +96,11 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 .jt td{overflow-wrap:break-word;word-break:normal}.jt td .txt{overflow-wrap:break-word}
 @media (max-width:1100px){.ccgrid{grid-template-columns:minmax(0,1fr)}}
 .app.withcard{height:auto}.app.withcard>.grid3{flex:0 0 auto;height:calc(100vh - 110px);min-height:520px}
-.glossbtn{margin-left:auto;margin-right:8px;font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--soft);color:var(--ink);cursor:pointer}.glosspanel{margin:6px 0}.glosspanel dl{font-size:12.5px}
+.topright{margin-left:auto;display:inline-flex;gap:8px;align-items:center;white-space:nowrap}.topright .src{margin-left:0}.glossbtn{font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--soft);color:var(--ink);cursor:pointer}.glosspanel{margin:6px 0}.glosspanel dl{font-size:12.5px}
 .sortbtn{font:inherit;text-transform:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}.dchip{padding:0 5px;margin-right:2px;font-size:10.5px}
 </style>
 <main>
-<div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><button class="glossbtn" id="glossbtn" title="What the terms on these pages mean">glossary</button><span class="src" id="src" tabindex="0" title="">source</span></div>
+<div class="bar"><h1>AERead Examiner</h1><nav class="crumbs" id="crumbs"></nav><span class="topright"><button class="glossbtn" id="glossbtn" title="What the terms on these pages mean">glossary</button><span class="src" id="src" tabindex="0" title="">data source</span></span></div>
 <section class="panel glosspanel" id="glosspanel" hidden></section>
 <div id="view" class="loading">Loading the catalog…</div>
 <p class="foot" id="foot" hidden></p>
