@@ -107,3 +107,44 @@ inside a period; no deadline, budget or capacity binds. One component varies.
 3. Leak audits: renaming invariance, label-free baselines no better than the
    prior allows, realised bad share in the pack against the declared prior.
 4. A manual trace of one cell, then a small crossed pilot.
+
+## Probe v2 (2026-09-24): diagnostic, not a claim
+
+`tools/run_supplier_judgment_probe.py`, plan `runs/supplier_judgment_probe_v2/`
+(ignored). 19 worlds of the draft pack (3 seeds per cell plus twins), Gemini
+3.8 Flash (Google AI Studio) and GLM 5.3 Flash (Parasail), temperature 1.0,
+reasoning effort low, one run, common random sample and lot outcomes across
+models. 37 of 38 episodes completed; one GLM episode is typed missingness (a
+429 from the upstream after 3 attempts, not rerun). Cost $0.13. A dry run with
+the reference as the model scores 0 regret and 19/19 correct first moves.
+Probe v1 was stopped by P-T-10 with 6 episodes written; they are not graded.
+
+Decision regret: at every decision, the reference's value of its best action
+minus the value of the action taken, at the buyer's exact beliefs, summed
+over the episode. Rules are scored by their expected regret on the same worlds.
+
+| Mean regret, $ | switch_on_record | test_thin_record | not_worth_testing | stars_mislead | all |
+|---|---|---|---|---|---|
+| Gemini 3.8 Flash | 0.00 | 3.99 | 0.00 | 2.05 | 1.69 |
+| GLM 5.3 Flash | 9.22 | 0.00 | 6.02 | 5.21 | 4.19 |
+| stay with the incumbent | 29.46 | 10.35 | 0.00 | 0.00 | 7.92 |
+| buy the cheapest | 0.00 | 6.33 | 5.18 | 31.94 | 10.36 |
+| sample the cheapest | 9.44 | 0.40 | 3.86 | 9.32 | 4.80 |
+| buy the higher-rated | 10.35 | 8.32 | 0.00 | 31.94 | 10.98 |
+
+First moves: GLM sampled in 16 of 19 worlds whatever the cell, and its regret
+profile is the "sample the cheapest" rule's. Gemini stayed with the incumbent
+unless the challenger's record was long and clean, and missed the worthwhile
+test on a thin record in 3 of 6 worlds; it beat every rule overall.
+
+Stated beliefs track the exact posterior (mean absolute gap 0.02-0.07) except
+in stars_mislead (0.15-0.17), where the evidence is an on-time shortfall or
+padded review counts; GLM named the padding in its reasons and sampled anyway.
+So on this probe the models read the record about right and differ in what
+they do with it: whether a test is worth its price.
+
+What this supports: the four cells separate two decision styles the old
+strata could not, and no fixed rule matches the reference. What it does not:
+any model ranking (19 worlds, one run, twins not independent), or anything
+about the environment's deadlines, budgets and negotiation, which the draft
+leaves out.
