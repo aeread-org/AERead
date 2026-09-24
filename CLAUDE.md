@@ -166,6 +166,21 @@ as work to verify.
   `MERGED`). Required checks, protections and labels are not undoable by
   reverting a commit.
 
+## Reporting results
+
+Show only what solves the problem or explains it. Lead with the answer, give
+the deciding numbers or the one trace that makes it clear, then stop.
+
+- Leave out process narration, recaps of earlier turns and side findings that
+  do not change the conclusion.
+- For "why" questions, give the causal chain in the world's own terms (days,
+  prices, budgets), not code vocabulary.
+- One table, not several; state a result once.
+- Verify a claim before stating it. If an earlier one was wrong, correct it in
+  a line.
+- No closing summary paragraph. This overrides the global closing-summary rule
+  for this project.
+
 ## Why these rules exist
 
 Recorded so the rules are not mistaken for taste. Each line is an incident on
