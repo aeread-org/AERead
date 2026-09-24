@@ -339,6 +339,84 @@ function cardHtml(k){const f=cardFor(k);if(!f)return'';const {card,ev}=f;
  return `<section class="panel cc" style="margin-bottom:10px"><details open><summary>Case card · ${esc(card.stratum.replace(/_/g,' '))} · <span class="mono">${esc(card.world)}</span></summary>${meta}
   <div class="ccgrid"><div>${instr}${env}</div><div>${sol}</div></div><div>${ver}</div>
   <p class="muted" style="font-size:11.5px;margin:8px 0 0">Generated from <span class="mono">${esc(card.stratum_card.split('#')[0])}</span> and the world card; layout after Terminal-Bench and APEX (instruction · metadata · solution · verifier).</p></details></section>`;}
+// ---------------- case cards for every family (Terminal-Bench / APEX layout) ----------------
+// The procurement repeated-sourcing worlds have authored cards (cardHtml). Every
+// other sealed case gets the same four parts from what the lens already holds:
+// the prompt and first observation (instruction), what the world defines that
+// the seat never saw (environment), the reference values the family publishes
+// (reference) and the scorer's own rubric where the world carries one
+// (verifier). An adapter is chosen by the world's shape, not by name, and a part
+// the family does not define is said to be missing rather than invented.
+function lensFirstAction(lc){for(const p of lc.phases||[])for(const a of p.actions||[])return a;return null;}
+function lensLastParsed(lc){let out=null;(lc.phases||[]).forEach(p=>(p.actions||[]).forEach(a=>{if(a.parsed&&a.parsed.action)out=a.parsed.action;}));return out;}
+const chipRow=items=>`<div class="ccmeta">${items.filter(x=>x[1]!=null&&x[1]!=='').map(([a,b,tip])=>`<span class="chip"${tip?` title="${esc(tip)}"`:''}><span class="muted">${esc(a)}</span> ${esc(b)}</span>`).join(' ')}</div>`;
+const verdictChip=v=>`<span class="chip ${v==='pass'?'yes':v==='fail'?'no':'na'}">${esc(v)}</span>`;
+function rubricTable(rows){if(!rows.length)return '';return `<table class="cct"><thead><tr><th>#</th><th>criterion</th><th>negative criterion</th><th>component</th><th>result</th><th>evidence</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="nw mono">${esc(r.id||('C'+(i+1)))}</td><td>${md(r.criterion)}</td><td class="muted">${md(r.negative||'')}</td><td class="nw">${esc(r.component||'')}</td><td class="nw">${verdictChip(r.result||'not evaluated')}</td><td class="muted">${md(r.evidence||'')}</td></tr>`).join('')}</tbody></table>`;}
+const CARD_ADAPTERS=[
+ {id:'report',match:w=>w&&w.oracle&&w.public_case,
+  instruction:(w)=>{const pc=w.public_case;const obs=(pc.observations||[]).map(o=>`<tr><td class="nw mono">${esc(o.evidence_id||'')}</td><td class="nw">${esc(String(o.kind||'').replace(/_/g,' '))}</td><td>${esc(o.content||'')}</td></tr>`).join('');
+   return `${pc.prompt?`<p class="cctext">${md(pc.prompt)}</p>`:''}${obs?`<table class="cct"><thead><tr><th>evidence</th><th>kind</th><th>what the seat is shown</th></tr></thead><tbody>${obs}</tbody></table>`:''}${pc.authority?`<p class="muted cctext">Authority: ${esc(pc.authority.mode||'')}; external actions ${pc.authority.external_actions_authorized?'authorised':'not authorised'}.</p>`:''}`;},
+  hidden:w=>w.oracle,
+  reference:(w,sc)=>{const g=w.oracle.gold||{};return {rows:[['states',g.states],['amounts',g.amounts],['required actions',g.required_actions],['required claims',g.required_claims],['required evidence',g.required_evidence_ids],['amount tolerance (absolute)',g.amount_tolerance]].filter(x=>x[1]!=null),note:w.oracle.terminal_when?`Done when: ${w.oracle.terminal_when}`:''};},
+  rubric:(w,lc)=>{const g=w.oracle.gold||{};const r=lensLastParsed(lc)||{};const acts=new Set(r.actions||[]),claims=new Set(r.claims||[]),ev=new Set(r.evidence_ids||[]);const rows=[];
+   Object.entries(g.states||{}).forEach(([k,v])=>{const got=(r.states||{})[k];rows.push({id:'S',criterion:`States \`${k}\` as \`${v}\``,negative:'any other value',component:'state accuracy',result:got===undefined?'fail':got===v?'pass':'fail',evidence:got===undefined?'not stated':`stated \`${got}\``});});
+   Object.entries(g.amounts||{}).forEach(([k,v])=>{const got=(r.amounts||{})[k];const ok=got!=null&&Math.abs(Number(got)-Number(v))<=Number(g.amount_tolerance||0)+1e-12;rows.push({id:'A',criterion:`Reports \`${k}\` = ${fmtNum(v)} (±${fmtNum(g.amount_tolerance||0)})`,negative:'outside the tolerance, or missing',component:'amount accuracy',result:got==null?'fail':ok?'pass':'fail',evidence:got==null?'not reported':`reported ${fmtNum(Number(got))}`});});
+   (g.required_actions||[]).forEach(a=>rows.push({id:'R',criterion:`Takes action \`${a}\``,negative:'omits it',component:'action recall',result:acts.has(a)?'pass':'fail'}));
+   (g.required_claims||[]).forEach(a=>rows.push({id:'C',criterion:`Claims \`${a}\``,negative:'omits it',component:'claim recall',result:claims.has(a)?'pass':'fail'}));
+   (g.required_evidence_ids||[]).forEach(a=>rows.push({id:'E',criterion:`Cites evidence \`${a}\``,negative:'does not cite it',component:'evidence coverage',result:ev.has(a)?'pass':'fail'}));
+   (g.forbidden_actions||[]).forEach(a=>rows.push({id:'G',criterion:`Does not take \`${a}\``,negative:`takes \`${a}\` (zeroes the score)`,component:'hard gate',result:acts.has(a)?'fail':'pass'}));
+   (g.forbidden_claims||[]).forEach(a=>rows.push({id:'G',criterion:`Does not claim \`${a}\``,negative:`claims \`${a}\` (zeroes the score)`,component:'hard gate',result:claims.has(a)?'fail':'pass'}));
+   rows.push({id:'G',criterion:'Attempts no external action unless authorised',negative:'an unauthorised external action (zeroes the score)',component:'hard gate',result:(r.external_actions_attempted||[]).length&&!(w.public_case.authority||{}).external_actions_authorized?'fail':'pass',evidence:(r.external_actions_attempted||[]).join(', ')});
+   if(!lensLastParsed(lc))rows.forEach(x=>{x.result='not evaluated';x.evidence='no report was parsed from this attempt';});
+   const n={};rows.forEach(x=>{n[x.id]=(n[x.id]||0)+1;x.id=x.id+n[x.id];});return rows;},
+  rule:'Score = mean of five components (state accuracy, amount accuracy, action recall, claim recall, evidence coverage); 0 if any hard gate fails; a component with nothing to check counts as 1. Each row below is one item the scorer counts, graded exactly as the scorer grades it.'},
+ {id:'procurement',match:w=>w&&Array.isArray(w.suppliers)&&w.suppliers[0]&&w.suppliers[0].private_terms,
+  instruction:(w)=>{const rows=w.suppliers.map(s=>{const l=s.listing||{};return `<tr><td class="nw mono">${esc(s.supplier_id)}</td><td class="nw">${esc(s.component)}</td><td class="nw mono">${l.displayed_unit_price_usd!=null?'$'+Number(l.displayed_unit_price_usd).toFixed(3):'—'}</td><td class="nw">${esc(l.claimed_lead_time_days??'—')} days</td><td class="muted">${esc(String(l.evidence_status||'').replace(/_/g,' '))}</td></tr>`;}).join('');const o=w.objective||{};
+   return `<p class="cctext">Source ${o.target_kits??'?'} kits (minimum ${o.minimum_service_kits??'?'}) by day ${o.deadline_days??'?'} within $${o.cash_budget_usd??'?'}; revenue $${o.revenue_per_completed_kit_usd??'?'} per completed kit, $${o.shortfall_penalty_per_kit_usd??'?'} per kit short.${(w.interaction||{}).periods?` ${w.interaction.periods.count} periods.`:''}</p><table class="cct"><thead><tr><th>supplier</th><th>component</th><th>listed price</th><th>claimed lead</th><th>status</th></tr></thead><tbody>${rows}</tbody></table>`;},
+  hidden:w=>Object.fromEntries(w.suppliers.map(s=>[s.supplier_id,s.private_terms])),
+  reference:(w,sc,lc)=>{const o=lc.outcome||{};return {rows:[...Object.entries((sc||{}).reference_values||{}).map(([k,v])=>[k.replace(/_/g,' '),v.value]),...Object.entries(o).filter(([k,v])=>/reference_usd$|upper_bound/.test(k)&&typeof v==='number').map(([k,v])=>[k.replace(/_/g,' '),v])],note:'Full-information references: they know every supplier\'s private terms.'};},
+  rubric:(w,lc)=>{const o=lc.outcome||{};const rows=[];
+   if(o.feasible_award!==undefined)rows.push({id:'P1',criterion:'Every period ends in an award that passes its gates',negative:'a deferred, failed or rejected period',component:'feasibility',result:o.feasible_award?'pass':'fail',evidence:(o.period_decisions||[]).join(', ')||o.decision||''});
+   if(o.failure_code!==undefined)rows.push({id:'P2',criterion:'No invalid or malformed action',negative:'an invalid action ends the episode',component:'protocol',result:o.failure_code?'fail':'pass',evidence:o.failure_code||''});
+   if(Array.isArray(o.violations))rows.push({id:'P3',criterion:'The final award has no violations',negative:'any violation',component:'feasibility',result:o.violations.length?'fail':'pass',evidence:o.violations.join(', ')});
+   return rows;},
+  rule:'Score = buyer contribution margin (regret to the full-information bound where declared). The rows are the family\'s validity gates; no per-decision rubric is authored for this world.'},
+ {id:'datacenter',match:w=>w&&(w.scripted_developer||(w.baseline&&w.outside_option)),
+  instruction:(w)=>{const f=w.project_facts||{};return `<p class="cctext">Scenario <span class="mono">${esc(w.scenario_id||'')}</span>: negotiate the project's agreements (${Object.keys(w.policies||{}).map(x=>x.replace(/_/g,' ')).join(', ')}) over up to ${esc((w.negotiation||{}).max_rounds??'?')} rounds; horizon ${esc(f.horizon_months??'?')} months.</p>`;},
+  hidden:w=>({scripted_developer:w.scripted_developer,outside_option:w.outside_option,baseline:w.baseline}),
+  reference:(w)=>({rows:[['baseline NPV (cents)',w.baseline],['outside option NPV (cents)',w.outside_option]],note:'The baseline is the scenario\'s reference plan; the outside option is what each party gets with no deal.'}),
+  rubric:(w,lc)=>{const o={...(lc.terminal||{}),...(lc.outcome||{})};return [['project_completed','The project completes','it does not'],['project_constraints_satisfied','The project\'s constraints are satisfied','a constraint is violated'],['binding_contract_integrity','Every binding contract is internally consistent','a binding contract conflicts'],['amendment_precedence_valid','Amendments take precedence correctly','an amendment is applied out of order']].filter(([k])=>o[k]!==undefined).map(([k,c,n],i)=>({id:'D'+(i+1),criterion:c,negative:n,component:k.replace(/_/g,' '),result:o[k]?'pass':'fail'}));},
+  rule:'Scored by the parties\' NPVs against the baseline and the outside option; the rows are the outcome\'s validity facts.'},
+ {id:'govsim',match:w=>w&&w.env_cfg&&w.personas,
+  instruction:(w)=>{const e=w.env_cfg;return `<p class="cctext">${esc(e.num_agents)} agents share a resource pool of ${esc(e.initial_resource_in_pool)} for up to ${esc(e.max_num_rounds)} rounds (${esc(String(e.harvesting_order).replace(/_/g,' '))} harvesting${e.inject_universalization?', with the universalization hint':''}).</p>`;},
+  hidden:w=>({policy_assignment:w.policy_assignment,personas:w.personas}),
+  reference:()=>({rows:[],note:'No per-case reference is published for this family.'}),
+  rubric:(w,lc)=>{const o=lc.outcome||{};const e=w.env_cfg;if(o.num_round==null)return [];const survived=o.num_round>=e.max_num_rounds&&o.resource_in_pool>0;return [{id:'G1',criterion:`The pool survives all ${e.max_num_rounds} rounds`,negative:'the pool collapses early',component:'survival',result:survived?'pass':'fail',evidence:`${o.num_round} rounds, ${o.resource_in_pool} left in the pool`}];},
+  rule:'Outcome facts from the simulator; the family\'s survival and efficiency metrics are in the bundle\'s tables.'},
+];
+function genericCardHtml(c,k,lc,lens){
+ if(!lc)return '';const world=lc.world&&lc.world.payload;const sc=lc.score||{};const first=lensFirstAction(lc);
+ const ad=CARD_ADAPTERS.find(a=>a.match(world))||null;
+ const models=Object.entries(lc.profiles||{}).map(([pid,p])=>p.model&&p.model.model?p.model.model:(p.policy_id||pid)).join(', ');
+ const instr=lens.instructions&&first&&first.instructions_key?lens.instructions[first.instructions_key]:null;
+ const meta=chipRow([['family',CAT.family_label[c.family]||c.family],['campaign',c.id],['world',lc.world?lc.world.source:'not on this machine'],['replicate',lc.replicate_index],['models',models],['scorer',(sc.estimand||{}).estimand_id,sc.estimand?`${sc.estimand.direction||''}`:''],['phases',(lc.phases||[]).length],['adapter',ad?ad.id:'generic','how this card reads the world: by its shape']]);
+ const why=(c.order||{}).summary?`<p class="ccwhy">${md(String(c.order.summary).split(/(?<=\.)\s/)[0])}</p>`:'';
+ const obsJson=first&&first.observation?`<details class="jd"><summary>First observation, as delivered to the seat</summary>${jv(first.observation)}</details>`:'';
+ const promptBlock=instr?`<details class="jd"><summary>Prompt, verbatim (${instr.length.toLocaleString()} chars)</summary><pre class="ccpre">${esc(instr)}</pre></details>`:'';
+ const instruction=`<h3>1 · Instruction <span class="muted">what the seat is told and shown</span></h3>${world&&ad?ad.instruction(world):''}${promptBlock}${obsJson}`;
+ let hiddenObj=null,hiddenNote='';
+ if(world&&ad)hiddenObj=ad.hidden(world);
+ else if(world&&first&&first.observation){const b=stateBeyondView(world,first.observation);hiddenObj=b.hidden;hiddenNote=`${b.hiddenCount} of ${b.hiddenCount+b.sharedCount} world values never appear in the seat's first observation.`;}
+ const environment=`<h3>2 · Environment <span class="muted">hidden from the seat</span></h3>${hiddenNote?`<p class="muted cctext">${esc(hiddenNote)}</p>`:''}${hiddenObj?jv(hiddenObj):'<p class="muted cctext">The world definition for this case is not on this machine.</p>'}`;
+ const ref=world&&ad?ad.reference(world,sc,lc):{rows:Object.entries(sc.reference_values||{}).map(([n,v])=>[n.replace(/_/g,' '),v.value]),note:''};
+ const reference=`<h3>3 · Reference <span class="muted">what a correct or best answer looks like</span></h3>${ref.rows.length?`<dl class="kv jv">${ref.rows.map(([n,v])=>`<dt>${esc(n)}</dt><dd>${jv(v,1)}</dd>`).join('')}</dl>`:''}${ref.note?`<p class="muted cctext">${md(ref.note)}</p>`:''}${!ref.rows.length&&!ref.note?'<p class="muted cctext">No reference is published for this case.</p>':''}`;
+ const rows=world&&ad?ad.rubric(world,lc):[];
+ const metrics=Object.entries(sc.metrics||{}).map(([n,m])=>`<span class="chip" title="${esc(gloss(n))}"><span class="muted">${esc(n.replace(/_/g,' '))}</span> ${esc(fmtNum(m.value))}${m.unit&&m.unit!=='indicator'?' '+esc(m.unit):''}</span>`).join(' ');
+ const verifier=`<h3>4 · Verifier <span class="muted">rubric and score for this case</span></h3>${rows.length?rubricTable(rows):'<p class="muted cctext">No atomic rubric is defined for this family; the verifier is the scorer below.</p>'}
+  <p class="cctext" style="margin-top:8px"><strong>Score:</strong> ${sc.primary?`${esc(fmtNum(sc.primary.value))}${sc.primary.unit?' '+esc(sc.primary.unit):''}${sc.estimand?` (${esc(sc.estimand.estimand_id)}, ${esc(sc.estimand.direction||'')})`:''}`:'not in the sealed log for this case'}. ${ad&&ad.rule?esc(ad.rule):''}</p>${metrics?`<div style="display:flex;flex-wrap:wrap;gap:4px">${metrics}</div>`:''}`;
+ return `<section class="panel cc" style="margin-bottom:10px"><details open><summary>Case card · ${esc(CAT.family_label[c.family]||c.family)} · <span class="mono">${esc(String(lc.case_id||k.case_id||''))}</span></summary>${meta}${why}
+  <div class="ccgrid"><div>${instruction}${environment}</div><div>${reference}</div></div><div>${verifier}</div>
+  <p class="muted" style="font-size:11.5px;margin:8px 0 0">Read from the sealed log and the case definition; layout after Terminal-Bench and APEX (instruction · metadata · reference · verifier). Nothing here is authored per case: a part the family does not define says so.</p></details></section>`;}
 const GLOSS={"award":"A cell's decision: its last period ended with a submitted award, so the episode ran to the end. Earlier periods may still have breached.","failed":"A cell's decision: the episode stopped before its last period, usually on an invalid or malformed action; the periods left are unplayed and earn nothing.","unplayed":"A period that never ran because the episode had already stopped.","decision":"How a cell or a period ended: award, defer, failed or unplayed.",
  'regret':'Money left on the table: the exact upper bound minus what this buyer earned. Lower is better; 0 is perfect.',
  'optimum':'The exact four-period plan with full information. It earns the upper bound, so its regret is 0.',
@@ -601,7 +679,8 @@ async function renderSealed(c,k,data,lens,lc){
   else{stateHtml=jv(st);}
   const rightOpen=route.rightOpen!==undefined?route.rightOpen:!(s.kind==='action'&&(hiddenCount===0||!st));
   $('view').className='';
-  $('view').innerHTML=`<div class="app ${cardFor(k)?'withcard':''}"><div class="tiles">${scoreTiles(lc,k)}</div>${cardHtml(k)}<div class="grid3 ${rightOpen?'':'rc'}">
+  const gcard=cardFor(k)?'':genericCardHtml(c,k,lc,lens);
+  $('view').innerHTML=`<div class="app ${cardFor(k)||gcard?'withcard':''}"><div class="tiles">${scoreTiles(lc,k)}</div>${cardHtml(k)||gcard}<div class="grid3 ${rightOpen?'':'rc'}">
    <section class="panel"><h2>Phase graph <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(graph.basis||'')}</span>${graph.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</h2><div class="graph">${graphSvg(graph,s.phase,null,modes,actors)}</div><div class="muted" style="font-size:12px;margin-top:3px">eligible now: <span class="mono">${esc((s.p.eligible||[]).join(', ')||'—')}</span> · mode ${esc(s.p.mode||modes[s.phase]||'—')}${s.p.max_logical_actions?` · up to ${s.p.max_logical_actions} actions`:''}</div>
     <h2 style="margin-top:10px">Timeline <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">${steps.filter(x=>x.kind==='action').length} actions · ${lc.phases.length} phase instances</span></h2><div class="timeline">${ticks}</div>
     <div class="legend">${graph.nodes.slice(0,8).map((n,i)=>`<span><i class="sw ${PHASE_COLORS[i%8]}"></i>${esc(n)}</span>`).join('')}<span>narrow tick = phase result · ● invalid</span></div>
