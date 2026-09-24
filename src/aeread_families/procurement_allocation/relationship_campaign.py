@@ -940,7 +940,8 @@ def _readme(plan: Mapping[str, Any], summary: Mapping[str, Any], comparisons: Se
     lines = [
         f"# {plan['campaign_id']}",
         "",
-        "Descriptive single-route run of the procurement repeated-sourcing worlds "
+        ("Confirmatory" if plan.get("preregistration") else "Descriptive")
+        + " single-route run of the procurement repeated-sourcing worlds "
         "(`interaction.periods`, design §4): one live buyer route on the committed "
         "worlds, every seed re-sealed into the world's delivery draws, scored against "
         "the exact four-period bound with the myopic, loyal and shopping references "
