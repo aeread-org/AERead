@@ -903,7 +903,17 @@ def compare(run_root: Path, against: Path) -> dict[str, Any]:
         "worlds_left_lower_regret": sum(1 for value in regret_deltas if value < 0),
         "worlds_right_lower_regret": sum(1 for value in regret_deltas if value > 0),
         "per_world": worlds,
-        "claim_scope": "paired descriptive contrast on curated worlds; no ranking",
+        # The worlds are the plan's: hand-authored for relationship_v1, rule-selected
+        # for a generated pack. Say which, rather than calling every set curated.
+        "claim_scope": (
+            "paired descriptive contrast on "
+            + (
+                "rule-selected worlds from a generated pack"
+                if any("relationship_v1/" not in row["path"] for row in read_plan(run_root, enforce_sources=False)["worlds"])
+                else "curated worlds"
+            )
+            + "; no ranking"
+        ),
     }
     write_json(run_root / f"comparison_vs_{right['campaign_id']}.json", report)
     return report
