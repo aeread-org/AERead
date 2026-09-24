@@ -303,6 +303,8 @@ what admitted the worlds.
 |---|---|---:|---:|---|---|---|
 | `procurement_allocation_relationship_gemini38_flash_variance_v1` | Gemini 3.8 Flash, Google AI Studio | 18/18 | $0.80 | 35.81 (27.24–44.06) | −11.68 (−20.14 to −2.40) | published, `development_qualification` |
 | `procurement_allocation_relationship_glm53_flash_variance_v3` | GLM 5.3 Flash, Parasail | 18/18 | $0.20 | 109.02 (73.38–144.48) | −84.88 (−120.50 to −49.67) | published, `development_qualification` |
+| `procurement_allocation_relationship_dev2_gemini38_flash_variance_v2` | Gemini 3.8 Flash, Google AI Studio, T=1.0, `stable_prefix_v1` | 60/60 | $2.82 | 33.72 (27.47–40.11) | −7.74 (−15.08 to −0.23) | published, `development_qualification` |
+| `procurement_allocation_relationship_dev2_glm53_flash_variance_v2` | GLM 5.3 Flash, Parasail, same controls | 59/60 | $0.64 | 86.11 (68.31–104.52) | −60.13 | published, `development_qualification` |
 
 Paired on identical worlds and seeds, Gemini's regret is 73.20 below GLM's
 (−106.53 to −40.66), lower on six of six worlds; descriptive, no ranking. Two
@@ -346,3 +348,22 @@ Gemini the calls are too short for its ~4k-token cache blocks, so the saving
 there is nil; it is for routes with fine-grained prefix caching). Both are
 frozen in the plan; campaigns run under them are not pooled with the
 temperature-0, flat-layout campaigns in the table above.
+
+**The first symmetric pair, and the baseline it is read against.** The two
+`dev2 ..._variance_v2` identities ran the 12 `relationship_dev_v2` worlds at
+five seeds under plans that differ only in route. Paired on 59 cells, Gemini's
+regret is 52.39 below GLM's (34.05–71.83), lower on 12 of 12 worlds; the gap is
+mostly breaches (17 of 59 GLM cells against 1 of 60 Gemini cells; on the cells
+where neither breached it is about 20). At temperature 1 Gemini still returns
+five identical cells on 6 of 12 worlds, so the world, not the seed, is the unit
+that carries information for it. The pack's pinned public policies forfeit
+period 1 on 10 of 12 worlds (P-D-07), so "beats every public policy" is true
+and says little. The packs now also record `deadline_aware`, an
+observation-only rule that stops qualifying while it can still deliver and
+orders the target quantity; it beats `defer` on every world of both packs, with
+mean regret 121.8 (dev) and 111.7 (holdout), and admission requires it. Read
+against it, Gemini (33.7) is well clear of a competent simple rule and GLM
+(86.1) only modestly: GLM's mean regret is worse than the rule's on 3 of 12
+worlds and Gemini's on 1 (`qualification_investment_2420007`, 36.9 against
+19.8). That comparison, per world,
+is the construct check for the confirmatory.

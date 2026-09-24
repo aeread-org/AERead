@@ -701,6 +701,7 @@ def test_outcome_and_screen_carry_the_shopping_reference() -> None:
 # --------------------------------------------------------------------------
 
 from aeread_families.procurement_allocation.relationship_case_matrix import (  # noqa: E402
+    COMPETENT_BASELINE,
     PACKS,
     PACK_GENERATOR_ID,
     PACK_POLICIES,
@@ -733,7 +734,12 @@ def test_pack_manifest_and_worlds_verify(name: str) -> None:
         assert case.payload["interaction"]["sample_noise"] == {"model": "binomial", "seed": row["world_seed"] + 500_000}
         assert case.payload["interaction"]["periods"]["count"] == 4
         assert case.split == PACKS[name]["split"]
-        assert set(row["public_policies"]) == set(PACK_POLICIES)
+        assert set(row["public_policies"]) == {*PACK_POLICIES, COMPETENT_BASELINE}
+        policies = row["public_policies"]
+        assert (
+            policies[COMPETENT_BASELINE]["regret_to_upper_bound_usd"]
+            < policies["defer"]["regret_to_upper_bound_usd"]
+        )
         assert row["headroom_over_myopic"] >= 0.05 and row["headroom_over_loyal"] >= 0.05
         strata[row["stratum"]] = strata.get(row["stratum"], 0) + 1
     assert strata == {slug: 2 for slug in CASE_SLUGS}
@@ -767,3 +773,45 @@ def test_sampled_definitions_are_a_pure_function_of_the_seed() -> None:
     assert canonical_json_bytes(first) != canonical_json_bytes(other)
     with pytest.raises(ValueError, match="unknown stratum"):
         _sample_definition("no_such_stratum", 1)
+
+
+# --------------------------------------------------------------------------
+# The competent observation-only baseline (P-D-07)
+# --------------------------------------------------------------------------
+
+
+def _greedy_period_decisions(payload):
+    from aeread_families.procurement_allocation.headroom_screen import replay_baseline_outcome
+
+    return replay_baseline_outcome(payload, "displayed_price_greedy")["period_decisions"]
+
+
+@pytest.mark.parametrize("name", sorted(PACKS))
+def test_deadline_aware_baseline_recomputes_and_wins_the_period_greedy_forfeits(name: str) -> None:
+    from aeread_families.procurement_allocation.headroom_screen import replay_deadline_aware
+
+    manifest = json.loads((pack_root(name) / "pack.json").read_text(encoding="utf-8"))
+    for path, row in zip(pack_case_paths(name), manifest["worlds"]):
+        if row["stratum"] != "retaliation_trap":
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))["payload"]
+        outcome = replay_deadline_aware(payload)
+        recorded = row["public_policies"][COMPETENT_BASELINE]
+        assert outcome["regret_to_upper_bound_usd"] == pytest.approx(recorded["regret_to_upper_bound_usd"])
+        # The pinned greedy rule spends period 1 qualifying every supplier and never
+        # recovers once retaliation prices its padded order out of budget; the
+        # deadline-aware rule awards in period 1 and keeps awarding.
+        assert _greedy_period_decisions(payload) == ["defer"] * 4
+        assert outcome["period_decisions"][0] == "award"
+        assert outcome["periods_awarded"] == 4
+
+
+def test_admission_rejects_a_world_no_competent_baseline_beats(monkeypatch) -> None:
+    from aeread_families.procurement_allocation import relationship_case_matrix as matrix
+
+    monkeypatch.setattr(matrix, "replay_deadline_aware", lambda payload: None)
+    spec = {"seed_start": 2420000, "per_stratum": 1, "scan_limit": 6, "split": "dev"}
+    built = matrix.build_pack("relationship_dev_v2", spec=spec)["manifest"]
+    assert built["admitted"] == 0
+    verdicts = {row["verdict"] for row in built["excluded"]}
+    assert "reject: no competent observation-only baseline beats defer" in verdicts
