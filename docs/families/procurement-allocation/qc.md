@@ -277,7 +277,7 @@ variance rather than reading it as a tight measurement.
 A new construct on the same family: the award is a period transition, supplier
 standing moves quote, floor and capacity, and the reference is an exact
 four-period dynamic programme with myopic, loyal and shopping references beside
-it. Nothing here reopens the family's construct gate (§3), which stays `failed`.
+it. These gates belong to the repeated-sourcing construct. The family's construct gate in §3 is about the older single-period construct; it stays `failed` and says nothing about this one.
 
 **Task distribution, in the Gate 1 form.** The independent unit is the
 economic world. Six worlds in `cases/procurement_allocation_v1/relationship_v1/`,
