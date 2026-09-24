@@ -148,3 +148,72 @@ strata could not, and no fixed rule matches the reference. What it does not:
 any model ranking (19 worlds, one run, twins not independent), or anything
 about the environment's deadlines, budgets and negotiation, which the draft
 leaves out.
+
+## In the environment: pack `judgment_dev_v1` (2026-09-24)
+
+Generator `src/aeread_families/procurement_allocation/judgment_pack.py`
+(`python -m aeread_families.procurement_allocation.judgment_pack judgment_dev_v1 --write`),
+worlds under `cases/procurement_allocation_v1/judgment_dev_v1/`. Each world is a
+repeated-sourcing case: four periods, one controller supplier, an established
+display incumbent and a cheaper display challenger.
+
+What the buyer can learn, and only through these:
+
+| Channel | Where |
+|---|---|
+| Marketplace record | `listing.profile` (years, orders, rating with star breakdown, on-time over protected orders, badges, reply time) |
+| Sample terms | `listing.sample_terms` (10 units, price, 2 days) |
+| A sample | binomial `sample_noise`, cumulative across batches |
+| A delivered lot | the period history: on time or late, and defect count when on time |
+| The market | `policy.market_facts`, every number the posterior uses |
+
+Closed, each by declared world data that defaults to v1 so no sealed world
+changes (687 procurement tests pass):
+
+| Leak | Closed by |
+|---|---|
+| names carry the answer (P-D-10) | neutral ids `ssd1306_oled_096_57hj`, names `Supplier 57HJ`, shuffled order, neutral `product_id` |
+| claims differ by kind | every supplier claims 99% yield and 97% on time, in the listing and when asked (`verbal_bias`) |
+| the quote states true on-time (P-D-11) | `private_terms.offer_on_time_probability`: every offer states 95%; scoring and delivery use the true figure |
+| `check_award` reports kits from true yield (P-D-11) | `interaction.award_check: terms_only` |
+| a sample is mandatory | `policy.award_requires` without `verified_sample`; the full-information bound then starts every supplier qualified |
+| a bad award is rejected, naming the kind | minimum service 8 kits, below a bad lot's ~11; a bad lot is a costly award |
+| splitting a lot is a test the reference does not model | MOQ 20, so a lot is whole |
+
+The prompt is `procurement_supplier_judgment_prompt_v1` (`runner.JUDGMENT_PROMPT`),
+selected by the plan's `prompt_id`; plans frozen earlier resolve to v1.
+
+The reference uses the environment's own economics: each period's value for
+(supplier, kind) comes from `evaluate_award`, and beliefs update exactly on what
+the history shows (`lot_signal="delivery"`). A good display lot is worth about
+$94-102 a period and a bad one about $0 (lost kits and the $3 shortfall
+penalty), against $60 in the draft. In all 12 worlds the reference's oracle
+equals the environment's full-information bound.
+
+| World | Challenger P(bad) | Best first move | Rule regret: stay / cheapest / sample cheapest / higher stars |
+|---|---|---|---|
+| switch_on_record ×2 | 0.00 | buy challenger | $36-38 / 0 / $37 / 0-36 |
+| test_thin_record ×2 (+2 twins) | 0.24-0.32 | sample challenger | $10-16 / $56-81 / $18-21 / $10-56 |
+| not_worth_testing ×2 (+2 twins) | 0.11-0.19 | stay | 0 / $31-53 / $9-12 / $31-53 |
+| stars_mislead ×2 | 1.00 | stay | 0 / $217-230 / $22-24 / $217-230 |
+
+Checks (`judgment_pack.grade`), all at the buyer's own beliefs, a decision
+counting as a mistake when it gives up more than $1 of expected value:
+
+| | Passes when |
+|---|---|
+| J1 | the first display decision is the reference's |
+| J2 | after a sample or a lot, it buys from the supplier its evidence favours |
+| J3 | it never awards a supplier its evidence makes more likely bad than good |
+| J4 | no sample whose expected value is below its price (a repeat sample, outside the reference, is charged its price) |
+| J5 | every period awarded, no invalid action |
+
+Decision regret sums the losses. Environment regret to the bound stays the
+score; decision regret separates judgment from luck and execution. A buyer that
+follows the reference, played through the plugin with real noisy samples and
+seeded deliveries, grades 0 regret and passes J1-J5 in every cell; one that
+always samples the cheapest fails J1 and J4 where testing does not pay.
+
+Limits: one component varies; the reference allows one sample per supplier
+(the environment allows repeats); stars_mislead worlds here have P(bad) near
+1.0, so the cell is easier than the draft's 0.6-0.96; the pack is dev only.
