@@ -180,7 +180,54 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
         path.parent.parent.name: json.loads(path.read_text(encoding="utf-8"))
         for path in sorted(checkout.glob("evidence/**/reports/confirmatory_vs_*.json"))
     }
+    # Model comparisons: every bundle that publishes a paired comparison report against another bundle.
+    comparisons = {}
+    def cells_of(bundle_dir: Path) -> list[dict]:
+        path = bundle_dir / "tables" / "cells.jsonl"
+        if not path.exists():
+            return []
+        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    for path in sorted(checkout.glob("evidence/**/reports/comparison_vs_*.json")):
+        report = json.loads(path.read_text(encoding="utf-8"))
+        left_dir = path.parent.parent
+        right_dir = left_dir.parent / str(report.get("right_campaign_id"))
+        left, right = cells_of(left_dir), cells_of(right_dir)
+        if not left or not right:
+            continue
+        def per_world(rows):
+            out: dict[str, dict] = {}
+            for row in rows:
+                if row.get("status") != "completed" or row.get("regret_to_upper_bound_usd") is None:
+                    continue
+                w = out.setdefault(row["slug"], {"regrets": [], "breaches": 0})
+                w["regrets"].append(float(row["regret_to_upper_bound_usd"]))
+                w["breaches"] += bool(row.get("violations"))
+            return out
+        lw, rw = per_world(left), per_world(right)
+        worlds = []
+        for slug in sorted(set(lw) & set(rw)):
+            worlds.append({
+                "world": slug,
+                "left_regret": sum(lw[slug]["regrets"]) / len(lw[slug]["regrets"]),
+                "right_regret": sum(rw[slug]["regrets"]) / len(rw[slug]["regrets"]),
+                "left_breach_rate": lw[slug]["breaches"] / len(lw[slug]["regrets"]),
+                "right_breach_rate": rw[slug]["breaches"] / len(rw[slug]["regrets"]),
+                "left_cells": len(lw[slug]["regrets"]), "right_cells": len(rw[slug]["regrets"]),
+            })
+        def overall(side):
+            rows = [r for r in (left if side == "left" else right) if r.get("status") == "completed" and r.get("regret_to_upper_bound_usd") is not None]
+            return {"cells": len(rows), "mean_regret": sum(float(r["regret_to_upper_bound_usd"]) for r in rows) / len(rows) if rows else None,
+                    "breach_rate": sum(bool(r.get("violations")) for r in rows) / len(rows) if rows else None}
+        comparisons[left_dir.name] = {
+            "left_id": left_dir.name, "right_id": right_dir.name,
+            "left_model": report.get("left_route"), "right_model": report.get("right_route"),
+            "left": overall("left"), "right": overall("right"),
+            "paired_cells": report.get("paired_cells"),
+            "delta_mean": report.get("mean_regret_delta_usd"), "delta_interval": report.get("mean_regret_delta_usd_95_world_bootstrap"),
+            "claim_scope": report.get("claim_scope"), "worlds": worlds,
+        }
     data = {
+        "comparisons": comparisons,
         "cards": cards,
         "strata": {key: value for key, value in prose.items() if "-" in key and key.replace("-", "_") in {c["stratum"] for c in cards.values()}},
         "common": {key: value for key, value in prose.items() if key in ("How to read a cell", "Common to every world", "Known limits")},
