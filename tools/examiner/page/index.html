@@ -68,7 +68,7 @@ pre{background:var(--soft);border-radius:6px;padding:6px 8px;font-family:var(--m
 .legend{font-size:12px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
 .graph svg{display:block;height:auto;color:var(--ink);max-width:100%}.graph svg text.lab{font-family:var(--mono)}.graph svg text.sub{font-family:var(--sans)}.graph .gscroll{overflow-x:auto;padding-bottom:2px}.graph.full svg{max-width:none}
-.gwrap{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start}.gcard{min-width:0;flex:1 1 320px;max-width:100%}.gcard .graph{max-height:260px;overflow:auto}.gtoggle{font-size:11px;padding:2px 7px;margin-left:6px}
+.gseq{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}.gextra{margin:4px 0 0;padding-left:18px;font-size:11.5px}.gwrap{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start}.gcard{min-width:0;flex:1 1 320px;max-width:100%}.gcard .graph{max-height:260px;overflow:auto}.gtoggle{font-size:11px;padding:2px 7px;margin-left:6px}
 .block{border-top:1px solid var(--rule);padding:6px 0}.block:first-of-type{border-top:0}
 .narr{font-size:13px;line-height:1.5}.narr p{margin:0 0 5px}.em{font-weight:600}.muted{color:var(--muted)}.pos{color:var(--yes)}.neg{color:var(--no)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;margin:0;flex:0 0 auto}
@@ -147,10 +147,38 @@ const byId=id=>CAT.campaigns.find(c=>c.id===id);
 function miniBar(check){const counts={yes:0,partial:0,no:0,na:0};check.forEach(i=>counts[stateCls(i.state)]++);const n=check.length||1;return `<span class="mini" title="${esc(Object.entries(counts).map(([k,v])=>k+' '+v).join(', '))}">${Object.entries(counts).map(([k,v])=>v?`<i class="${k}" style="width:${100*v/n}%"></i>`:'').join('')}</span>`;}
 
 // ---------------- declared graphs per family ----------------
-function familyGraphs(family){const pkg={datacenter_development_terms:'datacenter_development_terms'}[family]||family;return ((CAT.declared_graphs||{})[pkg]||[]).filter(v=>Array.isArray(v.nodes)&&v.nodes.length);}
-function graphCard(v,current){const g={nodes:v.nodes,edges:v.edges,entry:v.nodes[0]};const sim=Object.values(v.modes||{}).filter(m=>m==='simultaneous').length;return `<div class="gcard"><div class="muted" style="font-size:11.5px;margin-bottom:3px"><span class="mono">${esc(v.plugin)}</span>${v.variant?` · ${esc(v.variant)}`:''} · ${v.nodes.length} phase${v.nodes.length!==1?'s':''}, ${v.edges.length} edge${v.edges.length!==1?'s':''}${sim?`, ${sim} simultaneous`:''}${v.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</div><div class="graph">${graphSvg(g,current||null,null,v.modes,v.actors)}</div></div>`;}
-function wireGraphToggles(){document.querySelectorAll('[data-gt]').forEach(b=>b.addEventListener('click',()=>{const g=b.closest('.gcard, .panel').querySelector('.graph');g.classList.toggle('full');b.textContent=g.classList.contains('full')?'fit':'full size';}));}
-function campaignGraphs(c,observed){const vs=familyGraphs(c.family);if(observed&&observed.nodes&&observed.nodes.length){const m=vs.find(v=>observed.nodes.every(n=>v.nodes.includes(n)));if(m)return {variants:[m],note:'declared graph matched to the phases in this bundle\'s trajectory grain'};return {variants:[{plugin:'observed',variant:'from the sealed grain',nodes:observed.nodes,edges:observed.edges,modes:{},actors:{}}],note:'no declared graph covers the phases seen; drawn from the observed transitions'};}
+function familyGraphs(family){const pkg={datacenter_development_terms:'datacenter_development_terms'}[family]||family;return ((CAT.declared_graphs||{})[pkg]||[]).filter(v=>Array.isArray(v.nodes)&&v.nodes.length).slice().sort((a,b)=>a.nodes.length-b.nodes.length||a.edges.length-b.edges.length||String(a.variant||'').localeCompare(String(b.variant||'')));}
+// When several declared graphs cover the phases a campaign ran, pick by the
+// campaign's own identity (an interface-3 run gets the interface-3 graph, which
+// adds the decline edge), then the tightest graph. The first match used to win,
+// so interface-3 campaigns were drawn without their extra edge.
+function bestDeclared(c,vs,nodes){const cand=vs.filter(v=>nodes.every(n=>v.nodes.includes(n)));if(cand.length<=1)return cand[0]||null;const wantIface=/interface3|iface3/.test(c.id);const pref=cand.filter(v=>/iface3/.test(v.variant||'')===wantIface);return (pref.length?pref:cand).sort((a,b)=>a.nodes.length-b.nodes.length||a.edges.length-b.edges.length)[0];}
+// Curated facts a graph cannot carry: which family version and case folders a
+// declared scope belongs to. Keyed by plugin and variant, as the build reports them.
+const DECLARED_NOTES={
+ 'DataCenterDevelopmentPlugin|default':'family version 1.0.0 · case dev/service_loan_bankability_001',
+ "DataCenterStackPlugin|init('v1',)":'family version 1.1.0 · case v1/power_epc_bankability_001',
+ "DataCenterStackPlugin|init('v2',)":'family version 2.0.0 · cases v2/, worlds_v2/, worlds_v3/; the counteroffer ladders run its opening agreements',
+ "DataCenterStackPlugin|init('v2',) iface3":'family version 2.0.0 with developer interface 3 · the same worlds',
+};
+const EDGE_NOTES={'land_amendment_developer_offer>loan_developer_offer':'the developer may decline the land amendment and go straight to the loan (interface 3; before it the phase had no way to say no, DC-D-10)'};
+// A stack graph is a chain of agreements, each the same loop: developer offer,
+// counterparty response (which may counter back to an offer), developer commit.
+function stackParts(v){const re=/^(.+)_([a-z]+)_(offer|response|commit)$/;const parts=v.nodes.map(n=>n.match(re));if(!parts.every(Boolean))return null;const order=[];const role={};parts.forEach(m=>{if(!order.includes(m[1]))order.push(m[1]);if(m[3]==='response')role[m[1]]=m[2];});
+ const std=new Set();order.forEach((k,i)=>{const o=parts.find(m=>m[1]===k&&m[3]==='offer'),r=parts.find(m=>m[1]===k&&m[3]==='response'),c=parts.find(m=>m[1]===k&&m[3]==='commit');if(o&&r){std.add(o[0]+'>'+r[0]);std.add(r[0]+'>'+o[0]);}if(r&&c)std.add(r[0]+'>'+c[0]);const nx=order[i+1]&&parts.find(m=>m[1]===order[i+1]&&m[3]==='offer');if(c&&nx)std.add(c[0]+'>'+nx[0]);});
+ const extra=v.edges.map(e=>e.from+'>'+e.to).filter(k=>!std.has(k));return {order,role,extra};}
+const agreementLabel=k=>({epc:'EPC (construction)',land_amendment:'land amendment'}[k]||k.replace(/_/g,' '));
+function graphCard(v,current){const g={nodes:v.nodes,edges:v.edges,entry:v.nodes[0]};const sim=Object.values(v.modes||{}).filter(m=>m==='simultaneous').length;
+ const sp=v.nodes.length>6?stackParts(v):null;const note=DECLARED_NOTES[`${v.plugin}|${v.variant||''}`]||'';
+ const fam=CAT.campaigns.filter(c=>familyGraphs(c.family).includes(v));const users=fam.filter(c=>{const ph=(c.grain||{}).phases||[];return ph.length&&bestDeclared(c,familyGraphs(c.family),ph)===v;});
+ const others=familyGraphs((fam[0]||{}).family||'').filter(o=>o!==v&&o.plugin===v.plugin&&(o.nodes.length<v.nodes.length||(o.nodes.length===v.nodes.length&&o.edges.length<v.edges.length)));const prev=others.length?others[others.length-1]:null;
+ let diff='';if(prev&&sp){const pp=stackParts(prev);if(pp){const add=sp.order.filter(k=>!pp.order.includes(k)).map(agreementLabel);const E=new Set(prev.edges.map(e=>e.from+'>'+e.to));const newEdges=v.edges.map(e=>e.from+'>'+e.to).filter(k=>!E.has(k)&&sp.extra.includes(k));diff=[add.length?'adds '+add.join(', '):'',newEdges.length?'adds '+newEdges.length+' edge'+(newEdges.length>1?'s':'')+' (below)':''].filter(Boolean).join('; ');if(diff)diff=`Compared with the ${prev.nodes.length}-phase graph: ${diff}.`;}}
+ const strip=sp?`<div class="gseq">${sp.order.map(k=>`<span class="chip" title="${esc(agreementLabel(k))}: developer offer ⇄ ${esc(sp.role[k]||'counterparty')} response (which may counter), then developer commit">${esc(agreementLabel(k))} <span class="muted">· ${esc(sp.role[k]||'')}</span></span>`).join('<span class="muted"> → </span>')}</div><div class="muted" style="font-size:11.5px">Each agreement is the same loop: developer offer ⇄ counterparty response, then developer commit. ${v.nodes.length} phases = ${sp.order.length} agreements × 3.</div>${sp.extra.length?`<ul class="gextra">${sp.extra.map(k=>`<li><span class="mono">${esc(k.replace('>',' → '))}</span>${EDGE_NOTES[k]?' — '+esc(EDGE_NOTES[k]):''}</li>`).join('')}</ul>`:''}`:'';
+ const used=`<div class="muted" style="font-size:11.5px;margin-top:3px">${users.length?`Published campaigns whose steps ran on this graph (${users.length}): ${users.map(c=>`<button class="runnav" data-id="${esc(c.id)}" style="padding:0 5px;font-size:11px">${esc(c.id.replace(/^datacenter_/,''))}</button>`).join(' ')}`:'No published campaign with steps ran on this graph (bundles that publish tables only are not matched).'}</div>`;
+ const svg=`<div class="graph${sp?' gfold':''}"${sp?' hidden':''}>${graphSvg(g,current||null,null,v.modes,v.actors)}</div>`;
+ return `<div class="gcard"><div class="muted" style="font-size:11.5px;margin-bottom:3px"><span class="mono">${esc(v.plugin)}</span>${v.variant?` · ${esc(v.variant)}`:''} · ${v.nodes.length} phase${v.nodes.length!==1?'s':''}, ${v.edges.length} edge${v.edges.length!==1?'s':''}${sim?`, ${sim} simultaneous`:''}${sp?' <button class="gtoggle" data-gfull>show full graph</button>':v.nodes.length>6?' <button class="gtoggle" data-gt>full size</button>':''}</div>${note?`<div style="font-size:12px;margin-bottom:3px">${esc(note)}</div>`:''}${diff?`<div style="font-size:12px;margin-bottom:3px">${esc(diff)}</div>`:''}${strip}${svg}${used}</div>`;}
+function wireGraphToggles(){document.querySelectorAll('[data-gfull]').forEach(b=>b.addEventListener('click',()=>{const g=b.closest('.gcard').querySelector('.graph');g.hidden=!g.hidden;if(!g.hidden)g.classList.add('full');b.textContent=g.hidden?'show full graph':'hide full graph';}));document.querySelectorAll('.gcard .runnav').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.view='campaign';route.campaign=b.dataset.id;route.caseId=null;render();}));document.querySelectorAll('[data-gt]').forEach(b=>b.addEventListener('click',()=>{const g=b.closest('.gcard, .panel').querySelector('.graph');g.classList.toggle('full');b.textContent=g.classList.contains('full')?'fit':'full size';}));}
+function campaignGraphs(c,observed){const vs=familyGraphs(c.family);if(observed&&observed.nodes&&observed.nodes.length){const m=bestDeclared(c,vs,observed.nodes);if(m)return {variants:[m],note:'declared graph matched to the phases in this bundle\'s trajectory grain'};return {variants:[{plugin:'observed',variant:'from the sealed grain',nodes:observed.nodes,edges:observed.edges,modes:{},actors:{}}],note:'no declared graph covers the phases seen; drawn from the observed transitions'};}
   if(vs.length>1){const id=c.id;const pick=vs.filter(v=>(/v2|counteroffer|interaction|objective/.test(id)&&/v2/.test(v.variant||''))||(/lemons/.test(id)&&/lemons/.test(v.variant||'')));if(pick.length)return {variants:pick,note:'declared variants matching this identity\'s scope; no trajectory grain to confirm'};}
   return {variants:vs,note:vs.length>1?'every declared variant for this family; no trajectory grain to pick one':'the family\'s declared graph'};}
 
@@ -321,7 +349,7 @@ function pickGraph(c,observed){
   const pkg={datacenter_development_terms:'datacenter_development_terms'}[c.family]||c.family;
   const decl=(CAT.declared_graphs||{})[pkg]||[];
   const obsNodes=new Set(observed.nodes);
-  const match=decl.find(d=>observed.nodes.every(n=>d.nodes.includes(n)));
+  const match=bestDeclared(c,decl,observed.nodes);
   if(match) return {graph:{nodes:match.nodes,edges:match.edges,entry:match.nodes[0],basis:`declared by ${match.plugin}${match.variant?' ('+match.variant+')':''}`},modes:match.modes,actors:match.actors};
   return {graph:observed,modes:{},actors:{}};
 }
