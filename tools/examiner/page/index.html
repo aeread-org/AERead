@@ -141,7 +141,7 @@ function crumbs(){
   if(caseCrumb){const cd=route.campaign&&campaignCache[route.campaign];const kk=cd&&cd.cases.find(x=>x.receipt_sha256===route.caseId||(x.cell_id+'|'+x.episode_attempt_id)===route.caseId);const lab=esc(kk?kk.case_id+' · '+(kk.receipt_sha256||'').slice(0,10):String(route.caseId).slice(0,16));parts.push('›',route.view==='case'?`<span class="cur mono">${lab}</span>`:`<button data-go="case" class="mono" title="this case's card">${lab}</button>`);}
   if(route.view==='detail') parts.push('›',`<span class="cur">${esc(detailLabel())}</span>`);
   $('crumbs').innerHTML=parts.join(' ');
-  $('crumbs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const g=b.dataset.go; if(g==='catalog'){route={view:'catalog',family:null,campaign:null,caseId:null,step:0};} else if(g==='family'){route.view='catalog';route.campaign=null;route.caseId=null;} else if(g==='case'){route.view='cases';route.openCase=route.caseId;} else {route.view='campaign';route.caseId=null;} render();}));
+  $('crumbs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const g=b.dataset.go; if(g==='catalog'){route={view:'catalog',family:null,campaign:null,caseId:null,step:0};} else if(g==='family'){route.view='catalog';route.campaign=null;route.caseId=null;} else if(g==='case'){route.view='case';} else {route.view='campaign';route.caseId=null;} render();}));
 }
 const byId=id=>CAT.campaigns.find(c=>c.id===id);
 function miniBar(check){const counts={yes:0,partial:0,no:0,na:0};check.forEach(i=>counts[stateCls(i.state)]++);const n=check.length||1;return `<span class="mini" title="${esc(Object.entries(counts).map(([k,v])=>k+' '+v).join(', '))}">${Object.entries(counts).map(([k,v])=>v?`<i class="${k}" style="width:${100*v/n}%"></i>`:'').join('')}</span>`;}
@@ -305,15 +305,14 @@ async function renderCases(){
   const c=byId(route.campaign);
   $('view').className='loading'; $('view').textContent='Loading trajectories…';
   const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));
-  await loadCards();if(CARDS&&data.cases.some(k=>CARDS.evaluations[k.receipt_sha256]))return await renderCaseTable(c,data);
-  const openCard=await openCaseCard(c,data);if(openCard===null){route.view='step';route.caseId=route.openCase;route.openCase=null;route.step=0;return render();}
+  await loadCards();if(CARDS&&data.cases.some(k=>CARDS.evaluations[k.receipt_sha256]))return renderCaseTable(c,data);
   const numericKeys=(()=>{const counts={};data.cases.forEach(k=>Object.entries(k.outcome_row||{}).forEach(([key,v])=>{if(typeof v==='number'||(typeof v==='string'&&v!==''&&!isNaN(Number(v))&&key.indexOf('sha256')<0)){counts[key]=(counts[key]||0)+1;}}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!/sha|index|seed|id$/.test(k)).slice(0,4);})();
   const seedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='world_seed'||x.endsWith('.world_seed'));return key?r[key]:null;};const hasSeed=data.cases.some(k=>seedOf(k)!=null);const iseedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='inference_seed'||x.endsWith('.inference_seed'));return key?r[key]:null;};const hasISeed=data.cases.some(k=>iseedOf(k)!=null);const archOf=id=>{const m=String(id).match(/^(.*?)(?:\.|_)?(\d+)$/);return m?{arch:m[1],n:m[2]}:{arch:id,n:''};};
-  const ncols=6+(hasSeed?1:0)+(hasISeed?1:0)+numericKeys.length;
-  const rows=data.cases.map(k=>`<tr class="click ${caseKey(k)===route.openCase?'cur':''}" data-case="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}"><td class="mono">${esc(k.case_id)}</td>${hasSeed?`<td class="mono muted" title="world seed: each numbered case of an archetype is a separately sampled world">${esc(seedOf(k)??'—')}</td>`:''}${hasISeed?`<td class="mono muted" title="inference seed: the same world run again with a different model sampling seed">${esc(iseedOf(k)??'—')}</td>`:''}<td class="mono muted">${esc(k.episode_attempt_id.slice(-8))}</td><td class="mono" style="white-space:normal">${esc(k.profiles.join(', '))}</td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td><td>${k.invalid_steps?`<button class="chip no" data-invalid="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}" title="which actions were rejected, and why">${k.invalid_steps} ›</button>`:'0'}</td><td>${money(k.cost)}</td>${numericKeys.map(key=>`<td>${esc(k.outcome_row&&k.outcome_row[key]!=null?(typeof k.outcome_row[key]==='number'?fmt(k.outcome_row[key],2):k.outcome_row[key]):'—')}</td>`).join('')}</tr>${caseKey(k)===route.openCase&&openCard?cardRow(caseKey(k),ncols,openCard):''}`).join('');
+  const rows=data.cases.map(k=>`<tr class="click" data-case="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}"><td class="mono">${esc(k.case_id)}</td>${hasSeed?`<td class="mono muted" title="world seed: each numbered case of an archetype is a separately sampled world">${esc(seedOf(k)??'—')}</td>`:''}${hasISeed?`<td class="mono muted" title="inference seed: the same world run again with a different model sampling seed">${esc(iseedOf(k)??'—')}</td>`:''}<td class="mono muted">${esc(k.episode_attempt_id.slice(-8))}</td><td class="mono" style="white-space:normal">${esc(k.profiles.join(', '))}</td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td><td>${k.invalid_steps?`<button class="chip no" data-invalid="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}" title="which actions were rejected, and why">${k.invalid_steps} ›</button>`:'0'}</td><td>${money(k.cost)}</td>${numericKeys.map(key=>`<td>${esc(k.outcome_row&&k.outcome_row[key]!=null?(typeof k.outcome_row[key]==='number'?fmt(k.outcome_row[key],2):k.outcome_row[key]):'—')}</td>`).join('')}</tr>`).join('');
   $('view').className='';
-  $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cases · ${esc(lensNote(c))}</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">One row per sealed episode attempt. Outcome columns are read from the bundle's own tables when they join on the receipt digest. Click a row for its case card and the step-through button.</p><div class="scroll"><table><thead><tr><th>case</th>${hasSeed?'<th>world seed</th>':''}${hasISeed?'<th>inference seed</th>':''}<th>attempt</th><th>profiles</th><th>steps</th><th>invalid</th><th>cost</th>${numericKeys.map(k=>`<th>${esc(k.replace(/^[a-z_]+\./,''))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
-  wireCaseRows();wireCellButtons();
+  $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cases · ${esc(lensNote(c))}</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">One row per sealed episode attempt. Outcome columns are read from the bundle's own tables when they join on the receipt digest. Click a row to step through it.</p><div class="scroll"><table><thead><tr><th>case</th>${hasSeed?'<th>world seed</th>':''}${hasISeed?'<th>inference seed</th>':''}<th>attempt</th><th>profiles</th><th>steps</th><th>invalid</th><th>cost</th>${numericKeys.map(k=>`<th>${esc(k.replace(/^[a-z_]+\./,''))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='case';route.caseId=tr.dataset.case;route.step=0;render();}));
+  wireCellButtons();
 }
 // chips in a case row open a details page instead of the step view
 function wireCellButtons(){
@@ -321,21 +320,24 @@ function wireCellButtons(){
   $('view').querySelectorAll('[data-cell]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDetail({kind:'cell',focus:b.dataset.focus||'breach'},{caseId:b.dataset.cell});}));
   $('view').querySelectorAll('[data-rubric]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDetail({kind:'rubric',focus:b.dataset.rubric});}));
   $('view').querySelectorAll('[data-ladder]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDetail({kind:'ladder',focus:b.dataset.ladder});}));
-  $('view').querySelectorAll('[data-tocase]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.view='cases';route.openCase=route.caseId;render();}));
+  $('view').querySelectorAll('[data-tocase]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.view='case';render();}));
 }
-// ---------------- the case card, inline in the cases list ----------------
-// The card is per case (the same at every step, different for every case), so it opens under its row in the
-// cases list, with the step-through button, rather than on a page of its own.
-const caseKey=k=>k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id);
-async function caseCardFor(c,k){const own=cardHtml(k);if(own)return own;let lens=null;try{lens=await loadLens(c);}catch(e){}const lc=lens?lens.cases.find(x=>x.receipt_sha256===k.receipt_sha256):null;return lc&&lc.kind==='sealed'&&lc.phases&&lc.phases.length?genericCardHtml(c,k,lc,lens):'';}
-// the open row's card, or null when the open case has no card (then its steps open directly)
-async function openCaseCard(c,data){if(!route.openCase)return '';const k=data.cases.find(x=>caseKey(x)===route.openCase);if(!k){route.openCase=null;return '';}const card=await caseCardFor(c,k);return card||null;}
-const cardRow=(key,ncols,card)=>`<tr class="openrow"><td colspan="${ncols}" style="padding:6px 0 12px;background:var(--bg)"><div class="bar" style="margin:0 0 6px"><button class="primary" data-stepthrough="${esc(key)}">Step through this case ›</button><button class="dbtn" data-closecase>close ▴</button><span class="muted" style="font-size:12px">the case card: the same at every step of this case</span></div>${card}</td></tr>`;
-function wireCaseRows(){
-  $('view').querySelectorAll('tr.click[data-case]').forEach(tr=>tr.addEventListener('click',()=>{const key=tr.dataset.case;route.caseId=key;route.openCase=route.openCase===key?null:key;render();}));
-  $('view').querySelectorAll('[data-stepthrough]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.view='step';route.caseId=b.dataset.stepthrough;route.step=0;render();}));
-  $('view').querySelectorAll('[data-closecase]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();route.openCase=null;render();}));
-  const orow=$('view').querySelector('tr.openrow');if(orow&&orow.previousElementSibling)orow.previousElementSibling.scrollIntoView({block:'start'});
+// ---------------- case page: the case card, once per case ----------------
+// The card describes the case and scores the whole run, so it is the same at every step; it is shown here,
+// once, and the step view links back to it.
+async function renderCasePage(){
+  await loadCards();const c=byId(route.campaign);
+  const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));crumbs();
+  const k=findCase(data);if(!k){route.view='cases';return render();}
+  let lens=null;try{lens=await loadLens(c);}catch(e){}
+  const lc=lens?lens.cases.find(x=>x.receipt_sha256===k.receipt_sha256):null;const sealed=lc&&lc.kind==='sealed'&&lc.phases&&lc.phases.length;
+  const card=cardHtml(k)||(sealed?genericCardHtml(c,k,lc,lens):'');
+  if(!card){route.view='step';route.step=0;return render();}
+  const key=k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id);const nSteps=sealed?sealedSteps(lc).length:(k.steps?k.steps.length:k.steps_count);
+  $('view').className='';
+  $('view').innerHTML=`<div class="stack"><section class="panel"><div class="bar" style="margin:0"><h3 class="mono" style="margin:0;font-size:15px">${esc(k.case_id)}</h3><span class="chip mono">${esc(k.profiles.join(', '))}</span><span class="muted" style="font-size:12.5px">receipt <span class="mono">${esc((k.receipt_sha256||'').slice(0,12))}…</span> · ${esc(nSteps??'—')} steps · ${money(k.cost)}</span>${k.invalid_steps?`<button class="chip no" data-invalid="${esc(key)}">${k.invalid_steps} invalid ›</button>`:''}<button class="primary" id="stepthrough">Step through this case ›</button></div></section>${sealed?`<div class="tiles">${scoreTiles(lc,k)}</div>`:''}${card}</div>`;
+  $('stepthrough').addEventListener('click',()=>{route.view='step';route.step=0;render();});
+  wireCellButtons();
 }
 
 // ---------------- graph layout (generic) ----------------
@@ -553,20 +555,19 @@ const GLOSS={"award":"A cell's decision: its last period ended with a submitted 
 const gloss=t=>GLOSS[t]||GLOSS[String(t).toLowerCase()]||'';
 (()=>{const b=document.getElementById('glossbtn'),pn=document.getElementById('glosspanel');if(!b||!pn)return;pn.innerHTML=`<h2>Glossary</h2><dl class="kv">${Object.entries(GLOSS).map(([k2,v])=>`<dt class="mono">${esc(k2)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;b.addEventListener('click',()=>{pn.hidden=!pn.hidden;});})();
 const median=a=>{if(!a.length)return null;const q=[...a].sort((x,y)=>x-y);const h=q.length>>1;return q.length%2?q[h]:(q[h-1]+q[h])/2;};
-async function renderCaseTable(c,data){
- const openCard=await openCaseCard(c,data);if(openCard===null){route.view='step';route.caseId=route.openCase;route.openCase=null;route.step=0;return render();}
+function renderCaseTable(c,data){
  const profs=[...new Set(data.cases.flatMap(k=>k.profiles))];
  const rows=data.cases.map(k=>{const ev=CARDS.evaluations[k.receipt_sha256]||null;const card=ev&&CARDS.cards[ev.world_case_id];const seed=(String(k.case_id).match(/delivery_(\d+)$/)||[])[1]||(ev&&ev.seed)||'';
   const checks=ev?['D1','D2','D3','D4','D5','D6'].map(id=>{const r=ev.checks[id];const cls=r?(r.verdict==='pass'?'yes':r.verdict==='fail'?'no':'na'):'na';return `<button class="chip ${cls} dchip" data-cell="${esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id))}" data-focus="${id}" title="${esc(id+': '+(r?r.verdict+' — '+r.why:'not evaluated'))} · click for the check in full">${id}</button>`;}).join(''):'';
   const breach=!!ev&&['D4','D5'].some(id=>ev.checks[id]&&ev.checks[id].verdict==='fail');return {k,ev,card,seed,checks,breach,regret:ev?ev.regret:null};});
  if(route.sortRegret)rows.sort((a,b)=>(b.regret??-1)-(a.regret??-1));
  const wf=route.worldFilter;const shown=wf?rows.filter(r=>(r.card&&r.card.world===wf)||String(r.k.case_id).includes(wf)):rows;
- const body=shown.map(r=>`<tr class="click ${caseKey(r.k)===route.openCase?'cur':''}" data-case="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}"><td class="nstr">${esc(r.card?r.card.stratum.replace(/_/g,' '):'')}</td><td class="mono">${esc(r.card?r.card.world:r.k.case_id).replace(/_/g,'_<wbr>')}</td><td class="mono">${esc(r.seed)}</td><td class="mono" style="text-align:right">${r.regret!=null?fmt(r.regret,1):'—'}</td><td>${r.breach?`<button class="chip no" data-cell="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}" data-focus="breach" title="why this cell is a breach">breach ›</button>`:''}</td><td style="white-space:nowrap">${r.checks}</td><td>${r.k.steps?r.k.steps.length:(r.k.steps_count??'—')}</td><td>${r.k.invalid_steps?`<button class="chip no" data-invalid="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}" title="which actions were rejected, and why">${r.k.invalid_steps} ›</button>`:'0'}</td><td>${money(r.k.cost)}</td></tr>${caseKey(r.k)===route.openCase&&openCard?cardRow(caseKey(r.k),9,openCard):''}`).join('');
+ const body=shown.map(r=>`<tr class="click" data-case="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}"><td class="nstr">${esc(r.card?r.card.stratum.replace(/_/g,' '):'')}</td><td class="mono">${esc(r.card?r.card.world:r.k.case_id).replace(/_/g,'_<wbr>')}</td><td class="mono">${esc(r.seed)}</td><td class="mono" style="text-align:right">${r.regret!=null?fmt(r.regret,1):'—'}</td><td>${r.breach?`<button class="chip no" data-cell="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}" data-focus="breach" title="why this cell is a breach">breach ›</button>`:''}</td><td style="white-space:nowrap">${r.checks}</td><td>${r.k.steps?r.k.steps.length:(r.k.steps_count??'—')}</td><td>${r.k.invalid_steps?`<button class="chip no" data-invalid="${esc(r.k.receipt_sha256||(r.k.cell_id+'|'+r.k.episode_attempt_id))}" title="which actions were rejected, and why">${r.k.invalid_steps} ›</button>`:'0'}</td><td>${money(r.k.cost)}</td></tr>`).join('');
  const scored=rows.filter(r=>r.regret!=null).map(r=>r.regret);const nb=rows.filter(r=>r.breach).length;
  $('view').className='';
  $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cells</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">Model: <span class="mono">${esc(profs.join(', '))}</span>. ${scored.length} cells scored: median regret ${fmt(median(scored),1)}, ${nb} with a breach. ${wf?`<span class="chip acc">showing world <span class="mono">${esc(wf)}</span>: ${shown.length} cell${shown.length!==1?'s':''}</span> <button id="clearworld" style="padding:1px 8px;font-size:12px">show all ${rows.length}</button> `:''}One row per run of one world; click a row for its case card and the step-by-step view. Click a breach, a D-chip or an invalid count for what it rests on; hover a header for its meaning.</p>
   <div class="scroll"><table><thead><tr><th class="nstr" title="${esc(gloss('stratum'))}">stratum</th><th title="${esc(gloss('world'))}">world</th><th title="${esc(gloss('seed'))}">seed</th><th><button class="sortbtn" id="sortregret" title="${esc(gloss('regret'))} Click to sort.">regret ${route.sortRegret?'▼':'⇅'}</button></th><th title="${esc(gloss('breach'))}">breach</th><th title="D1 orders in time · D2 reference suppliers · D3 negotiates · D4 minimum service · D5 valid execution · D6 beats deadline_aware">checks D1–D6</th><th>steps</th><th title="${esc(gloss('invalid steps'))}">invalid steps</th><th>cost</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
- wireCaseRows();
+ $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='case';route.caseId=tr.dataset.case;route.step=0;render();}));
  const sb=$('sortregret');if(sb)sb.addEventListener('click',e=>{e.stopPropagation();route.sortRegret=!route.sortRegret;render();});
  const cw=$('clearworld');if(cw)cw.addEventListener('click',()=>{route.worldFilter=null;render();});
  wireCellButtons();
@@ -1132,7 +1133,7 @@ async function render(){
     else if(route.view==='cases')await renderCases();
     else if(route.view==='results')await renderResultsPage();
     else if(route.view==='step')await renderStep();
-    else if(route.view==='case'){route.view='cases';route.openCase=route.caseId;await renderCases();}
+    else if(route.view==='case')await renderCasePage();
     else if(route.view==='detail')await renderDetail();
     wireGutters();fitCharts();
   }catch(e){$('view').className='';$('view').innerHTML=`<section class="panel"><h3>Could not render this view</h3><p class="muted">${esc(e.message)}</p><p><button id="back">Back to catalog</button></p></section>`;$('back').addEventListener('click',()=>{route={view:'catalog',family:null,campaign:null,caseId:null,step:0};render();});}
