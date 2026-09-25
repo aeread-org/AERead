@@ -1040,12 +1040,19 @@ try:
                               "edges": [{"from": s["phase_id"], "to": n} for s in specs for n in (s["next_phases"] or []) if isinstance(n, str)],
                               "modes": {s["phase_id"]: s["mode"] for s in specs}, "actors": {s["phase_id"]: (s["actor_selector"] if isinstance(s["actor_selector"], str) else "?") for s in specs}}]
     for pkg, variants in list(declared.items()):
-        seen = set(); unique = []
+        seen = {}; unique = []
         for v in variants:
             key = json.dumps([v["plugin"], v["nodes"], v["edges"], v["modes"]], sort_keys=True)
             if key in seen:
+                # the same graph played from another seat (the risk-allocation case seats the model as
+                # client or integrator): keep one graph and name every seat that acts in each phase
+                first = seen[key]
+                for node, actor in v["actors"].items():
+                    names = first["actors"].get(node, "").split(" or ")
+                    if actor not in names:
+                        first["actors"][node] = " or ".join([n for n in names if n] + [actor])
                 continue
-            seen.add(key); unique.append(v)
+            seen[key] = v; unique.append(v)
         declared[pkg] = unique
     # housing's phases() branches on the world kind; if the live extraction did not exercise it, use the graphs the plugin returns
     if all(v.get("variant") == "static" for v in declared.get("housing", [])): declared["housing"] = [
