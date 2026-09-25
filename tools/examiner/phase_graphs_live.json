@@ -1492,6 +1492,25 @@
      }
     ],
     "init": "default"
+   },
+   {
+    "case": "cases/procurement_allocation_v1/judgment_dev_v1/not_worth_testing_2452000.json",
+    "phases": [
+     {
+      "phase_id": "buyer_procurement_turn",
+      "actor_selector": "buyer_only",
+      "mode": "single",
+      "next_phases": [
+       "buyer_procurement_turn"
+      ],
+      "action_schema_by_role": {
+       "buyer": "procurement_allocation_action_v1"
+      },
+      "max_logical_actions": 40,
+      "invalid_action_policy": "family_defined"
+     }
+    ],
+    "init": "default"
    }
   ]
  },

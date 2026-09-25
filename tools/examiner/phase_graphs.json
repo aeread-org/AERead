@@ -622,7 +622,7 @@
  "procurement_allocation": [
   {
    "file": "src/aeread_families/procurement_allocation/environment.py",
-   "line": 1105,
+   "line": 1225,
    "in": "ProcurementAllocationPlugin::phases",
    "conditions": [],
    "phase_id": "buyer_procurement_turn",
@@ -635,7 +635,9 @@
     "buyer": "procurement_allocation_action_v1"
    },
    "observation_schema_by_role": {
-    "buyer": "procurement_allocation_observation_v1"
+    "buyer": {
+     "dynamic": "OBSERVATION_SCHEMA_BY_LAYOUT[self.observation_layout]"
+    }
    },
    "invalid_action_policy": "family_defined",
    "max_logical_actions": {
