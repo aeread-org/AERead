@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import statistics
 from pathlib import Path
 from typing import Any
@@ -71,6 +72,7 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
             "allocation_gap": g.get("allocation_gap"), "price_gap": g.get("price_gap"), "signed_package": g.get("signed_package"),
             "efficient_package": g.get("efficient_package"), "first_proposed_package": g.get("first_proposed_package"),
             "switched_package": g.get("switched_package"), "refused_rounds": g.get("refused_rounds"), "cost_usd": r.get("cost_usd"),
+            "first_move_regret": (g.get("decisions") or [{}])[0].get("regret"),
         })
     groups: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -98,6 +100,7 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
         s["regret"] = len(s["regret"])
         s["cost_usd"] = round(s["cost_usd"], 4)
     summary = {
+        "analysis": analysis(rows, list(plan["arms"])),
         "campaign_id": plan["campaign_id"], "plan_sha256": plan["plan_sha256"], "claim_status": plan["claim_status"],
         "arms": plan["arms"], "routes": sorted(plan["routes"]), "groups": dict(sorted(groups.items())),
         "cost_usd_total": round(sum(g["cost_usd"] for g in groups.values()), 4),
@@ -122,6 +125,92 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
             "manifest_sha256": manifest["manifest_sha256"]}
 
 
+BOOTSTRAP_DRAWS = 2000
+BOOTSTRAP_SEED = 20260925
+BASE_ARM = "one_price_low"
+
+
+def _cluster(row: dict[str, Any]) -> str:
+    """A world and its twin share every public fact, so they are one cluster."""
+    return row.get("twin_of") or row.get("world") or row["case_id"]
+
+
+def _quantiles(values: list[float]) -> dict[str, float]:
+    v = sorted(values)
+    q = lambda f: v[min(len(v) - 1, int(f * (len(v) - 1) + 0.5))]  # noqa: E731
+    return {"min": v[0], "p25": q(0.25), "median": q(0.5), "p75": q(0.75), "max": v[-1]}
+
+
+def _cluster_bootstrap(by_cluster: dict[str, list[float]], rng: random.Random) -> list[float] | None:
+    keys = sorted(by_cluster)
+    if len(keys) < 2:
+        return None
+    means = []
+    for _ in range(BOOTSTRAP_DRAWS):
+        pick = [by_cluster[keys[rng.randrange(len(keys))]] for _ in keys]
+        flat = [x for group in pick for x in group]
+        means.append(statistics.fmean(flat))
+    means.sort()
+    return [round(means[int(0.025 * BOOTSTRAP_DRAWS)], 3), round(means[int(0.975 * BOOTSTRAP_DRAWS) - 1], 3)]
+
+
+def analysis(rows: list[dict[str, Any]], arms: list[str]) -> dict[str, Any]:
+    """The analysis CLAUDE.md asks for: distributions, run-to-run variance, clustered and paired
+    intervals, judge agreement, and what else the numbers suggest (labelled exploratory)."""
+    rng = random.Random(BOOTSTRAP_SEED)
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        groups.setdefault(f"{row['arm']}/{row['route_id']}/{row['seat']}", []).append(row)
+    out: dict[str, Any] = {
+        "run_to_run_variance": "unmeasured: one run per cell. The break-off draws are fixed per world, so a later "
+                               "replicate campaign would measure the model's own spread.",
+        "judges": "none: decision regret is an exact computation, and every receipt was replayed to the same digest",
+        "intervals": f"95% percentile bootstrap, {BOOTSTRAP_DRAWS} draws, worlds resampled as clusters (a twin with its base world)",
+        "groups": {}, "paired_vs_" + BASE_ARM: {},
+    }
+    for key, rs in sorted(groups.items()):
+        valid = [r for r in rs if r.get("valid")]
+        outcomes: dict[str, int] = {}
+        for r in rs:
+            label = r.get("termination") or r.get("receipt_status") or "unsealed"
+            if not r.get("valid"):
+                label = f"missing: {r.get('invalid') or r.get('receipt_status') or 'unsealed'}"
+            outcomes[label] = outcomes.get(label, 0) + 1
+        by_cluster: dict[str, list[float]] = {}
+        for r in valid:
+            by_cluster.setdefault(_cluster(r), []).append(r["decision_regret"])
+        signed = [r for r in valid if r["signed_package"]]
+        out["groups"][key] = {
+            "cells": len(rs), "valid": len(valid), "outcomes": dict(sorted(outcomes.items())),
+            "decision_regret": ({**_quantiles([r["decision_regret"] for r in valid]), "mean": round(statistics.fmean(r["decision_regret"] for r in valid), 3),
+                                 "mean_ci95": _cluster_bootstrap(by_cluster, rng)} if valid else None),
+            "strict_pass_zero_regret": sum(r["decision_regret"] < 1.0 for r in valid),
+            "exploratory": {
+                "signed": len(signed), "switched_package": sum(bool(r["switched_package"]) for r in signed),
+                "efficient_contract": sum(r["signed_package"] == r["efficient_package"] for r in signed),
+                "mean_first_move_regret": round(statistics.fmean(r["first_move_regret"] or 0.0 for r in valid), 3) if valid else None,
+                "mean_allocation_gap": round(statistics.fmean(r["allocation_gap"] for r in valid), 3) if valid else None,
+            },
+        }
+    for arm in arms:
+        if arm == BASE_ARM:
+            continue
+        for key in sorted(groups):
+            a, route, seat = key.split("/")
+            if a != arm:
+                continue
+            base = {r["world"]: r for r in groups.get(f"{BASE_ARM}/{route}/{seat}", []) if r.get("valid")}
+            diffs: dict[str, list[float]] = {}
+            for r in groups[key]:
+                if r.get("valid") and r["world"] in base:
+                    diffs.setdefault(_cluster(r), []).append(r["decision_regret"] - base[r["world"]]["decision_regret"])
+            flat = [x for d in diffs.values() for x in d]
+            if flat:
+                out["paired_vs_" + BASE_ARM][key] = {"worlds": len(flat), "mean_difference": round(statistics.fmean(flat), 3),
+                                                     "ci95": _cluster_bootstrap(diffs, rng)}
+    return out
+
+
 def _readme(summary: dict[str, Any]) -> str:
     lines = [
         f"# {summary['campaign_id']}",
@@ -140,6 +229,19 @@ def _readme(summary: dict[str, Any]) -> str:
     for key, g in summary["groups"].items():
         lines.append(f"| {key} | {g['valid']}/{g['cells']} | {g['mean_decision_regret']} | {g['switched']} of {g['signed']} | "
                      f"{g['efficient']} of {g['signed']} | ${g['cost_usd']:.2f} |")
+    a = summary["analysis"]
+    lines += ["", "Analysis (`reports/summary.json`, key `analysis`):", "",
+              f"- Run-to-run variance: {a['run_to_run_variance']}", f"- Judges: {a['judges']}", f"- Intervals: {a['intervals']}.", "",
+              "| arm / route / seat | valid | mean regret [95% CI] | median | strict pass (zero regret) |", "|---|---|---|---|---|"]
+    for key, g in a["groups"].items():
+        d = g["decision_regret"]
+        lines.append(f"| {key} | {g['valid']}/{g['cells']} | " + (f"{d['mean']} [{d['mean_ci95'][0]}, {d['mean_ci95'][1]}]" if d and d["mean_ci95"] else "—")
+                     + f" | {d['median'] if d else '—'} | {g['strict_pass_zero_regret']} |")
+    lines += ["", f"Paired against `{BASE_ARM}` on the same worlds (difference in decision regret, $ thousands; negative is better):", "",
+              "| arm / route / seat | worlds | mean difference [95% CI] |", "|---|---|---|"]
+    for key, d in a["paired_vs_" + BASE_ARM].items():
+        ci = d["ci95"]
+        lines.append(f"| {key} | {d['worlds']} | {d['mean_difference']}" + (f" [{ci[0]}, {ci[1]}]" if ci else "") + " |")
     lines += ["", f"Total cost ${summary['cost_usd_total']:.2f}. Plan `{summary['plan_sha256'][:12]}`.", ""]
     return "\n".join(lines)
 
