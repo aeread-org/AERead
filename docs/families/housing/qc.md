@@ -861,21 +861,28 @@ on the missing cell: without world 100021 it is +161.6 (40 to 273) over 23
 worlds, and with GLM's missing seed set to the best payoff GLM reached anywhere
 it is +157.8.
 
-**Why.** Both populations signed about as many listings without inspecting
-them (Gemini 23, GLM 21), but 2 of Gemini's were lemons and 11 of GLM's were.
-A lemon lease costs the tenant the $1,000 lemon loss, and nine extra of them
-over 47 markets is about $190 a market, the whole gap. GLM also inspected more
-(11.7 against 10.5 per market), walked more holds (138 against 5 walks) and
-signed above its own value 16 times against 2. Gemini's v2 numbers equal its v1
-numbers, as a tenant that never used HL-D-01's channel should.
+**Why, and how much is luck (HL-J-01).** Both populations signed about as many
+listings without inspecting them (Gemini 23, GLM 21); 2 of Gemini's were lemons
+and 11 of GLM's, at the $1,000 lemon loss each, which is the realized gap. But a
+blind signing is a bet at the tenant's own lemon probability. At signing, those
+probabilities summed to 5.0 expected lemons for Gemini (8 of its 23 were on
+listings it had deduced sound) and 7.2 for GLM: the draws favoured Gemini by
+about 3 lemons and went against GLM by about 4. Charging every blind signing its
+expected loss instead of the realized one, Gemini minus GLM is +41.1 (-70.9 to
+142.5), Gemini ahead on 14 worlds and GLM on 10: not separated. What separates
+is smaller: GLM made 4 blind signings worth less than the rent in expectation
+(about $17.5 a market), Gemini none, and GLM's risky signings carried a higher
+mean lemon probability (0.45 against 0.33). GLM also inspected more (11.7
+against 10.5 per market) and walked far more holds (138 against 5).
 
 **Replicates.** Gemini's two seeds gave the same net payoff on 18 of 24 worlds
 at temperature 1.0 (16 at 0); GLM's on 0 of 23. Gemini's agreement is its own
 consistency, not an artefact of temperature 0 (HL-D-02, corrected).
 
-**What this supports.** On this world, scored on the tenant's own payoff, the
-two populations separate by more than the world variance, and the separation
-has one mechanism a reader can check cell by cell. It does not support a ranking
+**What this supports.** The realized payoffs differ by more than the world
+variance, but most of that is which blind bets happened to be lemons; on the
+decisions themselves, judged at what each tenant knew, the two are not
+separated at this size, with GLM taking somewhat riskier bets. It does not support a ranking
 or a winner: the GLM side is an incomplete pack, 24 worlds, one pack, and both routes
 fill all six seats, so each number describes a market of one model, not one
 agent against fixed competitors. A publishable pair needs a new identity that
