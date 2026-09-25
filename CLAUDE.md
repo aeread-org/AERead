@@ -62,33 +62,21 @@ what the experiment measured.
 
 ## Analysing results
 
-A result is a claim about a model only once its analysis covers each point
-below. Where one does not apply, say why in a line: for example, "no judge:
-the grade is an exact computation, replayed from the receipt".
+Before a result is read as a claim about a model, report:
 
-- **Components before composites.** Report each part of an outcome on its own
-  (for a negotiation: the terms, the price, the pace, a valid move) and the
-  strict pass that needs all of them, beside any composite score. Say which
-  parts are graded on the model's own information and which on full
-  information.
-- **Missingness by cause.** Keep provider and transport failures, replies cut
-  off by an output limit, and invalid moves by the model apart, and count
-  each. Only the last is the model's behaviour; never fold one into another.
-- **Replicates.** State the runs per cell. With more than one, report the
-  spread within a cell (worst of k, best of k, pass@k). With one, say that
-  the variance within a cell is unmeasured. Hold the environment's own chance
-  draws fixed across runs, so the spread is the model's.
-- **Intervals, clustered and paired.** Bootstrap with the world or case as the
-  unit, and put cases that share their public facts (twins, the two seats of
-  one world) in one cluster. Compare arms on the same worlds as paired
-  differences. State no difference from point estimates alone.
-- **Judges.** When a model or a person grades, report the agreement between
-  graders (Cohen's kappa, percent agreement) and the kinds of disagreement. An
-  exact grader cites its replay verification instead.
-- **Where the score comes from.** Decompose it by decision or phase, and name
-  failure types in the world's terms (anchoring on the first package, a risk
-  moved to the party that cannot control it). Route, provider, reasoning
-  setting and protocol are separate factors: change one per arm.
+- **Evaluation-result distributions.** The spread across cases and the share
+  at each outcome, beside any average, and how many cases are missing and why.
+- **Run-to-run variance.** How much one case varies between runs. With one run
+  per case, say that this is unmeasured.
+- **Confidence intervals of performance.** For every score and every
+  difference between models or conditions. The case is the resampling unit,
+  cases that share their facts are one cluster, and conditions run on the
+  same cases are compared as paired differences.
+- **Agreement between judge models.** When a model grades, how often judges
+  agree and where they differ. An exact grader cites its replay verification
+  instead.
+- **Anything else worth a look.** What the numbers suggest beyond the
+  headline, labelled as exploratory.
 
 ## Pull requests
 
@@ -227,10 +215,7 @@ this repository, with where it is written down.
   adapter and kernel-review documents at the root of `docs/`, unindexed, with
   ninety-two stale cross-references. Hence the placement rule in
   `docs/README.md` and the deferred move in #123.
-- **Point estimates from one run, and provider failures read as behaviour.**
-  The risk-allocation probes of 2026-09-24/25 compared arms on one run per
-  world with no interval, and twice counted a provider failure as the model's
-  malformed move (DC-T-12, reopened once); a fixed output limit turned 11 of
-  GLM's 32 episodes into missing ones (DC-O-08). The rows are in the incident
-  log on `codex/datacenter-risk-allocation` until that branch merges. Hence
-  the analysis rules.
+- **Point estimates from one run.** The risk-allocation probes of
+  2026-09-24/25 compared arms on one run per world with no interval, and
+  counted provider failures as the model's moves (DC-O-08, DC-T-12; rows on
+  `codex/datacenter-risk-allocation` until it merges). Hence the analysis rules.
