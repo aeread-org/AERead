@@ -891,6 +891,31 @@ less than their rent, signed blind 6 times after passing on an inspection worth 
 fee, declined 16 holds worth more than their rent and signed 31 leases above the
 ask; Gemini did none of these. Every instance names its cell, round and tenant.
 
+**Same states, both models (diagnostic, 2026-09-25).** The cells are markets of one
+model's six tenants, so the routes differ in history and competition as well as in
+policy. `tools/run_lemons_state_probe.py` removes the history: it sent each model the
+exact recorded decision states of both routes' published cells (123 blind
+sign-or-walk holds, 31 inspections before a blind signing, 80 sampled offers), three
+times each at the campaign's own sampling; plan frozen to `runs/` before the calls
+(sha256 57768ec0), 1,402 of 1,404 calls answered (one 503, one unparseable), $1.45.
+Differences are over states, bootstrapped by state:
+
+| on the same states | Gemini | GLM | Gemini minus GLM |
+|---|---|---|---|
+| signs a blind hold worth it in expectation (38 states) | 0.965 | 0.526 | +0.44 (0.32 to 0.57) |
+| signs a blind hold not worth it (85 states) | 0.039 | 0.125 | -0.09 (-0.15 to -0.03) |
+| expected surplus per sign-or-walk decision | +26.4 | -1.7 | +28.1 (14.7 to 42.8) |
+| inspects, in the round before a blind signing | 0.935 | 0.968 | |
+| offers, when asked to contact | 0.25 | 0.52 | |
+| mean offer minus ask | -2.4 | -228.5 | |
+
+So the policy difference is at the sign-or-walk decision: in identical states GLM
+declines half the uninspected holds worth signing and signs one in eight that are
+not; Gemini tracks expected value almost exactly. GLM also offers twice as often and
+haggles far below the ask; the two inspect alike. This is sharper than the
+run-level contrast, where the lemon draws swamp it (the luck-removed gap +41.1
+crosses zero), and it is what the next identity should measure directly.
+
 **Replicates.** Gemini's two seeds gave the same net payoff on 18 of 24 worlds
 at temperature 1.0 (16 at 0); GLM's on 0 of 23. Gemini's agreement is its own
 consistency, not an artefact of temperature 0 (HL-D-02, corrected).
