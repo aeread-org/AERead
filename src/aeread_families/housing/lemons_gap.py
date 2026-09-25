@@ -27,6 +27,13 @@ decision can fall in several classes, and their dollar amounts are expected
 losses at the tenant's beliefs, not parts of the decomposition. When both
 branches land, the classes belong in that module.
 
+**Against the reference.** The scripted ``inspect_then_sign`` reference ran on
+the same worlds as a control in both bundles. It never signs without
+inspecting, so its payoff is its inspected leases minus its fees, and each
+route's parts can be set against it from the published control rows alone. Its
+lease-level diagnostics come from replaying the deterministic policy on the
+regenerated worlds, checked against every published control payoff.
+
 The report follows ``aeread.gap_decomposition/0.1``, the shape the Examiner
 renders for any family: realized gap, additive components with world-bootstrap
 intervals, decision classes with counts and amounts, and every instance with
@@ -166,6 +173,83 @@ def _boot(values: Sequence[float], rng: random.Random) -> list[float] | None:
     return [means[int(0.025 * BOOTSTRAP_DRAWS)], means[min(BOOTSTRAP_DRAWS - 1, int(0.975 * BOOTSTRAP_DRAWS))]]
 
 
+REFERENCE = "inspect_then_sign"
+
+
+def _controls(bundle: str) -> dict[int, dict[str, Any]]:
+    return {int(r["world_seed"]): r for r in comparison._rows(bundle, "scripted_controls")
+            if r.get("policy") == REFERENCE and r.get("status") == "completed"}
+
+
+def _lease_diagnostics(leases: Sequence[Sequence[tuple[float, float, bool]]]) -> dict[str, Any]:
+    """Per market: leases signed after inspecting and blind, surplus per inspected lease, rent above the ask."""
+    informed = [x for market in leases for x in market if x[2]]
+    signed = [x for market in leases for x in market]
+    n = len(leases)
+    return {"markets": n,
+            "informed_leases_per_market": round(len(informed) / n, 4) if n else None,
+            "blind_leases_per_market": round((len(signed) - len(informed)) / n, 4) if n else None,
+            "surplus_per_informed_lease": round(sum(x[0] for x in informed) / len(informed), 4) if informed else None,
+            "rent_minus_ask_per_lease": round(sum(x[1] for x in signed) / len(signed), 4) if signed else None}
+
+
+def _reference(paired: Sequence[int], world_mean, rng: random.Random) -> dict[str, Any]:
+    from . import lemons, lemons_campaign
+
+    controls = _controls(comparison.LEFT)
+    if {w: controls[w]["tenant_net_payoff"] for w in controls} != {w: r["tenant_net_payoff"] for w, r in _controls(comparison.RIGHT).items()}:
+        raise ValueError("the two bundles' reference controls differ; they were not run on the same worlds")
+    ref: dict[int, dict[str, float]] = {}
+    for world_seed in paired:
+        row = controls[world_seed]
+        if row["lemon_signings"] or row["uninspected_lemon_signings"]:
+            raise ValueError("the reference signed a lemon or signed blind, so its payoff is not inspected leases minus fees")
+        fee = float(comparison._world(world_seed).inspection_cost) * float(row["inspection_count"])
+        ref[world_seed] = {"informed_leases": float(row["tenant_net_payoff"]) + fee, "blind_good_bets": 0.0, "blind_bad_bets": 0.0,
+                           "lemon_draws": 0.0, "inspection_spend": -fee}
+    vs = {}
+    for side, _ in SIDES:
+        def block(pick_model, pick_ref) -> dict[str, Any]:
+            diffs = [world_mean(side, w, pick_model) - pick_ref(w) for w in paired]
+            return {"model": sum(world_mean(side, w, pick_model) for w in paired) / len(paired),
+                    "reference": sum(pick_ref(w) for w in paired) / len(paired),
+                    "difference": sum(diffs) / len(diffs), "difference_ci": _boot(diffs, rng)}
+        vs[side] = {"realized": block(lambda c: sum(c["parts"].values()), lambda w: sum(ref[w].values())),
+                    "components": [{"key": key, "label": label, "group": group, "description": description,
+                                    **block(lambda c, key=key: c["parts"][key], lambda w, key=key: ref[w][key])}
+                                   for key, label, group, description in COMPONENTS]}
+    environment = lemons_campaign.load_contract(comparison.ROOT / "configs" / f"{comparison.LEFT}.json")["environment"]
+    replay, mismatches = [], 0
+    for world_seed in paired:
+        world = comparison._world(world_seed)
+        market = lemons.run_lemons_policy(world, int(environment["rounds"]), REFERENCE)
+        leases = [(float(world.values[t][l]) - float(market.signed_rent[t]), float(market.signed_rent[t]) - float(world.ask[l]), True)
+                  for t, l in market.pairs]
+        total = sum(x[0] for x in leases) - float(world.inspection_cost) * float(controls[world_seed]["inspection_count"])
+        mismatches += abs(total - float(controls[world_seed]["tenant_net_payoff"])) > 1e-6
+        replay.append(leases)
+    diagnostics = {"reference": _lease_diagnostics(replay)}
+    for side, bundle in SIDES:
+        markets = []
+        for row in _cells(bundle):
+            if int(row["world_seed"]) not in paired:
+                continue
+            world = comparison._world(int(row["world_seed"]))
+            markets.append([(float(world.values[d["tenant_id"]][d["listing_id"]]) - float(d["rent"]),
+                             float(d["rent"]) - float(world.ask[d["listing_id"]]), bool(d["informed"]))
+                            for d in row["commit_decisions"] if d["decision"] == "sign"])
+        diagnostics[side] = _lease_diagnostics(markets)
+    return {"key": REFERENCE, "label": "scripted inspect-then-sign reference",
+            "description": ("A scripted policy on the same worlds: inspect the best uninspected open listing when the "
+                            "inspection pays for itself in expectation, offer the ask plus one on the best listing it has "
+                            "verified sound, sign only verified-sound holds. A yardstick, not an optimum: a route can beat "
+                            "it on a part, as good blind bets do."),
+            "source": "tables/scripted_controls.jsonl (both bundles, identical)",
+            "replay_check": {"worlds": len(paired), "mismatches": mismatches,
+                             "statement": "the replayed policy reproduces every published reference payoff"},
+            "vs": vs, "lease_diagnostics": diagnostics}
+
+
 def _model(bundle: str) -> str:
     contract = json.loads((comparison.ROOT / "configs" / f"{bundle}.json").read_text())
     return contract["route"]["requested_model"]
@@ -218,6 +302,7 @@ def compare() -> dict[str, Any]:
                         "left_count": counts["left"], "right_count": counts["right"],
                         "left_amount_per_market": amounts["left"], "right_amount_per_market": amounts["right"],
                         "amount_difference": amounts["difference"], "amount_difference_ci": amounts["difference_ci"]})
+    baselines = [_reference(paired, world_mean, rng)]
     sources = {bundle: hashlib.sha256((comparison.EVIDENCE / bundle / "publication_manifest.json").read_bytes()).hexdigest()
                for _, bundle in SIDES}
     return {
@@ -230,12 +315,13 @@ def compare() -> dict[str, Any]:
         "claim_status": "development_qualification", "winner_claim_allowed": False, "inferential_model_ranking_allowed": False,
         "paired_worlds": len(paired), "cells": cells_count,
         "bootstrap": {"seed": BOOTSTRAP_SEED, "draws": BOOTSTRAP_DRAWS, "interval": "percentile_95", "unit": "world_seed",
-                      "stream": "one random.Random(seed): realized, then components in declared order, then class amounts in declared order"},
+                      "stream": "one random.Random(seed): realized, then components in declared order, then class amounts in declared order, then each baseline's left and right contrasts (realized, then components)"},
         "realized": realized,
         "components": components,
         "accounting_check": {"max_abs_residual_per_cell": max(abs(r) for r in residuals),
                              "statement": "each cell's components sum to its published tenant_net_payoff"},
         "classes": classes,
+        "baselines": baselines,
         "instances": sorted(instances, key=lambda i: (i["class"], i["side"], i["world_seed"], i["replicate_index"], i["round_index"], i["tenant_id"])),
         "source_manifest_sha256": sources,
     }
@@ -273,10 +359,30 @@ def _readme(report: Mapping[str, Any]) -> str:
         *(f"| `{c['key']}`: {c['label']} | {c['left_count']} | {c['right_count']} | {c['left_amount_per_market']:.1f} | {c['right_amount_per_market']:.1f} |"
           for c in report["classes"]),
         "",
+        *_baseline_readme(report, left, right),
         "Every instance, with the step that decided it, is in `reports/gap_decomposition.json`.",
         "",
     ]
     return "\n".join(lines)
+
+
+def _baseline_readme(report: Mapping[str, Any], left: str, right: str) -> list[str]:
+    lines: list[str] = []
+    for b in report.get("baselines") or []:
+        f = lambda x: f"{x['difference']:.1f} ({x['difference_ci'][0]:.1f} to {x['difference_ci'][1]:.1f})"
+        lines += [f"Against the {b['label']} (replay reproduces {b['replay_check']['worlds'] - b['replay_check']['mismatches']} of "
+                  f"{b['replay_check']['worlds']} published payoffs), per market:", "",
+                  f"| part | {left} minus reference | {right} minus reference |", "|---|---|---|",
+                  f"| tenant net payoff (realized) | {f(b['vs']['left']['realized'])} | {f(b['vs']['right']['realized'])} |",
+                  *(f"| {lc['label']} | {f(lc)} | {f(rc)} |" for lc, rc in zip(b["vs"]["left"]["components"], b["vs"]["right"]["components"])),
+                  ""]
+        d = b["lease_diagnostics"]
+        lines += ["| leases, per market | " + " | ".join([left, right, "reference"]) + " |", "|---|---|---|---|",
+                  *(f"| {label} | " + " | ".join("n/a" if d[k][key] is None else f"{d[k][key]:.2f}" for k in ("left", "right", "reference")) + " |"
+                    for key, label in (("informed_leases_per_market", "signed after inspecting"), ("blind_leases_per_market", "signed blind"),
+                                       ("surplus_per_informed_lease", "surplus per inspected lease"), ("rent_minus_ask_per_lease", "rent minus ask"))),
+                  ""]
+    return lines
 
 
 def write() -> None:

@@ -24,4 +24,22 @@ Decision classes, judged at what the tenant knew (counts over all cells; amounts
 | `L5_good_blind_bet_turned_lemon`: a blind signing worth it in expectation that turned out a lemon (luck, not a failure) | 2 | 8 | 27.8 | 107.6 |
 | `A1_tenant_signed_above_own_value`: a signed lease left the tenant below zero surplus (as in the Housing taxonomy) | 2 | 11 | 23.5 | 124.1 |
 
+Against the scripted inspect-then-sign reference (replay reproduces 24 of 24 published payoffs), per market:
+
+| part | gemini-3.8-flash minus reference | glm-5.3-flash minus reference |
+|---|---|---|
+| tenant net payoff (realized) | -26.3 (-94.5 to 22.2) | -220.2 (-339.6 to -103.5) |
+| inspected, then signed | -139.2 (-237.3 to -53.1) | -122.2 (-186.7 to -54.6) |
+| signed blind, worth it in expectation | 53.0 (25.1 to 85.4) | 43.1 (21.9 to 67.5) |
+| signed blind, not worth it in expectation | 0.0 (0.0 to 0.0) | -17.5 (-46.0 to 0.0) |
+| which blind leases turned out lemons (luck) | 62.5 (-27.8 to 152.8) | -90.3 (-173.6 to -13.9) |
+| inspection fees | -2.6 (-10.9 to 6.8) | -33.3 (-52.1 to -14.6) |
+
+| leases, per market | gemini-3.8-flash | glm-5.3-flash | reference |
+|---|---|---|---|
+| signed after inspecting | 1.44 | 1.77 | 1.83 |
+| signed blind | 0.48 | 0.45 | 0.00 |
+| surplus per inspected lease | 330.67 | 283.72 | 335.22 |
+| rent minus ask | 0.00 | -45.65 | 1.00 |
+
 Every instance, with the step that decided it, is in `reports/gap_decomposition.json`.

@@ -3,11 +3,205 @@
     "max_abs_residual_per_cell": 4.547473508864641e-13,
     "statement": "each cell's components sum to its published tenant_net_payoff"
   },
+  "baselines": [
+    {
+      "description": "A scripted policy on the same worlds: inspect the best uninspected open listing when the inspection pays for itself in expectation, offer the ask plus one on the best listing it has verified sound, sign only verified-sound holds. A yardstick, not an optimum: a route can beat it on a part, as good blind bets do.",
+      "key": "inspect_then_sign",
+      "label": "scripted inspect-then-sign reference",
+      "lease_diagnostics": {
+        "left": {
+          "blind_leases_per_market": 0.4792,
+          "informed_leases_per_market": 1.4375,
+          "markets": 48,
+          "rent_minus_ask_per_lease": 0.0,
+          "surplus_per_informed_lease": 330.6719
+        },
+        "reference": {
+          "blind_leases_per_market": 0.0,
+          "informed_leases_per_market": 1.8333,
+          "markets": 24,
+          "rent_minus_ask_per_lease": 1.0,
+          "surplus_per_informed_lease": 335.2243
+        },
+        "right": {
+          "blind_leases_per_market": 0.4468,
+          "informed_leases_per_market": 1.766,
+          "markets": 47,
+          "rent_minus_ask_per_lease": -45.6525,
+          "surplus_per_informed_lease": 283.7188
+        }
+      },
+      "replay_check": {
+        "mismatches": 0,
+        "statement": "the replayed policy reproduces every published reference payoff",
+        "worlds": 24
+      },
+      "source": "tables/scripted_controls.jsonl (both bundles, identical)",
+      "vs": {
+        "left": {
+          "components": [
+            {
+              "description": "Surplus of leases signed after inspecting the listing: value minus rent.",
+              "difference": -139.23708333333332,
+              "difference_ci": [
+                -237.26000000000002,
+                -53.12333333333327
+              ],
+              "group": "decision",
+              "key": "informed_leases",
+              "label": "inspected, then signed",
+              "model": 475.34083333333336,
+              "reference": 614.5779166666666
+            },
+            {
+              "description": "Expected surplus at the tenant's own lemon probability of uninspected leases whose expected value covered the rent.",
+              "difference": 53.01520833333331,
+              "difference_ci": [
+                25.09166666666664,
+                85.37354166666667
+              ],
+              "group": "decision",
+              "key": "blind_good_bets",
+              "label": "signed blind, worth it in expectation",
+              "model": 53.01520833333331,
+              "reference": 0.0
+            },
+            {
+              "description": "Expected surplus (negative) of uninspected leases whose expected value was below the rent.",
+              "difference": 0.0,
+              "difference_ci": [
+                0.0,
+                0.0
+              ],
+              "group": "decision",
+              "key": "blind_bad_bets",
+              "label": "signed blind, not worth it in expectation",
+              "model": 0.0,
+              "reference": 0.0
+            },
+            {
+              "description": "True value minus expected value on every uninspected lease: the draw, not the decision.",
+              "difference": 62.49895833333335,
+              "difference_ci": [
+                -27.778749999999945,
+                152.77583333333337
+              ],
+              "group": "luck",
+              "key": "lemon_draws",
+              "label": "which blind leases turned out lemons (luck)",
+              "model": 62.49895833333335,
+              "reference": 0.0
+            },
+            {
+              "description": "Minus the fee times the inspections bought.",
+              "difference": -2.6041666666666665,
+              "difference_ci": [
+                -10.9375,
+                6.770833333333333
+              ],
+              "group": "cost",
+              "key": "inspection_spend",
+              "label": "inspection fees",
+              "model": -263.0208333333333,
+              "reference": -260.4166666666667
+            }
+          ],
+          "realized": {
+            "difference": -26.327083333333324,
+            "difference_ci": [
+              -94.51125000000002,
+              22.150416666666644
+            ],
+            "model": 327.8341666666667,
+            "reference": 354.16124999999994
+          }
+        },
+        "right": {
+          "components": [
+            {
+              "description": "Surplus of leases signed after inspecting the listing: value minus rent.",
+              "difference": -122.18541666666665,
+              "difference_ci": [
+                -186.73416666666665,
+                -54.59937500000007
+              ],
+              "group": "decision",
+              "key": "informed_leases",
+              "label": "inspected, then signed",
+              "model": 492.3925,
+              "reference": 614.5779166666666
+            },
+            {
+              "description": "Expected surplus at the tenant's own lemon probability of uninspected leases whose expected value covered the rent.",
+              "difference": 43.075624999999995,
+              "difference_ci": [
+                21.912083333333342,
+                67.47458333333333
+              ],
+              "group": "decision",
+              "key": "blind_good_bets",
+              "label": "signed blind, worth it in expectation",
+              "model": 43.075624999999995,
+              "reference": 0.0
+            },
+            {
+              "description": "Expected surplus (negative) of uninspected leases whose expected value was below the rent.",
+              "difference": -17.48958333333333,
+              "difference_ci": [
+                -45.99416666666665,
+                0.0
+              ],
+              "group": "decision",
+              "key": "blind_bad_bets",
+              "label": "signed blind, not worth it in expectation",
+              "model": -17.48958333333333,
+              "reference": 0.0
+            },
+            {
+              "description": "True value minus expected value on every uninspected lease: the draw, not the decision.",
+              "difference": -90.27833333333335,
+              "difference_ci": [
+                -173.61166666666668,
+                -13.889375000000015
+              ],
+              "group": "luck",
+              "key": "lemon_draws",
+              "label": "which blind leases turned out lemons (luck)",
+              "model": -90.27833333333335,
+              "reference": 0.0
+            },
+            {
+              "description": "Minus the fee times the inspections bought.",
+              "difference": -33.333333333333336,
+              "difference_ci": [
+                -52.083333333333336,
+                -14.583333333333334
+              ],
+              "group": "cost",
+              "key": "inspection_spend",
+              "label": "inspection fees",
+              "model": -293.75,
+              "reference": -260.4166666666667
+            }
+          ],
+          "realized": {
+            "difference": -220.2110416666667,
+            "difference_ci": [
+              -339.55145833333336,
+              -103.51375000000006
+            ],
+            "model": 133.9502083333333,
+            "reference": 354.16124999999994
+          }
+        }
+      }
+    }
+  ],
   "bootstrap": {
     "draws": 10000,
     "interval": "percentile_95",
     "seed": 20260926,
-    "stream": "one random.Random(seed): realized, then components in declared order, then class amounts in declared order",
+    "stream": "one random.Random(seed): realized, then components in declared order, then class amounts in declared order, then each baseline's left and right contrasts (realized, then components)",
     "unit": "world_seed"
   },
   "cells": {

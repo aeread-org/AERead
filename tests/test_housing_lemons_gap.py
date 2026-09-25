@@ -69,3 +69,16 @@ def test_bad_bets_and_declined_holds() -> None:
     assert result["parts"]["blind_bad_bets"] == pytest.approx(-100.0)
     assert result["parts"]["lemon_draws"] == pytest.approx(0.0)  # EV 1500 already priced the lemon at p = 1
     assert result["residual"] == pytest.approx(0.0)
+
+
+def test_the_published_reference_contrast_adds_up_and_replays(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    monkeypatch.undo()  # the real worlds, not the fixture
+    report = json.loads((gap.OUT / "reports" / "gap_decomposition.json").read_text())
+    reference = report["baselines"][0]
+    assert reference["key"] == "inspect_then_sign" and reference["replay_check"]["mismatches"] == 0
+    for side in ("left", "right"):
+        vs = reference["vs"][side]
+        assert sum(c["difference"] for c in vs["components"]) == pytest.approx(vs["realized"]["difference"])
+        blind = {c["key"]: c["reference"] for c in vs["components"]}
+        assert blind["blind_good_bets"] == blind["blind_bad_bets"] == blind["lemon_draws"] == 0.0
