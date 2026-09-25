@@ -143,3 +143,11 @@ def test_the_accounting_balances_and_qualifies_the_cost() -> None:
     assert (acc["planned_cells"], acc["completed_cells"], acc["operational_failure_cells"], acc["not_attempted_cells"]) == (3, 1, 1, 1)
     assert acc["cost_qualifier"] == "lower_bound" and acc["total_cost_usd"] == pytest.approx(0.012) and acc["replay_verified"] is True
     assert not any(acc[k] for k in ("winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed"))
+
+
+def test_no_cell_starts_after_the_declared_wall_limit(tmp_path: Path) -> None:
+    setup = rc.build_setup(rc.CONTROLS_ARM, "scripted_reference", "client", rc._cases(rc.EVAL_PACK, "client")[:1], rc.V2)
+    spend = rc.Spend(1.0, wall_hours=1e-9)
+    entry = {"arm": rc.CONTROLS_ARM, "route_id": "scripted_reference", "seat": "client"}
+    record = asyncio.run(rc._run_cell(tmp_path, entry, setup, setup.plan.cells[0], spend, asyncio.Semaphore(1), rc.V2))
+    assert record["status"] == "not_attempted_wall_limit" and not list(tmp_path.rglob("evaluation_receipt.json"))

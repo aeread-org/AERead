@@ -48,6 +48,7 @@ import hashlib
 import json
 import math
 import os
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -166,6 +167,8 @@ class Campaign:
     retry: Mapping[str, Any] | None = None  # None: one attempt, no retries (v1)
     request_seed_base: int | None = None  # set: the request seed depends on world and replicate, so both models share it
     max_cost_usd_total: float = MAX_COST_USD_TOTAL
+    max_wall_hours: float | None = None  # the declared operational-time limit: no cell starts after it
+    workers: Mapping[str, int] = field(default_factory=lambda: dict(WORKERS))
     claim_status: str = "diagnostic dev campaign; no model ranking"
     version_tag: str = "v1"
     analysis: Mapping[str, Any] = field(default_factory=dict)
@@ -199,6 +202,10 @@ V2 = Campaign(
     retry=RETRY_V2,
     request_seed_base=20260925,
     max_cost_usd_total=15.0,
+    # Projected from v1's sealed billing: $9.39, and 34.8 serial hours on the GLM lane (914 s per
+    # default-reasoning cell), 2.9 h at 12 workers. The limit is twice that.
+    max_wall_hours=6.0,
+    workers={"gemini38_flash": 6, "glm53_flash": 12},
     claim_status="diagnostic campaign with a declared two-model contrast; no winner, no ranking",
     version_tag="v2",
     analysis={
@@ -469,7 +476,8 @@ def freeze(directory: Path, *, campaign: Campaign = V1, routes: Sequence[str] | 
     plan = {
         "campaign_id": campaign_id or campaign.campaign_id, "campaign_key": campaign.campaign_id, "claim_status": campaign.claim_status,
         "routes": {r: asdict(ROUTES[r]) if r in ROUTES else {"route_id": r} for r in used_routes},
-        "arms": {a: campaign.arms[a] for a in arms}, "workers": WORKERS, "max_cost_usd_total": campaign.max_cost_usd_total, "seed": SEED,
+        "arms": {a: campaign.arms[a] for a in arms}, "workers": dict(campaign.workers), "max_cost_usd_total": campaign.max_cost_usd_total,
+        "max_wall_hours": campaign.max_wall_hours, "seed": SEED,
         "replicates": campaign.replicates, "retry": campaign.retry, "request_seed_base": campaign.request_seed_base,
         "controls": {seat: list(p) for seat, p in campaign.controls.items()}, "declared_analysis": dict(campaign.analysis),
         "system_prompts": {prompt_id(s, alt): system_prompt(s, alt) for s in ra.SEATS for alt in (False, True)},
@@ -512,8 +520,13 @@ def _check(directory: Path) -> dict[str, Any]:
 
 
 class Spend:
-    def __init__(self, cap: float) -> None:
+    def __init__(self, cap: float, wall_hours: float | None = None) -> None:
         self.cap, self.spent = cap, 0.0
+        self.deadline = time.monotonic() + wall_hours * 3600 if wall_hours else None
+
+    @property
+    def past_deadline(self) -> bool:
+        return self.deadline is not None and time.monotonic() >= self.deadline
 
     def add(self, x: float) -> None:
         self.spent += x
@@ -545,6 +558,8 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
     async with sem:
         if spend.exhausted:
             return {"cell_key": key, "status": "not_attempted_budget"}
+        if spend.past_deadline:
+            return {"cell_key": key, "status": "not_attempted_wall_limit"}
         evidence_root = directory / "evidence" / key
         payload = next(c.payload for c in setup.plan.cases if c.case_id == cell.case_id)
         if setup.provider == "fake":
@@ -594,10 +609,11 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
 async def run(directory: Path, *, only_route: str | None = None) -> None:
     plan = _check(directory)
     campaign = _campaign(plan)
-    spend = Spend(plan["max_cost_usd_total"])
+    spend = Spend(plan["max_cost_usd_total"], plan.get("max_wall_hours"))
     for p in (directory / "cells").glob("*.json") if (directory / "cells").exists() else ():
         spend.add(float(json.loads(p.read_text()).get("cost_usd") or 0.0))
-    sems = {r: asyncio.Semaphore(WORKERS.get(r, 8 if r.startswith(SCRIPTED) else 4)) for r in plan["routes"]}
+    workers = plan.get("workers") or WORKERS
+    sems = {r: asyncio.Semaphore(workers.get(r, 8 if r.startswith(SCRIPTED) else 4)) for r in plan["routes"]}
     jobs = []
     for entry in plan["plans"]:
         if only_route and entry["route_id"] != only_route:
