@@ -31,11 +31,12 @@ from aeread.shared_runner.task.execution import CanonicalResponse
 from aeread.shared_runner.task.scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
 
 from . import risk_allocation as ra
+from .risk_allocation_measurement import REFERENCE_IMPLEMENTATION_ID, VALIDITY_IMPLEMENTATION_ID, RiskAllocationScorer
 
 FAMILY_ID = "datacenter_risk_allocation_v1"
 FAMILY_VERSION = "0.1.0"
 PLUGIN_ID = "datacenter_risk_allocation_environment_v1"
-SCORER_ID = "datacenter_risk_allocation_decision_regret_v1"
+SCORER_ID = "datacenter_risk_allocation_decision_regret_v1"  # = risk_allocation_measurement.SCORER_IMPLEMENTATION_ID
 PHASE_ID = "negotiate"
 OBSERVATION_SCHEMA = "datacenter_risk_allocation_observation_v1"
 ACTION_SCHEMA = "datacenter_risk_allocation_action_v1"
@@ -82,6 +83,31 @@ ACTION_JSON_SCHEMA_ALTERNATES: dict[str, Any] = {
 }
 
 
+def _strict(schema: Mapping[str, Any]) -> dict[str, Any]:
+    """The same action shape inside the strict JSON subset the kernel sends (every
+    object closed and fully required; a nullable object as anyOf with null). The
+    probe schemas above stay as they were sent."""
+    package = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(ra.TERMS),
+        "properties": {k: {"type": "string", "enum": list(v)} for k, v in ra.TERMS.items()},
+    }
+    props: dict[str, Any] = {
+        "action": {"type": "string", "enum": list(ACTIONS)},
+        "package": {"anyOf": [package, {"type": "null"}]},
+        "price": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+    }
+    if "alternate" in schema["properties"]:
+        props["alternate"] = {"anyOf": [package, {"type": "null"}]}
+    props["reason"] = {"type": "string"}
+    return {"type": "object", "additionalProperties": False, "required": list(props), "properties": props}
+
+
+STRICT_ACTION_SCHEMA = _strict(ACTION_JSON_SCHEMA)
+STRICT_ACTION_SCHEMA_ALTERNATES = _strict(ACTION_JSON_SCHEMA_ALTERNATES)
+
+
 def alternates_of(payload: Mapping[str, Any]) -> bool:
     return payload.get("packages_per_request", 1) == 2
 
@@ -105,7 +131,7 @@ def risk_allocation_family_manifest() -> FamilyManifest:
                 "comparison_baseline": "best_play_on_own_information",
                 "outcome_support": "nonnegative_real",
             },
-            "scoring": {"scorer_id": SCORER_ID, "reference_provider_ids": ["datacenter_risk_allocation_reference_v1"]},
+            "scoring": {"scorer_id": SCORER_ID, "reference_provider_ids": [VALIDITY_IMPLEMENTATION_ID, REFERENCE_IMPLEMENTATION_ID]},
         }
     )
 
@@ -239,6 +265,10 @@ class RiskAllocationPlugin:
         del state, seat, phase
         alternates = alternates_of(family_case)
         if isinstance(response, CanonicalResponse):
+            if response.truncated:
+                # Cut off by the declared output limit: the reply never finished, so it is
+                # typed on its own and the analysis counts it as missingness (DC-O-08).
+                return ParseResult.failure("truncated_reply")
             if response.action is not None:
                 value: Any = response.action
             else:
@@ -363,7 +393,21 @@ class RiskAllocationPlugin:
         return json.loads(json.dumps(state)) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
-        return {"termination": terminal["termination"], "signed": terminal["signed"], "grade": grade(family_case, terminal)}
+        return {"termination": terminal["termination"], "signed": terminal["signed"], "invalid": terminal.get("invalid"),
+                "grade": grade(family_case, terminal)}
+
+    # The kernel's remaining hooks: the scorer over `grade`, no external reference
+    # provider (the reference is computed from the case), no generator at run time.
+    def build_scorer(self, family_case) -> RiskAllocationScorer:
+        return RiskAllocationScorer(family_case)
+
+    def build_reference_providers(self, family_case):
+        del family_case
+        return ()
+
+    def generator(self, family_case=None):
+        del family_case
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -409,6 +453,8 @@ def grade(payload: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any
     else:
         allocation_gap = max(surplus, 0.0)
         price_gap = None
+    proposed = [d["action"]["package"] for d in state["decisions"] if d["action"]["action"] == "propose"]
+    first = ra.Package(**proposed[0]).label() if proposed else None
     return {
         "valid": state["termination"] != "invalid_action",
         "termination": state["termination"],
@@ -421,12 +467,16 @@ def grade(payload: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any
         "allocation_gap": round(allocation_gap, 3),
         "price_gap": None if price_gap is None else round(price_gap, 3),
         "refused_rounds": len(state["history"]),
+        "first_proposed_package": first,
+        "switched_package": bool(signed is not None and first is not None and ra.Package(**signed["package"]).label() != first),
     }
 
 
 __all__ = [
     "ACTION_JSON_SCHEMA",
     "ACTION_JSON_SCHEMA_ALTERNATES",
+    "STRICT_ACTION_SCHEMA",
+    "STRICT_ACTION_SCHEMA_ALTERNATES",
     "alternates_of",
     "FAMILY_ID",
     "FAMILY_VERSION",
