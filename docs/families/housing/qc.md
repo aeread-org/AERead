@@ -868,8 +868,10 @@ blind signing is a bet at the tenant's own lemon probability. At signing, those
 probabilities summed to 5.0 expected lemons for Gemini (8 of its 23 were on
 listings it had deduced sound) and 7.2 for GLM: the draws favoured Gemini by
 about 3 lemons and went against GLM by about 4. Charging every blind signing its
-expected loss instead of the realized one, Gemini minus GLM is +41.1 (-70.9 to
-142.5), Gemini ahead on 14 worlds and GLM on 10: not separated. What separates
+expected loss instead of the realized one, Gemini minus GLM is +41.1 (-69.3 to
+143.3), Gemini ahead on 14 worlds and GLM on 10: not separated. The derived
+comparison publishes this as `expected_net_payoff`, from the published expected
+values and the worlds regenerated from their seeds. What separates
 is smaller: GLM made 4 blind signings worth less than the rent in expectation
 (about $17.5 a market), Gemini none, and GLM's risky signings carried a higher
 mean lemon probability (0.45 against 0.33). GLM also inspected more (11.7

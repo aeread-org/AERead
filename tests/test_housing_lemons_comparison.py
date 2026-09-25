@@ -71,3 +71,21 @@ def test_written_output_replays_and_detects_drift(evidence: Path) -> None:
     readme = evidence / "comparison" / "README.md"
     readme.write_text(readme.read_text() + "edited\n")
     assert not comparison.check()
+
+
+def test_blind_signings_count_at_expected_value(evidence: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # tenant 0 signed listing 1 without inspecting it: expected 900 at its lemon probability, truly worth 400
+    # (a lemon); tenant 1 signed listing 2 after inspecting: counted as realized.
+    monkeypatch.setattr(comparison, "true_value", lambda seed, tenant, listing: 400.0 if listing == 1 else 1500.0)
+    row = {"tenant_net_payoff": 100.0, "world_seed": 7, "commit_decisions": [
+        {"decision": "sign", "informed": False, "expected_value": 900.0, "tenant_id": 0, "listing_id": 1},
+        {"decision": "sign", "informed": True, "expected_value": 1500.0, "tenant_id": 1, "listing_id": 2},
+        {"decision": "walk", "informed": False, "expected_value": 50.0, "tenant_id": 2, "listing_id": 3},
+    ]}
+    assert comparison._cell_value(row, "expected_net_payoff") == pytest.approx(100.0 + (900.0 - 400.0))
+    assert comparison._cell_value({**row, "commit_decisions": []}, "expected_net_payoff") == 100.0
+
+
+def test_every_interval_has_both_sides(evidence: Path) -> None:
+    block = comparison.compare()["slices"]["overall"]["tenant_net_payoff"]
+    assert block["left_ci95"] and block["right_ci95"] and block["difference_ci95"]

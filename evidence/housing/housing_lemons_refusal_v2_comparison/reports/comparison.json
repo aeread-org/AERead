@@ -3,12 +3,13 @@
     "draws": 10000,
     "interval": "percentile_95",
     "seed": 20260925,
-    "stream": "one random.Random(seed) serves every interval: overall first, then each stratum, endpoints in declared order"
+    "stream": "one random.Random(seed) serves every interval: overall first, then each stratum; per endpoint in declared order the difference, then left, then right"
   },
   "claim_status": "development_qualification",
   "difference": "left minus right, within world, then averaged over worlds",
   "endpoints": [
     "tenant_net_payoff",
+    "expected_net_payoff",
     "within_case_score",
     "abstention_correctness_rate",
     "uninspected_lemon_signing_rate",
@@ -29,21 +30,56 @@
       "abstention_correctness_rate": {
         "difference": 0.11240079365079166,
         "difference_ci95": [
-          0.0574404761905,
-          0.17063492063495833
+          0.057440476190499995,
+          0.17003968253962498
+        ],
+        "left_ci95": [
+          1.0,
+          1.0
         ],
         "left_mean": 1.0,
+        "right_ci95": [
+          0.8285714285714584,
+          0.9424603174603333
+        ],
         "right_mean": 0.8875992063492083,
         "worlds_left_higher": 8,
         "worlds_right_higher": 0
+      },
+      "expected_net_payoff": {
+        "difference": -63.5316666666667,
+        "difference_ci95": [
+          -219.42875000000004,
+          78.03333333333335
+        ],
+        "left_ci95": [
+          100.44833333333327,
+          304.1054166666666
+        ],
+        "left_mean": 200.7945833333333,
+        "right_ci95": [
+          118.49416666666667,
+          424.60625
+        ],
+        "right_mean": 264.32625,
+        "worlds_left_higher": 4,
+        "worlds_right_higher": 8
       },
       "inspection_count": {
         "difference": -1.25,
         "difference_ci95": [
           -2.2916666666666665,
-          -0.16666666666666666
+          -0.20833333333333334
+        ],
+        "left_ci95": [
+          9.125,
+          11.166666666666666
         ],
         "left_mean": 10.166666666666666,
+        "right_ci95": [
+          10.916666666666666,
+          11.833333333333334
+        ],
         "right_mean": 11.416666666666666,
         "worlds_left_higher": 2,
         "worlds_right_higher": 10
@@ -63,10 +99,18 @@
       "tenant_net_payoff": {
         "difference": 137.85625,
         "difference_ci95": [
-          -53.38833333333334,
-          310.81416666666667
+          -56.468333333333355,
+          312.2645833333333
+        ],
+        "left_ci95": [
+          166.61333333333332,
+          420.7708333333333
         ],
         "left_mean": 298.015,
+        "right_ci95": [
+          -13.101666666666668,
+          364.5520833333333
+        ],
         "right_mean": 160.15875,
         "worlds_left_higher": 9,
         "worlds_right_higher": 3
@@ -77,7 +121,15 @@
           -0.2916666666666667,
           0.041666666666666664
         ],
+        "left_ci95": [
+          0.0,
+          0.25
+        ],
         "left_mean": 0.08333333333333333,
+        "right_ci95": [
+          0.08333333333333333,
+          0.3333333333333333
+        ],
         "right_mean": 0.20833333333333334,
         "worlds_left_higher": 1,
         "worlds_right_higher": 4
@@ -85,10 +137,18 @@
       "within_case_score": {
         "difference": 0.10507452478457746,
         "difference_ci95": [
-          -0.0017543875804148362,
-          0.2060327101316569
+          -0.005604452495871908,
+          0.20459355268574542
+        ],
+        "left_ci95": [
+          0.11504439540073941,
+          0.2519648902097938
         ],
         "left_mean": 0.1861937968200104,
+        "right_ci95": [
+          -0.018889769060492247,
+          0.18869882753702658
+        ],
         "right_mean": 0.08111927203543294,
         "worlds_left_higher": 9,
         "worlds_right_higher": 3
@@ -102,18 +162,53 @@
           0.0,
           0.07499999999999998
         ],
+        "left_ci95": [
+          1.0,
+          1.0
+        ],
         "left_mean": 1.0,
+        "right_ci95": [
+          0.9249999999999999,
+          1.0
+        ],
         "right_mean": 0.9666666666666667,
         "worlds_left_higher": 3,
         "worlds_right_higher": 0
       },
+      "expected_net_payoff": {
+        "difference": 145.74499999999998,
+        "difference_ci95": [
+          6.147083333333343,
+          262.70374999999996
+        ],
+        "left_ci95": [
+          209.16250000000002,
+          441.06333333333333
+        ],
+        "left_mean": 329.87583333333333,
+        "right_ci95": [
+          69.90875000000005,
+          297.4141666666667
+        ],
+        "right_mean": 184.13083333333336,
+        "worlds_left_higher": 10,
+        "worlds_right_higher": 2
+      },
       "inspection_count": {
         "difference": -1.2083333333333333,
         "difference_ci95": [
-          -2.2083333333333335,
+          -2.1666666666666665,
           -0.3333333333333333
         ],
+        "left_ci95": [
+          9.833333333333334,
+          11.958333333333334
+        ],
         "left_mean": 10.875,
+        "right_ci95": [
+          11.0,
+          13.25
+        ],
         "right_mean": 12.083333333333334,
         "worlds_left_higher": 2,
         "worlds_right_higher": 7
@@ -133,10 +228,18 @@
       "tenant_net_payoff": {
         "difference": 249.91166666666666,
         "difference_ci95": [
-          87.33833333333335,
-          433.88374999999996
+          84.345,
+          432.7816666666667
+        ],
+        "left_ci95": [
+          265.9733333333333,
+          448.3591666666666
         ],
         "left_mean": 357.65333333333336,
+        "right_ci95": [
+          -99.94166666666666,
+          290.30041666666665
+        ],
         "right_mean": 107.74166666666666,
         "worlds_left_higher": 10,
         "worlds_right_higher": 2
@@ -147,7 +250,15 @@
           -0.5,
           -0.041666666666666664
         ],
+        "left_ci95": [
+          0.0,
+          0.0
+        ],
         "left_mean": 0.0,
+        "right_ci95": [
+          0.041666666666666664,
+          0.5
+        ],
         "right_mean": 0.25,
         "worlds_left_higher": 0,
         "worlds_right_higher": 4
@@ -155,10 +266,18 @@
       "within_case_score": {
         "difference": 0.18166291211017796,
         "difference_ci95": [
-          0.06812680654090947,
-          0.31426674281403727
+          0.06975449150385744,
+          0.31309358528846043
+        ],
+        "left_ci95": [
+          0.1967027848460462,
+          0.32111852809943514
         ],
         "left_mean": 0.259248350157366,
+        "right_ci95": [
+          -0.07825012578247982,
+          0.21116885331277024
+        ],
         "right_mean": 0.07758543804718807,
         "worlds_left_higher": 10,
         "worlds_right_higher": 2
@@ -169,21 +288,56 @@
       "abstention_correctness_rate": {
         "difference": 0.0728670634920625,
         "difference_ci95": [
-          0.03844246031745833,
-          0.1117559523809375
+          0.037202380952375,
+          0.11150793650793749
+        ],
+        "left_ci95": [
+          1.0,
+          1.0
         ],
         "left_mean": 1.0,
+        "right_ci95": [
+          0.8884920634920626,
+          0.9624503968253958
+        ],
         "right_mean": 0.9271329365079376,
         "worlds_left_higher": 11,
         "worlds_right_higher": 0
       },
+      "expected_net_payoff": {
+        "difference": 41.106666666666634,
+        "difference_ci95": [
+          -69.33250000000001,
+          143.295625
+        ],
+        "left_ci95": [
+          182.3060416666667,
+          345.7625
+        ],
+        "left_mean": 265.3352083333333,
+        "right_ci95": [
+          128.88708333333335,
+          322.35645833333336
+        ],
+        "right_mean": 224.2285416666667,
+        "worlds_left_higher": 14,
+        "worlds_right_higher": 10
+      },
       "inspection_count": {
         "difference": -1.2291666666666667,
         "difference_ci95": [
-          -1.9583333333333333,
+          -1.9375,
           -0.5416666666666666
         ],
+        "left_ci95": [
+          9.770833333333334,
+          11.270833333333334
+        ],
         "left_mean": 10.520833333333334,
+        "right_ci95": [
+          11.145833333333334,
+          12.395833333333334
+        ],
         "right_mean": 11.75,
         "worlds_left_higher": 4,
         "worlds_right_higher": 17
@@ -206,7 +360,15 @@
           66.85041666666666,
           321.67541666666665
         ],
+        "left_ci95": [
+          246.31083333333333,
+          402.28458333333333
+        ],
         "left_mean": 327.83416666666665,
+        "right_ci95": [
+          -2.2887500000000034,
+          269.890625
+        ],
         "right_mean": 133.95020833333334,
         "worlds_left_higher": 19,
         "worlds_right_higher": 5
@@ -217,7 +379,15 @@
           -0.3333333333333333,
           -0.0625
         ],
+        "left_ci95": [
+          0.0,
+          0.125
+        ],
         "left_mean": 0.041666666666666664,
+        "right_ci95": [
+          0.10416666666666667,
+          0.3541666666666667
+        ],
         "right_mean": 0.22916666666666666,
         "worlds_left_higher": 1,
         "worlds_right_higher": 8
@@ -225,10 +395,18 @@
       "within_case_score": {
         "difference": 0.14336871844737772,
         "difference_ci95": [
-          0.06446048999579986,
-          0.22794769614903884
+          0.06263337818939932,
+          0.22963864630417263
+        ],
+        "left_ci95": [
+          0.17318475456924562,
+          0.2704222831300792
         ],
         "left_mean": 0.22272107348868822,
+        "right_ci95": [
+          -0.010050579597768594,
+          0.1658941339368481
+        ],
         "right_mean": 0.07935235504131051,
         "worlds_left_higher": 19,
         "worlds_right_higher": 5
@@ -256,6 +434,10 @@
         "left": 2,
         "right": 2
       },
+      "expected_net_payoff": {
+        "left": -64.08000000000015,
+        "right": 34.12500000000004
+      },
       "inspection_count": {
         "left": 11.0,
         "right": 11.5
@@ -277,6 +459,16 @@
         "left": 269.25,
         "right": -49.209999999999994
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          269.25,
+          269.25
+        ],
+        "right": [
+          -228.95,
+          130.53
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -295,6 +487,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 332.59,
+        "right": 142.54500000000002
       },
       "inspection_count": {
         "left": 12.0,
@@ -317,6 +513,16 @@
         "left": 332.59,
         "right": -190.79000000000002
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          332.59,
+          332.59
+        ],
+        "right": [
+          -481.47,
+          99.89
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -335,6 +541,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 581.53,
+        "right": 436.745
       },
       "inspection_count": {
         "left": 10.0,
@@ -357,6 +567,16 @@
         "left": 581.53,
         "right": 436.745
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          581.53,
+          581.53
+        ],
+        "right": [
+          377.91,
+          495.58
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -375,6 +595,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 104.08500000000015,
+        "right": 823.245
       },
       "inspection_count": {
         "left": 11.5,
@@ -397,6 +621,16 @@
         "left": 604.08,
         "right": 989.91
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          576.32,
+          631.84
+        ],
+        "right": [
+          370.51,
+          1609.31
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -415,6 +649,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": -120.15999999999994,
+        "right": 356.33
       },
       "inspection_count": {
         "left": 13.0,
@@ -437,6 +675,16 @@
         "left": 213.17,
         "right": 356.33
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          213.17,
+          213.17
+        ],
+        "right": [
+          213.88,
+          498.78
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -455,6 +703,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": -91.95999999999992,
+        "right": -36.78499999999997
       },
       "inspection_count": {
         "left": 11.0,
@@ -477,6 +729,16 @@
         "left": 241.37,
         "right": 129.88
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          241.37,
+          241.37
+        ],
+        "right": [
+          0.12,
+          259.64
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -495,6 +757,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 510.39,
+        "right": 292.59000000000003
       },
       "inspection_count": {
         "left": 9.0,
@@ -517,6 +783,16 @@
         "left": 510.39,
         "right": 459.255
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          510.39,
+          510.39
+        ],
+        "right": [
+          411.39,
+          507.12
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -535,6 +811,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 299.81000000000006,
+        "right": 334.025
       },
       "inspection_count": {
         "left": 9.5,
@@ -557,6 +837,16 @@
         "left": 633.14,
         "right": 334.025
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          620.64,
+          645.64
+        ],
+        "right": [
+          288.42,
+          379.63
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -575,6 +865,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 64.27,
+        "right": 94.255
       },
       "inspection_count": {
         "left": 10.0,
@@ -597,6 +891,16 @@
         "left": 64.27,
         "right": 94.255
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          64.27,
+          64.27
+        ],
+        "right": [
+          -18.02,
+          206.53
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -615,6 +919,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 342.91,
+        "right": 417.99
       },
       "inspection_count": {
         "left": 13.5,
@@ -637,6 +945,16 @@
         "left": 342.91,
         "right": 417.99
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          330.41,
+          355.41
+        ],
+        "right": [
+          299.69,
+          536.29
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -655,6 +973,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 473.55,
+        "right": 142.10499999999993
       },
       "inspection_count": {
         "left": 11.0,
@@ -677,6 +999,16 @@
         "left": 473.55,
         "right": -191.23000000000002
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          473.55,
+          473.55
+        ],
+        "right": [
+          -277.06,
+          -105.4
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -695,6 +1027,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 319.38,
+        "right": 4.0
       },
       "inspection_count": {
         "left": 10.0,
@@ -717,6 +1053,16 @@
         "left": 319.38,
         "right": 4.0
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          319.38,
+          319.38
+        ],
+        "right": [
+          -228.38,
+          236.38
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -735,6 +1081,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 286.81,
+        "right": 124.04500000000002
       },
       "inspection_count": {
         "left": 9.0,
@@ -757,6 +1107,16 @@
         "left": 286.81,
         "right": 124.04500000000002
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          286.81,
+          286.81
+        ],
+        "right": [
+          -30.58,
+          278.67
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -775,6 +1135,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 187.88,
+        "right": 383.95000000000005
       },
       "inspection_count": {
         "left": 11.0,
@@ -797,6 +1161,16 @@
         "left": 187.88,
         "right": -199.385
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          187.88,
+          187.88
+        ],
+        "right": [
+          -561.65,
+          162.88
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -815,6 +1189,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 92.24,
+        "right": -8.76
       },
       "inspection_count": {
         "left": 6.0,
@@ -837,6 +1215,16 @@
         "left": 92.24,
         "right": -8.76
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          92.24,
+          92.24
+        ],
+        "right": [
+          -33.76,
+          16.24
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -855,6 +1243,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 613.16,
+        "right": 575.16
       },
       "inspection_count": {
         "left": 8.0,
@@ -877,6 +1269,16 @@
         "left": 613.16,
         "right": 575.16
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          613.16,
+          613.16
+        ],
+        "right": [
+          563.16,
+          587.16
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -895,6 +1297,10 @@
       "cells": {
         "left": 2,
         "right": 1
+      },
+      "expected_net_payoff": {
+        "left": 193.15,
+        "right": -243.88999999999987
       },
       "inspection_count": {
         "left": 14.0,
@@ -917,6 +1323,16 @@
         "left": 193.15,
         "right": -743.89
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          193.15,
+          193.15
+        ],
+        "right": [
+          -743.89,
+          -743.89
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 1.0
@@ -935,6 +1351,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 118.83000000000001,
+        "right": 59.82000000000001
       },
       "inspection_count": {
         "left": 10.5,
@@ -957,6 +1377,16 @@
         "left": 118.83000000000001,
         "right": -190.18
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          106.33,
+          131.33
+        ],
+        "right": [
+          -345.45,
+          -34.91
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -975,6 +1405,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 350.54,
+        "right": 122.71000000000005
       },
       "inspection_count": {
         "left": 9.0,
@@ -997,6 +1431,16 @@
         "left": 350.54,
         "right": 289.375
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          350.54,
+          350.54
+        ],
+        "right": [
+          203.21,
+          375.54
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -1015,6 +1459,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 487.5699999999998,
+        "right": 724.26
       },
       "inspection_count": {
         "left": 9.0,
@@ -1037,6 +1485,16 @@
         "left": -179.10000000000002,
         "right": 390.925
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          -225.68,
+          -132.52
+        ],
+        "right": [
+          318.36,
+          463.49
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 1.0,
         "right": 0.5
@@ -1055,6 +1513,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 241.37,
+        "right": 115.69
       },
       "inspection_count": {
         "left": 11.5,
@@ -1077,6 +1539,16 @@
         "left": 241.37,
         "right": 115.69
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          228.87,
+          253.87
+        ],
+        "right": [
+          -0.31,
+          231.69
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -1095,6 +1567,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 139.3199999999996,
+        "right": 293.94
       },
       "inspection_count": {
         "left": 8.0,
@@ -1117,6 +1593,16 @@
         "left": 472.65,
         "right": 293.94
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          472.65,
+          472.65
+        ],
+        "right": [
+          178.63,
+          409.25
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.0
@@ -1135,6 +1621,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 450.03,
+        "right": 188.105
       },
       "inspection_count": {
         "left": 12.0,
@@ -1157,6 +1647,16 @@
         "left": 450.03,
         "right": -61.895
       },
+      "tenant_net_payoff_spread": {
+        "left": [
+          450.03,
+          450.03
+        ],
+        "right": [
+          -143.37,
+          19.58
+        ]
+      },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,
         "right": 0.5
@@ -1175,6 +1675,10 @@
       "cells": {
         "left": 2,
         "right": 2
+      },
+      "expected_net_payoff": {
+        "left": 454.83,
+        "right": 5.285000000000068
       },
       "inspection_count": {
         "left": 13.0,
@@ -1196,6 +1700,16 @@
       "tenant_net_payoff": {
         "left": 454.83,
         "right": -161.38
+      },
+      "tenant_net_payoff_spread": {
+        "left": [
+          454.83,
+          454.83
+        ],
+        "right": [
+          -190.21,
+          -132.55
+        ]
       },
       "uninspected_lemon_signing_rate": {
         "left": 0.0,

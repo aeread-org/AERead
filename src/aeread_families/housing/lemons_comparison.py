@@ -15,6 +15,14 @@ qualification only.
 The GLM bundle is an incomplete pack published by the owner's decision
 (HL-O-07): world 100021 has one GLM seed, so that world's GLM mean is one cell.
 
+``expected_net_payoff`` takes the luck of the lemon draws out (HL-J-01). A
+signing the tenant made without inspecting the listing is a bet at its own
+lemon probability; the endpoint counts each such lease at the expected value
+the environment recorded for it at that probability (``commit_decisions``)
+instead of at the true value it turned out to have. True values come from the
+world regenerated from its published seed under the contract's environment,
+which reproduces every published payoff.
+
     python -m aeread_families.housing.lemons_comparison --write
     python -m aeread_families.housing.lemons_comparison --check
 """
@@ -25,6 +33,7 @@ import argparse
 import hashlib
 import json
 import random
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -40,6 +49,7 @@ BOOTSTRAP_DRAWS = 10000
 #: same in both bundles, so its difference is the net-payoff difference.
 ENDPOINTS = (
     "tenant_net_payoff",
+    "expected_net_payoff",
     "within_case_score",
     "abstention_correctness_rate",
     "uninspected_lemon_signing_rate",
@@ -56,7 +66,31 @@ def _rows(bundle: str, table: str) -> list[dict[str, Any]]:
 BENCHMARKS = ("reference_total", "sign_anything_total", "oracle_total")
 
 
+@lru_cache(maxsize=None)
+def _world(seed: int):
+    from aeread_families.housing import lemons_campaign
+
+    environments = [lemons_campaign.load_contract(ROOT / "configs" / f"{bundle}.json")["environment"] for bundle in (LEFT, RIGHT)]
+    if environments[0] != environments[1]:
+        raise ValueError("the two identities declare different environments; their worlds are not the same")
+    return lemons_campaign._make_world(environments[0], seed)
+
+
+def true_value(seed: int, tenant: int, listing: int) -> float:
+    """What the listing is truly worth to the tenant in the published world."""
+    return float(_world(seed).values[tenant][listing])
+
+
+def _expected_net_payoff(row: Mapping[str, Any]) -> float:
+    blind = [d for d in row.get("commit_decisions") or [] if d["decision"] == "sign" and not d["informed"]]
+    return float(row["tenant_net_payoff"]) + sum(
+        float(d["expected_value"]) - true_value(int(row["world_seed"]), int(d["tenant_id"]), int(d["listing_id"])) for d in blind
+    )
+
+
 def _cell_value(row: Mapping[str, Any], endpoint: str) -> float | None:
+    if endpoint == "expected_net_payoff":
+        return _expected_net_payoff(row)
     if endpoint == "uninspected_lemon_signing_rate":
         return 1.0 if int(row["uninspected_lemon_signings"]) > 0 else 0.0
     value = row.get(endpoint)
@@ -70,6 +104,7 @@ def world_means(bundle: str) -> dict[int, dict[str, Any]]:
         if row.get("stage") != "variance_pilot" or row.get("status") != "completed":
             continue
         world = out.setdefault(int(row["world_seed"]), {"stratum": row["stratum"], "cells": 0, "values": {e: [] for e in ENDPOINTS + BENCHMARKS}})
+        world.setdefault("payoffs", []).append(float(row["tenant_net_payoff"]))
         world["cells"] += 1
         for endpoint in ENDPOINTS + BENCHMARKS:
             value = _cell_value(row, endpoint)
@@ -77,6 +112,8 @@ def world_means(bundle: str) -> dict[int, dict[str, Any]]:
                 world["values"][endpoint].append(value)
     for world in out.values():
         world["means"] = {e: (sum(v) / len(v) if v else None) for e, v in world.pop("values").items()}
+        payoffs = world.pop("payoffs")
+        world["spread"] = [min(payoffs), max(payoffs)]
     return out
 
 
@@ -109,6 +146,8 @@ def compare() -> dict[str, Any]:
                 "right_mean": sum(b for _, b in rows) / len(rows) if rows else None,
                 "difference": sum(diffs) / len(diffs) if diffs else None,
                 "difference_ci95": _bootstrap(diffs, rng),
+                "left_ci95": _bootstrap([a for a, _ in rows], rng),
+                "right_ci95": _bootstrap([b for _, b in rows], rng),
                 "worlds_left_higher": sum(1 for d in diffs if d > 0),
                 "worlds_right_higher": sum(1 for d in diffs if d < 0),
             }
@@ -118,6 +157,7 @@ def compare() -> dict[str, Any]:
             "world_seed": w,
             "stratum": left[w]["stratum"],
             "cells": {"left": left[w]["cells"], "right": right[w]["cells"]},
+            "tenant_net_payoff_spread": {"left": left[w]["spread"], "right": right[w]["spread"]},
             **{e: {"left": left[w]["means"][e], "right": right[w]["means"][e]} for e in ENDPOINTS + BENCHMARKS},
         }
         for w in paired
@@ -139,7 +179,7 @@ def compare() -> dict[str, Any]:
         "inferential_model_ranking_allowed": False,
         "unit": "world_seed; each world's endpoint is the mean over its completed variance-pilot replicates",
         "bootstrap": {"seed": BOOTSTRAP_SEED, "draws": BOOTSTRAP_DRAWS, "interval": "percentile_95",
-                      "stream": "one random.Random(seed) serves every interval: overall first, then each stratum, endpoints in declared order"},
+                      "stream": "one random.Random(seed) serves every interval: overall first, then each stratum; per endpoint in declared order the difference, then left, then right"},
         "endpoints": list(ENDPOINTS),
         "paired_worlds": len(paired),
         "unpaired_worlds": {"left_only": sorted(set(left) - set(right)), "right_only": sorted(set(right) - set(left))},
@@ -178,10 +218,15 @@ def _readme(report: Mapping[str, Any]) -> str:
         "| endpoint | left | right | left minus right (95% world bootstrap) | worlds left higher / right higher |",
         "|---|---|---|---|---|",
         line("tenant_net_payoff", "tenant net payoff (market total)"),
+        line("expected_net_payoff", "the same, blind signings at expected value (luck removed)"),
         line("within_case_score", "within-case score", "{:.3f}"),
         line("abstention_correctness_rate", "abstention correctness", "{:.3f}"),
         line("uninspected_lemon_signing_rate", "cells signing an uninspected lemon", "{:.3f}"),
         line("inspection_count", "inspections per cell", "{:.1f}"),
+        "",
+        "The second row takes the luck of the lemon draws out (HL-J-01): each lease a tenant signed without "
+        "inspecting is counted at its expected value at that tenant's own lemon probability, as the environment "
+        "recorded it, instead of the value it turned out to have. Most of the realized gap is those draws.",
         "",
         "Scripted benchmarks on the same worlds (left / right): "
         + "; ".join(f"{k.replace('_total', '').replace('_', ' ')} {o[k]['left']:.2f} / {o[k]['right']:.2f}" for k in BENCHMARKS)
