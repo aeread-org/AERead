@@ -113,8 +113,10 @@ ARMS: dict[str, dict[str, Any]] = {
         "pack": PACK,
         "routes": ["glm53_flash"],
         "changes_from_v1": "no reasoning setting declared; output limit from a 131,072-token smoke; GLM only",
-        "limits": {**LIMITS, "reasoning_effort": None, "max_output_tokens": {"glm53_flash": None},  # set from the long smoke
-                   "max_cost_usd_total": 6.0, "timeout_seconds": 1800, "workers": 8},
+        # Long smoke 2026-09-25 (runs/risk_allocation_smoke_v2_glm_long): all 6 finished, 13,530-46,228
+        # tokens, 217-923 s. Limit by the rule: 93,000; timeout about twice the slowest reply.
+        "limits": {**LIMITS, "reasoning_effort": None, "max_output_tokens": {"glm53_flash": 93000},
+                   "max_cost_usd_total": 6.0, "timeout_seconds": 2000, "workers": 8},
     },
     # Smoke 2026-09-25 at low effort: Gemini's longest 1,742, GLM's 5,701, all finished.
     # Superseded as run: its system prompt dropped "price null on accept" (DC-D-24), and GLM's
