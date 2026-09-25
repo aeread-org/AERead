@@ -33,6 +33,9 @@ PACKS: dict[str, dict[str, Any]] = {
     # The same worlds and break-off draws under the two-prices protocol: a price
     # request may name an alternate package. Its own case ids and digests.
     "risk_allocation_two_prices_dev_v1": {"split": "dev", "base_seed": 2460000, "seeds_per_cell": 2, "packages_per_request": 2},
+    # Fresh worlds for the two-model comparison: seeds no probe or prompt was tuned on,
+    # twice the worlds per cell of the dev pack.
+    "risk_allocation_eval_v1": {"split": "eval", "base_seed": 2470000, "seeds_per_cell": 4},
 }
 
 
