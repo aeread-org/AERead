@@ -229,25 +229,62 @@ model could misread, both fixed before any run:
 - a counter "would sign at X" did not say which side of X;
 - "pre-stages only if" read as a promise the integrator could make.
 
-## Probe v1 (prepared, not run)
+## Probe v1 (2026-09-24): diagnostic, not a claim
 
-`tools/run_risk_allocation_probe.py`:
+`tools/run_risk_allocation_probe.py`, plan `runs/risk_allocation_probe_v1/`
+(ignored, digest `6a1ddb17`):
 
 - **Routes and sampling:** 32 cases × 2 routes, Gemini 3.8 Flash (Google AI
-  Studio) and GLM 5.3 Flash (Parasail), temperature 1.0, one run per case.
-- **Calls:** at most 192.
-- **Budget:** capped at $3.
-- **Frozen plan:** the plan freezes routes, limits, prompts, case digests and
-  source digests.
-- **Failures:** a provider failure or invalid move is typed missingness, never
-  rerun.
-- **Dry run:** `execute --route reference` plays the reference through the same
-  path with no network, and grades 0 regret in all 32 episodes (28 signed,
-  4 walked).
+  Studio) and GLM 5.3 Flash (Parasail), temperature 1.0, reasoning effort low,
+  at most 4,000 output tokens, one run.
+- **Cost:** $0.29.
+- **Dry run:** the reference, played through the same path, grades 0 regret in
+  all 32 episodes.
+- **GLM losses:** 11 of GLM's 32 episodes are typed missingness from the output
+  cap (DC-O-08: 4,000 tokens of hidden reasoning, empty reply), so GLM's numbers
+  are on survivors and are not compared with Gemini's.
+- **Grader fix:** grading first crashed on a truncated reply (DC-T-10, fixed;
+  the scoring sources are unchanged since the plan).
 
-The probe is a diagnostic: 16 worlds, one run, twins not independent. It can
-show whether models find the allocation, whether they ask before committing,
-and whether they copy counters. It cannot rank models.
+| | Gemini, client | Gemini, integrator | GLM, client | GLM, integrator |
+|---|---|---|---|---|
+| Valid episodes | 16/16 | 16/16 | 8/16 | 13/16 |
+| Mean decision regret, $k | 115 | 144 | 189 | 316 |
+| Best constant rule on the same worlds, $k | 203 (demand every protection) | 197 (concede every protection) | 215 | 192 |
+| Signed the package it proposed first | 11 of 11 | 13 of 13 | 5 of 6 | 8 of 9 |
+| Signed the efficient package | 1 of 11 | 3 of 13 | 1 of 6 | 0 of 9 |
+| Price gap on signed contracts, $k | 18 above floor | 75 below bid | 87 above floor | 211 below bid |
+
+What it shows: **both models negotiate the price, not the allocation.**
+
+- **Gemini never changes the package.** In 32 of 32 episodes, it never
+  proposed more than one package.
+- **It starts the right way.** As the client, its first move gave up nothing
+  in 12 of 16 episodes, usually by asking the price of the full warranty as the
+  reference does. It then priced within $18k of the integrator's floor on
+  average, reading the ask premium correctly.
+- **It doesn't use what the answer revealed.** The answer identifies the
+  integrator's type, which settles whether the incident and the deposit should
+  move. Gemini signed the package it had asked about in every case, and it was
+  the efficient contract once.
+- **Where it lost most:** in `close_now` it opened with a price request in one
+  world and an offer below the ask in the other, when the integrator was likely
+  to break off, and lost both deals ($388k and $566k).
+
+On these worlds it still beats every constant rule in aggregate in both seats,
+because the rules either give up the price or never ask.
+
+What it does not show: any ranking (16 worlds, one run, twins not
+independent, GLM truncated), or whether the anchoring is a limit of reasoning
+at low effort or of the task's arithmetic. Inferring the integrator's type from
+one price means matching it against six candidate floors, and a model that does
+not do that has priced exactly one package. Two follow-ups would separate
+these, each a new probe identity:
+
+- the same pack with reasoning left to the provider and an output cap sized
+  from a smoke of reply length;
+- a variant in which one round may ask the price of two packages, so the
+  alternative's price is seen rather than inferred.
 
 ## Stated simplifications
 

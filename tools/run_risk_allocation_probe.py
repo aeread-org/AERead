@@ -264,9 +264,18 @@ def load_key() -> str:
     raise SystemExit("OPENROUTER_API_KEY not found in .env")
 
 
-def _check_plan(directory: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+GRADING_SOURCES = SOURCES[:3]  # the code that decides the score; the driver's own display code is not among them
+
+
+def _check_plan(directory: Path, *, grading: bool = False) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     plan = json.loads((directory / "plan.json").read_text())
-    if plan["sources"] != source_digests():
+    now = source_digests()
+    if grading:
+        # Grading reads only records. It needs the scoring code unchanged, not the
+        # driver: a display fix after the run is recorded, not refused (DC-T-10).
+        if any(plan["sources"][p] != now[p] for p in GRADING_SOURCES):
+            raise SystemExit("the scoring sources changed since prepare; grade with the frozen sources")
+    elif plan["sources"] != now:
         raise SystemExit("sources changed since prepare; prepare a new probe directory")
     manifest, cases = rp.load(plan["pack"])
     if digest(manifest) != plan["pack_manifest_sha256"] or {k: v["content_sha256"] for k, v in sorted(cases.items())} != plan["case_sha256"]:
@@ -289,16 +298,29 @@ def execute(directory: Path, route: str | None) -> None:
     print(f"spent ${budget.spent:.4f} of ${budget.cap:.2f}")
 
 
+def _reason(text: str | None) -> str | None:
+    if not text:
+        return None
+    try:
+        value = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    except ValueError:
+        return None  # truncated or not JSON; the plugin already typed the move
+    return value.get("reason") if isinstance(value, dict) else None
+
+
 def grade_all(directory: Path) -> None:
-    plan, cases = _check_plan(directory)
+    plan, cases = _check_plan(directory, grading=True)
     manifest, _ = rp.load(plan["pack"])
+    driver = "tools/run_risk_allocation_probe.py"
+    if plan["sources"][driver] != source_digests()[driver]:
+        print(f"note: the driver changed after the run ({plan['sources'][driver][:12]} -> {source_digests()[driver][:12]}); scoring sources unchanged")
     rows = []
     for path in sorted((directory / "episodes").glob("*.json")):
         ep = json.loads(path.read_text())
         g = grade(cases[ep["case_id"]]["payload"], ep["final_state"])
         cost = sum(t.get("cost_usd", 0.0) for t in ep["turns"])
         rows.append({**{k: ep[k] for k in ("route_id", "seat", "cell", "slug", "episode_id", "status")}, **g, "cost_usd": cost,
-                     "reasons": [(json.loads(t["text"]).get("reason") if t.get("text") and t["text"].strip().startswith("{") else None) for t in ep["turns"]]})
+                     "reasons": [_reason(t.get("text")) for t in ep["turns"]]})
     (directory / "graded.json").write_text(json.dumps(rows, indent=1))
     table: dict[tuple[str, str], dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     missing: dict[tuple[str, str], int] = defaultdict(int)
