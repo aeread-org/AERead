@@ -350,9 +350,16 @@ def play(ep: dict[str, Any], raw: dict[str, Any], route_id: str, key: str | None
                 status = "provider_failure"
                 break
             try:
-                text = rec["response"]["choices"][0]["message"]["content"] or ""
+                choice = rec["response"]["choices"][0]
+                text = choice["message"]["content"] or ""
             except (KeyError, IndexError, TypeError):
-                text = ""
+                choice, text = {}, ""
+            if choice.get("finish_reason") == "error":
+                # The provider failed mid-generation (seen on GLM after 12k and 52k tokens): a
+                # provider failure, not the model's move (DC-T-12, second route).
+                turns.append({"user": user, "record": rec, "text": text, "cost_usd": cost})
+                status = "provider_failure"
+                break
         response = CanonicalResponse(text, "stop", not text, False, (), (), 0, 0, 0, cost)
         parsed = plugin.parse_action(payload, state, seat, phase, response)
         legality = plugin.legal(payload, state, seat, phase, parsed.action) if parsed.ok else None
@@ -428,6 +435,10 @@ def grade_all(directory: Path) -> None:
     for path in sorted((directory / "episodes").glob("*.json")):
         ep = json.loads(path.read_text())
         g = grade(cases[ep["case_id"]]["payload"], ep["final_state"])
+        last = (ep["turns"][-1]["record"].get("response") or {}) if ep["turns"] else {}
+        if ep["status"] == "completed" and ((last.get("choices") or [{}])[0].get("finish_reason") == "error"):
+            # Runs recorded before the driver typed this: the provider failed mid-generation.
+            ep["status"] = "provider_failure"
         cost = sum(t.get("cost_usd", 0.0) for t in ep["turns"])
         rows.append({**{k: ep[k] for k in ("route_id", "seat", "cell", "slug", "episode_id", "status")}, **g, "cost_usd": cost,
                      "reasons": [_reason(t.get("text")) for t in ep["turns"]]})

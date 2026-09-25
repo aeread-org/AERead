@@ -317,57 +317,78 @@ one number?
 
 ### Results (2026-09-25): diagnostic, not a claim
 
-- **Arms run.** `risk_allocation_probe_v2_default_reasoning` ran Gemini only
-  (plan `1ba56a81`, $1.49). GLM's smoke was censored, so GLM runs under its own
-  identity once a longer smoke sizes it.
-- **Two-prices arm, corrected.** `risk_allocation_probe_v2b_two_prices` (plan
-  `3e85fdac`, $0.34) supersedes `risk_allocation_probe_v2_two_prices`.
-  The superseded run's prompt had lost v1's "price is null on accept"
-  (DC-D-24), and 16 of its 64 episodes ended on accepts typed invalid.
-- **Driver defects found on the way,** all fixed:
-  - DC-T-11: a connection the provider dropped was uncaught;
-  - DC-T-12: a provider error inside an HTTP 200 was typed as the model's move;
+Arms run:
+
+| Identity | Route | Plan | Cost |
+|---|---|---|---|
+| `risk_allocation_probe_v2_default_reasoning` | Gemini | `1ba56a81` | $1.49 |
+| `risk_allocation_probe_v2_default_reasoning_glm` | GLM | `701b9810` | $1.14 |
+| `risk_allocation_probe_v2b_two_prices` | both | `3e85fdac` | $0.34 |
+
+- **GLM's own identity.** GLM runs in a separate default-reasoning identity
+  because its first smoke was censored. A 131,072-token smoke then found replies
+  of 13,530 to 46,228 tokens, taking up to 923 s, and set its limit at 93,000.
+- **The two-prices arm was run twice.** `v2b` supersedes
+  `risk_allocation_probe_v2_two_prices`, whose prompt had lost v1's "price is
+  null on accept" (DC-D-24).
+- **Driver defects found and fixed on the way:**
+  - DC-T-11: a connection the provider dropped was uncaught.
+  - DC-T-12, twice: a provider error, first as an HTTP 200 body and then as
+    `finish_reason: "error"`, was typed as the model's move.
   - DC-O-09: GLM's low-effort limit was sized from too small a smoke.
 
-Each cell is episodes signed on the package the model proposed first, and
-signed on the efficient package, out of those signed:
+| Arm | Route | Valid | Regret, client / integrator, $k | Signed a package other than its first | Signed the efficient package | Zero-regret episodes |
+|---|---|---|---|---|---|---|
+| v1: low effort, one price | Gemini | 32/32 | 115 / 144 | 0 of 24 | 4 of 24 | 1 |
+| v1 | GLM | 21/32 (DC-O-08) | not compared | | | |
+| Default reasoning | Gemini | 32/32 | 63 / 62 | 0 of 26 | 7 of 26 | 5 |
+| Default reasoning | GLM | 28/32 (4 provider failures) | 69 / 68 | 12 of 21 | 13 of 21 | 16 |
+| Two prices (v2b), low effort | Gemini | 32/32 | 136 / 169 | 4 of 26 | 3 of 26 | 1 |
+| Two prices (v2b), low effort | GLM | 31/32 | 120 / 203 | 3 of 21 | 9 of 21 | 1 |
 
-| Arm | Gemini, client | Gemini, integrator | GLM, client | GLM, integrator |
-|---|---|---|---|---|
-| v1: low effort, one price | 16/16 valid; regret 115; own first 11/11; efficient 1 | 16/16; 144; 13/13; 3 | 8/16 valid (DC-O-08) | 13/16 valid |
-| Default reasoning | 16/16; 63; 13/13; 3 | 16/16; 62; 13/13; 4 | pending | pending |
-| Two prices (v2b) | 16/16; 136; 12/13; 0 | 16/16; 169; 10/13; 3 | 15/16; 120; 8/11; 5 | 16/16; 203; 10/10; 4 |
+**The question probe v1 left open has one answer per model:**
 
-What the two arms show about the anchoring:
+- **GLM, deliberating at length, does what the reference does.** With no
+  reasoning setting it spends 13,000 to 46,000 tokens a move, and it does this:
+  1. asks the price of one informative package;
+  2. works out the integrator's costs from the answer;
+  3. signs a different package at exactly its floor.
 
-- **Deliberation improves the opening, not the revision.** With no reasoning
-  setting, Gemini's regret halves in both seats.
-  - Its opening package varies more with the world: 6 different packages across both seats,
-    against 4 in v1.
-  - The contract it signs is efficient more often: 7 of 26 against 4 of 24.
-  - Its break-off losses in `close_now` fall from $477k to $156k as the client.
-  - It still never priced or signed a second package.
-- **A second price, shown, does not undo it.** Gemini used the alternate in all
-  32 episodes.
-  - It spent the alternate on the warranty level 28 times and on the
-    consequential clause 3 times.
-  - The efficient package was one of the two it priced in 9 of 32.
-  - Where the alternate was the better quote (8 times), it signed the alternate
-    twice.
-  - Its regret rose, from extra refused rounds and break-offs. In `walk_away` it
-    signed deals worse than turnkey that it had walked away from in v1.
-  - GLM varied the consequential clause more often (4 of 8 alternates as the
-    client) and took the better alternate once in 4.
-- **Reading.** The anchoring is not mainly a failure to infer the other side's
-  costs. Given both prices, the models keep the terms they opened with. The
-  terms are settled first, from what the model assumes, and then only the price
-  is bargained. Deliberation makes the assumed terms better; it does not make
-  the model revise them when the counterpart's answers say it should.
+  Examples: it asked about fix_and_delay and signed "fix" at $10,602.8; it asked
+  about the full package and signed the opening terms at $10,532.0. Both carry
+  zero regret. It played 16 of 28 episodes without losing anything.
+  - *Where it lost:* it signed readiness onto the integrator 4 times, and all 3
+    of its valid `close_now` episodes broke off ($208k to $592k).
+- **Gemini never revises, at any reasoning setting here.** Default reasoning
+  (2,000 to 13,000 tokens a move) halves its regret through better opening
+  terms and pace:
+  - 6 different opening packages against 4 in v1;
+  - its `close_now` losses fall from $477k to $156k.
 
-Limits: 16 worlds and one run, with twins not independent. The counts behind
-"took the better alternate" are 4 to 8 per seat. GLM's default-reasoning arm
-is still being sized: its longest smoke reply so far is 46,228 tokens, which
-took 922 seconds.
+  It still signed the package it opened with in 26 of 26 signings.
+- **A shown second price is no substitute for the inference.**
+  - *Gemini* used the alternate in all 32 episodes. It varied the warranty level
+    28 times and the consequential clause 3 times. Where the alternate was the
+    better quote (8 times) it signed the alternate twice, and its regret rose.
+  - *GLM at low effort* with two prices switched package in 3 of 21 signings,
+    against 12 of 21 when it deliberated with one price.
+
+**Reading.** The anchoring measured in v1 is the behaviour of a model that does
+not deliberate far enough to price the alternatives itself. Handing it the
+prices does not fix that; long deliberation does, in the one model that
+deliberates that long. That makes the case discriminating in the way it was
+built for: the same worlds separate a price-haggler (Gemini at any setting
+tried, GLM at low effort) from a negotiator that reallocates risk (GLM at
+default reasoning), and fixed rules sit on the haggler's side.
+
+Limits:
+
+- 16 worlds and one run; twins are not independent.
+- Counts behind the per-behaviour figures are 4 to 26.
+- The two models differ in more than deliberation length, so "long deliberation
+  causes revision" is a reading of one model, not a tested cause.
+- GLM's default-reasoning arm takes hours of wall time: 13,000 to 51,000 tokens
+  and up to 15 minutes a move.
 
 ## Stated simplifications
 
