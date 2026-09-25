@@ -877,6 +877,20 @@ is smaller: GLM made 4 blind signings worth less than the rent in expectation
 mean lemon probability (0.45 against 0.33). GLM also inspected more (11.7
 against 10.5 per market) and walked far more holds (138 against 5).
 
+**Where the gap comes from.** The derived analysis
+[`evidence/housing/housing_lemons_refusal_v2_gap/`](../../../evidence/housing/housing_lemons_refusal_v2_gap/)
+(`python -m aeread_families.housing.lemons_gap --check`) splits every cell's payoff
+exactly into leases signed after inspecting, blind signings worth it in expectation,
+blind signings not worth it, the lemon draws on blind signings, and inspection fees.
+Of the +193.9, the lemon draws are +152.8 (62.5 to 243.1); GLM's larger inspection
+spend is +30.7 (13.0 to 48.4); its blind signings below expected value +17.5 (0.0
+to 46.0); blind signings worth it +9.9 and leases signed after inspecting -17.1,
+both crossing zero. The decision classes, judged at what each tenant knew, extend
+the Housing failure taxonomy with group `L`: GLM signed 4 uninspected holds worth
+less than their rent, signed blind 6 times after passing on an inspection worth its
+fee, declined 16 holds worth more than their rent and signed 31 leases above the
+ask; Gemini did none of these. Every instance names its cell, round and tenant.
+
 **Replicates.** Gemini's two seeds gave the same net payoff on 18 of 24 worlds
 at temperature 1.0 (16 at 0); GLM's on 0 of 23. Gemini's agreement is its own
 consistency, not an artefact of temperature 0 (HL-D-02, corrected).

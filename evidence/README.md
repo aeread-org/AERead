@@ -252,6 +252,9 @@ Includes the preserved case-selection bundle at the evidence root.
 - [housing_lemons_refusal_v2_comparison](housing/housing_lemons_refusal_v2_comparison/): derived analysis, the
   two v2 routes paired by world (`python -m aeread_families.housing.lemons_comparison --check`); see the
   Housing QC profile §21;
+- [housing_lemons_refusal_v2_gap](housing/housing_lemons_refusal_v2_gap/): derived analysis, why the two v2 routes
+  differ: an exact split of the payoff gap (luck, bets, fees) and the lemons decision classes of the Housing
+  failure taxonomy, every instance with its deciding step (`python -m aeread_families.housing.lemons_gap --check`);
 - [housing_model_sensitivity_openrouter_alt_v4](housing/housing_model_sensitivity_openrouter_alt_v4/),
   [housing_model_sensitivity_openrouter_alt_v5](housing/housing_model_sensitivity_openrouter_alt_v5/),
   [housing_model_sensitivity_openrouter_alt_v6](housing/housing_model_sensitivity_openrouter_alt_v6/),
