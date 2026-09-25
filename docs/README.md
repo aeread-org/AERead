@@ -66,7 +66,7 @@ for published campaigns and registers, including the 17 preserved legacy paths.
 - Housing: [case contract](families/housing/case.md) and [QC profile](families/housing/qc.md)
 - Procurement allocation: [case and campaign design](families/procurement-allocation/campaign.md)
 - Tau3 retail: [adapter specification](families/tau3-retail/adapter_spec.md), [implementation status](families/tau3-retail/adapter_status.md), and [refund integration plan](families/tau3-retail/refund_external_benchmark_integration.md)
-- Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md) and [QC profile](families/datacenter/qc.md), and the [V2 walk-away analysis](families/datacenter/v2_walk_away_analysis.md) (decision tree, outcome ladders, the repair), and the [design findings](families/datacenter/design_findings_2026-09.md) recorded with the world pack
+- Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md) and [QC profile](families/datacenter/qc.md), and the [V2 walk-away analysis](families/datacenter/v2_walk_away_analysis.md) (decision tree, outcome ladders, the repair), and the [design findings](families/datacenter/design_findings_2026-09.md) recorded with the world pack, and the draft [integrator-client risk-allocation case](families/datacenter/risk_allocation_case.md)
 
 ## External benchmark adapters
 
