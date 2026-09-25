@@ -891,6 +891,33 @@ less than their rent, signed blind 6 times after passing on an inspection worth 
 fee, declined 16 holds worth more than their rent and signed 31 leases above the
 ask; Gemini did none of these. Every instance names its cell, round and tenant.
 
+**Against the reference.** The same bundle splits each model's payoff against the
+scripted inspect-then-sign reference on the same worlds (`baselines`; replaying the
+policy reproduces all 24 published reference payoffs). The reference never signs
+blind, so its luck part is zero and the pair gap is exactly the difference of the
+two contrasts. Gemini is not separated from it, -26.3 (-94.5 to 22.2): it signs
+fewer leases after inspecting (1.44 a market against 1.83; -139.2, -237.3 to
+-53.1) and makes it up with blind signings worth it in expectation (+53.0, 25.1 to
+85.4) and lucky draws (+62.5, crossing zero). GLM is below it, -220.2 (-339.6 to
+-103.5), and not only by luck: it signs nearly as many inspected leases (1.77) but
+gets 283.7 of surplus from each against the reference's 335.2 (-122.2, -186.7 to
+-54.6), spends more on inspections (-33.3, -52.1 to -14.6), and its draws went
+against it (-90.3, -173.6 to -13.9). The reference is a yardstick, not an optimum,
+and the decision classes do not apply to it.
+
+**By stratum (unregistered look, a hypothesis for the next identity).** Split by the
+pack's declared strata, 12 worlds each, the two routes fall short of the reference
+in opposite worlds. Where the favourite listing is a lemon, Gemini signs 1.12
+inspected leases a market against the reference's 1.75 and 0.79 blind; with luck
+removed it is -128.6 (-221.2 to -41.4) against the reference. Where the favourite is
+sound, GLM pays above the ask on its inspected leases (+31.9 a lease; the reference
++1.0) and with luck removed is -194.8 (-272.0 to -125.4). The luck-removed pair gap
+is +145.7 (4.8 to 261.7) in sound-favourite worlds and -63.5 (-220.2 to 79.0) in
+lemon-favourite ones, a difference of +209.3 (8.4 to 404.5), resampling worlds
+within strata. This was not declared, it is one of several cuts examined, and 12
+worlds a stratum is thin: a v3 identity should declare the stratum contrast before
+it runs rather than read it off this one.
+
 **Same states, both models (diagnostic, 2026-09-25).** The cells are markets of one
 model's six tenants, so the routes differ in history and competition as well as in
 policy. `tools/run_lemons_state_probe.py` removes the history: it sent each model the
