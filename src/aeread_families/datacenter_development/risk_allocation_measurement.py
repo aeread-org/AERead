@@ -26,6 +26,7 @@ from aeread.shared_runner.measurement import (
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
+    ObjectiveScopeSpec,
     ReferenceSpec,
     ScoreEnvelope,
     ValidityDomainSpec,
@@ -68,6 +69,7 @@ def _reference_source(family_case: Mapping[str, Any], leaf_id: str) -> dict[str,
 def _leaf(family_case: Mapping[str, Any], *, leaf_id: str, input_scope: str, units: str, direction: str,
           verifier_family: str, reference_kind: str) -> MeasurementLeafSpec:
     scorer, validity_impl, reference_impl = implementation_refs()
+    rounds = len(family_case["world"]["terms"]["ask_premium"]) - 1
     domain = ValidityDomainSpec(
         domain_id=f"{leaf_id}_domain",
         domain_version=VERSION,
@@ -97,15 +99,28 @@ def _leaf(family_case: Mapping[str, Any], *, leaf_id: str, input_scope: str, uni
                 source_sha256=hashlib.sha256(canonical_json_bytes(_reference_source(family_case, leaf_id))).hexdigest(),
                 implementation=reference_impl,
             ),
-            objective_scope=None,
+            objective_scope=ObjectiveScopeSpec(
+                objective_id=leaf_id,
+                objective_version=VERSION,
+                direction=direction,
+                units=units,
+                feasible_set="the 24 contract packages at any price the counterpart signs, and walking away to the outside option",
+                information_set=INFORMATION_SET[leaf_id],
+                horizon=f"one negotiation of at most {rounds} rounds",
+                environment_condition="the world's declared risk distributions, break-off probability and round cost",
+                opponent_condition="the scripted counterpart's declared pricing rule, its private type drawn from the declared prior",
+                validity_domain=domain,
+            ) if verifier_family == "objective_reference" else None,
         ),
         scorer=scorer,
     )
 
 
-# leaf id: (input scope, units, direction, verifier family, reference kind, read from grade)
+# leaf id: (input scope, units, direction, verifier family, reference kind). Decision regret is
+# scored against the exact optimum from the terminal state, which records every decision the
+# model took (the kernel admits exact_optimum only over a terminal state or a distribution).
 LEAVES: dict[str, tuple[str, str, str, str, str]] = {
-    "decision_regret": ("trajectory", "usd_thousands", "minimize", "objective_reference", "exact_optimum"),
+    "decision_regret": ("terminal_state", "usd_thousands", "minimize", "objective_reference", "exact_optimum"),
     "episode_valid": ("trajectory", "indicator", "maximize", "rule_constraint", "constraint_satisfaction"),
     "allocation_gap": ("terminal_state", "usd_thousands", "minimize", "objective_reference", "exact_optimum"),
     "price_gap": ("terminal_state", "usd_thousands", "minimize", "objective_reference", "comparison_baseline"),
@@ -115,6 +130,11 @@ LEAVES: dict[str, tuple[str, str, str, str, str]] = {
     "refused_rounds": ("trajectory", "count", "none", "rule_constraint", "temporal_property"),
 }
 PRIMARY = "decision_regret"
+INFORMATION_SET = {
+    "decision_regret": "the model's own: the declared prior over the counterpart's private costs, narrowed by every price it has seen",
+    "allocation_gap": "full information: both parties' true types (a diagnostic, not the score)",
+    "price_gap": "full information: the counterpart's true floor or final bid for the signed package (a diagnostic)",
+}
 
 
 def primary_measurement_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSpec:

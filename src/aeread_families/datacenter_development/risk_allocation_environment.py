@@ -125,7 +125,7 @@ def risk_allocation_family_manifest() -> FamilyManifest:
             },
             "roles": {seat: {"testable": True, "scripted_policies": ["reference"]} for seat in ra.SEATS},
             "measurement": {
-                "primary_estimand": "decision_regret_usd_thousands",
+                "primary_estimand": "decision_regret",
                 "measurement_kind": "property_or_answer",
                 "direction": "minimize",
                 "comparison_baseline": "best_play_on_own_information",
@@ -214,7 +214,7 @@ class RiskAllocationPlugin:
         draws = payload["breakoff_draws"]
         if len(draws) != w.rounds or not all(isinstance(u, float) and 0.0 <= u < 1.0 for u in draws):
             raise ValueError("one uniform break-off draw per round is required")
-        return json.loads(json.dumps(payload))
+        return _thaw(payload)  # the kernel hands frozen mappings; the plugin keeps plain JSON
 
     def initial_state(self, family_case, run) -> dict[str, Any]:
         del run
@@ -342,7 +342,7 @@ class RiskAllocationPlugin:
         del phase
         seat = family_case["seat"]
         envelope = actions[seat]
-        new = json.loads(json.dumps(state))
+        new = json.loads(json.dumps(_thaw(state)))
         if not envelope.valid:
             reason = envelope.parse.error_code if not envelope.parse.ok else envelope.legality.reason
             new.update(finished=True, termination="invalid_action", invalid=reason)
@@ -390,7 +390,7 @@ class RiskAllocationPlugin:
 
     def terminal(self, family_case, state) -> dict[str, Any] | None:
         del family_case
-        return json.loads(json.dumps(state)) if state["finished"] else None
+        return json.loads(json.dumps(_thaw(state))) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
         return {"termination": terminal["termination"], "signed": terminal["signed"], "invalid": terminal.get("invalid"),
