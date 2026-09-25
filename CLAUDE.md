@@ -60,6 +60,36 @@ attempt count, a timeout or a route policy that lives only in code is
 invisible to anyone reading the experiment definition and silently changes
 what the experiment measured.
 
+## Analysing results
+
+A result is a claim about a model only once its analysis covers each point
+below. Where one does not apply, say why in a line: for example, "no judge:
+the grade is an exact computation, replayed from the receipt".
+
+- **Components before composites.** Report each part of an outcome on its own
+  (for a negotiation: the terms, the price, the pace, a valid move) and the
+  strict pass that needs all of them, beside any composite score. Say which
+  parts are graded on the model's own information and which on full
+  information.
+- **Missingness by cause.** Keep provider and transport failures, replies cut
+  off by an output limit, and invalid moves by the model apart, and count
+  each. Only the last is the model's behaviour; never fold one into another.
+- **Replicates.** State the runs per cell. With more than one, report the
+  spread within a cell (worst of k, best of k, pass@k). With one, say that
+  the variance within a cell is unmeasured. Hold the environment's own chance
+  draws fixed across runs, so the spread is the model's.
+- **Intervals, clustered and paired.** Bootstrap with the world or case as the
+  unit, and put cases that share their public facts (twins, the two seats of
+  one world) in one cluster. Compare arms on the same worlds as paired
+  differences. State no difference from point estimates alone.
+- **Judges.** When a model or a person grades, report the agreement between
+  graders (Cohen's kappa, percent agreement) and the kinds of disagreement. An
+  exact grader cites its replay verification instead.
+- **Where the score comes from.** Decompose it by decision or phase, and name
+  failure types in the world's terms (anchoring on the first package, a risk
+  moved to the party that cannot control it). Route, provider, reasoning
+  setting and protocol are separate factors: change one per arm.
+
 ## Pull requests
 
 Follow [`docs/operations/pr_lanes.md`](docs/operations/pr_lanes.md). The
@@ -197,3 +227,10 @@ this repository, with where it is written down.
   adapter and kernel-review documents at the root of `docs/`, unindexed, with
   ninety-two stale cross-references. Hence the placement rule in
   `docs/README.md` and the deferred move in #123.
+- **Point estimates from one run, and provider failures read as behaviour.**
+  The risk-allocation probes of 2026-09-24/25 compared arms on one run per
+  world with no interval, and twice counted a provider failure as the model's
+  malformed move (DC-T-12, reopened once); a fixed output limit turned 11 of
+  GLM's 32 episodes into missing ones (DC-O-08). The rows are in the incident
+  log on `codex/datacenter-risk-allocation` until that branch merges. Hence
+  the analysis rules.
