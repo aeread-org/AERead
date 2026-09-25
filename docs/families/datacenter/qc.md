@@ -71,6 +71,7 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_counteroffer_affordance_v1` | 1.0.0 | `reemit_package` against `accept_by_reference` | 2 files, same world |
 | `datacenter_counteroffer_action_schema_v1` | 1.0.0 | `shared_offer_schema` against `dedicated_accept_schema` | 2 files, same world |
 | `datacenter_development_terms_v1` | 1.0.0 | single-phase report on SEC-grounded project terms | 6 on-disk packs (20 authored cases) plus 8 derived packs |
+| `datacenter_risk_allocation_v1` | 0.1.0 | integrator-client negotiation of who bears which risk, one model seat against a scripted counterpart; registration in draft PR #219 (kernel lane); gates in §10 | `risk_allocation_dev_v1` (16 worlds), `risk_allocation_two_prices_dev_v1`, `risk_allocation_eval_v1` (32 worlds) |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,
@@ -570,3 +571,53 @@ effect, or any statement that a subject negotiated *well*. The last one stays:
 on the 30 pre-guard bundles because their reference is beatable by walking
 away, and on the world-panel campaigns because one route on a descriptive
 endpoint says nothing about how it negotiated relative to any other.
+
+## 10. Risk allocation (`datacenter_risk_allocation_v1`)
+
+The integrator-client case of `docs/families/datacenter/risk_allocation_case.md`:
+the model negotiates four risk clauses and a price for one seat, client or
+integrator, against a scripted counterpart that prices by a declared rule, with
+the counterpart's costs private. Decision regret is graded against the exact
+best play on the model's own information. Its campaigns are
+`datacenter_risk_allocation_dev_campaign_v1` (192 cells, three arms, the dev
+pack) and `datacenter_risk_allocation_dev_campaign_v2` (704 cells: two arms,
+two models, two replicates, scripted controls, the fresh eval pack).
+
+**Gate 0, profile admission: partial.** This section is the profile. The trusted
+registry row is in draft PR #219 and needs a non-author review; both campaigns
+ran with that row applied on their branch.
+
+**Gate 1, task-distribution admission: passed for a diagnostic.** Worlds are drawn
+per declared cell and admitted only when the cell's lesson holds for the drawn
+facts (`risk_allocation.admit`); twins are added where the right contract
+depends on the counterpart's hidden type. The eval pack's 32 worlds use seeds no
+probe or prompt was tuned on (24 independent clusters, a twin with its base).
+
+**Gate 2, environment and verifier: passed.** The reference is an exact dynamic
+programme; in the v2 dry run it graded zero regret on all 192 of its cells, and
+v2 seats it in the run itself. Every executed receipt is replayed to the same
+digest before its cell counts. Leak tests keep the counterpart's type and the
+world's cell name out of every observation.
+
+**Gate 3, construct validity and baselines: partial.** Upper and lower controls
+run under the model's conditions in v2: the reference, the best contract signed
+without asking (`sign_the_prior_best_now`) and keeping the other side's terms
+while haggling the price (`haggle_price_only` for the client,
+`defend_the_opening_terms` for the integrator). Partial because the counterpart
+prices honestly by rule, outcomes are expectations, and a model counterpart is
+not yet a cell.
+
+**Gate 4, attribution and experimental controls: partial.** In v2 both models
+answer the same worlds under the same per-world request seed, with retries only
+for provider faults (rate limits, 5xx, dropped connections; DC-O-10) and a
+reply cut off by the output limit typed as missingness. Partial because each
+model has one provider route, and reasoning is declared per arm (low effort, or
+the provider default), not matched in tokens.
+
+**Gate 5, confirmatory reliability and publication: not confirmatory.** v2
+declares one contrast in its frozen plan (GLM 5.3 Flash minus Gemini 3.8 Flash,
+per arm and seat, paired on world and replicate, world-clustered bootstrap) and
+publishes it as a descriptive result: `winner_claim_allowed`,
+`inferential_model_ranking_allowed` and `causal_condition_effect_allowed` are
+false. v1's published cost is a floor (DC-T-13).
+
