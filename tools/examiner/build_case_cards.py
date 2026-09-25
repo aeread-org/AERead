@@ -140,6 +140,69 @@ def evaluate(card: dict, cell: dict, periods: list[dict], negotiation: dict | No
     ]}
 
 
+def extra_checkouts() -> list[Path]:
+    """The other checkouts this build reads (roots.json, written by build_general_examiner.py)."""
+    path = Path(__file__).with_name("roots.json")
+    if not path.exists():
+        return []
+    return [Path(p) for p in json.loads(path.read_text(encoding="utf-8")).values() if Path(p).is_dir()]
+
+
+def payoff_comparisons(checkouts: list[Path]) -> dict:
+    """Paired payoff comparisons published as derived bundles (the Housing lemons v2 pair): per model and per
+    world, the tenants' net payoff as realized and with each uninspected signing counted at its expected value.
+    Keyed by the comparison bundle and by both compared runs, so each of their pages shows the chart."""
+    out: dict = {}
+    seen: set = set()
+    for root in checkouts:
+        for path in sorted(root.glob("evidence/**/reports/comparison.json")):
+            report = json.loads(path.read_text(encoding="utf-8"))
+            if not str(report.get("schema_version", "")).startswith("aeread.housing_lemons_comparison/"):
+                continue
+            bundle = path.parent.parent.name
+            if bundle in seen:
+                continue
+            seen.add(bundle)
+
+            def model(campaign_id: str) -> str:
+                try:
+                    return json.loads((root / "configs" / f"{campaign_id}.json").read_text(encoding="utf-8"))["route"]["requested_model"]
+                except (OSError, KeyError, ValueError):
+                    return campaign_id
+
+            overall = report["slices"]["overall"]
+            labels = {"tenant_net_payoff": "as realized", "expected_net_payoff": "blind signings at expected value (luck removed)"}
+            metrics = [
+                {"key": key, "label": labels[key],
+                 "left": {"mean": overall[key]["left_mean"], "ci": overall[key].get("left_ci95")},
+                 "right": {"mean": overall[key]["right_mean"], "ci": overall[key].get("right_ci95")},
+                 "difference": overall[key]["difference"], "difference_ci": overall[key]["difference_ci95"],
+                 "worlds_left_higher": overall[key]["worlds_left_higher"], "worlds_right_higher": overall[key]["worlds_right_higher"]}
+                for key in labels if key in overall
+            ]
+            worlds = [
+                {"world": w["world_seed"], "stratum": w["stratum"],
+                 "left": w["tenant_net_payoff"]["left"], "right": w["tenant_net_payoff"]["right"],
+                 "left_expected": (w.get("expected_net_payoff") or {}).get("left"),
+                 "right_expected": (w.get("expected_net_payoff") or {}).get("right"),
+                 "left_spread": (w.get("tenant_net_payoff_spread") or {}).get("left"),
+                 "right_spread": (w.get("tenant_net_payoff_spread") or {}).get("right"),
+                 "left_cells": w["cells"]["left"], "right_cells": w["cells"]["right"]}
+                for w in report["worlds"]
+            ]
+            entry = {
+                "kind": "payoff", "comparison_id": bundle, "left_id": report["left"], "right_id": report["right"],
+                "left_model": model(report["left"]), "right_model": model(report["right"]),
+                "paired_worlds": report["paired_worlds"], "incomplete_packs": report.get("incomplete_packs") or {},
+                "metrics": metrics, "worlds": worlds,
+                "benchmarks": {k: overall[k] for k in ("reference_total", "sign_anything_total", "oracle_total") if k in overall},
+                "claim_scope": "descriptive, 24 worlds on one pack; each cell is a market of one model's six tenants; no ranking",
+            }
+            for key in (bundle, report["left"], report["right"]):
+                out[key] = entry
+    return out
+
+
 def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
     index = json.loads(receipt_index.read_text(encoding="utf-8")) if receipt_index and receipt_index.exists() else {}
     cards: dict[str, dict] = {}
@@ -243,6 +306,7 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
             "delta_mean": report.get("mean_regret_delta_usd"), "delta_interval": report.get("mean_regret_delta_usd_95_world_bootstrap"),
             "claim_scope": report.get("claim_scope"), "worlds": worlds,
         }
+    comparisons.update(payoff_comparisons([checkout, *extra_checkouts()]))
     data = {
         "comparisons": comparisons,
         "cards": cards,
