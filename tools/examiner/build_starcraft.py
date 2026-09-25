@@ -31,6 +31,25 @@ BID = "starcraft_codex_claude_local"
 FAMILY = "starcraft"
 LABEL = "StarCraft (OpenBW prototype)"
 LOCAL = re.compile(r"(/Users|/private|/home|/var/folders)/[^\s\"']*")
+JEV_PHASES = {"tactical_mission"}  # chosen by the tactical chooser (Jev); every other step by the seat's strategist model
+STRATEGIST_NAME = {"codex_cli": "Codex", "claude_cli": "Claude"}
+# The controller's loop per seat (starcraft_master tools/action_combined_runner.py, CombinedRunner.run): on each new
+# strategic snapshot, a concession review when due, then an engagement posture when due, then one macro lane's agenda
+# step (select a goal if the lane has none, else pursue it and review it when due; primary and support lanes take
+# turns). Jev's tactical missions and worker orders run in the same loop on the finer tactical snapshots.
+LOOP = {"plugin": "CombinedRunner (starcraft_master)", "variant": "per seat",
+        "nodes": ["match_start", "concession", "engagement", "goal", "goal_review", "tactical_mission"],
+        "edges": [{"from": a, "to": b} for a, b in (("match_start", "concession"), ("concession", "engagement"), ("engagement", "goal"),
+                  ("engagement", "goal_review"), ("goal", "concession"),
+                  ("goal_review", "concession"), ("tactical_mission", "tactical_mission"))],
+        "modes": {n: "single" for n in ("match_start", "concession", "engagement", "goal", "goal_review", "tactical_mission")},
+        "actors": {"match_start": "launcher", "concession": "strategist model", "engagement": "strategist model", "goal": "strategist model",
+                   "goal_review": "strategist model", "tactical_mission": "Jev"},
+        "note": ("Each seat runs this loop on its own. On every new strategic snapshot (about every 120 frames) the strategist model "
+                 "reviews concession when due, then the engagement posture when due, then one macro lane takes a step: it picks a goal "
+                 "if it has none, otherwise the goal runner pursues it and the model reviews it when due (primary and support lanes "
+                 "alternate). Jev chooses tactical missions and worker orders in the same loop on finer snapshots. Steps below are "
+                 "these decisions from both seats in frame order.")}
 
 
 def load(path: Path):
@@ -194,8 +213,11 @@ def build_case(run: Path, reports: Path):
         own = at(snaps[s], f) or {}
         obs = {"frame": f, "view": own, **{k: v for k, v in extra.items() if v}}
         n_cmd = sum(1 for c in cmds[s] if f <= c < until)
+        jev = ph in JEV_PHASES
+        who = "Jev" if jev else STRATEGIST_NAME.get(backends.get(s), s)
         phases.append({"phase_id": ph, "eligible": [s], "mode": "single", "status": "succeeded",
-                       "actions": [{"seat": s, "role": f"{races[s]} strategist", "profile": s, "model": f"{backends.get(s) or s} strategist, Jev tactician",
+                       "actions": [{"seat": s, "actor": who, "role": f"Jev tactician for {races[s]}" if jev else f"{races[s]} strategist", "profile": s,
+                                    "model": "Jev (tactical chooser)" if jev else f"{backends.get(s) or s} strategist",
                                     "observation": obs, "parsed": {"ok": True, "action": act}, "legal": {"legal": True}, "valid": True,
                                     "provider": {"calls": calls}}],  # cost and tokens are not recorded by these runs
                        "consequences": {"native_commands_before_this_seat_decides_again": n_cmd, "frames_until_this_seat_decides_again": until - f},
@@ -270,8 +292,8 @@ def main():
         "manifest": {k: None for k in ("schema_version", "campaign_id", "publication_id", "claim_status", "cost_qualifier", "total_cost_usd",
                                        "winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed", "prior_pilot_attempts")},
         "artifact_count": None, "source_receipts": len(cases),
-        "readme": {"excerpt": "StarCraft: Brood War matches on the OpenBW engine: a Codex strategist (Protoss) against a Claude strategist (Zerg), each with Jev as the tactician, on (2)Challenger. Each step here is one strategist decision: a goal chosen or reviewed, an engagement posture, a tactical mission, a concession review. The state beyond a seat's view is the opponent's economy and army at that moment. Research backlog: docs/research/starcraft_rts_case_candidates.md.",
-                   "summary": f"Codex (Protoss) vs Claude (Zerg) with Jev tactics on OpenBW; {len(cases)} local matches, {oldest:%Y-%m-%d %H:%M} to {newest:%H:%M}."},
+        "readme": {"excerpt": "StarCraft: Brood War matches on the OpenBW engine: a Codex strategist (Protoss) against a Claude strategist (Zerg), each with Jev as the tactician, on (2)Challenger. Each step here is one decision: the strategist model's goals, goal reviews, engagement postures and concession reviews, and Jev's tactical missions. The state beyond a seat's view is the opponent's economy and army at that moment. Research backlog: docs/research/starcraft_rts_case_candidates.md.",
+                   "summary": f"Codex (Protoss) vs Claude (Zerg) strategists with Jev tactics on OpenBW; {len(cases)} local matches, {oldest:%Y-%m-%d %H:%M} to {newest:%H:%M}."},
         "models": [f"{backends.get(s, s)} · {races.get(s, '')}" for s in ("codex", "claude") if s in races],
         "headline": headline, "facts": [], "issues": [], "qc": {"sections": []},
         "status": {"label": "local prototype · not AERead evidence", "claim_status": None,
@@ -293,6 +315,7 @@ def main():
     cat["campaigns"] = [c for c in cat["campaigns"] if c.get("family") != FAMILY] + [entry]
     cat["families"] = sorted(set(cat["families"]) | {FAMILY})
     cat["family_label"][FAMILY] = LABEL
+    cat.setdefault("declared_graphs", {})[FAMILY] = [LOOP]
     cat_path.write_text(json.dumps(cat, separators=(",", ":"), default=str))
     det_path = OUT / "data" / "check_details.json"
     if det_path.exists():
