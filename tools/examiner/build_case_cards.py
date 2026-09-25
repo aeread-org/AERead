@@ -191,7 +191,8 @@ def payoff_comparisons(checkouts: list[Path]) -> dict:
                 for w in report["worlds"]
             ]
             entry = {
-                "kind": "payoff", "comparison_id": bundle, "left_id": report["left"], "right_id": report["right"],
+                "kind": "paired", "source": "published", "endpoint": "tenant_net_payoff",
+                "comparison_id": bundle, "left_id": report["left"], "right_id": report["right"],
                 "left_model": model(report["left"]), "right_model": model(report["right"]),
                 "paired_worlds": report["paired_worlds"], "incomplete_packs": report.get("incomplete_packs") or {},
                 "metrics": metrics, "worlds": worlds,
@@ -200,6 +201,104 @@ def payoff_comparisons(checkouts: list[Path]) -> dict:
             }
             for key in (bundle, report["left"], report["right"]):
                 out[key] = entry
+    return out
+
+
+#: Contract keys that name the model or the identity rather than the experiment; two contracts equal
+#: apart from these are twins, the same experiment run on different models.
+_ROUTE_KEYS = {"route", "routes", "campaign_id", "question", "title", "description", "notes", "model", "models",
+               "profiles", "pricing", "created", "created_date"}
+
+
+def _experiment(value):
+    if isinstance(value, dict):
+        return {k: _experiment(v) for k, v in value.items()
+                if k not in _ROUTE_KEYS and not k.endswith("_profile_id") and "route" not in k}
+    if isinstance(value, list):
+        return [_experiment(v) for v in value]
+    return value
+
+
+def _world_boot(values: dict, seed: int, draws: int = 10_000):
+    import random as _random
+    worlds = sorted(values)
+    if len(worlds) < 2:
+        return None
+    rng = _random.Random(seed)
+    means = sorted(sum(values[worlds[rng.randrange(len(worlds))]] for _ in worlds) / len(worlds) for _ in range(draws))
+    return [means[int(0.025 * draws)], means[int(0.975 * draws) - 1]]
+
+
+def twin_comparisons(roots: list[Path], already: set) -> dict:
+    """A comparison for every published pair of identities whose contracts are equal except for the model,
+    when no published comparison covers them: the declared primary estimand, averaged per world over completed
+    cells, paired by world, with world-bootstrap intervals. Computed by the examiner, and labelled so."""
+    import itertools
+    bundles: dict = {}
+    for root in roots:
+        for cfg in sorted(root.glob("configs/*.json")):
+            cid = cfg.stem
+            found = [p.parent for p in root.glob(f"evidence/**/{cid}/tables/cells.jsonl")]
+            if not found or cid in bundles:
+                continue
+            try:
+                contract = json.loads(cfg.read_text(encoding="utf-8"))
+                design = json.loads((found[0].parent / "reports" / "design.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            estimand = design.get("primary_estimand")
+            model = ((contract.get("route") or {}).get("requested_model")) or ((contract.get("route") or {}).get("route_id"))
+            if estimand and model:
+                bundles[cid] = {"key": json.dumps(_experiment(contract), sort_keys=True), "dir": found[0].parent,
+                                "estimand": estimand, "model": model}
+    groups: dict = {}
+    for cid, b in bundles.items():
+        groups.setdefault((b["key"], b["estimand"]), []).append(cid)
+    out: dict = {}
+    for (_, estimand), ids in groups.items():
+        for left, right in itertools.combinations(sorted(ids), 2):
+            if left in already or right in already or bundles[left]["model"] == bundles[right]["model"]:
+                continue
+            per = {}
+            for cid in (left, right):
+                rows = [json.loads(l) for l in (bundles[cid]["dir"] / "tables" / "cells.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+                if any(r.get("stage") == "variance_pilot" for r in rows):
+                    rows = [r for r in rows if r.get("stage") == "variance_pilot"]
+                worlds: dict = {}
+                for r in rows:
+                    world = r.get("world_seed", r.get("slug", r.get("case_id")))
+                    if r.get("status") == "completed" and isinstance(r.get(estimand), (int, float)) and world is not None:
+                        worlds.setdefault(world, []).append(float(r[estimand]))
+                per[cid] = worlds
+            paired = sorted(set(per[left]) & set(per[right]), key=str)
+            if len(paired) < 2:
+                continue
+            mean = lambda xs: sum(xs) / len(xs)
+            lm = {w: mean(per[left][w]) for w in paired}
+            rm = {w: mean(per[right][w]) for w in paired}
+            diff = {w: lm[w] - rm[w] for w in paired}
+            entry = {
+                "kind": "paired", "source": "examiner", "comparison_id": None, "left_id": left, "right_id": right,
+                "left_model": bundles[left]["model"], "right_model": bundles[right]["model"],
+                "paired_worlds": len(paired), "incomplete_packs": {},
+                "metrics": [{
+                    "key": estimand, "label": "as realized",
+                    "left": {"mean": mean(list(lm.values())), "ci": _world_boot(lm, 20260925)},
+                    "right": {"mean": mean(list(rm.values())), "ci": _world_boot(rm, 20260926)},
+                    "difference": mean(list(diff.values())), "difference_ci": _world_boot(diff, 20260927),
+                    "worlds_left_higher": sum(1 for v in diff.values() if v > 0),
+                    "worlds_right_higher": sum(1 for v in diff.values() if v < 0),
+                }],
+                "worlds": [{"world": w, "stratum": "", "left": lm[w], "right": rm[w],
+                            "left_spread": [min(per[left][w]), max(per[left][w])],
+                            "right_spread": [min(per[right][w]), max(per[right][w])],
+                            "left_cells": len(per[left][w]), "right_cells": len(per[right][w])} for w in paired],
+                "benchmarks": {},
+                "claim_scope": (f"computed by the examiner from the two bundles' cells tables on their declared primary "
+                                f"estimand ({estimand}); descriptive; neither bundle publishes this comparison"),
+                "endpoint": estimand,
+            }
+            out[left] = out[right] = entry
     return out
 
 
@@ -306,7 +405,9 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
             "delta_mean": report.get("mean_regret_delta_usd"), "delta_interval": report.get("mean_regret_delta_usd_95_world_bootstrap"),
             "claim_scope": report.get("claim_scope"), "worlds": worlds,
         }
-    comparisons.update(payoff_comparisons([checkout, *extra_checkouts()]))
+    roots = [checkout, *extra_checkouts()]
+    comparisons.update(payoff_comparisons(roots))
+    comparisons.update(twin_comparisons(roots, set(comparisons)))
     data = {
         "comparisons": comparisons,
         "cards": cards,
