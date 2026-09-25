@@ -245,8 +245,13 @@ Includes the preserved case-selection bundle at the evidence root.
   published, no winner claim;
 - [housing_lemons_refusal_v2_gemini38_flash](housing/housing_lemons_refusal_v2_gemini38_flash/): the lemons
   world under the pooled landlord (HL-D-01) at temperature 1.0, one Gemini 3.8 Flash tenant population on
-  v1's pack; descriptive, both attempts published, no winner claim. Its GLM twin is unpublished (HL-O-07);
-  see the Housing QC profile §21;
+  v1's pack; descriptive, both attempts published, no winner claim;
+- [housing_lemons_refusal_v2_glm53_flash](housing/housing_lemons_refusal_v2_glm53_flash/): its GLM 5.3 Flash
+  twin on the same pack, an incomplete pack (47 of 48, one cell typed missingness) published by the owner's
+  decision (HL-O-07), all five attempts published;
+- [housing_lemons_refusal_v2_comparison](housing/housing_lemons_refusal_v2_comparison/): derived analysis, the
+  two v2 routes paired by world (`python -m aeread_families.housing.lemons_comparison --check`); see the
+  Housing QC profile §21;
 - [housing_model_sensitivity_openrouter_alt_v4](housing/housing_model_sensitivity_openrouter_alt_v4/),
   [housing_model_sensitivity_openrouter_alt_v5](housing/housing_model_sensitivity_openrouter_alt_v5/),
   [housing_model_sensitivity_openrouter_alt_v6](housing/housing_model_sensitivity_openrouter_alt_v6/),

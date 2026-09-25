@@ -828,16 +828,23 @@ attempt 2, $4.30 for the campaign. GLM's lost six cells the same way in attempt
 runs in the campaign root, at a different seat and phase each time, while
 direct replays of its hung requests and two diagnostic copies of the run root
 completed (HL-O-05 to HL-O-07). Re-execution stopped under a rule fixed before
-the fifth attempt, so the GLM identity is **unpublished**: the driver publishes
-only a complete pack, and its gate stays failed at 47 of 48.
+the fifth attempt. Its gate stays failed at 47 of 48, and the owner decided to
+publish it as an incomplete pack rather than re-run the cell: the driver's
+`--publish-incomplete-pilot REASON` publishes the newest attempt as sealed,
+records `pilot_gate_status: failed_incomplete_pack`, the reason and the missing
+cell in the manifest and README, and refuses when a passed attempt exists or
+the stage halted.
 
-**Gemini, published** at
-[`evidence/housing/housing_lemons_refusal_v2_gemini38_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_gemini38_flash/),
-verified by recomputing every digest and the manifest seal, a clean
-prohibited-text scan, re-driving all 49 live receipts through the environment
-(0 score mismatches) and recomputing the analysis from the published rows.
+**Published** at
+[`evidence/housing/housing_lemons_refusal_v2_gemini38_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_gemini38_flash/)
+and
+[`evidence/housing/housing_lemons_refusal_v2_glm53_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_glm53_flash/)
+(incomplete pack), each verified by recomputing every digest and the manifest
+seal, a clean prohibited-text scan, re-driving every completed live receipt
+through the environment (49 and 48, 0 score mismatches) and recomputing the
+analysis from the published rows.
 
-| endpoint, mean over worlds (95% world-clustered interval) | Gemini v2 (published, 48/48) | GLM v2 (unpublished, 47/48) |
+| endpoint, mean over worlds (95% world-clustered interval) | Gemini v2 (48/48) | GLM v2 (47/48, incomplete pack) |
 |---|---|---|
 | tenant net payoff | 327.8 (248.8 to 405.4) | 134.0 (-0.4 to 271.3) |
 | within-case score | 0.223 (0.172 to 0.269) | 0.079 (-0.013 to 0.165) |
@@ -846,8 +853,9 @@ prohibited-text scan, re-driving all 49 live receipts through the environment
 | live minus inspect-then-sign reference | -26.3 (-93.5 to 21.9) | -220.2 (-336.0 to -103.8) |
 | cells above the reference / below sign-anything | 37 / 0 | 6 / 0 |
 
-Paired over the 24 worlds (`housing/lemons_comparison.py` logic applied to the
-GLM run root, so unpublished), Gemini minus GLM in net payoff is +193.9
+Paired over the 24 worlds, derived from the two bundles at
+[`evidence/housing/housing_lemons_refusal_v2_comparison/`](../../../evidence/housing/housing_lemons_refusal_v2_comparison/)
+(`python -m aeread_families.housing.lemons_comparison --check`), Gemini minus GLM in net payoff is +193.9
 (66.9 to 321.7), Gemini ahead on 19 worlds and behind on 5. It does not rest
 on the missing cell: without world 100021 it is +161.6 (40 to 273) over 23
 worlds, and with GLM's missing seed set to the best payoff GLM reached anywhere
@@ -868,7 +876,7 @@ consistency, not an artefact of temperature 0 (HL-D-02, corrected).
 **What this supports.** On this world, scored on the tenant's own payoff, the
 two populations separate by more than the world variance, and the separation
 has one mechanism a reader can check cell by cell. It does not support a ranking
-or a winner: the GLM side is unpublished, 24 worlds, one pack, and both routes
+or a winner: the GLM side is an incomplete pack, 24 worlds, one pack, and both routes
 fill all six seats, so each number describes a market of one model, not one
 agent against fixed competitors. A publishable pair needs a new identity that
 declares how an unanswered call is handled (a retryable `timeout` or a longer

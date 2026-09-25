@@ -293,3 +293,50 @@ def test_analysis_is_deterministic_and_world_clustered():
     # A single-world stratum reports its point without an interval.
     lonely = lc.analyze_pilot(live[:2], controls, contract)
     assert lonely["overall"]["tenant_net_payoff"]["ci95"] is None
+
+
+def test_an_incomplete_pilot_publishes_only_on_a_stated_reason(tmp_path):
+    contract_path = _reduced_contract(tmp_path, halt_after=3)
+    root = tmp_path / "campaign"
+    asyncio.run(
+        lc.execute_campaign(contract_path=contract_path, output_root=root, through="full_trajectory", client=PolicyClient())
+    )
+    # The first pilot call fails, so the first cell is lost and the rest complete:
+    # the gate fails on an incomplete pack, but the stage ran to the end.
+    lossy = PolicyClient(fail_window=(1, 1))
+    result = asyncio.run(
+        lc.execute_campaign(contract_path=contract_path, output_root=root, through="variance_pilot", client=lossy)
+    )
+    assert result["gate_summaries"]["variance_pilot"]["message"] == "variance_pilot pack is incomplete"
+    bundle = tmp_path / "evidence" / "incomplete"
+    with pytest.raises(ValueError, match="no passed attempt"):
+        lc.publish(contract_path=contract_path, run_root=root, publication_root=bundle)
+    with pytest.raises(ValueError, match="stated reason"):
+        lc.publish(contract_path=contract_path, run_root=root, publication_root=bundle, incomplete_pilot_reason=" ")
+
+    published = lc.publish(
+        contract_path=contract_path, run_root=root, publication_root=bundle,
+        incomplete_pilot_reason="HL-O-07, owner's decision",
+    )
+    assert published["live_cells"] == 5
+    manifest = json.loads((bundle / "publication_manifest.json").read_bytes())
+    assert manifest["pilot_gate_status"] == "failed_incomplete_pack"
+    assert manifest["incomplete_pilot_reason"] == "HL-O-07, owner's decision"
+    assert manifest["missing_pilot_cells"] == ["world_100001__rep_0"]
+    readme = (bundle / "README.md").read_text()
+    assert "**Incomplete pack.**" in readme and "`world_100001__rep_0` is typed missingness" in readme
+    analysis = json.loads((bundle / "reports/analysis.json").read_bytes())
+    assert analysis["completed_cells"] == 3 and analysis["missingness_fraction"] == 0.25
+
+    # Once an attempt passes, the reason is refused: a complete pilot publishes normally.
+    asyncio.run(
+        lc.execute_campaign(contract_path=contract_path, output_root=root, through="variance_pilot", client=PolicyClient())
+    )
+    with pytest.raises(ValueError, match="passed; publish it without"):
+        lc.publish(
+            contract_path=contract_path, run_root=root, publication_root=tmp_path / "evidence" / "again",
+            incomplete_pilot_reason="HL-O-07",
+        )
+    complete = lc.publish(contract_path=contract_path, run_root=root, publication_root=tmp_path / "evidence" / "complete")
+    manifest = json.loads((tmp_path / "evidence" / "complete" / "publication_manifest.json").read_bytes())
+    assert "pilot_gate_status" not in manifest and complete["live_cells"] == 5

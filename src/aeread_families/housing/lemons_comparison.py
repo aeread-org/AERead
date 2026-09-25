@@ -12,9 +12,8 @@ world-clustered percentile bootstrap from one declared stream. Descriptive:
 24 worlds cannot support a ranking and the bundles claim development
 qualification only.
 
-No output is committed yet: the GLM identity is unpublished (HL-O-07), and a
-Tier 1 analysis reads only published bundles. QC profile §21 reports the same
-computation on the GLM run root, marked unpublished.
+The GLM bundle is an incomplete pack published by the owner's decision
+(HL-O-07): world 100021 has one GLM seed, so that world's GLM mean is one cell.
 
     python -m aeread_families.housing.lemons_comparison --write
     python -m aeread_families.housing.lemons_comparison --check
@@ -123,10 +122,13 @@ def compare() -> dict[str, Any]:
         }
         for w in paired
     ]
-    sources = {}
+    sources, incomplete = {}, {}
     for bundle in (LEFT, RIGHT):
         manifest = EVIDENCE / bundle / "publication_manifest.json"
         sources[bundle] = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        missing = json.loads(manifest.read_bytes()).get("missing_pilot_cells")
+        if missing:
+            incomplete[bundle] = missing
     return {
         "schema_version": "aeread.housing_lemons_comparison/0.1",
         "left": LEFT,
@@ -142,6 +144,7 @@ def compare() -> dict[str, Any]:
         "paired_worlds": len(paired),
         "unpaired_worlds": {"left_only": sorted(set(left) - set(right)), "right_only": sorted(set(right) - set(left))},
         "source_manifest_sha256": sources,
+        "incomplete_packs": incomplete,
         "slices": result,
         "worlds": world_rows,
     }
@@ -165,6 +168,13 @@ def _readme(report: Mapping[str, Any]) -> str:
         "Derived from the two published bundles by `python -m aeread_families.housing.lemons_comparison`; "
         "`--check` regenerates these bytes. Descriptive: no winner, no ranking.",
         "",
+        *(
+            f"`{bundle}` is an incomplete pack published by the owner's decision; missing as typed "
+            f"missingness: {', '.join(f'`{cell}`' for cell in cells)}. That world's mean on that side "
+            "uses the seeds it completed."
+            for bundle, cells in report["incomplete_packs"].items()
+        ),
+        *([""] if report["incomplete_packs"] else []),
         "| endpoint | left | right | left minus right (95% world bootstrap) | worlds left higher / right higher |",
         "|---|---|---|---|---|",
         line("tenant_net_payoff", "tenant net payoff (market total)"),
@@ -173,7 +183,7 @@ def _readme(report: Mapping[str, Any]) -> str:
         line("uninspected_lemon_signing_rate", "cells signing an uninspected lemon", "{:.3f}"),
         line("inspection_count", "inspections per cell", "{:.1f}"),
         "",
-        "Scripted benchmarks on the same worlds (left / right; they differ only through replicate draws): "
+        "Scripted benchmarks on the same worlds (left / right): "
         + "; ".join(f"{k.replace('_total', '').replace('_', ' ')} {o[k]['left']:.2f} / {o[k]['right']:.2f}" for k in BENCHMARKS)
         + ".",
         "",

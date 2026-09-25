@@ -1,0 +1,1211 @@
+{
+  "bootstrap": {
+    "draws": 10000,
+    "interval": "percentile_95",
+    "seed": 20260925,
+    "stream": "one random.Random(seed) serves every interval: overall first, then each stratum, endpoints in declared order"
+  },
+  "claim_status": "development_qualification",
+  "difference": "left minus right, within world, then averaged over worlds",
+  "endpoints": [
+    "tenant_net_payoff",
+    "within_case_score",
+    "abstention_correctness_rate",
+    "uninspected_lemon_signing_rate",
+    "inspection_count"
+  ],
+  "incomplete_packs": {
+    "housing_lemons_refusal_v2_glm53_flash": [
+      "world_100021__rep_1"
+    ]
+  },
+  "inferential_model_ranking_allowed": false,
+  "left": "housing_lemons_refusal_v2_gemini38_flash",
+  "paired_worlds": 24,
+  "right": "housing_lemons_refusal_v2_glm53_flash",
+  "schema_version": "aeread.housing_lemons_comparison/0.1",
+  "slices": {
+    "favourite_is_lemon": {
+      "abstention_correctness_rate": {
+        "difference": 0.11240079365079166,
+        "difference_ci95": [
+          0.0574404761905,
+          0.17063492063495833
+        ],
+        "left_mean": 1.0,
+        "right_mean": 0.8875992063492083,
+        "worlds_left_higher": 8,
+        "worlds_right_higher": 0
+      },
+      "inspection_count": {
+        "difference": -1.25,
+        "difference_ci95": [
+          -2.2916666666666665,
+          -0.16666666666666666
+        ],
+        "left_mean": 10.166666666666666,
+        "right_mean": 11.416666666666666,
+        "worlds_left_higher": 2,
+        "worlds_right_higher": 10
+      },
+      "oracle_total": {
+        "left": 1592.2716666666665,
+        "right": 1592.2716666666665
+      },
+      "reference_total": {
+        "left": 329.4175,
+        "right": 329.4175
+      },
+      "sign_anything_total": {
+        "left": -826.1316666666667,
+        "right": -826.1316666666667
+      },
+      "tenant_net_payoff": {
+        "difference": 137.85625,
+        "difference_ci95": [
+          -53.38833333333334,
+          310.81416666666667
+        ],
+        "left_mean": 298.015,
+        "right_mean": 160.15875,
+        "worlds_left_higher": 9,
+        "worlds_right_higher": 3
+      },
+      "uninspected_lemon_signing_rate": {
+        "difference": -0.125,
+        "difference_ci95": [
+          -0.2916666666666667,
+          0.041666666666666664
+        ],
+        "left_mean": 0.08333333333333333,
+        "right_mean": 0.20833333333333334,
+        "worlds_left_higher": 1,
+        "worlds_right_higher": 4
+      },
+      "within_case_score": {
+        "difference": 0.10507452478457746,
+        "difference_ci95": [
+          -0.0017543875804148362,
+          0.2060327101316569
+        ],
+        "left_mean": 0.1861937968200104,
+        "right_mean": 0.08111927203543294,
+        "worlds_left_higher": 9,
+        "worlds_right_higher": 3
+      },
+      "worlds": 12
+    },
+    "favourite_is_sound": {
+      "abstention_correctness_rate": {
+        "difference": 0.033333333333333326,
+        "difference_ci95": [
+          0.0,
+          0.07499999999999998
+        ],
+        "left_mean": 1.0,
+        "right_mean": 0.9666666666666667,
+        "worlds_left_higher": 3,
+        "worlds_right_higher": 0
+      },
+      "inspection_count": {
+        "difference": -1.2083333333333333,
+        "difference_ci95": [
+          -2.2083333333333335,
+          -0.3333333333333333
+        ],
+        "left_mean": 10.875,
+        "right_mean": 12.083333333333334,
+        "worlds_left_higher": 2,
+        "worlds_right_higher": 7
+      },
+      "oracle_total": {
+        "left": 1395.57,
+        "right": 1395.57
+      },
+      "reference_total": {
+        "left": 378.905,
+        "right": 378.905
+      },
+      "sign_anything_total": {
+        "left": -903.1141666666667,
+        "right": -903.1141666666667
+      },
+      "tenant_net_payoff": {
+        "difference": 249.91166666666666,
+        "difference_ci95": [
+          87.33833333333335,
+          433.88374999999996
+        ],
+        "left_mean": 357.65333333333336,
+        "right_mean": 107.74166666666666,
+        "worlds_left_higher": 10,
+        "worlds_right_higher": 2
+      },
+      "uninspected_lemon_signing_rate": {
+        "difference": -0.25,
+        "difference_ci95": [
+          -0.5,
+          -0.041666666666666664
+        ],
+        "left_mean": 0.0,
+        "right_mean": 0.25,
+        "worlds_left_higher": 0,
+        "worlds_right_higher": 4
+      },
+      "within_case_score": {
+        "difference": 0.18166291211017796,
+        "difference_ci95": [
+          0.06812680654090947,
+          0.31426674281403727
+        ],
+        "left_mean": 0.259248350157366,
+        "right_mean": 0.07758543804718807,
+        "worlds_left_higher": 10,
+        "worlds_right_higher": 2
+      },
+      "worlds": 12
+    },
+    "overall": {
+      "abstention_correctness_rate": {
+        "difference": 0.0728670634920625,
+        "difference_ci95": [
+          0.03844246031745833,
+          0.1117559523809375
+        ],
+        "left_mean": 1.0,
+        "right_mean": 0.9271329365079376,
+        "worlds_left_higher": 11,
+        "worlds_right_higher": 0
+      },
+      "inspection_count": {
+        "difference": -1.2291666666666667,
+        "difference_ci95": [
+          -1.9583333333333333,
+          -0.5416666666666666
+        ],
+        "left_mean": 10.520833333333334,
+        "right_mean": 11.75,
+        "worlds_left_higher": 4,
+        "worlds_right_higher": 17
+      },
+      "oracle_total": {
+        "left": 1493.9208333333333,
+        "right": 1493.9208333333333
+      },
+      "reference_total": {
+        "left": 354.16125000000005,
+        "right": 354.16125000000005
+      },
+      "sign_anything_total": {
+        "left": -864.6229166666667,
+        "right": -864.6229166666667
+      },
+      "tenant_net_payoff": {
+        "difference": 193.88395833333334,
+        "difference_ci95": [
+          66.85041666666666,
+          321.67541666666665
+        ],
+        "left_mean": 327.83416666666665,
+        "right_mean": 133.95020833333334,
+        "worlds_left_higher": 19,
+        "worlds_right_higher": 5
+      },
+      "uninspected_lemon_signing_rate": {
+        "difference": -0.1875,
+        "difference_ci95": [
+          -0.3333333333333333,
+          -0.0625
+        ],
+        "left_mean": 0.041666666666666664,
+        "right_mean": 0.22916666666666666,
+        "worlds_left_higher": 1,
+        "worlds_right_higher": 8
+      },
+      "within_case_score": {
+        "difference": 0.14336871844737772,
+        "difference_ci95": [
+          0.06446048999579986,
+          0.22794769614903884
+        ],
+        "left_mean": 0.22272107348868822,
+        "right_mean": 0.07935235504131051,
+        "worlds_left_higher": 19,
+        "worlds_right_higher": 5
+      },
+      "worlds": 24
+    }
+  },
+  "source_manifest_sha256": {
+    "housing_lemons_refusal_v2_gemini38_flash": "29ae51b10b0eb174d4addc6f3c916f852f61c87da0c3a3388e0dafae67f67f54",
+    "housing_lemons_refusal_v2_glm53_flash": "eaa1d0c64c603f132487abdf9e364487dc8527c5b94bd7a2f9373ea8aae42ac5"
+  },
+  "unit": "world_seed; each world's endpoint is the mean over its completed variance-pilot replicates",
+  "unpaired_worlds": {
+    "left_only": [],
+    "right_only": []
+  },
+  "winner_claim_allowed": false,
+  "worlds": [
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.7023809523810001
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.0,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 1648.07,
+        "right": 1648.07
+      },
+      "reference_total": {
+        "left": 234.8,
+        "right": 234.8
+      },
+      "sign_anything_total": {
+        "left": -1020.06,
+        "right": -1020.06
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 269.25,
+        "right": -49.209999999999994
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.16337291498540718,
+        "right": -0.029859168603275345
+      },
+      "world_seed": 100001
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 12.0,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 1402.96,
+        "right": 1402.96
+      },
+      "reference_total": {
+        "left": 330.59,
+        "right": 330.59
+      },
+      "sign_anything_total": {
+        "left": -821.06,
+        "right": -821.06
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 332.59,
+        "right": -190.79000000000002
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.23706306665906368,
+        "right": -0.13599104749957233
+      },
+      "world_seed": 100002
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 10.0,
+        "right": 13.0
+      },
+      "oracle_total": {
+        "left": 1645.35,
+        "right": 1645.35
+      },
+      "reference_total": {
+        "left": 579.53,
+        "right": 579.53
+      },
+      "sign_anything_total": {
+        "left": -795.57,
+        "right": -795.57
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 581.53,
+        "right": 436.745
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.3534384781353511,
+        "right": 0.26544200322119915
+      },
+      "world_seed": 100003
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.7916666666665
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.5,
+        "right": 12.0
+      },
+      "oracle_total": {
+        "left": 2009.7,
+        "right": 2009.7
+      },
+      "reference_total": {
+        "left": 415.73,
+        "right": 415.73
+      },
+      "sign_anything_total": {
+        "left": -225.03,
+        "right": -225.03
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 604.08,
+        "right": 989.91
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.30058217644424545,
+        "right": 0.4925660546350201
+      },
+      "world_seed": 100004
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.9
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 13.0,
+        "right": 13.0
+      },
+      "oracle_total": {
+        "left": 2130.94,
+        "right": 2130.94
+      },
+      "reference_total": {
+        "left": 501.78,
+        "right": 501.78
+      },
+      "sign_anything_total": {
+        "left": -714.87,
+        "right": -714.87
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 213.17,
+        "right": 356.33
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.10003566501168498,
+        "right": 0.16721728439092606
+      },
+      "world_seed": 100005
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.0,
+        "right": 12.5
+      },
+      "oracle_total": {
+        "left": 1542.1,
+        "right": 1542.1
+      },
+      "reference_total": {
+        "left": 268.81,
+        "right": 268.81
+      },
+      "sign_anything_total": {
+        "left": -699.51,
+        "right": -699.51
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 241.37,
+        "right": 129.88
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.15652032942091954,
+        "right": 0.0842228130471435
+      },
+      "world_seed": 100006
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 9.0,
+        "right": 10.5
+      },
+      "oracle_total": {
+        "left": 1245.48,
+        "right": 1245.48
+      },
+      "reference_total": {
+        "left": 508.39,
+        "right": 508.39
+      },
+      "sign_anything_total": {
+        "left": -1050.82,
+        "right": -1050.82
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 510.39,
+        "right": 459.255
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.4097938144329897,
+        "right": 0.3687373542730513
+      },
+      "world_seed": 100007
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 9.5,
+        "right": 11.0
+      },
+      "oracle_total": {
+        "left": 1691.5,
+        "right": 1691.5
+      },
+      "reference_total": {
+        "left": 677.0,
+        "right": 677.0
+      },
+      "sign_anything_total": {
+        "left": -538.55,
+        "right": -538.55
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 633.14,
+        "right": 334.025
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.3743068282589418,
+        "right": 0.1974726574046704
+      },
+      "world_seed": 100008
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 10.0,
+        "right": 9.5
+      },
+      "oracle_total": {
+        "left": 1067.41,
+        "right": 1067.41
+      },
+      "reference_total": {
+        "left": 62.27,
+        "right": 62.27
+      },
+      "sign_anything_total": {
+        "left": -1335.17,
+        "right": -1335.17
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 64.27,
+        "right": 94.255
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.06021116534415079,
+        "right": 0.08830252667672216
+      },
+      "world_seed": 100009
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 13.5,
+        "right": 11.0
+      },
+      "oracle_total": {
+        "left": 1623.19,
+        "right": 1623.19
+      },
+      "reference_total": {
+        "left": 353.41,
+        "right": 353.41
+      },
+      "sign_anything_total": {
+        "left": -782.89,
+        "right": -782.89
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 342.91,
+        "right": 417.99
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.21125684608702616,
+        "right": 0.25751144351554656
+      },
+      "world_seed": 100010
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.75
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.0,
+        "right": 12.0
+      },
+      "oracle_total": {
+        "left": 1638.85,
+        "right": 1638.85
+      },
+      "reference_total": {
+        "left": 471.55,
+        "right": 471.55
+      },
+      "sign_anything_total": {
+        "left": -701.28,
+        "right": -701.28
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 473.55,
+        "right": -191.23000000000002
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.28895261921469323,
+        "right": -0.11668548067242274
+      },
+      "world_seed": 100011
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.8285714285715
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 10.0,
+        "right": 12.5
+      },
+      "oracle_total": {
+        "left": 1849.51,
+        "right": 1849.51
+      },
+      "reference_total": {
+        "left": 292.38,
+        "right": 292.38
+      },
+      "sign_anything_total": {
+        "left": -923.25,
+        "right": -923.25
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 319.38,
+        "right": 4.0
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.1726835756497667,
+        "right": 0.002162734994674266
+      },
+      "world_seed": 100012
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 9.0,
+        "right": 13.5
+      },
+      "oracle_total": {
+        "left": 1273.46,
+        "right": 1273.46
+      },
+      "reference_total": {
+        "left": 284.81,
+        "right": 284.81
+      },
+      "sign_anything_total": {
+        "left": -1350.99,
+        "right": -1350.99
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 286.81,
+        "right": 124.04500000000002
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.22522105130903208,
+        "right": 0.0974078494809417
+      },
+      "world_seed": 100015
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.0,
+        "right": 9.5
+      },
+      "oracle_total": {
+        "left": 1315.02,
+        "right": 1315.02
+      },
+      "reference_total": {
+        "left": 186.88,
+        "right": 186.88
+      },
+      "sign_anything_total": {
+        "left": -893.76,
+        "right": -893.76
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 187.88,
+        "right": -199.385
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.14287235175130417,
+        "right": -0.15162126811759516
+      },
+      "world_seed": 100016
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.9285714285715
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 6.0,
+        "right": 10.5
+      },
+      "oracle_total": {
+        "left": 1045.77,
+        "right": 1045.77
+      },
+      "reference_total": {
+        "left": 84.88,
+        "right": 84.88
+      },
+      "sign_anything_total": {
+        "left": -1493.51,
+        "right": -1493.51
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 92.24,
+        "right": -8.76
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.0882029509356742,
+        "right": -0.008376602885911815
+      },
+      "world_seed": 100017
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 8.0,
+        "right": 9.5
+      },
+      "oracle_total": {
+        "left": 1545.89,
+        "right": 1545.89
+      },
+      "reference_total": {
+        "left": 611.16,
+        "right": 611.16
+      },
+      "sign_anything_total": {
+        "left": -671.07,
+        "right": -671.07
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 613.16,
+        "right": 575.16
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.3966388294121832,
+        "right": 0.3720575202634081
+      },
+      "world_seed": 100018
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 1
+      },
+      "inspection_count": {
+        "left": 14.0,
+        "right": 14.0
+      },
+      "oracle_total": {
+        "left": 1310.9,
+        "right": 1310.9
+      },
+      "reference_total": {
+        "left": 171.27,
+        "right": 171.27
+      },
+      "sign_anything_total": {
+        "left": -1024.4,
+        "right": -1024.4
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 193.15,
+        "right": -743.89
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 1.0
+      },
+      "within_case_score": {
+        "left": 0.14734152109237927,
+        "right": -0.5674651003127622
+      },
+      "world_seed": 100021
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.9166666666665
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 10.5,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 1266.12,
+        "right": 1266.12
+      },
+      "reference_total": {
+        "left": 129.33,
+        "right": 129.33
+      },
+      "sign_anything_total": {
+        "left": -1394.89,
+        "right": -1394.89
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 118.83000000000001,
+        "right": -190.18
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.09385366315989008,
+        "right": -0.15020693141250435
+      },
+      "world_seed": 100022
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.9
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 9.0,
+        "right": 9.5
+      },
+      "oracle_total": {
+        "left": 942.78,
+        "right": 942.78
+      },
+      "reference_total": {
+        "left": 348.54,
+        "right": 348.54
+      },
+      "sign_anything_total": {
+        "left": -345.97,
+        "right": -345.97
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 350.54,
+        "right": 289.375
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.3718152697341904,
+        "right": 0.30693799189630666
+      },
+      "world_seed": 100023
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.8333333333335
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 9.0,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 2042.57,
+        "right": 2042.57
+      },
+      "reference_total": {
+        "left": 462.74,
+        "right": 462.74
+      },
+      "sign_anything_total": {
+        "left": -246.92,
+        "right": -246.92
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": -179.10000000000002,
+        "right": 390.925
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 1.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": -0.08768365343660194,
+        "right": 0.19138878961308547
+      },
+      "world_seed": 100025
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 11.5,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 1028.99,
+        "right": 1028.99
+      },
+      "reference_total": {
+        "left": 251.87,
+        "right": 251.87
+      },
+      "sign_anything_total": {
+        "left": -1258.47,
+        "right": -1258.47
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 241.37,
+        "right": 115.69
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.2345698208923313,
+        "right": 0.11243063586623776
+      },
+      "world_seed": 100027
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.9
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 8.0,
+        "right": 11.5
+      },
+      "oracle_total": {
+        "left": 1434.86,
+        "right": 1434.86
+      },
+      "reference_total": {
+        "left": 375.5,
+        "right": 375.5
+      },
+      "sign_anything_total": {
+        "left": -993.93,
+        "right": -993.93
+      },
+      "stratum": "favourite_is_lemon",
+      "tenant_net_payoff": {
+        "left": 472.65,
+        "right": 293.94
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "within_case_score": {
+        "left": 0.3294049593688583,
+        "right": 0.20485622290676442
+      },
+      "world_seed": 100028
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 1.0
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 12.0,
+        "right": 16.0
+      },
+      "oracle_total": {
+        "left": 1632.05,
+        "right": 1632.05
+      },
+      "reference_total": {
+        "left": 448.03,
+        "right": 448.03
+      },
+      "sign_anything_total": {
+        "left": -776.55,
+        "right": -776.55
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 450.03,
+        "right": -61.895
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 0.5
+      },
+      "within_case_score": {
+        "left": 0.27574522839373794,
+        "right": -0.03792469593456083
+      },
+      "world_seed": 100029
+    },
+    {
+      "abstention_correctness_rate": {
+        "left": 1.0,
+        "right": 0.8
+      },
+      "cells": {
+        "left": 2,
+        "right": 2
+      },
+      "inspection_count": {
+        "left": 13.0,
+        "right": 13.5
+      },
+      "oracle_total": {
+        "left": 1520.63,
+        "right": 1520.63
+      },
+      "reference_total": {
+        "left": 448.62,
+        "right": 448.62
+      },
+      "sign_anything_total": {
+        "left": -692.43,
+        "right": -692.43
+      },
+      "stratum": "favourite_is_sound",
+      "tenant_net_payoff": {
+        "left": 454.83,
+        "right": -161.38
+      },
+      "uninspected_lemon_signing_rate": {
+        "left": 0.0,
+        "right": 1.0
+      },
+      "within_case_score": {
+        "left": 0.299106291471298,
+        "right": -0.10612706575564075
+      },
+      "world_seed": 100030
+    }
+  ]
+}

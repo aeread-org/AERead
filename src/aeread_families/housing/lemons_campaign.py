@@ -1312,12 +1312,39 @@ def _live_attempt_dirs(rows: Sequence[Mapping[str, Any]], evidence_root: Path) -
     return dirs
 
 
+def _newest_stage_attempt(output_root: Path, stage: str) -> tuple[dict[str, Any], Path]:
+    """The newest attempt of a stage, whatever its status, with its root."""
+    found: tuple[dict[str, Any], Path] | None = None
+    for attempt in range(1, 100):
+        root = _live_stage_root(output_root, stage, attempt)
+        path = root / "summary.json"
+        if not path.exists():
+            if attempt > 1:
+                break
+            continue
+        found = (read_sealed(path), root)
+    if found is None:
+        raise ValueError(f"no attempt of {stage} under {output_root}")
+    return found
+
+
 def publish(
-    *, contract_path: Path, run_root: Path, publication_root: Path
+    *,
+    contract_path: Path,
+    run_root: Path,
+    publication_root: Path,
+    incomplete_pilot_reason: str | None = None,
 ) -> dict[str, Any]:
     """Seal the pilot as a digest-bound, sanitized bundle. Refuses unless every
     gate through ``variance_pilot`` passed and the design still matches the
-    contract. Rows carry numbers, digests and typed conditions only."""
+    contract. Rows carry numbers, digests and typed conditions only.
+
+    ``incomplete_pilot_reason`` is an owner's explicit decision to publish a
+    variance pilot whose gate failed on an incomplete pack: the newest attempt
+    is published as it was sealed, its failed cells as typed missingness, and
+    the manifest and README say so. It is refused when a passed attempt exists
+    or when the stage halted, so it can publish only a pack that was run to the
+    end and lost cells to operational failures."""
     contract = load_contract(contract_path)
     design, _ = _latest_passed_stage(run_root, "design_contract")
     if design["contract_sha256"] != sha256_json(contract):
@@ -1325,9 +1352,32 @@ def publish(
     provider_free, _ = _latest_passed_stage(run_root, "provider_free_validation")
     admission, _ = _latest_passed_stage(run_root, "profile_admission")
     full, full_root = _latest_passed_stage(run_root, "full_trajectory")
-    pilot, pilot_root = _latest_passed_stage(run_root, "variance_pilot")
-    if not pilot.get("complete_pack") or pilot.get("analysis") is None:
-        raise ValueError("the variance pilot is not complete")
+    missing_cells: list[str] = []
+    if incomplete_pilot_reason is None:
+        pilot, pilot_root = _latest_passed_stage(run_root, "variance_pilot")
+        if not pilot.get("complete_pack") or pilot.get("analysis") is None:
+            raise ValueError("the variance pilot is not complete")
+    else:
+        if not incomplete_pilot_reason.strip():
+            raise ValueError("an incomplete pilot is published only with a stated reason")
+        try:
+            _latest_passed_stage(run_root, "variance_pilot")
+        except ValueError:
+            pass
+        else:
+            raise ValueError("the variance pilot passed; publish it without the incomplete-pilot reason")
+        pilot, pilot_root = _newest_stage_attempt(run_root, "variance_pilot")
+        if pilot.get("halted_at") is not None or pilot.get("analysis") is None:
+            raise ValueError("only a pilot run to the end, with its analysis sealed, can be published incomplete")
+        missing_cells = [
+            f"world_{row['world_seed']}__rep_{row['replicate_index']}"
+            for row in pilot["rows"]
+            if row.get("status") != "completed"
+        ]
+        if not missing_cells or any(
+            row.get("status") not in {"completed", "operational_failure"} for row in pilot["rows"]
+        ):
+            raise ValueError("an incomplete pilot must be missing cells to operational failures only")
     bundle = Path(publication_root)
     if bundle.exists() and any(bundle.iterdir()):
         raise ValueError(f"publication root is not empty: {bundle}")
@@ -1369,7 +1419,9 @@ def publish(
         "qc/profile_admission.json": canonical_json_bytes(admission_public) + b"\n",
         "tables/cells.jsonl": jsonl(cells),
         "tables/scripted_controls.jsonl": jsonl(controls),
-        "README.md": _publication_readme(contract, design, pilot).encode("utf-8"),
+        "README.md": _publication_readme(
+            contract, design, pilot, missing_cells=missing_cells, incomplete_reason=incomplete_pilot_reason
+        ).encode("utf-8"),
     }
     for relative, payload in files.items():
         assert_public_payload(relative, payload)
@@ -1422,6 +1474,15 @@ def publish(
             "across attempts are counted once"
         ),
         prior_pilot_attempts=len(prior_attempts),
+        **(
+            {
+                "pilot_gate_status": "failed_incomplete_pack",
+                "incomplete_pilot_reason": incomplete_pilot_reason,
+                "missing_pilot_cells": missing_cells,
+            }
+            if incomplete_pilot_reason is not None
+            else {}
+        ),
     )
     attempt_dirs = _live_attempt_dirs(full["rows"], full_root / LIVE_CONDITION_ID / "evidence")
     for prior in range(1, 100):
@@ -1446,7 +1507,12 @@ def publish(
 
 
 def _publication_readme(
-    contract: Mapping[str, Any], design: Mapping[str, Any], pilot: Mapping[str, Any]
+    contract: Mapping[str, Any],
+    design: Mapping[str, Any],
+    pilot: Mapping[str, Any],
+    *,
+    missing_cells: Sequence[str] = (),
+    incomplete_reason: str | None = None,
 ) -> str:
     analysis = pilot["analysis"]
     overall = analysis["overall"]
@@ -1472,6 +1538,17 @@ def _publication_readme(
             "reserves on the sound-equivalent cost so its reply does not reveal quality (HL-D-01). "
             f"Temperature {contract['controls']['temperature']}.\n\n"
             if contract["environment"].get("lemon_landlord") == "pooled"
+            else ""
+        )
+        + (
+            f"**Incomplete pack.** The variance-pilot gate failed: {pilot['completed_cells']} of "
+            f"{pilot['planned_cells']} cells completed in the newest attempt, and "
+            f"{', '.join(f'`{cell}`' for cell in missing_cells)} "
+            f"{'is' if len(missing_cells) == 1 else 'are'} typed missingness (operational failure), "
+            "never a zero score. Published by the owner's decision: "
+            f"{incomplete_reason}. Endpoints are over completed cells; a world's mean uses the "
+            "seeds it completed.\n\n"
+            if incomplete_reason is not None
             else ""
         )
         + f"- Route: `{contract['route']['route_id']}` "
@@ -1740,12 +1817,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--publish-to", type=Path, default=None,
         help="seal the completed pilot as a bundle at this evidence path and exit",
     )
+    parser.add_argument(
+        "--publish-incomplete-pilot", dest="incomplete_pilot_reason", default=None,
+        help="with --publish-to: publish a pilot whose gate failed on an incomplete pack, "
+        "stating the owner's reason (recorded in the manifest and README)",
+    )
     arguments = parser.parse_args(argv)
     if arguments.publish_to is not None:
         result = publish(
             contract_path=arguments.contract,
             run_root=arguments.run_root,
             publication_root=arguments.publish_to,
+            incomplete_pilot_reason=arguments.incomplete_pilot_reason,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
