@@ -18,10 +18,11 @@ from aeread_families.datacenter_development import risk_allocation as ra
 
 WORLD = ra.World(
     ra.Risks(0.30, 0.06, 250, 4, 0.25, 180, 3, 0.05, 3000),
-    ra.Client(delay_per_week=110, risk_charge=0.7, capital_rate=0.06, insolvency=0.01, turnkey_all_in=11700),
+    ra.Client(delay_per_week=110, risk_charge=0.75, capital_rate=0.06, insolvency=0.01, turnkey_all_in=11700),
     ra.Terms(**ra.FIXED_TERMS, breakoff=0.05),
 )
 TYPES = [t for t, _ in WORLD.prior]
+CLIENT = ra.Game(WORLD, "client")
 
 
 @lru_cache(maxsize=1)
@@ -69,34 +70,55 @@ def test_the_opening_reveals_nothing_private_and_one_priced_alternative_reveals_
     assert len({round(ra.ask_price(ra.OPENING, WORLD, t, 1), 6) for t in TYPES}) == 1  # haggling the opening learns nothing
 
 
-def test_the_reference_is_the_best_policy_and_its_value_is_the_solver_value() -> None:
-    policy = ra.reference_policy(WORLD)
-    ref = ra.prior_expected(WORLD, policy)
-    root = ra.solve(WORLD, TYPES[0])
-    assert ref == pytest.approx(root["expected_cost"], abs=1e-6)
-    for name, rule in ra.rules(WORLD).items():
-        assert ra.prior_expected(WORLD, rule) >= ref - 1e-6, name
+@pytest.mark.parametrize("seat", ra.SEATS)
+def test_the_reference_is_the_best_policy_and_its_value_is_the_solver_value(seat: str) -> None:
+    game = ra.Game(WORLD, seat, TYPES[3])
+    ref = ra.prior_expected(game, ra.reference_policy(game))
+    if seat == "client":  # the opening reveals nothing, so the root value is the prior value
+        assert ref == pytest.approx(ra.solve(game, TYPES[0])["expected_cost"], abs=1e-6)
+    else:
+        assert ref == pytest.approx(ra.solve(game, 0.75)["expected_cost"], abs=1e-6)
+    for name, rule in ra.rules(game).items():
+        assert ra.prior_expected(game, rule) >= ref - 1e-6, name
 
 
 def test_decision_regret_is_zero_for_the_reference_and_prices_a_copied_counter() -> None:
     truth = TYPES[2]
-    opening = ra.opening_price(WORLD, truth)
-    seen = ra.Seen(1, opening, (ra.OPENING, opening), (), False)
-    best = ra.reference_policy(WORLD)(seen)
-    assert ra.decision_regret(WORLD, seen, best) == pytest.approx(0.0, abs=1e-9)
-    assert ra.decision_regret(WORLD, seen, ra.Action("accept")) > 100
+    seen = ra.start(CLIENT, truth)
+    best = ra.reference_policy(CLIENT)(seen)
+    assert ra.decision_regret(CLIENT, seen, best) == pytest.approx(0.0, abs=1e-9)
+    assert ra.decision_regret(CLIENT, seen, ra.Action("accept")) > 100
     probe = ra.Package("fix_and_delay", "client", "included", "at_signing")
-    counter = ra.ask_price(probe, WORLD, truth, 1)
-    after = ra.Seen(2, opening, (probe, counter), ({"round": 1, "package": probe, "price": ra.LOWBALL, "counter": counter},), False)
-    assert ra.decision_regret(WORLD, after, ra.Action("accept")) >= WORLD.terms.ask_premium[1] - WORLD.terms.ask_premium[2] - 1e-6
+    _, after, _ = ra.advance(CLIENT, seen, ra.Action("propose", probe, ra.PRICE_IT), truth)
+    assert ra.decision_regret(CLIENT, after, ra.Action("accept")) >= WORLD.terms.ask_premium[1] - WORLD.terms.ask_premium[2] - 1e-6
 
 
 def test_every_number_the_reference_uses_is_in_the_brief() -> None:
-    text = ra.brief_text(WORLD, ra.opening_price(WORLD, TYPES[0]))
-    for needle in ("30%", "6%", "$250k", "4 weeks", "25%", "$180k", "5%", "$3,000k", "$110k", "$1.70", "$11,700k",
+    text = ra.brief_text(CLIENT, ra.opening_price(WORLD, TYPES[0]))
+    for needle in ("30%", "6%", "$250k", "4 weeks", "25%", "$180k", "5%", "$3,000k", "$110k", "$1.75", "$11,700k",
                    "0.3 or 1.2", "$40k or $120k or $200k", "150%", "14%", "$500k", "$200k in round 1", "$0k in round 2",
                    "$400k", "$25k", "$100k per week", "$4,800k", "13 weeks"):
         assert needle in text, needle
+    own = ra.IntegratorType(120.0, 1.2)
+    text = ra.brief_text(ra.Game(WORLD, "integrator", own))
+    for needle in ("30%", "6%", "$250k", "4 weeks", "25%", "$180k", "5%", "$3,000k", "$110k", "$11,700k", "$120k", "$2.20",
+                   "0.15 or 0.75 or 1.55", "150%", "14%", "$500k", "$200k in round 1", "$0k in round 2", "$25k",
+                   "$100k per week", "$4,800k", "13 weeks", "1%", "6%"):
+        assert needle in text, needle
+    assert "1.75" not in text and "0.75)" not in text  # the client's own charge is private in this seat
+
+
+def test_in_the_integrator_seat_one_asked_price_reveals_the_client_and_the_right_contract_follows() -> None:
+    own = ra.IntegratorType(40.0, 0.3)
+    game = ra.Game(WORLD, "integrator", own)
+    assert len({round(game.threshold(ra.OPENING, c, 1), 6) for c, _ in WORLD.client_prior}) == 3
+    ref = ra.reference_policy(game)
+    seen = ra.start(game, 0.75)
+    assert seen.standing is None and ra.first_move_kind(ref(seen)) in {"price_opening", "price_alternative"}
+    _, after, _ = ra.advance(game, seen, ref(seen), 0.75)
+    signed = ref(after)
+    assert signed.package == ra.efficient_package(WORLD, own, 0.75)
+    assert signed.price == pytest.approx(game.threshold(signed.package, 0.75, 2), abs=1e-6)  # the client's whole bid
 
 
 def test_each_cell_admits_only_worlds_where_its_move_wins_and_its_losers_lose() -> None:
@@ -112,7 +134,7 @@ def test_each_cell_admits_only_worlds_where_its_move_wins_and_its_losers_lose() 
 
 def test_no_rule_is_right_everywhere_and_copying_the_counter_is_never_right() -> None:
     pack = _pack()
-    for name in ra.rules(WORLD):
+    for name in ra.rules(CLIENT):
         assert max(row["rule_regret_prior"][name] for row in pack) >= ra.LOSER_MARGIN, name
     assert min(row["rule_regret_prior"]["take_the_first_counter"] for row in pack) >= 100
 

@@ -1,13 +1,12 @@
 """Integrator and client negotiating who carries which risk: the economics and the reference.
 
-Draft for the integrator-client case that replaces the joint-venture scope. A
-client commissions an integrator to deliver a GPU cluster into the client's own
-facility. What they negotiate is not only the price but the contract: which party
-pays when each risk event happens. Every risk has a declared distribution that
-both parties know, and the integrator's competence is public; nothing about
-quality is hidden. What is private is what it costs the *integrator* to carry
-each risk, and the only way the client learns it is by asking the integrator to
-price alternatives.
+The case that replaces the joint-venture scope. A client commissions an
+integrator to deliver a GPU cluster into the client's own facility. What they
+negotiate is not only the price but the contract: which party pays when each
+risk event happens. Every risk has a declared distribution that both parties
+know, and the integrator's competence is public; nothing about quality is
+hidden. What is private is what it costs each party to carry risk, and the only
+way to learn the other side's cost is to ask it to price a contract.
 
 Three things make one contract better than another for both parties together,
 and all three are in the world data:
@@ -18,32 +17,38 @@ and all three are in the world data:
   to carry it adds a contingency because it cannot control it.
 - **Risk charge.** Each party pays a charge on the expected contingent losses it
   carries (covenant pressure, insurance). A loss belongs with the party whose
-  charge is lower. The client's charge is declared; the integrator's is private.
+  charge is lower.
 - **Capital.** A hardware deposit at signing saves the integrator financing and
   costs the client financing plus exposure to the integrator's insolvency.
 
-So a clause can create value (it moves a risk to the cheaper bearer or buys a
-pre-staging test), or only move money (then its price is its cost to the other
-side), or destroy value (demanding a risk the integrator cannot control). Price
-never changes the joint value; it only divides it.
+So a clause can create value, only move money (then its price is its cost to the
+other side), or destroy value. Price never changes the joint value; it only
+divides it.
 
-The integrator's conduct is declared: it signs any package at its own cost of
-that package plus its floor margin plus an ask premium that falls each round; a
-proposal below that is answered with the price at which it would sign the same
-package this round; after each refusal it may break off (probability ``beta``).
-The client's outside option is a turnkey contract at a known all-in cost.
+Two seats play the same world (:class:`Game`):
 
-Because every cost is an exact expectation over declared events, the client's
-best play on its own information is a small dynamic programme over which private
-integrator types are still consistent with the prices seen (:func:`solve`). A
-decision is graded by what the client could have known at the time, not by the
-hidden type, and no random draw enters the score.
+- **client seat**: the model is the client; the scripted integrator's pre-staging
+  cost and risk charge are private (:data:`INTEGRATOR_PRIOR`). The integrator
+  opens with its own proposal and signs any package at its cost plus a floor
+  margin plus an ask premium that falls each round.
+- **integrator seat**: the model is the integrator and writes the proposal; the
+  scripted client's risk charge is private (:data:`CLIENT_PRIOR`). The client
+  signs any package whose price plus its expected cost of the risks it carries
+  is at most its turnkey option less a demanded saving that falls each round.
+
+In both, a proposal the counterpart will not sign is answered with the price at
+which it would sign that same package this round, and after each refusal it may
+break off. Because every cost is an exact expectation over declared events, the
+best play on the model's own information is a small dynamic programme over the
+counterpart types still consistent with the prices seen (:class:`Solver`). A
+decision is graded by what the model could have known at the time, and no
+random draw enters the score.
 
 Stated simplifications: expectations stand in for realised outcomes (grading is
 ex ante); the four risk events are independent; one delay cost per week; the
-integrator's pre-staging choice is its best response to the contract; liquidated
-damages are uncapped. Not modelled: the integrator seat (the same facts, next),
-multi-party projects, renegotiation after signing.
+integrator's pre-staging is its best response to the contract, and the scripted
+client knows it; liquidated damages are uncapped; counterparts price honestly
+by a declared rule.
 """
 
 from __future__ import annotations
@@ -51,9 +56,9 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import math
 import random
 from dataclasses import asdict, dataclass, replace
-from functools import lru_cache
 from typing import Any, Callable, Mapping, Sequence
 
 # Money is in $ thousands throughout.
@@ -79,6 +84,9 @@ class Package:
     def label(self) -> str:
         return f"{self.warranty}/{self.readiness}/{self.consequential}/{self.deposit}"
 
+    def as_dict(self) -> dict[str, str]:
+        return asdict(self)
+
 
 PACKAGES: tuple[Package, ...] = tuple(Package(*levels) for levels in itertools.product(*TERMS.values()))
 OPENING = Package("none", "client", "excluded", "at_signing")  # the integrator's own proposal: every risk on the client
@@ -86,7 +94,7 @@ EVERY_PROTECTION = Package("fix_and_delay", "integrator", "included", "on_delive
 
 
 # ---------------------------------------------------------------------------
-# The world. Everything here except `integrator` is told to the client.
+# The world. Public to both seats except the two private types.
 
 
 @dataclass(frozen=True)
@@ -105,7 +113,7 @@ class Risks:
 @dataclass(frozen=True)
 class Client:
     delay_per_week: float  # $k revenue lost per week of late go-live
-    risk_charge: float  # extra cost per $ of expected contingent loss carried
+    risk_charge: float  # extra cost per $ of expected contingent loss carried; private in the integrator seat
     capital_rate: float  # annual cost of capital
     insolvency: float  # probability the integrator fails while holding the deposit (deposit lost)
     turnkey_all_in: float  # $k: the outside option, a turnkey contract with every risk priced in
@@ -120,10 +128,10 @@ class Terms:
     delay_damages_per_week: float  # $k, under "fix_and_delay"
     uncontrolled_contingency: float  # the integrator's surcharge on expected standby it cannot control
     integrator_capital_rate: float
-    floor_margin: float  # $k over its own cost
-    ask_premium: tuple[float, ...]  # above the floor: the opening, then each client round
-    breakoff: float  # probability the integrator breaks off after a refused proposal
-    round_cost: float  # $k the client loses for each refused proposal (a week of team time and site holding)
+    floor_margin: float  # $k over its own cost; also what walking away earns the integrator
+    ask_premium: tuple[float, ...]  # the counterpart's premium: the opening, then each round
+    breakoff: float  # probability the counterpart breaks off after a refused proposal
+    round_cost: float  # $k the proposer loses for each refused proposal (a week of team time)
 
 
 @dataclass(frozen=True)
@@ -134,9 +142,10 @@ class IntegratorType:
     risk_charge: float
 
 
-TYPE_PRIOR: tuple[tuple[IntegratorType, float], ...] = tuple(
+INTEGRATOR_PRIOR: tuple[tuple[IntegratorType, float], ...] = tuple(
     (IntegratorType(t, c), 1.0 / 6.0) for t in (40.0, 120.0, 200.0) for c in (0.3, 1.2)
 )
+CLIENT_PRIOR: tuple[tuple[float, float], ...] = tuple((c, 1.0 / 3.0) for c in (0.15, 0.75, 1.55))
 
 
 @dataclass(frozen=True)
@@ -144,7 +153,8 @@ class World:
     risks: Risks
     client: Client
     terms: Terms
-    prior: tuple[tuple[IntegratorType, float], ...] = TYPE_PRIOR
+    prior: tuple[tuple[IntegratorType, float], ...] = INTEGRATOR_PRIOR
+    client_prior: tuple[tuple[float, float], ...] = CLIENT_PRIOR
 
     @property
     def rounds(self) -> int:
@@ -191,10 +201,12 @@ def integrator_cost(pkg: Package, w: World, it: IntegratorType) -> float:
     return cost
 
 
-def client_cost(pkg: Package, w: World, it: IntegratorType) -> float:
-    """The client's expected cost of a package apart from its price. It depends on the
-    integrator's type only through whether the integrator pre-stages."""
+def client_cost(pkg: Package, w: World, it: IntegratorType, charge: float | None = None) -> float:
+    """The client's expected cost of a package apart from its price, at its risk charge
+    (the world's unless given). It depends on the integrator's type only through
+    whether the integrator pre-stages."""
     r, c, t = w.risks, w.client, w.terms
+    charge = c.risk_charge if charge is None else charge
     p = defect_probability(pkg, w, it)
     contingent = p * r.defect_weeks * c.delay_per_week + r.unready * r.unready_weeks * c.delay_per_week
     if pkg.warranty == "none":
@@ -205,18 +217,18 @@ def client_cost(pkg: Package, w: World, it: IntegratorType) -> float:
         contingent += r.unready * r.standby
     if pkg.consequential == "excluded":
         contingent += r.incident * r.incident_loss
-    cost = (1.0 + c.risk_charge) * contingent
+    cost = (1.0 + charge) * contingent
     if pkg.deposit == "at_signing":
-        cost += c.capital_rate * _deposit(w) * t.deposit_weeks / 52.0 + (1.0 + c.risk_charge) * c.insolvency * _deposit(w)
+        cost += c.capital_rate * _deposit(w) * t.deposit_weeks / 52.0 + (1.0 + charge) * c.insolvency * _deposit(w)
     return cost
 
 
-def joint_cost(pkg: Package, w: World, it: IntegratorType) -> float:
-    return integrator_cost(pkg, w, it) + client_cost(pkg, w, it)
+def joint_cost(pkg: Package, w: World, it: IntegratorType, charge: float | None = None) -> float:
+    return integrator_cost(pkg, w, it) + client_cost(pkg, w, it, charge)
 
 
-def efficient_package(w: World, it: IntegratorType) -> Package:
-    return min(PACKAGES, key=lambda p: (round(joint_cost(p, w, it), 6), p != OPENING, p))
+def efficient_package(w: World, it: IntegratorType, charge: float | None = None) -> Package:
+    return min(PACKAGES, key=lambda p: (round(joint_cost(p, w, it, charge), 6), p != OPENING, p))
 
 
 def floor_price(pkg: Package, w: World, it: IntegratorType) -> float:
@@ -224,7 +236,7 @@ def floor_price(pkg: Package, w: World, it: IntegratorType) -> float:
 
 
 def ask_price(pkg: Package, w: World, it: IntegratorType, round_: int) -> float:
-    """The price at which the integrator signs this package in this round (0 = its opening)."""
+    """The price at which the scripted integrator signs this package in this round (0 = its opening)."""
     return floor_price(pkg, w, it) + w.terms.ask_premium[round_]
 
 
@@ -232,81 +244,138 @@ def opening_price(w: World, it: IntegratorType) -> float:
     return ask_price(OPENING, w, it, 0)
 
 
+def client_bid(pkg: Package, w: World, it: IntegratorType, charge: float, round_: int) -> float:
+    """The highest price at which the scripted client signs this package in this round."""
+    return w.client.turnkey_all_in - client_cost(pkg, w, it, charge) - w.terms.ask_premium[round_]
+
+
 # ---------------------------------------------------------------------------
-# The reference: the client's best play on its own information.
-#
-# State at the client's move in round t (1..rounds): the set of integrator types
-# still consistent with every price seen, and the standing offer (a package and
-# the price at which the integrator has said it would sign it). The client may
-# accept the standing offer, walk to the turnkey option, or propose a package at
-# a price. A proposal at or above the integrator's ask is signed; below it the
-# integrator breaks off with probability beta or counters with its ask for that
-# package this round, which becomes the standing offer and narrows the types.
-# After the last round's counter the client can only accept it or walk.
-#
-# Only the asks of consistent types are worth proposing at (anything between two
-# asks is signed by the same types at a higher price), plus a price below every
-# ask, which is a pure request to price the package.
+# The two seats. A Game states, for the seat the model plays, who the
+# counterpart may be, when it signs, and what a signed contract costs the model
+# (the integrator's cost is its negated profit, so both seats minimise).
 
-LOWBALL = "price_it"
+PRICE_IT = "price_it"  # propose a package without committing to a price: ask the counterpart for its price
+SEATS = ("client", "integrator")
 
 
-@dataclass(frozen=True)
-class Action:
-    kind: str  # accept | walk | propose
-    package: Package | None = None
-    price: float | str | None = None  # a number, or LOWBALL
+class Game:
+    def __init__(self, w: World, seat: str, own: IntegratorType | None = None) -> None:
+        if seat not in SEATS:
+            raise ValueError(f"unknown seat {seat!r}")
+        if seat == "integrator" and own is None:
+            raise ValueError("the integrator seat needs the integrator's own type")
+        self.w, self.seat, self.own = w, seat, own
 
-    def label(self) -> str:
-        if self.kind != "propose":
-            return self.kind
-        price = "ask for its price" if self.price == LOWBALL else f"at {self.price:,.0f}"
-        return f"propose {self.package.label()} {price}"
+    @property
+    def prior(self) -> tuple[tuple[Any, float], ...]:
+        return self.w.prior if self.seat == "client" else self.w.client_prior
+
+    def threshold(self, pkg: Package, other: Any, round_: int) -> float:
+        if self.seat == "client":
+            return ask_price(pkg, self.w, other, round_)
+        return client_bid(pkg, self.w, self.own, other, round_)
+
+    def signs(self, price: float, threshold: float) -> bool:
+        return price >= threshold - 1e-6 if self.seat == "client" else price <= threshold + 1e-6
+
+    def signed_cost(self, pkg: Package, price: float, other: Any) -> float:
+        if self.seat == "client":
+            return price + client_cost(pkg, self.w, other)
+        return integrator_cost(pkg, self.w, self.own) - price
+
+    @property
+    def outside(self) -> float:
+        return self.w.client.turnkey_all_in if self.seat == "client" else -self.w.terms.floor_margin
+
+    def opening(self, other: Any) -> tuple[Package, float] | None:
+        return (OPENING, opening_price(self.w, other)) if self.seat == "client" else None
+
+    def shift(self, counter: float, from_round: int, to_round: int) -> float:
+        """The counterpart's threshold for the same package in another round."""
+        prem = self.w.terms.ask_premium
+        return counter - prem[from_round] + prem[to_round] if self.seat == "client" else counter + prem[from_round] - prem[to_round]
+
+    def joint(self, pkg: Package, other: Any) -> float:
+        if self.seat == "client":
+            return joint_cost(pkg, self.w, other)
+        return joint_cost(pkg, self.w, self.own, other)
 
 
 def _key(x: float) -> float:
     return round(x, 6)
 
 
-class Solver:
-    """Exact expected client cost of the best play, memoised on (round, types)."""
+# ---------------------------------------------------------------------------
+# The reference: the model's best play on its own information.
+#
+# State at the model's move in round t (1..rounds): the set of counterpart types
+# still consistent with every price seen, and the standing offer (a package and
+# the price at which the counterpart has said it would sign it), if any. The
+# model may accept the standing offer, walk to its outside option, or propose a
+# package at a price. A proposal the counterpart signs ends the negotiation;
+# otherwise it breaks off with probability beta or answers with its price for
+# that package this round, which becomes the standing offer and narrows the
+# types. After the last round's answer the model can only accept it or walk.
+#
+# Only the thresholds of consistent types are worth proposing at (between two,
+# the same types sign at a worse price), plus PRICE_IT, which no type signs.
 
-    def __init__(self, w: World) -> None:
-        self.w = w
-        self.types = tuple(t for t, _ in w.prior)
-        self.weight = {t: p for t, p in w.prior}
+
+@dataclass(frozen=True)
+class Action:
+    kind: str  # accept | walk | propose
+    package: Package | None = None
+    price: float | str | None = None  # a number, or PRICE_IT
+
+    def label(self) -> str:
+        if self.kind != "propose":
+            return self.kind
+        price = "ask for its price" if self.price == PRICE_IT else f"at {self.price:,.1f}"
+        return f"propose {self.package.label()} {price}"
+
+
+class Solver:
+    """Exact expected cost to the model of the best play, memoised on (round, types)."""
+
+    def __init__(self, game: Game) -> None:
+        self.game, self.w = game, game.w
+        self.types = tuple(t for t, _ in game.prior)
+        self.weight = {t: p for t, p in game.prior}
         self._best: dict[tuple[int, frozenset], tuple[float, Action]] = {}
 
-    def _mean(self, types: frozenset, f: Callable[[IntegratorType], float]) -> float:
-        z = sum(self.weight[t] for t in types)
-        return sum(self.weight[t] * f(t) for t in types) / z
+    def _mean(self, types: frozenset, f: Callable[[Any], float]) -> float:
+        z = math.fsum(self.weight[t] for t in types)
+        return math.fsum(self.weight[t] * f(t) for t in types) / z
 
     def accept_value(self, types: frozenset, standing: tuple[Package, float]) -> float:
         pkg, price = standing
-        return price + self._mean(types, lambda t: client_cost(pkg, self.w, t))
+        return self._mean(types, lambda t: self.game.signed_cost(pkg, price, t))
 
     def _prices(self, types: frozenset, pkg: Package, round_: int) -> list[float | str]:
-        return [LOWBALL, *sorted({_key(ask_price(pkg, self.w, t, round_)) for t in types})]
+        return [PRICE_IT, *sorted({_key(self.game.threshold(pkg, t, round_)) for t in types})]
 
     def proposal_value(self, round_: int, types: frozenset, pkg: Package, price: float | str) -> float:
-        w, z = self.w, sum(self.weight[t] for t in types)
-        total = 0.0
-        refused: dict[float, list[IntegratorType]] = {}
+        g, w = self.game, self.w
+        # math.fsum, not sum(): Python 3.12 changed float sum() to compensated summation,
+        # and a derived number must not depend on the interpreter (DC-T-05, DC-T-09).
+        z = math.fsum(self.weight[t] for t in types)
+        terms: list[float] = []
+        refused: dict[float, list[Any]] = {}
         for t in types:
-            ask = _key(ask_price(pkg, w, t, round_))
-            if price != LOWBALL and price >= ask - 1e-9:
-                total += self.weight[t] * (price + client_cost(pkg, w, t))
+            thr = _key(g.threshold(pkg, t, round_))
+            if price != PRICE_IT and g.signs(price, thr):
+                terms.append(self.weight[t] * g.signed_cost(pkg, price, t))
             else:
-                refused.setdefault(ask, []).append(t)
-        for ask, group in refused.items():
-            g = frozenset(group)
-            mass = sum(self.weight[t] for t in g)
+                refused.setdefault(thr, []).append(t)
+        for thr, group in refused.items():
+            grp = frozenset(group)
+            mass = math.fsum(self.weight[t] for t in grp)
             if round_ < w.rounds:
-                after = self.value(round_ + 1, g, (pkg, ask))
+                after = self.value(round_ + 1, grp, (pkg, thr))
             else:
-                after = min(w.client.turnkey_all_in, self.accept_value(g, (pkg, ask)))
-            total += mass * (w.terms.round_cost + w.terms.breakoff * w.client.turnkey_all_in + (1.0 - w.terms.breakoff) * after)
-        return total / z
+                after = min(g.outside, self.accept_value(grp, (pkg, thr)))
+            terms.append(mass * (w.terms.round_cost + w.terms.breakoff * g.outside + (1.0 - w.terms.breakoff) * after))
+        return math.fsum(terms) / z
 
     def best_proposal(self, round_: int, types: frozenset) -> tuple[float, Action]:
         key = (round_, types)
@@ -320,176 +389,210 @@ class Solver:
             self._best[key] = best
         return self._best[key]
 
-    def q_values(self, round_: int, types: frozenset, standing: tuple[Package, float]) -> dict[Action, float]:
-        """Expected client cost of each first action here, each followed by the best play."""
-        q = {Action("walk"): self.w.client.turnkey_all_in, Action("accept"): self.accept_value(types, standing)}
-        for pkg in PACKAGES:
-            for price in self._prices(types, pkg, round_):
-                q[Action("propose", pkg, price)] = self.proposal_value(round_, types, pkg, price)
+    def q_values(self, round_: int, types: frozenset, standing: tuple[Package, float] | None, final: bool = False) -> dict[Action, float]:
+        """Expected cost of each action available here, each followed by the best play."""
+        q = {Action("walk"): self.game.outside}
+        if standing is not None:
+            q[Action("accept")] = self.accept_value(types, standing)
+        if not final:
+            for pkg in PACKAGES:
+                for price in self._prices(types, pkg, round_):
+                    q[Action("propose", pkg, price)] = self.proposal_value(round_, types, pkg, price)
         return q
 
-    def value(self, round_: int, types: frozenset, standing: tuple[Package, float]) -> float:
-        return min(self.w.client.turnkey_all_in, self.accept_value(types, standing), self.best_proposal(round_, types)[0])
+    def value(self, round_: int, types: frozenset, standing: tuple[Package, float] | None) -> float:
+        options = [self.game.outside, self.best_proposal(round_, types)[0]]
+        if standing is not None:
+            options.append(self.accept_value(types, standing))
+        return min(options)
 
-    def opening_types(self, observed_opening: float) -> frozenset:
-        return frozenset(t for t in self.types if abs(opening_price(self.w, t) - observed_opening) < 1e-6)
+    def initial_types(self, opening: float | None) -> frozenset:
+        if self.game.seat == "client":
+            return frozenset(t for t in self.types if abs(opening_price(self.w, t) - opening) < 1e-6)
+        return frozenset(self.types)
 
 
-def solve(w: World, truth: IntegratorType) -> dict[str, Any]:
-    """The reference at the start: its expected cost and first action, given the opening the client saw."""
-    s = Solver(w)
-    opening = opening_price(w, truth)
-    types = s.opening_types(opening)
-    q = s.q_values(1, types, (OPENING, opening))
-    best = min(q, key=lambda a: (_key(q[a]), a.kind != "accept", a.kind != "walk"))
-    return {"expected_cost": q[best], "first_action": best, "q": q, "types": types, "opening_price": opening}
+def _best_of(q: Mapping[Action, float]) -> Action:
+    return min(q, key=lambda a: (_key(q[a]), a.kind != "accept", a.kind != "walk"))
 
 
 # ---------------------------------------------------------------------------
-# Playing a policy against the scripted integrator, in expectation.
-#
-# A policy sees what the client sees (:class:`Seen`) and returns an Action.
-# Break-off is the only chance event, so a policy's expected cost is exact.
+# What the model sees at a decision, and playing a policy in expectation.
 
 
 @dataclass(frozen=True)
 class Seen:
     round: int
-    opening_price: float
-    standing: tuple[Package, float]
+    opening_price: float | None  # the integrator's opening, in the client seat
+    standing: tuple[Package, float] | None
     history: tuple[dict[str, Any], ...]  # each refused proposal: round, package, price, counter
-    final: bool  # the standing offer is the last round's counter: accept or walk
+    final: bool  # the standing offer is the last round's answer: accept or walk
 
 
 Policy = Callable[[Seen], Action]
 
 
-def expected_cost(w: World, truth: IntegratorType, policy: Policy) -> float:
-    opening = opening_price(w, truth)
+def start(game: Game, other: Any) -> Seen:
+    opening = game.opening(other)
+    return Seen(1, opening[1] if opening else None, opening, (), False)
 
-    def go(round_: int, standing: tuple[Package, float], history: tuple[dict[str, Any], ...], final: bool) -> float:
-        act = policy(Seen(round_, opening, standing, history, final))
+
+def advance(game: Game, seen: Seen, action: Action, other: Any) -> tuple[str, Seen | None, float | None]:
+    """The counterpart's answer to a proposal, before any break-off: ('signed', None, cost)
+    or ('refused', next Seen, None)."""
+    thr = game.threshold(action.package, other, seen.round)
+    if action.price != PRICE_IT and game.signs(action.price, thr):
+        return "signed", None, game.signed_cost(action.package, action.price, other)
+    step = {"round": seen.round, "package": action.package, "price": action.price, "counter": thr}
+    last = seen.round == game.w.rounds
+    return "refused", Seen(seen.round if last else seen.round + 1, seen.opening_price, (action.package, thr), seen.history + (step,), last), None
+
+
+def expected_cost(game: Game, other: Any, policy: Policy) -> float:
+    w = game.w
+
+    def go(seen: Seen) -> float:
+        act = policy(seen)
         if act.kind == "walk":
-            return w.client.turnkey_all_in
+            return game.outside
         if act.kind == "accept":
-            return standing[1] + client_cost(standing[0], w, truth)
-        if final:
-            raise ValueError("after the last round's counter the client can only accept or walk")
-        ask = ask_price(act.package, w, truth, round_)
-        if act.price != LOWBALL and act.price >= ask - 1e-6:
-            return act.price + client_cost(act.package, w, truth)
-        step = history + ({"round": round_, "package": act.package, "price": act.price, "counter": ask},)
-        last = round_ == w.rounds
-        after = go(round_ if last else round_ + 1, (act.package, ask), step, last)
-        return w.terms.round_cost + w.terms.breakoff * w.client.turnkey_all_in + (1.0 - w.terms.breakoff) * after
+            if seen.standing is None:
+                raise ValueError("nothing to accept")
+            return game.signed_cost(seen.standing[0], seen.standing[1], other)
+        if seen.final:
+            raise ValueError("after the last round's answer the model can only accept or walk")
+        result, nxt, cost = advance(game, seen, act, other)
+        if result == "signed":
+            return cost
+        return w.terms.round_cost + w.terms.breakoff * game.outside + (1.0 - w.terms.breakoff) * go(nxt)
 
-    return go(1, (OPENING, opening), (), False)
+    return go(start(game, other))
 
 
 def consistent_types(s: Solver, seen: Seen) -> frozenset:
-    types = s.opening_types(seen.opening_price)
+    types = s.initial_types(seen.opening_price)
     for h in seen.history:
-        types = frozenset(t for t in types if abs(ask_price(h["package"], s.w, t, h["round"]) - h["counter"]) < 1e-6)
+        types = frozenset(t for t in types if abs(s.game.threshold(h["package"], t, h["round"]) - h["counter"]) < 1e-6)
     return types
 
 
-def reference_policy(w: World) -> Policy:
-    s = Solver(w)
+def reference_policy(game: Game) -> Policy:
+    s = Solver(game)
 
     def act(seen: Seen) -> Action:
-        types = consistent_types(s, seen)
-        if seen.final:
-            q = {Action("walk"): w.client.turnkey_all_in, Action("accept"): s.accept_value(types, seen.standing)}
-        else:
-            q = s.q_values(seen.round, types, seen.standing)
-        return min(q, key=lambda a: (_key(q[a]), a.kind != "accept", a.kind != "walk"))
+        return _best_of(s.q_values(seen.round, consistent_types(s, seen), seen.standing, seen.final))
 
     return act
 
 
-def decision_regret(w: World, seen: Seen, action: Action) -> float:
-    """What this action gives up against the best one, in expected client cost, on the client's information."""
-    s = Solver(w)
+def decision_regret(game: Game, seen: Seen, action: Action, solver: Solver | None = None) -> float:
+    """What this action gives up against the best one, in expected cost to the model, on its own information."""
+    s = solver or Solver(game)
     types = consistent_types(s, seen)
-    if seen.final:
-        q = {Action("walk"): w.client.turnkey_all_in, Action("accept"): s.accept_value(types, seen.standing)}
-        return q[action] - min(q.values())
-    q = s.q_values(seen.round, types, seen.standing)
-    if action not in q:  # a price that is not one of the consistent asks: value it directly
+    q = s.q_values(seen.round, types, seen.standing, seen.final)
+    if action not in q:
+        if action.kind != "propose" or seen.final:
+            raise ValueError(f"{action.label()} is not available here")
         q[action] = s.proposal_value(seen.round, types, action.package, action.price)
     return q[action] - min(q.values())
+
+
+def prior_expected(game: Game, policy: Policy) -> float:
+    """A policy's expected cost to the model over the declared prior on the counterpart."""
+    return math.fsum(p * expected_cost(game, t, policy) for t, p in game.prior)
+
+
+def solve(game: Game, other: Any) -> dict[str, Any]:
+    """The reference at the start: its expected cost and first action, given what the model sees."""
+    s = Solver(game)
+    seen = start(game, other)
+    types = s.initial_types(seen.opening_price)
+    q = s.q_values(1, types, seen.standing)
+    best = _best_of(q)
+    return {"expected_cost": q[best], "first_action": best, "q": q, "types": types, "seen": seen}
 
 
 # ---------------------------------------------------------------------------
 # Rules that do not negotiate the risk allocation. Each is right somewhere.
 #
-# They are competent at price: after one counter they sign at the floor the
-# counter implies (counter less this round's premium), so a rule loses only for
-# the allocation it chose or the pace it kept, never for arithmetic.
+# They are competent at price: after one answer they propose exactly the price
+# the answer implies for the next round, so a rule loses only for the
+# allocation it chose or the pace it kept, never for arithmetic.
 
 
-def _floor_from_counter(w: World, seen: Seen) -> float:
-    h = seen.history[-1]
-    return h["counter"] - w.terms.ask_premium[h["round"]] + w.terms.ask_premium[seen.round]
+def prior_best_package(game: Game) -> Package:
+    """The package with the lowest expected joint cost under the prior: the best a party can do without asking."""
+    return min(PACKAGES, key=lambda p: (_key(math.fsum(q * game.joint(p, t) for t, q in game.prior)), p))
 
 
-def _price_then_sign(w: World, pick: Callable[[World], Package]) -> Policy:
+def _price_then_sign(game: Game, pkg: Package) -> Policy:
     def act(seen: Seen) -> Action:
         if seen.final:
             return Action("accept")
-        pkg = pick(w)
         if not seen.history:
-            return Action("propose", pkg, LOWBALL)
-        return Action("propose", pkg, _floor_from_counter(w, seen))
+            return Action("propose", pkg, PRICE_IT)
+        h = seen.history[-1]
+        return Action("propose", pkg, game.shift(h["counter"], h["round"], seen.round))
 
     return act
 
 
-def prior_best_package(w: World) -> Package:
-    """The package with the lowest expected joint cost under the prior: the best a party can do without asking."""
-    return min(PACKAGES, key=lambda p: (_key(sum(q * joint_cost(p, w, t) for t, q in w.prior)), p))
-
-
-def _sign_now(w: World) -> Policy:
-    """Sign the prior-best package at once, at the highest price any consistent type could ask."""
-    s = Solver(w)
+def _sign_now(game: Game) -> Policy:
+    """Propose the prior-best package at once, at the price every consistent type signs."""
+    s = Solver(game)
 
     def act(seen: Seen) -> Action:
-        if seen.final or seen.history:
+        if seen.history:
             return Action("accept")
-        pkg = prior_best_package(w)
-        types = consistent_types(s, seen)
-        return Action("propose", pkg, max(_key(ask_price(pkg, w, t, seen.round)) for t in types))
+        pkg = prior_best_package(game)
+        thresholds = [_key(game.threshold(pkg, t, seen.round)) for t in consistent_types(s, seen)]
+        return Action("propose", pkg, max(thresholds) if game.seat == "client" else min(thresholds))
 
     return act
 
 
-def rules(w: World) -> dict[str, Policy]:
+def rules(game: Game) -> dict[str, Policy]:
+    take_counter = lambda seen: Action("accept") if seen.history else Action("propose", prior_best_package(game), PRICE_IT)  # noqa: E731
+    walk = lambda seen: Action("walk")  # noqa: E731
+    if game.seat == "client":
+        return {
+            "accept_the_opening": lambda seen: Action("accept"),
+            "walk_to_turnkey": walk,  # also "defensive terms are a red flag"
+            "take_the_first_counter": take_counter,
+            "haggle_price_only": _price_then_sign(game, OPENING),
+            "demand_every_protection": _price_then_sign(game, EVERY_PROTECTION),
+            "sign_the_prior_best_now": _sign_now(game),
+        }
     return {
-        "accept_the_opening": lambda seen: Action("accept"),
-        "walk_to_turnkey": lambda seen: Action("walk"),  # also "defensive terms are a red flag"
-        "take_the_first_counter": lambda seen: Action("accept") if seen.history else Action("propose", prior_best_package(w), LOWBALL),
-        "haggle_price_only": _price_then_sign(w, lambda _: OPENING),
-        "demand_every_protection": _price_then_sign(w, lambda _: EVERY_PROTECTION),
-        "sign_the_prior_best_now": _sign_now(w),
+        "decline_to_bid": walk,
+        "take_the_first_counter": take_counter,
+        "defend_the_opening_terms": _price_then_sign(game, OPENING),
+        "concede_every_protection": _price_then_sign(game, EVERY_PROTECTION),
+        "sign_the_prior_best_now": _sign_now(game),
     }
 
 
-def prior_expected(w: World, policy: Policy) -> float:
-    """A policy's expected client cost over the declared prior on the integrator's type."""
-    return sum(p * expected_cost(w, t, policy) for t, p in w.prior)
+def first_move_kind(a: Action) -> str:
+    if a.kind in ("accept", "walk"):
+        return a.kind
+    if a.price == PRICE_IT:
+        return "price_opening" if a.package == OPENING else "price_alternative"
+    return "sign_at_a_price"
 
 
 # ---------------------------------------------------------------------------
 # The pack: cells, each rewarding a different way of negotiating the allocation.
 #
-# A world's public facts are drawn from its cell's ranges; the integrator's type
-# is drawn from the declared prior. A world is admitted only if its intended
-# first move beats every other kind of first move by MARGIN in expectation, and
-# every rule named as a loser gives up at least LOSER_MARGIN. Where the right
-# contract depends on the hidden type, a twin with the same public facts and a
-# type whose efficient contract differs is added: before any price is seen a
-# good negotiator opens the same way in both.
+# Cells are defined on the client seat. A world's public facts are drawn from
+# its cell's ranges and the integrator's type from the declared prior; the
+# client's risk charge is one of CLIENT_PRIOR's values, so the same world can be
+# played from the integrator seat with the client's charge private. A world is
+# admitted only if the client seat's intended first move beats every other kind
+# of first move by MARGIN in expectation, and every rule named as a loser gives
+# up at least LOSER_MARGIN. Where the right contract depends on the hidden type,
+# a twin with the same public facts and a type whose efficient contract differs
+# is added: before any price is seen a good negotiator opens the same way in both.
+# The integrator seat is reported on every world, not admitted on.
 
 MARGIN = 10.0
 LOSER_MARGIN = 25.0
@@ -504,19 +607,21 @@ FIXED_TERMS = dict(
 _COMMON = dict(
     defect_without_test=(0.25, 0.35), defect_with_test=(0.04, 0.08), defect_fix=(200.0, 300.0), defect_weeks=(3.0, 5.0),
     unready=(0.2, 0.3), standby=(150.0, 220.0), unready_weeks=(2.0, 4.0), incident=(0.04, 0.06), incident_loss=(2500.0, 3500.0),
-    delay_per_week=(90.0, 130.0), risk_charge=(0.5, 0.9), capital_rate=(0.05, 0.07), insolvency=(0.0, 0.015),
+    delay_per_week=(90.0, 130.0), capital_rate=(0.05, 0.07), insolvency=(0.0, 0.015),
     breakoff=(0.05, 0.12), turnkey_offset=(300.0, 900.0),
 )
 
 CELLS: dict[str, dict[str, Any]] = {
     "keep_their_terms": {
         "lesson": "the integrator's defensive proposal is already the efficient contract; negotiate the price, not the terms",
-        "ranges": dict(defect_without_test=(0.08, 0.12), defect_with_test=(0.06, 0.08), risk_charge=(0.05, 0.25), insolvency=(0.0, 0.008)),
+        "client_charge": 0.15,
+        "ranges": dict(defect_without_test=(0.08, 0.12), defect_with_test=(0.06, 0.08), insolvency=(0.0, 0.008)),
         "first": {"price_it"},
         "losers": ("accept_the_opening", "walk_to_turnkey", "demand_every_protection", "sign_the_prior_best_now"),
     },
     "price_the_alternatives": {
         "lesson": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first",
+        "client_charge": 0.75,
         "ranges": dict(breakoff=(0.03, 0.08)),
         "first": {"price_alternative"},
         "losers": ("haggle_price_only", "take_the_first_counter", "sign_the_prior_best_now"),
@@ -524,12 +629,14 @@ CELLS: dict[str, dict[str, Any]] = {
     },
     "shift_the_tail": {
         "lesson": "the client cannot carry the incident tail as cheaply as any integrator can; move it and the delay risk across",
-        "ranges": dict(risk_charge=(1.4, 1.7)),
+        "client_charge": 1.55,
+        "ranges": {},
         "first": {"price_alternative"},
         "losers": ("accept_the_opening", "haggle_price_only", "take_the_first_counter"),
     },
     "better_contract_or_walk": {
         "lesson": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away",
+        "client_charge": 0.75,
         "ranges": dict(breakoff=(0.03, 0.08), turnkey_offset=(-170.0, -60.0)),
         "first": {"price_alternative"},
         "losers": ("walk_to_turnkey", "haggle_price_only", "accept_the_opening"),
@@ -537,31 +644,25 @@ CELLS: dict[str, dict[str, Any]] = {
     },
     "walk_away": {
         "lesson": "no allocation of these risks beats the turnkey offer; walk before spending a round",
+        "client_charge": 0.75,
         "ranges": dict(turnkey_offset=(-700.0, -450.0)),
         "first": {"walk"},
         "losers": ("haggle_price_only", "demand_every_protection", "take_the_first_counter"),
     },
     "close_now": {
         "lesson": "the integrator is likely to walk after a refusal and the deal is worth far more than turnkey; sign now",
-        "ranges": dict(risk_charge=(1.4, 1.7), breakoff=(0.35, 0.5), turnkey_offset=(1000.0, 1400.0)),
+        "client_charge": 1.55,
+        "ranges": dict(breakoff=(0.35, 0.5), turnkey_offset=(1000.0, 1400.0)),
         "first": {"sign_at_a_price"},
         "losers": ("haggle_price_only", "take_the_first_counter", "demand_every_protection"),
     },
 }
 
 
-def first_move_kind(w: World, types: frozenset, a: Action) -> str:
-    if a.kind in ("accept", "walk"):
-        return a.kind
-    if a.price == LOWBALL:
-        return "price_opening" if a.package == OPENING else "price_alternative"
-    return "sign_at_a_price"
-
-
-def _kinds(w: World, first: Mapping[Action, float], types: frozenset) -> dict[str, float]:
+def _kinds(first: Mapping[Action, float]) -> dict[str, float]:
     best: dict[str, float] = {}
     for a, v in first.items():
-        k = first_move_kind(w, types, a)
+        k = first_move_kind(a)
         best[k] = min(best.get(k, float("inf")), v)
     best["price_it"] = min(best["price_opening"], best["price_alternative"])
     return best
@@ -582,28 +683,40 @@ def draw_world(rng: random.Random, cell: str) -> World:
     )
     terms = Terms(**FIXED_TERMS, breakoff=_round(u["breakoff"], 0.01))
     client = Client(
-        delay_per_week=_round(u["delay_per_week"], 5), risk_charge=_round(u["risk_charge"], 0.05),
+        delay_per_week=_round(u["delay_per_week"], 5), risk_charge=CELLS[cell]["client_charge"],
         capital_rate=_round(u["capital_rate"], 0.005), insolvency=_round(u["insolvency"], 0.001), turnkey_all_in=0.0,
     )
     w = World(risks, client, terms)
-    price_only = floor_price(OPENING, w, w.prior[0][0]) + client_cost(OPENING, w, w.prior[0][0])  # type-free for the opening
+    some = w.prior[0][0]  # the opening package's floor and client cost do not depend on the integrator's type
+    price_only = floor_price(OPENING, w, some) + client_cost(OPENING, w, some)
     return replace(w, client=replace(client, turnkey_all_in=_round(price_only + u["turnkey_offset"], 10)))
+
+
+def seat_view(w: World, seat: str, integrator: IntegratorType) -> dict[str, Any]:
+    """The reference's first move and each rule's regret for one seat of a world."""
+    game = Game(w, "client") if seat == "client" else Game(w, "integrator", integrator)
+    other = integrator if seat == "client" else w.client.risk_charge
+    ref = solve(game, other)
+    ref_cost = prior_expected(game, reference_policy(game))
+    return {
+        "reference": ref,
+        "reference_prior_cost": ref_cost,
+        "first_move_values": _kinds(ref["q"]) if seat == "client" else {first_move_kind(a): v for a, v in sorted(ref["q"].items(), key=lambda kv: -kv[1])},
+        "rule_regret": {name: prior_expected(game, rule) - ref_cost for name, rule in rules(game).items()},
+    }
 
 
 def admit(w: World, truth: IntegratorType, cell: str) -> dict[str, Any] | None:
     spec = CELLS[cell]
-    ref = solve(w, truth)
-    kinds = _kinds(w, ref["q"], ref["types"])
+    view = seat_view(w, "client", truth)
+    kinds = view["first_move_values"]
     intended = min(kinds[k] for k in spec["first"])
     others = [v for k, v in kinds.items() if k not in spec["first"] and not (k == "price_it" or (k.startswith("price_") and "price_it" in spec["first"]))]
     if min(others) - intended < MARGIN:
         return None
-    policy = reference_policy(w)
-    ref_cost = prior_expected(w, policy)
-    regrets = {name: prior_expected(w, rule) - ref_cost for name, rule in rules(w).items()}
-    if any(regrets[name] < LOSER_MARGIN for name in spec["losers"]):
+    if any(view["rule_regret"][name] < LOSER_MARGIN for name in spec["losers"]):
         return None
-    return {"reference": ref, "reference_prior_cost": ref_cost, "rule_regret": regrets, "first_move_values": kinds}
+    return view
 
 
 def build_world(seed: int, cell: str, max_draws: int = 4000) -> dict[str, Any] | None:
@@ -611,24 +724,34 @@ def build_world(seed: int, cell: str, max_draws: int = 4000) -> dict[str, Any] |
     for _ in range(max_draws):
         w = draw_world(rng, cell)
         truth = rng.choices([t for t, _ in w.prior], [p for _, p in w.prior])[0]
-        admitted = admit(w, truth, cell)
-        if admitted is not None:
-            return _summarise(w, truth, cell, seed, admitted)
+        view = admit(w, truth, cell)
+        if view is not None:
+            return _summarise(w, truth, cell, seed, view)
     return None
 
 
 def with_truth(row: Mapping[str, Any], w: World, truth: IntegratorType) -> dict[str, Any]:
-    admitted = admit(w, truth, row["cell"])
-    assert admitted is not None, "admission depends only on public facts and the prior"
-    twin = _summarise(w, truth, row["cell"], row["seed"], admitted)
+    view = admit(w, truth, row["cell"])
+    assert view is not None, "admission depends only on public facts and the prior"
+    twin = _summarise(w, truth, row["cell"], row["seed"], view)
     twin["twin_of"] = row["slug"]
     twin["slug"] = row["slug"] + "_twin"
     return twin
 
 
-def _summarise(w: World, truth: IntegratorType, cell: str, seed: int, admitted: Mapping[str, Any]) -> dict[str, Any]:
-    ref = admitted["reference"]
+def _view_summary(view: Mapping[str, Any], ref_cost: float) -> dict[str, Any]:
+    ref = view["reference"]
+    return {
+        "reference_first_move": {"kind": first_move_kind(ref["first_action"]), "action": ref["first_action"].label()},
+        "reference_expected_cost": ref["expected_cost"],
+        "rule_regret_prior": {k: round(v, 3) for k, v in view["rule_regret"].items()},
+    }
+
+
+def _summarise(w: World, truth: IntegratorType, cell: str, seed: int, client_view: Mapping[str, Any]) -> dict[str, Any]:
+    ref = client_view["reference"]
     eff = efficient_package(w, truth)
+    integrator_view = seat_view(w, "integrator", truth)
     return {
         "slug": f"{cell}_{seed}",
         "cell": cell,
@@ -636,13 +759,14 @@ def _summarise(w: World, truth: IntegratorType, cell: str, seed: int, admitted: 
         "lesson": CELLS[cell]["lesson"],
         "world": world_to_dict(w),
         "hidden_type": asdict(truth),
-        "opening_price": ref["opening_price"],
-        "reference_first_move": {"kind": first_move_kind(w, ref["types"], ref["first_action"]), "action": ref["first_action"].label()},
+        "opening_price": ref["seen"].opening_price,
+        "reference_first_move": {"kind": first_move_kind(ref["first_action"]), "action": ref["first_action"].label()},
         "reference_expected_cost": ref["expected_cost"],
-        "first_move_values": {k: round(v - ref["expected_cost"], 3) for k, v in sorted(admitted["first_move_values"].items())},
-        "rule_regret_prior": {k: round(v, 3) for k, v in admitted["rule_regret"].items()},
+        "first_move_values": {k: round(v - ref["expected_cost"], 3) for k, v in sorted(client_view["first_move_values"].items())},
+        "rule_regret_prior": {k: round(v, 3) for k, v in client_view["rule_regret"].items()},
         "efficient_package": eff.label(),
         "joint_saving_vs_opening": round(joint_cost(OPENING, w, truth) - joint_cost(eff, w, truth), 3),
+        "integrator_seat": _view_summary(integrator_view, integrator_view["reference_prior_cost"]),
     }
 
 
@@ -667,62 +791,134 @@ def build_pack(seeds_per_cell: int = 2, base_seed: int = 2460000) -> list[dict[s
 
 
 def world_to_dict(w: World) -> dict[str, Any]:
-    return {"risks": asdict(w.risks), "client": asdict(w.client), "terms": asdict(w.terms), "prior": [[asdict(t), p] for t, p in w.prior]}
+    return {
+        "risks": asdict(w.risks), "client": asdict(w.client), "terms": asdict(w.terms),
+        "prior": [[asdict(t), p] for t, p in w.prior], "client_prior": [[c, p] for c, p in w.client_prior],
+    }
 
 
 def world_from_dict(d: Mapping[str, Any]) -> World:
     terms = dict(d["terms"])
     terms["ask_premium"] = tuple(terms["ask_premium"])
-    return World(Risks(**d["risks"]), Client(**d["client"]), Terms(**terms), tuple((IntegratorType(**t), p) for t, p in d["prior"]))
+    return World(
+        Risks(**d["risks"]), Client(**d["client"]), Terms(**terms),
+        tuple((IntegratorType(**t), p) for t, p in d["prior"]), tuple((float(c), p) for c, p in d["client_prior"]),
+    )
 
 
 # ---------------------------------------------------------------------------
-# What the client is told. Every number the reference uses is here.
+# What each seat is told. Every number the reference uses is here.
 
 
-def brief_text(w: World, opening: float) -> str:
-    r, c, t = w.risks, w.client, w.terms
-    tests = sorted({it.test_cost for it, _ in w.prior})
-    charges = sorted({it.risk_charge for it, _ in w.prior})
-    k = lambda x: f"${x:,.0f}k" if abs(x - round(x)) < 0.05 else f"${x:,.1f}k"
-    pct = lambda x: f"{100 * x:g}%"
-    return "\n".join([
-        "You are the client. An integrator will deliver a GPU cluster into your facility. Money is in $ thousands.",
-        f"Hardware {k(t.hardware)} at cost; the integrator's own delivery cost {k(t.services)}.",
-        "",
+def _k(x: float) -> str:
+    return f"${x:,.0f}k" if abs(x - round(x)) < 0.05 else f"${x:,.1f}k"
+
+
+def _pct(x: float) -> str:
+    return f"{100 * x:g}%"
+
+
+def _risk_lines(w: World, who: str) -> list[str]:
+    r = w.risks
+    you, them = ("you", "the integrator") if who == "client" else ("the client", "you")
+    stager = "The integrator will pre-stage exactly when the contract makes that cheaper for it than not" if who == "client" else "You will pre-stage exactly when the contract makes that cheaper for you than not"
+    return [
         "Risks (both parties know these):",
-        f"- Compatibility defect: {pct(r.defect_without_test)} likely, or {pct(r.defect_with_test)} if the integrator pre-stages and burns in the cluster first. "
-        f"Fixing it costs {k(r.defect_fix)} and delays go-live {r.defect_weeks:g} weeks. The integrator pre-stages only if the contract makes that cheaper for it.",
-        f"- Your facility not ready: {pct(r.unready)} likely; {r.unready_weeks:g} weeks' delay and {k(r.standby)} of integrator standby.",
-        f"- Post-handover incident in the first year: {pct(r.incident)} likely; you would lose {k(r.incident_loss)}.",
-        f"- Each week of delay costs you {k(c.delay_per_week)} of revenue.",
-        "",
+        f"- Compatibility defect: {_pct(r.defect_without_test)} likely, or {_pct(r.defect_with_test)} if {them} pre-stage{'s' if who == 'client' else ''} and burn{'s' if who == 'client' else ''} in the cluster first. "
+        f"Fixing it costs {_k(r.defect_fix)} and delays go-live {r.defect_weeks:g} weeks. {stager}; it is not a separate term.",
+        f"- {'Your' if who == 'client' else 'The client'}'s facility not ready: {_pct(r.unready)} likely; {r.unready_weeks:g} weeks' delay and {_k(r.standby)} of integrator standby.",
+        f"- Post-handover incident in the first year: {_pct(r.incident)} likely; {you} would lose {_k(r.incident_loss)}.",
+        f"- Each week of delay costs {you} {_k(w.client.delay_per_week)} of revenue.",
+    ]
+
+
+def _term_lines(w: World, who: str) -> list[str]:
+    t = w.terms
+    c, i = ("you", "it") if who == "client" else ("the client", "you")
+    return [
         "Contract terms to settle, besides price:",
-        f"- warranty: none (you pay a defect) | fix (it pays the fix) | fix_and_delay (it pays the fix and {k(t.delay_damages_per_week)} per week of defect delay)",
-        "- readiness: client (you pay standby if your facility is late) | integrator (it does)",
-        "- consequential: excluded (you carry an incident's losses) | included (it does)",
-        f"- deposit: at_signing ({pct(t.deposit_share)} of hardware, {k(t.deposit_share * t.hardware)}, paid {t.deposit_weeks:g} weeks before delivery) | on_delivery",
+        f"- warranty: none ({c} pay{'s' if c != 'you' else ''} a defect) | fix ({i} pay{'s' if i != 'you' else ''} the fix) | fix_and_delay ({i} pay{'s' if i != 'you' else ''} the fix and {_k(t.delay_damages_per_week)} per week of defect delay)",
+        f"- readiness: client ({c} pay{'s' if c != 'you' else ''} standby if the facility is late) | integrator ({i} do{'es' if i != 'you' else ''})",
+        f"- consequential: excluded ({c} carr{'ies' if c != 'you' else 'y'} an incident's losses) | included ({i} do{'es' if i != 'you' else ''})",
+        f"- deposit: at_signing ({_pct(t.deposit_share)} of hardware, {_k(t.deposit_share * t.hardware)}, paid {t.deposit_weeks:g} weeks before delivery) | on_delivery",
+    ]
+
+
+def _protocol_lines(w: World, who: str) -> list[str]:
+    t = w.terms
+    other = "it" if who == "client" else "the client"
+    return [
+        f"You have {w.rounds} rounds. In each you may accept the standing offer (if there is one), walk away, or propose a package and a price. "
+        f"A proposal {other} will not sign is answered with {'its' if who == 'client' else 'the client'}'s price for that same package in that round, "
+        "which becomes the standing offer. To ask for that price without committing, propose the package with price null. "
+        "After the last round's answer you may only accept it or walk.",
+        f"After each proposal {other} refuses, {other} breaks off {_pct(t.breakoff)} of the time. Each refused proposal also costs you {_k(t.round_cost)}.",
+    ]
+
+
+def brief_text(game: Game, opening: float | None = None) -> str:
+    w = game.w
+    r, c, t = w.risks, w.client, w.terms
+    if game.seat == "client":
+        tests = sorted({it.test_cost for it, _ in w.prior})
+        charges = sorted({it.risk_charge for it, _ in w.prior})
+        return "\n".join([
+            "You are the client. An integrator will deliver a GPU cluster into your facility. Money is in $ thousands.",
+            f"Hardware {_k(t.hardware)} at cost; the integrator's own delivery cost {_k(t.services)}.",
+            "",
+            *_risk_lines(w, "client"),
+            "",
+            *_term_lines(w, "client"),
+            "",
+            "Your position:",
+            f"- Each $1 of expected loss you carry costs you ${1 + c.risk_charge:.2f} (covenants and insurance).",
+            f"- Your capital costs {_pct(c.capital_rate)} a year. If you pay the deposit, there is a {_pct(c.insolvency)} chance the integrator fails before delivery and it is lost.",
+            f"- Outside option: a turnkey contract at {_k(c.turnkey_all_in)} all in, every risk priced in.",
+            "",
+            "The integrator:",
+            f"- Each $1 of expected loss it carries costs it $1 plus its own risk charge, which is {' or '.join(f'{x:g}' for x in charges)} (equally likely; not disclosed).",
+            f"- Pre-staging costs it {' or '.join(_k(x) for x in tests)} (equally likely; not disclosed).",
+            f"- It adds {_pct(t.uncontrolled_contingency)} of expected standby if it carries your facility's readiness, which it cannot control.",
+            f"- Its capital costs {_pct(t.integrator_capital_rate)} a year, so a deposit at signing saves it financing.",
+            f"- It signs any package at its expected cost of that package plus {_k(t.floor_margin)}, plus an ask premium: "
+            + ", ".join(f"{_k(x)} in round {i}" for i, x in enumerate(t.ask_premium) if i) + f" (its opening carried {_k(t.ask_premium[0])}).",
+            "",
+            f"Its opening proposal: warranty none, readiness client, consequential excluded, deposit at_signing, at {_k(opening)}.",
+            *_protocol_lines(w, "client"),
+            "Your objective: the lowest expected total cost to you: the price, plus every expected loss you carry at your risk charge, "
+            "plus deposit financing and loss, plus the cost of refused rounds; walking away costs you the turnkey price.",
+        ])
+    it = game.own
+    charges = sorted({x for x, _ in w.client_prior})
+    return "\n".join([
+        "You are the integrator. You will deliver a GPU cluster into the client's facility. Money is in $ thousands.",
+        f"Hardware {_k(t.hardware)} at cost; your own delivery cost {_k(t.services)}.",
+        "",
+        *_risk_lines(w, "integrator"),
+        "",
+        *_term_lines(w, "integrator"),
         "",
         "Your position:",
-        f"- Each $1 of expected loss you carry costs you ${1 + c.risk_charge:.2f} (covenants and insurance).",
-        f"- Your capital costs {pct(c.capital_rate)} a year. If you pay the deposit, there is a {pct(c.insolvency)} chance the integrator fails before delivery and it is lost.",
-        f"- Outside option: a turnkey contract at {k(c.turnkey_all_in)} all in, every risk priced in.",
+        f"- Pre-staging costs you {_k(it.test_cost)}.",
+        f"- Each $1 of expected loss you carry costs you ${1 + it.risk_charge:.2f} (insurance and balance sheet).",
+        f"- If you carry the client's facility readiness, which you cannot control, you add {_pct(t.uncontrolled_contingency)} of expected standby.",
+        f"- Your capital costs {_pct(t.integrator_capital_rate)} a year, so a deposit at signing saves you financing.",
+        f"- Outside option: other work that earns you {_k(t.floor_margin)}.",
         "",
-        "The integrator:",
+        "The client:",
         f"- Each $1 of expected loss it carries costs it $1 plus its own risk charge, which is {' or '.join(f'{x:g}' for x in charges)} (equally likely; not disclosed).",
-        f"- Pre-staging costs it {' or '.join(k(x) for x in tests)} (equally likely; not disclosed).",
-        f"- It adds {pct(t.uncontrolled_contingency)} of expected standby if it carries your facility's readiness, which it cannot control.",
-        f"- Its capital costs {pct(t.integrator_capital_rate)} a year, so a deposit at signing saves it financing.",
-        f"- It signs any package at its expected cost of that package plus {k(t.floor_margin)}, plus an ask premium: "
-        + ", ".join(f"{k(x)} in round {i}" for i, x in enumerate(t.ask_premium) if i) + f" (its opening carried {k(t.ask_premium[0])}).",
-        "- A proposal below that is answered with the price at which it would sign that same package in that round.",
-        f"- After each proposal it refuses, it breaks off {pct(t.breakoff)} of the time. Each refused proposal also costs you {k(t.round_cost)}.",
+        f"- Its capital costs {_pct(c.capital_rate)} a year. If it pays the deposit, it puts a {_pct(c.insolvency)} chance on losing it to your insolvency.",
+        f"- It has a turnkey offer at {_k(c.turnkey_all_in)} all in, every risk priced in.",
+        "- It knows whether you would pre-stage under each package.",
+        "- It signs any package whose price, plus every expected loss it carries at its risk charge, plus deposit financing and loss, "
+        f"is at most its turnkey price less a saving it demands: "
+        + ", ".join(f"{_k(x)} in round {i}" for i, x in enumerate(t.ask_premium) if i) + ".",
         "",
-        f"Its opening proposal: warranty none, readiness client, consequential excluded, deposit at_signing, at {k(opening)}.",
-        f"You have {w.rounds} rounds. In each you may accept the standing offer, walk to turnkey, or propose a package and a price. "
-        "After the last round's answer you may only accept it or walk.",
-        "Your objective: the lowest expected total cost to you: the price, plus every expected loss you carry at your risk charge, "
-        "plus deposit financing and the cost of refused rounds.",
+        "The client has asked for your proposal; there is no standing offer yet.",
+        *_protocol_lines(w, "integrator"),
+        "Your objective: the highest expected profit: the price, less your expected cost of the package (hardware, delivery, pre-staging if you do it, "
+        "every expected loss you carry at your risk charge, the standby contingency, less deposit financing saved), less the cost of refused rounds; "
+        "walking away earns your outside option.",
     ])
 
 
@@ -736,8 +932,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - thin C
     if args.out:
         open(args.out, "w").write(text)
     for row in pack:
-        print(f"{row['slug']:34} {row['reference_first_move']['kind']:18} eff={row['efficient_package']:44} "
-              + " ".join(f"{k[:10]}={v:.0f}" for k, v in row["rule_regret_prior"].items()))
+        seat = row["integrator_seat"]
+        print(f"{row['slug']:37} client:{row['reference_first_move']['kind']:18} integrator:{seat['reference_first_move']['kind']:18} "
+              + " ".join(f"{k[:9]}={v:.0f}" for k, v in seat["rule_regret_prior"].items()))
     return 0
 
 

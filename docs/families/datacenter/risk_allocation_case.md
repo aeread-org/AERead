@@ -1,26 +1,33 @@
 # Integrator and client: negotiating who carries the risk
 
-Draft design, 2026-09-24. Proposed as the next data-center case in place of the
-shared-feeder joint venture (draft PRs #214 and #216). Generator and reference:
-`src/aeread_families/datacenter_development/risk_allocation.py`
-(`python -m aeread_families.datacenter_development.risk_allocation --out pack.json`),
-tests in `tests/test_datacenter_risk_allocation.py`. Not wired into the environment.
+Design and dev pack, 2026-09-24. This is the next data-center case, replacing
+the shared-feeder joint venture (#214 and #216, closed unmerged on 2026-09-24;
+their incident rows are carried in the log).
+
+| Part | Where |
+|---|---|
+| Economics, reference, cells, briefs | `src/aeread_families/datacenter_development/risk_allocation.py` |
+| Environment plugin and grading | `risk_allocation_environment.py` (same package) |
+| Case writer | `risk_allocation_pack.py` (`python -m aeread_families.datacenter_development.risk_allocation_pack risk_allocation_dev_v1 --write`) |
+| Cases | `cases/datacenter_risk_allocation_v1/risk_allocation_dev_v1/` (32 cases and `pack.json`) |
+| Probe driver | `tools/run_risk_allocation_probe.py` |
+| Tests | `tests/test_datacenter_risk_allocation.py`, `tests/test_datacenter_risk_allocation_environment.py` |
 
 ## What the negotiation half taught
 
 | Finding ([QC profile](qc.md), [design findings](design_findings_2026-09.md)) | Rule for this case |
 |---|---|
-| In the 30 bundles audited on 2026-09-19, walking away beat the scripted reference, so nothing could show a model negotiating well (DC-D-01) | The reference is the best play on the client's information, and every world checks it against walking and five other constant policies |
-| The six channels have one policy shape; the reference sits at a band edge; adopting the counter was the scored optimum (DC-D-03) | The counterparty has conduct: private costs, a pricing rule, a falling ask and a break-off hazard. Copying its counter gives up at least one step of the ask |
+| In the 30 bundles audited on 2026-09-19, walking away beat the scripted reference, so nothing could show a model negotiating well (DC-D-01) | The reference is the best play on the model's own information, and every world checks it against walking and the other constant rules |
+| The six channels have one policy shape; the reference sits at a band edge; adopting the counter was the scored optimum (DC-D-03) | The counterpart has conduct: private costs, a pricing rule, a falling ask and a break-off hazard. Copying its first counter loses at least $178k in every world |
 | Only 25% of confirmatory cells finished validly, and more channels meant more chances to break protocol | Two rounds; every proposal is one full package and a price, which is the shape that succeeded 9 of 10 times against 5 of 10 for acceptance by reference |
-| The joint venture had one decision with two answers; the symmetric version was focal (8 of 8 fair share) | Four clauses and a price. Whether a clause is worth moving depends on the world and on the integrator's private costs, and six different contracts are efficient across the draft pack |
-| Joint-venture probes: the answer must be a best response under a declared prior (DC-D-20, on the joint-venture branch); the observation must carry every number it uses; a generator must not filter out the worlds where a rule is wrong; a threshold heuristic passed 9 of 12 | The prior over the integrator's costs is stated; a test checks every number in the brief; each rule named as a loser must lose in its cell; twins share every public fact |
-| One confirmatory, one route, no power analysis | Before any claim: at least two routes, and a pilot sized from the regret spread (below) |
+| The joint venture had one decision with two answers; the symmetric version was focal (8 of 8 fair share) | Four clauses and a price. Six different contracts are efficient across the dev pack |
+| Joint-venture probes: the answer must be a best response under a declared prior (DC-D-20); the observation must carry every number it uses (DC-D-22); a generator must not filter out the worlds where a rule is wrong; a threshold heuristic passed 9 of 12 | Priors are stated in the brief; a test checks every number in both briefs; each rule named as a loser must lose in its cell; twins share every public fact |
+| One confirmatory, one route, no power analysis | The probe runs two routes; any claim waits for a pilot sized from the spread of regret |
 
 ## What is tested, and how it differs from supplier judgment
 
 The case tests negotiating the allocation of risk and reward between two
-businesses. The client has to work out:
+businesses. The negotiator has to work out:
 
 - which risks to move;
 - what to ask the other side to price;
@@ -28,14 +35,14 @@ businesses. The client has to work out:
 - how hard to push;
 - when to walk.
 
-It does not test judging the counterparty's quality, which is what the
+It does not test judging the counterpart's quality, which is what the
 procurement [supplier-judgment case](../procurement-allocation/hidden_information_case.md)
 does.
 
 | | Supplier judgment | Risk allocation |
 |---|---|---|
-| Hidden | whether a supplier is good or bad | what it costs the integrator to carry each risk |
-| Learned from | a public record, samples, deliveries | the integrator's prices for alternative contracts |
+| Hidden | whether a supplier is good or bad | what it costs the other side to carry risk |
+| Learned from | a public record, samples, deliveries | the other side's prices for alternative contracts |
 | Decided | whom to buy from, whether to test | what contract to sign, at what price, how fast |
 | Value comes from | avoiding a bad supplier | moving each risk to the side that carries it more cheaply, and keeping part of the saving |
 
@@ -65,16 +72,16 @@ integrator's own delivery cost is $0.6M. Money is in $ thousands.
 A clause changes the value of the contract to both sides together only through
 three channels:
 
-- **Control.** The integrator pre-stages the cluster, at a private cost of $40k,
-  $120k or $200k, only if the contract makes testing pay for it. That means a
-  warranty whose avoided defects outweigh the test's cost. In the other
-  direction, the client's facility is outside the integrator's control, so the
-  integrator adds 150% of expected standby if it has to carry readiness. The
-  tests pin this: moving readiness to the integrator never helps in any world.
+- **Control.** The integrator pre-stages the cluster, at a cost of $40k, $120k
+  or $200k, exactly when the contract makes that cheaper for it: a warranty
+  whose avoided defects outweigh the test. In the other direction, the client's
+  facility is outside the integrator's control, so the integrator adds 150% of
+  expected standby if it has to carry readiness. Moving readiness to the
+  integrator never helps in any world (tested).
 - **Risk charge.** Each side pays a charge on every dollar of expected loss it
   carries, from covenants and insurance:
-  - the client's charge is declared (0.1 to 1.65 in the draft pack);
-  - the integrator's is private, 0.3 or 1.2.
+  - the client's is 0.15, 0.75 or 1.55;
+  - the integrator's is 0.3 or 1.2.
 
   A loss belongs with whichever side's charge is lower.
 - **Capital.** A deposit saves the integrator 14% a year in financing. It costs
@@ -85,118 +92,185 @@ Price moves money between the two sides and never changes their joint value
 (tested). A clause can therefore create value, only move money (then its fair
 price is what it costs the other side), or destroy value.
 
-## The integrator's conduct (declared)
+## Two seats on the same facts
 
-- **Pricing.** It signs any package at its expected cost of that package plus a
-  $500k floor margin, plus an ask premium: $400k in its opening, $200k in
-  round 1 and $0 in round 2.
-- **Counters.** A proposal below its price is answered with the price at which
-  it would sign that same package in that round. That counter is how the client
-  learns the integrator's costs.
-- **Break-off and delay.** After each refused proposal it breaks off with a
-  declared probability (3-47% in the draft pack), and the client loses $25k per refused
-  round.
-- **The client's outside option** is a turnkey contract at a stated all-in cost.
+Each world is played twice. What is private depends on the seat:
 
-Its opening is the defensive proposal: no warranty, the client carries readiness
-and the incident, and the deposit is paid at signing. The opening's cost does not
-depend on the integrator's private costs, so it reveals nothing (tested).
-Haggling over the opening therefore learns nothing. Asking the integrator to
-price the full-warranty alternative identifies all six private types in one
-counter in 14 of the 16 draft worlds (tested on the base world). In the other
-two, both keep_their_terms, it leaves three types, which do not change the
-answer.
+| | Client seat | Integrator seat |
+|---|---|---|
+| The model | the client | the integrator, writing the proposal |
+| Private to the counterpart | the integrator's pre-staging cost ($40k, $120k or $200k) and risk charge (0.3 or 1.2): six types | the client's risk charge (0.15, 0.75 or 1.55) |
+| When the scripted counterpart signs | at a price of at least its cost of the package plus $500k, plus an ask premium ($400k in its opening, $200k in round 1, $0 in round 2) | at a price of at most its turnkey all-in less its expected cost of the package, less a demanded saving ($200k in round 1, $0 in round 2) |
+| First standing offer | the integrator's defensive opening: no warranty, client carries readiness and the incident, deposit at signing | none: the client asks for a proposal |
+| Model's outside option | the turnkey contract | $500k of other work |
+
+In both seats:
+
+- **A proposal is answered.** A proposal the counterpart will not sign gets the
+  price at which it would sign that same package in that round, which becomes
+  the standing offer. Proposing with no price asks for that price without
+  committing.
+- **Refusals cost.** After each refusal the counterpart breaks off with a
+  declared probability (3-49% across the pack), and each refused proposal costs
+  the model $25k.
+- **Rounds.** There are two rounds. After the last answer the model may only
+  accept or walk.
+
+The client-seat opening's cost does not depend on the integrator's private
+costs, so the opening reveals nothing, and haggling over it learns nothing. The
+integrator's answer to "price the full warranty" identifies all six types in 14
+of the 16 worlds. In the other two, both `keep_their_terms`, it leaves three,
+which do not change the answer.
+
+In the integrator seat, any asked price reveals the client's charge, so its
+information step is a single question. That seat mainly tests the proposal:
+which package, and pricing it to the client's final bid.
 
 ## Reference and grading
 
-The reference is exact:
+- **The reference.** The model's best play is a dynamic programme over which
+  counterpart types are still consistent with every price seen. It considers
+  proposing at a consistent type's threshold, or with no price; any other price
+  is dominated.
+- **Exact, not simulated.** Break-off is the only chance event, so every
+  policy's expected cost is computed exactly. The reference's value equals the
+  solver's (tested).
+- **Decision regret is the score.** At each move it is what the action gives up
+  against the best action, in expected cost to the model, on the model's own
+  information, summed over the episode.
+- **Break-off draws.** Each case stores one uniform draw per round, shared by
+  both seats of a world and by its twin. Every model meets the same luck, and
+  the score does not depend on it.
+- **Diagnostics** (`grade`), measured against the true types:
+  - *allocation gap*: joint value lost against the better of the efficient
+    contract and no deal;
+  - *price gap*: in the client seat, paid above the integrator's floor; in the
+    integrator seat, left below the client's final bid;
+  - *refused rounds*.
+- **Invalid moves.** An invalid action ends the episode and is typed
+  missingness. The decisions before it are still graded.
 
-- **The dynamic programme.** It runs over which integrator types are still
-  consistent with every price the client has seen. It only needs to consider
-  proposing at a consistent type's ask, or below every ask (a request to price
-  the package), since any other price is dominated.
-- **Break-off is the only chance event,** so any policy's expected cost is
-  computed exactly, not simulated. The reference's value equals the solver's
-  (tested).
-- **Decision regret** is what an action gives up against the best action, in
-  expected cost to the client, on the client's own information. It is summed
-  over decisions, so a model that learns the type and then signs a poor
-  contract is charged for the signing.
-- **Diagnostics, not scores**, measured against the true type:
-  - *allocation*: joint value lost against the efficient contract;
-  - *price*: the amount paid above the floor for the contract signed;
-  - *pace*: rounds and break-off exposure beyond the reference.
+A worked world, `price_the_alternatives_2461000` and its twin (client seat).
+The two share every public fact, the same $10,932k opening and the same brief,
+byte for byte:
 
-A worked world, `price_the_alternatives_2461001` and its twin. The two share
-every public fact and the same $10,932k opening:
-
-| | Integrator charge 1.2 | Twin, charge 0.3 |
+| | Integrator: pre-staging $200k, charge 1.2 | Twin: $40k, charge 0.3 |
 |---|---|---|
-| Round 1 (reference) | ask for the full-warranty price | the same |
-| Counter, then floor | $10,825.7k, then $10,625.7k | $10,803.7k, then $10,603.7k |
+| Round 1 (reference) | ask the price of full warranty, no consequential, deposit at signing | the same |
+| Answer, and the floor it implies | $10,981.3k, floor $10,781.3k | $10,801.1k, floor $10,601.1k |
 | Types left | one | one |
-| Round 2 (reference) | fix / client / excluded / at signing, at its floor $10,590.5k | fix_and_delay / client / included / at signing, at $10,785.7k |
-| Why | the client's 0.75 charge is below 1.2, so keep the tail; the integrator tests under "fix" alone | 0.3 is below 0.75, so move the tail and the delay damages |
-| Joint value over the opening | +$245k | +$323k |
-| Price-only haggling loses | $226k | $297k |
+| Round 2 (reference) | fix_and_delay / client / excluded / on_delivery at its floor, $10,949.3k | fix_and_delay / client / included / on_delivery at $10,964.1k |
+| Why | 1.2 is above the client's 0.75, so the client keeps the incident; the full warranty still makes this integrator pre-stage | 0.3 is below 0.75, so the incident moves too |
+| Joint value over the opening | +$61k | +$309k |
+| Price-only haggling loses | $58k | $290k |
 
-## The pack (draft, 2 seeds per cell plus twins, 16 worlds)
+## The dev pack: 16 worlds, 32 cases
 
-A world is admitted only if its intended first move beats every other kind of
-first move by at least $10k in expectation. Every rule named as a loser must
-also give up at least $25k. Twins are added where the right contract depends on
-the hidden type.
+Cells are defined on the client seat. A world is admitted only if its intended
+first move beats every other kind of first move by at least $10k in
+expectation, and every rule named as a loser gives up at least $25k. Twins are
+added where the right contract depends on the hidden type.
 
-The six columns after "First move" are the rules that don't negotiate the
-allocation: accept the opening, walk, take the first counter, haggle price only,
-demand every protection, and sign the prior-best package now. Cells are regret
-ranges across the cell's worlds, $k, expected over the prior on the
-integrator's type.
+Client seat. Each rule column is that rule's regret, $k, expected over the
+prior, as a range across the cell's worlds:
 
-| Cell | What it teaches | First move | Accept | Walk | Take counter | Price only | Demand all | Sign prior-best |
+| Cell | What it teaches | First move | Accept opening | Walk | Take first counter | Price only | Demand every protection | Sign prior-best now |
 |---|---|---|---|---|---|---|---|---|
-| keep_their_terms | the defensive proposal is already efficient: negotiate price, not terms | ask for a price | 319-345 | 449-483 | 180-188 | 0 | 257-279 | 119-145 |
-| price_the_alternatives | which risks to move depends on the integrator's costs: ask it to price the alternative | price an alternative | 464-536 | 458-881 | 211-215 | 114-187 | 119-156 | 257-258 |
-| shift_the_tail | the client carries loss dearer than any integrator: move the tail and the delay | price an alternative | 675-818 | 1003-1073 | 184-190 | 364-472 | 44-54 | 225-284 |
-| better_contract_or_walk | on the opening terms turnkey wins; only a better allocation beats walking | price an alternative | 576-704 | 71-137 | 211-220 | 195-320 | 99-186 | 283-301 |
-| walk_away | no allocation beats turnkey: walk before spending a round | walk | 926-1063 | 0 | 507-539 | 487-615 | 442-519 | 645-675 |
-| close_now | high break-off and a large surplus: sign now | sign at a price | 468-639 | 1135-1498 | 412-644 | 551-856 | 318-554 | 0 |
+| keep_their_terms | the defensive proposal is already efficient: negotiate price, not terms | ask for a price | 301-333 | 312-637 | 178-180 | 0 | 263-276 | 101-133 |
+| price_the_alternatives | which risks to move depends on the integrator's costs: ask it to price the alternative | price an alternative | 525-531 | 461-980 | 221-222 | 176-193 | 97 | 247-271 |
+| shift_the_tail | the client carries loss dearer than any integrator: move the tail and the delay | price an alternative | 713-775 | 683-908 | 184 | 386-425 | 29-63 | 240-277 |
+| better_contract_or_walk | on the opening terms turnkey wins; only a better allocation beats walking | price an alternative | 542-612 | 75-78 | 234-236 | 165-233 | 90-166 | 316-325 |
+| walk_away | no allocation beats turnkey: walk before spending a round | walk | 865-889 | 0 | 404-448 | 453-485 | 341-359 | 501-557 |
+| close_now | high break-off and a large surplus: sign now | sign at a price | 480-548 | 1306-1481 | 500-668 | 644-826 | 433-584 | 0 |
 
-- Each rule is right in at most one cell.
-- Demanding every protection is never right, because readiness always belongs
-  with the client.
-- Copying the counter is never right: it loses at least $180k in every world.
+Integrator seat, same worlds:
+
+| Cell | First move | Decline to bid | Take first counter | Defend the opening terms | Concede every protection | Sign prior-best now |
+|---|---|---|---|---|---|---|
+| keep_their_terms | ask for a price | 216-514 | 189-190 | 109-127 | 76-112 | 249-253 |
+| price_the_alternatives | ask for a price | 367-1098 | 205-230 | 115-344 | 59-176 | 246-396 |
+| shift_the_tail | ask for a price | 855-991 | 191-197 | 170-269 | 76-100 | 199-203 |
+| better_contract_or_walk | ask for a price | 110-193 | 203-243 | 227-387 | 43-261 | 239-482 |
+| walk_away | decline | 0 | 252-452 | 489-521 | 181-318 | 342-582 |
+| close_now | sign at a price | 1466-1561 | 573-709 | 597-708 | 588-689 | 69-91 |
+
+- Each client rule is right in at most one cell.
+- Only declining to bid is ever right in the integrator seat, in `walk_away`.
+- Copying the first counter never is.
 - Six different contracts are efficient across the pack.
+
+## Leak checks and the trace through the environment
+
+Tested in `tests/test_datacenter_risk_allocation_environment.py`:
+
+- **Twins look identical.** Twins with different hidden integrator types get
+  byte-identical first observations.
+- **The integrator seat's client is hidden.** Its observation is identical
+  whatever the client's charge is.
+- **No labels leak.** No case id or observation contains a cell name or the
+  words lesson, hidden, efficient, reference or twin; case ids are hashes.
+- **The briefs are complete.** Every number the reference uses is in each seat's
+  brief, and the client's own charge is not in the integrator's.
+- **The reference plays clean.** Played through the plugin, it grades zero
+  regret in all 32 cases.
+- **Rules are charged where the pack says they lose.** Price-only haggling costs
+  $0 in `keep_their_terms` and more than $25k where the allocation matters.
+  Walking costs $0 in `walk_away` and loses the whole surplus elsewhere.
+- **Failures are typed.** Malformed JSON, a bad package, terms on a walk, and
+  accepting when there is nothing to accept each end the episode as
+  `invalid_action`.
+- **The pack regenerates exactly.** The committed cases and `pack.json`
+  regenerate byte for byte on Python 3.10 and 3.13. The first build did not,
+  from a float `sum()`; that is DC-T-09, fixed with `math.fsum`.
+
+Reading the rendered prompts by hand before any live call found two wordings a
+model could misread, both fixed before any run:
+
+- a counter "would sign at X" did not say which side of X;
+- "pre-stages only if" read as a promise the integrator could make.
+
+## Probe v1 (prepared, not run)
+
+`tools/run_risk_allocation_probe.py`:
+
+- **Routes and sampling:** 32 cases × 2 routes, Gemini 3.8 Flash (Google AI
+  Studio) and GLM 5.3 Flash (Parasail), temperature 1.0, one run per case.
+- **Calls:** at most 192.
+- **Budget:** capped at $3.
+- **Frozen plan:** the plan freezes routes, limits, prompts, case digests and
+  source digests.
+- **Failures:** a provider failure or invalid move is typed missingness, never
+  rerun.
+- **Dry run:** `execute --route reference` plays the reference through the same
+  path with no network, and grades 0 regret in all 32 episodes (28 signed,
+  4 walked).
+
+The probe is a diagnostic: 16 worlds, one run, twins not independent. It can
+show whether models find the allocation, whether they ask before committing,
+and whether they copy counters. It cannot rank models.
 
 ## Stated simplifications
 
-- Expectations stand in for realised outcomes. A realised draw, with common
-  random numbers across models, is for display only.
-- The four risk events are independent, and there is one delay cost per week.
-- Liquidated damages are uncapped.
-- The integrator's pre-staging is its best response to the contract.
-- The integrator prices honestly by a declared rule. Strategic misreporting is
+- **Outcomes.** Expectations stand in for realised outcomes. The four risk
+  events are independent, there is one delay cost per week, and liquidated
+  damages are uncapped.
+- **Pre-staging** is the integrator's best response to the contract, and the
+  scripted client knows it.
+- **Counterparts price honestly** by a declared rule. Strategic misreporting is
   a later cell.
-- The first-move kind "price an alternative" is often met by the same package
-  (full warranty), so the first move alone separates little. The second move,
-  which contract to sign once the counter is in, carries most of the regret.
-- The source document that prompted the case is a real firm's proposal and is
-  not in the repository. Nothing here is drawn from its figures.
+- **The first move carries little.** In the client seat, "price an alternative"
+  is usually best met by the full warranty. The second move, which contract to
+  sign once the answer is in, carries most of the regret.
+- **The source document** that prompted the case is a real firm's proposal and
+  is not in the repository. Nothing here is drawn from its figures.
 
-## Before a live run (new pack and campaign identity)
+## Before a campaign
 
-1. **The integrator seat.** The same facts, with the model writing the proposal
-   against a scripted client whose risk charge is private. The facts must stay
-   identical across seats.
-2. **Environment wiring:**
-   - a plugin whose one action is a full package and a price, plus accept and
-     walk;
-   - the brief (`brief_text`) as the observation;
-   - counters as replies;
-   - `decision_regret` per move, with the allocation, price and pace
-     diagnostics.
-3. **Leak audits:** clause names carry no verdict; renaming the levels leaves
-   the reference unchanged; the brief's numbers match the world.
-4. **Checks before a campaign:** a manual trace of one world through the
-   plugin, then a crossed pilot on at least two routes, sized from the spread
-   of regret across the pack.
+1. **Kernel lane.** A trusted-plugin row for
+   `datacenter_risk_allocation_v1` / `datacenter_risk_allocation_environment_v1`
+   in `src/aeread/shared_runner/registry.py`, reviewed by someone other than
+   the author. The probe drives the plugin directly and does not need it.
+2. **Scorer.** A shared-runner scorer over `grade`, with typed missingness for
+   invalid episodes.
+3. **Pilot.** A pilot on at least two routes, frozen as its own identity and
+   sized from the probe's spread of regret.
