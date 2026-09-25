@@ -54,15 +54,19 @@ def _git_first(wt: Path, cid: str):
     return {"date": date, "commit": sha, "subject": (subject[0] if subject else "")[:90]}
 
 
-def annotate(catalog: list[dict], wt: Path, idx: dict) -> None:
+def annotate(catalog: list[dict], wt: Path, idx: dict, roots: dict | None = None) -> None:
+    """``roots`` maps a checkout label (a bundle's ``checkout``) to its path; a bundle
+    without one lives in ``wt``. Git history is read in the bundle's own checkout."""
+    roots = roots or {}
     ids = [c["id"] for c in catalog]
     for c in catalog:
-        bundle = wt / c["path"]
+        root = Path(roots.get(c.get("checkout")) or wt)
+        bundle = root / c["path"]
         readme = (bundle / "README.md").read_text() if (bundle / "README.md").exists() else ""
         first = re.split(r"(?<=[.!?])\s", re.sub(r"\s+", " ", readme.split("\n\n")[1] if "\n\n" in readme else readme).strip(), 1)[0] if readme else ""
         first = re.sub(r"^#.*?\n", "", first).strip()
         win = _receipt_window(bundle, idx)
-        git = _git_first(wt, c["id"])
+        git = _git_first(root, c["id"])
         m = re.search(r"(\d{4}-\d{2}-\d{2})", c["id"])
         created = _created_dates(bundle)
         if win:
@@ -97,7 +101,8 @@ if __name__ == "__main__":
     ge, wt, idx_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
     cat_path = ge / "data" / "catalog.json"
     cat = json.loads(cat_path.read_text())
-    annotate(cat["campaigns"], wt, json.loads(idx_path.read_text()))
+    roots_file = Path(__file__).with_name("roots.json")
+    annotate(cat["campaigns"], wt, json.loads(idx_path.read_text()), roots=json.loads(roots_file.read_text()) if roots_file.exists() else None)
     cat_path.write_text(json.dumps(cat, separators=(",", ":"), default=str))
     from collections import Counter
     print("basis:", Counter(c["order"]["basis"] for c in cat["campaigns"]))

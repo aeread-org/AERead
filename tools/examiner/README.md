@@ -25,6 +25,26 @@ to `~/AERead*` plus every worktree git registers for those checkouts, which is
 how runs sealed inside another session's worktree are found. `PY=<python>`
 overrides the interpreter (default: the checkout's `.venv`).
 
+Evidence that lives on branches not yet in the checkout (Housing's campaigns
+sit on `codex/housing-v13-cooldown-full-trajectory`, the lemons pilot on
+`codex/housing-lemons-refusal`) is read from extra checkouts of those branches:
+
+```bash
+AEREAD_EXAMINER_EXTRA_CHECKOUTS=/path/to/housing-v13:/path/to/lemons \
+  tools/examiner/rebuild.sh <AERead checkout>
+```
+
+The checkout passed first wins when two carry a bundle of the same name. Each
+bundle records the branch it came from as `checkout`; the local paths go to
+`roots.json`, which is git-ignored and never published. A folder with
+`reports/*.json` directly under `evidence/` or `evidence/<family>/` counts as a
+bundle, so Housing's older layout (no publication manifest) is catalogued, and
+its per-attempt receipts in `trajectories/attempted.json` and `tables/**` are
+resolved to sealed logs. At most `AEREAD_EXAMINER_LENS_CAP` (default 60)
+sealed attempts per bundle reach the page, round-robin over worlds; the page
+states "N of M". The lemons pilot's narrated lens needs its run root; when that
+is absent, a lens file already in `build/data/lens/` is kept as is.
+
 A rebuild from `main` at 96ab6af0 on 2026-09-23: 72 bundles, 55 with
 trajectories, 50 full-detail lenses, 40 trajectory sets synthesized from sealed
 logs, 8.8 MB of packed data, `check_build.py` clean. The published artifact

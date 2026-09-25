@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 import re
 import sys
 from collections import Counter
@@ -22,6 +23,15 @@ from pathlib import Path
 GE = Path(sys.argv[1])
 WT = Path(sys.argv[2])
 IDX = json.loads(Path(sys.argv[3]).read_text())
+
+# Bundles read from another checkout carry its branch as ``checkout``; roots.json
+# (written by build_general_examiner.py, never published) maps it to a path.
+_ROOTS_FILE = Path(__file__).with_name("roots.json")
+ROOTS_MAP = json.loads(_ROOTS_FILE.read_text()) if _ROOTS_FILE.exists() else {}
+
+
+def bundle_dir(entry: dict) -> Path:
+    return Path(ROOTS_MAP.get(entry.get("checkout")) or WT) / entry["path"]
 OUT = GE / "data" / "lens"
 OUT.mkdir(parents=True, exist_ok=True)
 RAW_CAP = 6000
@@ -222,10 +232,11 @@ def repo_case_file(case_id: str):
     parts = case_id.split(".")
     if len(parts) < 2:
         return None
-    for split in range(1, len(parts)):
-        p = WT / "cases" / Path(*parts[:split]) / (".".join(parts[split:]) + ".json")
-        if p.exists():
-            return p
+    for root in [WT, *[Path(p) for p in ROOTS_MAP.values()]]:
+        for split in range(1, len(parts)):
+            p = root / "cases" / Path(*parts[:split]) / (".".join(parts[split:]) + ".json")
+            if p.exists():
+                return p
     return None
 
 
@@ -341,10 +352,36 @@ def thin_campaign(cf: Path):
     cf.write_text(json.dumps(camp, separators=(",", ":"), default=str))
 
 
+#: At most this many sealed attempts per bundle reach the page, so a 720-trajectory
+#: campaign does not outgrow the artifact. Chosen round-robin over worlds (case ids)
+#: in case order, so every world appears before any world appears twice; the lens
+#: index states how many were shown of how many the bundle publishes.
+LENS_CASE_CAP = int(os.environ.get("AEREAD_EXAMINER_LENS_CAP", "60"))
+
+
+def capped(targets: list) -> list:
+    if len(targets) <= LENS_CASE_CAP:
+        return targets
+    by_case: dict = {}
+    for t in targets:
+        by_case.setdefault(t[3] or "", []).append(t)
+    out, depth = [], 0
+    while len(out) < LENS_CASE_CAP:
+        layer = [rows[depth] for _, rows in sorted(by_case.items()) if depth < len(rows)]
+        if not layer:
+            break
+        out.extend(layer[: LENS_CASE_CAP - len(out)])
+        depth += 1
+    return out
+
+
 def published_attempts(bundle: Path):
     """Receipt digests the bundle publishes that resolve to a sealed attempt directory here."""
     shas = set()
-    for f in [bundle / "publication_manifest.json", *bundle.glob("reports/*.json"), *bundle.glob("receipts/*"), *bundle.glob("tables/*")]:
+    # Housing's older bundles list their attempts in trajectories/attempted.json and
+    # tables/by_run/…, so trajectories and every table file are read, recursively.
+    for f in [bundle / "publication_manifest.json", *bundle.glob("reports/*.json"), *bundle.glob("receipts/*"),
+              *(p for p in bundle.rglob("*") if p.is_file() and p.relative_to(bundle).parts[0] in ("tables", "trajectories"))]:
         try:
             shas.update(HEX.findall(f.read_text()))
         except Exception:
@@ -419,7 +456,7 @@ catalog = json.loads((GE / "data" / "catalog.json").read_text())
 index = {}
 for camp_entry in catalog["campaigns"]:
     cid = camp_entry["id"]
-    bundle = WT / camp_entry["path"]
+    bundle = bundle_dir(camp_entry)
     cf = GE / "data" / "campaigns" / f"{cid}.json"
     unpack_json(cf)
     published_grain = cf.exists() and not (json.loads(cf.read_text()).get("source") == "sealed_logs")
@@ -455,12 +492,15 @@ for camp_entry in catalog["campaigns"]:
         layout = sorted({p.relative_to(bundle).parts[0] for p in bundle.rglob("*") if p.is_file()})
         manifest = json.loads((bundle / "publication_manifest.json").read_text()) if (bundle / "publication_manifest.json").exists() else {}
         receipt_lists = [v for k, v in (manifest.get("source_bindings") or {}).items() if "receipt" in k and isinstance(v, list) and v]
-        has_receipts = bool(receipt_lists) or any(bundle.glob("receipts/*")) or any("receipt_sha256" in f.read_text() for f in bundle.glob("tables/*") if f.is_file())
+        has_receipts = bool(receipt_lists) or any(bundle.glob("receipts/*")) or any(
+            "receipt_sha256" in f.read_text(errors="ignore") for f in bundle.rglob("*") if f.is_file() and f.relative_to(bundle).parts[0] in ("tables", "trajectories"))
         why = ("it publishes per-attempt receipt digests, but none resolves to a sealed attempt directory on this machine (the run root is elsewhere)" if has_receipts
                else "it publishes no per-attempt receipts at all (a derived, aggregate or register bundle: " + ", ".join(layout) + ")")
         index[cid] = {"file": None, "kind": "none", "cases": 0, "sealed": 0, "layout": layout, "publishes_receipts": has_receipts,
                       "note": "no step grain in the bundle and nothing to reconstruct it from: " + why}
         continue
+    total_targets = len(targets)
+    targets = capped(targets)
     cases_out, instructions_all, sealed = [], {}, 0
     for sha, cell_id, attempt_id, case_id in targets:
         dirs = IDX.get(sha)
@@ -510,7 +550,8 @@ for camp_entry in catalog["campaigns"]:
     if kind == "sealed":
         thin_campaign(cf)
     index[cid] = {"file": f"data/lens/{cid}.json", "kind": kind, "cases": len(cases_out), "sealed": sealed, "bytes": out.stat().st_size,
-                  "published_grain": published_grain,
+                  "published_grain": published_grain, "published_attempts": total_targets,
+                  "shown_rule": None if total_targets <= LENS_CASE_CAP else f"{len(cases_out)} of {total_targets} attempts, round-robin over worlds in case order",
                   "note": ("observations, states and consequences from the sealed event logs on this machine" + ("" if published_grain else "; the bundle publishes no step grain, so the steps themselves come from those logs")) if kind == "sealed"
                   else "no sealed attempt directory on this machine; world facts from the repository case files only"}
     acts = sum(len(p["actions"]) for c in cases_out for p in c.get("phases", []))

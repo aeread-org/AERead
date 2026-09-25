@@ -18,6 +18,15 @@ import sys
 from pathlib import Path
 
 GE = Path(sys.argv[1]); WT = Path(sys.argv[2])
+
+# Bundles read from another checkout carry its branch as ``checkout``; roots.json
+# (written by build_general_examiner.py, never published) maps it to a path.
+_ROOTS_FILE = Path(__file__).with_name("roots.json")
+ROOTS_MAP = json.loads(_ROOTS_FILE.read_text()) if _ROOTS_FILE.exists() else {}
+
+
+def bundle_dir(entry: dict) -> Path:
+    return Path(ROOTS_MAP.get(entry.get("checkout")) or WT) / entry["path"]
 OUT = GE / "data" / "results"; OUT.mkdir(parents=True, exist_ok=True)
 LABELS = ["model_id", "model", "route", "candidate_id", "arm", "condition", "surface", "world", "world_id", "case_id", "case", "scenario",
           "supplier_id", "name", "id", "label", "track", "policy", "profile_id", "stratum", "archetype", "treatment", "seat_id", "leaf_id", "metric_name"]
@@ -136,7 +145,7 @@ def walk(node, file: str, path: str, tables: list, intervals: list, headline: li
 catalog = json.loads((GE / "data" / "catalog.json").read_text())
 index = {}
 for c in catalog["campaigns"]:
-    bundle = WT / c["path"]
+    bundle = bundle_dir(c)
     tables, intervals, headline = [], [], []
     hints: list = []  # what the bundle itself names as the guarded / primary metric
     def collect_hints(node, depth=0):

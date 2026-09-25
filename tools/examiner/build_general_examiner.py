@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -18,6 +20,29 @@ from pathlib import Path
 WT = Path(sys.argv[1]); OUT = Path(sys.argv[2])
 SC = Path(__file__).resolve().parent
 EVID = WT / "evidence"
+# Evidence published on branches that have not reached this checkout (a family's
+# own working branch, say) is read from extra checkouts of those branches, named
+# in AEREAD_EXAMINER_EXTRA_CHECKOUTS (os.pathsep-separated). This checkout wins
+# when two carry a bundle of the same name. Each bundle records the branch it
+# was read from; the local paths stay in roots.json, which is never published.
+EXTRA_ROOTS = [Path(p).resolve() for p in os.environ.get("AEREAD_EXAMINER_EXTRA_CHECKOUTS", "").split(os.pathsep) if p.strip()]
+ROOTS = [WT] + [r for r in EXTRA_ROOTS if r != WT.resolve()]
+NOT_CAMPAIGNS = {"shared_runner", "errata"}  # kernel and errata records, not campaign bundles
+
+
+def checkout_label(root: Path) -> str:
+    """The branch a checkout is on; for a detached checkout, the remote branch at its head."""
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True).stdout.strip()
+    name = git("rev-parse", "--abbrev-ref", "HEAD")
+    if name and name != "HEAD":
+        return name
+    remote = [b.strip() for b in git("branch", "-r", "--points-at", "HEAD").splitlines() if b.strip() and "->" not in b]
+    return remote[0].removeprefix("origin/") if remote else (git("rev-parse", "--short", "HEAD") or root.name)
+
+
+ROOT_LABEL = {r: checkout_label(r) for r in ROOTS}
+FAMILY_ROOT: dict = {}  # family -> the checkout whose docs describe it (the one supplying most of its bundles)
 (OUT / "data" / "campaigns").mkdir(parents=True, exist_ok=True)
 
 FAMILY_FROM_PREFIX = [
@@ -51,8 +76,8 @@ def short(value, n=220):
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
-def family_of(bundle: Path) -> str:
-    rel = bundle.relative_to(EVID).parts
+def family_of(bundle: Path, evid: Path = EVID) -> str:
+    rel = bundle.relative_to(evid).parts
     if len(rel) >= 2 and rel[0] in FAMILY_LABEL:
         return rel[0]
     for prefix, fam in FAMILY_FROM_PREFIX:
@@ -63,6 +88,10 @@ def family_of(bundle: Path) -> str:
     return "other"
 
 
+def family_root(family: str | None) -> Path:
+    return FAMILY_ROOT.get(family, WT)
+
+
 def family_label(family: str) -> str:
     return FAMILY_LABEL.get(family) or family.replace("_", " ").capitalize()
 
@@ -71,9 +100,9 @@ def qc_profile_for(family: str) -> str | None:
     """The family's QC profile: the known map first, else any docs/families/*/qc.md that names the family."""
     if family in QC_PROFILE:
         return QC_PROFILE[family]
-    for cand in sorted((WT / "docs" / "families").glob("*/qc.md")):
+    for cand in sorted((family_root(family) / "docs" / "families").glob("*/qc.md")):
         if cand.parent.name.replace("-", "_") == family or family in cand.read_text():
-            QC_PROFILE[family] = str(cand.relative_to(WT))
+            QC_PROFILE[family] = str(cand.relative_to(family_root(family)))
             return QC_PROFILE[family]
     return None
 
@@ -233,7 +262,7 @@ def report_facts(bundle: Path) -> list:
     if isinstance(plan, dict) and isinstance(plan.get("worlds"), list) and plan["worlds"]:
         packs = {Path(str(w.get("path", ""))).parent for w in plan["worlds"] if isinstance(w, dict)}
         for pack in sorted(packs):
-            manifest_path = EVID.parent / pack / "pack.json"
+            manifest_path = _bundle_root(bundle) / pack / "pack.json"
             pm = read_json(manifest_path)
             if isinstance(pm, dict) and pm.get("public_policies"):
                 facts.append({"key": "reference_policies", "value": ", ".join(pm["public_policies"]),
@@ -250,7 +279,19 @@ def report_facts(bundle: Path) -> list:
 
 # ---------------- incident log ----------------
 def parse_incident_log() -> tuple[list, dict]:
-    text = (WT / "docs/operations/incident_log.md").read_text()
+    rows, sections, seen = [], {}, set()
+    for root in ROOTS:
+        path = root / "docs/operations/incident_log.md"
+        if not path.exists():
+            continue
+        r, s = _parse_incident_text(path.read_text())
+        for row in r:
+            if row["id"] not in seen:
+                seen.add(row["id"]); rows.append(row); sections.setdefault(row["section"], []).append(row["id"])
+    return rows, sections
+
+
+def _parse_incident_text(text: str) -> tuple[list, dict]:
     rows = []; section = None; sections = {}
     for line in text.splitlines():
         if line.startswith("## "):
@@ -283,9 +324,10 @@ def section_family(section: str) -> str | None:
 # ---------------- QC profiles ----------------
 def qc_sections(family: str) -> list:
     path = qc_profile_for(family)
-    if not path or not (WT / path).exists():
+    root = family_root(family)
+    if not path or not (root / path).exists():
         return []
-    text = (WT / path).read_text(); out = []; cur = None
+    text = (root / path).read_text(); out = []; cur = None
     for line in text.splitlines():
         if line.startswith("## "):
             cur = {"heading": line[3:].strip(), "text": []}; out.append(cur)
@@ -358,7 +400,8 @@ def family_qc_status(family) -> str | None:
     if family in _FAM_STATUS:
         return _FAM_STATUS[family]
     rel = qc_profile_for(family) if family else None
-    text = (WT / rel).read_text() if rel and (WT / rel).exists() else ""
+    root = family_root(family)
+    text = (root / rel).read_text() if rel and (root / rel).exists() else ""
     m = re.search(r"\*\*Status:\*\*(.+?)\n\n", text, re.S)
     _FAM_STATUS[family] = re.sub(r"\s+", " ", m.group(1)).strip() if m else None
     return _FAM_STATUS[family]
@@ -547,12 +590,44 @@ def campaign_file(bundle: Path, cid: str, family: str, rows: list, tables: dict)
 
 
 # ---------------- main ----------------
+def discover(root: Path) -> set:
+    """Bundles under a checkout's evidence/: anything with a publication manifest or a
+    sanitized step grain, and the older layout (a reports/ folder of JSON directly under
+    evidence/ or evidence/<family>/, as Housing's campaigns and derived analyses use)."""
+    ev = root / "evidence"
+    found = {p.parent for p in ev.rglob("publication_manifest.json")} | {p.parent.parent for p in ev.rglob("trajectories/sanitized.jsonl")}
+    level1 = [d for d in ev.iterdir() if d.is_dir()]
+    candidates = level1 + [x for d in level1 if d.name in FAMILY_LABEL for x in d.iterdir() if x.is_dir()]
+    for d in candidates:
+        if any((d / "reports").glob("*.json")) and not any(a in found for a in d.parents) and d not in found:
+            found.add(d)
+    return {d for d in found if family_of(d, ev) not in NOT_CAMPAIGNS}
+
+
+BUNDLE_ROOT: dict = {}
+for root in ROOTS:
+    for d in sorted(discover(root)):
+        if d.name not in {b.name for b in BUNDLE_ROOT}:
+            BUNDLE_ROOT[d] = root
+
+
+def _bundle_root(bundle: Path) -> Path:
+    return BUNDLE_ROOT.get(bundle, WT)
+
+
+_fam_counts: dict = defaultdict(Counter)
+for d, root in BUNDLE_ROOT.items():
+    _fam_counts[family_of(d, root / "evidence")][root] += 1
+FAMILY_ROOT.update({fam: counts.most_common(1)[0][0] for fam, counts in _fam_counts.items()})
+(SC / "roots.json").write_text(json.dumps({ROOT_LABEL[r]: str(r) for r in ROOTS}, indent=1))
+
 incident_rows, incident_sections = parse_incident_log()
-bundles = sorted({p.parent for p in EVID.rglob("publication_manifest.json")} | {p.parent.parent for p in EVID.rglob("trajectories/sanitized.jsonl")})
+bundles = sorted(BUNDLE_ROOT, key=lambda b: (str(b.name)))
 catalog = []
 for bundle in bundles:
     cid = bundle.name
-    family = family_of(bundle)
+    root = BUNDLE_ROOT[bundle]
+    family = family_of(bundle, root / "evidence")
     manifest = read_json(bundle / "publication_manifest.json") or {}
     readme = readme_excerpt(bundle)
     facts = report_facts(bundle)
@@ -596,7 +671,8 @@ for bundle in bundles:
         grain_summary.update(legacy)
     status = derive_status(manifest, readme, facts, issues)
     catalog.append({
-        "id": cid, "path": str(bundle.relative_to(WT)), "family": family, "family_label": family_label(family),
+        "id": cid, "path": str(bundle.relative_to(root)), "family": family, "family_label": family_label(family),
+        "checkout": ROOT_LABEL[root] if root != WT else None,
         "stem": stem, "version": version, "version_number": vnum, "variant": tail, "date": date,
         "manifest": {k: manifest.get(k) for k in ("schema_version", "campaign_id", "publication_id", "claim_status", "cost_qualifier", "total_cost_usd",
                                                     "winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed", "prior_pilot_attempts")},
@@ -613,7 +689,7 @@ for c in catalog:
     chains[(c["family"], c["stem"])].append(c["id"])
 _spec_co = __import__("importlib.util").util.spec_from_file_location("campaign_order", Path(__file__).with_name("campaign_order.py")); _co_mod = __import__("importlib.util").util.module_from_spec(_spec_co); _spec_co.loader.exec_module(_co_mod)
 _idx_file = Path(__file__).with_name("receipt_index.json")
-_co_mod.annotate(catalog, WT, json.loads(_idx_file.read_text()) if _idx_file.exists() else {})
+_co_mod.annotate(catalog, WT, json.loads(_idx_file.read_text()) if _idx_file.exists() else {}, roots={ROOT_LABEL[r]: r for r in ROOTS})
 for key, ids in chains.items():
     ordered = sorted(ids, key=lambda i: (next(c for c in catalog if c["id"] == i)["version_number"], next(c for c in catalog if c["id"] == i)["date"] or "", ((next(c for c in catalog if c["id"] == i).get("order") or {}).get("at") or ""), i))
     for pos, i in enumerate(ordered):
@@ -674,7 +750,7 @@ def _git_branch():
 
 # chronological order within each family (receipt times on this machine, else git), stated per row
 (OUT / "data" / "catalog.json").write_text(json.dumps({
-    "generated_from": {"branch": _git_branch(), "evidence_root": "evidence/", "incident_log": "docs/operations/incident_log.md",
+    "generated_from": {"branch": _git_branch(), "extra_branches": [ROOT_LABEL[r] for r in ROOTS[1:]], "evidence_root": "evidence/", "incident_log": "docs/operations/incident_log.md",
                        "qc_profiles": QC_PROFILE, "benchmark_qc": "docs/operations/benchmark_qc.md"},
     "gate_names": GATE_NAMES, "families": sorted({c["family"] for c in catalog}), "family_label": {f: family_label(f) for f in {c["family"] for c in catalog}},
     "campaigns": catalog, "family_incidents": family_rows, "declared_graphs": declared,

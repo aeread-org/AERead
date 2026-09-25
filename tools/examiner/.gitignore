@@ -1,3 +1,4 @@
 build/
 receipt_index.json
 __pycache__/
+roots.json
