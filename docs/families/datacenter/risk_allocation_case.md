@@ -405,13 +405,43 @@ Limits:
 - **The source document** that prompted the case is a real firm's proposal and
   is not in the repository. Nothing here is drawn from its figures.
 
-## Before a campaign
+## Dev campaign through the shared runner
 
-1. **Kernel lane.** A trusted-plugin row for
-   `datacenter_risk_allocation_v1` / `datacenter_risk_allocation_environment_v1`
-   in `src/aeread/shared_runner/registry.py`, reviewed by someone other than
-   the author. The probe drives the plugin directly and does not need it.
-2. **Scorer.** A shared-runner scorer over `grade`, with typed missingness for
-   invalid episodes.
-3. **Pilot.** A pilot on at least two routes, frozen as its own identity and
-   sized from the probe's spread of regret.
+`datacenter_risk_allocation_dev_campaign_v1` reruns the three probe arms as
+sealed shared-runner receipts: 192 cells, $2.11, published at
+`evidence/datacenter_development/datacenter_risk_allocation_dev_campaign_v1/`.
+The trusted-plugin row is in draft PR #219 (kernel lane); the campaign ran from
+this branch with that row applied. 169 episodes are valid; 21 are provider
+exclusions (12 rate limits, 3 interrupted streams, 3 connection errors, 3
+`finish_reason: error`, DC-O-10) and 2 replies were cut off by the output
+limit. The exclusions concentrate in GLM at default reasoning, where only 18 of
+32 cells are valid, so its integrator row rests on 5 worlds.
+
+Paired against the low-effort arm on the same worlds, mean change in decision
+regret ($ thousands), 95% interval from a world-clustered bootstrap (twins
+clustered with their base world):
+
+| Arm | Route | Seat | Worlds | Change | 95% interval |
+|---|---|---|---|---|---|
+| default reasoning | Gemini | client | 16 | −52 | −141 to −0 |
+| default reasoning | Gemini | integrator | 16 | −105 | −208 to −33 |
+| default reasoning | GLM | client | 13 | −112 | −164 to −52 |
+| default reasoning | GLM | integrator | 5 | −186 | −233 to −136 |
+| two prices | Gemini | client | 16 | +3 | −28 to +40 |
+| two prices | Gemini | integrator | 14 | −33 | −114 to +32 |
+| two prices | GLM | client | 10 | +56 | −18 to +117 |
+| two prices | GLM | integrator | 15 | +27 | −38 to +89 |
+
+Default reasoning lowers regret in every route and seat. A second price in
+each round makes no detectable difference. The GLM integrator row is 5 worlds
+and the Gemini client interval touches zero. This is a diagnostic dev
+campaign: one run, 16 worlds per seat, no model ranking.
+
+## Before a claim
+
+1. **Kernel lane.** PR #219 merged after a non-author review.
+2. **Retries.** GLM at default reasoning needs declared retries for rate limits
+   and server errors, under a new campaign identity, before its missingness is
+   small enough to read.
+3. **Pilot.** A frozen pilot on held-out worlds, sized from this campaign's
+   spread of regret.
