@@ -30,8 +30,9 @@ echo "[6/7] quantitative results per bundle (tables, intervals, headline numbers
 python3 "$T/build_results.py" "$OUT" "$WT"
 echo "[6b] case cards: family cards and their checks evaluated per cell"
 python3 "$T/build_case_cards.py" "$OUT" "$WT" "$T/receipt_index.json" || echo "  case cards failed; the page shows none"
-SC=${AEREAD_EXAMINER_STARCRAFT_RUNS:-$HOME/starcraft_master/runs}
-if [ -d "$SC" ]; then
+# opt-in: the owner has not released the StarCraft prototype to the examiner yet (2026-09-25)
+SC=${AEREAD_EXAMINER_STARCRAFT_RUNS:-}
+if [ -n "$SC" ] && [ -d "$SC" ]; then
   echo "[6c] StarCraft prototype matches (local runs, not AERead evidence)"
   python3 "$T/build_starcraft.py" "$OUT" "$SC" || echo "  starcraft build failed; the page shows none"
 fi

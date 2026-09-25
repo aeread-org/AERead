@@ -12,6 +12,7 @@ checklist. Nothing machine-local is published: absolute paths are cut to run-rel
 logs and controller logs are never copied.
 
     python3 build_starcraft.py <examiner build dir> <starcraft runs dir>
+    python3 build_starcraft.py <examiner build dir> --remove     # take the bundle out of a build again
 """
 from __future__ import annotations
 
@@ -26,7 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 OUT = Path(sys.argv[1])
-RUNS = Path(sys.argv[2]).expanduser().resolve()
+REMOVE = sys.argv[2] == "--remove"
+RUNS = None if REMOVE else Path(sys.argv[2]).expanduser().resolve()
 BID = "starcraft_codex_claude_local"
 FAMILY = "starcraft"
 LABEL = "StarCraft (OpenBW prototype)"
@@ -247,7 +249,28 @@ def build_case(run: Path, reports: Path):
     return case, lens_case, launched, [p["phase_id"] for p in phases], backends, races
 
 
+def remove():
+    """Strip the bundle from a build: catalog entry, family, declared graph, lens index, details, and its two files."""
+    cat_path = OUT / "data" / "catalog.json"
+    cat = json.loads(cat_path.read_text())
+    cat["campaigns"] = [c for c in cat["campaigns"] if c.get("family") != FAMILY]
+    cat["families"] = [f for f in cat["families"] if f != FAMILY]
+    cat.get("family_label", {}).pop(FAMILY, None); cat.get("declared_graphs", {}).pop(FAMILY, None)
+    cat_path.write_text(json.dumps(cat, separators=(",", ":"), default=str))
+    idx_path = OUT / "data" / "lens" / "index.json"
+    if idx_path.exists():
+        idx = json.loads(idx_path.read_text()); idx.pop(BID, None); idx_path.write_text(json.dumps(idx, separators=(",", ":")))
+    det_path = OUT / "data" / "check_details.json"
+    if det_path.exists():
+        det = load(det_path); det.get("campaigns", {}).pop(BID, None); pack(det_path, det)
+    for rel in (f"data/campaigns/{BID}.json", f"data/lens/{BID}.json"):
+        (OUT / rel).unlink(missing_ok=True)
+    print("starcraft: removed from", OUT)
+
+
 def main():
+    if REMOVE:
+        remove(); return
     runs = sorted(p for p in RUNS.glob("mode-*.*") if (p / "manifest.json").exists())
     if not runs:
         print("starcraft: no sealed match under", RUNS); return
