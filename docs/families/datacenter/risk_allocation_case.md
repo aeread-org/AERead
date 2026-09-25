@@ -286,6 +286,35 @@ these, each a new probe identity:
 - a variant in which one round may ask the price of two packages, so the
   alternative's price is seen rather than inferred.
 
+## Probe v2: two arms, each changing one thing from v1
+
+Written before either arm ran. Probe v1 left one question open. Is the
+anchoring a limit of reasoning at low effort, or is it the task itself, where
+seeing any other package's price means inferring the counterpart's costs from
+one number?
+
+| Arm | Changes from v1 | Keeps from v1 |
+|---|---|---|
+| `risk_allocation_probe_v2_default_reasoning` | no reasoning setting declared; output limit per route from a smoke | pack `risk_allocation_dev_v1`, prompts, schema, routes, temperature |
+| `risk_allocation_probe_v2_two_prices` | pack `risk_allocation_two_prices_dev_v1`: a price request may name an alternate package, the answer prices both, and either can be accepted; output limit per route from a smoke | low reasoning effort, the same 16 worlds and break-off draws, routes, temperature |
+
+- **v1 is untouched.** The two-prices protocol is opt-in per case
+  (`packages_per_request: 2`), so every one-price case and prompt is
+  unchanged. Replaying all 64 v1 episodes through the new code reproduced every
+  prompt (125), every final state and every grade byte for byte.
+- **The yardstick is unchanged.** A second price is worth exactly $0 to the
+  reference in all 32 cases, because the reference infers every package's price
+  from one answer. Any improvement a model shows in the two-prices arm is
+  therefore inference it did not do in v1.
+- **Output limits come from a smoke.** The limits were sized by a stated rule,
+  because v1's fixed limit truncated 11 of GLM's episodes (DC-O-08). The rule is
+  twice the longest reply in a smoke of first-round prompts (reasoning
+  included), rounded up to 1,000 tokens, and at least 4,000.
+- **What would read which way.** If allocation improves only with a second price, the
+  models can use a price they are shown but do not infer one. If it improves
+  with default reasoning, low effort was the limit. If neither moves it, the
+  anchoring is the models' negotiating habit.
+
 ## Stated simplifications
 
 - **Outcomes.** Expectations stand in for realised outcomes. The four risk

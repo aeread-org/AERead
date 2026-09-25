@@ -259,12 +259,15 @@ SEATS = ("client", "integrator")
 
 
 class Game:
-    def __init__(self, w: World, seat: str, own: IntegratorType | None = None) -> None:
+    """``alternates`` is the two-prices protocol: a price request may name a second
+    package, the answer prices both, and either can then be accepted."""
+
+    def __init__(self, w: World, seat: str, own: IntegratorType | None = None, *, alternates: bool = False) -> None:
         if seat not in SEATS:
             raise ValueError(f"unknown seat {seat!r}")
         if seat == "integrator" and own is None:
             raise ValueError("the integrator seat needs the integrator's own type")
-        self.w, self.seat, self.own = w, seat, own
+        self.w, self.seat, self.own, self.alternates = w, seat, own, alternates
 
     @property
     def prior(self) -> tuple[tuple[Any, float], ...]:
@@ -319,19 +322,39 @@ def _key(x: float) -> float:
 #
 # Only the thresholds of consistent types are worth proposing at (between two,
 # the same types sign at a worse price), plus PRICE_IT, which no type signs.
+#
+# Under the two-prices protocol a price request may also name an alternate
+# package; the answer prices both, both become standing offers, and an accept
+# names which one it takes.
+
+Offer = tuple["Package", float]
 
 
 @dataclass(frozen=True)
 class Action:
     kind: str  # accept | walk | propose
-    package: Package | None = None
+    package: Package | None = None  # for accept: which standing offer, when there are two
     price: float | str | None = None  # a number, or PRICE_IT
+    alternate: Package | None = None  # a second package to price, with PRICE_IT only
 
     def label(self) -> str:
+        if self.kind == "accept" and self.package is not None:
+            return f"accept {self.package.label()}"
         if self.kind != "propose":
             return self.kind
         price = "ask for its price" if self.price == PRICE_IT else f"at {self.price:,.1f}"
-        return f"propose {self.package.label()} {price}"
+        also = f" and {self.alternate.label()}'s" if self.alternate is not None else ""
+        return f"propose {self.package.label()} {price}{also}"
+
+
+def accept_options(standing: Offer | None, also: tuple[Offer, ...] = ()) -> dict[Action, Offer]:
+    """The accept actions available: one plain accept for a single standing offer,
+    or one per package when an alternate was priced too."""
+    if standing is None:
+        return {}
+    if not also:
+        return {Action("accept"): standing}
+    return {Action("accept", package=o[0]): o for o in (standing, *also)}
 
 
 class Solver:
@@ -354,56 +377,65 @@ class Solver:
     def _prices(self, types: frozenset, pkg: Package, round_: int) -> list[float | str]:
         return [PRICE_IT, *sorted({_key(self.game.threshold(pkg, t, round_)) for t in types})]
 
-    def proposal_value(self, round_: int, types: frozenset, pkg: Package, price: float | str) -> float:
+    def proposal_value(self, round_: int, types: frozenset, pkg: Package, price: float | str, alternate: Package | None = None) -> float:
         g, w = self.game, self.w
         # math.fsum, not sum(): Python 3.12 changed float sum() to compensated summation,
         # and a derived number must not depend on the interpreter (DC-T-05, DC-T-09).
         z = math.fsum(self.weight[t] for t in types)
         terms: list[float] = []
-        refused: dict[float, list[Any]] = {}
+        refused: dict[tuple[float, ...], list[Any]] = {}
         for t in types:
             thr = _key(g.threshold(pkg, t, round_))
             if price != PRICE_IT and g.signs(price, thr):
                 terms.append(self.weight[t] * g.signed_cost(pkg, price, t))
             else:
-                refused.setdefault(thr, []).append(t)
-        for thr, group in refused.items():
+                answer = (thr,) if alternate is None else (thr, _key(g.threshold(alternate, t, round_)))
+                refused.setdefault(answer, []).append(t)
+        for answer, group in refused.items():
             grp = frozenset(group)
             mass = math.fsum(self.weight[t] for t in grp)
+            standing = (pkg, answer[0])
+            also = () if alternate is None else ((alternate, answer[1]),)
             if round_ < w.rounds:
-                after = self.value(round_ + 1, grp, (pkg, thr))
+                after = self.value(round_ + 1, grp, standing, also)
             else:
-                after = min(g.outside, self.accept_value(grp, (pkg, thr)))
+                after = min([g.outside, *(self.accept_value(grp, o) for o in accept_options(standing, also).values())])
             terms.append(mass * (w.terms.round_cost + w.terms.breakoff * g.outside + (1.0 - w.terms.breakoff) * after))
         return math.fsum(terms) / z
+
+    def _requests(self, types: frozenset, round_: int):
+        for pkg in PACKAGES:
+            for price in self._prices(types, pkg, round_):
+                yield Action("propose", pkg, price)
+        if self.game.alternates:
+            for i, pkg in enumerate(PACKAGES):
+                for alt in PACKAGES[i + 1:]:
+                    yield Action("propose", pkg, PRICE_IT, alt)
 
     def best_proposal(self, round_: int, types: frozenset) -> tuple[float, Action]:
         key = (round_, types)
         if key not in self._best:
             best: tuple[float, Action] | None = None
-            for pkg in PACKAGES:
-                for price in self._prices(types, pkg, round_):
-                    v = self.proposal_value(round_, types, pkg, price)
-                    if best is None or v < best[0] - 1e-9:
-                        best = (v, Action("propose", pkg, price))
+            for a in self._requests(types, round_):
+                v = self.proposal_value(round_, types, a.package, a.price, a.alternate)
+                if best is None or v < best[0] - 1e-9:
+                    best = (v, a)
             self._best[key] = best
         return self._best[key]
 
-    def q_values(self, round_: int, types: frozenset, standing: tuple[Package, float] | None, final: bool = False) -> dict[Action, float]:
+    def q_values(self, round_: int, types: frozenset, standing: Offer | None, final: bool = False, also: tuple[Offer, ...] = ()) -> dict[Action, float]:
         """Expected cost of each action available here, each followed by the best play."""
         q = {Action("walk"): self.game.outside}
-        if standing is not None:
-            q[Action("accept")] = self.accept_value(types, standing)
+        for a, offer in accept_options(standing, also).items():
+            q[a] = self.accept_value(types, offer)
         if not final:
-            for pkg in PACKAGES:
-                for price in self._prices(types, pkg, round_):
-                    q[Action("propose", pkg, price)] = self.proposal_value(round_, types, pkg, price)
+            for a in self._requests(types, round_):
+                q[a] = self.proposal_value(round_, types, a.package, a.price, a.alternate)
         return q
 
-    def value(self, round_: int, types: frozenset, standing: tuple[Package, float] | None) -> float:
+    def value(self, round_: int, types: frozenset, standing: Offer | None, also: tuple[Offer, ...] = ()) -> float:
         options = [self.game.outside, self.best_proposal(round_, types)[0]]
-        if standing is not None:
-            options.append(self.accept_value(types, standing))
+        options.extend(self.accept_value(types, o) for o in accept_options(standing, also).values())
         return min(options)
 
     def initial_types(self, opening: float | None) -> frozenset:
@@ -425,8 +457,9 @@ class Seen:
     round: int
     opening_price: float | None  # the integrator's opening, in the client seat
     standing: tuple[Package, float] | None
-    history: tuple[dict[str, Any], ...]  # each refused proposal: round, package, price, counter
+    history: tuple[dict[str, Any], ...]  # each refused proposal: round, package, price, counter (and alternate, alternate_counter)
     final: bool  # the standing offer is the last round's answer: accept or walk
+    also: tuple[Offer, ...] = ()  # a second standing offer, from an alternate priced in the same answer
 
 
 Policy = Callable[[Seen], Action]
@@ -444,8 +477,29 @@ def advance(game: Game, seen: Seen, action: Action, other: Any) -> tuple[str, Se
     if action.price != PRICE_IT and game.signs(action.price, thr):
         return "signed", None, game.signed_cost(action.package, action.price, other)
     step = {"round": seen.round, "package": action.package, "price": action.price, "counter": thr}
+    also: tuple[Offer, ...] = ()
+    if action.alternate is not None:
+        alt = game.threshold(action.alternate, other, seen.round)
+        step.update(alternate=action.alternate, alternate_counter=alt)
+        also = ((action.alternate, alt),)
     last = seen.round == game.w.rounds
-    return "refused", Seen(seen.round if last else seen.round + 1, seen.opening_price, (action.package, thr), seen.history + (step,), last), None
+    return "refused", Seen(seen.round if last else seen.round + 1, seen.opening_price, (action.package, thr), seen.history + (step,), last, also), None
+
+
+def accepted_offer(seen: Seen, action: Action) -> Offer:
+    options = accept_options(seen.standing, seen.also)
+    if action in options:
+        return options[action]
+    if action.kind == "accept" and not seen.also and seen.standing is not None and action.package in (None, seen.standing[0]):
+        return seen.standing
+    raise ValueError(f"{action.label()} names no standing offer")
+
+
+def normalise(seen: Seen, action: Action) -> Action:
+    """The reference's key for an action: a plain accept for a single standing offer."""
+    if action.kind == "accept" and not seen.also:
+        return Action("accept")
+    return action
 
 
 def expected_cost(game: Game, other: Any, policy: Policy) -> float:
@@ -458,7 +512,8 @@ def expected_cost(game: Game, other: Any, policy: Policy) -> float:
         if act.kind == "accept":
             if seen.standing is None:
                 raise ValueError("nothing to accept")
-            return game.signed_cost(seen.standing[0], seen.standing[1], other)
+            pkg, price = accepted_offer(seen, act)
+            return game.signed_cost(pkg, price, other)
         if seen.final:
             raise ValueError("after the last round's answer the model can only accept or walk")
         result, nxt, cost = advance(game, seen, act, other)
@@ -473,6 +528,8 @@ def consistent_types(s: Solver, seen: Seen) -> frozenset:
     types = s.initial_types(seen.opening_price)
     for h in seen.history:
         types = frozenset(t for t in types if abs(s.game.threshold(h["package"], t, h["round"]) - h["counter"]) < 1e-6)
+        if h.get("alternate") is not None:
+            types = frozenset(t for t in types if abs(s.game.threshold(h["alternate"], t, h["round"]) - h["alternate_counter"]) < 1e-6)
     return types
 
 
@@ -480,7 +537,7 @@ def reference_policy(game: Game) -> Policy:
     s = Solver(game)
 
     def act(seen: Seen) -> Action:
-        return _best_of(s.q_values(seen.round, consistent_types(s, seen), seen.standing, seen.final))
+        return _best_of(s.q_values(seen.round, consistent_types(s, seen), seen.standing, seen.final, seen.also))
 
     return act
 
@@ -489,11 +546,12 @@ def decision_regret(game: Game, seen: Seen, action: Action, solver: Solver | Non
     """What this action gives up against the best one, in expected cost to the model, on its own information."""
     s = solver or Solver(game)
     types = consistent_types(s, seen)
-    q = s.q_values(seen.round, types, seen.standing, seen.final)
+    q = s.q_values(seen.round, types, seen.standing, seen.final, seen.also)
+    action = normalise(seen, action)
     if action not in q:
-        if action.kind != "propose" or seen.final:
+        if action.kind != "propose" or seen.final or (action.alternate is not None and not game.alternates):
             raise ValueError(f"{action.label()} is not available here")
-        q[action] = s.proposal_value(seen.round, types, action.package, action.price)
+        q[action] = s.proposal_value(seen.round, types, action.package, action.price, action.alternate)
     return q[action] - min(q.values())
 
 
@@ -575,6 +633,8 @@ def rules(game: Game) -> dict[str, Policy]:
 def first_move_kind(a: Action) -> str:
     if a.kind in ("accept", "walk"):
         return a.kind
+    if a.alternate is not None:
+        return "price_two"
     if a.price == PRICE_IT:
         return "price_opening" if a.package == OPENING else "price_alternative"
     return "sign_at_a_price"
@@ -664,7 +724,7 @@ def _kinds(first: Mapping[Action, float]) -> dict[str, float]:
     for a, v in first.items():
         k = first_move_kind(a)
         best[k] = min(best.get(k, float("inf")), v)
-    best["price_it"] = min(best["price_opening"], best["price_alternative"])
+    best["price_it"] = min(v for k, v in best.items() if k in ("price_opening", "price_alternative", "price_two"))
     return best
 
 
@@ -692,9 +752,9 @@ def draw_world(rng: random.Random, cell: str) -> World:
     return replace(w, client=replace(client, turnkey_all_in=_round(price_only + u["turnkey_offset"], 10)))
 
 
-def seat_view(w: World, seat: str, integrator: IntegratorType) -> dict[str, Any]:
+def seat_view(w: World, seat: str, integrator: IntegratorType, *, alternates: bool = False) -> dict[str, Any]:
     """The reference's first move and each rule's regret for one seat of a world."""
-    game = Game(w, "client") if seat == "client" else Game(w, "integrator", integrator)
+    game = Game(w, "client", alternates=alternates) if seat == "client" else Game(w, "integrator", integrator, alternates=alternates)
     other = integrator if seat == "client" else w.client.risk_charge
     ref = solve(game, other)
     ref_cost = prior_expected(game, reference_policy(game))
@@ -844,14 +904,19 @@ def _term_lines(w: World, who: str) -> list[str]:
     ]
 
 
-def _protocol_lines(w: World, who: str) -> list[str]:
+def _protocol_lines(w: World, who: str, alternates: bool = False) -> list[str]:
     t = w.terms
     other = "it" if who == "client" else "the client"
+    extra = [
+        f"When you propose with price null you may also name one alternate package: {other} then answers with {'its' if who == 'client' else 'the client'}'s price "
+        "for both, both become standing offers, and an accept must name the package it takes.",
+    ] if alternates else []
     return [
         f"You have {w.rounds} rounds. In each you may accept the standing offer (if there is one), walk away, or propose a package and a price. "
         f"A proposal {other} will not sign is answered with {'its' if who == 'client' else 'the client'}'s price for that same package in that round, "
         "which becomes the standing offer. To ask for that price without committing, propose the package with price null. "
         "After the last round's answer you may only accept it or walk.",
+        *extra,
         f"After each proposal {other} refuses, {other} breaks off {_pct(t.breakoff)} of the time. Each refused proposal also costs you {_k(t.round_cost)}.",
     ]
 
@@ -884,7 +949,7 @@ def brief_text(game: Game, opening: float | None = None) -> str:
             + ", ".join(f"{_k(x)} in round {i}" for i, x in enumerate(t.ask_premium) if i) + f" (its opening carried {_k(t.ask_premium[0])}).",
             "",
             f"Its opening proposal: warranty none, readiness client, consequential excluded, deposit at_signing, at {_k(opening)}.",
-            *_protocol_lines(w, "client"),
+            *_protocol_lines(w, "client", game.alternates),
             "Your objective: the lowest expected total cost to you: the price, plus every expected loss you carry at your risk charge, "
             "plus deposit financing and loss, plus the cost of refused rounds; walking away costs you the turnkey price.",
         ])
@@ -915,7 +980,7 @@ def brief_text(game: Game, opening: float | None = None) -> str:
         + ", ".join(f"{_k(x)} in round {i}" for i, x in enumerate(t.ask_premium) if i) + ".",
         "",
         "The client has asked for your proposal; there is no standing offer yet.",
-        *_protocol_lines(w, "integrator"),
+        *_protocol_lines(w, "integrator", game.alternates),
         "Your objective: the highest expected profit: the price, less your expected cost of the package (hardware, delivery, pre-staging if you do it, "
         "every expected loss you carry at your risk charge, the standby contingency, less deposit financing saved), less the cost of refused rounds; "
         "walking away earns your outside option.",

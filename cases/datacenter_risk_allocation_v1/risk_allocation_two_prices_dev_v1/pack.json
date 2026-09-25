@@ -1,0 +1,788 @@
+{
+ "claim_status": "dev pack for diagnostics; no model result is a claim",
+ "family_id": "datacenter_risk_allocation_v1",
+ "family_version": "0.1.0",
+ "generator": {
+  "base_seed": 2460000,
+  "id": "datacenter_risk_allocation_generator_v1",
+  "packages_per_request": 2,
+  "seeds_per_cell": 2,
+  "split": "dev",
+  "version": "0.1.0"
+ },
+ "pack": "risk_allocation_two_prices_dev_v1",
+ "worlds": [
+  {
+   "cell": "keep_their_terms",
+   "client_risk_charge": 0.15,
+   "efficient_package": "none/client/excluded/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 120.0
+   },
+   "joint_saving_vs_opening": 0.0,
+   "lesson": "the integrator's defensive proposal is already the efficient contract; negotiate the price, not the terms",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.14ec4a3b",
+     "content_sha256": "b118fd61074468163a8d67713413616ac8176e508389a0a04b5ced84b5cbf86f",
+     "reference_expected_cost": 11142.62475,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 301.403,
+      "demand_every_protection": 276.051,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 101.403,
+      "take_the_first_counter": 180.0,
+      "walk_to_turnkey": 637.375
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.51035430",
+     "content_sha256": "65c5db932ac42bac04a9a6e4021a3dfb57386eeca8ab83c24b83020e6516085c",
+     "reference_expected_cost": -1013.75425,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 112.071,
+      "decline_to_bid": 513.754,
+      "defend_the_opening_terms": 109.089,
+      "sign_the_prior_best_now": 253.397,
+      "take_the_first_counter": 189.625
+     }
+    }
+   },
+   "seed": 2460000,
+   "slug": "keep_their_terms_2460000"
+  },
+  {
+   "cell": "keep_their_terms",
+   "client_risk_charge": 0.15,
+   "efficient_package": "none/client/excluded/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 120.0
+   },
+   "joint_saving_vs_opening": 0.0,
+   "lesson": "the integrator's defensive proposal is already the efficient contract; negotiate the price, not the terms",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.0a540cf1",
+     "content_sha256": "268252358698feaf44387aeafae2b8d2be61bdf36d844e6b1028f4fb257f7f51",
+     "reference_expected_cost": 11107.81015,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 333.325,
+      "demand_every_protection": 263.032,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 133.325,
+      "take_the_first_counter": 178.0,
+      "walk_to_turnkey": 312.19
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.fb910793",
+     "content_sha256": "d6da6e216803aa22f6654714340ce57012540ea02181aee4974617af38b476fb",
+     "reference_expected_cost": -716.33685,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 76.326,
+      "decline_to_bid": 216.337,
+      "defend_the_opening_terms": 126.588,
+      "sign_the_prior_best_now": 248.582,
+      "take_the_first_counter": 189.169
+     }
+    }
+   },
+   "seed": 2460001,
+   "slug": "keep_their_terms_2460001"
+  },
+  {
+   "cell": "price_the_alternatives",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/excluded/on_delivery",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 200.0
+   },
+   "joint_saving_vs_opening": 61.145,
+   "lesson": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.7a53b3ce",
+     "content_sha256": "04dbfc8feaee00db16d6b8fa5e615c07f1531dc7b39f990af480a7cdf7193aa4",
+     "reference_expected_cost": 11359.126533,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 531.411,
+      "demand_every_protection": 96.867,
+      "haggle_price_only": 176.179,
+      "sign_the_prior_best_now": 271.403,
+      "take_the_first_counter": 221.417,
+      "walk_to_turnkey": 460.873
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.6b120635",
+     "content_sha256": "b772dc6b80d3540c51887f033938a6a03084fca58516d385395a4bd2628b8816",
+     "reference_expected_cost": -867.220483,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 175.957,
+      "decline_to_bid": 367.22,
+      "defend_the_opening_terms": 114.702,
+      "sign_the_prior_best_now": 396.093,
+      "take_the_first_counter": 230.242
+     }
+    }
+   },
+   "seed": 2461000,
+   "slug": "price_the_alternatives_2461000"
+  },
+  {
+   "cell": "price_the_alternatives",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 308.805,
+   "lesson": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.e928e232",
+     "content_sha256": "cbc90e34267a85690c443672d9cc5461d7482b77b032a508bb05dfbe4e5f478a",
+     "reference_expected_cost": 11359.126533,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 531.411,
+      "demand_every_protection": 96.867,
+      "haggle_price_only": 176.179,
+      "sign_the_prior_best_now": 271.403,
+      "take_the_first_counter": 221.417,
+      "walk_to_turnkey": 460.873
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.05159c12",
+     "content_sha256": "d8eaa20e73d4bcbc283c54d8b8604f3ec1f30f979a4dda678fe0477aca966bdb",
+     "reference_expected_cost": -1084.41845,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 58.835,
+      "decline_to_bid": 584.418,
+      "defend_the_opening_terms": 331.9,
+      "sign_the_prior_best_now": 245.631,
+      "take_the_first_counter": 205.24
+     }
+    }
+   },
+   "seed": 2461000,
+   "slug": "price_the_alternatives_2461000_twin",
+   "twin_of": "price_the_alternatives_2461000"
+  },
+  {
+   "cell": "price_the_alternatives",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 323.08,
+   "lesson": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.5615787e",
+     "content_sha256": "4cea95e9cbf9f2a657730feab3858e27b1e5fbefa66e24496ddcfd62d11c80c8",
+     "reference_expected_cost": 11370.16125,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 525.114,
+      "demand_every_protection": 97.042,
+      "haggle_price_only": 192.85,
+      "sign_the_prior_best_now": 246.994,
+      "take_the_first_counter": 222.205,
+      "walk_to_turnkey": 979.839
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.9eac286f",
+     "content_sha256": "b4f8b9eb6ff2588eab720dc5646c902bb700c885a038b7050f94e9975ceb4a70",
+     "reference_expected_cost": -1598.30375,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 59.161,
+      "decline_to_bid": 1098.304,
+      "defend_the_opening_terms": 343.571,
+      "sign_the_prior_best_now": 264.259,
+      "take_the_first_counter": 205.77
+     }
+    }
+   },
+   "seed": 2461001,
+   "slug": "price_the_alternatives_2461001"
+  },
+  {
+   "cell": "price_the_alternatives",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix/client/excluded/at_signing",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 245.32,
+   "lesson": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.d8d2edb9",
+     "content_sha256": "f26e4158a06c8912e5ac52643976f304e1ec31c6232f95fe98b86f3fa2876bca",
+     "reference_expected_cost": 11370.16125,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 525.114,
+      "demand_every_protection": 97.042,
+      "haggle_price_only": 192.85,
+      "sign_the_prior_best_now": 246.994,
+      "take_the_first_counter": 222.205,
+      "walk_to_turnkey": 979.839
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.98bc91da",
+     "content_sha256": "1adee741969b446349d2add2855f34ae8ab50ad31f6bfd49b152966d764bebf6",
+     "reference_expected_cost": -1524.43175,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 157.914,
+      "decline_to_bid": 1024.432,
+      "defend_the_opening_terms": 269.699,
+      "sign_the_prior_best_now": 392.947,
+      "take_the_first_counter": 215.65
+     }
+    }
+   },
+   "seed": 2461001,
+   "slug": "price_the_alternatives_2461001_twin",
+   "twin_of": "price_the_alternatives_2461001"
+  },
+  {
+   "cell": "shift_the_tail",
+   "client_risk_charge": 1.55,
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 200.0
+   },
+   "joint_saving_vs_opening": 404.78,
+   "lesson": "the client cannot carry the incident tail as cheaply as any integrator can; move it and the delay risk across",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.1d994503",
+     "content_sha256": "bc96843a9f003ee08f57b5431caed285b47cfe62a1623cec5f37aff5ec1639be",
+     "reference_expected_cost": 11411.6692,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 712.921,
+      "demand_every_protection": 29.366,
+      "haggle_price_only": 385.554,
+      "sign_the_prior_best_now": 239.541,
+      "take_the_first_counter": 184.0,
+      "walk_to_turnkey": 908.331
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.477cda82",
+     "content_sha256": "b7618b4b0faea0c75ed653f04479a65d3c2f5f3941ac21d57ace48ccbd44b471",
+     "reference_expected_cost": -1490.9468,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 76.17,
+      "decline_to_bid": 990.947,
+      "defend_the_opening_terms": 170.102,
+      "sign_the_prior_best_now": 198.917,
+      "take_the_first_counter": 197.279
+     }
+    }
+   },
+   "seed": 2462000,
+   "slug": "shift_the_tail_2462000"
+  },
+  {
+   "cell": "shift_the_tail",
+   "client_risk_charge": 1.55,
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 120.0
+   },
+   "joint_saving_vs_opening": 544.75,
+   "lesson": "the client cannot carry the incident tail as cheaply as any integrator can; move it and the delay risk across",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.7a048056",
+     "content_sha256": "f0212874090d27417c88903d822bce06675eabaf37d27025a8f055f76debda29",
+     "reference_expected_cost": 11477.3912,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 774.969,
+      "demand_every_protection": 62.56,
+      "haggle_price_only": 424.58,
+      "sign_the_prior_best_now": 276.719,
+      "take_the_first_counter": 184.0,
+      "walk_to_turnkey": 682.609
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.70950175",
+     "content_sha256": "4790c98633845997051108e5097c0235a906810332ee87244958e594fbb04e3e",
+     "reference_expected_cost": -1355.289733,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 100.249,
+      "decline_to_bid": 855.29,
+      "defend_the_opening_terms": 268.563,
+      "sign_the_prior_best_now": 202.9,
+      "take_the_first_counter": 190.9
+     }
+    }
+   },
+   "seed": 2462001,
+   "slug": "shift_the_tail_2462001"
+  },
+  {
+   "cell": "better_contract_or_walk",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix/client/excluded/at_signing",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 272.2,
+   "lesson": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.819a7c26",
+     "content_sha256": "161b50502586d1a11006526db3d66d44f69a7d8c1c1c958c7956e117e0a9fc91",
+     "reference_expected_cost": 11365.35675,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 612.043,
+      "demand_every_protection": 166.088,
+      "haggle_price_only": 232.921,
+      "sign_the_prior_best_now": 315.593,
+      "take_the_first_counter": 234.376,
+      "walk_to_turnkey": 74.643
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.98508c7a",
+     "content_sha256": "5bc7ba2c36f01c39cfb8839131f16c94a2dc7cdeb9cdc00b2e394b61d46404b9",
+     "reference_expected_cost": -631.389867,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 261.053,
+      "decline_to_bid": 131.39,
+      "defend_the_opening_terms": 325.416,
+      "sign_the_prior_best_now": 482.03,
+      "take_the_first_counter": 242.707
+     }
+    }
+   },
+   "seed": 2463000,
+   "slug": "better_contract_or_walk_2463000"
+  },
+  {
+   "cell": "better_contract_or_walk",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 364.9,
+   "lesson": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.acc20a34",
+     "content_sha256": "e24a0ce87804808f8f627a95c893b1cdb8848eb949b4ecbabe3eb444405e250d",
+     "reference_expected_cost": 11365.35675,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 612.043,
+      "demand_every_protection": 166.088,
+      "haggle_price_only": 232.921,
+      "sign_the_prior_best_now": 315.593,
+      "take_the_first_counter": 234.376,
+      "walk_to_turnkey": 74.643
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.6a652cd2",
+     "content_sha256": "abcc990170a0a7d0bc1ac511651a415086151fa66b0b8947eab1e1a30d1b9fbc",
+     "reference_expected_cost": -692.7456,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 102.413,
+      "decline_to_bid": 192.746,
+      "defend_the_opening_terms": 386.771,
+      "sign_the_prior_best_now": 308.286,
+      "take_the_first_counter": 202.633
+     }
+    }
+   },
+   "seed": 2463000,
+   "slug": "better_contract_or_walk_2463000_twin",
+   "twin_of": "better_contract_or_walk_2463000"
+  },
+  {
+   "cell": "better_contract_or_walk",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 120.0
+   },
+   "joint_saving_vs_opening": 209.257,
+   "lesson": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.a74711d0",
+     "content_sha256": "ee442ce1362c1e406c7fc6b0a53cdee98a2e436bfeed54fe75b22f8669bc8d61",
+     "reference_expected_cost": 11282.1204,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 542.317,
+      "demand_every_protection": 89.651,
+      "haggle_price_only": 164.74,
+      "sign_the_prior_best_now": 324.768,
+      "take_the_first_counter": 236.291,
+      "walk_to_turnkey": 77.88
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.52373691",
+     "content_sha256": "99d8975b09e267a19b95f8d35ffedc173bfdce3ee2c969ff43654912b8d369c8",
+     "reference_expected_cost": -622.696,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 43.32,
+      "decline_to_bid": 122.696,
+      "defend_the_opening_terms": 239.78,
+      "sign_the_prior_best_now": 239.316,
+      "take_the_first_counter": 205.584
+     }
+    }
+   },
+   "seed": 2463001,
+   "slug": "better_contract_or_walk_2463001"
+  },
+  {
+   "cell": "better_contract_or_walk",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix/client/excluded/on_delivery",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 189.267,
+   "lesson": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.126eec72",
+     "content_sha256": "cf738709d9b470a7ccd52bade18c1a0fbfdeb5c7106045c41591c2c044328f5b",
+     "reference_expected_cost": 11282.1204,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 542.317,
+      "demand_every_protection": 89.651,
+      "haggle_price_only": 164.74,
+      "sign_the_prior_best_now": 324.768,
+      "take_the_first_counter": 236.291,
+      "walk_to_turnkey": 77.88
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.85a8b646",
+     "content_sha256": "2c6c33b58abeeabbcbe0f7a78c5aad5a783a09c791e801bc2aa68d2d4b7e7251",
+     "reference_expected_cost": -610.1488,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 154.507,
+      "decline_to_bid": 110.149,
+      "defend_the_opening_terms": 227.233,
+      "sign_the_prior_best_now": 389.959,
+      "take_the_first_counter": 223.683
+     }
+    }
+   },
+   "seed": 2463001,
+   "slug": "better_contract_or_walk_2463001_twin",
+   "twin_of": "better_contract_or_walk_2463001"
+  },
+  {
+   "cell": "walk_away",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 456.9,
+   "lesson": "no allocation of these risks beats the turnkey offer; walk before spending a round",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.0018e7d1",
+     "content_sha256": "987c8cabc2cea410b9b27976304f3b94b72a49efb49abd3074a6393500733070",
+     "reference_expected_cost": 11120,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 889.425,
+      "demand_every_protection": 359.052,
+      "haggle_price_only": 485.059,
+      "sign_the_prior_best_now": 501.425,
+      "take_the_first_counter": 404.219,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.af090e65",
+     "content_sha256": "1cbd466ae1b55bf19f905dc53f15c3546b878f9938bd804a8f4be363a8bcc128",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 180.899,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 520.848,
+      "sign_the_prior_best_now": 342.205,
+      "take_the_first_counter": 252.165
+     }
+    }
+   },
+   "seed": 2464000,
+   "slug": "walk_away_2464000"
+  },
+  {
+   "cell": "walk_away",
+   "client_risk_charge": 0.75,
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "hidden_type": {
+    "risk_charge": 0.3,
+    "test_cost": 200.0
+   },
+   "joint_saving_vs_opening": 212.125,
+   "lesson": "no allocation of these risks beats the turnkey offer; walk before spending a round",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.b4c3b042",
+     "content_sha256": "ab7e167e93a5c13a2ecbc51fad519f38303a7b3fd41184139e2714c192c560a7",
+     "reference_expected_cost": 11180,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 865.125,
+      "demand_every_protection": 341.342,
+      "haggle_price_only": 452.915,
+      "sign_the_prior_best_now": 557.4,
+      "take_the_first_counter": 448.062,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.4cf03865",
+     "content_sha256": "b987f5d2f7d2f2befe3b53f28d183cc7221d6e7595629c8f4b4d1782b2da7b2e",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 318.308,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 489.194,
+      "sign_the_prior_best_now": 581.96,
+      "take_the_first_counter": 451.647
+     }
+    }
+   },
+   "seed": 2464001,
+   "slug": "walk_away_2464001"
+  },
+  {
+   "cell": "close_now",
+   "client_risk_charge": 1.55,
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 120.0
+   },
+   "joint_saving_vs_opening": 428.025,
+   "lesson": "the integrator is likely to walk after a refusal and the deal is worth far more than turnkey; sign now",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.d39fddee",
+     "content_sha256": "bc8ae2f6c25c9f9b6905866cc753bcaeb7e10c72f5b074a6cfd77d318bb7581c",
+     "reference_expected_cost": 11809.395,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 11,496.0",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 548.025,
+      "demand_every_protection": 583.987,
+      "haggle_price_only": 825.989,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 668.386,
+      "walk_to_turnkey": 1480.605
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.1fb374ba",
+     "content_sha256": "aedfd2b1a555e556573c70c78da6769b6265e92814d7c6d025a16fd5512f044d",
+     "reference_expected_cost": -2060.605,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 12,776.6",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 689.085,
+      "decline_to_bid": 1560.605,
+      "defend_the_opening_terms": 708.368,
+      "sign_the_prior_best_now": 91.375,
+      "take_the_first_counter": 709.362
+     }
+    }
+   },
+   "seed": 2465000,
+   "slug": "close_now_2465000"
+  },
+  {
+   "cell": "close_now",
+   "client_risk_charge": 1.55,
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "hidden_type": {
+    "risk_charge": 1.2,
+    "test_cost": 40.0
+   },
+   "joint_saving_vs_opening": 440.03,
+   "lesson": "the integrator is likely to walk after a refusal and the deal is worth far more than turnkey; sign now",
+   "seats": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.dev.d100039e",
+     "content_sha256": "e981bfedcaeea2f0889b362e91d67aa8aff554dcb139ae91dfefff3e9f305b4b",
+     "reference_expected_cost": 11814.27,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/at_signing at 11,407.2",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 480.03,
+      "demand_every_protection": 433.252,
+      "haggle_price_only": 644.338,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 500.289,
+      "walk_to_turnkey": 1305.73
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.dev.276171dc",
+     "content_sha256": "a99871eb15dba68c1e2f4350d7920e850e4937310b7f79e1ebf50f827e49db5a",
+     "reference_expected_cost": -1965.73,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/at_signing at 12,512.9",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 588.283,
+      "decline_to_bid": 1465.73,
+      "defend_the_opening_terms": 596.541,
+      "sign_the_prior_best_now": 69.475,
+      "take_the_first_counter": 573.348
+     }
+    }
+   },
+   "seed": 2465001,
+   "slug": "close_now_2465001"
+  }
+ ]
+}

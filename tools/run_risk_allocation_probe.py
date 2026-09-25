@@ -5,9 +5,15 @@ A diagnostic, not a campaign. It plays the dev pack of the risk-allocation case
 through the environment plugin, and grades each decision against the best play
 on the model's own information. Nothing here is a published claim.
 
-    python tools/run_risk_allocation_probe.py prepare runs/risk_allocation_probe_v1
-    python tools/run_risk_allocation_probe.py execute runs/risk_allocation_probe_v1 [--route reference]
-    python tools/run_risk_allocation_probe.py grade   runs/risk_allocation_probe_v1
+    python tools/run_risk_allocation_probe.py prepare runs/<arm> --arm <arm>
+    python tools/run_risk_allocation_probe.py execute runs/<arm> [--route reference]
+    python tools/run_risk_allocation_probe.py grade   runs/<arm>
+    python tools/run_risk_allocation_probe.py smoke   runs/<smoke dir> --arm <arm>
+
+Each arm is a probe identity (:data:`ARMS`) and changes one thing from v1.
+``smoke`` sends a few first-round prompts per route with a large output limit
+and records reply lengths, from which an arm's output limit is sized by the
+declared rule (DC-O-08: v1's limit truncated 11 of GLM's 32 episodes).
 
 ``prepare`` freezes the plan (pack digests, routes, sampling, every limit) with
 source digests; ``execute`` refuses a plan whose sources or cases changed,
@@ -22,6 +28,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import hashlib
+import http.client
 import json
 import os
 import socket
@@ -43,7 +50,9 @@ from aeread_families.datacenter_development import risk_allocation as ra  # noqa
 from aeread_families.datacenter_development import risk_allocation_pack as rp  # noqa: E402
 from aeread_families.datacenter_development.risk_allocation_environment import (  # noqa: E402
     ACTION_JSON_SCHEMA,
+    ACTION_JSON_SCHEMA_ALTERNATES,
     RiskAllocationPlugin,
+    alternates_of,
     game_of,
     grade,
     seen_of,
@@ -62,7 +71,6 @@ def _prefer_ipv4(host, *args, **kwargs):  # type: ignore[no-untyped-def]
 socket.getaddrinfo = _prefer_ipv4
 
 API = "https://openrouter.ai/api/v1/chat/completions"
-PROBE_ID = "risk_allocation_probe_v1"
 PACK = "risk_allocation_dev_v1"
 
 # The same routes as the supplier-judgment probe.
@@ -83,6 +91,41 @@ LIMITS = {
     "workers": 6,
 }
 
+# Output limits for v2 arms come from `smoke` by this rule, per route and arm.
+CAP_RULE = "twice the longest smoke reply (completion tokens, reasoning included), rounded up to 1,000, at least 4,000"
+
+# One probe identity per arm. v1 is kept as run. A reasoning effort of None
+# declares no reasoning setting at all: on GLM 5.3 any declared reasoning value
+# acts as a switch, so the provider's default deliberation needs nothing sent.
+ARMS: dict[str, dict[str, Any]] = {
+    "risk_allocation_probe_v1": {"pack": PACK, "limits": LIMITS},
+    # Smoke 2026-09-25 (runs/risk_allocation_smoke_v2): Gemini's longest reply 13,365 tokens, all 6
+    # finished; GLM hit the 32,000-token smoke limit in 3 of 6, so its length is censored and GLM
+    # is sized by a longer smoke under its own identity below.
+    "risk_allocation_probe_v2_default_reasoning": {
+        "pack": PACK,
+        "routes": ["gemini38_flash"],
+        "changes_from_v1": "no reasoning setting declared; output limit from smoke; Gemini only (GLM's smoke was censored)",
+        "limits": {**LIMITS, "reasoning_effort": None, "max_output_tokens": {"gemini38_flash": 27000},
+                   "max_cost_usd_total": 6.0, "timeout_seconds": 420},
+    },
+    "risk_allocation_probe_v2_default_reasoning_glm": {
+        "pack": PACK,
+        "routes": ["glm53_flash"],
+        "changes_from_v1": "no reasoning setting declared; output limit from a 131,072-token smoke; GLM only",
+        "limits": {**LIMITS, "reasoning_effort": None, "max_output_tokens": {"glm53_flash": None},  # set from the long smoke
+                   "max_cost_usd_total": 6.0, "timeout_seconds": 1800, "workers": 8},
+    },
+    # Smoke 2026-09-25 at low effort: Gemini's longest 1,742, GLM's 5,701, all finished.
+    "risk_allocation_probe_v2_two_prices": {
+        "pack": "risk_allocation_two_prices_dev_v1",
+        "changes_from_v1": "a price request may name an alternate package; output limit per route from smoke",
+        "limits": {**LIMITS, "max_output_tokens": {"gemini38_flash": 4000, "glm53_flash": 12000}, "timeout_seconds": 300},
+    },
+}
+SMOKE_OUTPUT_TOKENS = 32000
+SMOKE_TIMEOUT_SECONDS = 1800
+
 SOURCES = (
     "src/aeread_families/datacenter_development/risk_allocation.py",
     "src/aeread_families/datacenter_development/risk_allocation_environment.py",
@@ -99,16 +142,30 @@ def source_digests() -> dict[str, str]:
     return {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in SOURCES}
 
 
-def system_prompt(seat: str) -> str:
+def system_prompt(seat: str, alternates: bool = False) -> str:
+    pkg = ('{"warranty": "none|fix|fix_and_delay", "readiness": "client|integrator", '
+           '"consequential": "excluded|included", "deposit": "at_signing|on_delivery"}')
+    if not alternates:  # v1's prompt, byte for byte
+        return (
+            f"You are negotiating a contract on behalf of the {seat}. Each turn, read the brief and the negotiation so far, "
+            "then reply with exactly one JSON object and nothing else:\n"
+            '{"action": "propose" | "accept" | "walk", '
+            f'"package": {pkg} or null, '
+            '"price": <number in $ thousands> or null, "reason": "<one or two sentences>"}\n'
+            "A proposal always states the full package. Use price null to ask the other side for its price for that package "
+            "without committing. For accept and walk, package and price are null. Accept takes the standing offer as it stands."
+        )
     return (
         f"You are negotiating a contract on behalf of the {seat}. Each turn, read the brief and the negotiation so far, "
         "then reply with exactly one JSON object and nothing else:\n"
         '{"action": "propose" | "accept" | "walk", '
-        '"package": {"warranty": "none|fix|fix_and_delay", "readiness": "client|integrator", '
-        '"consequential": "excluded|included", "deposit": "at_signing|on_delivery"} or null, '
-        '"price": <number in $ thousands> or null, "reason": "<one or two sentences>"}\n'
+        f'"package": {pkg} or null, '
+        '"price": <number in $ thousands> or null, '
+        f'"alternate": {pkg} or null, "reason": "<one or two sentences>"}}\n'
         "A proposal always states the full package. Use price null to ask the other side for its price for that package "
-        "without committing. For accept and walk, package and price are null. Accept takes the standing offer as it stands."
+        "without committing; with price null you may also name an alternate package, and the answer prices both. "
+        "For walk, package, price and alternate are null. Accept takes a standing offer as it stands: when there are two "
+        "standing offers, put the one you accept in package; otherwise package is null."
     )
 
 
@@ -119,10 +176,17 @@ def user_prompt(obs: dict[str, Any]) -> str:
         for h in obs["history"]:
             price = "no price (asked for theirs)" if h["your_price"] is None else f"{h['your_price']:,.1f}"
             pkg = "/".join(h["you_proposed"][k] for k in ra.TERMS)
-            lines.append(f"- Round {h['round']}: you proposed {pkg} at {price}; they {h['answer']}.")
+            if h.get("alternate") is None:
+                lines.append(f"- Round {h['round']}: you proposed {pkg} at {price}; they {h['answer']}.")
+            else:
+                alt = "/".join(h["alternate"][k] for k in ra.TERMS)
+                lines.append(f"- Round {h['round']}: you proposed {pkg} at {price} with alternate {alt}; they {h['answer']}, and {h['alternate_answer']}.")
     if obs["standing_offer"]:
         pkg = "/".join(obs["standing_offer"]["package"][k] for k in ra.TERMS)
         lines.append(f"Standing offer: {pkg} (warranty/readiness/consequential/deposit) at {obs['standing_offer']['price']:,.1f}.")
+        if obs.get("alternate_offer"):
+            alt = "/".join(obs["alternate_offer"]["package"][k] for k in ra.TERMS)
+            lines.append(f"Second standing offer: {alt} at {obs['alternate_offer']['price']:,.1f}. An accept must name the package it takes.")
     else:
         lines.append("There is no standing offer.")
     if obs["final"]:
@@ -131,31 +195,36 @@ def user_prompt(obs: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def episodes(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+def episodes(manifest: dict[str, Any], limits: dict[str, Any]) -> list[dict[str, Any]]:
     out = []
     for world in manifest["worlds"]:
         for seat, s in world["seats"].items():
-            for run in range(LIMITS["runs_per_case"]):
+            for run in range(limits["runs_per_case"]):
                 out.append({"episode_id": f"{s['case_id'].rsplit('.', 1)[-1]}_r{run}", "case_id": s["case_id"], "seat": seat,
                             "cell": world["cell"], "slug": world["slug"], "run": run})
     return out
 
 
-def prepare(directory: Path) -> None:
+def prepare(directory: Path, arm: str) -> None:
     directory.mkdir(parents=True, exist_ok=False)
-    manifest, cases = rp.load(PACK)
+    spec = ARMS[arm]
+    manifest, cases = rp.load(spec["pack"])
+    alternates = any(alternates_of(c["payload"]) for c in cases.values())
     plan = {
-        "probe_id": PROBE_ID,
+        "probe_id": arm,
         "claim_status": "diagnostic",
-        "pack": PACK,
+        "changes_from_v1": spec.get("changes_from_v1", "none: this is v1"),
+        "cap_rule": CAP_RULE if isinstance(spec["limits"]["max_output_tokens"], dict) else None,
+        "pack": spec["pack"],
         "pack_manifest_sha256": digest(manifest),
         "case_sha256": {k: v["content_sha256"] for k, v in sorted(cases.items())},
-        "routes": ROUTES,
-        "limits": LIMITS,
-        "action_schema": ACTION_JSON_SCHEMA,
-        "system_prompts": {seat: system_prompt(seat) for seat in ra.SEATS},
+        "routes": {r: ROUTES[r] for r in spec.get("routes", ROUTES)},
+        "limits": spec["limits"],
+        "alternates": alternates,
+        "action_schema": ACTION_JSON_SCHEMA_ALTERNATES if alternates else ACTION_JSON_SCHEMA,
+        "system_prompts": {seat: system_prompt(seat, alternates) for seat in ra.SEATS},
         "sources": source_digests(),
-        "episodes": episodes(manifest),
+        "episodes": episodes(manifest, spec["limits"]),
     }
     plan["plan_sha256"] = digest(plan)
     (directory / "plan.json").write_text(json.dumps(plan, indent=1))
@@ -176,17 +245,21 @@ class Budget:
             return self.spent >= self.cap
 
 
-def call(route: dict[str, str], system: str, user: str, limits: dict[str, Any], key: str) -> dict[str, Any]:
+def call(route_id: str, system: str, user: str, limits: dict[str, Any], key: str, schema: dict[str, Any] = ACTION_JSON_SCHEMA,
+         max_tokens: int | None = None) -> dict[str, Any]:
+    route = ROUTES[route_id]
+    cap = limits["max_output_tokens"]
     body = {
         "model": route["model"],
         "provider": {"order": [route["provider"]], "allow_fallbacks": False, "require_parameters": True},
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "temperature": limits["temperature"],
-        "max_tokens": limits["max_output_tokens"],
-        "reasoning": {"effort": limits["reasoning_effort"], "exclude": True},
-        "response_format": {"type": "json_schema", "json_schema": {"name": "move", "strict": False, "schema": ACTION_JSON_SCHEMA}},
+        "max_tokens": max_tokens or (cap[route_id] if isinstance(cap, dict) else cap),
+        "response_format": {"type": "json_schema", "json_schema": {"name": "move", "strict": False, "schema": schema}},
         "usage": {"include": True},
     }
+    if limits["reasoning_effort"] is not None:
+        body["reasoning"] = {"effort": limits["reasoning_effort"], "exclude": True}
     last: dict[str, Any] = {}
     for attempt in range(1, limits["max_attempts"] + 1):
         req = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
@@ -200,6 +273,11 @@ def call(route: dict[str, str], system: str, user: str, limits: dict[str, Any], 
                 return last
         except (urllib.error.URLError, TimeoutError) as exc:
             return {"ok": False, "attempts": attempt, "status": None, "error": str(exc)[:500]}
+        except (http.client.IncompleteRead, http.client.RemoteDisconnected, ConnectionError, ValueError) as exc:
+            # The provider closed the connection mid-reply (seen on GLM's 20-30k-token
+            # replies, DC-T-11). Not retried: the reply may already be billed. Typed as
+            # a provider failure, which the plan records as missingness.
+            return {"ok": False, "attempts": attempt, "status": None, "error": f"connection_dropped: {type(exc).__name__}: {str(exc)[:300]}"}
         time.sleep(2 * attempt)
     return last
 
@@ -207,15 +285,21 @@ def call(route: dict[str, str], system: str, user: str, limits: dict[str, Any], 
 def _reference_text(payload: dict[str, Any], state: dict[str, Any]) -> str:
     game, _ = game_of(payload)
     a = ra.reference_policy(game)(seen_of(payload, state))
-    if a.kind != "propose":
-        return json.dumps({"action": a.kind, "package": None, "price": None, "reason": "reference"})
-    return json.dumps({"action": "propose", "package": a.package.as_dict(), "price": None if a.price == ra.PRICE_IT else a.price, "reason": "reference"})
+    move: dict[str, Any] = {"action": a.kind, "package": None, "price": None}
+    if a.kind == "accept" and a.package is not None:
+        move["package"] = a.package.as_dict()
+    if a.kind == "propose":
+        move.update(package=a.package.as_dict(), price=None if a.price == ra.PRICE_IT else a.price)
+        if a.alternate is not None:
+            move["alternate"] = a.alternate.as_dict()
+    return json.dumps({**move, "reason": "reference"})
 
 
-def play(ep: dict[str, Any], raw: dict[str, Any], route_id: str, key: str | None, budget: Budget, out: Path) -> dict[str, Any]:
+def play(ep: dict[str, Any], raw: dict[str, Any], route_id: str, key: str | None, budget: Budget, out: Path, plan: dict[str, Any]) -> dict[str, Any]:
     plugin = RiskAllocationPlugin()
     payload = plugin.validate_payload(raw["payload"])
     seat = payload["seat"]
+    limits = plan["limits"]
     phase = plugin.phases(payload)[0]
     state = plugin.initial_state(payload, None)
     turns: list[dict[str, Any]] = []
@@ -232,7 +316,7 @@ def play(ep: dict[str, Any], raw: dict[str, Any], route_id: str, key: str | None
             if budget.exhausted():
                 status = "not_attempted_budget"
                 break
-            rec = call(ROUTES[route_id], system_prompt(seat), user, LIMITS, key)
+            rec = call(route_id, plan["system_prompts"][seat], user, limits, key, plan["action_schema"])
             cost = float(((rec.get("response") or {}).get("usage") or {}).get("cost") or 0.0)
             budget.add(cost)
             if not rec.get("ok"):
@@ -291,7 +375,7 @@ def execute(directory: Path, route: str | None) -> None:
     budget = Budget(plan["limits"]["max_cost_usd_total"])
     jobs = [(ep, r) for ep in plan["episodes"] for r in routes if not (directory / "episodes" / f"{r}__{ep['episode_id']}.json").exists()]
     with cf.ThreadPoolExecutor(plan["limits"]["workers"]) as pool:
-        futs = [pool.submit(play, ep, cases[ep["case_id"]], r, key, budget, directory) for ep, r in jobs]
+        futs = [pool.submit(play, ep, cases[ep["case_id"]], r, key, budget, directory, plan) for ep, r in jobs]
         for f in cf.as_completed(futs):
             res = f.result()
             print(f"{res['route_id']:<15} {res['seat']:<10} {res['cell']:<24} {res['status']:<18} {res['final_state']['termination']}")
@@ -348,14 +432,61 @@ def grade_all(directory: Path) -> None:
           + ", ".join(f"{k}={v}" for k, v in sorted(defaultdict(int, {t: sum(1 for r in rows if r['termination'] == t) for t in {r['termination'] for r in rows}}).items(), key=lambda kv: str(kv[0]))))
 
 
+def smoke(directory: Path, arm: str, per_seat: int = 3, routes: list[str] | None = None, limit: int = SMOKE_OUTPUT_TOKENS) -> None:
+    """First-round prompts from the first worlds of the arm's pack, each route, with a large
+    output limit: how long does a reply run under this arm's reasoning setting?"""
+    directory.mkdir(parents=True, exist_ok=True)
+    spec = ARMS[arm]
+    manifest, cases = rp.load(spec["pack"])
+    alternates = any(alternates_of(c["payload"]) for c in cases.values())
+    schema = ACTION_JSON_SCHEMA_ALTERNATES if alternates else ACTION_JSON_SCHEMA
+    key = load_key()
+    rows = []
+    picks = [(w, seat) for seat in ra.SEATS for w in manifest["worlds"][::5][:per_seat]]
+    routes = routes or list(ROUTES)
+    smoke_limits = {**spec["limits"], "timeout_seconds": SMOKE_TIMEOUT_SECONDS}
+    for route_id in routes:
+        for world, seat in picks:
+            raw = cases[world["seats"][seat]["case_id"]]
+            plugin = RiskAllocationPlugin()
+            payload = plugin.validate_payload(raw["payload"])
+            phase = plugin.phases(payload)[0]
+            state = plugin.initial_state(payload, None)
+            user = user_prompt(plugin.observe(payload, state, seat, phase))
+            began = time.monotonic()
+            rec = call(route_id, system_prompt(seat, alternates), user, smoke_limits, key, schema, limit)
+            elapsed = round(time.monotonic() - began, 1)
+            resp = rec.get("response") or {}
+            choice = (resp.get("choices") or [{}])[0]
+            usage = resp.get("usage") or {}
+            text = (choice.get("message") or {}).get("content") or ""
+            parsed = plugin.parse_action(payload, state, seat, phase, CanonicalResponse(text, "stop", not text, False, (), (), 0, 0, 0, 0.0))
+            row = {"route_id": route_id, "seat": seat, "world": world["slug"], "ok": rec.get("ok"), "finish": choice.get("finish_reason"),
+                   "completion_tokens": usage.get("completion_tokens"), "cost_usd": usage.get("cost"), "parsed": parsed.ok,
+                   "seconds": elapsed, "error": None if rec.get("ok") else rec.get("error", "")[:200]}
+            rows.append(row)
+            print(json.dumps(row), flush=True)
+    (directory / f"smoke__{arm}.json").write_text(json.dumps({"arm": arm, "limit_used": limit, "rows": rows}, indent=1))
+    for route_id in routes:
+        toks = [r["completion_tokens"] or 0 for r in rows if r["route_id"] == route_id and r["ok"]] or [0]
+        cap = max(4000, -(-2 * max(toks) // 1000) * 1000)
+        print(f"{route_id}: longest {max(toks)}, mean {sum(toks) / len(toks):.0f}; cap by rule {cap}; "
+              f"cost/call ${sum(r['cost_usd'] or 0 for r in rows if r['route_id'] == route_id) / len(toks):.4f}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("command", choices=["prepare", "execute", "grade"])
+    ap.add_argument("command", choices=["prepare", "execute", "grade", "smoke"])
     ap.add_argument("directory", type=Path)
     ap.add_argument("--route", choices=[*ROUTES, "reference"])
+    ap.add_argument("--arm", choices=list(ARMS), default="risk_allocation_probe_v1")
+    ap.add_argument("--smoke-routes", nargs="*")
+    ap.add_argument("--smoke-limit", type=int, default=SMOKE_OUTPUT_TOKENS)
     args = ap.parse_args()
-    if args.command == "prepare":
-        prepare(args.directory)
+    if args.command == "smoke":
+        smoke(args.directory, args.arm, routes=args.smoke_routes, limit=args.smoke_limit)
+    elif args.command == "prepare":
+        prepare(args.directory, args.arm)
     elif args.command == "execute":
         execute(args.directory, args.route)
     else:

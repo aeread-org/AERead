@@ -42,6 +42,9 @@ ACTION_SCHEMA = "datacenter_risk_allocation_action_v1"
 VISIBILITY_POLICY = "datacenter_risk_allocation_public_risks_private_counterpart_costs_v1"
 TERMINATIONS = ("signed", "walked", "broke_off", "invalid_action")
 PAYLOAD_FIELDS = {"seat", "world", "integrator_type", "breakoff_draws"}
+# Opt-in: 2 lets a price request name an alternate package (the two-prices
+# protocol). Absent means one package per request, so earlier cases are unchanged.
+OPTIONAL_PAYLOAD_FIELDS = {"packages_per_request"}
 ACTIONS = ("propose", "accept", "walk")
 
 ACTION_JSON_SCHEMA: dict[str, Any] = {
@@ -59,6 +62,28 @@ ACTION_JSON_SCHEMA: dict[str, Any] = {
         "reason": {"type": "string", "description": "one or two sentences"},
     },
 }
+
+
+_PACKAGE_SCHEMA = {
+    "type": ["object", "null"],
+    "properties": {k: {"type": "string", "enum": list(v)} for k, v in ra.TERMS.items()},
+    "required": list(ra.TERMS),
+}
+ACTION_JSON_SCHEMA_ALTERNATES: dict[str, Any] = {
+    "type": "object",
+    "required": ["action", "package", "price", "alternate", "reason"],
+    "properties": {
+        "action": {"type": "string", "enum": list(ACTIONS)},
+        "package": {**_PACKAGE_SCHEMA, "description": "the full package when proposing; when accepting one of two standing offers, the package you accept; else null"},
+        "price": {"type": ["number", "null"], "description": "$ thousands; null asks the counterpart for its price"},
+        "alternate": {**_PACKAGE_SCHEMA, "description": "only with price null: a second package to be priced in the same answer; else null"},
+        "reason": {"type": "string", "description": "one or two sentences"},
+    },
+}
+
+
+def alternates_of(payload: Mapping[str, Any]) -> bool:
+    return payload.get("packages_per_request", 1) == 2
 
 
 def risk_allocation_family_manifest() -> FamilyManifest:
@@ -101,9 +126,10 @@ def game_of(payload: Mapping[str, Any]) -> tuple[ra.Game, Any]:
     """The seat's game and the counterpart's true type."""
     w = ra.world_from_dict(payload["world"])
     it = ra.IntegratorType(**payload["integrator_type"])
+    alternates = alternates_of(payload)
     if payload["seat"] == "client":
-        return ra.Game(w, "client"), it
-    return ra.Game(w, "integrator", it), w.client.risk_charge
+        return ra.Game(w, "client", alternates=alternates), it
+    return ra.Game(w, "integrator", it, alternates=alternates), w.client.risk_charge
 
 
 def _package(value: Any) -> ra.Package:
@@ -136,16 +162,21 @@ def seen_of(payload: Mapping[str, Any], state: Mapping[str, Any], upto: int | No
 
 
 def _action(value: Mapping[str, Any]) -> ra.Action:
+    if value["action"] == "accept" and value.get("package") is not None:
+        return ra.Action("accept", package=_package(value["package"]))
     if value["action"] != "propose":
         return ra.Action(value["action"])
     price = ra.PRICE_IT if value["price"] is None else float(value["price"])
-    return ra.Action("propose", _package(value["package"]), price)
+    alternate = value.get("alternate")
+    return ra.Action("propose", _package(value["package"]), price, None if alternate is None else _package(alternate))
 
 
 class RiskAllocationPlugin:
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        if not isinstance(payload, Mapping) or set(payload) != PAYLOAD_FIELDS:
-            raise ValueError(f"payload fields must be {sorted(PAYLOAD_FIELDS)}")
+        if not isinstance(payload, Mapping) or not PAYLOAD_FIELDS <= set(payload) <= PAYLOAD_FIELDS | OPTIONAL_PAYLOAD_FIELDS:
+            raise ValueError(f"payload fields must be {sorted(PAYLOAD_FIELDS)}, optionally {sorted(OPTIONAL_PAYLOAD_FIELDS)}")
+        if "packages_per_request" in payload and payload["packages_per_request"] != 2:
+            raise ValueError("packages_per_request is 2 when present; one package per request is the default")
         if payload["seat"] not in ra.SEATS:
             raise ValueError("unknown seat")
         w = ra.world_from_dict(payload["world"])
@@ -174,6 +205,7 @@ class RiskAllocationPlugin:
             "termination": None,
             "signed": None,
             "invalid": None,
+            **({"alternate_offer": None} if alternates_of(family_case) else {}),
         }
 
     def phases(self, family_case) -> tuple[PhaseSpec, ...]:
@@ -190,7 +222,9 @@ class RiskAllocationPlugin:
     def observe(self, family_case, state, seat, phase) -> dict[str, Any]:
         del phase
         game, _ = game_of(family_case)
+        extra = {"alternate_offer": state["alternate_offer"]} if alternates_of(family_case) else {}
         return {
+            **extra,
             "seat": seat,
             "brief": ra.brief_text(game, state["opening_price"]),
             "round": state["round"],
@@ -202,7 +236,8 @@ class RiskAllocationPlugin:
         }
 
     def parse_action(self, family_case, state, seat, phase, response) -> ParseResult:
-        del family_case, state, seat, phase
+        del state, seat, phase
+        alternates = alternates_of(family_case)
         if isinstance(response, CanonicalResponse):
             if response.action is not None:
                 value: Any = response.action
@@ -220,10 +255,22 @@ class RiskAllocationPlugin:
         if kind not in ACTIONS:
             return ParseResult.failure("unknown_action")
         reason = value.get("reason")
+        alt = value.get("alternate")
+        if alt is not None and not alternates:
+            return ParseResult.failure("alternate_not_offered")
+        extra = {"alternate": None} if alternates else {}
         if kind != "propose":
-            if value.get("package") is not None or value.get("price") is not None:
+            if alt is not None or value.get("price") is not None:
                 return ParseResult.failure("terms_on_a_non_proposal")
-            return ParseResult.success({"action": kind, "package": None, "price": None, "reason": reason})
+            if value.get("package") is not None:
+                if not (alternates and kind == "accept"):
+                    return ParseResult.failure("terms_on_a_non_proposal")
+                try:
+                    chosen = _package(value["package"]).as_dict()
+                except ValueError:
+                    return ParseResult.failure("bad_package")
+                return ParseResult.success({"action": "accept", "package": chosen, "price": None, **extra, "reason": reason})
+            return ParseResult.success({"action": kind, "package": None, "price": None, **extra, "reason": reason})
         try:
             pkg = _package(value.get("package"))
         except ValueError:
@@ -231,7 +278,17 @@ class RiskAllocationPlugin:
         price = value.get("price")
         if price is not None and (isinstance(price, bool) or not isinstance(price, (int, float)) or not math.isfinite(price) or price <= 0):
             return ParseResult.failure("bad_price")
-        return ParseResult.success({"action": "propose", "package": pkg.as_dict(), "price": None if price is None else float(price), "reason": reason})
+        if alt is not None:
+            if price is not None:
+                return ParseResult.failure("alternate_needs_price_request")
+            try:
+                alt_pkg = _package(alt)
+            except ValueError:
+                return ParseResult.failure("bad_package")
+            if alt_pkg == pkg:
+                return ParseResult.failure("alternate_same_as_package")
+            extra = {"alternate": alt_pkg.as_dict()}
+        return ParseResult.success({"action": "propose", "package": pkg.as_dict(), "price": None if price is None else float(price), **extra, "reason": reason})
 
     def legal(self, family_case, state, seat, phase, action) -> LegalityResult:
         del family_case, seat, phase
@@ -239,6 +296,14 @@ class RiskAllocationPlugin:
             return LegalityResult.illegal("negotiation_over")
         if action["action"] == "accept" and state["standing"] is None:
             return LegalityResult.illegal("nothing_to_accept")
+        if action["action"] == "accept" and state.get("alternate_offer") is not None:
+            offers = [state["standing"]["package"], state["alternate_offer"]["package"]]
+            if action.get("package") is None:
+                return LegalityResult.illegal("choose_an_offer")
+            if dict(action["package"]) not in offers:
+                return LegalityResult.illegal("no_such_offer")
+        elif action["action"] == "accept" and action.get("package") is not None and dict(action["package"]) != state["standing"]["package"]:
+            return LegalityResult.illegal("no_such_offer")
         if action["action"] == "propose" and state["final"]:
             return LegalityResult.illegal("final_answer_only")
         return LegalityResult.legal_action()
@@ -258,22 +323,35 @@ class RiskAllocationPlugin:
         if act["action"] == "walk":
             new.update(finished=True, termination="walked")
         elif act["action"] == "accept":
-            new.update(finished=True, termination="signed", signed=state["standing"])
+            chosen = state["standing"]
+            if act.get("package") is not None and state.get("alternate_offer") is not None and act["package"] == state["alternate_offer"]["package"]:
+                chosen = state["alternate_offer"]
+            new.update(finished=True, termination="signed", signed=chosen)
         else:
             a = _action(act)
             thr = game.threshold(a.package, other, state["round"])
             if a.price != ra.PRICE_IT and game.signs(a.price, thr):
                 new.update(finished=True, termination="signed", signed={"package": a.package.as_dict(), "price": a.price})
             else:
-                new["history"].append({
+                side = "or any higher price" if seat == "client" else "or any lower price"
+                entry = {
                     "round": state["round"], "you_proposed": a.package.as_dict(), "your_price": act["price"],
-                    "answer": f"would sign this package at {thr:,.1f} ({'or any higher price' if seat == 'client' else 'or any lower price'}) in round {state['round']}",
+                    "answer": f"would sign this package at {thr:,.1f} ({side}) in round {state['round']}",
                     "their_price": round(thr, 3),
-                })
+                }
+                alt_offer = None
+                if a.alternate is not None:
+                    alt = game.threshold(a.alternate, other, state["round"])
+                    entry.update(alternate=a.alternate.as_dict(), alternate_answer=f"would sign the alternate at {alt:,.1f} ({side}) in round {state['round']}",
+                                 their_alternate_price=round(alt, 3))
+                    alt_offer = {"package": a.alternate.as_dict(), "price": round(alt, 3)}
+                new["history"].append(entry)
                 if family_case["breakoff_draws"][state["round"] - 1] < game.w.terms.breakoff:
                     new.update(finished=True, termination="broke_off")
                 else:
                     new["standing"] = {"package": a.package.as_dict(), "price": round(thr, 3)}
+                    if "alternate_offer" in new:
+                        new["alternate_offer"] = alt_offer
                     if state["round"] == game.w.rounds:
                         new["final"] = True
                     else:
@@ -348,6 +426,8 @@ def grade(payload: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any
 
 __all__ = [
     "ACTION_JSON_SCHEMA",
+    "ACTION_JSON_SCHEMA_ALTERNATES",
+    "alternates_of",
     "FAMILY_ID",
     "FAMILY_VERSION",
     "PLUGIN_ID",

@@ -193,3 +193,99 @@ def test_validate_refuses_a_type_outside_the_declared_prior() -> None:
         RiskAllocationPlugin().validate_payload(raw["payload"])
     w = ra.world_from_dict(raw["payload"]["world"])
     assert replace(w.client, risk_charge=0.4).risk_charge not in {c for c, _ in w.client_prior}
+
+
+# ---------------------------------------------------------------------------
+# The two-prices protocol (pack risk_allocation_two_prices_dev_v1): a price
+# request may name an alternate package, the answer prices both, and an accept
+# names the offer it takes. Opt-in per case; one-price cases are unchanged.
+
+TWO = "risk_allocation_two_prices_dev_v1"
+
+
+@lru_cache(maxsize=1)
+def _two() -> tuple[dict, dict]:
+    return rp.load(TWO)
+
+
+def _two_case(cell: str, seat: str) -> dict:
+    manifest, cases = _two()
+    world = next(w for w in manifest["worlds"] if w["cell"] == cell and "twin_of" not in w)
+    return cases[world["seats"][seat]["case_id"]]
+
+
+def test_the_two_prices_pack_shares_worlds_and_draws_but_not_identity() -> None:
+    one, two = _pack(), _two()
+    assert [w["slug"] for w in one[0]["worlds"]] == [w["slug"] for w in two[0]["worlds"]]
+    for w1, w2 in zip(one[0]["worlds"], two[0]["worlds"]):
+        for seat in ra.SEATS:
+            a, b = one[1][w1["seats"][seat]["case_id"]], two[1][w2["seats"][seat]["case_id"]]
+            assert a["case_id"] != b["case_id"] and b["payload"]["packages_per_request"] == 2
+            assert {k: v for k, v in b["payload"].items() if k != "packages_per_request"} == a["payload"]
+    built, manifest = rp.build(TWO)
+    assert {c["case_id"]: c["content_sha256"] for c in built} == {k: v["content_sha256"] for k, v in two[1].items()}
+    assert json.loads(json.dumps(manifest, sort_keys=True)) == two[0]
+
+
+def test_a_second_price_is_worth_nothing_to_the_reference() -> None:
+    """The reference infers every package's price from one answer, so the yardstick
+    is the same under both protocols; what a model gains is inference it skipped."""
+    _, cases = _two()
+    for raw in list(cases.values())[::4]:
+        two_game, _ = game_of(raw["payload"])
+        one_game = ra.Game(two_game.w, two_game.seat, two_game.own)
+        assert ra.prior_expected(two_game, ra.reference_policy(two_game)) == pytest.approx(
+            ra.prior_expected(one_game, ra.reference_policy(one_game)), abs=1e-6)
+
+
+def test_an_alternate_is_priced_with_the_package_and_either_can_be_accepted() -> None:
+    raw = _two_case("price_the_alternatives", "client")
+    ep = Episode(raw)
+    a, b = ra.Package("fix_and_delay", "client", "excluded", "at_signing"), ra.Package("fix", "client", "included", "on_delivery")
+    ep.play({"action": "propose", "package": a.as_dict(), "price": None, "alternate": b.as_dict(), "reason": "two prices"})
+    if ep.state["termination"] == "broke_off":
+        pytest.skip("this world's first draw breaks off")
+    obs = ep.observe()
+    game, truth = game_of(ep.payload)
+    assert obs["standing_offer"]["price"] == pytest.approx(ra.ask_price(a, game.w, truth, 1), abs=1e-3)
+    assert obs["alternate_offer"]["price"] == pytest.approx(ra.ask_price(b, game.w, truth, 1), abs=1e-3)
+    ep_no = Episode(raw)
+    ep_no.state = json.loads(json.dumps(ep.state))
+    ep_no.play({"action": "accept", "package": None, "price": None, "alternate": None, "reason": "x"})
+    assert ep_no.state["invalid"] == "choose_an_offer"
+    ep.play({"action": "accept", "package": b.as_dict(), "price": None, "alternate": None, "reason": "take the alternate"})
+    assert ep.state["termination"] == "signed" and ep.state["signed"]["package"] == b.as_dict()
+    g = grade(ep.payload, ep.state)
+    assert g["valid"] and g["signed_package"] == b.label()
+
+
+def test_the_alternate_is_refused_where_it_is_not_offered_or_not_a_price_request() -> None:
+    alt = ra.Package("fix", "client", "included", "on_delivery").as_dict()
+    ep = Episode(_case(_world("price_the_alternatives"), "client"))
+    ep.play({"action": "propose", "package": ra.OPENING.as_dict(), "price": None, "alternate": alt, "reason": "x"})
+    assert ep.state["invalid"] == "alternate_not_offered"
+    ep = Episode(_two_case("price_the_alternatives", "client"))
+    ep.play({"action": "propose", "package": ra.OPENING.as_dict(), "price": 10000.0, "alternate": alt, "reason": "x"})
+    assert ep.state["invalid"] == "alternate_needs_price_request"
+    ep = Episode(_two_case("price_the_alternatives", "client"))
+    ep.play({"action": "propose", "package": alt, "price": None, "alternate": alt, "reason": "x"})
+    assert ep.state["invalid"] == "alternate_same_as_package"
+
+
+def test_the_reference_plays_the_two_prices_pack_clean() -> None:
+    _, cases = _two()
+    for raw in cases.values():
+        ep = _play_policy(raw, ra.reference_policy)
+        g = grade(ep.payload, ep.state)
+        assert g["valid"] and g["decision_regret"] == pytest.approx(0.0, abs=1e-6), raw["case_id"]
+
+
+def test_asking_two_prices_then_signing_the_cheaper_is_graded_on_the_client_s_information() -> None:
+    raw = _two_case("price_the_alternatives", "client")
+    ep = Episode(raw)
+    a, b = ra.Package("fix_and_delay", "client", "excluded", "at_signing"), ra.Package("fix_and_delay", "client", "included", "at_signing")
+    ep.play({"action": "propose", "package": a.as_dict(), "price": None, "alternate": b.as_dict(), "reason": "x"})
+    if ep.state["finished"]:
+        pytest.skip("broke off")
+    g = grade(ep.payload, ep.state)
+    assert g["decisions"][0]["regret"] >= 0.0 and g["decisions"][0]["action"].endswith("'s")

@@ -30,6 +30,9 @@ GENERATOR_ID = "datacenter_risk_allocation_generator_v1"
 GENERATOR_VERSION = "0.1.0"
 PACKS: dict[str, dict[str, Any]] = {
     "risk_allocation_dev_v1": {"split": "dev", "base_seed": 2460000, "seeds_per_cell": 2},
+    # The same worlds and break-off draws under the two-prices protocol: a price
+    # request may name an alternate package. Its own case ids and digests.
+    "risk_allocation_two_prices_dev_v1": {"split": "dev", "base_seed": 2460000, "seeds_per_cell": 2, "packages_per_request": 2},
 }
 
 
@@ -42,7 +45,7 @@ def breakoff_draws(seed: int, rounds: int) -> list[float]:
     return [round(rng.random(), 6) for _ in range(rounds)]
 
 
-def case_for(pack: str, split: str, row: dict[str, Any], seat: str) -> dict[str, Any]:
+def case_for(pack: str, split: str, row: dict[str, Any], seat: str, packages_per_request: int = 1) -> dict[str, Any]:
     world = row["world"]
     rounds = len(world["terms"]["ask_premium"]) - 1
     payload = {
@@ -51,6 +54,8 @@ def case_for(pack: str, split: str, row: dict[str, Any], seat: str) -> dict[str,
         "integrator_type": row["hidden_type"],
         "breakoff_draws": breakoff_draws(row["seed"], rounds),
     }
+    if packages_per_request != 1:
+        payload["packages_per_request"] = packages_per_request
     RiskAllocationPlugin().validate_payload(payload)
     raw = {
         "spec_version": CaseManifest.SPEC_VERSION,
@@ -72,6 +77,7 @@ def case_for(pack: str, split: str, row: dict[str, Any], seat: str) -> dict[str,
 def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     spec = PACKS[pack]
     rows = ra.build_pack(spec["seeds_per_cell"], spec["base_seed"])
+    per_request = spec.get("packages_per_request", 1)
     cases: list[dict[str, Any]] = []
     index: list[dict[str, Any]] = []
     for row in rows:
@@ -81,9 +87,16 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         entry["client_risk_charge"] = row["world"]["client"]["risk_charge"]
         entry["seats"] = {}
         for seat in ra.SEATS:
-            raw = case_for(pack, spec["split"], row, seat)
+            raw = case_for(pack, spec["split"], row, seat, per_request)
             cases.append(raw)
             view = row if seat == "client" else row["integrator_seat"]
+            if per_request != 1:  # admission stays on the one-price protocol; the views are the variant's
+                full = ra.seat_view(ra.world_from_dict(row["world"]), seat, ra.IntegratorType(**row["hidden_type"]), alternates=True)
+                view = {
+                    "reference_first_move": {"kind": ra.first_move_kind(full["reference"]["first_action"]), "action": full["reference"]["first_action"].label()},
+                    "reference_expected_cost": full["reference"]["expected_cost"],
+                    "rule_regret_prior": {k: round(v, 3) for k, v in full["rule_regret"].items()},
+                }
             entry["seats"][seat] = {
                 "case_id": raw["case_id"],
                 "content_sha256": raw["content_sha256"],
