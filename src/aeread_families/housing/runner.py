@@ -966,6 +966,8 @@ class HousingV1Plugin:
         world_kind = payload.get("world_kind")
         if world_kind == "lemons":
             expected |= {"lemon_share", "lemon_loss", "inspection_cost"}
+            if "lemon_landlord" in payload:
+                expected |= {"lemon_landlord"}
         if set(payload) != expected:
             raise ValueError("housing payload fields are incomplete or unexpected")
         if world_kind not in {"bid", "lemons"}:
@@ -998,6 +1000,7 @@ class HousingV1Plugin:
                 lemon_share=float(payload["lemon_share"]),
                 lemon_loss=float(payload["lemon_loss"]),
                 inspection_cost=float(payload["inspection_cost"]),
+                landlord_reservation=payload.get("lemon_landlord", "true_cost"),
             )
             return {
                 **integers,
@@ -1005,6 +1008,7 @@ class HousingV1Plugin:
                 "lemon_share": float(payload["lemon_share"]),
                 "lemon_loss": float(payload["lemon_loss"]),
                 "inspection_cost": float(payload["inspection_cost"]),
+                **({"lemon_landlord": payload["lemon_landlord"]} if "lemon_landlord" in payload else {}),
                 "world": world,
             }
         world = hz.make_bid_world(
@@ -1571,9 +1575,10 @@ class HousingScriptedLandlordProvider:
                 "counter_rent": None,
             }
         else:
-            viable = [
-                offer for offer in inbox if offer["rent"] >= observation["private_cost"]
-            ]
+            # A pooled lemons world gives the landlord the sound-equivalent
+            # reservation to decide against (HL-D-01); otherwise its own cost.
+            reservation = observation.get("reservation_cost", observation["private_cost"])
+            viable = [offer for offer in inbox if offer["rent"] >= reservation]
             if viable:
                 chosen = max(
                     viable, key=lambda offer: (offer["rent"], -offer["tenant_id"])
@@ -1719,6 +1724,17 @@ XAI_GROK_47_ROUTE = OpenRouterRoutePin(
 
 GLM_53_FLASH_MODEL = "z-ai/glm-5.3-flash"
 GLM_53_FLASH_REVISION = "z-ai/glm-5.3-flash-20260826"
+# The lemons v2 GLM tenant. Parasail serves fp8 (DeepInfra reports fp4 since the
+# pin below was sealed); prices read from the OpenRouter catalog on 2026-09-25.
+PARASAIL_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="Parasail",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.15,
+    cached_input_per_million=0.03,
+    output_per_million=0.5,
+    pricing_id="openrouter_parasail_2026-09-25_glm-5.3-flash",
+)
 DEEPINFRA_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
     provider="DeepInfra",
     quantization="fp8",
@@ -1910,6 +1926,7 @@ def build_housing_smoke(
     lemon_share: float = lemons_module.DEFAULT_LEMON_SHARE,
     lemon_loss: float = lemons_module.DEFAULT_LEMON_LOSS,
     inspection_cost: float = lemons_module.DEFAULT_INSPECTION_COST,
+    lemon_landlord: str | None = None,
     tenant_top_p: float | None = 1.0,
     tenant_max_cost_usd_override: float | None = None,
 ) -> HousingSmokeSetup:
@@ -1918,6 +1935,13 @@ def build_housing_smoke(
         or tenant_max_cost_usd_override <= 0.0
     ):
         raise ValueError("tenant_max_cost_usd_override must be a positive number")
+    if lemon_landlord is not None and (
+        world_kind != "lemons" or lemon_landlord not in lemons_module.LANDLORD_RESERVATIONS
+    ):
+        raise ValueError(
+            "lemon_landlord applies only to a lemons world and must be one of "
+            f"{sorted(lemons_module.LANDLORD_RESERVATIONS)}"
+        )
     if world_kind not in {"bid", "lemons"}:
         raise ValueError("world_kind must be bid or lemons")
     lemons = world_kind == "lemons"
@@ -2138,6 +2162,8 @@ def build_housing_smoke(
                         "lemon_share": float(lemon_share),
                         "lemon_loss": float(lemon_loss),
                         "inspection_cost": float(inspection_cost),
+                        # Declared only when not the v1 default, so v1 cases keep their bytes.
+                        **({"lemon_landlord": lemon_landlord} if lemon_landlord else {}),
                     }
                     if lemons
                     else {}
@@ -2728,6 +2754,7 @@ __all__ = [
     "HousingV1Plugin",
     "OpenRouterRoutePin",
     "DEEPINFRA_GLM_53_FLASH_ROUTE",
+    "PARASAIL_GLM_53_FLASH_ROUTE",
     "DEEPINFRA_HOUSING_ROUTE",
     "GLM_53_FLASH_MODEL",
     "GLM_53_FLASH_REVISION",

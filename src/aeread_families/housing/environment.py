@@ -507,6 +507,10 @@ class HousingMarket:
         }
         if self.lemons:
             out["quality"] = QUALITY_LABEL[self.world.quality[listing_id]]
+            if self.world.landlord_reservation == "pooled":
+                # Only a pooled world carries it, so every earlier observation is
+                # byte-identical (HL-D-01).
+                out["reservation_cost"] = self.world.reservation_cost(listing_id)
         return out
 
     @staticmethod
@@ -892,7 +896,8 @@ def scripted_landlord_responses(
     out: Dict[int, Dict[int, Tuple[str, Optional[float]]]] = {}
     for l, offers in inbox.items():
         per: Dict[int, Tuple[str, Optional[float]]] = {}
-        cost = market.world.costs[l]
+        world = market.world
+        cost = world.reservation_cost(l) if hasattr(world, "reservation_cost") else world.costs[l]
         viable = [offer for offer in offers if offer.rent >= cost]
         if viable:
             best_t = viable[0].tenant_id

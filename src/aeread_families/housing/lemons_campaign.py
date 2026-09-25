@@ -78,12 +78,14 @@ from .population_campaign import (
 )
 from .runner import (
     GEMINI_38_FLASH_MODEL,
+    GLM_53_FLASH_MODEL,
     GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE,
     GROK_47_MODEL,
     HOUSING_COMMIT_OUTPUT_SCHEMA,
     HOUSING_CONTACT_OUTPUT_SCHEMA,
     HOUSING_INSPECT_OUTPUT_SCHEMA,
     HOUSING_TENANT_LEMONS_PROMPT,
+    PARASAIL_GLM_53_FLASH_ROUTE,
     XAI_GROK_47_ROUTE,
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -97,6 +99,23 @@ from .runner import (
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_lemons_campaign/0.1"
 CAMPAIGN_ID = "housing_lemons_refusal_pilot_v1"
+#: Every identity this driver runs, with what it fixes beyond the shared contract.
+#: v1 is the sealed pilot as run. v2 fixes HL-D-01 (a lemon's landlord reserves on
+#: the sound-equivalent cost, so its reply no longer reveals quality) and HL-D-02
+#: (temperature 1.0, so replicates are replicates), one identity per route so a
+#: second model runs on the same pack under the same controls.
+IDENTITIES: dict[str, dict[str, Any]] = {
+    CAMPAIGN_ID: {"lemon_landlord": None, "temperature": 0.0, "routes": {"google_gemini_38_flash", "xai_grok_47"}},
+    "housing_lemons_refusal_v2_gemini38_flash": {"lemon_landlord": "pooled", "temperature": 1.0, "routes": {"google_gemini_38_flash"}},
+    "housing_lemons_refusal_v2_glm53_flash": {"lemon_landlord": "pooled", "temperature": 1.0, "routes": {"parasail_glm_53_flash"}},
+}
+
+
+def identity(value: Mapping[str, Any]) -> dict[str, Any]:
+    spec = IDENTITIES.get(value.get("campaign_id"))
+    if spec is None:
+        raise ContractError(f"this driver accepts only {sorted(IDENTITIES)}")
+    return spec
 FAMILY_VERSION = "1.0.0"
 STAGES = CAMPAIGN_GATE_SEQUENCE[:5]
 LIVE_CONDITION_ID = "live_tenant"
@@ -107,6 +126,7 @@ STRATA = ("favourite_is_lemon", "favourite_is_sound")
 ROUTES: dict[str, tuple[str, OpenRouterRoutePin]] = {
     "google_gemini_38_flash": (GEMINI_38_FLASH_MODEL, GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE),
     "xai_grok_47": (GROK_47_MODEL, XAI_GROK_47_ROUTE),
+    "parasail_glm_53_flash": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_ROUTE),
 }
 
 CONTRACT_FIELDS = (
@@ -154,7 +174,7 @@ ADMISSION_PROBES = 3
 
 def _validate_environment(value: Mapping[str, Any]) -> None:
     environment = value["environment"]
-    if environment != {
+    expected = {
         "family": "housing_v1",
         "world_kind": "lemons",
         "tenants": 6,
@@ -164,7 +184,11 @@ def _validate_environment(value: Mapping[str, Any]) -> None:
         "lemon_share": 0.5,
         "lemon_loss": 1000.0,
         "inspection_cost": 25.0,
-    }:
+    }
+    landlord = identity(value)["lemon_landlord"]
+    if landlord is not None:
+        expected["lemon_landlord"] = landlord
+    if environment != expected:
         raise ContractError("lemons pilot environment controls drifted")
     if value["admission_rule"] != lemons.DEFAULT_ADMISSION_RULE:
         raise ContractError("lemons pilot admission rule drifted from the family default")
@@ -188,7 +212,7 @@ def _validate_controls(value: Mapping[str, Any]) -> None:
         "tools": "disabled",
         "memory": "disabled",
         "reasoning_effort": "low",
-        "temperature": 0.0,
+        "temperature": identity(value)["temperature"],
         "top_p": 1.0,
         "max_output_tokens": 4096,
         "timeout_seconds": 120.0,
@@ -232,6 +256,8 @@ def _validate_route(value: Mapping[str, Any]) -> None:
     known = ROUTES.get(route["route_id"])
     if known is None:
         raise ContractError(f"unknown route: {route['route_id']!r}")
+    if route["route_id"] not in identity(value)["routes"]:
+        raise ContractError(f"{value['campaign_id']} does not run route {route['route_id']!r}")
     requested, pin = known
     if (
         route["requested_model"] != requested
@@ -307,8 +333,7 @@ def _validate_analysis(value: Mapping[str, Any]) -> None:
         raise ContractError("analysis.predeclared_slices drifted")
     if analysis.get("endpoint_order") != list(ENDPOINT_ORDER):
         raise ContractError("analysis.endpoint_order drifted")
-    if value["campaign_id"] != CAMPAIGN_ID:
-        raise ContractError(f"this driver accepts only {CAMPAIGN_ID}")
+    identity(value)
     if value["claim_status"] != "development_qualification":
         raise ContractError("the lemons pilot is development qualification only")
 
@@ -345,6 +370,7 @@ def _make_world(environment: Mapping[str, Any], seed: int) -> lemons.LemonsWorld
         lemon_share=environment["lemon_share"],
         lemon_loss=environment["lemon_loss"],
         inspection_cost=environment["inspection_cost"],
+        landlord_reservation=environment.get("lemon_landlord", "true_cost"),
     )
 
 
@@ -480,6 +506,7 @@ def build_setup(
         replicates=replicates,
         inference_seed_base=controls["tenant_inference_seed_base"],
         landlord_model=controls["landlord_policy"],
+        lemon_landlord=environment.get("lemon_landlord"),
     )
     if tenant == "live":
         requested, pin = _route_pin(contract)
@@ -1438,7 +1465,15 @@ def _publication_readme(
         "on the same pack as controls. Claim status: "
         f"`{contract['claim_status']}`. No winner and no model ranking may be read "
         "from this bundle.\n\n"
-        f"- Route: `{contract['route']['route_id']}` "
+        + (
+            f"The route fills all {contract['environment']['tenants']} tenant seats, so each cell is a "
+            "market of that model's tenants; landlords are the scripted policy, and a lemon's landlord "
+            "reserves on the sound-equivalent cost so its reply does not reveal quality (HL-D-01). "
+            f"Temperature {contract['controls']['temperature']}.\n\n"
+            if contract["environment"].get("lemon_landlord") == "pooled"
+            else ""
+        )
+        + f"- Route: `{contract['route']['route_id']}` "
         f"(`{contract['route']['canonical_model']}` via {contract['route']['provider']})\n"
         f"- Pack: {design['world_count']} worlds from seed {contract['world_pack']['seed_start']} "
         f"by the declared selection rule; {pilot['planned_cells']} pilot cells, "

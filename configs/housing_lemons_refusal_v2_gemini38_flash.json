@@ -1,0 +1,172 @@
+{
+  "schema_version": "aeread.housing_lemons_campaign/0.1",
+  "campaign_id": "housing_lemons_refusal_v2_gemini38_flash",
+  "claim_status": "development_qualification",
+  "question": "On gate-admitted lemons worlds whose landlords do not reveal quality by how they answer an offer (a lemon's landlord reserves on the sound-equivalent cost, HL-D-01), does a live tenant inspect before it contests and refuse an uninspected unit whose pooled expectation is below the rent? Measured as the tenants' net payoff against the scripted bracket on the same worlds, descriptively and per stratum; one route per identity, paired with its sibling identity on the same pack; no winner, no ranking.",
+  "primary_estimand": "tenant_net_payoff",
+  "secondary_estimands": [
+    "within_case_score",
+    "abstention_correctness_rate",
+    "uninspected_lemon_signings",
+    "inspection_count",
+    "social_welfare"
+  ],
+  "primary_contrast": "live_tenant_minus_inspect_then_sign_reference",
+  "independent_cluster": "world_seed",
+  "environment": {
+    "family": "housing_v1",
+    "world_kind": "lemons",
+    "tenants": 6,
+    "listings": 4,
+    "rounds": 4,
+    "common_weight": 0.6,
+    "lemon_share": 0.5,
+    "lemon_loss": 1000.0,
+    "inspection_cost": 25.0,
+    "lemon_landlord": "pooled"
+  },
+  "admission_rule": {
+    "lemon_count_min": 1,
+    "sound_count_min": 1,
+    "oracle_total_min": 1e-09,
+    "sign_anything_normalized_max": -0.05,
+    "inspect_then_sign_normalized_min": 0.05,
+    "reference_minus_sign_anything_normalized_min": 0.25
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "tenant_cost_ceiling_usd": 0.3,
+    "max_consecutive_operational_failures": 3,
+    "landlord_policy": "housing_scripted_landlord_v1",
+    "execution_order": "world_seed_ascending_then_replicate"
+  },
+  "route": {
+    "route_id": "google_gemini_38_flash",
+    "requested_model": "google/gemini-3.8-flash",
+    "canonical_model": "google/gemini-3.8-flash-20260902",
+    "provider": "Google AI Studio",
+    "quantization": "unknown",
+    "tenant_profile_id": "housing_lemons_v2_gemini_38_flash_tenant_v1"
+  },
+  "scripted_controls": [
+    "sign_anything",
+    "pass",
+    "inspect_then_sign"
+  ],
+  "world_pack": {
+    "selection": "first_admitted_seeds_from_stream_by_stratum",
+    "seed_start": 100000,
+    "full_trajectory_worlds": 1,
+    "worlds_per_stratum": 12,
+    "strata": [
+      "favourite_is_lemon",
+      "favourite_is_sound"
+    ],
+    "stratum_rule": "the listing most tenants rank first by value_if_sound minus ask (ties to the lowest listing id, then the lowest id among equally popular listings) is a lemon"
+  },
+  "full_trajectory": {
+    "world_seeds": [
+      100000
+    ],
+    "replicates": 1,
+    "cost_ceiling_usd": 0.5
+  },
+  "variance_pilot": {
+    "world_seeds": [
+      100001,
+      100002,
+      100003,
+      100004,
+      100005,
+      100006,
+      100007,
+      100008,
+      100009,
+      100010,
+      100011,
+      100012,
+      100015,
+      100016,
+      100017,
+      100018,
+      100021,
+      100022,
+      100023,
+      100025,
+      100027,
+      100028,
+      100029,
+      100030
+    ],
+    "strata": {
+      "favourite_is_lemon": [
+        100001,
+        100004,
+        100006,
+        100008,
+        100010,
+        100011,
+        100012,
+        100016,
+        100017,
+        100022,
+        100025,
+        100028
+      ],
+      "favourite_is_sound": [
+        100002,
+        100003,
+        100005,
+        100007,
+        100009,
+        100015,
+        100018,
+        100021,
+        100023,
+        100027,
+        100029,
+        100030
+      ]
+    },
+    "replicates": 2,
+    "cost_ceiling_usd": 6.0,
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "causal_condition_effect_allowed": false
+  },
+  "analysis": {
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260925,
+    "resampling_unit": "world_seed",
+    "interval": "percentile_95",
+    "bootstrap_procedure": "one random.Random(bootstrap_seed) stream serves every interval in the declared endpoint order, overall first and then each stratum",
+    "predeclared_slices": [
+      "stratum"
+    ],
+    "endpoint_order": [
+      "tenant_net_payoff",
+      "within_case_score",
+      "abstention_correctness_rate",
+      "uninspected_lemon_signing_rate",
+      "live_minus_reference_net_payoff"
+    ]
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "stop_on_route_drift_hidden_retry_replay_failure_incomplete_cost_stage_cost_ceiling_or_max_consecutive_operational_failures"
+}

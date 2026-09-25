@@ -724,3 +724,89 @@ def test_cli_runs_a_lemons_world(tmp_path, policy):
     assert result["world_kind"] == "lemons"
     assert result["tenant_model"] == f"housing_scripted_tenant_{policy}_v1"
     assert result["outcome"]["bound_semantics"] == "full_information_tenant_capture_relaxation"
+
+
+# --------------------------------------------------------------------------
+# HL-D-01: under v1 a lemon's landlord accepts a lowball a sound one counters,
+# so the reply reveals quality for free; a pooled world closes that channel.
+# --------------------------------------------------------------------------
+
+
+def _lowball_replies(reservation: str) -> set[tuple[str, str]]:
+    from aeread_families.housing import environment as hz_env
+    from aeread_families.housing import lemons as lemons_mod
+
+    seen = set()
+    for seed in range(100000, 100012):
+        world = lemons_mod.make_lemons_world(
+            6, 4, seed, 0.6, lemon_share=0.5, lemon_loss=1000.0, inspection_cost=25.0,
+            landlord_reservation=reservation,
+        )
+        for listing in range(4):
+            market = hz_env.HousingMarket(world, rounds=4)
+            offer = hz_env.Offer(
+                offer_id=f"o{listing}", tenant_id=0, listing_id=listing,
+                rent=round(world.ask[listing] - 300.0, 2), round_index=0,
+            )
+            reply = hz_env.scripted_landlord_responses(market, {listing: [offer]})[listing][0][0]
+            quality = "lemon" if world.quality[listing] == lemons_mod.LEMON else "sound"
+            seen.add((quality, reply))
+    return seen
+
+
+def test_true_cost_landlord_reply_reveals_quality() -> None:
+    assert _lowball_replies("true_cost") == {("lemon", "accept"), ("sound", "counter")}
+
+
+def test_pooled_landlord_reply_does_not_reveal_quality() -> None:
+    assert _lowball_replies("pooled") == {("lemon", "counter"), ("sound", "counter")}
+
+
+def test_pooled_world_keeps_true_costs_in_the_accounting() -> None:
+    from aeread_families.housing import lemons as lemons_mod
+
+    pooled = lemons_mod.make_lemons_world(6, 4, 100001, 0.6, landlord_reservation="pooled")
+    plain = lemons_mod.make_lemons_world(6, 4, 100001, 0.6)
+    assert pooled.costs == plain.costs and pooled.values == plain.values
+    for listing in pooled.lemon_ids:
+        assert pooled.reservation_cost(listing) > pooled.costs[listing]
+    for listing in pooled.sound_ids:
+        assert pooled.reservation_cost(listing) == pooled.costs[listing]
+
+
+def test_pooled_landlord_observation_is_opt_in() -> None:
+    from aeread_families.housing import environment as hz_env
+    from aeread_families.housing import lemons as lemons_mod
+
+    plain = hz_env.HousingMarket(lemons_mod.make_lemons_world(6, 4, 100001, 0.6), rounds=4)
+    pooled = hz_env.HousingMarket(
+        lemons_mod.make_lemons_world(6, 4, 100001, 0.6, landlord_reservation="pooled"), rounds=4
+    )
+    assert "reservation_cost" not in plain.landlord_observation(0)
+    assert "reservation_cost" in pooled.landlord_observation(0)
+
+
+def test_v2_identities_pin_route_temperature_and_landlord(tmp_path) -> None:
+    import json as _json
+
+    import pytest as _pytest
+
+    from aeread.shared_runner.run.contract import ContractError
+    from aeread_families.housing import lemons_campaign as campaign
+
+    for cid in ("housing_lemons_refusal_v2_gemini38_flash", "housing_lemons_refusal_v2_glm53_flash"):
+        contract = campaign.load_contract(f"configs/{cid}.json")
+        assert contract["environment"]["lemon_landlord"] == "pooled"
+        assert contract["controls"]["temperature"] == 1.0
+    base = _json.loads(open("configs/housing_lemons_refusal_v2_glm53_flash.json").read())
+    for mutate in (
+        lambda c: c["controls"].__setitem__("temperature", 0.0),
+        lambda c: c["environment"].pop("lemon_landlord"),
+        lambda c: c.__setitem__("route", _json.loads(open("configs/housing_lemons_refusal_v2_gemini38_flash.json").read())["route"]),
+    ):
+        bad = _json.loads(_json.dumps(base))
+        mutate(bad)
+        path = tmp_path / "bad.json"
+        path.write_text(_json.dumps(bad))
+        with _pytest.raises(ContractError):
+            campaign.load_contract(path)

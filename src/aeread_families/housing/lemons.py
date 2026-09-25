@@ -73,6 +73,19 @@ class LemonsWorld:
     lemon_share: float
     lemon_loss: float
     inspection_cost: float
+    # How a lemon's landlord decides (HL-D-01). "true_cost": on its own cost,
+    # which is lemon_loss lower, so its accept-or-counter reply reveals quality.
+    # "pooled": on the cost a sound listing at that address would have, as a
+    # lemon seller mimicking a sound one would; the true cost stays in the
+    # accounting only. sound_costs holds that sound-equivalent cost per listing.
+    landlord_reservation: str = "true_cost"
+    sound_costs: Tuple[float, ...] = ()
+
+    def reservation_cost(self, listing_id: int) -> float:
+        """The cost the landlord of ``listing_id`` accepts and counters against."""
+        if self.landlord_reservation == "pooled":
+            return float(self.sound_costs[listing_id])
+        return float(self.costs[listing_id])
 
     @property
     def num_tenants(self) -> int:
@@ -100,6 +113,10 @@ class LemonsWorld:
         return len(self.lemon_ids)
 
 
+#: How a lemon's landlord reserves; see LemonsWorld.landlord_reservation.
+LANDLORD_RESERVATIONS = frozenset({"true_cost", "pooled"})
+
+
 def _finite_nonnegative(value: Any, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number")
@@ -124,6 +141,7 @@ def make_lemons_world(
     lemon_share: float = DEFAULT_LEMON_SHARE,
     lemon_loss: float = DEFAULT_LEMON_LOSS,
     inspection_cost: float = DEFAULT_INSPECTION_COST,
+    landlord_reservation: str = "true_cost",
 ) -> LemonsWorld:
     """The pinned bid world plus quality.
 
@@ -137,6 +155,8 @@ def make_lemons_world(
         raise ValueError("lemon_share must be between zero and one")
     loss = _finite_nonnegative(lemon_loss, "lemon_loss")
     cost = _finite_nonnegative(inspection_cost, "inspection_cost")
+    if landlord_reservation not in LANDLORD_RESERVATIONS:
+        raise ValueError(f"landlord_reservation must be one of {sorted(LANDLORD_RESERVATIONS)}")
     base = hz.make_bid_world(num_tenants, num_listings, seed, common_weight)
     rng = random.Random(seed * 15485863 + 101)
     lemons = set(rng.sample(range(num_listings), lemon_count_for(num_listings, share)))
@@ -159,6 +179,8 @@ def make_lemons_world(
         lemon_share=share,
         lemon_loss=loss,
         inspection_cost=cost,
+        landlord_reservation=landlord_reservation,
+        sound_costs=tuple(float(c) for c in base.costs),
     )
 
 
