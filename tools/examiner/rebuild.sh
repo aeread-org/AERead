@@ -16,6 +16,8 @@ PYTHONPATH=$WT/src "$PY" "$T/dynamic_phase_graphs.py" "$WT" "$T/phase_graphs_liv
 echo "[2/7] receipt index (sealed attempt dirs on this machine)"
 python3 "$T/index_receipts.py" "$T/receipt_index.json" ${ROOTS[@]+"${ROOTS[@]}"}
 echo "[3/7] catalog, published grains, run order"
+# the lens step restores a bundle's step grain from here when its sealed logs were deleted since the last build
+[ -f "$OUT/data/catalog.json" ] && cp "$OUT/data/catalog.json" "$OUT/data/.catalog.previous.json" || true
 PYTHONPATH=$WT/src "$PY" "$T/build_general_examiner.py" "$WT" "$OUT" | tail -2
 mkdir -p "$OUT/data/lens"
 if [ -d "$WT/runs/housing_lemons_refusal_pilot_v1" ]; then

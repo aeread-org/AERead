@@ -131,6 +131,29 @@ def readme_excerpt(bundle: Path) -> dict:
     return {"title": title, "excerpt": short(re.sub(r"\s+", " ", excerpt), 700), "summary": summary, "words": len(text.split())}
 
 
+class Facts(list):
+    """Report facts, deduplicated by key and value, carrying the per-file cell counts taken before the dedup."""
+    cell_counts: dict = {}
+
+
+def cell_counts(facts: list) -> dict:
+    """Planned, completed and failed cell counts taken together from ONE report: the one planning the most
+    cells, the final report before an earlier attempt's. Mixing files paired a pilot's count with a one-cell
+    gate's plan ("45 of 1 cells completed")."""
+    by_file: dict = {}
+    for f in facts:
+        by_file.setdefault(f["file"], {}).setdefault(f["key"], f)
+    whole = [(name, keys) for name, keys in by_file.items()
+             if isinstance((keys.get("planned_cells") or {}).get("value"), int) and isinstance((keys.get("completed_cells") or {}).get("value"), int)]
+    if not whole:
+        return {}
+    def failures(keys):
+        return keys.get("operational_failure_cells") or keys.get("operational_failures") or keys.get("not_attempted_cells")
+    name, keys = max(whole, key=lambda item: (item[1]["planned_cells"]["value"], "attempt" not in item[0], failures(item[1]) is not None, item[0]))
+    fails = failures(keys)
+    return {"planned": keys["planned_cells"], "completed": keys["completed_cells"], "fails": fails}
+
+
 def headline(bundle: Path, facts: list) -> str | None:
     """What the run was, from facts every bundle can carry: the world pack and the cell count."""
     parts = []
@@ -139,8 +162,12 @@ def headline(bundle: Path, facts: list) -> str | None:
         packs = sorted({Path(str(w.get("path", ""))).parent.name for w in plan["worlds"] if isinstance(w, dict)} - {""})
         if packs:
             parts.append(f"{len(plan['worlds'])} worlds from {', '.join(packs)}")
+    counts = getattr(facts, "cell_counts", None) or cell_counts(facts)
     fact = {f["key"]: f["value"] for f in facts}
-    if isinstance(fact.get("planned_cells"), int) and isinstance(fact.get("completed_cells"), int):
+    if counts:
+        parts.append(f"{counts['completed']['value']} of {counts['planned']['value']} cells completed")
+    elif isinstance(fact.get("planned_cells"), int) and isinstance(fact.get("completed_cells"), int):
+        # families that state the two counts in different files (aliased or summed arm counts)
         parts.append(f"{fact['completed_cells']} of {fact['planned_cells']} cells completed")
     return " · ".join(parts) or None
 
@@ -269,12 +296,13 @@ def report_facts(bundle: Path) -> list:
                 facts.append({"key": "reference_policies", "value": ", ".join(pm["public_policies"]),
                               "file": str(pack / "pack.json")})
                 break
-    seen = set(); out = []
+    seen = set(); out = Facts()
     for f in facts:
         k = (f["key"], json.dumps(f["value"], sort_keys=True, default=str))
         if k in seen:
             continue
         seen.add(k); out.append(f)
+    out.cell_counts = cell_counts(facts)  # before the dedup, which drops a file's count when another file states the same value
     return out
 
 
@@ -394,6 +422,15 @@ def derive_status(manifest, readme, facts, issues) -> dict:
         m = re.search(r"[^.]*\b" + w + r"\b[^.]*\.", (readme or {}).get("excerpt") or "", re.I)
         if m:
             sentence = m.group(0).strip(); break
+    # A bundle published although a gate failed says so in its manifest; the label must not read like a clean one.
+    gate = (manifest or {}).get("pilot_gate_status")
+    if isinstance(gate, str) and gate.startswith("failed"):
+        missing = (manifest or {}).get("missing_pilot_cells") or []
+        label += f" · gate failed, incomplete pack ({len(missing)} cell{'' if len(missing) == 1 else 's'} missing)"
+        ev.insert(0, f"publication_manifest.json: pilot_gate_status = {gate}")
+        reason = (manifest or {}).get("incomplete_pilot_reason")
+        sentence = (f"Published with its variance-pilot gate failed: {', '.join(missing) or 'cells'} missing as typed missingness"
+                    + (f"; reason stated in the manifest: {reason}" if reason else "") + ".")
     return {"label": label, "claim_status": claim, "readme_sentence": sentence, "fact_evidence": ev[:6],
             "open_issues": sum(1 for i in issues if i["state"] == "open"), "direct_issues": sum(1 for i in issues if i["direct"])}
 
@@ -465,8 +502,9 @@ def checklist(manifest, facts, grain_summary, issues, gate_hits) -> list:
     else:
         add("claim_boundary", "Claim boundary declared (no winner, no ranking)", "5", "not stated", "no claim flags or claim scope in the manifest or reports", "",
             "Neither the publication manifest nor any top-level report key states a claim flag, and no report carries a claim-scope sentence.")
-    planned, completed = fact("planned_cells"), fact("completed_cells")
-    fails = fact("operational_failure_cells") or fact("operational_failures") or fact("not_attempted_cells")
+    counts = getattr(facts, "cell_counts", None) or cell_counts(facts)
+    planned, completed = counts.get("planned") or fact("planned_cells"), counts.get("completed") or fact("completed_cells")
+    fails = counts.get("fails") if counts else (fact("operational_failure_cells") or fact("operational_failures") or fact("not_attempted_cells"))
     if planned and completed:
         p, c = planned["value"], completed["value"]
         ok = isinstance(p, int) and isinstance(c, int)

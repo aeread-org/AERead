@@ -454,6 +454,15 @@ def synth_campaign(cid: str, fam: str, bundle: Path, recs: list[dict]) -> dict:
 
 catalog = json.loads((GE / "data" / "catalog.json").read_text())
 index = {}
+# What the previous build published, so a bundle whose sealed logs were deleted since then (macOS removes
+# old files under /tmp, where session worktrees keep their run roots) keeps the lens built while they were whole.
+_prev_catalog_path = GE / "data" / ".catalog.previous.json"
+PREV_CATALOG = {c["id"]: c for c in json.loads(_prev_catalog_path.read_text())["campaigns"]} if _prev_catalog_path.exists() else {}
+PREV_INDEX = json.loads((OUT / "index.json").read_text()) if (OUT / "index.json").exists() else {}
+
+
+def readable_dirs(sha: str) -> list[str]:
+    return [d for d in IDX.get(sha) or [] if (Path(d) / "events.jsonl").exists()]
 for camp_entry in catalog["campaigns"]:
     cid = camp_entry["id"]
     bundle = bundle_dir(camp_entry)
@@ -503,7 +512,7 @@ for camp_entry in catalog["campaigns"]:
     targets = capped(targets)
     cases_out, instructions_all, sealed = [], {}, 0
     for sha, cell_id, attempt_id, case_id in targets:
-        dirs = IDX.get(sha)
+        dirs = readable_dirs(sha)
         rec = {"receipt_sha256": sha, "cell_id": cell_id, "episode_attempt_id": attempt_id, "case_id": case_id}
         if dirs:
             att = Path(dirs[0])
@@ -525,6 +534,22 @@ for camp_entry in catalog["campaigns"]:
         else:
             rec.update({"kind": "published_only", "world": world_from_case(None, case_id or "")})
         cases_out.append(rec)
+    # Sealed logs are not durable when a run root sits under /tmp: macOS's cleaner deletes old files there, event logs
+    # first and sometimes whole attempt directories. A rebuild that can read fewer sealed attempts than the last one
+    # keeps the last lens, its campaign file and its catalog step grain, and says why (EX-T-06).
+    prev = PREV_INDEX.get(cid) or {}
+    if (prev.get("sealed") or 0) > sealed and prev.get("file") and (OUT / f"{cid}.json").exists():
+        for key in ("trajectory_file", "grain"):
+            if key in PREV_CATALOG.get(cid, {}):
+                camp_entry[key] = PREV_CATALOG[cid][key]
+        if prev.get("kind") == "sealed" and cf.exists():
+            thin_campaign(cf)
+        index[cid] = {**prev, "kept_from_previous_build": True,
+                      "note": f"this machine now holds {sealed} of the {prev['sealed']} sealed attempts the last build read (the operating system's "
+                              "temporary-file cleaner removes old files under /tmp, where session worktrees keep run roots); the lens built from the "
+                              "complete logs is kept as is"}
+        print(f"{cid}: kept the previous lens, {sealed} of {prev['sealed']} sealed attempts still readable")
+        continue
     kind = "sealed" if sealed == len(cases_out) else ("mixed" if sealed else "published_only")
     if kind == "published_only" and not any(c.get("world") for c in cases_out):
         index[cid] = {"file": None, "kind": "none", "cases": len(cases_out), "sealed": 0,
@@ -582,5 +607,6 @@ for meta in index.values():
         meta["bytes"] = (GE / f).stat().st_size
 (GE / "data" / "catalog.json").write_text(json.dumps(catalog, separators=(",", ":"), default=str))
 (OUT / "index.json").write_text(json.dumps(index, indent=1))
+_prev_catalog_path.unlink(missing_ok=True)
 print("packed (gzip+base64 json):", len(list((GE / "data" / "campaigns").glob("*.json"))), "campaign files,", len([x for x in OUT.glob("*.json") if x.name != "index.json"]), "lens files")
 print("index:", Counter(v["kind"] for v in index.values()), "| synthesized:", sum(1 for c in catalog["campaigns"] if (c.get("grain") or {}).get("source") == "sealed_logs"))
