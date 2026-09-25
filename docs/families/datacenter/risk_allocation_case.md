@@ -321,7 +321,7 @@ one number?
   (plan `1ba56a81`, $1.49). GLM's smoke was censored, so GLM runs under its own
   identity once a longer smoke sizes it.
 - **Two-prices arm, corrected.** `risk_allocation_probe_v2b_two_prices` (plan
-  `3f7b...` in `runs/`, $0.34) supersedes `risk_allocation_probe_v2_two_prices`.
+  `3e85fdac`, $0.34) supersedes `risk_allocation_probe_v2_two_prices`.
   The superseded run's prompt had lost v1's "price is null on accept"
   (DC-D-24), and 16 of its 64 episodes ended on accepts typed invalid.
 - **Driver defects found on the way,** all fixed:
@@ -342,8 +342,8 @@ What the two arms show about the anchoring:
 
 - **Deliberation improves the opening, not the revision.** With no reasoning
   setting, Gemini's regret halves in both seats.
-  - Its opening package varies more with the world: 8 different packages
-    against 5 in v1.
+  - Its opening package varies more with the world: 6 different packages across both seats,
+    against 4 in v1.
   - The contract it signs is efficient more often: 7 of 26 against 4 of 24.
   - Its break-off losses in `close_now` fall from $477k to $156k as the client.
   - It still never priced or signed a second package.
