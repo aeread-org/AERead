@@ -803,3 +803,73 @@ the listing was a lemon. The two inference seeds gave identical net payoffs on
 powered design should spend its budget on worlds. None of this ranks a model or
 supports a winner; a second route on the same pack would be a paired contrast,
 not a ranking.
+
+## 21. Lemons v2: a pooled landlord, temperature 1.0, two routes on one pack
+
+Two identities fix the v1 pilot's design defects and run a second model on the
+same frozen pack: `housing_lemons_refusal_v2_gemini38_flash` and
+`housing_lemons_refusal_v2_glm53_flash` (`lemons_campaign.IDENTITIES`). They
+differ from v1 in two controls and from each other in the route alone:
+
+- **Pooled landlord (HL-D-01).** `environment.lemon_landlord: "pooled"`: a
+  lemon's scripted landlord accepts and counters on its sound-equivalent cost,
+  so its reply no longer tells an offer below the ask apart by quality; the true
+  cost enters only the accounting. v1 keeps `true_cost` and replays unchanged.
+- **Temperature 1.0 (HL-D-02)**, carried to the profile by the runner (HL-T-02).
+- **Routes.** Gemini 3.8 Flash (Google AI Studio) and GLM 5.3 Flash (Parasail
+  fp8), each filling all six tenant seats, so a cell is a market of one model's
+  tenants. Pack, strata, seeds, limits, analysis and stream are v1's.
+
+**Execution (2026-09-25).** Both passed design, provider-free validation,
+profile admission and the full-trajectory cell. Gemini's variance pilot lost
+one cell to an unanswered call in attempt 1 (HL-O-04) and completed 48 of 48 in
+attempt 2, $4.30 for the campaign. GLM's lost six cells the same way in attempt
+1, then three, one, one and one: world 100021 seed 1 hung on every one of five
+runs in the campaign root, at a different seat and phase each time, while
+direct replays of its hung requests and two diagnostic copies of the run root
+completed (HL-O-05 to HL-O-07). Re-execution stopped under a rule fixed before
+the fifth attempt, so the GLM identity is **unpublished**: the driver publishes
+only a complete pack, and its gate stays failed at 47 of 48.
+
+**Gemini, published** at
+[`evidence/housing/housing_lemons_refusal_v2_gemini38_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_gemini38_flash/),
+verified by recomputing every digest and the manifest seal, a clean
+prohibited-text scan, re-driving all 49 live receipts through the environment
+(0 score mismatches) and recomputing the analysis from the published rows.
+
+| endpoint, mean over worlds (95% world-clustered interval) | Gemini v2 (published, 48/48) | GLM v2 (unpublished, 47/48) |
+|---|---|---|
+| tenant net payoff | 327.8 (248.8 to 405.4) | 134.0 (-0.4 to 271.3) |
+| within-case score | 0.223 (0.172 to 0.269) | 0.079 (-0.013 to 0.165) |
+| abstention correctness | 1.000 | 0.927 (0.888 to 0.962) |
+| cells signing an uninspected lemon | 2 of 48 | 10 of 47 |
+| live minus inspect-then-sign reference | -26.3 (-93.5 to 21.9) | -220.2 (-336.0 to -103.8) |
+| cells above the reference / below sign-anything | 37 / 0 | 6 / 0 |
+
+Paired over the 24 worlds (`housing/lemons_comparison.py` logic applied to the
+GLM run root, so unpublished), Gemini minus GLM in net payoff is +193.9
+(66.9 to 321.7), Gemini ahead on 19 worlds and behind on 5. It does not rest
+on the missing cell: without world 100021 it is +161.6 (40 to 273) over 23
+worlds, and with GLM's missing seed set to the best payoff GLM reached anywhere
+it is +157.8.
+
+**Why.** Both populations signed about as many listings without inspecting
+them (Gemini 23, GLM 21), but 2 of Gemini's were lemons and 11 of GLM's were.
+A lemon lease costs the tenant the $1,000 lemon loss, and nine extra of them
+over 47 markets is about $190 a market, the whole gap. GLM also inspected more
+(11.7 against 10.5 per market), walked more holds (138 against 5 walks) and
+signed above its own value 16 times against 2. Gemini's v2 numbers equal its v1
+numbers, as a tenant that never used HL-D-01's channel should.
+
+**Replicates.** Gemini's two seeds gave the same net payoff on 18 of 24 worlds
+at temperature 1.0 (16 at 0); GLM's on 0 of 23. Gemini's agreement is its own
+consistency, not an artefact of temperature 0 (HL-D-02, corrected).
+
+**What this supports.** On this world, scored on the tenant's own payoff, the
+two populations separate by more than the world variance, and the separation
+has one mechanism a reader can check cell by cell. It does not support a ranking
+or a winner: the GLM side is unpublished, 24 worlds, one pack, and both routes
+fill all six seats, so each number describes a market of one model, not one
+agent against fixed competitors. A publishable pair needs a new identity that
+declares how an unanswered call is handled (a retryable `timeout` or a longer
+action timeout), run on both routes.

@@ -243,6 +243,10 @@ Includes the preserved case-selection bundle at the evidence root.
   under adverse selection) pilot, one Gemini 3.8 Flash tenant population on 24 gate-admitted worlds x 2
   seeds with the three scripted controls on the same pack; descriptive, exploratory, both attempts
   published, no winner claim;
+- [housing_lemons_refusal_v2_gemini38_flash](housing/housing_lemons_refusal_v2_gemini38_flash/): the lemons
+  world under the pooled landlord (HL-D-01) at temperature 1.0, one Gemini 3.8 Flash tenant population on
+  v1's pack; descriptive, both attempts published, no winner claim. Its GLM twin is unpublished (HL-O-07);
+  see the Housing QC profile §21;
 - [housing_model_sensitivity_openrouter_alt_v4](housing/housing_model_sensitivity_openrouter_alt_v4/),
   [housing_model_sensitivity_openrouter_alt_v5](housing/housing_model_sensitivity_openrouter_alt_v5/),
   [housing_model_sensitivity_openrouter_alt_v6](housing/housing_model_sensitivity_openrouter_alt_v6/),
