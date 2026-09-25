@@ -229,6 +229,26 @@ def _world_boot(values: dict, seed: int, draws: int = 10_000):
     return [means[int(0.025 * draws)], means[int(0.975 * draws) - 1]]
 
 
+def gap_reports(roots: list[Path]) -> dict:
+    """Why two paired runs differ, as published by derived bundles in the family-agnostic shape
+    ``aeread.gap_decomposition``: realized gap, additive components, decision classes and their instances.
+    Keyed by the bundle and by both runs, so the Model comparison panel of each shows it."""
+    out: dict = {}
+    for root in roots:
+        for path in sorted(root.glob("evidence/**/reports/gap_decomposition.json")):
+            report = json.loads(path.read_text(encoding="utf-8"))
+            if not str(report.get("schema_version", "")).startswith("aeread.gap_decomposition/"):
+                continue
+            bundle = path.parent.parent.name
+            if bundle in out:
+                continue
+            entry = {**report, "gap_id": bundle}
+            for key in (bundle, report.get("left"), report.get("right")):
+                if key:
+                    out[key] = entry
+    return out
+
+
 def twin_comparisons(roots: list[Path], already: set) -> dict:
     """A comparison for every published pair of identities whose contracts are equal except for the model,
     when no published comparison covers them: the declared primary estimand, averaged per world over completed
@@ -408,8 +428,10 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
     roots = [checkout, *extra_checkouts()]
     comparisons.update(payoff_comparisons(roots))
     comparisons.update(twin_comparisons(roots, set(comparisons)))
+    gaps = gap_reports(roots)
     data = {
         "comparisons": comparisons,
+        "gaps": gaps,
         "cards": cards,
         "strata": {key: value for key, value in prose.items() if "-" in key and key.replace("-", "_") in {c["stratum"] for c in cards.values()}},
         "common": {key: value for key, value in prose.items() if key in ("How to read a cell", "Common to every world", "Known limits")},
