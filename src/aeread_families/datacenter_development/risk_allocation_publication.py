@@ -23,7 +23,7 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.run.publication import atomic_publish, jsonl, receipt_projection, seal_publication_manifest
+from aeread.shared_runner.run.publication import assert_public_payload, atomic_publish, jsonl, receipt_projection, seal_publication_manifest
 from aeread.shared_runner.run.publish_trajectories import publish_trajectory_grain
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
@@ -112,6 +112,9 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
     atomic_publish(bundle / "tables" / "cells.jsonl", jsonl(rows))
     atomic_publish(bundle / "reports" / "summary.json", canonical_json_bytes(summary) + b"\n")
     atomic_publish(bundle / "README.md", _readme(summary).encode())
+    for path in sorted(bundle.rglob("*")):  # the prohibited-public-text scan, before anything is sealed
+        if path.is_file():
+            assert_public_payload(str(path.relative_to(bundle)), path.read_bytes())
     manifest = seal_publication_manifest(
         bundle, publication_id=plan["campaign_id"], campaign_id=plan["campaign_id"],
         privacy_boundary={"included": "receipt projections, per-cell grades and diagnostics, the sanitized trajectory grain, the campaign summary",
@@ -121,6 +124,8 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
         claim_status=plan["claim_status"],
     )
     rows_published, manifest = publish_trajectory_grain(bundle, attempts)
+    grain = bundle / "trajectories" / "sanitized.jsonl"
+    assert_public_payload(str(grain.relative_to(bundle)), grain.read_bytes())
     return {"bundle": str(bundle), "cells": len(rows), "receipts": len(projections), "trajectory_rows": rows_published,
             "manifest_sha256": manifest["manifest_sha256"]}
 
