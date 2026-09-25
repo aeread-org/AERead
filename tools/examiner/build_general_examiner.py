@@ -1031,6 +1031,7 @@ try:
         pkg, plugin = key.split("::")
         for v in entry.get("variants", []):
             declared.setdefault(pkg, []).append({"plugin": plugin, "variant": (v.get("init") or "") + (f" iface{v['developer_interface']}" if v.get("developer_interface") else ""),
+                                                 "family_id": v.get("family_id"), "family_version": v.get("family_version"), "case": v.get("case"),
                                                  "nodes": [p["phase_id"] for p in v["phases"]], "edges": [{"from": p["phase_id"], "to": n} for p in v["phases"] for n in p["next_phases"]],
                                                  "modes": {p["phase_id"]: p["mode"] for p in v["phases"]}, "actors": {p["phase_id"]: p["actor_selector"] for p in v["phases"]}})
     for pkg, specs in static.items():

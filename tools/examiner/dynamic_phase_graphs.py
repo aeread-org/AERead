@@ -6,8 +6,10 @@ sys.path.insert(0, str(ROOT / "src"))
 FAM = ROOT / "src/aeread_families"
 CASE_DIRS = {p.name: p for p in (ROOT / "cases").iterdir() if p.is_dir()}
 
-def case_files(pkg):
-    names = [d for d in CASE_DIRS if d.startswith(pkg) or pkg.startswith(d.split("_v")[0])]
+def case_files(pkg, family_id=None):
+    # A plugin's cases live under its package's name, or under its own FAMILY_ID when a package
+    # holds several families (datacenter_development holds datacenter_risk_allocation_v1).
+    names = [d for d in CASE_DIRS if d.startswith(pkg) or pkg.startswith(d.split("_v")[0]) or (family_id and d == family_id)]
     files = []
     for n in sorted(names):
         files += sorted(glob.glob(str(CASE_DIRS[n] / "**" / "*.json"), recursive=True))
@@ -50,7 +52,7 @@ for pkg in sorted(p.name for p in FAM.iterdir() if p.is_dir() and not p.name.sta
                         entry["error"] = f"constructor needs {[p.name for p in required]}"
                 for label, plugin in plugins:
                     seen = {}
-                    files = case_files(pkg)
+                    files = case_files(pkg, getattr(mod, "FAMILY_ID", None))
                     tried = 0
                     for f in files[:400]:
                         try:
@@ -62,7 +64,9 @@ for pkg in sorted(p.name for p in FAM.iterdir() if p.is_dir() and not p.name.sta
                             tried += 1; continue
                         sigkey = json.dumps([spec_row(p) for p in phases], sort_keys=True)
                         if sigkey not in seen:
-                            seen[sigkey] = {"case": str(Path(f).relative_to(ROOT)), "phases": [spec_row(p) for p in phases]}
+                            raw = json.loads(Path(f).read_text())
+                            seen[sigkey] = {"case": str(Path(f).relative_to(ROOT)), "phases": [spec_row(p) for p in phases],
+                                            "family_id": raw.get("family_id"), "family_version": raw.get("family_version")}
                             # try to note the developer interface for datacenter cases
                             m = re.search(r'"developer_interface":\s*(\d+)', Path(f).read_text())
                             if m: seen[sigkey]["developer_interface"] = int(m.group(1))

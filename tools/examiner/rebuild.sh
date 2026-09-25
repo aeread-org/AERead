@@ -13,6 +13,22 @@ PY=${PY:-$WT/.venv/bin/python}; [ -x "$PY" ] || PY=$HOME/AERead/.venv/bin/python
 echo "[1/7] phase graphs declared by the plugins (static + live)"
 PYTHONPATH=$WT/src "$PY" "$T/extract_phase_graphs.py" "$WT" "$T/phase_graphs.json" >/dev/null || echo "  static extraction failed; keeping the previous phase_graphs.json"
 PYTHONPATH=$WT/src "$PY" "$T/dynamic_phase_graphs.py" "$WT" "$T/phase_graphs_live.json" >/dev/null || echo "  live extraction failed; keeping the previous phase_graphs_live.json"
+# Plugins that exist only on an extra checkout's branch (a new family not yet on the primary's branch) get their
+# graphs from that checkout; the primary's own graphs always win.
+for X in ${AEREAD_EXAMINER_EXTRA_CHECKOUTS//:/ }; do
+  [ -d "$X/src/aeread_families" ] || continue
+  XPY=$X/.venv/bin/python; [ -x "$XPY" ] || XPY=$PY
+  PYTHONPATH=$X/src "$XPY" "$T/dynamic_phase_graphs.py" "$X" "$OUT/phase_graphs_extra.json" >/dev/null 2>&1 || continue
+  python3 - "$T/phase_graphs_live.json" "$OUT/phase_graphs_extra.json" <<'PYEOF'
+import json, sys
+main, extra = json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))
+added = [k for k, v in extra.items() if v.get("variants") and not (main.get(k) or {}).get("variants")]
+for k in added:
+    main[k] = extra[k]
+json.dump(main, open(sys.argv[1], "w"), indent=1, default=str)
+print("  graphs from an extra checkout:", ", ".join(added) or "none new")
+PYEOF
+done
 echo "[2/7] receipt index (sealed attempt dirs on this machine)"
 python3 "$T/index_receipts.py" "$T/receipt_index.json" ${ROOTS[@]+"${ROOTS[@]}"}
 echo "[3/7] catalog, published grains, run order"
