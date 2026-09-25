@@ -209,18 +209,18 @@ def report_facts(bundle: Path) -> list:
                             e["value"] = True if not e["false"] else (False if not e["true"] else "mixed")
                             e["keys"] = [f"{x}=True" for x in e["true"]] + [f"{x}=False" for x in e["false"]]
                 if k == "confirmation" and isinstance(v.get("status"), str):
-                    nested.setdefault("confirmation_status", {"key": "confirmation_status", "value": v["status"], "file": file})
+                    nested.setdefault("confirmation_status", {"key": "confirmation_status", "value": v["status"], "file": file, "path": f"{here}.status"})
                     if isinstance(v.get("rule_was_frozen_before_execution"), bool):
-                        nested.setdefault("rule_was_frozen_before_execution", {"key": "rule_was_frozen_before_execution", "value": v["rule_was_frozen_before_execution"], "file": file})
+                        nested.setdefault("rule_was_frozen_before_execution", {"key": "rule_was_frozen_before_execution", "value": v["rule_was_frozen_before_execution"], "file": file, "path": f"{here}.rule_was_frozen_before_execution"})
                 walk(v, file, here, depth + 1)
             elif isinstance(v, (int, float)) and not isinstance(v, bool) and k in counts and path.endswith(("summary", "plan")):
-                sums.setdefault(counts[k], []).append((v, file))
+                sums.setdefault(counts[k], []).append((v, file, here))
             elif isinstance(v, str) and k in alias and path.endswith(("summary", "plan", "")) :
-                nested.setdefault(alias[k], {"key": alias[k], "value": v, "file": file})
+                nested.setdefault(alias[k], {"key": alias[k], "value": v, "file": file, "path": here})
             elif isinstance(v, bool) and k in alias:
-                nested.setdefault(alias[k], {"key": alias[k], "value": v, "file": file})
+                nested.setdefault(alias[k], {"key": alias[k], "value": v, "file": file, "path": here})
             elif k == "status" and v == "admitted" and path == "":
-                nested.setdefault("admission_status", {"key": "admission_status", "value": "admitted", "file": file})
+                nested.setdefault("admission_status", {"key": "admission_status", "value": "admitted", "file": file, "path": "status"})
     for folder in ("reports", "qc"):
         for path in sorted((bundle / folder).glob("*.json")):
             d = read_json(path)
@@ -229,17 +229,18 @@ def report_facts(bundle: Path) -> list:
     for key, items in sums.items():
         if key not in found:
             # one summary per arm/qualification report: sum them (a bundle with several arms reports each arm)
-            per_file = {}
-            for v, file in items:
-                per_file.setdefault(file, v)
+            per_file = {}; paths = {}
+            for v, file, here in items:
+                per_file.setdefault(file, v); paths.setdefault(file, here)
             total = sum(per_file.values())
-            facts.append({"key": key, "value": int(total) if float(total).is_integer() else total, "file": " + ".join(sorted(per_file)) if len(per_file) > 1 else next(iter(per_file))})
+            facts.append({"key": key, "value": int(total) if float(total).is_integer() else total, "file": " + ".join(sorted(per_file)) if len(per_file) > 1 else next(iter(per_file)),
+                          "path": " + ".join(paths[f] for f in sorted(paths)), "parts": [{"file": f, "path": paths[f], "value": per_file[f]} for f in sorted(per_file)]})
     for key, f in nested.items():
         if key not in found:
             facts.append(f)
     for key, f in flags.items():
         if key not in found:
-            facts.append({"key": key, "value": f["value"], "file": f["file"] + " · " + ", ".join(f["keys"][:4])})
+            facts.append({"key": key, "value": f["value"], "file": f["file"] + " · " + ", ".join(f["keys"][:4]), "path": ", ".join(f["keys"])})
     # Campaign bundles that report cell counts as summary {cells, completed, failed, not_attempted} and replay
     # as replay.json {cells: {label: {receipt_sha256_matches_result: bool} | "<status>: not replayable"}}
     # (the procurement repeated-sourcing campaigns). Only used where nothing above named the same fact.
@@ -287,13 +288,14 @@ def parse_incident_log() -> tuple[list, dict]:
         r, s = _parse_incident_text(path.read_text())
         for row in r:
             if row["id"] not in seen:
+                row["checkout"] = ROOT_LABEL[root]
                 seen.add(row["id"]); rows.append(row); sections.setdefault(row["section"], []).append(row["id"])
     return rows, sections
 
 
 def _parse_incident_text(text: str) -> tuple[list, dict]:
     rows = []; section = None; sections = {}
-    for line in text.splitlines():
+    for lineno, line in enumerate(text.splitlines(), 1):
         if line.startswith("## "):
             section = line[3:].strip(); sections[section] = []
         m = re.match(r"^\| ([A-Z][A-Z-]*-[0-9]+) \| (.*) \|\s*$", line)
@@ -306,7 +308,7 @@ def _parse_incident_text(text: str) -> tuple[list, dict]:
                 defect, detection, cost, disposition = (cells + ["", "", ""])[:4]
             disp_l = disposition.lower()
             state = "open" if disp_l.startswith("open") else "fixed" if disp_l.startswith(("fixed", "corrected", "closed")) else "withdrawn" if "withdrawn" in disp_l[:80] else "recorded"
-            row = {"id": m.group(1), "section": section, "defect": defect, "detection": detection, "cost": cost, "disposition": disposition, "state": state,
+            row = {"id": m.group(1), "section": section, "defect": defect, "detection": detection, "cost": cost, "disposition": disposition, "state": state, "line": lineno,
                    "mentions": sorted(set(re.findall(r"`([a-z0-9_]+(?:_v\d+|_20\d{2}-\d{2}-\d{2})?)`", line)))}
             rows.append(row); sections[section].append(row["id"])
     return rows, sections
@@ -344,7 +346,9 @@ def qc_mentions(family: str, campaign_id: str, version_token: str | None) -> dic
     for s in sections:
         body = s["heading"] + "\n" + s["text"]
         if campaign_id in body or (version_token and re.search(rf"\b{re.escape(version_token)}\b", s["heading"])):
-            sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", s["text"]))
+            # fenced code is not prose: left in, a shell block glues onto the next sentence and is quoted as a verdict (EX-T-04)
+            prose = re.sub(r"^#{1,6} .*$", " ", re.sub(r"```.*?```", " ", s["text"], flags=re.S), flags=re.M)  # nor is a subheading
+            sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", prose))
             gate = [x for x in sentences if re.search(r"\bGate[s]? [0-5]\b|\b(all )?five gates\b|\bgates? (passed|failed)\b", x, re.I)]
             status_words = [x for x in sentences if re.search(r"\b(passed|failed|withdrawn|superseded|exploratory|confirmatory|not (?:a )?(?:paper|current) result|development|preliminary|integration gate|no winner|cannot|must not)\b", x, re.I)]
             hits.append({"heading": s["heading"], "gate_sentences": [short(x, 320) for x in gate[:6]], "status_sentences": [short(x, 320) for x in status_words[:6]],
@@ -408,92 +412,356 @@ def family_qc_status(family) -> str | None:
 
 
 # ---------------- validity checklist ----------------
+def _ev(f):
+    """One evidence entry from a report fact: the file, the key path inside it and the value, in full."""
+    if not f:
+        return []
+    if f.get("parts"):
+        return [{"file": x["file"], "key": x["path"], "value": x["value"]} for x in f["parts"]]
+    e = {"file": f["file"].split(" · ")[0], "key": f.get("path") or f["key"], "value": f["value"]}
+    if f.get("detail"):
+        e["note"] = f["detail"]
+    return [e]
+
+
 def checklist(manifest, facts, grain_summary, issues, gate_hits) -> list:
+    """The validity checklist. Every line carries the rule branch that decided it ("why") and the values it
+    read ("evidence"); the page's detail view shows both beside the QC standard's own words."""
     def fact(key):
         return next((f for f in facts if f["key"] == key), None)
     items = []
-    def add(name, gate, state, detail, source):
-        items.append({"item": name, "gate": gate, "state": state, "detail": detail, "source": source})
-    flags = {k: (manifest or {}).get(k) for k in ("winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed")}
-    for f in facts:
-        if f["key"] in flags and flags[f["key"]] is None:
-            flags[f["key"]] = f["value"]
-    stated = {k: v for k, v in flags.items() if v is not None}
+    def add(cid, name, gate, state, detail, source, why, evidence=()):
+        items.append({"id": cid, "item": name, "gate": gate, "state": state, "detail": detail, "source": source,
+                      "why": why, "evidence": [e for e in evidence if e]})
+    CLAIM_FLAGS = ("winner_claim_allowed", "inferential_model_ranking_allowed", "causal_condition_effect_allowed")
+    stated, flag_ev = {}, []
+    for k in CLAIM_FLAGS:
+        if (manifest or {}).get(k) is not None:
+            stated[k] = manifest[k]; flag_ev.append({"file": "publication_manifest.json", "key": k, "value": manifest[k]})
+        elif fact(k):
+            stated[k] = fact(k)["value"]; flag_ev += _ev(fact(k))
+    claim = (manifest or {}).get("claim_status") or (fact("claim_status") or {}).get("value")
     if stated:
-        add("Claim boundary declared (no winner, no ranking)", "5", "yes" if all(v is False for v in stated.values()) else "no",
-            ", ".join(f"{k} = {v}" for k, v in stated.items()), "publication manifest / reports")
+        true_flags = [k for k, v in stated.items() if v is not False]
+        state = "yes" if not true_flags else "no"
+        why = (f"The bundle states {len(stated)} of the three claim flags and every one is false, so nothing it publishes permits a winner, a ranking or a causal effect."
+               if state == "yes" else
+               f"{len(true_flags)} of the {len(stated)} claim flag(s) the bundle states {'is' if len(true_flags) == 1 else 'are'} not false ({', '.join(f'`{k}` = {stated[k]}' for k in true_flags)}), so the bundle permits more than a bounded, no-winner reading.")
+        if state == "no" and claim and "confirmatory" in str(claim):
+            why += (f" Its claim status is `{claim}`: a winner claim is what a confirmatory comparison sets out to make, so \"no\" here is a description rather than a defect."
+                    " Whether the claim is earned is decided by the Gate 5 lines: the rule frozen before any outcome and every planned cell accounted for.")
+        elif state == "no":
+            why += " For a pilot, development or diagnostic bundle this is a defect: Gate 5 forbids a winner from anything short of a frozen confirmatory run."
+        add("claim_boundary", "Claim boundary declared (no winner, no ranking)", "5", state,
+            ", ".join(f"{k} = {v}" for k, v in stated.items()), "publication manifest / reports", why,
+            flag_ev + ([{"file": (fact("claim_status") or {}).get("file", "publication_manifest.json"), "key": "claim_status", "value": claim}] if claim else []))
     elif fact("claim_scope") or fact("inference_scope"):
         cs = fact("claim_scope") or fact("inference_scope"); text = str(cs["value"])
         bounded = bool(re.search(r"not (a |an )?(population-level |general )?(model[- ]only |model |provider )?(ranking|estimate)|no winner|diagnostic|qualification|must not be pooled", text, re.I))
-        add("Claim boundary declared (no winner, no ranking)", "5", "yes" if bounded else "partial", f"{cs['key']}: {short(text, 220)}", cs["file"])
+        add("claim_boundary", "Claim boundary declared (no winner, no ranking)", "5", "yes" if bounded else "partial", f"{cs['key']}: {short(text, 220)}", cs["file"],
+            "No claim flags are stated; the claim-scope sentence " + ("says in words that the result is not a ranking or winner (it names a diagnostic or qualification scope, or rules out a ranking), which the rule counts as a declared boundary."
+                                                                     if bounded else "does not say that the result is not a ranking or a winner, so the boundary is only partly declared."),
+            _ev(cs))
     else:
-        add("Claim boundary declared (no winner, no ranking)", "5", "not stated", "no claim flags or claim scope in the manifest or reports", "")
+        add("claim_boundary", "Claim boundary declared (no winner, no ranking)", "5", "not stated", "no claim flags or claim scope in the manifest or reports", "",
+            "Neither the publication manifest nor any top-level report key states a claim flag, and no report carries a claim-scope sentence.")
     planned, completed = fact("planned_cells"), fact("completed_cells")
     fails = fact("operational_failure_cells") or fact("operational_failures") or fact("not_attempted_cells")
     if planned and completed:
         p, c = planned["value"], completed["value"]
-        add("Every planned cell has a receipt or typed missingness", "5", "yes" if isinstance(p, int) and isinstance(c, int) else "not stated",
-            f"{c} of {p} cells completed" + (f", {fails['value']} typed failures" if fails else ""), planned["file"])
+        ok = isinstance(p, int) and isinstance(c, int)
+        f = fails["value"] if fails and isinstance(fails["value"], int) else 0
+        balance = (f" Completed plus typed failures is {c + f} of {p}" + (", so every planned cell is accounted for." if c + f == p else f": {p - c - f} planned cell(s) are neither a receipt nor a stated failure. The rule does not check this sum, so read the state with it.")) if ok else ""
+        add("cells_accounted", "Every planned cell has a receipt or typed missingness", "5", "yes" if ok else "not stated",
+            f"{c} of {p} cells completed" + (f", {fails['value']} typed failures" if fails else ""), planned["file"],
+            ("The reports state both the planned and the completed cell counts, which is what the rule asks for." + balance) if ok else
+            "The planned and completed counts are stated but are not whole numbers, so the rule cannot compare them.",
+            _ev(planned) + _ev(completed) + _ev(fails))
     elif grain_summary.get("cases"):
-        add("Every planned cell has a receipt or typed missingness", "5", "partial", f"{grain_summary['cases']} cases carry a trajectory grain; planned count not stated in reports", "trajectories/sanitized.jsonl")
+        add("cells_accounted", "Every planned cell has a receipt or typed missingness", "5", "partial", f"{grain_summary['cases']} cases carry a trajectory grain; planned count not stated in reports", "trajectories/sanitized.jsonl",
+            f"The trajectory grain shows {grain_summary['cases']} cases, so those cells have receipts; but no report states how many cells were planned, so nobody can tell from the bundle whether any are missing.",
+            [{"file": "trajectories/sanitized.jsonl", "key": "distinct cases", "value": grain_summary["cases"]}])
     else:
-        add("Every planned cell has a receipt or typed missingness", "5", "not stated", "", "")
+        add("cells_accounted", "Every planned cell has a receipt or typed missingness", "5", "not stated", "", "",
+            "No top-level report key states planned or completed cells (or their per-arm aliases), and the bundle publishes no trajectory grain to count cases from.")
     cq = fact("cost_qualifier") or fact("provider_cost_complete")
     if cq:
         v = cq["value"]; ok = v in ("exact", True)
-        add("Cost stated as exact or lower bound", "5", "yes" if ok else "partial", f"{cq['key']} = {v}", cq["file"])
+        add("cost_qualified", "Cost stated as exact or lower bound", "5", "yes" if ok else "partial", f"{cq['key']} = {v}", cq["file"],
+            ("The bundle states its cost is exact (`" + cq["key"] + f"` = {v})." if ok else
+             f"The bundle qualifies its cost as `{v}`: the figure is stated but is not claimed to be exact, so it is a floor or an estimate rather than the spend."),
+            _ev(cq) + _ev(fact("total_cost_usd")) + _ev(fact("reported_cost_usd")))
     else:
-        add("Cost stated as exact or lower bound", "5", "not stated", "", "")
+        add("cost_qualified", "Cost stated as exact or lower bound", "5", "not stated", "", "",
+            "No top-level report key says whether the cost figure is exact or a lower bound (`cost_qualifier`, `provider_cost_complete` or the per-arm `cost_accounting`).",
+            _ev(fact("total_cost_usd")) + _ev(fact("reported_cost_usd")))
     rv = fact("replay_verified")
     cell_rv = (grain_summary.get("cell_flags") or {}).get("replay_verified")
     if rv is not None:
-        add("Replay from sealed evidence reproduces scores", "2", "yes" if rv["value"] is True else "partial",
-            f"replay_verified = {rv['value']}" + (f": {rv['detail']}" if rv.get("detail") else "") + " (a recorded flag; a review recomputes it)", rv["file"])
+        add("replay", "Replay from sealed evidence reproduces scores", "2", "yes" if rv["value"] is True else "partial",
+            f"replay_verified = {rv['value']}" + (f": {rv['detail']}" if rv.get("detail") else "") + " (a recorded flag; a review recomputes it)", rv["file"].split(" · ")[0],
+            (f"The bundle records `replay_verified` = {rv['value']}. " + ("That is the publisher's own flag; this page does not re-run the replay, the evidence-lane review does." if rv["value"] is True else "At least one replay did not match, so the flag is not true.")),
+            _ev(rv))
     elif cell_rv and cell_rv["total"]:
-        add("Replay from sealed evidence reproduces scores", "2", "yes" if cell_rv["true"] == cell_rv["total"] else "partial",
-            f"replay_verified true on {cell_rv['true']} of {cell_rv['total']} published cell rows (a recorded flag; a review recomputes it)", "tables/")
+        add("replay", "Replay from sealed evidence reproduces scores", "2", "yes" if cell_rv["true"] == cell_rv["total"] else "partial",
+            f"replay_verified true on {cell_rv['true']} of {cell_rv['total']} published cell rows (a recorded flag; a review recomputes it)", "tables/",
+            f"No report states replay, but the published cell rows carry `replay_verified`: true on {cell_rv['true']} of {cell_rv['total']}. The rule counts all-true as yes.",
+            [{"file": "tables/ (cell rows joined on receipt)", "key": "replay_verified", "value": f"true on {cell_rv['true']} of {cell_rv['total']} rows"}])
     else:
-        add("Replay from sealed evidence reproduces scores", "2", "not stated", "no replay fact in reports; the review recomputes replay from receipts", "")
+        add("replay", "Replay from sealed evidence reproduces scores", "2", "not stated", "no replay fact in reports; the review recomputes replay from receipts", "",
+            "No report key and no published cell row states a replay result. The bundle may still replay; the evidence-lane review recomputes replay from the receipts rather than trusting a flag.")
     mf = fact("missingness_fraction") or fact("failure_fraction")
     if mf:
-        add("Operational missingness reported separately", "4", "yes", f"{mf['key']} = {mf['value']}", mf["file"])
+        add("missingness", "Operational missingness reported separately", "4", "yes", f"{mf['key']} = {mf['value']}", mf["file"],
+            f"The reports give `{mf['key']}` = {mf['value']} as its own number, apart from any score.", _ev(mf))
     adm = fact("primary_admission_rate") or fact("eligible") or fact("admission_status")
     if adm:
-        add("Admission or eligibility computed under the predeclared analysis", "1", "partial" if adm["value"] == "mixed" else ("yes" if adm["value"] not in (False, "failed", "excluded") else "no"), f"{adm['key']} = {short(adm['value'], 160)}", adm["file"])
+        st = "partial" if adm["value"] == "mixed" else ("yes" if adm["value"] not in (False, "failed", "excluded") else "no")
+        add("admission", "Admission or eligibility computed under the predeclared analysis", "1", st, f"{adm['key']} = {short(adm['value'], 160)}", adm["file"].split(" · ")[0],
+            {"yes": f"The reports state `{adm['key']}` = {short(adm['value'], 160)}.", "partial": "Some readiness flags are true and some false, so part of the declared scope is not admitted.",
+             "no": f"The reports state `{adm['key']}` = {adm['value']}: not admitted."}[st], _ev(adm))
     conf = fact("confirmation_status")
     if conf:
         frozen = fact("rule_was_frozen_before_execution")
-        add("Confirmatory rule frozen before execution and evaluated", "5", "yes" if (frozen and frozen["value"] is True) else "partial",
-            f"confirmation status = {conf['value']}" + (f"; rule frozen before execution = {frozen['value']}" if frozen else "; freeze not stated"), conf["file"])
+        add("confirmatory_rule", "Confirmatory rule frozen before execution and evaluated", "5", "yes" if (frozen and frozen["value"] is True) else "partial",
+            f"confirmation status = {conf['value']}" + (f"; rule frozen before execution = {frozen['value']}" if frozen else "; freeze not stated"), conf["file"],
+            f"The confirmation was evaluated (status `{conf['value']}`) " + ("and the bundle states the rule was frozen before execution." if frozen and frozen["value"] is True else
+                                                                          "but the bundle does not state that the rule was frozen before execution, so it could have been chosen after the outcomes."),
+            _ev(conf) + _ev(frozen))
     ctrl = grain_summary.get("scripted_profiles", 0)
     if grain_summary.get("cases"):
         refs = fact("reference_policies")
         if not ctrl and refs:
-            add("Scripted controls or baselines present in the run", "3", "partial",
-                f"no scripted seat ran; reference policies are computed offline per world in the pack manifest: {refs['value']}", refs["file"])
+            add("controls", "Scripted controls or baselines present in the run", "3", "partial",
+                f"no scripted seat ran; reference policies are computed offline per world in the pack manifest: {refs['value']}", refs["file"],
+                "No scripted seat took part in the run, so no control shared the model's conditions; the world pack does publish reference policies computed offline per world, which give a baseline to compare against.",
+                _ev(refs) + [{"file": "trajectories/sanitized.jsonl", "key": "profiles", "value": ", ".join(grain_summary.get("profile_ids") or [])}])
         else:
-            add("Scripted controls or baselines present in the run", "3", "yes" if ctrl else "not stated",
-                f"{ctrl} scripted profile(s) among {grain_summary.get('profiles', 0)} profiles in the grain" if ctrl else "no scripted profile appears in the trajectory grain (controls may be in the reports)", "trajectories/sanitized.jsonl")
-    gate_sent = [s for h in gate_hits.get("sections", []) for s in h["gate_sentences"]]
+            add("controls", "Scripted controls or baselines present in the run", "3", "yes" if ctrl else "not stated",
+                f"{ctrl} scripted profile(s) among {grain_summary.get('profiles', 0)} profiles in the grain" if ctrl else "no scripted profile appears in the trajectory grain (controls may be in the reports)", "trajectories/sanitized.jsonl",
+                (f"{ctrl} of the {grain_summary.get('profiles', 0)} profiles in the trajectory grain are scripted (their id contains `scripted`), so a control ran under the same conditions as the model." if ctrl else
+                 "No profile in the trajectory grain is scripted. Controls may exist in the reports or in another bundle; the rule only looks at who acted in this one."),
+                [{"file": "trajectories/sanitized.jsonl", "key": "profiles", "value": ", ".join(grain_summary.get("profile_ids") or [])}])
+    gate_sent = [(h, s) for h in gate_hits.get("sections", []) for s in h["gate_sentences"]]
     fam_status = family_qc_status(grain_summary.get("family"))
+    qc_path = qc_profile_for(grain_summary.get("family")) or ""
     if gate_sent:
-        add("QC profile states gate outcomes for this identity", "0-5", "yes", gate_sent[0], qc_profile_for(grain_summary.get("family")) or "")
+        add("qc_profile", "QC profile states gate outcomes for this identity", "0-5", "yes", gate_sent[0][1], qc_path,
+            f"The family QC profile names this identity and {len(gate_sent)} sentence(s) in the section(s) that name it speak of a gate outcome. The first is quoted; the rule reads the words, not a typed status.",
+            [{"file": qc_path, "key": f"§ {h['heading']}", "value": s} for h, s in gate_sent[:6]])
     elif fam_status:
-        add("QC profile states gate outcomes for this identity", "0-5", "partial",
-            "the family profile is written per gate and does not name this identity; its family-level status: " + short(fam_status, 260), qc_profile_for(grain_summary.get("family")) or "")
+        add("qc_profile", "QC profile states gate outcomes for this identity", "0-5", "partial",
+            "the family profile is written per gate and does not name this identity; its family-level status: " + short(fam_status, 260), qc_path,
+            ("The family QC profile " + ("names this identity but no sentence in those sections states a gate outcome" if gate_hits.get("sections") else "does not name this identity")
+             + ". Its family-level **Status:** paragraph states gate outcomes for the family as a whole, which apply to this run only as far as the run falls inside the family's declared scope."),
+            [{"file": qc_path, "key": "**Status:**", "value": fam_status}] + [{"file": qc_path, "key": f"§ {h['heading']}", "value": "section names this identity; no gate sentence"} for h in gate_hits.get("sections", [])])
     else:
-        add("QC profile states gate outcomes for this identity", "0-5", "not stated", "no family QC profile mentions this campaign", "")
+        add("qc_profile", "QC profile states gate outcomes for this identity", "0-5", "not stated", "no family QC profile mentions this campaign", "",
+            "No family QC profile was found, or none names this campaign and none carries a **Status:** paragraph. Gate 0 fails a family without a profile.")
     open_issues = [i for i in issues if i["state"] == "open"]
     inherited = [i for i in open_issues if not i["direct"]]
-    add("No open incident rows name this identity", "4", "yes" if not any(i["direct"] and i["state"] == "open" for i in issues) else "no",
-        f"{sum(1 for i in issues if i['direct'])} row(s) name it, {sum(1 for i in issues if i['direct'] and i['state']=='open')} open"
-        + (f"; {len(inherited)} open row(s) of the family's design still apply (below)" if inherited else "; no open family-level row applies"), "docs/operations/incident_log.md")
+    direct = [i for i in issues if i["direct"]]
+    direct_open = [i for i in direct if i["state"] == "open"]
+    add("incidents", "No open incident rows name this identity", "4", "yes" if not direct_open else "no",
+        f"{len(direct)} row(s) name it, {len(direct_open)} open"
+        + (f"; {len(inherited)} open row(s) of the family's design still apply (below)" if inherited else "; no open family-level row applies"), "docs/operations/incident_log.md",
+        (f"{len(direct)} incident row(s) name this identity in their text and {len(direct_open)} of them {'is' if len(direct_open) == 1 else 'are'} open (disposition begins with \"open\")."
+         + (" An open row means a recorded failure whose fix has not landed; the run's numbers stand only as far as that row allows." if direct_open else "")
+         + (f" Separately, {len(inherited)} open row(s) recorded against the family's design apply to every run of it; each has its own line below." if inherited else "")),
+        [{"file": "docs/operations/incident_log.md", "key": i["id"], "value": f"{i['state']} · {i['link']}"} for i in direct])
     # an open incident recorded against the family's section or design applies to every run of that design until its disposition changes
     for i in inherited:
         g = re.search(r"Gate\s*(\d)", i.get("section") or "")
-        add(f"Open incident {i.get('id')} still applies to this design", g.group(1) if g else "0-5", "no",
-            short(f"{i.get('defect', '')} — {i.get('disposition', '')}", 300), f"docs/operations/incident_log.md · {i.get('link')}")
+        add(f"incident:{i.get('id')}", f"Open incident {i.get('id')} still applies to this design", g.group(1) if g else "0-5", "no",
+            short(f"{i.get('defect', '')} — {i.get('disposition', '')}", 300), f"docs/operations/incident_log.md · {i.get('link')}",
+            f"Row {i.get('id')} is open and is recorded in the family section \"{i.get('section')}\"; it does not name this run, but it {i.get('link')} and an open design row applies to every run of the design until its disposition changes.",
+            [{"file": "docs/operations/incident_log.md", "key": i["id"], "value": i["state"]}])
     return items
+
+
+# Every check the list can hold, stated once: what it asks, the keys it reads, how a state is decided, what
+# moves it, and the passage of the QC standard it serves (quoted from the standard at build time, with its line).
+CHECK_SPECS = {
+    "claim_boundary": {
+        "asks": "Does the bundle say, in a flag a machine can read, what its numbers may not be used to claim: a winner, a model ranking, or a causal effect of a condition?",
+        "reads": ["`winner_claim_allowed`, `inferential_model_ranking_allowed`, `causal_condition_effect_allowed` in `publication_manifest.json`, else the same keys at the top level of `reports/*.json` and `qc/*.json`",
+                  "failing those, a `claim_scope` or `inference_scope` sentence"],
+        "states": {"yes": "every stated flag is false: the bundle bounds its claim", "no": "at least one stated flag is true: the bundle permits a winner, ranking or causal claim",
+                   "partial": "only a claim-scope sentence exists and it does not rule out a ranking or winner in words", "not stated": "no flag and no claim-scope sentence"},
+        "to_yes": "State all three flags as false in the publication manifest. A confirmatory comparison that is meant to name a winner stays \"no\" here by design; read it with the frozen-rule and cell-accounting lines, which decide whether the claim is earned.",
+        "related": r"winner|rank|claim|causal|leaderboard|inference_scope",
+        "standard": [("docs/operations/benchmark_qc.md", "1. Complete the full paired design"), ("docs/operations/benchmark_qc.md", "8. Publish canonical fact tables")]},
+    "cells_accounted": {
+        "asks": "Is every cell the plan named either a sealed result or a failure with a stated type, so nothing was dropped or quietly rerun?",
+        "reads": ["`planned_cells` and `completed_cells` at the top level of a report, or `planned_trajectory_count` / `completed_trajectory_count` summed over arm summaries, or `reports/summary.json` `cells` / `completed`",
+                  "`operational_failure_cells`, `operational_failures` or `not_attempted_cells` for typed failures",
+                  "failing those, the number of cases in the trajectory grain"],
+        "states": {"yes": "both counts are stated as whole numbers (the rule does not check that they balance; the page does)", "partial": "the grain shows receipts but no report states the planned count",
+                   "not stated": "no count and no grain", "no": "not used"},
+        "to_yes": "Publish the planned, completed and typed-failure counts at the top level of a report, so completed plus failures can be checked against planned.",
+        "related": r"planned|completed|attempted|missing|not_attempted|operational_failure|failed|excluded|included|cells|trajectories|paired_worlds_complete",
+        "standard": [("docs/operations/benchmark_qc.md", "5. Preserve every planned cell"), ("docs/operations/open_harness_testing.md", "For every planned cell, retain either")]},
+    "cost_qualified": {
+        "asks": "Does the bundle say whether its cost figure is the exact spend or only a lower bound?",
+        "reads": ["`cost_qualifier` or `provider_cost_complete` at the top level of a report, or `cost_accounting` inside an arm summary"],
+        "states": {"yes": "the cost is stated as exact (or provider cost complete)", "partial": "a qualifier is stated and it is not \"exact\" (a lower bound or estimate)",
+                   "not stated": "no qualifier", "no": "not used"},
+        "to_yes": "State `cost_qualifier` (exact or lower_bound) next to the total. When provider billing is incomplete the honest value is lower_bound, which reads \"partial\" here.",
+        "related": r"cost|billing|usd|spend|price",
+        "standard": [("docs/operations/open_harness_testing.md", "If a framework fails after paid internal calls"), ("docs/operations/benchmark_qc.md", "3. Before confirmatory outcomes are inspected")]},
+    "replay": {
+        "asks": "Do the published scores come back exactly when the sealed evidence is replayed offline, with no provider calls?",
+        "reads": ["`replay_verified` at the top level of a report, or a `*replay*` flag inside an `integrity` block, or `reports/replay.json` per-cell matches",
+                  "failing those, `replay_verified` on the published cell rows"],
+        "states": {"yes": "the bundle records replay as verified (the publisher's flag; the evidence review recomputes it)", "partial": "a replay flag is stated and not all true",
+                   "not stated": "no replay fact anywhere in the bundle", "no": "not used"},
+        "to_yes": "Publish the replay result per cell (`reports/replay.json` or a `replay_verified` column) so a reader can see which cells were replayed.",
+        "related": r"replay|reproduc|recompute|matches|score_replay|verified",
+        "standard": [("docs/operations/benchmark_qc.md", "5. Require offline replay"), ("docs/operations/benchmark_qc.md", "2. Reconstruct transitions from sealed")]},
+    "missingness": {
+        "asks": "Is operational failure reported as its own number instead of being folded into the score?",
+        "reads": ["`missingness_fraction` or `failure_fraction` at the top level of a report"],
+        "states": {"yes": "a missingness or failure fraction is stated", "partial": "not used", "no": "not used", "not stated": "the line is omitted when neither key exists"},
+        "to_yes": "State the operational failure fraction beside the aggregate it would otherwise bias.",
+        "related": r"missing|failure|failed|operational",
+        "standard": [("docs/operations/benchmark_qc.md", "6. Report paired cluster-level intervals"), ("docs/operations/benchmark_qc.md", "| Malformed or operational failure |")]},
+    "admission": {
+        "asks": "Were the tasks or profiles admitted under the rule declared before the run?",
+        "reads": ["`primary_admission_rate` or `eligible` at the top level of a report, `*_qualified` flags in a `readiness` block, or a report whose top-level `status` is `admitted`"],
+        "states": {"yes": "admitted or eligible", "partial": "some readiness flags true and some false", "no": "the stated value is false, failed or excluded", "not stated": "the line is omitted when no admission fact exists"},
+        "to_yes": "Admit every profile and task under the predeclared rule, and state the result.",
+        "related": r"admission|admitted|eligib|qualified|probe|readiness",
+        "standard": [("docs/operations/benchmark_qc.md", "**Purpose:** establish that sampled tasks"), ("docs/operations/benchmark_qc.md", "Profile admission asks whether")]},
+    "confirmatory_rule": {
+        "asks": "Was the confirmatory decision rule fixed before any outcome was seen, and then evaluated?",
+        "reads": ["`confirmation.status` and `confirmation.rule_was_frozen_before_execution` in any report"],
+        "states": {"yes": "evaluated, and frozen before execution", "partial": "evaluated, but the freeze is not stated", "no": "not used", "not stated": "the line is omitted when no confirmation block exists"},
+        "to_yes": "State `rule_was_frozen_before_execution` with the digest of the frozen rule.",
+        "related": r"confirm|frozen|freeze|preregist|holdout",
+        "standard": [("docs/operations/benchmark_qc.md", "3. Before confirmatory outcomes are inspected")]},
+    "controls": {
+        "asks": "Did a scripted control or baseline act under the same conditions as the model, so a score can be read against it?",
+        "reads": ["the profile ids in the trajectory grain (a profile whose id contains `scripted`)", "`public_policies` in the world pack manifest the plan's worlds come from"],
+        "states": {"yes": "a scripted profile acted in the run", "partial": "no scripted seat, but reference policies are computed offline per world",
+                   "not stated": "no scripted profile in the grain (controls may exist elsewhere)", "no": "not used"},
+        "to_yes": "Run a scripted control or reference policy on the same worlds and seeds, in the same bundle.",
+        "related": r"control|baseline|scripted|reference|oracle|anchor|policy",
+        "standard": [("docs/operations/benchmark_qc.md", "Each case profile declares applicable controls")]},
+    "qc_profile": {
+        "asks": "Does the family QC profile say, for this run by name, which gates it passed or failed?",
+        "reads": ["the sections of `docs/families/<family>/qc.md` that name this identity (or its version token in the heading), sentence by sentence, for a gate outcome",
+                  "failing that, the profile's **Status:** paragraph"],
+        "states": {"yes": "a section naming this run states a gate outcome", "partial": "the profile does not name this run with a gate outcome; only the family-level status applies",
+                   "not stated": "no profile, or none that names the run or states a status", "no": "not used"},
+        "to_yes": "Add a section to the family QC profile that names this identity and states each gate's typed status.",
+        "related": r"(?:^|_)gates?(?:_|$)|protocol|(?:^|_)status$|stop_reason",
+        "standard": [("docs/operations/benchmark_qc.md", "Each family must publish a case-specific QC profile"), ("docs/operations/benchmark_qc.md", "2. a typed normative status")]},
+    "incidents": {
+        "asks": "Is there a recorded failure against this run whose fix has not landed?",
+        "reads": ["every row of `docs/operations/incident_log.md` (on every checkout the examiner reads) whose text names this identity; a row is open when its disposition begins with \"open\""],
+        "states": {"yes": "no open row names this run", "no": "at least one open row names it", "partial": "not used", "not stated": "not used"},
+        "to_yes": "Close or re-dispose the open rows once their fix has landed; rows are never deleted.",
+        "related": None,
+        "standard": [("docs/operations/benchmark_qc.md", "Every failure -- a design defect")]},
+    "incident": {
+        "asks": "An open incident recorded against the family's design: does it still apply to this run?",
+        "reads": ["open rows in this family's sections of `docs/operations/incident_log.md` that do not name the run but share its section heading or a distinctive token of its identity"],
+        "states": {"no": "the row is open and the run falls under the design it records", "yes": "not used", "partial": "not used", "not stated": "not used"},
+        "to_yes": "Land the fix and change the row's disposition, or record in the row that this run is outside its scope.",
+        "related": None,
+        "standard": [("docs/operations/benchmark_qc.md", "Every failure -- a design defect")]},
+}
+
+
+def standard_passage(root: Path, rel: str, phrase: str) -> dict | None:
+    """The paragraph or list item of a standard that begins with (or contains) the phrase, with its heading and line."""
+    path = root / rel
+    if not path.exists():
+        return None
+    lines = path.read_text().splitlines()
+    start = next((i for i, l in enumerate(lines) if l.strip().startswith(phrase)), None)
+    if start is None:
+        start = next((i for i, l in enumerate(lines) if phrase in l), None)
+    if start is None:
+        return None
+    heading = next((lines[j].lstrip("# ").strip() for j in range(start, -1, -1) if lines[j].startswith("#")), "")
+    out = [lines[start]]
+    item = re.match(r"\s*\d+\.\s", lines[start])
+    j = start + 1
+    while j < len(lines):
+        l = lines[j]
+        if l.startswith("#") or (item and re.match(r"\s*\d+\.\s", l)) or lines[start].startswith("|"):
+            break
+        if not l.strip():
+            # a paragraph that introduces a list keeps the list
+            if out[-1].rstrip().endswith(":") and j + 1 < len(lines) and lines[j + 1].lstrip().startswith(("- ", "* ", "1.")):
+                j += 1; continue
+            if not (j + 1 < len(lines) and lines[j + 1].lstrip().startswith(("- ", "* ")) and out[-1].lstrip().startswith(("- ", "* "))):
+                break
+        out.append(l); j += 1
+    return {"file": rel, "line": start + 1, "heading": heading, "text": "\n".join(out).strip()}
+
+
+_LEAVES: dict = {}
+def bundle_leaves(bundle: Path) -> list:
+    """Every scalar a bundle's manifest and reports state, as (file, key path, value, count); list indices are
+    folded to [] so a per-cell array contributes each key once, with how many rows carry it."""
+    if bundle in _LEAVES:
+        return _LEAVES[bundle]
+    seen: dict = {}
+    def walk(node, file, path, depth):
+        if depth > 7:
+            return
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, file, f"{path}.{k}" if path else str(k), depth + 1)
+        elif isinstance(node, list):
+            if node and all(not isinstance(x, (dict, list)) for x in node) and len(node) <= 8:
+                key = (file, path)
+                if key not in seen:
+                    seen[key] = [file, path, short(node, 300), 1]
+                return
+            for x in node[:400]:
+                walk(x, file, f"{path}[]", depth + 1)
+        else:
+            key = (file, path)
+            if key in seen:
+                seen[key][3] += 1
+            else:
+                seen[key] = [file, path, node if isinstance(node, (bool, int, float)) or node is None else short(node, 300), 1]
+    files = [bundle / "publication_manifest.json"] + sorted((bundle / "reports").glob("*.json")) + sorted((bundle / "qc").glob("*.json"))
+    for f in files:
+        d = read_json(f) if f.exists() else None
+        if d is not None:
+            walk(d, str(f.relative_to(bundle)), "", 0)
+    _LEAVES[bundle] = list(seen.values())
+    return _LEAVES[bundle]
+
+
+def related_statements(bundle: Path, pattern: str | None, evidence: list, cap: int = 24) -> tuple[list, int]:
+    """Statements in the bundle about the same subject as a check that its rule did not read."""
+    if not pattern:
+        return [], 0
+    rx = re.compile(pattern, re.I)
+    used = {(e.get("file"), e.get("key")) for e in evidence}
+    hits = []
+    for file, path, value, count in bundle_leaves(bundle):
+        last = re.sub(r"\[\]", "", path.split(".")[-1])
+        if (file, path) in used or re.search(r"sha256|digest|_id$|^id$|seed", last):
+            continue
+        if rx.search(last):
+            hits.append({"file": file, "key": path, "value": value, **({"rows": count} if count > 1 else {})})
+    return hits[:cap], len(hits)
+
+
+def files_examined(bundle: Path) -> list:
+    import hashlib
+    out = []
+    for f in [bundle / "publication_manifest.json", bundle / "README.md"] + sorted((bundle / "reports").glob("*.json")) + sorted((bundle / "qc").glob("*.json")):
+        if f.exists():
+            b = f.read_bytes()
+            out.append({"file": str(f.relative_to(bundle)), "bytes": len(b), "sha256": hashlib.sha256(b).hexdigest()})
+    return out
 
 
 # ---------------- trajectory grain ----------------
@@ -623,7 +891,7 @@ FAMILY_ROOT.update({fam: counts.most_common(1)[0][0] for fam, counts in _fam_cou
 
 incident_rows, incident_sections = parse_incident_log()
 bundles = sorted(BUNDLE_ROOT, key=lambda b: (str(b.name)))
-catalog = []
+catalog = []; check_details = {}
 for bundle in bundles:
     cid = bundle.name
     root = BUNDLE_ROOT[bundle]
@@ -645,8 +913,15 @@ for bundle in bundles:
         heading_hit = section_family(r["section"]) == family and any(tok in r["section"].lower() for tok in distinctive)
         token_hit = section_family(r["section"]) == family and any(re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")) for tok in distinctive if tok not in ("live", "first", "probe"))
         if direct or heading_hit or token_hit:
-            issues.append({**{k: (short(r[k], 420) if k in ("defect", "disposition") else r[k]) for k in ("id", "section", "defect", "detection", "cost", "disposition", "state")},
-                           "direct": bool(direct), "link": "names the identity" if direct else ("section names it" if heading_hit else "mentions a token of the identity")})
+            if direct:
+                matched = next((d for d in direct_ids if d in text_all), None) or next(m for m in r["mentions"] if m in direct_ids)
+                linked = f"its text names `{matched}`"
+            elif heading_hit:
+                linked = "its section heading contains " + ", ".join(f"`{tok}`" for tok in sorted(distinctive) if tok in r["section"].lower())
+            else:
+                linked = "its text contains " + ", ".join(f"`{tok}`" for tok in sorted(distinctive) if tok not in ("live", "first", "probe") and re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")))
+            issues.append({**{k: (short(r[k], 420) if k in ("defect", "disposition") else r[k]) for k in ("id", "section", "defect", "detection", "cost", "disposition", "state", "line")},
+                           "direct": bool(direct), "link": "names the identity" if direct else ("section names it" if heading_hit else "mentions a token of the identity"), "linked_by": linked})
     gate_hits = qc_mentions(family, cid, version)
     grain_summary = {"family": family}
     traj_path = None
@@ -670,6 +945,13 @@ for bundle in bundles:
     elif legacy:
         grain_summary.update(legacy)
     status = derive_status(manifest, readme, facts, issues)
+    # the checklist travels light in the catalog; what each line rests on goes to data/check_details.json
+    items, det_items = checklist(manifest, facts, grain_summary, issues, gate_hits), {}
+    for it in items:
+        spec = CHECK_SPECS.get(it["id"].split(":")[0]) or {}
+        evidence = it.pop("evidence"); rel, nrel = related_statements(bundle, spec.get("related"), evidence)
+        det_items[it["id"]] = {"why": it.pop("why"), "evidence": evidence, "related": rel, "related_total": nrel}
+    check_details[cid] = {"path": str(bundle.relative_to(root)), "checkout": ROOT_LABEL[root], "files": files_examined(bundle), "items": det_items}
     catalog.append({
         "id": cid, "path": str(bundle.relative_to(root)), "family": family, "family_label": family_label(family),
         "checkout": ROOT_LABEL[root] if root != WT else None,
@@ -680,7 +962,7 @@ for bundle in bundles:
         "source_receipts": len((manifest.get("source_bindings") or {}).get("source_receipt_sha256s") or []) if isinstance(manifest.get("source_bindings"), dict) else None,
         "readme": readme, "models": bundle_models(bundle), "headline": headline(bundle, facts), "facts": facts, "issues": issues, "qc": gate_hits, "status": status,
         "grain": grain_summary, "trajectory_file": traj_path,
-        "checklist": checklist(manifest, facts, grain_summary, issues, gate_hits),
+        "checklist": items,
     })
 
 # version chains: same family + stem
@@ -756,6 +1038,24 @@ def _git_branch():
     "campaigns": catalog, "family_incidents": family_rows, "declared_graphs": declared,
     "incident_sections": [{"section": s, "rows": ids} for s, ids in incident_sections.items()],
 }, separators=(",", ":"), default=str))
+# what each checklist line rests on, the check definitions with the standard's own words, and every incident row in full
+_specs = {}
+for key, spec in CHECK_SPECS.items():
+    passages = []
+    for rel, phrase in spec["standard"]:
+        root = next((r for r in ROOTS if (r / rel).exists()), WT)
+        got = standard_passage(root, rel, phrase)
+        if got:
+            passages.append(got)
+        else:
+            print(f"warning: standard passage not found for {key}: {rel} :: {phrase}")
+    _specs[key] = {k: v for k, v in spec.items() if k not in ("standard", "related")} | {"standard": passages}
+_raw = json.dumps({"specs": _specs, "campaigns": check_details,
+                   "incidents": {r["id"]: {k: r.get(k) for k in ("id", "section", "defect", "detection", "cost", "disposition", "state", "line", "checkout")} for r in incident_rows}},
+                  separators=(",", ":"), default=str).encode()
+import base64, gzip
+(OUT / "data" / "check_details.json").write_text(json.dumps({"encoding": "gzip+base64", "raw_bytes": len(_raw), "payload": base64.b64encode(gzip.compress(_raw, 9)).decode()}, separators=(",", ":")))
+print("check details bytes", len(_raw), "packed", (OUT / "data" / "check_details.json").stat().st_size)
 print("bundles", len(catalog), "| with step grain", sum(1 for c in catalog if c["trajectory_file"]), "| legacy grain", sum(1 for c in catalog if c["grain"].get("legacy_rows")),
       "| incident rows", len(incident_rows), "| direct issue links", sum(1 for c in catalog for i in c["issues"] if i["direct"]))
 print("catalog bytes", (OUT / "data/catalog.json").stat().st_size, "| trajectory files bytes", sum((OUT / c["trajectory_file"]).stat().st_size for c in catalog if c["trajectory_file"]))

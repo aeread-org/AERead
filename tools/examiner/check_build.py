@@ -32,6 +32,19 @@ for c in cat["campaigns"]:
     m = idx.get(c["id"])
     if m is None: notes.append(f"{c['id']}: no lens index entry")
     elif m.get("file") and not (GE / m["file"]).exists(): problems.append(f"{c['id']}: lens file missing {m['file']}")
+# every checklist line has a record of what it rests on, and every check kind a definition with the standard's words
+det_path = data / "check_details.json"
+if not det_path.exists():
+    problems.append("data/check_details.json missing: checklist lines have no details page")
+else:
+    det = load(det_path)
+    for c in cat["campaigns"]:
+        items = (det.get("campaigns", {}).get(c["id"]) or {}).get("items", {})
+        for it in c.get("checklist", []):
+            if it.get("id") not in items: problems.append(f"{c['id']}: checklist line {it.get('id') or it.get('item')} has no details record")
+            elif (it.get("id") or "").split(":")[0] not in det.get("specs", {}): problems.append(f"{c['id']}: no check definition for {it.get('id')}")
+    for key, spec in det.get("specs", {}).items():
+        if not spec.get("standard"): notes.append(f"check {key}: no QC-standard passage found")
 for cid in idx:
     if cid not in ids: problems.append(f"lens index names unknown campaign {cid}")
 for f in sorted(list(data.rglob("*.json")) + list(data.rglob("*.gz"))):
