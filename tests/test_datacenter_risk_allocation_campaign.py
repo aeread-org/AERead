@@ -151,3 +151,15 @@ def test_no_cell_starts_after_the_declared_wall_limit(tmp_path: Path) -> None:
     entry = {"arm": rc.CONTROLS_ARM, "route_id": "scripted_reference", "seat": "client"}
     record = asyncio.run(rc._run_cell(tmp_path, entry, setup, setup.plan.cells[0], spend, asyncio.Semaphore(1), rc.V2))
     assert record["status"] == "not_attempted_wall_limit" and not list(tmp_path.rglob("evaluation_receipt.json"))
+
+
+def test_an_excluded_cells_cause_is_read_from_its_event_log(tmp_path: Path) -> None:
+    """DC-O-11: the receipt says invalid_measurement; the event log says why."""
+    from aeread_families.datacenter_development import risk_allocation_publication as pub
+
+    attempt = tmp_path / "cell" / "attempt"
+    (attempt / "artifacts").mkdir(parents=True)
+    (attempt / "artifacts" / "f.json").write_text(json.dumps({"failure_condition": "empty_response"}))
+    (attempt / "events.jsonl").write_text(json.dumps({"event_type": "logical_action_failed", "payload_ref": "artifacts/f.json"}) + "\n")
+    assert pub._failure_cause(tmp_path / "cell") == "empty_response"
+    assert pub._failure_cause(tmp_path / "none") is None

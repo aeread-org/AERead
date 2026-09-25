@@ -36,6 +36,17 @@ def _records(run_dir: Path) -> list[dict[str, Any]]:
     return [json.loads(p.read_text()) for p in sorted((run_dir / "cells").glob("*.json"))]
 
 
+def _failure_cause(evidence_root: Path) -> str | None:
+    """Why an excluded cell ended, from its sealed event log: the failed logical action's condition
+    (``rate_limit``, ``empty_response``...). The receipt says only ``invalid_measurement``."""
+    for events in sorted(evidence_root.rglob("events.jsonl")):
+        for line in events.read_text().splitlines():
+            event = json.loads(line)
+            if event.get("event_type") == "logical_action_failed":
+                return json.loads((events.parent / event["payload_ref"]).read_text()).get("failure_condition")
+    return None
+
+
 def _world_index(packs: set[str]) -> dict[str, dict[str, Any]]:
     out = {}
     for pack in packs:
@@ -76,6 +87,7 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
             "efficient_package": g.get("efficient_package"), "first_proposed_package": g.get("first_proposed_package"),
             "switched_package": g.get("switched_package"), "refused_rounds": g.get("refused_rounds"), "cost_usd": r.get("cost_usd"),
             "provider_calls": r.get("provider_calls"), "calls_outcome_unknown": r.get("calls_outcome_unknown"),
+            "failure_cause": _failure_cause(run_dir / "evidence" / r["cell_key"]) if r["status"] != "ok" else None,
             "first_move_regret": (g.get("decisions") or [{}])[0].get("regret"),
         })
     groups: dict[str, dict[str, Any]] = {}
@@ -86,7 +98,7 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
         s["cells"] += 1
         s["cost_usd"] += float(row.get("cost_usd") or 0.0)
         if not row.get("valid"):
-            reason = row.get("invalid") or row.get("receipt_status") or row.get("note") or "unknown"
+            reason = row.get("invalid") or row.get("failure_cause") or row.get("receipt_status") or row.get("note") or "unknown"
             s["missing"][reason] = s["missing"].get(reason, 0) + 1
             continue
         s["valid"] += 1
@@ -232,7 +244,7 @@ def analysis(rows: list[dict[str, Any]], arms: list[str], declared: dict[str, An
         for r in rs:
             label = r.get("termination") or r.get("receipt_status") or "unsealed"
             if not r.get("valid"):
-                label = f"missing: {r.get('invalid') or r.get('receipt_status') or 'unsealed'}"
+                label = f"missing: {r.get('invalid') or r.get('failure_cause') or r.get('receipt_status') or 'unsealed'}"
             outcomes[label] = outcomes.get(label, 0) + 1
         by_cluster: dict[str, list[float]] = {}
         for r in valid:
