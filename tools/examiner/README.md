@@ -75,6 +75,12 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    `case_cards.md`) with each diagnostic check evaluated per published cell, from the
    bundle tables and, for negotiation, the sealed events. The step view shows the card
    as a full-width panel above the three columns.
+6c. `build_starcraft.py`: the starcraft_master OpenBW prototype's local matches
+   (`AEREAD_EXAMINER_STARCRAFT_RUNS`, default `~/starcraft_master/runs`) as one bundle marked
+   external: cases are matches, steps are strategist decisions (goals, reviews, engagement
+   postures, tactical missions, concession reviews), and the hidden state is the opponent's
+   economy and army. They are not AERead evidence and the page says so; machine-local paths are
+   cut, and replays and raw logs are never copied.
 7. `check_build.py`: consistency and size checks, exit 1 on a hard problem.
 
 `page/index.html` is the whole app (vanilla JS); `rebuild.sh` copies it into
