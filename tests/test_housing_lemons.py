@@ -810,3 +810,13 @@ def test_v2_identities_pin_route_temperature_and_landlord(tmp_path) -> None:
         path.write_text(_json.dumps(bad))
         with _pytest.raises(ContractError):
             campaign.load_contract(path)
+
+
+def test_v2_setup_sends_the_declared_temperature() -> None:
+    from aeread_families.housing import lemons_campaign as campaign
+
+    for cid in ("housing_lemons_refusal_v2_gemini38_flash", "housing_lemons_refusal_v2_glm53_flash"):
+        contract = campaign.load_contract(f"configs/{cid}.json")
+        setup = campaign.build_setup(contract, tenant="live", world_seeds=(100000,), replicates=1)
+        tenants = [p for p in setup.plan.agent_profiles if "tenant" in p.profile_id]
+        assert tenants and all(p.sampling.temperature == 1.0 for p in tenants)

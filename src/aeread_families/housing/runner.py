@@ -1785,6 +1785,7 @@ def _profile(
     harness_config: Mapping[str, Any] | None = None,
     sampling_top_p: float | None = 1.0,
     max_cost_usd: float | None = None,
+    sampling_temperature: float = 0.0,
 ) -> AgentProfile:
     default_max_action_attempts = (
         4
@@ -1844,7 +1845,8 @@ def _profile(
                 "rationale_visibility": "hidden",
             },
             "sampling": {
-                "temperature": 0.0,
+                # 0.0 unless a contract declares otherwise (lemons v2, HL-D-02).
+                "temperature": sampling_temperature,
                 "top_p": sampling_top_p if provider == "openrouter" else None,
                 "max_output_tokens": (
                     max_output_tokens
@@ -1928,6 +1930,7 @@ def build_housing_smoke(
     inspection_cost: float = lemons_module.DEFAULT_INSPECTION_COST,
     lemon_landlord: str | None = None,
     tenant_top_p: float | None = 1.0,
+    tenant_temperature: float = 0.0,
     tenant_max_cost_usd_override: float | None = None,
 ) -> HousingSmokeSetup:
     if tenant_max_cost_usd_override is not None and (
@@ -1935,6 +1938,8 @@ def build_housing_smoke(
         or tenant_max_cost_usd_override <= 0.0
     ):
         raise ValueError("tenant_max_cost_usd_override must be a positive number")
+    if not _finite_number(tenant_temperature) or not 0.0 <= float(tenant_temperature) <= 2.0:
+        raise ValueError("tenant_temperature must be between 0 and 2")
     if lemon_landlord is not None and (
         world_kind != "lemons" or lemon_landlord not in lemons_module.LANDLORD_RESERVATIONS
     ):
@@ -2298,6 +2303,7 @@ def build_housing_smoke(
         harness_config=tenant_harness_config,
         sampling_top_p=tenant_top_p,
         max_cost_usd=tenant_max_cost_usd_override,
+        sampling_temperature=tenant_temperature,
     )
     landlord_profile = _profile(
         profile_id=landlord_profile_id,

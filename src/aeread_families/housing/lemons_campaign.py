@@ -523,6 +523,7 @@ def build_setup(
             max_action_attempts_override=controls["max_action_attempts"],
             retryable_conditions_override=controls["retryable_conditions"],
             tenant_top_p=controls["top_p"],
+            tenant_temperature=controls["temperature"],
             tenant_max_cost_usd_override=controls["tenant_cost_ceiling_usd"],
             **common,
         )
