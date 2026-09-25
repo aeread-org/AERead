@@ -117,10 +117,22 @@ ARMS: dict[str, dict[str, Any]] = {
                    "max_cost_usd_total": 6.0, "timeout_seconds": 1800, "workers": 8},
     },
     # Smoke 2026-09-25 at low effort: Gemini's longest 1,742, GLM's 5,701, all finished.
+    # Superseded as run: its system prompt dropped "price null on accept" (DC-D-24), and GLM's
+    # 12,000 limit truncated 3 episodes (DC-O-09). Its plan.json keeps the prompts it sent.
     "risk_allocation_probe_v2_two_prices": {
+        "superseded_by": "risk_allocation_probe_v2b_two_prices",
         "pack": "risk_allocation_two_prices_dev_v1",
         "changes_from_v1": "a price request may name an alternate package; output limit per route from smoke",
         "limits": {**LIMITS, "max_output_tokens": {"gemini38_flash": 4000, "glm53_flash": 12000}, "timeout_seconds": 300},
+    },
+    # The same arm with the accept instruction restored (DC-D-24), provider error bodies typed as
+    # provider failures (DC-T-12), and GLM's limit at 32,000: its low-effort replies outran the
+    # smoke's 5,701 by more than twice in the run, and 32,000 is the smoke limit no low-effort
+    # reply reached.
+    "risk_allocation_probe_v2b_two_prices": {
+        "pack": "risk_allocation_two_prices_dev_v1",
+        "changes_from_v1": "a price request may name an alternate package; output limit per route from smoke and the v2 run",
+        "limits": {**LIMITS, "max_output_tokens": {"gemini38_flash": 4000, "glm53_flash": 32000}, "timeout_seconds": 600},
     },
 }
 SMOKE_OUTPUT_TOKENS = 32000
@@ -164,8 +176,8 @@ def system_prompt(seat: str, alternates: bool = False) -> str:
         f'"alternate": {pkg} or null, "reason": "<one or two sentences>"}}\n'
         "A proposal always states the full package. Use price null to ask the other side for its price for that package "
         "without committing; with price null you may also name an alternate package, and the answer prices both. "
-        "For walk, package, price and alternate are null. Accept takes a standing offer as it stands: when there are two "
-        "standing offers, put the one you accept in package; otherwise package is null."
+        "For walk, package, price and alternate are null. Accept takes a standing offer as it stands, so its price and "
+        "alternate are null: when there are two standing offers, put the one you accept in package; otherwise package is null."
     )
 
 
@@ -206,8 +218,10 @@ def episodes(manifest: dict[str, Any], limits: dict[str, Any]) -> list[dict[str,
 
 
 def prepare(directory: Path, arm: str) -> None:
-    directory.mkdir(parents=True, exist_ok=False)
     spec = ARMS[arm]
+    if spec.get("superseded_by"):
+        raise SystemExit(f"{arm} is superseded by {spec['superseded_by']}; prepare that instead")
+    directory.mkdir(parents=True, exist_ok=False)
     manifest, cases = rp.load(spec["pack"])
     alternates = any(alternates_of(c["payload"]) for c in cases.values())
     plan = {
@@ -228,8 +242,8 @@ def prepare(directory: Path, arm: str) -> None:
     }
     plan["plan_sha256"] = digest(plan)
     (directory / "plan.json").write_text(json.dumps(plan, indent=1))
-    n = len(plan["episodes"])
-    print(f"prepared {n} episodes x {len(ROUTES)} routes = {n * len(ROUTES)} (at most {n * len(ROUTES) * 3} calls) -> {directory}/plan.json")
+    n, k = len(plan["episodes"]), len(plan["routes"])
+    print(f"prepared {n} episodes x {k} routes = {n * k} (at most {n * k * 3} calls) -> {directory}/plan.json")
 
 
 class Budget:
@@ -266,7 +280,17 @@ def call(route_id: str, system: str, user: str, limits: dict[str, Any], key: str
             "Authorization": f"Bearer {key}", "Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=limits["timeout_seconds"]) as resp:
-                return {"ok": True, "attempts": attempt, "response": json.loads(resp.read().decode())}
+                obj = json.loads(resp.read().decode())
+            if obj.get("error") and not obj.get("choices"):
+                # HTTP 200 carrying a provider error (e.g. "Gemini blocked the response", code 502):
+                # a provider failure, not the model's move (DC-T-12).
+                code = obj["error"].get("code")
+                last = {"ok": False, "attempts": attempt, "status": code, "error": json.dumps(obj["error"])[:500]}
+                if not (isinstance(code, int) and (code == 429 or code >= 500)):
+                    return last
+                time.sleep(2 * attempt)
+                continue
+            return {"ok": True, "attempts": attempt, "response": obj}
         except urllib.error.HTTPError as exc:
             last = {"ok": False, "attempts": attempt, "status": exc.code, "error": exc.read().decode()[:500]}
             if exc.code != 429 and exc.code < 500:
