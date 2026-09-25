@@ -887,6 +887,7 @@ decisions themselves, judged at what each tenant knew, the two are not
 separated at this size, with GLM taking somewhat riskier bets. It does not support a ranking
 or a winner: the GLM side is an incomplete pack, 24 worlds, one pack, and both routes
 fill all six seats, so each number describes a market of one model, not one
-agent against fixed competitors. A publishable pair needs a new identity that
+agent against fixed competitors. Future lemons identities run 3 rounds, not 4 (case contract §5c, ruling of
+2026-09-25). A publishable pair needs a new identity that
 declares how an unanswered call is handled (a retryable `timeout` or a longer
 action timeout), run on both routes.

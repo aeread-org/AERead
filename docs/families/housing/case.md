@@ -309,6 +309,19 @@ inspections between them; the lemon loss is the lever on how far sign-anything f
 Every exclusion is named per world (`failed_requirements`), and a world that fails is
 excluded, never edited.
 
+**Round budget (ruling, 2026-09-25): new lemons identities use 3 rounds.** The first
+two identities kept the bid world's pinned 4, which was never chosen for this world.
+Over seeds 0-299 the scripted bracket is the same at 3, 4 and 6 rounds (admitted
+75%, 76%, 76%; ordering holds on 85%, 86%, 86%; median `R / U` 0.179 at each), and
+every world of the v2 pack is admitted at 3 with the same `R / U` and `B / U` as at 4.
+In the v2 runs the fourth round held about 20% of the model calls (Gemini 692 of
+3,261, GLM 638 of 3,137) and 1 and 5 of the 92 and 104 leases. Two rounds is not
+the default: admission falls to 68% and ordering to 78%, two v2 pack worlds fail,
+and a tenant can inspect at most two of four listings, so the world would test
+deciding under a deadline rather than refusing a lemon; that is a separate arm if
+it is wanted. The round count is a frozen control, so a 3-round run is a new
+identity, compared within itself and not against v2.
+
 **Reproduce.** `pytest tests/test_housing_lemons.py -q` covers the world, the market,
 the policies, the gate, the plugin and the plan-to-receipt-to-replay path;
 `python -m aeread_families.housing.runner --world-kind lemons --tenant-policy
