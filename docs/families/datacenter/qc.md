@@ -75,6 +75,7 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_risk_allocation_two_sided_v1` | 0.1.0 | the same case with both seats played by models, graded on the exact outcome (joint value lost at both true types); registration in #224 (kernel lane); gates in §10 | `two_sided_eval_v1` (the 32 eval worlds) |
 | `datacenter_risk_allocation_menu_v1` | 0.1.0 | the client negotiating a scripted integrator's posted playbook and menu, the pricing policy hidden; registration in #224 (kernel lane); gates in §10 | `menu_eval_v1` (36 worlds) |
 | `datacenter_risk_allocation_contracts_v1` | 0.1.0 | the menu with every contract term the economics can grade exactly (damages rate, liability cap, deposit size, escrow, burn-in, site preparation), 64 to 360 contracts a playbook; registration in #224 (kernel lane); gates in §10 | `contracts_eval_v1` (52 worlds) |
+| `datacenter_risk_allocation_tender_v1` | 0.1.0 | a tender: three managed or turnkey firms bid once each and the client negotiates every term with any of them in the same turn; registration on `codex/datacenter-risk-allocation` (kernel lane); gates in §10 | `tender_pilot_v1` (24 worlds) |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,

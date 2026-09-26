@@ -1,0 +1,1570 @@
+{
+ "claim_status": "generated worlds; no model result is a claim",
+ "family_id": "datacenter_risk_allocation_tender_v1",
+ "family_version": "0.1.0",
+ "generator": {
+  "base_seed": 2600000,
+  "id": "datacenter_risk_allocation_tender_generator_v1",
+  "quotas": {
+   "fragile_bidders": {
+    "another_bidder_is_best": 2,
+    "lowest_bidder_is_best": 2,
+    "self_manage": 2
+   },
+   "moderate": {
+    "another_bidder_is_best": 2,
+    "lowest_bidder_is_best": 2,
+    "self_manage": 2
+   },
+   "risk_averse": {
+    "another_bidder_is_best": 4,
+    "lowest_bidder_is_best": 2
+   },
+   "risk_tolerant": {
+    "another_bidder_is_best": 5,
+    "lowest_bidder_is_best": 1
+   }
+  },
+  "split": "eval",
+  "version": "0.1.0"
+ },
+ "pack": "tender_pilot_v1",
+ "worlds": [
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11230.385,
+     "bid_all_in": 11097.9,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11230.385,
+     "bid_all_in": 11375.9,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11128.385,
+     "bid_all_in": 11264.9,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.8fc5bc88",
+   "content_sha256": "a8322cb4948d287b710af0544c38b87915235ca9fd3692c5c469e78215684d23",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11178.961,
+   "reference_first_move": "B3: ask the price of [fix_and_delay @200/wk, cap 1500, readiness client, consequential included, deposit 50%]",
+   "seed": 2600001,
+   "self_manage_cost": 11763.495,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_tolerant__another_bidder_is_best__2600001",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B2",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11142.42,
+     "bid_all_in": 11081.6,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 10966.72,
+     "bid_all_in": 11172.5,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11142.42,
+     "bid_all_in": 11081.6,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.f767e14c",
+   "content_sha256": "2c08259000affb76e33c9544fe296ade7dd940adc2fd19105e647835b76094f6",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11035.005,
+   "reference_first_move": "B2: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2600006,
+   "self_manage_cost": 11566.282,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_tolerant__another_bidder_is_best__2600006",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11149.535,
+     "bid_all_in": 11294.0,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11140.085,
+     "bid_all_in": 11086.4,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11047.335,
+     "bid_all_in": 11183.7,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.c5071a08",
+   "content_sha256": "00b2766de7c3496c612b1dfc3591fb0fad2bc0ce833a18c51ef31c985034bd36",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11086.972,
+   "reference_first_move": "B3: ask the price of [fix_and_delay @100/wk, cap 1500, readiness client, consequential included, deposit 25%]",
+   "seed": 2600007,
+   "self_manage_cost": 11713.105,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_tolerant__another_bidder_is_best__2600007",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11086.666,
+     "bid_all_in": 11200.5,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11257.075,
+     "bid_all_in": 11108.0,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11246.666,
+     "bid_all_in": 11360.5,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.5c40ff9d",
+   "content_sha256": "bf4f428fe2a332f1819b39ad86640072d4f1b0c457d8a52cdaa9ccb3cdd26096",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11152.487,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, deposit 50%]",
+   "seed": 2600020,
+   "self_manage_cost": 11813.045,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_tolerant__another_bidder_is_best__2600020",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11082.445,
+     "bid_all_in": 11178.5,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11260.145,
+     "bid_all_in": 11106.3,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11162.445,
+     "bid_all_in": 11258.5,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.76f9200b",
+   "content_sha256": "89cadc71189c7a79f8383b1eabfbe5ab14c9bc2d6a11e12fb7397f09b565fb4d",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11134.991,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap 1500, readiness client, consequential included, deposit 50%]",
+   "seed": 2600026,
+   "self_manage_cost": 11770.372,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_tolerant__another_bidder_is_best__2600026",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B2",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11207.395,
+     "bid_all_in": 11116.8,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11010.495,
+     "bid_all_in": 11001.2,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11155.635,
+     "bid_all_in": 11365.2,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.28d53721",
+   "content_sha256": "e8362fab8aba2ea5c6a0b1d25ab580e1765f8a15d7d377cf4cb28423a7a0c305",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11065.674,
+   "reference_first_move": "B2: ask the price of [fix, cap 1500, readiness client, consequential excluded, deposit 50%]",
+   "seed": 2602154,
+   "self_manage_cost": 11388.275,
+   "situation": "lowest_bidder_is_best",
+   "slug": "risk_tolerant__lowest_bidder_is_best__2602154",
+   "world_type": "risk_tolerant"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11321.808,
+     "bid_all_in": 11360.8,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11321.808,
+     "bid_all_in": 11360.8,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11166.9,
+     "bid_all_in": 10997.6,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.23396a2c",
+   "content_sha256": "947e23814d3891adc4f8c490b306e8c8bf16e88d7a6cfe2b377631cb6a1c69f7",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11208.242,
+   "reference_first_move": "B3: ask the price of [fix, cap 1500, readiness client, consequential excluded, deposit 50%]",
+   "seed": 2700003,
+   "self_manage_cost": 11330.325,
+   "situation": "lowest_bidder_is_best",
+   "slug": "moderate__lowest_bidder_is_best__2700003",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11317.2,
+     "bid_all_in": 10994.9,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11213.973,
+     "bid_all_in": 11206.9,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11098.04,
+     "bid_all_in": 11179.6,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.f755ffe9",
+   "content_sha256": "beda00e04094628de58dca8b996fe950e16a6cf19c23f3279fc84e687e44391c",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11144.663,
+   "reference_first_move": "B3: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%]",
+   "seed": 2700020,
+   "self_manage_cost": 11338.3,
+   "situation": "another_bidder_is_best",
+   "slug": "moderate__another_bidder_is_best__2700020",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "B2",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11269.25,
+     "bid_all_in": 11083.9,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11084.0,
+     "bid_all_in": 10990.9,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11273.975,
+     "bid_all_in": 11306.9,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.62c2222f",
+   "content_sha256": "3ed1c44b6f2b03939ca107ba5839d608ff67811c12d0349a849dc8ba68148a5d",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11124.282,
+   "reference_first_move": "B2: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2700028,
+   "self_manage_cost": 11389.65,
+   "situation": "lowest_bidder_is_best",
+   "slug": "moderate__lowest_bidder_is_best__2700028",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11034.3,
+     "bid_all_in": 11183.7,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11221.657,
+     "bid_all_in": 11294.0,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11175.275,
+     "bid_all_in": 11006.4,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.427f5f15",
+   "content_sha256": "e8f11df3b4377357bd69367ebcbd4721c6688c6ce9fc1de12ce8f46367165601",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11074.715,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%]",
+   "seed": 2700035,
+   "self_manage_cost": 11205.575,
+   "situation": "another_bidder_is_best",
+   "slug": "moderate__another_bidder_is_best__2700035",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "self_manage",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11174.95,
+     "bid_all_in": 11201.6,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11334.95,
+     "bid_all_in": 11123.4,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11251.35,
+     "bid_all_in": 11078.4,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.ba63d9ae",
+   "content_sha256": "5079a2116188469f3c56b9785143aa5df848d42ee392013b57ae9512b47837ee",
+   "lesson": "no firm's best contract beats managing the deployment yourself; walk",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 10982.2,
+   "reference_first_move": "walk to self-management",
+   "seed": 2700114,
+   "self_manage_cost": 10982.2,
+   "situation": "self_manage",
+   "slug": "moderate__self_manage__2700114",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "self_manage",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11337.525,
+     "bid_all_in": 11101.0,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11337.525,
+     "bid_all_in": 11101.0,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11337.525,
+     "bid_all_in": 11397.7,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.61dd6dc0",
+   "content_sha256": "8b136e624ec017507b2fe71ad6e6a4cde075c1d6b46683597a45ee6aba1c5f70",
+   "lesson": "no firm's best contract beats managing the deployment yourself; walk",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11110.025,
+   "reference_first_move": "walk to self-management",
+   "seed": 2700118,
+   "self_manage_cost": 11110.025,
+   "situation": "self_manage",
+   "slug": "moderate__self_manage__2700118",
+   "world_type": "moderate"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11367.47,
+     "bid_all_in": 11341.6,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11424.4,
+     "bid_all_in": 10987.6,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11597.8,
+     "bid_all_in": 10998.4,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.69fa9ef6",
+   "content_sha256": "cd805301da12c5c565c58b021ccb13b7f9683f01f909257ec18c6b00aa404fd4",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11424.203,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%]",
+   "seed": 2800007,
+   "self_manage_cost": 12155.892,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_averse__another_bidder_is_best__2800007",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B2",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11841.23,
+     "bid_all_in": 11097.9,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11602.776,
+     "bid_all_in": 11280.8,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11602.776,
+     "bid_all_in": 11280.8,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.6168c63a",
+   "content_sha256": "a3a96d2d4692a020fd8e2bb7aa56d1dde2ef1fc4abb1a86c8f4bc5ed7930cd0e",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11659.352,
+   "reference_first_move": "B2: ask the price of [fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, no deposit, burn-in]; B3: ask the price of [fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, no deposit, burn-in]",
+   "seed": 2800008,
+   "self_manage_cost": 12059.47,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_averse__another_bidder_is_best__2800008",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11598.083,
+     "bid_all_in": 11023.1,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11538.255,
+     "bid_all_in": 11359.1,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11223.955,
+     "bid_all_in": 11222.2,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.b4adc889",
+   "content_sha256": "a896d16b4946103c90ed393edf6e6538e1dde91c30cf550bc09703446080dff4",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11316.46,
+   "reference_first_move": "B2: ask the price of [fix_and_delay @100/wk, cap uncapped, readiness integrator, consequential excluded, deposit 50%, burn-in]; B3: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%]",
+   "seed": 2800016,
+   "self_manage_cost": 12251.14,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_averse__another_bidder_is_best__2800016",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11334.157,
+     "bid_all_in": 11268.8,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11608.857,
+     "bid_all_in": 11382.5,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11491.38,
+     "bid_all_in": 10988.3,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.99e33d73",
+   "content_sha256": "f1ab4412f9760051dd4a45b691e3f363a225df9d006a576b79866b1b62a7eb5c",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11387.992,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in]",
+   "seed": 2800022,
+   "self_manage_cost": 12303.525,
+   "situation": "another_bidder_is_best",
+   "slug": "risk_averse__another_bidder_is_best__2800022",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11332.4,
+     "bid_all_in": 11196.4,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11538.6,
+     "bid_all_in": 11095.7,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11243.5,
+     "bid_all_in": 10984.5,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.7cdd4d14",
+   "content_sha256": "738b83a5c673b68fae9ed21602512f1c8c262b6793353f2d2746495a328f9547",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11293.987,
+   "reference_first_move": "B3: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, no deposit, burn-in]",
+   "seed": 2800062,
+   "self_manage_cost": 11498.37,
+   "situation": "lowest_bidder_is_best",
+   "slug": "risk_averse__lowest_bidder_is_best__2800062",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11482.298,
+     "bid_all_in": 11009.0,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11393.397,
+     "bid_all_in": 11269.2,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11313.397,
+     "bid_all_in": 10993.9,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.85bb9d06",
+   "content_sha256": "0c03e9136d7872b2ded963a17ec0256038f67de47cfad28d2610dd4b873ad4d9",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11348.65,
+   "reference_first_move": "B3: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, no deposit]",
+   "seed": 2800093,
+   "self_manage_cost": 11518.442,
+   "situation": "lowest_bidder_is_best",
+   "slug": "risk_averse__lowest_bidder_is_best__2800093",
+   "world_type": "risk_averse"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11257.45,
+     "bid_all_in": 10988.3,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11317.025,
+     "bid_all_in": 11348.8,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11527.3,
+     "bid_all_in": 11102.5,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.a49eefb6",
+   "content_sha256": "6294c449245f08e8926490522689d5f75b33ea8f246aa6924d6668d459be66ec",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11329.889,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2900003,
+   "self_manage_cost": 11426.875,
+   "situation": "lowest_bidder_is_best",
+   "slug": "fragile_bidders__lowest_bidder_is_best__2900003",
+   "world_type": "fragile_bidders"
+  },
+  {
+   "best_attainable": "B3",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11212.05,
+     "bid_all_in": 11265.5,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11302.225,
+     "bid_all_in": 11085.0,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11132.05,
+     "bid_all_in": 11185.5,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.d0b467fe",
+   "content_sha256": "afad1bab17da90e090106b5333131cfb65849221fbc8c7f5bd8cd4da9959f5b4",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B2",
+   "reference_expected_cost": 11211.583,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]; B3: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2900046,
+   "self_manage_cost": 11364.575,
+   "situation": "another_bidder_is_best",
+   "slug": "fragile_bidders__another_bidder_is_best__2900046",
+   "world_type": "fragile_bidders"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11096.8,
+     "bid_all_in": 11173.8,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11191.075,
+     "bid_all_in": 11197.2,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11351.075,
+     "bid_all_in": 11091.8,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.f45ed7c1",
+   "content_sha256": "2de1f0608acd3e286fd4712c36e1ec8b9f1cb383f75687c560c06b9e9c4b4db6",
+   "lesson": "the lowest bid is not the best firm: negotiating only with it costs at least CHOICE_MARGIN more than the best play",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11165.18,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2900055,
+   "self_manage_cost": 11277.55,
+   "situation": "another_bidder_is_best",
+   "slug": "fragile_bidders__another_bidder_is_best__2900055",
+   "world_type": "fragile_bidders"
+  },
+  {
+   "best_attainable": "self_manage",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11291.843,
+     "bid_all_in": 11254.4,
+     "id": "B1",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11371.843,
+     "bid_all_in": 11334.4,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": true,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "none",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11319.575,
+     "bid_all_in": 11016.0,
+     "id": "B3",
+     "playbook": "managed"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.65a311cc",
+   "content_sha256": "57fedfe46cfb3191451ed48ba740fda6ecfae86602c9836e9f8f608772b79c20",
+   "lesson": "no firm's best contract beats managing the deployment yourself; walk",
+   "lowest_bidder": "B3",
+   "reference_expected_cost": 11094.55,
+   "reference_first_move": "walk to self-management",
+   "seed": 2900057,
+   "self_manage_cost": 11094.55,
+   "situation": "self_manage",
+   "slug": "fragile_bidders__self_manage__2900057",
+   "world_type": "fragile_bidders"
+  },
+  {
+   "best_attainable": "self_manage",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11182.65,
+     "bid_all_in": 11005.0,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "100",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "1500",
+      "readiness": "client",
+      "warranty": "fix"
+     },
+     "best_contract_cost": 11262.65,
+     "bid_all_in": 11085.0,
+     "id": "B2",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "excluded",
+      "damages": "50",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "500",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11175.065,
+     "bid_all_in": 11225.8,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.6c927040",
+   "content_sha256": "5da4ff35c98e68c89bb3ed7abc8223c8123054932b5bb36ac6669d6939420b83",
+   "lesson": "no firm's best contract beats managing the deployment yourself; walk",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11012.9,
+   "reference_first_move": "walk to self-management",
+   "seed": 2900059,
+   "self_manage_cost": 11012.9,
+   "situation": "self_manage",
+   "slug": "fragile_bidders__self_manage__2900059",
+   "world_type": "fragile_bidders"
+  },
+  {
+   "best_attainable": "B1",
+   "bidders": [
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "client",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11092.438,
+     "bid_all_in": 10986.3,
+     "id": "B1",
+     "playbook": "managed"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11236.583,
+     "bid_all_in": 11346.8,
+     "id": "B2",
+     "playbook": "turnkey"
+    },
+    {
+     "best_contract": {
+      "burn_in": false,
+      "consequential": "included",
+      "damages": "200",
+      "deposit": "50%",
+      "escrow": false,
+      "liability_cap": "uncapped",
+      "readiness": "integrator",
+      "warranty": "fix_and_delay"
+     },
+     "best_contract_cost": 11236.583,
+     "bid_all_in": 11346.8,
+     "id": "B3",
+     "playbook": "turnkey"
+    }
+   ],
+   "case_id": "datacenter_risk_allocation_tender_v1.eval.004c39e0",
+   "content_sha256": "6b2b5e112974fe2016d7be4a5891549e46de9b6dde2d8ca074cd4c14e344c617",
+   "lesson": "the firm with the lowest bid is the one to negotiate with; the terms and the price are what is left to win",
+   "lowest_bidder": "B1",
+   "reference_expected_cost": 11167.582,
+   "reference_first_move": "B1: ask the price of [fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%]",
+   "seed": 2900206,
+   "self_manage_cost": 11249.138,
+   "situation": "lowest_bidder_is_best",
+   "slug": "fragile_bidders__lowest_bidder_is_best__2900206",
+   "world_type": "fragile_bidders"
+  }
+ ]
+}
