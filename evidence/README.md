@@ -41,7 +41,7 @@ appropriate section below when they land.
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
 | [Housing](#housing) | 16 | 1 |
-| [Procurement allocation](#procurement-allocation) | 19 | 16 |
+| [Procurement allocation](#procurement-allocation) | 23 | 16 |
 | [Procurement grounding](#procurement-grounding) | 3 | 0 |
 | [Shared runner diagnostics](#shared-runner-diagnostics) | 1 | 0 |
 
@@ -280,6 +280,8 @@ Includes all 16 procurement bundles at preserved top-level paths.
 - [procurement_allocation_failure_register](procurement_allocation/procurement_allocation_failure_register/)
 - [procurement_allocation_unified_regret_v1](procurement_allocation/procurement_allocation_unified_regret_v1/): six-world continuous admission; provider-free screen, not a model result
 - [procurement_allocation_unified_regret_v1_execution](procurement_allocation/procurement_allocation_unified_regret_v1_execution/): 24-row pilot passed; confirmation ineligible after HTTP 429 (15 completed, one failed, 20 unattempted)
+- [procurement_allocation_unified_regret_recovery_v2](procurement_allocation/procurement_allocation_unified_regret_recovery_v2/): separately approved recovery of that confirmation, 36 of 36 rows on six noisy-sample worlds; pre-award check against strategy scaffold, regret delta -$5.02 per world (supported on the declared worlds)
+- [procurement_allocation_single_period_gap](procurement_allocation/procurement_allocation_single_period_gap/): derived gap analysis, why a prompt treatment changes regret on the single-period worlds (GLM 5.3 Flash, treatment against control): the strategy scaffold's +$26.04 per world in the strategy confirmatory, and the pre-award check's +$5.02 in the recovery, split exactly into gate rejections, missing awards and four feasible-award term groups, with every part traced to its step and failures typed
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2](procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/) **(preserved path)**
 - [procurement_allocation_glm53_flash_parasail_pre_award_check_v1](procurement_allocation_glm53_flash_parasail_pre_award_check_v1/) **(preserved path)**

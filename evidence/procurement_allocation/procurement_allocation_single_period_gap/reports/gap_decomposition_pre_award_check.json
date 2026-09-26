@@ -1,0 +1,1105 @@
+{
+  "accounting_check": {
+    "contribution_statement": "per cell, the contribution rows of each part sum to that cell's part",
+    "max_abs_contribution_residual": 4.440892098500626e-16,
+    "max_abs_residual_per_cell": 1.0000007932831068e-08,
+    "statement": "each cell's parts sum to minus its published regret_to_upper_bound_usd"
+  },
+  "amount_label": "USD/world",
+  "bootstrap": {
+    "draws": 10000,
+    "interval": "percentile_95",
+    "seed": 20260925,
+    "stream": "one random.Random(seed): realized, then components in declared order, then class amounts in declared order",
+    "unit": "world"
+  },
+  "categories": {
+    "left": {
+      "feasible_award": 18
+    },
+    "right": {
+      "deferred": 1,
+      "feasible_award": 17
+    }
+  },
+  "cell_parts": [
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.15,
+        "kits_short": -0.0,
+        "landed_cost": -3.3915,
+        "no_award": 0.0,
+        "terms_and_returns": -0.16476370999999998
+      },
+      "receipt_sha256": "cee1dba5d1e7c326551356f07ea368c474541bb85f2751c30c6951e39587decd",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.15,
+        "kits_short": -0.0,
+        "landed_cost": -3.2319,
+        "no_award": 0.0,
+        "terms_and_returns": -0.17503085
+      },
+      "receipt_sha256": "86f3c946e69b22213c74e31bb05bf4487ecdb64c69a4d82eb262b048d744d4a8",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.73,
+        "kits_short": -0.0,
+        "landed_cost": -3.7842000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15288044999999997
+      },
+      "receipt_sha256": "6825ad461280aa62b93273275053ecf865844652da7cfc6da11ce26b445e6d3c",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.34,
+        "kits_short": -62.51,
+        "landed_cost": 26.544,
+        "no_award": 0.0,
+        "terms_and_returns": -7.10527763
+      },
+      "receipt_sha256": "77659e95f8543928f8485bc1af658bafdceb3d6011feb1baa8c9e26de34690fd",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.04,
+        "kits_short": -62.51,
+        "landed_cost": 27.2496,
+        "no_award": 0.0,
+        "terms_and_returns": -7.188388639999999
+      },
+      "receipt_sha256": "922b2f605f5756d657fe3973147e323d86837d27a43371ce81ee89c2b3d7f3f8",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.69,
+        "kits_short": -62.51,
+        "landed_cost": 26.544,
+        "no_award": 0.0,
+        "terms_and_returns": -7.10527763
+      },
+      "receipt_sha256": "28d232d3f0b1b8a88f87cf902f432b4810effeec1b46fefc2ce3496692e31a06",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -1.2,
+        "kits_short": -16.96,
+        "landed_cost": 20.811,
+        "no_award": 0.0,
+        "terms_and_returns": -11.14540933
+      },
+      "receipt_sha256": "526ef6ae2ecc02c1a7eb05e2031121a7a8040fbae291d90606a077f3592c5916",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.91,
+        "kits_short": -59.36,
+        "landed_cost": 19.4817,
+        "no_award": 0.0,
+        "terms_and_returns": -4.5906391
+      },
+      "receipt_sha256": "c6009242cf3b321af520c03c275f70fbaec5011374a1ed2c25e3dc2cc8dd911c",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.42,
+        "kits_short": -59.36,
+        "landed_cost": 31.647000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -7.952477620000001
+      },
+      "receipt_sha256": "70843032caa294bbe01e80c9a776a5889867cf58cf63d4a3d259d61e51a86327",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.54,
+        "kits_short": -57.12,
+        "landed_cost": 18.0705,
+        "no_award": 0.0,
+        "terms_and_returns": -7.853306180000001
+      },
+      "receipt_sha256": "f40f6bdfd4ee9fd1927ebab686355f3ceccc42233d6913921fe91ff7667159a9",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.54,
+        "kits_short": -57.12,
+        "landed_cost": 18.0705,
+        "no_award": 0.0,
+        "terms_and_returns": -7.853306180000001
+      },
+      "receipt_sha256": "f25e8b830a587ade96e898da00bf3e294d68383384334913835293918cfb9da0",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.54,
+        "kits_short": -57.12,
+        "landed_cost": 18.0705,
+        "no_award": 0.0,
+        "terms_and_returns": -7.853306180000001
+      },
+      "receipt_sha256": "6a232d9209d889dbe6084c3b5b9132f9f13b8e089918166d7da24607a59a0097",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.78,
+        "kits_short": -81.0,
+        "landed_cost": 23.2365,
+        "no_award": 0.0,
+        "terms_and_returns": -0.7153235499999999
+      },
+      "receipt_sha256": "be48214daa7801fbf99b8017da0a12dd333711ba2240b7bb60c9444908cd1d08",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.52,
+        "kits_short": -81.0,
+        "landed_cost": 20.8845,
+        "no_award": 0.0,
+        "terms_and_returns": -6.299845449999999
+      },
+      "receipt_sha256": "9076a85b747714d8de17c145220641a2aa5d5b5ad5b015d34c7be9e74bc08c3b",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.78,
+        "kits_short": -81.0,
+        "landed_cost": 23.2365,
+        "no_award": 0.0,
+        "terms_and_returns": -0.7153235499999999
+      },
+      "receipt_sha256": "6b2cd40a8520ab0af46bdc17b64d2390655520b6438a9bb0ed0234c844b9e0d4",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.0,
+        "kits_short": -0.0,
+        "landed_cost": -2.3436000000000003,
+        "no_award": 0.0,
+        "terms_and_returns": -0.18372549
+      },
+      "receipt_sha256": "7b0d92deaed72b960ffb48ad23e6a814793ca66a5538f22c8b6a83c8c3d90d3b",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.15,
+        "kits_short": -0.0,
+        "landed_cost": -2.3436000000000003,
+        "no_award": 0.0,
+        "terms_and_returns": 0.006689850000000005
+      },
+      "receipt_sha256": "005371e2bf2c11dfc3a24f13f13b5689cd664a0ce8e6069ca95c099c1b738341",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    },
+    {
+      "arm": "treatment",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.0,
+        "kits_short": -0.0,
+        "landed_cost": -2.3583,
+        "no_award": 0.0,
+        "terms_and_returns": -0.18325411
+      },
+      "receipt_sha256": "36b81b4f97ff54684af54b413488c5e0a71837f30cfc78cb1bd17eae41d86253",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.3,
+        "kits_short": -0.0,
+        "landed_cost": -3.7842000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15288044999999997
+      },
+      "receipt_sha256": "64d1e56676f3d3813c479bedc53f1aad8b60c231910e1b852f620cfe05cfed7b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.3,
+        "kits_short": -0.0,
+        "landed_cost": -3.7842000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15288044999999997
+      },
+      "receipt_sha256": "e5dd9156087037559e490a34d72fce1629b85c6233cd244d388d924ea1b8ad8c",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.3,
+        "kits_short": -0.0,
+        "landed_cost": -3.7842000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15288044999999997
+      },
+      "receipt_sha256": "3df7837d69f4c26bce88536517dd63c7302c4b8f55ef75652e507cd15a3b8db8",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_002",
+      "world_seed": 9190002
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.31,
+        "kits_short": -62.51,
+        "landed_cost": 26.544,
+        "no_award": 0.0,
+        "terms_and_returns": -7.10527763
+      },
+      "receipt_sha256": "7896d458d85ee597c355f72e82077be23be5361be8fee11cb84a0eadb7d8931c",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.34,
+        "kits_short": -62.51,
+        "landed_cost": 26.544,
+        "no_award": 0.0,
+        "terms_and_returns": -7.10527763
+      },
+      "receipt_sha256": "f8a5c37ca2969b347d7e21ce3ae45fdf7702e137545ad8dc0a1ce10373493828",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.69,
+        "kits_short": -62.51,
+        "landed_cost": 26.544,
+        "no_award": 0.0,
+        "terms_and_returns": -7.10527763
+      },
+      "receipt_sha256": "284e410e3a03ed713f783a8348b9780c6e399360dbfebff6a1d293c871e2696e",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_009",
+      "world_seed": 9190009
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.77,
+        "kits_short": -50.879999999999995,
+        "landed_cost": 15.771,
+        "no_award": 0.0,
+        "terms_and_returns": -4.9604329
+      },
+      "receipt_sha256": "776f493fbecde1f98245f3a720fda454815aa575335dba82cb216aadd47fffc8",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.61,
+        "kits_short": -67.84,
+        "landed_cost": 19.908,
+        "no_award": 0.0,
+        "terms_and_returns": 0.6879560199999999
+      },
+      "receipt_sha256": "0743e0c937127b3b292b800bdb4e9916537dfeaaa78056bce4063da566ee162e",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.42,
+        "kits_short": -59.36,
+        "landed_cost": 31.647000000000002,
+        "no_award": 0.0,
+        "terms_and_returns": -7.952477620000001
+      },
+      "receipt_sha256": "b250726b5c9e64fef60c3c1b2878a745979fe7f75ec057ecd653c91f9ab8414f",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_011",
+      "world_seed": 9190011
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.54,
+        "kits_short": -57.12,
+        "landed_cost": 18.0705,
+        "no_award": 0.0,
+        "terms_and_returns": -7.853306180000001
+      },
+      "receipt_sha256": "58e3dec5c93e165e57eb7b561bff2067664453686341d3b90377f699f536329a",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.54,
+        "kits_short": -57.12,
+        "landed_cost": 18.0705,
+        "no_award": 0.0,
+        "terms_and_returns": -7.853306180000001
+      },
+      "receipt_sha256": "1fb864bd4a70709b14896e049a0801a55eb25e591284c3ffa1f9414c8b29875e",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.0,
+        "kits_short": 0.0,
+        "landed_cost": 0.0,
+        "no_award": -88.93393953,
+        "terms_and_returns": 0.0
+      },
+      "receipt_sha256": "ee8a2536b17e8e3361e41e870f8eefc622696c9e010824fb353be89802d3b0ae",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 1.52,
+        "kits_short": -81.0,
+        "landed_cost": 20.8845,
+        "no_award": 0.0,
+        "terms_and_returns": -6.299845449999999
+      },
+      "receipt_sha256": "7ff337cfb59beb15c51ca3b6431c17e8b3e1f640c92dcbbe48fc80c825bb2ee1",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.69,
+        "kits_short": -81.0,
+        "landed_cost": 20.8845,
+        "no_award": 0.0,
+        "terms_and_returns": -6.299845449999999
+      },
+      "receipt_sha256": "9a6b455198a1b579d3bab71894b3515a088a89fb52f7f900f8d8cbff2e766a23",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 2.78,
+        "kits_short": -81.0,
+        "landed_cost": 23.2365,
+        "no_award": 0.0,
+        "terms_and_returns": -0.7153235499999999
+      },
+      "receipt_sha256": "f7b8c0e6c3a45462e83a0c7396e4100f8a7b788336bc4f512598a595a3cb855d",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_025",
+      "world_seed": 9190025
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": -0.68,
+        "kits_short": -0.0,
+        "landed_cost": -3.1248,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15891582
+      },
+      "receipt_sha256": "43dca12c1417e4472dfc9ed05f6a9c9bdbbd43640f82b7ef16346f9036990354",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.3,
+        "kits_short": -0.0,
+        "landed_cost": -3.1248,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15891582
+      },
+      "receipt_sha256": "870ab21469b7ce1ee069289bf5f92dbccf38490871c816da926e8f7dc6208fd3",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    },
+    {
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "parts": {
+        "infeasible_award": 0.0,
+        "information_spend": 0.3,
+        "kits_short": -0.0,
+        "landed_cost": -3.1248,
+        "no_award": 0.0,
+        "terms_and_returns": -0.15891582
+      },
+      "receipt_sha256": "b3a085cd961a06be97a82d77b726edccd240a0158b5c0fdb763e7d8ee5cb3a04",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": null,
+      "unit": "market_031",
+      "world_seed": 9190031
+    }
+  ],
+  "cells": {
+    "left": 18,
+    "right": 18
+  },
+  "claim_status": "descriptive_fixed_panel",
+  "class_heading": "failure class (published violations, and why minimum service failed)",
+  "classes": [
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "cash_budget_exceeded",
+      "label": "the award's cash spend (goods, freight, duty, information) exceeds the budget",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "minimum_service_not_met",
+      "label": "the award completes fewer expected kits than the minimum service level",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "sample_not_verified",
+      "label": "an awarded supplier's sample was never verified, so its units count for nothing",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "invalid_order_step",
+      "label": "an awarded quantity is off the supplier's order step",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "below_moq",
+      "label": "an awarded quantity is below the supplier's minimum order",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "over_capacity",
+      "label": "an awarded quantity is above the supplier's capacity",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "wrong_variant",
+      "label": "an awarded offer is not the required variant",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "expired_offer",
+      "label": "an awarded offer had expired",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "interaction_budget_exhausted",
+      "label": "the action budget ran out with no award or defer",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "published violation",
+      "key": "unparseable_action",
+      "label": "an action could not be parsed, which ends the episode",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": -4.9407744183333335,
+      "amount_difference_ci": [
+        -14.822323255,
+        0.0
+      ],
+      "group": "ending",
+      "key": "deferred",
+      "label": "deferred instead of awarding, forgoing the bound (a choice, not a violation)",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 4.9407744183333335,
+      "right_count": 1
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "why minimum service failed",
+      "key": "component_not_awarded",
+      "label": "the award leaves a bill-of-materials component with no supplier",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "why minimum service failed",
+      "key": "arrives_after_deadline",
+      "label": "an awarded line can no longer arrive by the deadline (located at the step that used up the slack)",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "regret to the bound of the cells carrying it, USD per world (overlapping; not parts of the sum)",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "why minimum service failed",
+      "key": "quantity_short",
+      "label": "every component awarded, verified and on time, but too few expected good units",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    }
+  ],
+  "components": [
+    {
+      "description": "A submitted award that broke a gate (cash budget, minimum service, order step, MOQ, unverified sample) is scored at the defer value less the information already bought; the cell's whole distance to the bound lands here.",
+      "difference": 0.0,
+      "difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "procedure",
+      "key": "infeasible_award",
+      "label": "award rejected at a gate",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "description": "The episode ended without an award: an explicit defer, the action budget running out, or an action the environment could not parse. Scored at the defer value less the information bought.",
+      "difference": 4.9407744183333335,
+      "difference_ci": [
+        0.0,
+        14.822323255
+      ],
+      "group": "procedure",
+      "key": "no_award",
+      "label": "no award: deferred, out of actions, or unparseable",
+      "left": 0.0,
+      "right": -4.9407744183333335
+    },
+    {
+      "description": "Feasible awards: revenue lost and shortfall penalty added by completing fewer expected kits than the plan.",
+      "difference": -0.8177777777777789,
+      "difference_ci": [
+        -9.52,
+        7.066666666666663
+      ],
+      "group": "outcome",
+      "key": "kits_short",
+      "label": "kits short of the full-information plan",
+      "left": -40.97611111111111,
+      "right": -40.15833333333333
+    },
+    {
+      "description": "Feasible awards: purchase, shipping and duty above the plan's.",
+      "difference": 1.6119833333333338,
+      "difference_ci": [
+        0.4554666666666671,
+        3.4499499999999994
+      ],
+      "group": "cost",
+      "key": "landed_cost",
+      "label": "landed price above the plan",
+      "left": 14.244066666666667,
+      "right": 12.632083333333334
+    },
+    {
+      "description": "Feasible awards: working capital, return freight and refund financing above the plan's, and expected refund recovery below it.",
+      "difference": -0.7629468216666667,
+      "difference_ci": [
+        -2.350671563888889,
+        0.6242076222222221
+      ],
+      "group": "cost",
+      "key": "terms_and_returns",
+      "label": "payment terms and returns",
+      "left": -4.290602544444444,
+      "right": -3.527655722777778
+    },
+    {
+      "description": "Feasible awards: quotes, samples, counter-offers and inquiries above what the plan itself buys.",
+      "difference": 0.050555555555555555,
+      "difference_ci": [
+        -0.43277777777777776,
+        0.47444444444444445
+      ],
+      "group": "cost",
+      "key": "information_spend",
+      "label": "information bought beyond the plan's",
+      "left": 1.0733333333333335,
+      "right": 1.0227777777777778
+    }
+  ],
+  "contributions": {
+    "fields": [
+      "side",
+      "campaign_id",
+      "receipt_sha256",
+      "world_seed",
+      "replicate_index",
+      "unit",
+      "arm",
+      "step_index",
+      "round_index",
+      "phase_id",
+      "seat_id",
+      "action",
+      "supplier_id",
+      "component",
+      "amount",
+      "note",
+      "action_ordinal"
+    ],
+    "rows": 315,
+    "table": "tables/contributions_pre_award_check.jsonl"
+  },
+  "cross_checks": {
+    "published_interval_regret": [
+      -9.76877715388889,
+      -0.861599458888889
+    ],
+    "published_mean_regret_delta_usd": -5.0225887077777776,
+    "statement": "the realized gap equals minus the recovery confirmatory's published mean regret delta"
+  },
+  "direction": "higher",
+  "endpoint": "minus regret to the full-information bound (published regret_to_upper_bound_usd, negated): contribution margin less the world's bound",
+  "family": "procurement_allocation",
+  "inferential_model_ranking_allowed": false,
+  "instances": [
+    {
+      "action": "defer",
+      "action_ordinal": 7,
+      "amount": 88.9339,
+      "arm": "control",
+      "campaign_id": "procurement_allocation_unified_regret_recovery_v2",
+      "class": "deferred",
+      "note": "deferred instead of awarding, so the cell earns the defer value less the information bought",
+      "phase_id": null,
+      "receipt_sha256": "ee8a2536b17e8e3361e41e870f8eefc622696c9e010824fb353be89802d3b0ae",
+      "replicate_index": 2,
+      "round_index": null,
+      "seat_id": null,
+      "side": "right",
+      "step_index": null,
+      "supplier_id": null,
+      "unit": "market_023",
+      "world_seed": 9190023
+    }
+  ],
+  "intervals": null,
+  "left": "procurement_allocation_unified_regret_recovery_v2",
+  "left_arms": [
+    "treatment"
+  ],
+  "left_label": "pre-award check",
+  "left_model": "z-ai/glm-5.3-flash (pre-award check)",
+  "left_prompt": "procurement_allocation_pre_award_check_v1 + binomial sample notice",
+  "paired_worlds": 6,
+  "per_label": "world",
+  "realized": {
+    "difference": 5.022588707777776,
+    "difference_ci": [
+      0.8392178644444397,
+      9.704034083333335
+    ],
+    "left": -29.94931365666667,
+    "right": -34.97190236444444
+  },
+  "right": "procurement_allocation_unified_regret_recovery_v2",
+  "right_arms": [
+    "control"
+  ],
+  "right_label": "strategy scaffold",
+  "right_model": "z-ai/glm-5.3-flash (strategy scaffold)",
+  "right_prompt": "procurement_allocation_strategy_scaffold_v3 + binomial sample notice",
+  "schema_version": "aeread.gap_decomposition/0.1",
+  "source_manifest_sha256": {
+    "procurement_allocation_unified_regret_recovery_v2": "1f48691b37fca98fe61d46fc469a6ce7ce89a19d845982502c550cdc5a98d3ef"
+  },
+  "step_log": "none published: step_index, round_index, phase_id and seat_id are null; action_ordinal is the action's 1-based place in the published action_trace",
+  "strata": [],
+  "title": "Why the pre-award check changes regret on noisy-sample worlds",
+  "transitions": {
+    "rows": [
+      {
+        "components": {
+          "infeasible_award": 0.0,
+          "information_spend": -0.034999999999999996,
+          "kits_short": 2.3555555555555556,
+          "landed_cost": 0.6080666666666665,
+          "no_award": 0.0,
+          "terms_and_returns": -0.32665203388888886
+        },
+        "contribution": 2.601970187777778,
+        "left_classes": {},
+        "left_ending": "feasible_award",
+        "pairs": 17,
+        "right_classes": {},
+        "right_ending": "feasible_award"
+      },
+      {
+        "components": {
+          "infeasible_award": 0.0,
+          "information_spend": 0.08555555555555555,
+          "kits_short": -3.1733333333333333,
+          "landed_cost": 1.0039166666666666,
+          "no_award": 4.9407744183333335,
+          "terms_and_returns": -0.4362947877777778
+        },
+        "contribution": 2.42061852,
+        "left_classes": {},
+        "left_ending": "feasible_award",
+        "pairs": 1,
+        "right_classes": {
+          "deferred": 1
+        },
+        "right_ending": "no_award"
+      }
+    ],
+    "statement": "paired cells grouped by how each side ended (feasible award, infeasible award, no award); each group's contribution is its summed pair differences over all pairs, so the groups add up to the realized gap net of what a converted cell still loses"
+  },
+  "unit": "USD per world: cells averaged within a world, then worlds averaged",
+  "unit_label": "world",
+  "winner_claim_allowed": false,
+  "world_kind": "single_period_noisy_sample_confirmatory"
+}
