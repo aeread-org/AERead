@@ -3148,6 +3148,10 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("datacenter_development_v1", "1.0.0"),
         ("datacenter_development_v1", "1.1.0"),
         ("datacenter_development_v1", "2.0.0"),
+        # The integrator-client risk-allocation case (the scope that replaced
+        # the joint venture): its scorer takes FamilyScoringInput; a
+        # scoring-contract fixture is the same follow-up as the others here.
+        ("datacenter_risk_allocation_v1", "0.1.0"),
         # #63 enrols the datacenter sub-families and a 2.1.0 of the base
         # family as trusted. Their scorers now take FamilyScoringInput
         # (#144), but none has a scoring-contract fixture yet; that is the
