@@ -31,7 +31,7 @@ def test_uncapped_contracts_without_the_new_terms_cost_what_the_one_sided_case_s
         w = ra.draw_world(random.Random(k), list(ra.CELLS)[k % len(ra.CELLS)])
         for it, _ in w.prior:
             for pkg in ra.PACKAGES:
-                c = rc.Contract(pkg.warranty, 100, "uncapped", pkg.readiness, pkg.consequential,
+                c = rc.Contract(pkg.warranty, "100", "uncapped", pkg.readiness, pkg.consequential,
                                 "50%" if pkg.deposit == "at_signing" else "none", False, False)
                 assert rc.integrator_cost(c, w, it, no_prep) == pytest.approx(ra.integrator_cost(pkg, w, it), abs=1e-9)
                 assert rc.client_cost(c, w, it, no_prep) == pytest.approx(ra.client_cost(pkg, w, it), abs=1e-9)
@@ -39,7 +39,7 @@ def test_uncapped_contracts_without_the_new_terms_cost_what_the_one_sided_case_s
 
 def test_a_cap_bounds_every_outcome_and_the_new_terms_move_the_right_probabilities() -> None:
     w = ra.draw_world(random.Random(7), "shift_the_tail")
-    full = rc.Contract("fix_and_delay", 200, "uncapped", "integrator", "included", "50%", False, False)
+    full = rc.Contract("fix_and_delay", "200", "uncapped", "integrator", "included", "50%", False, False)
     for cap in ("1500", "500"):
         assert max(pay for _, _, pay, _ in rc.outcomes(replace(full, liability_cap=cap), w, False, False)) <= rc.CAP[cap]
     paid = [sum(p * pay for p, _, pay, _ in rc.outcomes(replace(full, liability_cap=cap), w, False, False)) for cap in ("uncapped", "1500", "500")]
@@ -118,9 +118,10 @@ def test_moves_are_read_strictly_and_an_off_menu_contract_is_declined_not_invali
     ok = lambda m: parse_contract_move({"offer": None, "terms": None, "price": None, "outside": None, "reason": "", **m}).ok  # noqa: E731
     assert ok({"action": "quote", "terms": {**blank, "burn_in": True}})
     assert not ok({"action": "quote", "terms": {**blank, "burn_in": True}, "price": 10.0})
-    assert not ok({"action": "counter", "terms": {**blank, "damages": 75}, "price": 900.0})
+    assert not ok({"action": "counter", "terms": {**blank, "damages": 100}, "price": 900.0})
     assert not ok({"action": "accept", "terms": blank, "offer": "O1"})
     assert not ok({"action": "walk", "outside": "rival"})
+    assert ok({"action": "counter", "terms": {**blank, "damages": "200", "escrow": True}, "price": 900.0})
     payload = next(p for p in _payloads() if rc.world_from(p)[0].playbook == "coordination")
     plugin = ContractsPlugin()
     state = plugin.initial_state(payload, None)

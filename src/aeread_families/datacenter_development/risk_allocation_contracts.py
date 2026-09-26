@@ -56,7 +56,7 @@ from .risk_allocation_menu import playbook_of, self_manage_cost
 
 LEVELS: dict[str, tuple[Any, ...]] = {
     "warranty": ("none", "fix", "fix_and_delay"),
-    "damages": (50, 100, 200),
+    "damages": ("50", "100", "200"),  # strings: Gemini's structured output takes string enums only (DC-T-19)
     "liability_cap": ("uncapped", "1500", "500"),
     "readiness": ("client", "integrator"),
     "consequential": ("excluded", "included"),
@@ -77,7 +77,7 @@ ESCROW_FEE = 10.0  # $k, the client's
 @dataclass(frozen=True, order=True)
 class Contract:
     warranty: str
-    damages: int
+    damages: str
     liability_cap: str
     readiness: str
     consequential: str
@@ -88,8 +88,8 @@ class Contract:
     def normal(self) -> "Contract":
         """One contract per economic meaning: a damages rate only under fix and delay, escrow only with a deposit."""
         c = self
-        if c.warranty != "fix_and_delay" and c.damages != 100:
-            c = replace(c, damages=100)
+        if c.warranty != "fix_and_delay" and c.damages != "100":
+            c = replace(c, damages="100")
         if c.deposit == "none" and c.escrow:
             c = replace(c, escrow=False)
         return c
@@ -143,7 +143,7 @@ def outcomes(c: Contract, w: ra.World, pre: bool, prep: bool) -> list[tuple[floa
     The client's loss is every real loss less what the integrator pays it, so damages above the loss are a gain."""
     r, cl, t = w.risks, w.client, w.terms
     pd, pu, pi, pn = _probabilities(c, w, pre, prep)
-    fix, defect_delay, damages = r.defect_fix, r.defect_weeks * cl.delay_per_week, c.damages * r.defect_weeks
+    fix, defect_delay, damages = r.defect_fix, r.defect_weeks * cl.delay_per_week, int(c.damages) * r.defect_weeks
     late_delay, loss = r.unready_weeks * cl.delay_per_week, r.incident_loss
     deposit = DEPOSIT_SHARE[c.deposit] * t.hardware
     cap = CAP[c.liability_cap]
@@ -211,16 +211,16 @@ def client_cost(c: Contract, w: ra.World, it: ra.IntegratorType, x: Extras, char
 # Playbooks: a base contract and the terms each makes negotiable.
 
 BASES: dict[str, Contract] = {
-    "coordination": Contract("none", 100, "uncapped", "client", "excluded", "50%", False, False),
-    "managed": Contract("fix", 100, "1500", "client", "excluded", "50%", False, False),
-    "turnkey": Contract("fix_and_delay", 100, "uncapped", "client", "excluded", "none", False, False),
+    "coordination": Contract("none", "100", "uncapped", "client", "excluded", "50%", False, False),
+    "managed": Contract("fix", "100", "1500", "client", "excluded", "50%", False, False),
+    "turnkey": Contract("fix_and_delay", "100", "uncapped", "client", "excluded", "none", False, False),
 }
 NEGOTIABLE: dict[str, dict[str, tuple[Any, ...]]] = {
     "coordination": {"warranty": ("none", "fix"), "liability_cap": ("uncapped", "1500"), "readiness": ("client", "integrator"),
                      "consequential": ("excluded", "included"), "escrow": (False, True), "burn_in": (False, True)},
-    "managed": {"warranty": ("fix", "fix_and_delay"), "damages": (100, 50, 200), "liability_cap": ("1500", "uncapped", "500"),
+    "managed": {"warranty": ("fix", "fix_and_delay"), "damages": ("100", "50", "200"), "liability_cap": ("1500", "uncapped", "500"),
                 "consequential": ("excluded", "included"), "deposit": ("50%", "25%", "none"), "escrow": (False, True), "burn_in": (False, True)},
-    "turnkey": {"damages": (100, 50, 200), "liability_cap": ("uncapped", "1500", "500"), "readiness": ("client", "integrator"),
+    "turnkey": {"damages": ("100", "50", "200"), "liability_cap": ("uncapped", "1500", "500"), "readiness": ("client", "integrator"),
                 "consequential": ("excluded", "included"), "deposit": ("none", "25%", "50%"), "escrow": (False, True), "burn_in": (False, True)},
 }
 PLAYBOOKS = tuple(BASES)
@@ -515,7 +515,7 @@ RULES = ("accept_the_base", "cheapest_listed_price", "haggle_the_base", "every_p
 def most_protective(playbook: str) -> Contract:
     """The menu's contract that moves the most onto the integrator: the highest warranty and damages, no cap,
     standby and incidents on it, no unprotected deposit, a burn-in."""
-    return max(contracts(playbook), key=lambda c: (c.warranty == "fix_and_delay", c.warranty != "none", c.damages if c.warranty == "fix_and_delay" else 0,
+    return max(contracts(playbook), key=lambda c: (c.warranty == "fix_and_delay", c.warranty != "none", int(c.damages) if c.warranty == "fix_and_delay" else 0,
                                                    CAP[c.liability_cap], c.readiness == "integrator",
                                                    c.consequential == "included", c.deposit == "none" or c.escrow, c.deposit == "none", c.burn_in))
 
@@ -627,7 +627,7 @@ def lesson_holds(cell: str, cw: CWorld, it: ra.IntegratorType) -> bool:
         uncapped = replace(best, liability_cap="uncapped")
         return best.liability_cap != "uncapped" and last[solver.index[uncapped], t] > last[solver.index[best], t] + 1.0
     if cell == "just_enough_damages":
-        return best.warranty == "fix_and_delay" and best.damages < 200 and best_response(best, cw.w, it, cw.x)[0]
+        return best.warranty == "fix_and_delay" and int(best.damages) < 200 and best_response(best, cw.w, it, cw.x)[0]
     if cell == "protect_the_deposit":
         return (best.deposit == "none" or best.escrow) and cheapest.deposit != "none" and not cheapest.escrow
     if cell == "buy_the_burn_in":
@@ -635,7 +635,7 @@ def lesson_holds(cell: str, cw: CWorld, it: ra.IntegratorType) -> bool:
     if cell == "hand_over_readiness":
         return best.readiness == "integrator" and best_response(best, cw.w, it, cw.x)[1]
     if cell == "raise_the_damages":
-        return best.warranty == "fix_and_delay" and best.damages == 200
+        return best.warranty == "fix_and_delay" and best.damages == "200"
     raise KeyError(cell)
 
 

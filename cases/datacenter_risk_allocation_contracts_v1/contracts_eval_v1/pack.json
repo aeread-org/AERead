@@ -15,7 +15,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -40,7 +40,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -65,7 +65,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -90,7 +90,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -115,7 +115,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -140,7 +140,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -165,7 +165,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -190,7 +190,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -215,7 +215,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -240,7 +240,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -265,7 +265,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -290,7 +290,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -315,7 +315,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -340,7 +340,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -365,7 +365,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -390,7 +390,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -415,7 +415,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -440,7 +440,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -465,7 +465,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -490,7 +490,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -515,7 +515,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -540,7 +540,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 50,
+    "damages": "50",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -565,7 +565,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 50,
+    "damages": "50",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "1500",
@@ -590,7 +590,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -615,7 +615,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 50,
+    "damages": "50",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -640,7 +640,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 50,
+    "damages": "50",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "500",
@@ -665,7 +665,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": true,
     "liability_cap": "uncapped",
@@ -690,7 +690,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": true,
     "liability_cap": "uncapped",
@@ -715,7 +715,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -740,7 +740,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -765,7 +765,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -790,7 +790,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -815,7 +815,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -840,7 +840,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -865,7 +865,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -890,7 +890,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -915,7 +915,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -940,7 +940,7 @@
    "best_contract": {
     "burn_in": true,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -965,7 +965,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -990,7 +990,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1015,7 +1015,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1040,7 +1040,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1065,7 +1065,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1090,7 +1090,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1115,7 +1115,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1140,7 +1140,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1165,7 +1165,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1190,7 +1190,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "excluded",
-    "damages": 100,
+    "damages": "100",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1215,7 +1215,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1240,7 +1240,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1265,7 +1265,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "none",
     "escrow": false,
     "liability_cap": "uncapped",
@@ -1290,7 +1290,7 @@
    "best_contract": {
     "burn_in": false,
     "consequential": "included",
-    "damages": 200,
+    "damages": "200",
     "deposit": "50%",
     "escrow": false,
     "liability_cap": "uncapped",

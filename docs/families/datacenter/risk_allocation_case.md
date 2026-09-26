@@ -653,6 +653,10 @@ ask for and sign the most protective contract, walk to the rival turnkey. Asking
 for every protection never is the best play: on 40 drawn worlds per playbook and
 client its regret averages $337k to $833k.
 
+A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
+output sends enum values as strings, so every term level is a string or a boolean
+(DC-T-19); after the fix both models' moves all parse.
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.

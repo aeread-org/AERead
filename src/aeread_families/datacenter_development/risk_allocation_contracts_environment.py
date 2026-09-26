@@ -48,8 +48,6 @@ ACTIONS = ("accept", "counter", "quote", "walk")
 def _level_schema(levels: tuple[Any, ...]) -> dict[str, Any]:
     if isinstance(levels[0], bool):
         return {"anyOf": [{"type": "boolean"}, {"type": "null"}]}
-    if isinstance(levels[0], int):
-        return {"anyOf": [{"type": "integer", "enum": list(levels)}, {"type": "null"}]}
     return {"anyOf": [{"type": "string", "enum": list(levels)}, {"type": "null"}]}
 
 
