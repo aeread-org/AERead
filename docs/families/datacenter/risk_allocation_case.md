@@ -739,6 +739,80 @@ A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
 output sends enum values as strings, so every term level is a string or a boolean
 (DC-T-19); after the fix both models' moves all parse.
 
+## A tender: choosing among firms while negotiating with them
+
+`datacenter_risk_allocation_tender_v1` (`risk_allocation_tender*.py`) puts the
+full-terms client in front of three firms at once, the shape of a real tender. Each
+firm is managed or turnkey, has its own private type drawn from the prior, and bids
+once: its standard contract at its opening price. The rival turnkey offer of the
+one-integrator cases is a bidder here, and managing the deployment itself is the
+only walk-away. Each of two turns the client may accept any standing offer, walk, or
+send moves to any of the firms in the same turn, at most one each: a counter on any
+contract of that firm's menu, or a request for its price. A firm that would sign at
+the client's figure confirms it (a standing offer the client can accept later);
+otherwise it answers with its own price now, the refusal costs a week of team time,
+it breaks off with the world's probability (its offers withdrawn) and it concedes a
+round. After the second turn only accept or walk remain.
+
+**Why no coordination firm bids.** The reference is exact only if every bid reveals
+its firm's type to a client who knows the pricing policy: with the types known, a
+bidder's state is its round, whether it is still bidding and the lowest total among
+its standing offers, and every refused move to it is dominated by asking the price of
+the contract cheapest for the client that round. A coordination firm's standard fee is
+the same for all six types, so its bid reveals nothing, and three negotiations under
+hidden types are too large to solve exactly (DC-D-30). A managed firm's standard bid
+reveals its type in about 60% of draws and a turnkey firm's always; a world is
+admitted only when every bid does. No random move of any kind beats the reference
+(a test over thousands of moves), and the environment's state is the reference's at
+every step (a test).
+
+**Worlds.** Four world types label coverage (a risk-tolerant client, a moderate one,
+a risk-averse one with a heavy incident tail, and firms likely to break off); each
+world is admitted under a situation: the lowest bidder is the firm to negotiate with,
+another firm is (negotiating only with the lowest costs at least $75k more), or
+managing it yourself beats every firm's best contract by $150k. Taking the lowest bid,
+or the best bid, as it stands must lose $75k. Quotas follow what each world type
+supplies (DC-J-05). 24 worlds (`tender_pilot_v1`).
+
+**What a client without the policy can reach** ($k, expected decision regret over
+the 24 worlds):
+
+| strategy | all | another firm best | lowest bidder best | walking best |
+|---|---|---|---|---|
+| the best firm's best contract, asked twice | 68 | 88 | 44 | 46 |
+| every firm's best contract, asked twice | 120 | 115 | 121 | 137 |
+| the lowest bidder's best contract, asked twice | 138 | 217 | 44 | 46 |
+| the best bid, as it stands | 280 | 420 | 180 | 0 |
+| the lowest bid, as it stands | 611 | 649 | 495 | 691 |
+
+**Pilot.** `datacenter_risk_allocation_tender_pilot_v1` (plan `08281c1c2cbd`, 178
+cells, $0.59; bundle under `evidence/datacenter_development/`), run under the scope
+trims of 2026-09-26: one seed per world, both models at low effort, Gemini at default
+reasoning on the first world of each world type and situation (10 of 24), GLM at
+default reasoning not seated (DC-O-14). Every cell sealed and replayed; the reference
+graded zero on all 24.
+
+| client | valid | decision regret [95% CI] | signed with a best firm | firm chosen | contract | price over last-round price | bidders per turn |
+|---|---|---|---|---|---|---|---|
+| Gemini 3.8 Flash, low effort | 24/24 | 444 [402, 487] | 13 of 20 | 77 | 109 | 258 | 2.0 |
+| GLM 5.3 Flash, low effort | 21/24 | 345 [268, 425] | 14 of 17 | 41 | 89 | 177 | 2.4 |
+| Gemini 3.8 Flash, default reasoning | 10/10 | 225 [129, 317] | 3 of 8 | 17 | 43 | 118 | 2.5 |
+| reference (control) | 24/24 | 0 | 17 of 20 | 0 | 0 | 0 | 1.1 |
+
+The middle columns split cost over the best attainable, not decision regret (DC-J-04).
+GLM minus Gemini at low effort: −113 [−192, −41] on 21 worlds, GLM lower in 15. The
+per-world difference has a standard deviation of 181, so at one seed a later run needs
+about 23 worlds for an interval of ±75, 51 for ±50 and 202 for ±25. Gemini's default
+reasoning lowers its regret by 210 [−327, −90] on 10 worlds. Both models negotiate
+with two or more firms in most turns, where the reference presses one; most of their
+cost is price (accepting a firm's first answer instead of pressing it to its floor),
+then the contract; the term they miss most is the deposit. Taking the lowest bid as it
+stands scores 611, haggling the lowest bid 390, asking every firm for every
+protection 486, walking 328. GLM lost three episodes to invalid moves: one reply cut
+off at its 32,000-token limit, and two right after firms broke off, one accepting a
+withdrawn offer in a world where all three firms broke off after the first turn. The
+answer text still names the withdrawn offer (DC-D-31).
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.

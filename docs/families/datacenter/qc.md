@@ -665,3 +665,16 @@ expectations. Gate 5 not confirmatory: v1 ran on an exhausted account (DC-O-15);
 GLM minus Gemini at low effort of −19 [−79, +37] and Gemini default minus low
 effort of −168 [−225, −114]; GLM at default reasoning is not seated (DC-O-14).
 
+**The tender (`datacenter_risk_allocation_tender_v1`).** Gate 1 passed for a pilot:
+four world types label coverage and each world is admitted under a situation only
+when every bid reveals its firm's type, the deal and walking are $150k apart and
+taking a bid as it stands loses $75k; coordination firms do not bid (DC-D-30); 24
+worlds. Gate 2 passed: no random move beats the exact reference, the environment's
+state is the reference's at every step, and through the kernel the reference grades
+zero on all 24 worlds with every receipt replayed. Gate 3 partial: four lower
+controls under the same kernel path (390 to 611). Gate 5 not confirmatory:
+`datacenter_risk_allocation_tender_pilot_v1` (178 cells, $0.59) reports GLM minus
+Gemini at low effort of −113 [−192, −41] on 21 worlds and sizes a later run from the
+per-world spread (51 worlds at one seed for ±50); two of GLM's three invalid episodes
+follow a break-off the answer text does not say withdrew the offer (DC-D-31).
+
