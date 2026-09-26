@@ -7,7 +7,8 @@ gap report split by stratum (data/case_cards.json), the same permutation test th
 the spread of the stratum means of the per-unit paired difference (units times squared distance from the grand
 mean) against 2000 shuffles of the stratum labels, across independent clusters when each unit sits in one stratum,
 within each unit when every unit was run in several. A stratum holding one independent unit, or a split over fewer
-than 5 clusters, is not testable. Pairing follows the page (matched seeds within a unit, the strata not tested
+than 5 clusters, is not testable. The statistic reads a shift of the stratum means: a stratum whose effect changes sign
+from unit to unit averages out and reads as noise even when it moves every unit (EX-D-08). Pairing follows the page (matched seeds within a unit, the strata not tested
 averaged equally within the unit, equal weight per unit; the two models with most cells; the first reasoning arm
 both models ran, unless the arm is what is tested).
 
