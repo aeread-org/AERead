@@ -231,8 +231,9 @@ def _world_boot(values: dict, seed: int, draws: int = 10_000):
 
 def gap_reports(roots: list[Path]) -> dict:
     """Why two paired runs differ, as published by derived bundles in the family-agnostic shape
-    ``aeread.gap_decomposition``: realized gap, additive components, decision classes and their instances.
-    Keyed by the bundle and by both runs, so the Model comparison panel of each shows it."""
+    ``aeread.gap_decomposition``: realized gap, additive components, decision classes and their instances,
+    and, when the bundle publishes ``tables/contributions.jsonl``, every part down to the steps behind it.
+    Keyed by the bundle; both runs' keys point at it, so the Model comparison panel of each shows it."""
     out: dict = {}
     for root in roots:
         for path in sorted(root.glob("evidence/**/reports/gap_decomposition.json")):
@@ -243,9 +244,20 @@ def gap_reports(roots: list[Path]) -> dict:
             if bundle in out:
                 continue
             entry = {**report, "gap_id": bundle}
-            for key in (bundle, report.get("left"), report.get("right")):
+            table = path.parent.parent / "tables" / "contributions.jsonl"
+            if report.get("cell_parts") and table.exists():
+                # every part down to its steps, once: rows point at cell_parts by index
+                cell = {c["receipt_sha256"]: i for i, c in enumerate(report["cell_parts"])}
+                keys = [c["key"] for c in report["components"]]
+                rows = [json.loads(line) for line in table.read_text(encoding="utf-8").splitlines() if line.strip()]
+                entry["contribution_rows"] = {
+                    "columns": ["cell", "component", "amount", "round", "phase", "seat", "note"],
+                    "rows": [[cell[r["receipt_sha256"]], keys.index(r["component"]), r["amount"], r["round_index"],
+                              r["phase_id"], r["seat_id"], r.get("note", "")] for r in rows]}
+            out[bundle] = entry
+            for key in (report.get("left"), report.get("right")):
                 if key:
-                    out[key] = entry
+                    out[key] = {"ref": bundle}
     return out
 
 
