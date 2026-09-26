@@ -296,7 +296,7 @@ function renderCell() {
   <tr class="total"><td>Cost over best attainable</td><td class="num">${k$(over)}${check(over, g.cost_over_best_attainable)}</td></tr>
   ${["contract", "price", "walk", "refused_counters"].map((p) => `<tr><td style="padding-left:18px">of which ${p.replace("_", " ")}</td><td class="num">${k$(parts[p])}${check(parts[p], sp[p])}</td></tr>`).join("")}
   </tbody></table>
-  ${moves ? `<p class="who" style="margin-top:8px"><b>The grader's moves</b>, each against the best move a client that knows the integrator's type could make at that point; their sum is the decision regret, <b>${k$(g.decision_regret)}</b>:</p><ol>${moves}</ol><p class="note">Move regrets need the solver's round-by-round states and are not recomputed here; cost over best attainable is a different quantity from the decision regret.</p>` : ""}`;
+  ${moves ? `<p class="who" style="margin-top:8px"><b>The grader's moves</b>, each against the best move open at that point to a client with its own information (the integrator's pricing policy and the prior over its type, not the type); their sum is the decision regret, <b>${k$(g.decision_regret)}</b>:</p><ol>${moves}</ol><p class="note">Move regrets need the solver's round-by-round states and are not recomputed here; cost over best attainable is a different quantity from the decision regret.</p>` : ""}`;
 }
 
 function renderSensitivity() {
