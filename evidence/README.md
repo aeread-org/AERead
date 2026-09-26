@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 82 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 65 directories under a benchmark folder and
+All 91 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 74 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -43,6 +43,7 @@ appropriate section below when they land.
 | [Housing](#housing) | 16 | 1 |
 | [Procurement allocation](#procurement-allocation) | 19 | 16 |
 | [Procurement grounding](#procurement-grounding) | 3 | 0 |
+| [Refund](#refund) | 9 | 0 |
 | [Shared runner diagnostics](#shared-runner-diagnostics) | 1 | 0 |
 
 ### Why 17 paths are preserved
@@ -303,6 +304,21 @@ Includes all 16 procurement bundles at preserved top-level paths.
 - [procurement_grounding_harness_probe_2026-08-31](procurement_grounding/procurement_grounding_harness_probe_2026-08-31/)
 - [procurement_grounding_open_weight_bakeoff_2026-08-31](procurement_grounding/procurement_grounding_open_weight_bakeoff_2026-08-31/)
 - [procurement_grounding_openrouter_bakeoff_2026-08-31](procurement_grounding/procurement_grounding_openrouter_bakeoff_2026-08-31/)
+
+### Refund
+
+Refund V2.1 is a descriptive fixed panel: its 20 seeds per scenario repeat one
+case, so the 120 cells of each campaign are six distinct cases (RF-D-01).
+
+- [refund_deepseek_arena_coverage20_2026-08-31](refund/refund_deepseek_arena_coverage20_2026-08-31/)
+- [refund_v2_1_canonical_scripted_20_2026-09-12](refund/refund_v2_1_canonical_scripted_20_2026-09-12/): the scripted canonical policy, the answer key
+- [refund_v2_1_deepseekv4flash_controlled_2026-09-12](refund/refund_v2_1_deepseekv4flash_controlled_2026-09-12/)
+- [refund_v2_1_deterministic_2026-09-12](refund/refund_v2_1_deterministic_2026-09-12/)
+- [refund_v2_1_gemini25flashlite_controlled_2026-09-12](refund/refund_v2_1_gemini25flashlite_controlled_2026-09-12/)
+- [refund_v2_1_gpt56luna_controlled_2026-09-12](refund/refund_v2_1_gpt56luna_controlled_2026-09-12/)
+- [refund_v2_1_grok43_controlled_2026-09-12](refund/refund_v2_1_grok43_controlled_2026-09-12/)
+- [refund_v2_1_policy_panel_2026-09-12](refund/refund_v2_1_policy_panel_2026-09-12/)
+- [refund_v2_1_gap](refund/refund_v2_1_gap/): derived; why each model falls short of the answer key, per unresolved cell and the step that decided it (`python -m aeread_families.refund.v2_gap --check`)
 
 ### Shared runner diagnostics
 
