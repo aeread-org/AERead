@@ -890,6 +890,11 @@ the Housing failure taxonomy with group `L`: GLM signed 4 uninspected holds wort
 less than their rent, signed blind 6 times after passing on an inspection worth its
 fee, declined 16 holds worth more than their rent and signed 31 leases above the
 ask; Gemini did none of these. Every instance names its cell, round and tenant.
+`tables/contributions.jsonl` carries every part down to the decision behind it
+(1,281 rows: 226 leases and draws at their commit step, 1,055 inspection fees at
+their inspect step; per cell a part's rows sum to it exactly, and every row's
+round, phase and seat lands on the matching action in the published trajectory),
+so a part of the gap can be followed to the worlds, cells and steps that make it.
 
 **Against the reference.** The same bundle splits each model's payoff against the
 scripted inspect-then-sign reference on the same worlds (`baselines`; replaying the

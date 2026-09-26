@@ -37,7 +37,11 @@ regenerated worlds, checked against every published control payoff.
 The report follows ``aeread.gap_decomposition/0.1``, the shape the Examiner
 renders for any family: realized gap, additive components with world-bootstrap
 intervals, decision classes with counts and amounts, and every instance with
-the step that decided it.
+the step that decided it. ``tables/contributions.jsonl`` carries the parts down
+to the step: one row per decision per part (a lease, a blind bet and its draw,
+an inspection fee), each with its cell and step, and per cell the rows of a
+part sum to that cell's part; ``cell_parts`` in the report lists every cell's
+parts, so a part's gap can be followed to the worlds, cells and steps behind it.
 
     python -m aeread_families.housing.lemons_gap --write
     python -m aeread_families.housing.lemons_gap --check
@@ -132,6 +136,7 @@ def analyse_cell(row: Mapping[str, Any], inspections: Mapping[tuple[int, str], A
     loss, fee = float(world.lemon_loss), float(world.inspection_cost)
     parts = {key: 0.0 for key, *_ in COMPONENTS}
     found: list[dict[str, Any]] = []
+    steps: list[dict[str, Any]] = []
     for d in row.get("commit_decisions") or []:
         t, l = int(d["tenant_id"]), int(d["listing_id"])
         ev, rent = float(d["expected_value"]), float(d["rent"])
@@ -140,12 +145,21 @@ def analyse_cell(row: Mapping[str, Any], inspections: Mapping[tuple[int, str], A
         p = 0.0 if d["informed"] else (sound - ev) / loss
         base = {"tenant_id": t, "listing_id": l, "round_index": int(d["round_index"]), "rent": rent,
                 "expected_value": ev, "lemon_probability": round(p, 6), "quality": d["quality"], "decision": d["decision"]}
+        at = {"round_index": int(d["round_index"]), "phase_id": "commit", "seat_id": f"tenant_{t}", "tenant_id": t, "listing_id": l}
         if d["decision"] == "sign":
             if d["informed"]:
                 parts["informed_leases"] += true - rent
+                steps.append({**at, "component": "informed_leases", "amount": true - rent,
+                              "note": f"signed listing {l} after inspecting it: worth {true:.0f} to the tenant, rent {rent:.0f}"})
             else:
-                parts["blind_good_bets" if ev >= rent else "blind_bad_bets"] += ev - rent
+                bet = "blind_good_bets" if ev >= rent else "blind_bad_bets"
+                parts[bet] += ev - rent
                 parts["lemon_draws"] += true - ev
+                steps.append({**at, "component": bet, "amount": ev - rent,
+                              "note": f"signed listing {l} without inspecting: expected value {ev:.0f} at lemon probability {p:.2f}, rent {rent:.0f}"})
+                if true != ev:
+                    steps.append({**at, "component": "lemon_draws", "amount": true - ev,
+                                  "note": f"listing {l} turned out {d['quality']}: worth {true:.0f} against {ev:.0f} expected"})
                 if ev < rent:
                     found.append({**base, "class": "L1_blind_sign_below_expected_value", "amount": rent - ev})
                 gain = p * (loss - (sound - rent)) - fee
@@ -162,8 +176,14 @@ def analyse_cell(row: Mapping[str, Any], inspections: Mapping[tuple[int, str], A
         elif ev > rent + 1e-9:
             found.append({**base, "class": "L3_declined_hold_worth_more", "amount": ev - rent})
     parts["inspection_spend"] = -fee * float(row["inspection_count"])
+    for (round_index, seat), action in sorted(inspections.items()):
+        if isinstance(action, dict) and action.get("decision") == "inspect":
+            listing = action.get("listing_id")
+            steps.append({"round_index": int(round_index), "phase_id": "inspect", "seat_id": seat, "tenant_id": int(seat.split("_")[-1]),
+                          "listing_id": listing, "component": "inspection_spend", "amount": -fee,
+                          "note": f"inspected listing {listing}: fee {fee:.0f}"})
     residual = float(row["tenant_net_payoff"]) - sum(parts.values())
-    return {"parts": parts, "residual": residual, "instances": found}
+    return {"parts": parts, "residual": residual, "instances": found, "contributions": steps}
 
 
 def _boot(values: Sequence[float], rng: random.Random) -> list[float] | None:
@@ -174,6 +194,10 @@ def _boot(values: Sequence[float], rng: random.Random) -> list[float] | None:
 
 
 REFERENCE = "inspect_then_sign"
+
+
+def _table_bytes(rows: Sequence[Mapping[str, Any]]) -> str:
+    return "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows)
 
 
 def _controls(bundle: str) -> dict[int, dict[str, Any]]:
@@ -247,7 +271,8 @@ def _reference(paired: Sequence[int], world_mean, rng: random.Random) -> dict[st
             "source": "tables/scripted_controls.jsonl (both bundles, identical)",
             "replay_check": {"worlds": len(paired), "mismatches": mismatches,
                              "statement": "the replayed policy reproduces every published reference payoff"},
-            "vs": vs, "lease_diagnostics": diagnostics}
+            "vs": vs, "lease_diagnostics": diagnostics,
+            "reference_parts": [{"world_seed": w, "parts": ref[w]} for w in paired]}
 
 
 def _model(bundle: str) -> str:
@@ -256,10 +281,18 @@ def _model(bundle: str) -> str:
 
 
 def compare() -> dict[str, Any]:
+    return _analyse()[0]
+
+
+def _analyse() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """The report, and the contribution rows written beside it as ``tables/contributions.jsonl``."""
     per_side: dict[str, dict[int, list[dict[str, Any]]]] = {}
     instances: list[dict[str, Any]] = []
     residuals: list[float] = []
     cells_count: dict[str, int] = {}
+    cell_parts: list[dict[str, Any]] = []
+    contributions: list[dict[str, Any]] = []
+    unexplained: list[float] = []
     for side, bundle in SIDES:
         grain = _grain(bundle)
         worlds: dict[int, list[dict[str, Any]]] = collections.defaultdict(list)
@@ -268,6 +301,14 @@ def compare() -> dict[str, Any]:
         for row in cells:
             result = analyse_cell(row, grain.get(row["receipt_sha256"], {}))
             residuals.append(result["residual"])
+            cell = {"side": side, "campaign_id": bundle, "receipt_sha256": row["receipt_sha256"],
+                    "world_seed": int(row["world_seed"]), "replicate_index": int(row["replicate_index"])}
+            cell_parts.append({**cell, "stratum": row.get("stratum"), "parts": result["parts"]})
+            sums: collections.Counter = collections.Counter()
+            for item in result["contributions"]:
+                sums[item["component"]] += item["amount"]
+                contributions.append({**cell, **item, "amount": round(item["amount"], 6)})
+            unexplained.extend(result["parts"][key] - sums[key] for key, *_ in COMPONENTS)
             worlds[int(row["world_seed"])].append({"parts": result["parts"], "classes": collections.Counter(i["class"] for i in result["instances"]),
                                                    "amounts": collections.Counter({k: sum(i["amount"] for i in result["instances"] if i["class"] == k) for k in CLASSES})})
             for item in result["instances"]:
@@ -305,6 +346,11 @@ def compare() -> dict[str, Any]:
     baselines = [_reference(paired, world_mean, rng)]
     sources = {bundle: hashlib.sha256((comparison.EVIDENCE / bundle / "publication_manifest.json").read_bytes()).hexdigest()
                for _, bundle in SIDES}
+    if max(abs(r) for r in unexplained) > 1e-6:
+        raise ValueError("a cell's contribution rows do not add up to its components")
+    phase_rank = {"inspect": 0, "commit": 1}
+    table = sorted(contributions, key=lambda i: (i["side"], i["world_seed"], i["replicate_index"], i["round_index"],
+                                                   phase_rank[i["phase_id"]], i["tenant_id"], i["component"]))
     return {
         "schema_version": "aeread.gap_decomposition/0.1",
         "taxonomy_schema": "aeread.housing_failure_taxonomy/0.1",
@@ -319,12 +365,18 @@ def compare() -> dict[str, Any]:
         "realized": realized,
         "components": components,
         "accounting_check": {"max_abs_residual_per_cell": max(abs(r) for r in residuals),
-                             "statement": "each cell's components sum to its published tenant_net_payoff"},
+                             "statement": "each cell's components sum to its published tenant_net_payoff",
+                             "max_abs_contribution_residual": max(abs(r) for r in unexplained),
+                             "contribution_statement": "per cell, the contribution rows of each component sum to that cell's component"},
+        "cell_parts": sorted(cell_parts, key=lambda c: (c["side"], c["world_seed"], c["replicate_index"])),
+        "contributions": {"table": "tables/contributions.jsonl", "rows": len(contributions),
+                          "fields": ["side", "campaign_id", "receipt_sha256", "world_seed", "replicate_index", "round_index",
+                                     "phase_id", "seat_id", "tenant_id", "listing_id", "component", "amount", "note"]},
         "classes": classes,
         "baselines": baselines,
         "instances": sorted(instances, key=lambda i: (i["class"], i["side"], i["world_seed"], i["replicate_index"], i["round_index"], i["tenant_id"])),
         "source_manifest_sha256": sources,
-    }
+    }, table
 
 
 def _readme(report: Mapping[str, Any]) -> str:
@@ -360,7 +412,10 @@ def _readme(report: Mapping[str, Any]) -> str:
           for c in report["classes"]),
         "",
         *_baseline_readme(report, left, right),
-        "Every instance, with the step that decided it, is in `reports/gap_decomposition.json`.",
+        "Every instance, with the step that decided it, is in `reports/gap_decomposition.json`. "
+        f"`tables/contributions.jsonl` ({report['contributions']['rows']} rows) carries every part down to the decision and "
+        "step that made it; per cell, a part's rows sum to that cell's part "
+        f"(largest difference {report['accounting_check']['max_abs_contribution_residual']:.2g}).",
         "",
     ]
     return "\n".join(lines)
@@ -386,15 +441,19 @@ def _baseline_readme(report: Mapping[str, Any], left: str, right: str) -> list[s
 
 
 def write() -> None:
-    report = compare()
+    report, table = _analyse()
     (OUT / "reports").mkdir(parents=True, exist_ok=True)
     (OUT / "reports" / "gap_decomposition.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    (OUT / "tables").mkdir(parents=True, exist_ok=True)
+    (OUT / "tables" / "contributions.jsonl").write_text(_table_bytes(table))
     (OUT / "README.md").write_text(_readme(report))
 
 
 def check() -> bool:
-    report = compare()
+    report, rows = _analyse()
+    table = OUT / "tables" / "contributions.jsonl"
     ok = ((OUT / "reports" / "gap_decomposition.json").read_text() == json.dumps(report, indent=2, sort_keys=True) + "\n"
+          and table.exists() and table.read_text() == _table_bytes(rows)
           and (OUT / "README.md").read_text() == _readme(report))
     print("gap decomposition regenerates to the committed bytes" if ok else "gap decomposition differs from its generator")
     return ok

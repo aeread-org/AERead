@@ -42,4 +42,4 @@ Against the scripted inspect-then-sign reference (replay reproduces 24 of 24 pub
 | surplus per inspected lease | 330.67 | 283.72 | 335.22 |
 | rent minus ask | 0.00 | -45.65 | 1.00 |
 
-Every instance, with the step that decided it, is in `reports/gap_decomposition.json`.
+Every instance, with the step that decided it, is in `reports/gap_decomposition.json`. `tables/contributions.jsonl` (1281 rows) carries every part down to the decision and step that made it; per cell, a part's rows sum to that cell's part (largest difference 0).

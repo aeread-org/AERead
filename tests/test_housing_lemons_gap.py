@@ -82,3 +82,37 @@ def test_the_published_reference_contrast_adds_up_and_replays(monkeypatch: pytes
         assert sum(c["difference"] for c in vs["components"]) == pytest.approx(vs["realized"]["difference"])
         blind = {c["key"]: c["reference"] for c in vs["components"]}
         assert blind["blind_good_bets"] == blind["blind_bad_bets"] == blind["lemon_draws"] == 0.0
+
+
+def test_contribution_rows_add_up_to_each_part_and_name_their_step() -> None:
+    decisions = [
+        _decision(0, "sign", True, 2000.0, 1700.0, "sound", round_index=1),
+        _decision(1, "sign", False, 2500.0 - 0.5 * 1000.0, 1650.0, "lemon", round_index=1),
+    ]
+    payoff = (2000.0 - 1700.0) + (1500.0 - 1650.0) - 2 * 25.0
+    row = {"world_seed": 1, "commit_decisions": decisions, "inspection_count": 2, "tenant_net_payoff": payoff}
+    inspections = {(0, "tenant_0"): {"decision": "inspect", "listing_id": 0}, (1, "tenant_0"): {"decision": "inspect", "listing_id": 2},
+                   (2, "tenant_0"): {"decision": "pass"}}
+    result = gap.analyse_cell(row, inspections)
+    sums = {key: 0.0 for key, *_ in gap.COMPONENTS}
+    for item in result["contributions"]:
+        sums[item["component"]] += item["amount"]
+        assert item["phase_id"] in {"inspect", "commit"} and item["seat_id"] == "tenant_0" and item["note"]
+    assert sums == pytest.approx(result["parts"])
+    fees = [i for i in result["contributions"] if i["component"] == "inspection_spend"]
+    assert [(i["round_index"], i["listing_id"]) for i in fees] == [(0, 0), (1, 2)]  # a pass buys nothing
+
+
+def test_the_published_contribution_table_adds_up_per_cell(monkeypatch: pytest.MonkeyPatch) -> None:
+    import collections
+    import json
+    monkeypatch.undo()
+    report = json.loads((gap.OUT / "reports" / "gap_decomposition.json").read_text())
+    rows = [json.loads(line) for line in (gap.OUT / "tables" / "contributions.jsonl").read_text().splitlines()]
+    assert len(rows) == report["contributions"]["rows"]
+    sums: collections.Counter = collections.Counter()
+    for r in rows:
+        sums[(r["receipt_sha256"], r["component"])] += r["amount"]
+    for cell in report["cell_parts"]:
+        for key, value in cell["parts"].items():
+            assert sums[(cell["receipt_sha256"], key)] == pytest.approx(value, abs=1e-4)
