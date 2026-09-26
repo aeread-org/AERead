@@ -1,0 +1,136 @@
+{
+ "case_id": "datacenter_risk_allocation_menu_v1.eval.75641af1",
+ "content_sha256": "da61d3634ae69b8982a6f62f424b6f46e6ba49356a2a8486aac1ded94a0e076b",
+ "episode": {
+  "max_logical_actions": 3,
+  "termination": [
+   "signed",
+   "walked",
+   "broke_off",
+   "invalid_action"
+  ]
+ },
+ "family_id": "datacenter_risk_allocation_menu_v1",
+ "family_version": "0.1.0",
+ "payload": {
+  "breakoff_draws": [
+   0.894772,
+   0.009198
+  ],
+  "integrator_type": {
+   "risk_charge": 0.3,
+   "test_cost": 120.0
+  },
+  "team": 220,
+  "world": {
+   "client": {
+    "capital_rate": 0.07,
+    "delay_per_week": 100,
+    "insolvency": 0.001,
+    "risk_charge": 0.15,
+    "turnkey_all_in": 11430
+   },
+   "client_prior": [
+    [
+     0.15,
+     0.3333333333333333
+    ],
+    [
+     0.75,
+     0.3333333333333333
+    ],
+    [
+     1.55,
+     0.3333333333333333
+    ]
+   ],
+   "prior": [
+    [
+     {
+      "risk_charge": 0.3,
+      "test_cost": 40.0
+     },
+     0.16666666666666666
+    ],
+    [
+     {
+      "risk_charge": 1.2,
+      "test_cost": 40.0
+     },
+     0.16666666666666666
+    ],
+    [
+     {
+      "risk_charge": 0.3,
+      "test_cost": 120.0
+     },
+     0.16666666666666666
+    ],
+    [
+     {
+      "risk_charge": 1.2,
+      "test_cost": 120.0
+     },
+     0.16666666666666666
+    ],
+    [
+     {
+      "risk_charge": 0.3,
+      "test_cost": 200.0
+     },
+     0.16666666666666666
+    ],
+    [
+     {
+      "risk_charge": 1.2,
+      "test_cost": 200.0
+     },
+     0.16666666666666666
+    ]
+   ],
+   "risks": {
+    "defect_fix": 230,
+    "defect_weeks": 4,
+    "defect_with_test": 0.08,
+    "defect_without_test": 0.33,
+    "incident": 0.06,
+    "incident_loss": 3000,
+    "standby": 200,
+    "unready": 0.25,
+    "unready_weeks": 3
+   },
+   "terms": {
+    "ask_premium": [
+     400.0,
+     200.0,
+     0.0
+    ],
+    "breakoff": 0.06,
+    "delay_damages_per_week": 100.0,
+    "deposit_share": 0.5,
+    "deposit_weeks": 13.0,
+    "floor_margin": 500.0,
+    "hardware": 9600.0,
+    "integrator_capital_rate": 0.14,
+    "round_cost": 25.0,
+    "services": 600.0,
+    "uncontrolled_contingency": 1.5
+   }
+  }
+ },
+ "provenance": {
+  "generator_id": "datacenter_risk_allocation_menu_generator_v1",
+  "generator_version": "0.1.0",
+  "review_status": "generated"
+ },
+ "seats": [
+  {
+   "id": "client",
+   "role": "client"
+  }
+ ],
+ "spec_version": "aeread.case/0.1",
+ "split": "eval",
+ "visibility_policy": "datacenter_risk_allocation_menu_policy_and_integrator_costs_private_v1",
+ "world_seed": 2531001
+}
