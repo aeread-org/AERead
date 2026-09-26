@@ -11,6 +11,8 @@ diagnostic checks from `tables/cells.jsonl` and `tables/periods.jsonl`. Writes
 
 from __future__ import annotations
 
+import base64
+import gzip
 import json
 import re
 import sys
@@ -234,8 +236,8 @@ def gap_reports(roots: list[Path]) -> dict:
     family-agnostic shape ``aeread.gap_decomposition``: realized gap, additive components, decision classes and their
     instances, and, when the bundle publishes a contributions table, every part down to the steps behind it.
     A bundle may hold several reports (``reports/gap_decomposition*.json``, e.g. one per model against an answer
-    key). Each is keyed by the bundle (and its suffix); the runs it covers point at it, except a reference that
-    several reports share."""
+    key). Each is keyed by the bundle (and its suffix); every run it covers lists it under ``refs``, except a
+    reference that several reports share."""
     out: dict = {}
     for root in roots:
         for path in sorted(root.glob("evidence/**/reports/gap_decomposition*.json")):
@@ -263,9 +265,10 @@ def gap_reports(roots: list[Path]) -> dict:
                 _compact_cells(entry)
             out[key] = entry
             sides = [report.get("left")] + ([] if report.get("reference_side") == "right" else [report.get("right")])
-            for run in sides:
-                if run and run not in out:
-                    out[run] = {"ref": key}
+            for run in dict.fromkeys(s for s in sides if s):
+                refs = out.setdefault(run, {"refs": []}).setdefault("refs", [])
+                if key not in refs:
+                    refs.append(key)
     return out
 
 
@@ -482,7 +485,10 @@ def main(out: Path, checkout: Path, receipt_index: Path | None = None) -> None:
         "confirmatory": confirmatory,
     }
     (out / "data").mkdir(parents=True, exist_ok=True)
-    (out / "data" / "case_cards.json").write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+    # the same gzip+base64 envelope as the other data files (getJSON inflates it); mtime 0 keeps the bytes reproducible
+    raw = json.dumps(data, sort_keys=True).encode("utf-8")
+    envelope = {"encoding": "gzip+base64", "raw_bytes": len(raw), "payload": base64.b64encode(gzip.compress(raw, 9, mtime=0)).decode()}
+    (out / "data" / "case_cards.json").write_text(json.dumps(envelope, separators=(",", ":")), encoding="utf-8")
     print(f"case cards: {len(cards)} worlds, {len(data['strata'])} strata, {len(evaluations)} cells evaluated in {bundles} bundles")
 
 
