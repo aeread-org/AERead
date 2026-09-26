@@ -1,0 +1,1430 @@
+{
+ "claim_status": "generated worlds of the one-sided pack, both seats open; no model result is a claim",
+ "family_id": "datacenter_risk_allocation_two_sided_v1",
+ "family_version": "0.1.0",
+ "generator": {
+  "id": "datacenter_risk_allocation_two_sided_generator_v1",
+  "source_pack": "risk_allocation_eval_v1",
+  "split": "eval",
+  "version": "0.1.0"
+ },
+ "pack": "two_sided_eval_v1",
+ "worlds": [
+  {
+   "available_surplus": 576.675,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.fce24d14",
+   "cell": "keep_their_terms",
+   "content_sha256": "6b680015845ba16092f0c4bc28ac730e19dea2f9b9c43ce3fd7d57f087092670",
+   "efficient_package": "none/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.7b68553c",
+     "content_sha256": "29c889d3cf9bc59dd4d3b80157ddfa42cf3e7cf14db9febf310515799024b52f",
+     "reference_expected_cost": 11135.9925,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 317.333,
+      "demand_every_protection": 244.512,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 117.333,
+      "take_the_first_counter": 180.0,
+      "walk_to_turnkey": 494.007
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e29fb365",
+     "content_sha256": "af5729f306ac3be303f6c421165e782f0c423512eede2585d95d6b71c664722c",
+     "reference_expected_cost": -868.8685,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 73.469,
+      "decline_to_bid": 368.869,
+      "defend_the_opening_terms": 106.161,
+      "sign_the_prior_best_now": 277.518,
+      "take_the_first_counter": 191.533
+     }
+    }
+   },
+   "seed": 2470000,
+   "slug": "keep_their_terms_2470000"
+  },
+  {
+   "available_surplus": 776.41,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.fe1cf16f",
+   "cell": "keep_their_terms",
+   "content_sha256": "9beab898654c74299da13e58f8ea5b0aebcc6868ed3cad1f66809ad376470b46",
+   "efficient_package": "none/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.9a4e3c85",
+     "content_sha256": "5ee4272d830e7f7de67e14335a1810bd0d24df9a5fa42f4fef3b68843647c393",
+     "reference_expected_cost": 11155.1746,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 328.415,
+      "demand_every_protection": 250.986,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 128.415,
+      "take_the_first_counter": 188.0,
+      "walk_to_turnkey": 704.825
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.aceff13b",
+     "content_sha256": "2b72edf8729b008e5814c533659a13f87f6b97853806fb37746d78cba096f599",
+     "reference_expected_cost": -975.158333,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 210.795,
+      "decline_to_bid": 475.158,
+      "defend_the_opening_terms": 25.136,
+      "sign_the_prior_best_now": 467.988,
+      "take_the_first_counter": 213.136
+     }
+    }
+   },
+   "seed": 2470001,
+   "slug": "keep_their_terms_2470001"
+  },
+  {
+   "available_surplus": 836.165,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.25630dc3",
+   "cell": "keep_their_terms",
+   "content_sha256": "0f0cf5e3ac2f3272bcc5a8c490b2b5ad87e68dd50d3ec71bc631e3a789dc08df",
+   "efficient_package": "none/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.7e991c8b",
+     "content_sha256": "737662455e6aeec931ae81f64fa4034bb0026e2a0b153bee1a18808b5d832f66",
+     "reference_expected_cost": 11095.7282,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 308.107,
+      "demand_every_protection": 256.79,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 108.107,
+      "take_the_first_counter": 184.0,
+      "walk_to_turnkey": 744.272
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.5d17bdcf",
+     "content_sha256": "68ae05778094f2dca214fdf7a7e8637a79d3d8ad52e856bf2156b62b2207b5cd",
+     "reference_expected_cost": -1135.6382,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 97.98,
+      "decline_to_bid": 635.638,
+      "defend_the_opening_terms": 107.812,
+      "sign_the_prior_best_now": 235.033,
+      "take_the_first_counter": 193.513
+     }
+    }
+   },
+   "seed": 2470002,
+   "slug": "keep_their_terms_2470002"
+  },
+  {
+   "available_surplus": 319.96,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.049b9c1b",
+   "cell": "keep_their_terms",
+   "content_sha256": "14dfd5f48ded90d9dafb9900b3c4c47195df5dee8dfdaffb6baf7c7d1942ecae",
+   "efficient_package": "none/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.4eee60b3",
+     "content_sha256": "3e9134ebba6dab7d8f98f060e8fb5dba87e86bf6187f08ee22452cac1b3c9077",
+     "reference_expected_cost": 11207.036,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 343.004,
+      "demand_every_protection": 273.834,
+      "haggle_price_only": 0.0,
+      "sign_the_prior_best_now": 143.004,
+      "take_the_first_counter": 180.0,
+      "walk_to_turnkey": 262.964
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e078778f",
+     "content_sha256": "37fa959bc0d874125f262e92007d28fbe43b770cbbc06be9ea54001776b9be03",
+     "reference_expected_cost": -615.145,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 98.241,
+      "decline_to_bid": 115.145,
+      "defend_the_opening_terms": 133.941,
+      "sign_the_prior_best_now": 349.875,
+      "take_the_first_counter": 201.318
+     }
+    }
+   },
+   "seed": 2470003,
+   "slug": "keep_their_terms_2470003"
+  },
+  {
+   "available_surplus": 1032.765,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.c4f0fd4a",
+   "cell": "price_the_alternatives",
+   "content_sha256": "a31223f0b899126d9c24bb8a53555874f7317be12784e79d3300812adc0e748f",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.2c3cad5b",
+     "content_sha256": "7f3b7532cdb7cc56dc46f1bd7caa38a6386aec11314ce5c6274173d791ca5d43",
+     "reference_expected_cost": 11411.0505,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 486.15,
+      "demand_every_protection": 83.401,
+      "haggle_price_only": 159.918,
+      "sign_the_prior_best_now": 256.865,
+      "take_the_first_counter": 220.641,
+      "walk_to_turnkey": 898.95
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.0a8d5eb8",
+     "content_sha256": "1f590fcffe012a1d6d6d24d8a13ecd033a2e614e91ac0c7774b1789c2aa06433",
+     "reference_expected_cost": -1453.6481,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 50.055,
+      "decline_to_bid": 953.648,
+      "defend_the_opening_terms": 246.601,
+      "sign_the_prior_best_now": 262.243,
+      "take_the_first_counter": 206.922
+     }
+    }
+   },
+   "seed": 2471000,
+   "slug": "price_the_alternatives_2471000"
+  },
+  {
+   "available_surplus": 1021.685,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.13614a68",
+   "cell": "price_the_alternatives",
+   "content_sha256": "ba19113dd95b20529413212bce680532d3487389706bd2f68ce6dbaf7a8f75b9",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.3fc24d12",
+     "content_sha256": "aca38308a403e0ebaeedce37fd67a3d8cc738084a6367c18762f85fe23228456",
+     "reference_expected_cost": 11411.0505,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 486.15,
+      "demand_every_protection": 83.401,
+      "haggle_price_only": 159.918,
+      "sign_the_prior_best_now": 256.865,
+      "take_the_first_counter": 220.641,
+      "walk_to_turnkey": 898.95
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.87150d5a",
+     "content_sha256": "a739512aa4048c4aaea49e59e7c8ced32ee28b1b9e59e9da27541cb2709fa625",
+     "reference_expected_cost": -1444.5489,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 152.976,
+      "decline_to_bid": 944.549,
+      "defend_the_opening_terms": 237.502,
+      "sign_the_prior_best_now": 402.624,
+      "take_the_first_counter": 219.08
+     }
+    }
+   },
+   "seed": 2471000,
+   "slug": "price_the_alternatives_2471000_twin",
+   "twin_of": "price_the_alternatives_2471000"
+  },
+  {
+   "available_surplus": 817.587,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.ed57ae64",
+   "cell": "price_the_alternatives",
+   "content_sha256": "77807620748d5b90c29f094f0b39359959ece4a424405d59f7354174a363541f",
+   "efficient_package": "none/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.d248cc87",
+     "content_sha256": "2bc100603fa51b92e301ea3023b95aaf85b5ddee1949687cc49f60fe431a2007",
+     "reference_expected_cost": 11416.9704,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 465.442,
+      "demand_every_protection": 112.146,
+      "haggle_price_only": 123.146,
+      "sign_the_prior_best_now": 289.077,
+      "take_the_first_counter": 235.17,
+      "walk_to_turnkey": 883.03
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.2782a6ac",
+     "content_sha256": "765b2d4bbe68f5bbe5dedb9751d2700f68426e4de79461515944d5110507a79c",
+     "reference_expected_cost": -1286.7288,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 216.651,
+      "decline_to_bid": 786.729,
+      "defend_the_opening_terms": 58.97,
+      "sign_the_prior_best_now": 570.701,
+      "take_the_first_counter": 250.97
+     }
+    }
+   },
+   "seed": 2471001,
+   "slug": "price_the_alternatives_2471001"
+  },
+  {
+   "available_surplus": 1068.047,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.7cc0f2f6",
+   "cell": "price_the_alternatives",
+   "content_sha256": "c5233e67aab0a1361c0b78f52d76ee0b05d60261ebab1e1a5ee2487a919ff7e3",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.5bfacd4c",
+     "content_sha256": "c627f8ba31bf631ab9ce0ccbc9cce4d35fc593ee3edf4f9d0fc8496d466186ef",
+     "reference_expected_cost": 11416.9704,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 465.442,
+      "demand_every_protection": 112.146,
+      "haggle_price_only": 123.146,
+      "sign_the_prior_best_now": 289.077,
+      "take_the_first_counter": 235.17,
+      "walk_to_turnkey": 883.03
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.f49cc004",
+     "content_sha256": "72308c0f925e45d1a242770e2f4b9105b029dd062dcbc4970dd484034c40aaab",
+     "reference_expected_cost": -1506.892,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 64.018,
+      "decline_to_bid": 1006.892,
+      "defend_the_opening_terms": 279.133,
+      "sign_the_prior_best_now": 280.564,
+      "take_the_first_counter": 209.904
+     }
+    }
+   },
+   "seed": 2471001,
+   "slug": "price_the_alternatives_2471001_twin",
+   "twin_of": "price_the_alternatives_2471001"
+  },
+  {
+   "available_surplus": 658.5,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.b987cc60",
+   "cell": "price_the_alternatives",
+   "content_sha256": "b5e517b651d24abbb4902a681d5920b8856f3f76ee08b2cdeb56ff841ad6ac76",
+   "efficient_package": "fix_and_delay/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.d924a283",
+     "content_sha256": "e121a735d6a7811145efa15be0c36047444f7ad96882b79a5aae4d7c47d4f514",
+     "reference_expected_cost": 11290.392,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 590.308,
+      "demand_every_protection": 143.424,
+      "haggle_price_only": 236.88,
+      "sign_the_prior_best_now": 271.108,
+      "take_the_first_counter": 222.528,
+      "walk_to_turnkey": 729.608
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.04602cf3",
+     "content_sha256": "dbb0cb8e7af37001fe124d436ff0a41df03ba55364596af54b96aceaf897f80d",
+     "reference_expected_cost": -1109.0288,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 194.01,
+      "decline_to_bid": 609.029,
+      "defend_the_opening_terms": 148.582,
+      "sign_the_prior_best_now": 372.929,
+      "take_the_first_counter": 211.661
+     }
+    }
+   },
+   "seed": 2471002,
+   "slug": "price_the_alternatives_2471002"
+  },
+  {
+   "available_surplus": 907.6,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.291d9f6f",
+   "cell": "price_the_alternatives",
+   "content_sha256": "9bb5eff3b1dcbe8b53293c57406e76737645265c7e60665bb7002ad3c4767690",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.95fb41fa",
+     "content_sha256": "16179cdb0dde028fdc4f589df4c63e0379ca2c41b359e871400e85c4301b0db4",
+     "reference_expected_cost": 11290.392,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 590.308,
+      "demand_every_protection": 143.424,
+      "haggle_price_only": 236.88,
+      "sign_the_prior_best_now": 271.108,
+      "take_the_first_counter": 222.528,
+      "walk_to_turnkey": 729.608
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.9962c148",
+     "content_sha256": "3a1db33cd6ac3da39ffcc2cc7cea500740efdb17c1bc93acb085358098ba471a",
+     "reference_expected_cost": -1343.8,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 96.333,
+      "decline_to_bid": 843.8,
+      "defend_the_opening_terms": 383.354,
+      "sign_the_prior_best_now": 256.2,
+      "take_the_first_counter": 199.104
+     }
+    }
+   },
+   "seed": 2471002,
+   "slug": "price_the_alternatives_2471002_twin",
+   "twin_of": "price_the_alternatives_2471002"
+  },
+  {
+   "available_surplus": 996.71,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.5e8df7c6",
+   "cell": "price_the_alternatives",
+   "content_sha256": "7a6b40155d1e1ac169f44953a6b5369bee1193bafe12bd3187ddfb102b4bb44a",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e505abaf",
+     "content_sha256": "4ed3ce3962534a4ef361393dcd558c64e73435d3e0be5e26086a3d55e859f8e7",
+     "reference_expected_cost": 11412.23,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 547.882,
+      "demand_every_protection": 106.36,
+      "haggle_price_only": 195.079,
+      "sign_the_prior_best_now": 291.48,
+      "take_the_first_counter": 236.34,
+      "walk_to_turnkey": 887.77
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.b2ef5dd4",
+     "content_sha256": "2e176cb97cbb90696325cf42954330cff805b17af2fedde632511c062e763bd2",
+     "reference_expected_cost": -1451.941967,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 60.69,
+      "decline_to_bid": 951.942,
+      "defend_the_opening_terms": 294.582,
+      "sign_the_prior_best_now": 288.832,
+      "take_the_first_counter": 214.933
+     }
+    }
+   },
+   "seed": 2471003,
+   "slug": "price_the_alternatives_2471003"
+  },
+  {
+   "available_surplus": 969.79,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.c29b2a4d",
+   "cell": "price_the_alternatives",
+   "content_sha256": "dfe8a6b9705f38ab77fc92cb5638e997c95896f5ed71a5f9fd011214ca587481",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.47838dee",
+     "content_sha256": "f74480755347c57164be6aa305d33a847a987e6215b3eea7b2a8e61205c0f3d1",
+     "reference_expected_cost": 11412.23,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 547.882,
+      "demand_every_protection": 106.36,
+      "haggle_price_only": 195.079,
+      "sign_the_prior_best_now": 291.48,
+      "take_the_first_counter": 236.34,
+      "walk_to_turnkey": 887.77
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.079c7bb5",
+     "content_sha256": "82844a818cea6772d622f50889f3586630b11762165004af34155fce748fae3f",
+     "reference_expected_cost": -1427.284567,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 187.507,
+      "decline_to_bid": 927.285,
+      "defend_the_opening_terms": 269.924,
+      "sign_the_prior_best_now": 454.295,
+      "take_the_first_counter": 229.58
+     }
+    }
+   },
+   "seed": 2471003,
+   "slug": "price_the_alternatives_2471003_twin",
+   "twin_of": "price_the_alternatives_2471003"
+  },
+  {
+   "available_surplus": 700.77,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.2167a5ef",
+   "cell": "shift_the_tail",
+   "content_sha256": "64970120d37140886c7cbd95a99563e568d72adc8d8f50360787f2ba47f52a4c",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.a73acddd",
+     "content_sha256": "f280570aaacdbb95ce8c331d4805c2fbbe95252e6e450fdb728f727d1eac9df0",
+     "reference_expected_cost": 11751.051733,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 713.963,
+      "demand_every_protection": 34.776,
+      "haggle_price_only": 364.162,
+      "sign_the_prior_best_now": 283.813,
+      "take_the_first_counter": 184.0,
+      "walk_to_turnkey": 628.948
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.2fc83e93",
+     "content_sha256": "63e56a3b5f4a82d71b6cf1e1ea3d9f24494d951e0f79dfedcc2a7b48520d5e8e",
+     "reference_expected_cost": -1312.919133,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 86.889,
+      "decline_to_bid": 812.919,
+      "defend_the_opening_terms": 159.997,
+      "sign_the_prior_best_now": 320.309,
+      "take_the_first_counter": 200.399
+     }
+    }
+   },
+   "seed": 2472000,
+   "slug": "shift_the_tail_2472000"
+  },
+  {
+   "available_surplus": 726.075,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.bdcc361b",
+   "cell": "shift_the_tail",
+   "content_sha256": "18e11d8de075f30b8446527ff7af9f84569ad90b6f5f4084e8d17484b22fe160",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.1a189585",
+     "content_sha256": "1a6c91a61f95c40bdeab1b568a3d0a0fa404b5ca44e4fb5ccee54f9d37b4cf85",
+     "reference_expected_cost": 11561.230133,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 714.575,
+      "demand_every_protection": 26.611,
+      "haggle_price_only": 376.078,
+      "sign_the_prior_best_now": 244.4,
+      "take_the_first_counter": 176.0,
+      "walk_to_turnkey": 618.77
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.1ad4c801",
+     "content_sha256": "59f1870bad1789798edb908063d4764376ffe5afb7c8bc7864f6c9ea2a30fe7a",
+     "reference_expected_cost": -1229.6308,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 61.494,
+      "decline_to_bid": 729.631,
+      "defend_the_opening_terms": 163.563,
+      "sign_the_prior_best_now": 203.556,
+      "take_the_first_counter": 200.112
+     }
+    }
+   },
+   "seed": 2472001,
+   "slug": "shift_the_tail_2472001"
+  },
+  {
+   "available_surplus": 1274.88,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.a5933546",
+   "cell": "shift_the_tail",
+   "content_sha256": "00d015f4f7f3cfe666ab80adf852838c6bbfb887525d91bb59983a72a546a1a7",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.7685f05c",
+     "content_sha256": "0202763a324186d5d6a4457756a652c9de722c119b0a44ebd38c3990fed07176",
+     "reference_expected_cost": 11505.7436,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 739.086,
+      "demand_every_protection": 24.998,
+      "haggle_price_only": 411.348,
+      "sign_the_prior_best_now": 254.176,
+      "take_the_first_counter": 186.0,
+      "walk_to_turnkey": 1014.256
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.129d1ab1",
+     "content_sha256": "270d6a2089d9768908739584fd6d5b7237f03d0a25d205c92c5659d6cd766be7",
+     "reference_expected_cost": -1764.0544,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 63.24,
+      "decline_to_bid": 1264.054,
+      "defend_the_opening_terms": 329.285,
+      "sign_the_prior_best_now": 203.334,
+      "take_the_first_counter": 197.83
+     }
+    }
+   },
+   "seed": 2472002,
+   "slug": "shift_the_tail_2472002"
+  },
+  {
+   "available_surplus": 1001.02,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.29b7e89d",
+   "cell": "shift_the_tail",
+   "content_sha256": "35a71b2d9291876abe88dcb3c76a2e80d8f297369ed87e8db1a99fe6062d6746",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.85a776d1",
+     "content_sha256": "a344aeb97c4a8d78bc4f983a5be300fac039a901046289c2621eec5280626762",
+     "reference_expected_cost": 11512.0694,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 754.691,
+      "demand_every_protection": 108.884,
+      "haggle_price_only": 423.317,
+      "sign_the_prior_best_now": 256.911,
+      "take_the_first_counter": 186.0,
+      "walk_to_turnkey": 977.931
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.37cf5351",
+     "content_sha256": "cda3bb3a93ccebcd2ffe6e349f94e319326b2ade735b8958eeb698b25bc86836",
+     "reference_expected_cost": -1583.7398,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 238.942,
+      "decline_to_bid": 1083.74,
+      "defend_the_opening_terms": 191.4,
+      "sign_the_prior_best_now": 338.72,
+      "take_the_first_counter": 203.36
+     }
+    }
+   },
+   "seed": 2472003,
+   "slug": "shift_the_tail_2472003"
+  },
+  {
+   "available_surplus": 235.108,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.e7a4a4a1",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "e95546dd81138517fa7cf918fffa2351026e7e3027c6b35bbaea86d3b6b4303e",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.57f0a28b",
+     "content_sha256": "3be4bb2ecd99eac7b323fa0cd4539fdb688532a0f41e888de08d896e7846e77e",
+     "reference_expected_cost": 11304.9988,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 574.889,
+      "demand_every_protection": 115.365,
+      "haggle_price_only": 196.293,
+      "sign_the_prior_best_now": 304.709,
+      "take_the_first_counter": 228.309,
+      "walk_to_turnkey": 85.001
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.3c590e73",
+     "content_sha256": "872a93c65c5d1e624287bba4d9381bebce284bfb5b8c7a98c37d293c93eb4eb3",
+     "reference_expected_cost": -702.9416,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 67.13,
+      "decline_to_bid": 202.942,
+      "defend_the_opening_terms": 345.827,
+      "sign_the_prior_best_now": 292.434,
+      "take_the_first_counter": 204.206
+     }
+    }
+   },
+   "seed": 2473000,
+   "slug": "better_contract_or_walk_2473000"
+  },
+  {
+   "available_surplus": 151.093,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.e9d3687d",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "f27a94565435edc7cef992fcc188666289eb08a8383f0fb31a60c226084d9c7e",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.39119cd1",
+     "content_sha256": "d175f987ccc78678c5d2631c2cd90bc93b1bc514316a94fc37403c7995c2b4bf",
+     "reference_expected_cost": 11304.9988,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 574.889,
+      "demand_every_protection": 115.365,
+      "haggle_price_only": 196.293,
+      "sign_the_prior_best_now": 304.709,
+      "take_the_first_counter": 228.309,
+      "walk_to_turnkey": 85.001
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.1b77f4c1",
+     "content_sha256": "7c66057333f96e3f0b435c9163dfc17545410aa44e889b41623e73a2777afd31",
+     "reference_expected_cost": -632.6112,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 184.978,
+      "decline_to_bid": 132.611,
+      "defend_the_opening_terms": 275.497,
+      "sign_the_prior_best_now": 435.319,
+      "take_the_first_counter": 224.866
+     }
+    }
+   },
+   "seed": 2473000,
+   "slug": "better_contract_or_walk_2473000_twin",
+   "twin_of": "better_contract_or_walk_2473000"
+  },
+  {
+   "available_surplus": 104.302,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.eb3dd89a",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "01c05e78ca062f386d7eec511b31a208128c77f05c1b5e10b6570567953770e7",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.90c51adf",
+     "content_sha256": "779c0aaa4ced5f290d8407c83e588f51dcfae30a7911d31225a133cd62506dbb",
+     "reference_expected_cost": 11233.852875,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 606.772,
+      "demand_every_protection": 159.322,
+      "haggle_price_only": 229.053,
+      "sign_the_prior_best_now": 294.825,
+      "take_the_first_counter": 221.936,
+      "walk_to_turnkey": 116.147
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.3832eaed",
+     "content_sha256": "5da01cdb17c3460959f25ab746dbcb7be1b58d8829f9a8ebddd6d575951cd33f",
+     "reference_expected_cost": -576.05945,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 120.074,
+      "decline_to_bid": 76.059,
+      "defend_the_opening_terms": 220.103,
+      "sign_the_prior_best_now": 287.157,
+      "take_the_first_counter": 203.214
+     }
+    }
+   },
+   "seed": 2473001,
+   "slug": "better_contract_or_walk_2473001"
+  },
+  {
+   "available_surplus": 189.423,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.0dd2fbf5",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "94fec56744c5e0e7d2a5d2eb371a99e8e16701043762a8f76c2e4d3524008209",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.bbd2fa45",
+     "content_sha256": "48a6a1677d2d10ac5d54f1ff5f0fc3194d6ff20c85ea991f7a1499eafcf649f7",
+     "reference_expected_cost": 11233.852875,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 606.772,
+      "demand_every_protection": 159.322,
+      "haggle_price_only": 229.053,
+      "sign_the_prior_best_now": 294.825,
+      "take_the_first_counter": 221.936,
+      "walk_to_turnkey": 116.147
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.a38f6cf9",
+     "content_sha256": "76d50233b1350271101ee5e91d3da015d30e8b69ebf8fc89507d1ffa0408ffb3",
+     "reference_expected_cost": -655.910658,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 209.984,
+      "decline_to_bid": 155.911,
+      "defend_the_opening_terms": 299.954,
+      "sign_the_prior_best_now": 389.088,
+      "take_the_first_counter": 209.164
+     }
+    }
+   },
+   "seed": 2473001,
+   "slug": "better_contract_or_walk_2473001_twin",
+   "twin_of": "better_contract_or_walk_2473001"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.a3b86cad",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "8353d25fade2a91988002fdb9d63dbf2b1ba4f27ee34d21757c94d843e8c266d",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.88162ea5",
+     "content_sha256": "7c7b1a7abd939cd0afa4fffcbdd7c0dda898ac0f150200a25f31160e2fd8dee1",
+     "reference_expected_cost": 11410.53405,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 596.691,
+      "demand_every_protection": 141.016,
+      "haggle_price_only": 211.657,
+      "sign_the_prior_best_now": 320.481,
+      "take_the_first_counter": 237.084,
+      "walk_to_turnkey": 29.466
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.f7385b3d",
+     "content_sha256": "7ab523dd2aac3229a9da5faef813b6701c6329fe0cd381e7d292afab6101ece1",
+     "reference_expected_cost": -549.399433,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 271.392,
+      "decline_to_bid": 49.399,
+      "defend_the_opening_terms": 267.731,
+      "sign_the_prior_best_now": 566.494,
+      "take_the_first_counter": 287.424
+     }
+    }
+   },
+   "seed": 2473002,
+   "slug": "better_contract_or_walk_2473002"
+  },
+  {
+   "available_surplus": 169.29,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.bfb75ee5",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "5a1f53f4a5861bf98147629244f811ef71411539a4fedfe32f146208bd917053",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.680f9021",
+     "content_sha256": "5c536cfc2432484afbcec19ad5addad28496a45fd200c92ea00d8b1823cc6890",
+     "reference_expected_cost": 11410.53405,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 596.691,
+      "demand_every_protection": 141.016,
+      "haggle_price_only": 211.657,
+      "sign_the_prior_best_now": 320.481,
+      "take_the_first_counter": 237.084,
+      "walk_to_turnkey": 29.466
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e8e2faeb",
+     "content_sha256": "6a6dca58d9cdc716559954de1e7327220d916cddef9f6deb6681d7efb23c1b40",
+     "reference_expected_cost": -638.455033,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 78.401,
+      "decline_to_bid": 138.455,
+      "defend_the_opening_terms": 356.786,
+      "sign_the_prior_best_now": 348.045,
+      "take_the_first_counter": 206.335
+     }
+    }
+   },
+   "seed": 2473002,
+   "slug": "better_contract_or_walk_2473002_twin",
+   "twin_of": "better_contract_or_walk_2473002"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.68fe2a29",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "1d2eb1b7bcdbd2d04a39abd8fdeed80439b28c7fb48a354c8bb430af5dafd926",
+   "efficient_package": "fix_and_delay/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.f623ab45",
+     "content_sha256": "35786bba9ba4d4958dc7587b0eab926c0b7f45c6b1d1e9bdf14ac647e2d573c0",
+     "reference_expected_cost": 11413.929583,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 540.42,
+      "demand_every_protection": 114.681,
+      "haggle_price_only": 159.703,
+      "sign_the_prior_best_now": 330.295,
+      "take_the_first_counter": 245.401,
+      "walk_to_turnkey": 26.07
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.59961b50",
+     "content_sha256": "ac5068acd684090ba5affb0c12c41e1f6e020aeb0ec160c76b2a14d0acf7f3e3",
+     "reference_expected_cost": -541.259333,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 241.145,
+      "decline_to_bid": 41.259,
+      "defend_the_opening_terms": 208.851,
+      "sign_the_prior_best_now": 528.979,
+      "take_the_first_counter": 296.628
+     }
+    }
+   },
+   "seed": 2473003,
+   "slug": "better_contract_or_walk_2473003"
+  },
+  {
+   "available_surplus": 156.55,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.0e83df82",
+   "cell": "better_contract_or_walk",
+   "content_sha256": "b383ebb2dfd7e12be2d655d49d1dc8f591f08187fe6863c7ddae1ba758e1ed12",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.503bb426",
+     "content_sha256": "4d57bfd6caa501dc9fcd4c8c9485b8bf707eeb2b114d855dc6a7aff6dabc622b",
+     "reference_expected_cost": 11413.929583,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/excluded/at_signing ask for its price",
+      "kind": "price_alternative"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 540.42,
+      "demand_every_protection": 114.681,
+      "haggle_price_only": 159.703,
+      "sign_the_prior_best_now": 330.295,
+      "take_the_first_counter": 245.401,
+      "walk_to_turnkey": 26.07
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e776385a",
+     "content_sha256": "337ce645c3e6390335fa671484f96da1a1ce8a5ca3ae3411e89a2fd0fe9aa43c",
+     "reference_expected_cost": -630.663833,
+     "reference_first_move": {
+      "action": "propose none/client/excluded/at_signing ask for its price",
+      "kind": "price_opening"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 56.531,
+      "decline_to_bid": 130.664,
+      "defend_the_opening_terms": 298.256,
+      "sign_the_prior_best_now": 309.634,
+      "take_the_first_counter": 207.67
+     }
+    }
+   },
+   "seed": 2473003,
+   "slug": "better_contract_or_walk_2473003_twin",
+   "twin_of": "better_contract_or_walk_2473003"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.3c34d8e2",
+   "cell": "walk_away",
+   "content_sha256": "b6faad988d82642c9337da31f5911926d10d8c2b8a90ae48a6b40b9f6aea6d23",
+   "efficient_package": "fix_and_delay/client/excluded/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.39cb6fd3",
+     "content_sha256": "3e10e5d5acd5bf60d702bae972b46c32e2fee8b16c59746dc4ac50755c74d5aa",
+     "reference_expected_cost": 10920,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 875.35,
+      "demand_every_protection": 418.025,
+      "haggle_price_only": 467.075,
+      "sign_the_prior_best_now": 642.981,
+      "take_the_first_counter": 528.695,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.08ab93e3",
+     "content_sha256": "00fbba079196092a8320ebc3b823d3a7a296ec1516ddc3b7709423a858d410f1",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 578.571,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 495.112,
+      "sign_the_prior_best_now": 821.788,
+      "take_the_first_counter": 632.914
+     }
+    }
+   },
+   "seed": 2474000,
+   "slug": "walk_away_2474000"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.2d268508",
+   "cell": "walk_away",
+   "content_sha256": "3a4e47bc1bce8621a7d71e9522d1b99d320747eab368cd1d8c4c5f5c1946953d",
+   "efficient_package": "fix/client/excluded/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.8b750177",
+     "content_sha256": "55f9b425d62e22fb856a145febf00712940d6a3c0c0f7665adff2fb8840e26a8",
+     "reference_expected_cost": 10920,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 965.875,
+      "demand_every_protection": 446.527,
+      "haggle_price_only": 522.97,
+      "sign_the_prior_best_now": 720.507,
+      "take_the_first_counter": 568.671,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.8b16a45d",
+     "content_sha256": "1e7a2e13f4f92bed309d1661fc3d79de975870783fd024510d9129383be455d2",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 530.894,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 552.333,
+      "sign_the_prior_best_now": 886.46,
+      "take_the_first_counter": 594.19
+     }
+    }
+   },
+   "seed": 2474001,
+   "slug": "walk_away_2474001"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.8060575f",
+   "cell": "walk_away",
+   "content_sha256": "6db84174ace15e6b69f940a8f008b8579be9d4e0127906044c154915a5a3804d",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.34d58173",
+     "content_sha256": "6d8a8f4303b73ff57bdb203aeb183ccc9f731ee629f0114267ef0cd4b619195b",
+     "reference_expected_cost": 10870,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 935.8,
+      "demand_every_protection": 543.589,
+      "haggle_price_only": 528.652,
+      "sign_the_prior_best_now": 713.14,
+      "take_the_first_counter": 597.075,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.7f7e2032",
+     "content_sha256": "f92583954d3fc8118a38bb7efe17e8a7d18b8eb6d1848c1ad48d084e0ebd9bd8",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 380.893,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 557.579,
+      "sign_the_prior_best_now": 548.8,
+      "take_the_first_counter": 450.707
+     }
+    }
+   },
+   "seed": 2474002,
+   "slug": "walk_away_2474002"
+  },
+  {
+   "available_surplus": 0.0,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.5f18c79f",
+   "cell": "walk_away",
+   "content_sha256": "38680aec1173f53ab10f5ab7e39f5807de6ca28e5e847ba861830110c5c480de",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.38f06663",
+     "content_sha256": "9d8b64705f96680a4972f8a273cc7acbb469091f9764ec2e393a35edbef3ce71",
+     "reference_expected_cost": 10900,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 981.5,
+      "demand_every_protection": 539.487,
+      "haggle_price_only": 571.61,
+      "sign_the_prior_best_now": 732.02,
+      "take_the_first_counter": 623.147,
+      "walk_to_turnkey": 0.0
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.5e37ea7b",
+     "content_sha256": "a9acc5537e87fde8e164b0c429e7ae8f3822f61b48c150845357bea6ac42c7b5",
+     "reference_expected_cost": -500.0,
+     "reference_first_move": {
+      "action": "walk",
+      "kind": "walk"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 450.369,
+      "decline_to_bid": 0.0,
+      "defend_the_opening_terms": 602.818,
+      "sign_the_prior_best_now": 707.34,
+      "take_the_first_counter": 564.992
+     }
+    }
+   },
+   "seed": 2474003,
+   "slug": "walk_away_2474003"
+  },
+  {
+   "available_surplus": 1518.52,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.097aca26",
+   "cell": "close_now",
+   "content_sha256": "2e5791065b52054f9837b7f20713329a5dcd57e78086938688375f509862f6c8",
+   "efficient_package": "fix_and_delay/client/included/at_signing",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.9d1931b7",
+     "content_sha256": "3887f60d5b3c58afc29fd9ca89f65f53e703542146e858fb43df91d5e2783eaa",
+     "reference_expected_cost": 11749.163,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/at_signing at 11,207.3",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 439.552,
+      "demand_every_protection": 292.601,
+      "haggle_price_only": 489.066,
+      "sign_the_prior_best_now": 9.622,
+      "take_the_first_counter": 378.041,
+      "walk_to_turnkey": 1100.837
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.0279493b",
+     "content_sha256": "0cd184dc62b70a9ad23b627fbcc7f59238162d645e2f707ad4e8ff9f399d085b",
+     "reference_expected_cost": -1818.52,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/at_signing at 12,180.5",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 419.656,
+      "decline_to_bid": 1318.52,
+      "defend_the_opening_terms": 500.257,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 481.744
+     }
+    }
+   },
+   "seed": 2475000,
+   "slug": "close_now_2475000"
+  },
+  {
+   "available_surplus": 1841.225,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.647767c5",
+   "cell": "close_now",
+   "content_sha256": "43f1ea60d5e3439fd4114995f74d1040f93082cb1860a40293515583ad487ab9",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.83986df6",
+     "content_sha256": "64f2be267f8cf8b04c1160c4155d8b1f15d8a5cf552ddb3e5bafe814e2c8c7bc",
+     "reference_expected_cost": 11878.035,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 11,587.1",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 670.38,
+      "demand_every_protection": 380.322,
+      "haggle_price_only": 742.93,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 477.424,
+      "walk_to_turnkey": 1361.965
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.378ba55c",
+     "content_sha256": "c7f8b35e0ead228a28beebcb34b7d9c5df3dd912a1bee2b3f778831e9235a845",
+     "reference_expected_cost": -2141.225,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 12,749.0",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 559.891,
+      "decline_to_bid": 1641.225,
+      "defend_the_opening_terms": 761.162,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 648.535
+     }
+    }
+   },
+   "seed": 2475001,
+   "slug": "close_now_2475001"
+  },
+  {
+   "available_surplus": 1922.81,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.8e436c08",
+   "cell": "close_now",
+   "content_sha256": "fc3122c41f734e50a6295d73eaf231a4988e3e60b4180b565c8ff632058e9b0b",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.68fc16ce",
+     "content_sha256": "327876928f4a74f18ae999365d6dd42e5df3d8cb2a8cef7f06dc45c292d6d00a",
+     "reference_expected_cost": 11774.04,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 11,532.3",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 607.725,
+      "demand_every_protection": 333.709,
+      "haggle_price_only": 685.69,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 444.954,
+      "walk_to_turnkey": 1465.96
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.af0e8759",
+     "content_sha256": "6afb55f90bf22e62d037af58b36011f4a32d3ac6a07a161d0738ca9870f02fea",
+     "reference_expected_cost": -2222.81,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 12,798.3",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 496.256,
+      "decline_to_bid": 1722.81,
+      "defend_the_opening_terms": 688.959,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 600.719
+     }
+    }
+   },
+   "seed": 2475002,
+   "slug": "close_now_2475002"
+  },
+  {
+   "available_surplus": 1773.45,
+   "case_id": "datacenter_risk_allocation_two_sided_v1.eval.e6ccf14e",
+   "cell": "close_now",
+   "content_sha256": "3c08e19572210a05a559b1e2842461657cd13b64c9b4418314b1a8431f2800fa",
+   "efficient_package": "fix_and_delay/client/included/on_delivery",
+   "one_sided_case_ids": {
+    "client": {
+     "case_id": "datacenter_risk_allocation_v1.eval.e3631b00",
+     "content_sha256": "cf08820bc504f7cc78867ee52fcc1eae9ba6842d738a09239cb8b8d7ee34e5f6",
+     "reference_expected_cost": 11820.45,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 11,476.2",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "accept_the_opening": 712.515,
+      "demand_every_protection": 434.11,
+      "haggle_price_only": 789.41,
+      "sign_the_prior_best_now": 0.0,
+      "take_the_first_counter": 526.51,
+      "walk_to_turnkey": 1339.55
+     }
+    },
+    "integrator": {
+     "case_id": "datacenter_risk_allocation_v1.eval.4508bced",
+     "content_sha256": "db98f468dab5d637909fbfbe128f1aa98677587c2dca369a6b74500eaef58082",
+     "reference_expected_cost": -2073.45,
+     "reference_first_move": {
+      "action": "propose fix_and_delay/client/included/on_delivery at 12,615.8",
+      "kind": "sign_at_a_price"
+     },
+     "rule_regret_prior": {
+      "concede_every_protection": 577.411,
+      "decline_to_bid": 1573.45,
+      "defend_the_opening_terms": 775.145,
+      "sign_the_prior_best_now": 38.88,
+      "take_the_first_counter": 659.996
+     }
+    }
+   },
+   "seed": 2475003,
+   "slug": "close_now_2475003"
+  }
+ ]
+}
