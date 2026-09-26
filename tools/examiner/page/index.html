@@ -87,6 +87,7 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 .diff{margin:0;padding-left:14px;font-size:11.5px;list-style:none}.diff li{margin:1px 0;overflow-wrap:anywhere}.diff .add{color:var(--yes)}.diff .rm{color:var(--no)}.diff .chg{color:var(--partial)}.diff .chg .em{color:var(--ink)}
 .basis{font-size:10.5px;color:var(--muted);white-space:nowrap}table.order td.what{white-space:normal;min-width:220px;max-width:300px;font-size:12px}table.order td.lin{white-space:normal;min-width:120px;font-size:11.5px}table.order td.idc{white-space:normal;min-width:230px;max-width:300px;overflow-wrap:anywhere}table.order td.ran{white-space:nowrap}tr.grp td{background:var(--soft);font-weight:600;font-size:12px;padding:5px 6px;white-space:normal}.runline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 2px;font-size:12.5px}.runline button{padding:3px 8px;font-size:12px}.runline .mono{font-size:12px}
 .mdlink{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:help}code{background:var(--soft);padding:0 3px;border-radius:3px}
+.mcstrip{display:grid;grid-template-columns:minmax(180px,420px) 1fr;gap:5px 12px;align-items:center;margin:8px 0 4px}.mcstrip .mcsname{white-space:normal;text-align:left;justify-self:start}.mcstiles{display:flex;flex-wrap:wrap;gap:3px}.mctile{display:inline-block;width:16px;height:16px;border-radius:3px;box-sizing:border-box;vertical-align:-3px;cursor:pointer}.mctile.mca{background:var(--series-1)}.mctile.mcb{background:var(--series-2)}.mctile.ns{background:var(--na-soft);border:1px solid var(--rule)}.mctile.few{border:1.5px dashed var(--na)}@media (max-width:760px){.mcstrip{grid-template-columns:1fr}}
 .mcsel{display:flex;gap:6px;align-items:center;min-width:0;flex:1 1 420px}.mcsel select{min-width:0;width:100%;max-width:680px}.mct td{vertical-align:top}.mct tr.mcpool td{border-top:2px solid var(--rule);background:var(--soft)}.mct tr.mcgrp td{background:var(--soft);padding-top:8px}.chip.mca{background:color-mix(in srgb,var(--series-1) 16%,transparent);color:var(--series-1);border-color:transparent}.chip.mcb{background:color-mix(in srgb,var(--series-2) 16%,transparent);color:var(--series-2);border-color:transparent}
 .banner{background:var(--partial-soft);color:var(--partial);border-radius:6px;padding:6px 9px;font-size:12.5px;margin:0 0 8px}
 .convo{margin:0;padding-left:0;list-style:none;font-size:12.5px}.convo li{border-left:2px solid var(--rule);padding:2px 0 2px 8px;margin-bottom:4px}.convo .who{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
@@ -1318,14 +1319,16 @@ function mcStats(s,mkey,dimsSel,A,B){
  const order=dimsSel.map(k=>(s.dims.find(d=>d.key===k).values||[]).map(v=>v.v));
  out.sort((x,y)=>{for(let i=0;i<order.length;i++){const d=order[i].indexOf(x.vals[i])-order[i].indexOf(y.vals[i]);if(d)return d;}return 0;});
  return out;}
-function mcChart(title,rows,meas,s,A,B){if(!rows.length)return '';const W=820,labW=260,rowH=22,top=22,H=top+rows.length*rowH+26;
- const vals=rows.flatMap(r=>[r.d,r.lo,r.hi]).filter(v=>v!=null);let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(hi===lo)hi=lo+1;const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;const X=v=>labW+(W-labW-16)*(v-lo)/(hi-lo);
+function mcChart(title,rows,meas,s,A,B){if(!rows.length)return '';const W=820,labW=260,rowH=28,top=22,H=top+rows.length*rowH+26;
+ const vals=rows.flatMap(r=>[r.d,r.lo,r.hi,...(r.per||[]).map(p=>p.d)]).filter(v=>v!=null);let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(hi===lo)hi=lo+1;const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;const X=v=>labW+(W-labW-16)*(v-lo)/(hi-lo);
  const col=r=>{const v=mcVerdict(r,meas,A,B,s);return v.cls==='mca'?'var(--series-1)':v.cls==='mcb'?'var(--series-2)':'var(--muted)';};
  const ticks=niceTicks(lo,hi,6);let g=ticks.map(v=>`<line x1="${X(v)}" x2="${X(v)}" y1="${top-6}" y2="${H-22}" stroke="var(--rule)" stroke-width="${v===0?1.8:1}"/><text x="${X(v)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${esc(mcFmt(v,meas,true))}</text>`).join('');
  rows.forEach((r,i)=>{const y=top+i*rowH+rowH/2;g+=`<text x="${labW-10}" y="${y+4}" text-anchor="end" font-size="11.5" fill="var(--ink)">${esc(r.label)}</text>`;
+  // each world's own paired difference, under the stratum's estimate: whether the gap is every world's or a few
+  (r.per||[]).forEach((p,j)=>{g+=`<circle cx="${X(p.d)}" cy="${y+((j*37)%9-4)*1.2}" r="2.3" fill="var(--ink)" opacity=".3"><title>${esc(`${s.unit.label} ${p.u}: ${mcFmt(p.d,meas,true)}`)}</title></circle>`;});
   if(r.lo!=null)g+=`<line x1="${X(r.lo)}" x2="${X(r.hi)}" y1="${y}" y2="${y}" stroke="${col(r)}" stroke-width="2.2" stroke-linecap="round"/>`;
   g+=`<circle cx="${X(r.d)}" cy="${y}" r="${r.lo==null?3.5:4.5}" fill="${r.lo==null?'var(--panel)':col(r)}" stroke="${col(r)}" stroke-width="1.6"><title>${esc(r.label+': '+mcFmt(r.d,meas,true)+(r.lo!=null?' ['+mcFmt(r.lo,meas,true)+', '+mcFmt(r.hi,meas,true)+']':' (no interval: too few units)'))}</title></circle>`;});
- return `<div style="font-size:12px;font-weight:600;margin:4px 0 2px">${esc(title)}</div><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${esc(title)}">${g}<text x="${W-16}" y="${top-10}" text-anchor="end" font-size="10.5" fill="var(--muted)">right of 0: ${esc(mcLabel(s,A))} higher · hollow dot: too few units for an interval</text></svg>`;}
+ return `<div style="font-size:12px;font-weight:600;margin:4px 0 2px">${esc(title)}</div><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${esc(title)}">${g}<text x="${W-16}" y="${top-10}" text-anchor="end" font-size="10.5" fill="var(--muted)">right of 0: ${esc(mcLabel(s,A))} higher · small grey dots: each ${esc(s.unit.label)}'s difference · hollow dot: too few units for an interval</text></svg>`;}
 function mcLabel(s,key){const m=(s.models.find(x=>x.key===key)||{}).label;return m||key;}
 function mcFmt(v,meas,diff){if(v==null||isNaN(v))return 'n/a';const u=meas.unit;
  if(u==='rate')return diff?(v>0?'+':'')+(v*100).toFixed(1)+' pp':(v*100).toFixed(1)+'%';
@@ -1371,22 +1374,27 @@ function mcCaseTab(){
   ${meas.note?`<p class="muted" style="margin:2px 0;font-size:12.5px">${esc(meas.label)}: ${esc(meas.note)}.</p>`:''}
   <p class="muted" style="margin:2px 0 8px;font-size:12px">Runs: ${runs}${miss?` · cells that did not complete: ${miss}`:''}</p>
   ${table}<div style="margin-top:8px">${chart}</div>${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</section>`;}
+function mcStratumText(s,dims,vals){return dims.length?dims.map((k,i)=>{const d=s.dims.find(x=>x.key===k);return String(((d.values||[]).find(x=>x.v===vals[i])||{label:vals[i]}).label).replace(/ \(.*?\)/g,'');}).join(' · '):'all '+s.unit.label+'s';}
 function mcTallyTab(){
  const sets=mcSets();const st=route.mc;const pairs=new Map();
  sets.filter(s=>st.small||mcClusters(s)>=MC_MIN).forEach(s=>{const ks=s.models.map(m=>m.key).sort((x,y)=>mcLabel(s,x).localeCompare(mcLabel(s,y)));for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const k=ks[i]+'|'+ks[j];const p=pairs.get(k)||{A:ks[i],B:ks[j],la:mcLabel(s,ks[i]),lb:mcLabel(s,ks[j]),n:0};p.n++;pairs.set(k,p);}});
  const list=[...pairs.entries()].sort((x,y)=>y[1].n-x[1].n);if(!list.length)return '<section class="panel"><p class="muted">No pair of models shares a case.</p></section>';
  if(!pairs.has(st.pair))st.pair=list[0][0];const P=pairs.get(st.pair);
  const pairSel=`<select id="mcpair">${list.map(([k,p])=>`<option value="${esc(k)}" ${k===st.pair?'selected':''}>${esc(p.la)} vs ${esc(p.lb)} (${p.n} case${p.n>1?'s':''})</option>`).join('')}</select>`;
- const blocks=[];const tally={a:0,b:0,ns:0,few:0};
+ const blocks=[],strip=[];const tally={a:0,b:0,ns:0,few:0};
  sets.filter(s=>s.models.some(m=>m.key===P.A)&&s.models.some(m=>m.key===P.B)).forEach(s=>{
   if(!st.small&&mcClusters(s)<MC_MIN)return;
   const meas=s.measures.find(m=>m.primary)||s.measures[0];const dims=s.dims.filter(d=>d.tally!==false).map(d=>d.key);
   const rows=mcStats(s,meas.key,dims,P.A,P.B);if(!rows.length)return;
-  rows.forEach(r=>{const v=mcVerdict(r,meas,P.A,P.B,s);if(r.lo==null)tally.few++;else if(v.cls==='mca')tally.a++;else if(v.cls==='mcb')tally.b++;else tally.ns++;});
+  const tiles=rows.map(r=>{const v=mcVerdict(r,meas,P.A,P.B,s);const cls=r.lo==null?'few':v.cls==='mca'?'mca':v.cls==='mcb'?'mcb':'ns';tally[{few:'few',mca:'a',mcb:'b',ns:'ns'}[cls]]++;
+   return `<span class="mctile ${cls}" data-mcset="${esc(s.id)}" title="${esc(`${mcStratumText(s,dims,r.vals)}: ${mcLabel(s,P.A)} − ${mcLabel(s,P.B)} ${mcFmt(r.d,meas,true)}${r.lo!=null?` [${mcFmt(r.lo,meas,true)}, ${mcFmt(r.hi,meas,true)}]`:''} · ${v.text}`)}"></span>`;}).join('');
+  strip.push(`<button class="dbtn mcsname" data-mcset="${esc(s.id)}" title="${esc(meas.label)}">${esc(s.title)} ›</button><span class="mcstiles">${tiles}</span>`);
   blocks.push(`<tr class="mcgrp"><td colspan="7"><button class="dbtn" data-mcset="${esc(s.id)}">${esc(s.title)} ›</button> <span class="muted">${esc(CAT.family_label[s.family]||s.family)} · ${esc(meas.label)}${meas.better?`, ${meas.better} is better`:''} · split by ${dims.length?esc(dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × ')):'nothing (no declared strata)'}</span></td></tr>`+rows.map(r=>mcRow(s,r,meas,P.A,P.B,mcStratumName(s,dims,r.vals))).join(''));});
  const hidden=sets.filter(s=>s.models.some(m=>m.key===P.A)&&s.models.some(m=>m.key===P.B)&&mcClusters(s)<MC_MIN).length;
  return `<section class="panel"><div class="rctl" style="align-items:center;gap:10px 16px"><span class="mcsel"><span class="nw">models</span> ${pairSel}</span><label class="nw"><input type="checkbox" id="mcsmall" ${st.small?'checked':''}> include cases with fewer than ${MC_MIN} independent units${hidden?` (${hidden})`:''}</label></div>
   <p style="margin:4px 0;font-size:13px"><strong>${esc(P.la)}</strong> better in <strong>${tally.a}</strong> strata · <strong>${esc(P.lb)}</strong> better in <strong>${tally.b}</strong> · not separated in <strong>${tally.ns}</strong> · too few units for an interval in <strong>${tally.few}</strong>.</p>
+  <div class="mcstrip">${strip.join('')}</div>
+  <p class="muted" style="margin:0 0 10px;font-size:11.5px"><span class="mctile mca"></span> ${esc(P.la)} better · <span class="mctile mcb"></span> ${esc(P.lb)} better · <span class="mctile ns"></span> not separated · <span class="mctile few"></span> too few units for an interval. One tile per stratum of a case, on that case's primary measure; no common scale, so tiles carry only the reading. Hover a tile for its numbers; click to open the case.</p>
   <p class="muted" style="margin:0 0 8px;font-size:12px">One row per stratum of one case, on that case's primary measure and its declared strata (world type, seat, arm, the model on the other side, market difficulty). Rows are not added up: the measures differ in unit and meaning, and strata of one case share worlds when the stratum is a seat or an arm. Open a case to change the measure or the split.</p>
   <div class="scroll"><table class="cct mct"><thead><tr><th>Stratum</th><th>units</th><th>${esc(P.la)}</th><th>${esc(P.lb)}</th><th>${esc(P.la)} − ${esc(P.lb)} <span class="muted">(95% interval)</span></th><th>better on</th><th>reading</th></tr></thead><tbody>${blocks.join('')}</tbody></table></div></section>`;}
 function mcCoverageTab(){const nc=(MC.not_compared||[]).filter(u=>!HIDDEN_FAMILIES.has(u.family));const multi=nc.filter(u=>u.models.length>1),single=nc.filter(u=>u.models.length<2);
