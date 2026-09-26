@@ -928,6 +928,17 @@ FAMILY_ROOT.update({fam: counts.most_common(1)[0][0] for fam, counts in _fam_cou
 (SC / "roots.json").write_text(json.dumps({ROOT_LABEL[r]: str(r) for r in ROOTS}, indent=1))
 
 incident_rows, incident_sections = parse_incident_log()
+COMMON_TOKEN_SHARE = 0.10
+_ROW_TEXTS = [(r["defect"] + " " + r["disposition"] + " " + r["detection"]).lower().replace("-", "_") for r in incident_rows]
+_TOKEN_SHARE: dict = {}
+
+
+def token_row_share(tok: str) -> float:
+    """The share of incident rows whose text uses this identity token as a word."""
+    if tok not in _TOKEN_SHARE:
+        pat = re.compile(rf"\b{re.escape(tok)}\b")
+        _TOKEN_SHARE[tok] = sum(bool(pat.search(t)) for t in _ROW_TEXTS) / max(1, len(_ROW_TEXTS))
+    return _TOKEN_SHARE[tok]
 bundles = sorted(BUNDLE_ROOT, key=lambda b: (str(b.name)))
 catalog = []; check_details = {}
 for bundle in bundles:
@@ -944,12 +955,15 @@ for bundle in bundles:
             "controlled", "canonical", "scripted", "case", "variance", "integrated", "policy", "baselines", "route",
             "commercial", "state", "calibration", "econevals", "govsim", "shared", "runner", "deterministic", "openrouter", "model", "sensitivity", "alt", "morph"}
     distinctive = {t for t in re.split(r"[_-]", cid) if len(t) >= 4 and t not in STOP and not re.fullmatch(r"v\d+|20\d\d.*", t)}
+    # A word that one incident row in ten already uses ("action", "open", "world") says nothing about which run a
+    # row concerns; matched alone it hung open rows on unrelated runs (EX-T-07). It still counts in a section heading.
+    distinctive_in_text = {t for t in distinctive if token_row_share(t) < COMMON_TOKEN_SHARE}
     issues = []
     for r in incident_rows:
         text_all = r["defect"] + " " + r["disposition"] + " " + r["detection"]
         direct = any(d in text_all for d in direct_ids) or any(m in direct_ids for m in r["mentions"])
         heading_hit = section_family(r["section"]) == family and any(tok in r["section"].lower() for tok in distinctive)
-        token_hit = section_family(r["section"]) == family and any(re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")) for tok in distinctive if tok not in ("live", "first", "probe"))
+        token_hit = section_family(r["section"]) == family and any(re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")) for tok in distinctive_in_text if tok not in ("live", "first", "probe"))
         if direct or heading_hit or token_hit:
             if direct:
                 matched = next((d for d in direct_ids if d in text_all), None) or next(m for m in r["mentions"] if m in direct_ids)
@@ -957,7 +971,7 @@ for bundle in bundles:
             elif heading_hit:
                 linked = "its section heading contains " + ", ".join(f"`{tok}`" for tok in sorted(distinctive) if tok in r["section"].lower())
             else:
-                linked = "its text contains " + ", ".join(f"`{tok}`" for tok in sorted(distinctive) if tok not in ("live", "first", "probe") and re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")))
+                linked = "its text contains " + ", ".join(f"`{tok}`" for tok in sorted(distinctive_in_text) if tok not in ("live", "first", "probe") and re.search(rf"\b{re.escape(tok)}\b", text_all.lower().replace("-", "_")))
             issues.append({**{k: (short(r[k], 420) if k in ("defect", "disposition") else r[k]) for k in ("id", "section", "defect", "detection", "cost", "disposition", "state", "line")},
                            "direct": bool(direct), "link": "names the identity" if direct else ("section names it" if heading_hit else "mentions a token of the identity"), "linked_by": linked})
     gate_hits = qc_mentions(family, cid, version)
