@@ -40,7 +40,7 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         plugin.validate_payload(payload)
         raw = {
             "spec_version": CaseManifest.SPEC_VERSION,
-            "case_id": f"{FAMILY_ID}.{spec['split']}.{hashlib.sha256(f'{pack}:{row['slug']}'.encode()).hexdigest()[:8]}",
+            "case_id": f"{FAMILY_ID}.{spec['split']}.{hashlib.sha256((pack + ':' + row['slug']).encode()).hexdigest()[:8]}",
             "family_id": FAMILY_ID, "family_version": FAMILY_VERSION, "split": spec["split"], "world_seed": row["seed"],
             "seats": [{"id": SEAT, "role": SEAT}], "episode": {"max_logical_actions": rounds + 1, "termination": list(TERMINATIONS)},
             "visibility_policy": VISIBILITY_POLICY, "payload": payload,
