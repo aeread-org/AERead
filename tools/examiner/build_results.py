@@ -123,7 +123,8 @@ def walk(node, file: str, path: str, tables: list, intervals: list, headline: li
     if iv_key:
         point_key = next((k for k in node if re.search(r"mean|point|estimate|effect|value|median", k, re.I) and is_num(node[k])), None)
         n_key = next((k for k in node if re.search(r"count|^n$|resamples", k, re.I) and is_num(node[k])), None)
-        intervals.append({"file": file, "path": path, "point": node[point_key] if point_key else None, "lo": node[iv_key][0], "hi": node[iv_key][1],
+        pooled = {k: node[k] for k in ("pairs", "worlds", "cells", "clusters") if is_num(node.get(k))}
+        intervals.append({**({"pooled": pooled} if pooled else {}), "file": file, "path": path, "point": node[point_key] if point_key else None, "lo": node[iv_key][0], "hi": node[iv_key][1],
                           "n": node[n_key] if n_key else None, "interval_key": iv_key})
     # dict of dicts with numeric fields -> keyed table
     vals = [v for v in node.values() if isinstance(v, dict)]

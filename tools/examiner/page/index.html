@@ -1100,10 +1100,10 @@ function stripChart(rows,groupKey,metric){
   return s+'</svg>';
 }
 function barChart(rows,labelKey,metric){
-  const items=rows.map(r=>[String(r[labelKey]??'—'),numOf(r[metric])]).filter(([,v])=>v!==null).slice(0,40);if(!items.length)return '<p class="muted">no numeric values for this metric</p>';
+  const items=rows.map(r=>[labelKey==='key'?niceSeg(r[labelKey]??'—').replace(/^scripted control: /,'control: '):String(r[labelKey]??'—'),numOf(r[metric])]).filter(([,v])=>v!==null).slice(0,40);if(!items.length)return '<p class="muted">no numeric values for this metric</p>';
   const vals=items.map(x=>x[1]);let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(lo===hi)hi=lo+1;const W=680,L=210,R=80,rowH=20,top=6,H=top+items.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
   let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(metric)} by ${esc(labelKey)}">`+axis(x,lo,hi,top,H,W);
-  items.forEach(([n,v],i)=>{const y=top+i*rowH;const x0=x(0),x1=x(v);s+=`<text x="${L-8}" y="${y+14}" text-anchor="end" font-size="11" fill="currentColor">${esc(n.length>28?n.slice(0,27)+'…':n)}</text><rect x="${Math.min(x0,x1)}" y="${y+4}" width="${Math.max(1,Math.abs(x1-x0))}" height="${rowH-8}" fill="var(--accent)" opacity=".75"><title>${esc(n)}: ${esc(fmtNum(v))}</title></rect><text x="${Math.max(x0,x1)+4}" y="${y+14}" font-size="10" fill="var(--muted)">${esc(fmtNum(v))}</text>`;});
+  items.forEach(([n,v],i)=>{const y=top+i*rowH;const x0=x(0),x1=x(v);s+=`<text x="${L-8}" y="${y+14}" text-anchor="end" font-size="11" fill="currentColor">${esc(n.length>34?n.slice(0,33)+'…':n)}</text><rect x="${Math.min(x0,x1)}" y="${y+4}" width="${Math.max(1,Math.abs(x1-x0))}" height="${rowH-8}" fill="var(--accent)" opacity=".75"><title>${esc(n)}: ${esc(fmtNum(v))}</title></rect><text x="${Math.max(x0,x1)+4}" y="${y+14}" font-size="10" fill="var(--muted)">${esc(fmtNum(v))}</text>`;});
   return s+'</svg>';
 }
 function intervalChart(ivs,c){
@@ -1113,7 +1113,7 @@ function intervalChart(ivs,c){
   const byMetric={};items.forEach(v=>{const parts=v.path.split('.');const last=parts[parts.length-1];const m=parts.length>1?parts[parts.length-2]:(v.file||last);(byMetric[m]=byMetric[m]||[]).push({...v,role:true,row:tileKey(last,c)});});
   return Object.entries(byMetric).map(([m,rows])=>{let lo=Math.min(...rows.map(v=>Math.min(v.lo,v.point??v.lo))),hi=Math.max(...rows.map(v=>Math.max(v.hi,v.point??v.hi)));lo=Math.min(lo,0);hi=Math.max(hi,0);if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*.08;lo-=pad;hi+=pad;const W=680,L=300,R=24,rowH=22,top=6,H=top+rows.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
     let s=`<div class="ivm"><div class="muted" style="font-size:12px;margin:6px 0 2px"><span class="em" style="color:var(--ink)">${esc(tileKey(m,c))}</span> · ${rows.length} estimate${rows.length!==1?'s':''}</div><svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(m)} interval estimates">`+axis(x,lo,hi,top,H,W);
-    rows.forEach((v,i)=>{const cy=top+i*rowH+rowH/2;const lab=v.row;const crosses=v.lo<0&&v.hi>0;const col=crosses?'var(--partial)':'var(--accent)';
+    rows.forEach((v,i)=>{const cy=top+i*rowH+rowH/2;const pl=v.pooled||{};const basis=[pl.pairs!=null?pl.pairs+' pairs':null,pl.worlds!=null?pl.worlds+' worlds':null,pl.cells!=null?pl.cells+' cells':null].filter(Boolean).join(', ');const lab=v.row+(basis?' · '+basis:'');const crosses=v.lo<0&&v.hi>0;const col=crosses?'var(--partial)':'var(--accent)';
       s+=`<text x="${L-8}" y="${cy+4}" text-anchor="end" font-size="10.5" fill="currentColor"><title>${esc(v.file)} · ${esc(v.path)}</title>${esc(lab.length>44?'…'+lab.slice(-43):lab)}</text>${typeof v.point==='number'?`<rect x="${Math.min(x(0),x(v.point))}" y="${cy-6}" width="${Math.max(1,Math.abs(x(v.point)-x(0)))}" height="12" rx="2" fill="${col}" opacity=".3"></rect>`:''}<line x1="${x(v.lo)}" y1="${cy}" x2="${x(v.hi)}" y2="${cy}" stroke="${col}" stroke-width="2"><title>${esc(v.path)}: ${esc(fmtNum(v.lo))} to ${esc(fmtNum(v.hi))}${v.n?' · n='+v.n:''}</title></line>${typeof v.point==='number'?`<circle cx="${x(v.point)}" cy="${cy}" r="4" fill="var(--panel)" stroke="${col}" stroke-width="2"><title>point ${esc(fmtNum(v.point))}</title></circle>`:''}`;});
     return s+'</svg></div>';}).join('');
 }
@@ -1124,16 +1124,34 @@ const IDENT_COL=/^(key|cell_key|pair_key|fact_id|task_id|run_id|receipt.*|.*_sha
 // down, read off its path; the file and the path stay underneath as its source. Without it, charts of five scripted
 // controls looked alike and were told apart only by a path segment in the middle of a line.
 const TITLE_SKIP=new Set(['analysis','groups','summary','results','report','reports','tables','data','rows']);
+const niceSeg=s=>String(s).replace(/^scripted_controls\/scripted_/,'scripted control: ').replace(/^scripted_/,'scripted ').replace(/\//g,' · ').replace(/_/g,' ');
+// Tables of one file whose paths differ in one segment only (groups.<arm or control>.exploratory_by_playbook, one per
+// arm and control) are one chart with a picker for that segment, not a row of charts that look alike.
+const pathSegs=t=>String(t.path||'').replace(/\s*\(keyed\)$/,'').split('.');
+function tableGroups(tables){
+  const pat=(t,i)=>t.file+'|'+pathSegs(t).map((x,j)=>j===i?'*':x).join('.')+'|'+/\(keyed\)$/.test(t.path||'');
+  const count={};tables.forEach(t=>pathSegs(t).forEach((_,i)=>{const k=pat(t,i);count[k]=(count[k]||0)+1;}));
+  const used=new Set(),out=[];
+  tables.forEach((t,ti)=>{if(used.has(ti))return;let best=null;pathSegs(t).forEach((_,i)=>{const k=pat(t,i);if(count[k]>=2&&(!best||count[k]>best.c))best={k,i,c:count[k]};});
+   if(!best){used.add(ti);out.push({members:[t],vary:null});return;}
+   const members=tables.map((u,ui)=>[u,ui]).filter(([u,ui])=>!used.has(ui)&&pathSegs(u).length===pathSegs(t).length&&pat(u,best.i)===best.k);
+   members.forEach(([,ui])=>used.add(ui));out.push({members:members.map(([u])=>u),vary:best.i});});
+  return out;}
+function groupCard(g,i,st){if(g.vary==null)return tableCard(g.members[0],i,st);
+  const key=t=>pathSegs(t)[g.vary];const t=g.members.find(m=>key(m)===st.member)||g.members[0];
+  const segs=pathSegs(t).filter((_,j)=>j!==g.vary);const title=tableTitle({file:t.file,path:segs.join('.')});
+  const picker=`<label><strong style="color:var(--ink)">show</strong> <select data-k="member">${g.members.map(m=>`<option value="${esc(key(m))}" ${m===t?'selected':''}>${esc(niceSeg(key(m)))}</option>`).join('')}</select> <span class="muted">${g.members.length} tables with this layout</span></label>`;
+  return tableCard(t,i,st,{title:title+' — '+niceSeg(key(t)),picker});}
 const WHOLE_TABLE={cases:'Every case, one row each',rows:'Every cell, one row each','analysis.groups':'Each arm and control, one row each'};
 function tableTitle(t){
   const bare=String(t.path||'').replace(/\s*\(keyed\)$/,'');if(WHOLE_TABLE[bare])return WHOLE_TABLE[bare];
-  if(/^arms\./.test(bare))return 'Arm settings — '+bare.slice(5).replace(/_/g,' ');
+  if(bare==='arms')return 'Arm settings';if(/^arms\./.test(bare))return 'Arm settings — '+bare.slice(5).replace(/_/g,' ');
   const segs=bare.split('.').filter(s=>s&&!TITLE_SKIP.has(s)&&!/^\[\d+\]$/.test(s));
-  const nice=s=>s.replace(/^scripted_controls\/scripted_/,'scripted control: ').replace(/^scripted_/,'scripted ').replace(/\//g,' · ').replace(/_/g,' ');
+  const nice=niceSeg;
   const what=s=>{const m=/^(exploratory_)?by_(.+)$/.exec(s);return m?`by ${m[2].replace(/_/g,' ')}${m[1]?' (exploratory)':''}`:nice(s);};
   if(!segs.length)return tileSource(t.file);
   const last=segs.pop();const x=[...segs.map(nice),what(last)].join(' — ');return x.charAt(0).toUpperCase()+x.slice(1);}
-function tableCard(t,i,st){
+function tableCard(t,i,st,opt={}){
   const metricRank=m=>(/margin|score|npv|payoff|regret|utility|welfare|delta|effect/i.test(m)?0:(/accuracy|rate|kits|feasible|compliance|harvest|survival|gini|value|mean/i.test(m)?1:2))+(/token|cost|elapsed|latency|count|seconds|order|ordinal|ceiling|budget/i.test(m)?3:0);
   const hints=(t._hints||[]).map(h=>String(h).toLowerCase());let hinted=null;for(const h of hints){const m=t.numeric.find(m=>h.includes(m.toLowerCase())||m.toLowerCase().includes(h));if(m){hinted=m;break;}}
   const metric=t.numeric.includes(st.metric)?st.metric:(hinted||t.numeric.slice().sort((a,b)=>metricRank(a)-metricRank(b))[0]);const cats=t.categorical||[];const labelOK=t.label&&!cats.includes(t.label)&&new Set(t.rows.map(r=>r[t.label])).size<=24;
@@ -1141,7 +1159,7 @@ function tableCard(t,i,st){
   // a column the run produced (decision, status, feasible, passed...) splits cells by what happened, so it is never the default grouping; nor is a row identity
   const groupOpts=['none',...cats,...(labelOK?[t.label]:[])];const usable=cats.filter(k=>{const n=new Set(t.rows.map(r=>r[k])).size;return n>=2&&n<=12&&!OUTCOME_COL.test(k.split('.').pop())&&!IDENT_COL.test(k.split('.').pop());});const auto=usable.slice().sort((a,b)=>{const ia=GROUP_PREF.indexOf(a),ib=GROUP_PREF.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);})[0]||'none';const group=groupOpts.includes(st.group)?st.group:auto;const byOutcome=group!=='none'&&OUTCOME_COL.test(group.split('.').pop());
   const chart=(group==='none'&&t.label&&t.rows.length<=40)?barChart(t.rows,t.label,metric):stripChart(t.rows,group==='none'?null:group,metric);
-  return `<div class="rcard" data-i="${i}"><div class="rtitle">${esc(tableTitle(t))} <span class="muted">· ${esc(String(metric).replace(/_/g,' '))}</span></div><div class="rhead"><span class="mono">${esc(t.file)}</span> <span class="muted">· ${esc(t.path)} · ${t.row_count} rows${t.note?' · '+esc(t.note):''}</span></div><div class="rctl"><label>metric <select data-k="metric">${t.numeric.map(m=>`<option ${m===metric?'selected':''}>${esc(m)}</option>`).join('')}</select></label><label>group by <select data-k="group">${groupOpts.map(g=>`<option value="${esc(g)}" ${g===group?'selected':''}>${esc(g)}${g!=='none'&&OUTCOME_COL.test(g.split('.').pop())?' (an outcome, not a stratum)':''}</option>`).join('')}</select></label></div>${byOutcome?`<p class="banner" style="margin:2px 0 6px">Grouped by <span class="mono">${esc(group)}</span>, which the run produced: the groups differ because of what happened in them, and each model chooses which of its cells land in which group. This describes the rows; it is not a comparison of anything the design fixed.</p>`:''}<div class="graph">${chart}</div><div class="legend" style="margin-top:2px">${(group==='none'&&t.label&&t.rows.length<=40)?'<span>bar = the row\'s value</span>':'<span>● one row</span><span><b style="color:var(--accent)">|</b> group mean</span><span><b style="color:var(--accent)">▬</b> 95% bootstrap interval of the group mean, resampling that group’s rows as if independent (600 draws; computed here, not by the bundle). Grouped by world, a group’s rows are its seeds, so the bar shows seed-to-seed spread inside one world, not a confidence interval for a model; the world-level intervals are in the Model comparison tab and the estimates above.</span>'}</div><details class="jd"><summary>rows (${t.rows.length} of ${t.row_count})</summary>${jv(t.rows.slice(0,60))}</details></div>`;
+  return `<div class="rcard" data-i="${i}"><div class="rtitle">${esc(opt.title||tableTitle(t))} <span class="muted">· ${esc(String(metric).replace(/_/g,' '))}</span></div><div class="rhead"><span class="mono">${esc(t.file)}</span> <span class="muted">· ${esc(t.path)} · ${t.row_count} rows${t.note?' · '+esc(t.note):''}</span></div><div class="rctl">${opt.picker||''}<label>metric <select data-k="metric">${t.numeric.map(m=>`<option ${m===metric?'selected':''}>${esc(m)}</option>`).join('')}</select></label><label>group by <select data-k="group">${groupOpts.map(g=>`<option value="${esc(g)}" ${g===group?'selected':''}>${esc(g)}${g!=='none'&&OUTCOME_COL.test(g.split('.').pop())?' (an outcome, not a stratum)':''}</option>`).join('')}</select></label></div>${byOutcome?`<p class="banner" style="margin:2px 0 6px">Grouped by <span class="mono">${esc(group)}</span>, which the run produced: the groups differ because of what happened in them, and each model chooses which of its cells land in which group. This describes the rows; it is not a comparison of anything the design fixed.</p>`:''}<div class="graph">${chart}</div><div class="legend" style="margin-top:2px">${(group==='none'&&t.label&&t.rows.length<=40)?'<span>bar = the row\'s value</span>':'<span>● one row</span><span><b style="color:var(--accent)">|</b> group mean</span><span><b style="color:var(--accent)">▬</b> 95% bootstrap interval of the group mean, resampling that group’s rows as if independent (600 draws; computed here, not by the bundle). Grouped by world, a group’s rows are its seeds, so the bar shows seed-to-seed spread inside one world, not a confidence interval for a model; the world-level intervals are in the Model comparison tab and the estimates above.</span>'}</div><details class="jd"><summary>rows (${t.rows.length} of ${t.row_count})</summary>${jv(t.rows.slice(0,60))}</details></div>`;
 }
 // Headline tiles: a readable label (the last two path segments, underscores as
 // spaces) and a short source; the full file and path stay in the hover title.
@@ -1183,9 +1201,9 @@ function renderResults(c,res){
   else{const st=resultsUI[c.id]=resultsUI[c.id]||{};
    const rank=h=>(/rate|admission|mean|delta|score|margin|npv|regret|effect|fraction|share|median|payoff/i.test(h.path)?0:1)+(/cost|ceiling|max_|count|tokens|seed|budget/i.test(h.path)?2:0);
    const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(tileKey(h.path,c))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(tileSource(h.file))}</div></div>`).join('');
-   const pre=preregBars(c);const ivs=(res.intervals||[]).filter(v=>!(pre&&/^reports\/confirmatory_vs_/.test(v.file)));const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40),c)}</div></div>`:'';
+   const pre=preregBars(c);const ivs=(res.intervals||[]).filter(v=>!(pre&&/^reports\/confirmatory_vs_/.test(v.file)));const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} published estimate${ivs.length!==1?'s':''}: each is one number pooled over every world it covers, with its 95% interval (how many pairs and worlds, where the bundle says); amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40),c)}</div></div>`:'';
    res.tables.forEach(t=>{t._hints=res.primary_hints||[];});
-   const cards=res.tables.map((t,i)=>tableCard(t,i,st[i]=st[i]||{})).join('');
+   const cards=tableGroups(res.tables).map((g,i)=>groupCard(g,i,st[i]=st[i]||{})).join('');
    const hintLine=(res.primary_hints||[]).length?`<p class="muted" style="margin:0 0 6px;font-size:12.5px">The bundle names its guarded or primary metric: <span class="mono">${esc(res.primary_hints.join(', '))}</span>. Charts open on that metric where a table carries it.</p>`:'';
    body=`<p class="muted" style="margin:0 0 6px;font-size:12.5px">Every numeric table and interval the bundle publishes, charted as published. Dots are rows; the bar is a 95% bootstrap interval of the group mean and the tick its mean (computed here, not by the bundle).</p>${hintLine}${head?`<div class="tiles" style="margin-bottom:8px">${head}</div>`:''}${pre}${ivHtml}${cards}`;}
   el.innerHTML=`<div class="tabs" style="margin:0 0 10px">${tabs.map(([k,l])=>`<button data-rt="${k}" class="${k===cur?'cur':''}">${l}</button>`).join('')}</div>${body}`;
