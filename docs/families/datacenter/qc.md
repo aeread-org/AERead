@@ -72,6 +72,7 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_counteroffer_action_schema_v1` | 1.0.0 | `shared_offer_schema` against `dedicated_accept_schema` | 2 files, same world |
 | `datacenter_development_terms_v1` | 1.0.0 | single-phase report on SEC-grounded project terms | 6 on-disk packs (20 authored cases) plus 8 derived packs |
 | `datacenter_risk_allocation_v1` | 0.1.0 | integrator-client negotiation of who bears which risk, one model seat against a scripted counterpart; registration in draft PR #219 (kernel lane); gates in §10 | `risk_allocation_dev_v1` (16 worlds), `risk_allocation_two_prices_dev_v1`, `risk_allocation_eval_v1` (32 worlds) |
+| `datacenter_risk_allocation_two_sided_v1` | 0.1.0 | the same case with both seats played by models, graded on the exact outcome (joint value lost at both true types); registration in #224 (kernel lane); gates in §10 | `two_sided_eval_v1` (the 32 eval worlds) |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,
@@ -626,4 +627,15 @@ false. v2's result: Gemini gives up less than GLM at low effort in both seats
 reasoning in the client seat (+50, interval above zero); at default reasoning in
 the integrator seat GLM is lower (−27, interval reaching zero). Both costs are
 floors: v1's (DC-T-13) and v2's $8.94 (DC-T-14).
+
+**The two-sided family (`datacenter_risk_allocation_two_sided_v1`).** Gate 2
+passed: a full-information oracle pair loses zero on all 32 worlds through the
+kernel path and every receipt replays. Gate 3 partial: the rules pair runs in the
+same campaign as the lower control; per-move quality is not measured, only the
+outcome. Gate 5 not confirmatory: `datacenter_risk_allocation_two_sided_dev_campaign_v1`
+declared eight seat contrasts before any cell ran and publishes them as
+descriptive, claim flags false. GLM as client lost less joint value than Gemini as
+client against either integrator (intervals below zero); the integrator-seat
+contrasts are not separated. The campaign's cost, $1.40, is a floor (three calls
+of unknown outcome).
 

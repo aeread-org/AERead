@@ -480,6 +480,78 @@ Around the contrast:
 - **The controls hold.** The reference graded zero on all 64 of its cells;
   the rules averaged 284 to 358, above every model group (28 to 257).
 
+## Two-sided: both seats played
+
+`datacenter_risk_allocation_two_sided_v1` seats a model on each side. It is its
+own family id, plugin and scorer (`risk_allocation_two_sided*.py`, registry row
+in #224), so the one-sided files and every one-sided receipt are unchanged.
+
+**Protocol.** The same worlds, types, round cost and break-off. Moves alternate,
+the integrator first, six in all (three each), which is the one-sided game's
+shape: a proposal is a full package and a price (a standing offer the other side
+may accept) or a price request (price null), and the client's last move can only
+accept or walk. A proposal that is not accepted costs its proposer the round cost,
+and after it the negotiation breaks off with the world's probability, by a draw
+stored per world, so every pairing meets the same luck in the same world. Each
+seat sees the other side only as the declared prior; the counterpart's pricing
+rule of the one-sided brief is gone, because there is none.
+
+**What is graded, and why only this.** Per-move regret needs a declared rule to
+best-respond to; with a model opposite there is none. What stays exact is the
+outcome at both parties' true private costs:
+
+- **joint value lost**: the surplus the best outcome for the two true types makes
+  available (the efficient package, or no deal when no package beats both outside
+  options) less the surplus the pair realised, round costs included. It splits
+  exactly into allocation, no-deal and delay losses;
+- each side's surplus over its outside option, and whether a signed deal left a
+  side below it (an individual-rationality violation).
+
+**Controls.** A full-information oracle pair signs the efficient contract at once
+and loses zero on all 32 eval worlds; the one-sided counterparts' pricing rules,
+playing each other, lose 306.7 on average (allocation 174.0, no deal 80.4, delay
+52.3), because neither ever changes the package.
+
+**Campaign.** `datacenter_risk_allocation_two_sided_dev_campaign_v1` (plan
+`f50daf8a9fd5`): the four pairings of Gemini 3.8 Flash and GLM 5.3 Flash, each as
+client against each as integrator, on the 32 eval worlds, two replicates, low
+effort, with the controls in the run. The frozen plan declares eight seat
+contrasts: swap one seat's model with the other seat's held fixed, paired on world
+and replicate, on joint value lost and on the swapped seat's own surplus.
+
+**Result** (320 cells, $1.40 lower bound, bundle
+`evidence/datacenter_development/datacenter_risk_allocation_two_sided_dev_campaign_v1/`).
+Joint value lost per negotiation, $ thousands, 95% world-clustered interval:
+
+| client / integrator | valid | joint value lost | of which no deal | deals where gains existed | IR violations client / integrator | client's share of the surplus (median) |
+|---|---|---|---|---|---|---|
+| Gemini / Gemini | 64/64 | 441 [252, 698] | 305 | 37 of 52 | 7 / 14 | 0.91 |
+| Gemini / GLM | 63/64 | 538 [369, 721] | 436 | 20 of 51 | 6 / 1 | 0.50 |
+| GLM / Gemini | 61/64 | 342 [191, 537] | 235 | 37 of 50 | 8 / 2 | 0.55 |
+| GLM / GLM | 56/64 | 441 [279, 650] | 326 | 26 of 45 | 11 / 4 | 0.41 |
+| rules / rules | 32/32 | 307 [214, 409] | 80 | 18 of 26 | 0 / 0 | 0.50 |
+| oracle / oracle | 32/32 | 0 | 0 | 26 of 26 | 0 / 0 | 0.50 |
+
+- **Two models lose more than two scripted rules.** Three of the four model
+  pairings lose more joint value than the one-sided pricing rules playing each
+  other, and most of it is deals not made: 15 to 19 negotiations per pairing
+  broke off after proposals went unanswered, and a Gemini client walked from 15
+  worlds where a deal would have paid both sides against a GLM integrator. What
+  they allocate when they do sign is close to efficient (allocation loss 14 to 60).
+- **The client seat matters, the integrator seat is not separated.** With the
+  other seat held, GLM as client loses less than Gemini as client: −88 [−194, −7]
+  against a Gemini integrator and −90 [−174, −15] against a GLM integrator. In the
+  integrator seat GLM loses more, +94 [−72, +249] and +104 [−27, +234], intervals
+  across zero. No seat's own surplus separates.
+- **Gemini as integrator gives the deal away.** Against a Gemini client it signed
+  below its own outside option in 14 of 45 deals (median 157 below), and the
+  client took 91% of the realised surplus; as integrator GLM did so 1 to 4 times.
+  Clients signed above their turnkey price 6 to 11 times per pairing, measured at
+  what the client knew (its expected cost over the declared prior gives the same
+  count as the true type).
+- **Missing:** 12 of 256 model episodes, all GLM: 10 replies past the 32,000-token
+  limit and 2 timeouts (DC-O-13). Descriptive, one pack, no ranking.
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.
