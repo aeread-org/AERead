@@ -134,3 +134,21 @@ def test_the_pack_pairs_with_the_one_sided_eval_pack() -> None:
         assert case["payload"]["breakoff_draws"][:2] == json.loads(
             (Path(tp.REPOSITORY_ROOT) / "cases" / "datacenter_risk_allocation_v1" / "risk_allocation_eval_v1"
              / f"{world['one_sided_case_ids']['client']['case_id'].rsplit('.', 1)[-1]}.json").read_text())["payload"]["breakoff_draws"]
+
+
+def test_each_seat_contrast_swaps_one_seats_model_and_pairs_on_world_and_replicate() -> None:
+    from aeread_families.datacenter_development import risk_allocation_two_sided_publication as pub
+
+    assert pub._contrast_pairings("client", "integrator", "gemini38_flash") == ("gemini_client_gemini_integrator", "glm_client_gemini_integrator")
+    assert pub._contrast_pairings("integrator", "client", "glm53_flash") == ("glm_client_gemini_integrator", "glm_client_glm_integrator")
+
+    def row(pairing, world, rep, lost, cs, valid=True):
+        return {"pairing": pairing, "world": world, "twin_of": None, "case_id": world, "replicate_index": rep, "valid": valid,
+                "joint_value_lost": lost, "client_surplus": cs, "integrator_surplus": 0.0, "allocation_loss": lost, "no_deal_loss": 0.0,
+                "delay_loss": 0.0, "signed_package": "p", "available_surplus": 10.0, "efficient_contract_signed": False,
+                "client_ir_violation": False, "integrator_ir_violation": False, "client_share": 0.5, "termination": "signed"}
+    rows = [row("gemini_client_gemini_integrator", "w1", 0, 100.0, 50.0), row("glm_client_gemini_integrator", "w1", 0, 40.0, 80.0),
+            row("gemini_client_gemini_integrator", "w2", 1, 10.0, 5.0), row("glm_client_gemini_integrator", "w2", 1, 30.0, 0.0, valid=False)]
+    c = pub.analysis(rows, {"primary": ""})["seat_contrasts"]["client seat GLM minus Gemini, integrator gemini"]
+    assert c["joint_value_lost"]["pairs"] == 1 and c["joint_value_lost"]["mean_difference"] == -60.0
+    assert c["client_surplus"]["mean_difference"] == 30.0
