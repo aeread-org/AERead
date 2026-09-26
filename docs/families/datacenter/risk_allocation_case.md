@@ -730,6 +730,10 @@ is mostly price. The terms missed most often are the damages rate (Gemini 37 of
 89 signed deals, GLM 48 of 92) and, for GLM, consequential cover (35). Gemini at
 low effort reproduced v1's cells exactly: the same request seeds gave the same
 regret, 416, and the same cost.
+Two lower controls coincide outside turnkey worlds: in managed worlds the cheapest
+listed offer is the base, and in coordination worlds it is the base with a cap that
+never binds, so taking the cheapest listed price and accepting the base score the
+same there (DC-D-28).
 
 A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
 output sends enum values as strings, so every term level is a string or a boolean
