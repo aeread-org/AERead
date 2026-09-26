@@ -599,10 +599,33 @@ worlds (`menu_eval_v1`). Through the kernel path the reference grades zero on al
 haggle the base item, walk to the rival turnkey.
 
 **Campaign.** `datacenter_risk_allocation_menu_dev_campaign_v1` (plan
-`43f89f8ecb46`): both models at low effort and at default reasoning, two
-replicates, the reference and the four rules seated in the run as controls. GLM's
-default-reasoning limits are raised from what v2 recorded (DC-O-12): 3,000 s and
-120,000 tokens.
+`43f89f8ecb46`, 468 cells, $5.11 lower bound: 15 calls of unknown outcome):
+both models at low effort and at default reasoning, two replicates, the reference
+and the four rules seated in the run as controls. Bundle:
+`evidence/datacenter_development/datacenter_risk_allocation_menu_dev_campaign_v1`.
+
+| client | valid | decision regret [95% CI] | signed the best item | walked to the best outside |
+|---|---|---|---|---|
+| Gemini 3.8 Flash, low effort | 70/72 | 453 [350, 561] | 5 of 47 | 3 of 23 |
+| GLM 5.3 Flash, low effort | 64/72 | 270 [193, 353] | 5 of 41 | 12 of 23 |
+| Gemini 3.8 Flash, default reasoning | 72/72 | 182 [136, 232] | 9 of 48 | 22 of 24 |
+| GLM 5.3 Flash, default reasoning | 35/72 | 46 [28, 67] | 1 of 17 | 15 of 18 |
+| reference (control) | 36/36 | 0 | 22 of 24 | 12 of 12 |
+
+The declared contrast, GLM minus Gemini on the same world and replicate: −190
+[−307, −96] at low effort (62 pairs, 35 worlds) and −91 [−148, −41] at default
+reasoning (35 pairs, 23 worlds). Default reasoning lowers regret for both models
+(Gemini −269, GLM −226, intervals below zero). GLM's default arm is the half of the
+worlds it finished (DC-O-14: 17 replies cut off at 120,000 tokens, 13 timeouts at
+3,000 s), and in those it mostly walked: its cost over the best attainable is 63 of
+walking or break-off and almost nothing of item or price.
+
+Checked after the run (not declared): the models' cost over the best attainable
+is mostly price, paid above the integrator's last-round price (Gemini 179 of 238
+at default reasoning, 226 of 499 at low effort; GLM 182 of 321 at low effort),
+then the item signed (32, 176 and 98). The menu case therefore measures haggling
+more than choosing the item. No model counter was refused at a rounded price
+(DC-D-26: 0 of 197).
 
 ## Every term the case can model: the full-terms menu
 

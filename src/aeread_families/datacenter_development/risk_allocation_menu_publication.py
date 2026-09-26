@@ -21,6 +21,8 @@ from aeread.shared_runner.run.publication import assert_public_payload, atomic_p
 from aeread.shared_runner.run.publish_trajectories import publish_trajectory_grain
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
+from . import risk_allocation as ra
+from . import risk_allocation_menu as rm
 from . import risk_allocation_menu_pack as mp
 from . import risk_allocation_publication as op
 
@@ -118,12 +120,64 @@ def analysis(rows: list[dict[str, Any]], arms: list[str], declared: dict[str, An
     return out
 
 
+POST_HOC_NOTE = ("computed after the run, on 2026-09-26, to check the design; not declared in the frozen plan. The split divides each "
+                 "valid episode's cost over the best attainable (at the integrator's true type) into the item it signed, the price it paid over "
+                 "that item's last-round price, walking or breaking off when a deal was better, and refused counters; it does not divide "
+                 "decision regret, which is scored on the client's information")
+
+
+def _final_states(run_dir: Path, cell_key: str) -> dict[str, Any] | None:
+    state = None
+    for events in (run_dir / "evidence" / cell_key).rglob("events.jsonl"):
+        for line in events.read_text().splitlines():
+            e = json.loads(line)
+            if e["event_type"] == "transition_applied":
+                state = json.loads((events.parent / e["payload_ref"]).read_text())["transition"]["state"]
+    return state
+
+
+def post_hoc(run_dir: Path, rows: list[dict[str, Any]], payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """The cost split per group, and DC-D-26: model counters refused within $50k below the price the integrator signs at."""
+    split: dict[str, dict[str, list[float]]] = {}
+    near, counters = [], 0
+    for r in rows:
+        if not r.get("valid"):
+            continue
+        mw, it = rm.menu_world_from(payloads[r["case_id"]])
+        _, best = rm.best_item(mw, it)
+        target = min(best, mw.best_outside[1])
+        rounds = r["refused_counters"] * mw.w.terms.round_cost
+        if r["signed_item"] is not None:
+            k = rm.LABELS.index(r["signed_item"])
+            item = rm.threshold(mw.playbook, mw.items[k], mw.w, it, mw.w.rounds) + ra.client_cost(mw.items[k], mw.w, it) - target
+            parts = {"item": item, "price": r["price_over_floor"], "walk": 0.0, "refused_counters": rounds}
+        else:
+            parts = {"item": 0.0, "price": 0.0, "walk": r["realised_cost"] - rounds - target, "refused_counters": rounds}
+        g = split.setdefault(f"{r['arm']}/{r['route_id']}", {k: [] for k in parts})
+        for k, v in parts.items():
+            g[k].append(v)
+        if r["route_id"].startswith(SCRIPTED):
+            continue
+        state = _final_states(run_dir, r["cell_key"]) or {}
+        for d in state.get("decisions", []):
+            if d["kind"] == "propose":
+                counters += 1
+                thr = rm.threshold(mw.playbook, mw.items[d["item"]], mw.w, it, d["round"])
+                if thr - 0.05 <= d["price"] < thr - 1e-6:
+                    near.append({"cell_key": r["cell_key"], "round": d["round"], "short_by": round(thr - d["price"], 4)})
+    return {
+        "note": POST_HOC_NOTE,
+        "cost_over_best_attainable_split": {k: {part: round(statistics.fmean(v), 3) for part, v in g.items()} for k, g in sorted(split.items())},
+        "dc_d_26_rounding": {"model_counters_in_valid_episodes": counters, "refused_within_50_below_the_price": len(near), "cells": near},
+    }
+
+
 def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
     plan = json.loads((run_dir / "campaign_plan.json").read_text())
     if bundle.exists():
         raise SystemExit(f"{bundle} exists; a published bundle is never edited")
     records = [json.loads(p.read_text()) for p in sorted((run_dir / "cells").glob("*.json"))]
-    manifest, _ = mp.load(plan["pack"])
+    manifest, raw_cases = mp.load(plan["pack"])
     worlds = {w["case_id"]: w for w in manifest["worlds"]}
     projections, rows, attempts = [], [], []
     for r in records:
@@ -153,6 +207,7 @@ def publish(run_dir: Path, bundle: Path) -> dict[str, Any]:
     summary = {"campaign_id": plan["campaign_id"], "plan_sha256": plan["plan_sha256"], "claim_status": plan["claim_status"], "arms": plan["arms"],
                "routes": sorted(plan["routes"]), "controls": plan["controls"], "analysis": analysis(rows, list(plan["arms"]), plan["declared_analysis"]),
                "cost_usd_total": acc["total_cost_usd"], **acc}
+    summary["analysis"]["post_hoc"] = post_hoc(run_dir, rows, {cid: c["payload"] for cid, c in raw_cases.items()})
     for sub in ("receipts", "tables", "reports"):
         (bundle / sub).mkdir(parents=True, exist_ok=sub != "receipts")
     atomic_publish(bundle / "receipts" / "projections.jsonl", jsonl(projections))
@@ -206,6 +261,15 @@ def _readme(s: dict[str, Any]) -> str:
         lines += ["", "Default reasoning minus low effort, same worlds:", "", "| client | pairs | difference |", "|---|---|---|"]
         for m, c in a["default_minus_low"].items():
             lines.append(f"| {m} | {c['pairs']} | {c['mean_difference']}{_ci(c['ci95'])} |" if c else f"| {m} | 0 | — |")
+    ph = a.get("post_hoc")
+    if ph:
+        lines += ["", "## Checked after the run", "", f"Not declared: {ph['note']}.", "",
+                  "| arm / client | item | price over last-round price | walking or break-off | refused counters |", "|---|---|---|---|---|"]
+        for key, g in ph["cost_over_best_attainable_split"].items():
+            lines.append(f"| {key} | {g['item']} | {g['price']} | {g['walk']} | {g['refused_counters']} |")
+        r26 = ph["dc_d_26_rounding"]
+        lines += ["", f"DC-D-26 (prices shown rounded, signed unrounded): {r26['refused_within_50_below_the_price']} of "
+                      f"{r26['model_counters_in_valid_episodes']} model counters in valid episodes were refused within $50 below the price."]
     lines += ["", f"Claim: {d['claim']}.", "", f"The reference graded zero regret on every cell: {a['reference_is_zero_everywhere']}.", "",
               "## Accounting", "",
               f"{s['completed_cells']} of {s['planned_cells']} planned cells executed, {s['operational_failure_cells']} sealed as typed exclusions, "

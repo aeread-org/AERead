@@ -641,6 +641,15 @@ client against either integrator (intervals below zero); the integrator-seat
 contrasts are not separated. The campaign's cost, $1.40, is a floor (three calls
 of unknown outcome).
 
+**The playbook menu (`datacenter_risk_allocation_menu_v1`).** Gate 2 passed: the
+reference graded zero on all 36 of its cells in the run and every receipt replayed.
+Gate 3 partial: four rules lose 364 to 728 under the same kernel path; a check after
+the run shows the models' shortfall is mostly price, not the item, so the case
+separates hagglers more than item choosers. Gate 5 not confirmatory:
+`datacenter_risk_allocation_menu_dev_campaign_v1` (468 cells, $5.11 floor) reports
+GLM minus Gemini of −190 [−307, −96] at low effort and −91 [−148, −41] at default
+reasoning, the latter on the 35 of 72 GLM cells that finished (DC-O-14).
+
 **The full-terms menu (`datacenter_risk_allocation_contracts_v1`).** Gate 1
 passed for a diagnostic: eleven situations, each admitted only when its lesson
 holds for the reference, the deal and walking are $150k apart and the shortcuts it
