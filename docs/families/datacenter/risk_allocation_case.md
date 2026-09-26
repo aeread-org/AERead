@@ -693,6 +693,20 @@ Choosing the contract and the price tactics both move regret by hundreds; a clie
 that picks the right contract without knowing the pricing policy keeps 41 to 65,
 which is the floor reachable without the policy.
 
+**Campaign v1 ran on an empty account.** `datacenter_risk_allocation_contracts_dev_campaign_v1`
+(plan `b93fcd7df256`, bundle under `evidence/datacenter_development/`) lost 214 of
+its 348 model cells to HTTP 402 from the provider (DC-O-15): Gemini at default
+reasoning 0 of 116 valid, GLM at low effort 18 of 116, so the declared contrast has
+18 pairs and is not read. What it does hold, complete: Gemini 3.8 Flash at low
+effort, 116 of 116, decision regret 416 [361, 468], worse on average than asking
+for every protection (384), haggling the base (389) or walking (399); its cost over
+the best attainable splits into 133 for the contract it signed, 291 of price over
+the last-round price, 50 of walking or break-off and 10 of refused counters. Over
+its 89 signed deals in deal worlds it most often missed the damages rate (37), the
+liability cap (23), readiness (22), burn-in (20), warranty (19) and consequential
+cover (19). `..._v2` is the same design with a balance floor checked before any
+model cell and a stop at the first 402; it waits on a top-up.
+
 A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
 output sends enum values as strings, so every term level is a string or a boolean
 (DC-T-19); after the fix both models' moves all parse.

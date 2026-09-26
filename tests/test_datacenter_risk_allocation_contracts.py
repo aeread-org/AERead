@@ -162,3 +162,13 @@ def test_scripted_clients_seal_verified_replayable_receipts_and_the_reference_sc
             assert record["grade"]["decision_regret"] == 0.0
         else:
             assert record["grade"]["decision_regret"] >= 0.0
+
+
+def test_the_campaign_checks_the_account_before_any_model_cell_and_stops_at_the_first_402() -> None:
+    plan = {"min_account_balance_usd": 8.0, "plans": [{"route_id": "gemini38_flash"}, {"route_id": f"{cc.SCRIPTED}reference"}]}
+    with pytest.raises(SystemExit, match="below the plan's floor"):
+        cc.preflight(plan, balance=lambda: 0.5)
+    cc.preflight(plan, balance=lambda: 9.0)
+    cc.preflight({**plan, "plans": [{"route_id": f"{cc.SCRIPTED}reference"}]}, balance=lambda: 0.0)  # controls cost nothing
+    assert cc.is_out_of_credit(RuntimeError("Error code: 402 - {'error': {'message': 'Insufficient credits'}}"))
+    assert not cc.is_out_of_credit(RuntimeError("Error code: 429 - rate limited"))

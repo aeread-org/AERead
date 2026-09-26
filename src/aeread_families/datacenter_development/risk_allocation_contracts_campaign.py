@@ -19,6 +19,8 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
+import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -58,7 +60,10 @@ from .risk_allocation_two_sided_measurement import combined_sha256
 
 HERE = Path(__file__).parent
 REPOSITORY_ROOT = HERE.parents[2]
-CAMPAIGN_ID = "datacenter_risk_allocation_contracts_dev_campaign_v1"
+# v1 (plan b93fcd7df256) ran against an exhausted account and lost 214 of 348 model cells to HTTP 402 (DC-O-15).
+# v2 is the same design with two operational controls in its plan: a balance floor checked before any model cell,
+# and a stop at the first 402 that leaves the remaining cells not attempted.
+CAMPAIGN_ID = "datacenter_risk_allocation_contracts_dev_campaign_v2"
 PACK = "contracts_eval_v1"
 SEED = oc.SEED
 REQUEST_SEED_BASE = 20260928
@@ -75,6 +80,8 @@ ARMS: dict[str, dict[str, Any]] = {
 REPLICATES = 2
 WORKERS = {"gemini38_flash": 6, "glm53_flash": 12}
 MAX_COST_USD_TOTAL = 8.0
+MIN_ACCOUNT_BALANCE_USD = MAX_COST_USD_TOTAL  # the OpenRouter balance must cover the whole cap before a model cell starts
+HALT: dict[str, str | None] = {"reason": None}  # set at the first HTTP 402: every later cell is not attempted
 MAX_WALL_HOURS = 6.0
 # GLM at default reasoning lost 28 of its first 44 menu cells to 120,000-token cut-offs and 3,000 s timeouts (DC-O-14):
 # not seated here. Its low-effort arm is.
@@ -297,7 +304,9 @@ def freeze(directory: Path, *, arms: Sequence[str] | None = None, routes: Sequen
         "routes": {r: asdict(oc.ROUTES[r]) for r in routes}, "controls": list(CONTROL_POLICIES) if controls else [], "replicates": REPLICATES,
         "not_seated": {f"{a}/{r}": why for (a, r), why in NOT_SEATED.items()},
         "retry": oc.RETRY_V2, "request_seed_base": REQUEST_SEED_BASE, "workers": WORKERS, "max_cost_usd_total": MAX_COST_USD_TOTAL,
-        "max_wall_hours": MAX_WALL_HOURS, "seed": SEED, "system_prompt": SYSTEM_PROMPT,
+        "max_wall_hours": MAX_WALL_HOURS, "min_account_balance_usd": MIN_ACCOUNT_BALANCE_USD,
+        "stop_rule": "the first provider reply of HTTP 402 (insufficient credits) stops the campaign; cells not yet started stay not attempted",
+        "seed": SEED, "system_prompt": SYSTEM_PROMPT,
         "pack_manifest_sha256": hashlib.sha256(canonical_json_bytes(manifest)).hexdigest(), "declared_analysis": DECLARED_ANALYSIS,
         "sources": {rel: _digest_file(rel) for rel in SOURCES}, "plans": plans,
     }
@@ -320,6 +329,8 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
     if record_path.exists():
         return json.loads(record_path.read_text())
     async with sem:
+        if HALT["reason"]:
+            return {"cell_key": key, "status": f"not_attempted_{HALT['reason']}"}
         if spend.exhausted:
             return {"cell_key": key, "status": "not_attempted_budget"}
         if spend.past_deadline:
@@ -347,6 +358,8 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
                           kernel_cost_usd=float(execution.total_cost_usd or 0.0), provider_calls=answered, calls_outcome_unknown=unknown,
                           termination=outcome.get("termination"), grade=outcome.get("grade"))
         except Exception as error:  # a failed cell is sealed as a typed exclusion, never rerun
+            if is_out_of_credit(error):
+                HALT["reason"] = "account_out_of_credit"
             try:
                 receipt = finalize_family_failure(setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error, leaf_builder=primary_measurement_leaf)
                 record.update(status=receipt.status, receipt_sha256=receipt.receipt_sha256, error=f"{type(error).__name__}: {str(error)[:300]}")
@@ -363,8 +376,30 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
         return record
 
 
+def is_out_of_credit(error: BaseException) -> bool:
+    return "Error code: 402" in str(error)
+
+
+def account_balance_usd() -> float:
+    """What the OpenRouter account has left: credits bought less usage. The key is read from the environment and never printed."""
+    request = urllib.request.Request("https://openrouter.ai/api/v1/credits", headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = json.loads(response.read())["data"]
+    return float(data["total_credits"]) - float(data["total_usage"])
+
+
+def preflight(plan: Mapping[str, Any], balance: Any = account_balance_usd) -> None:
+    floor = plan.get("min_account_balance_usd")
+    if floor is None or all(e["route_id"].startswith(SCRIPTED) for e in plan["plans"]):
+        return
+    have = balance()
+    if have < floor:
+        raise SystemExit(f"the OpenRouter balance is ${have:.2f}, below the plan's floor of ${floor:.2f}; top it up before running (DC-O-15)")
+
+
 async def run(directory: Path, *, first_cells: int | None = None) -> None:
     plan = _check(directory)
+    preflight(plan)
     spend = oc.Spend(plan["max_cost_usd_total"], plan.get("max_wall_hours"))
     for p in (directory / "cells").glob("*.json") if (directory / "cells").exists() else ():
         spend.add(float(json.loads(p.read_text()).get("cost_usd") or 0.0))
@@ -379,7 +414,7 @@ async def run(directory: Path, *, first_cells: int | None = None) -> None:
         cells = [c for c in setup.plan.cells if c.cell_id in wanted][: first_cells or None]
         jobs += [_run_cell(directory, entry, setup, cell, spend, sems[entry["route_id"]]) for cell in cells]
     await asyncio.gather(*jobs)
-    print(f"spent ${spend.spent:.4f} of ${spend.cap:.2f}")
+    print(f"spent ${spend.spent:.4f} of ${spend.cap:.2f}" + (f"; stopped: {HALT['reason']}" if HALT["reason"] else ""))
 
 
 def summary(directory: Path) -> dict[str, Any]:
