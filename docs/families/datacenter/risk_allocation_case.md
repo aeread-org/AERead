@@ -552,6 +552,57 @@ Joint value lost per negotiation, $ thousands, 95% world-clustered interval:
 - **Missing:** 12 of 256 model episodes, all GLM: 10 replies past the 32,000-token
   limit and 2 timeouts (DC-O-13). Descriptive, one pack, no ranking.
 
+## The playbook menu: can the client negotiate what is best for itself
+
+`datacenter_risk_allocation_menu_v1` (`risk_allocation_menu*.py`, registry row in
+#224) answers the one-sided case's main limit: there the client is told the
+integrator's pricing rule and may ask it to price any of 24 clause combinations.
+Here the integrator posts one offer, as real proposals do, and the client must read it.
+
+**Three playbooks**, the three offers the case began from:
+
+| playbook | base | negotiable options | prices quoted as |
+|---|---|---|---|
+| coordination | the client buys the hardware at cost and pays at signing; the integrator carries nothing | standby cover, incident cover, a compatibility fix | a fee, hardware on top |
+| managed | the integrator procures at cost and pays the fix | incident cover, a holdback until delivery, delay damages | a fee, hardware on top |
+| turnkey | all in, fix and delay damages, paid on delivery | standby cover, incident cover, a deposit at signing for a lower price | all in |
+
+The menu prices all eight combinations of a playbook's options. The client may
+accept an item, counter one (the integrator signs if the counter clears its price
+for that item this round, otherwise answers with that price), or walk to a rival
+turnkey offer or to managing the deployment itself (its own team, every risk its
+own, nobody pre-staging).
+
+**The hidden policy.** An integrator that carries risk dearly posts coordination;
+one that carries risk and pre-stages cheaply posts turnkey; the rest post managed.
+Each option is priced at the integrator's cost plus its margin, the round's premium,
+and a markup on what the option moves (60% on incident cover, 50% on standby cover
+and on warranty upgrades, 60% on deposit timing) that halves after the first
+refusal and is gone after the second. None of this is in the client's brief.
+
+**Grading.** Decision regret is exact against a client who knows the policy (not
+the integrator's costs): it reads those costs off the menu and best-responds. So
+the regret includes what not knowing how this market prices costs a client, and
+the brief is the same for every model. Diagnostics: whether the client signed the
+item best for it at the integrator's floor, and its realised cost over the best it
+could attain.
+
+**Worlds.** Six situations, each admitted on every playbook only when the
+reference shows its lesson: the lowest price is not the cheapest item once the
+risks it leaves are counted; the incident cover is worth its markup to a client
+this averse to risk; the list carries a premium the integrator gives up when
+countered; break-off is likely and the deal is worth far more than walking, so
+sign now; no item beats the rival turnkey offer; self-managing is cheapest. 36
+worlds (`menu_eval_v1`). Through the kernel path the reference grades zero on all
+36 and four rules lose 364 to 728: accept the first item, take the lowest price,
+haggle the base item, walk to the rival turnkey.
+
+**Campaign.** `datacenter_risk_allocation_menu_dev_campaign_v1` (plan
+`43f89f8ecb46`): both models at low effort and at default reasoning, two
+replicates, the reference and the four rules seated in the run as controls. GLM's
+default-reasoning limits are raised from what v2 recorded (DC-O-12): 3,000 s and
+120,000 tokens.
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.
