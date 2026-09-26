@@ -101,6 +101,7 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 @media (max-width:1100px){.ccgrid{grid-template-columns:minmax(0,1fr)}}
 .app.withcard{height:auto}.app.withcard>.grid3{flex:0 0 auto;height:calc(100vh - 110px);min-height:520px}
 .topright{margin-left:auto;display:inline-flex;gap:8px;align-items:center;white-space:nowrap}.topright .src{margin-left:0}.glossbtn{font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--soft);color:var(--ink);cursor:pointer}.glosspanel{margin:6px 0}.glosspanel dl{font-size:12.5px}
+.noise{font-size:12px;margin:6px 0 8px;padding:5px 9px;border-left:3px solid var(--rule);background:var(--soft);border-radius:0 6px 6px 0}.noise div{margin:1px 0}.noise .muted{font-size:11.5px}
 .deft{border-bottom:1px dotted var(--muted);cursor:help}.deft:hover,.deft:focus{border-bottom-color:var(--accent);outline:none}@media (max-width:640px){.topright{flex-wrap:wrap;white-space:normal;justify-content:flex-end;row-gap:4px}}.defpop{position:fixed;z-index:60;box-sizing:border-box;width:min(480px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:10px 12px;font-size:12.5px;line-height:1.45}.defpop .dph{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.defpop p{margin:6px 0}.defq{margin:4px 0 6px;padding:4px 8px;border-left:3px solid var(--rule);color:var(--muted);font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;word-break:break-word}.defsrc{font-size:11.5px;color:var(--muted)}tr.deffocus td{background:var(--accent-soft)}.deftable td{vertical-align:top}.deftable td.dd{white-space:normal;min-width:320px;width:52%}.deftable td.dsrc2{font-size:11px;max-width:240px;word-break:break-all;white-space:normal}.deftable td.dlab{min-width:130px;white-space:normal}.deftable details summary{cursor:pointer;white-space:nowrap}
 table[data-sortable] thead th.srt{cursor:pointer;user-select:none}table[data-sortable] thead th.srt:hover{color:var(--accent)}.sortind{font-size:.85em;margin-left:3px;color:var(--accent)}table[data-sortable] thead th.srt:not([aria-sort]):hover .sortind::after{content:'⇅';color:var(--muted)}
 .sortbtn{font:inherit;text-transform:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}.dchip{padding:0 5px;margin-right:2px;font-size:10.5px}
@@ -926,14 +927,14 @@ function strataAgg(names,per,keys){const agg=list=>{const o={};keys.forEach(k=>{
  return {strata:names.filter(n=>per[n]).map(n=>({name:n,...agg(per[n])})),all:agg(Object.values(per).flat())};}
 function gapStrata(g){if(g._strata!==undefined)return g._strata;const ix=gapIndex(g);const names=gapStrataNames(g);if(names.length<2)return g._strata=null;
  const keys=g.components.map(p=>p.key);const per={};
- Object.values(ix.byWorld).forEach(s=>{if(!s.left.length||!s.right.length)return;const st=ix.cells[s.left[0]].stratum;const m=(is,k)=>is.reduce((a,i)=>a+ix.cells[i].parts[k],0)/is.length;const d={};keys.forEach(k=>{d[k]=m(s.left,k)-m(s.right,k);});(per[st]=per[st]||[]).push(d);});
- return g._strata=strataAgg(names,per,keys);}
+ const items=[];Object.entries(ix.byWorld).forEach(([w,s])=>{if(!s.left.length||!s.right.length)return;const st=ix.cells[s.left[0]].stratum;const m=(is,k)=>is.reduce((a,i)=>a+ix.cells[i].parts[k],0)/is.length;const d={};keys.forEach(k=>{d[k]=m(s.left,k)-m(s.right,k);});(per[st]=per[st]||[]).push(d);items.push({u:w,c:w,st,d:keys.reduce((a,k)=>a+d[k],0)});});
+ return g._strata={...strataAgg(names,per,keys),items,seed:(g.gap_key||g.gap_id)+'|pair'};}
 // a model against a baseline's reference, per stratum: the model's parts on each world minus the reference's parts there
 function gapRefFor(ix,bi,w,s){const ref=ix.refs[bi]||{};if(ref[w])return ref[w];const i=(s.left[0]??s.right[0]);const c=ix.cells[i]||{};return ref[c.world_seed];}
 function gapRefStrata(g,bi,side){const memo=g._rs||(g._rs={}),mk=bi+side;if(memo[mk]!==undefined)return memo[mk];const ix=gapIndex(g);const ref=ix.refs[bi]||{};const v=(((g.baselines||[])[bi]||{}).vs||{})[side];const names=gapStrataNames(g);
  if(names.length<2||!v||!Object.keys(ref).length)return memo[mk]=null;const keys=v.components.map(p=>p.key);const per={};
- Object.entries(ix.byWorld).forEach(([w,s])=>{const is=s[side]||[];const r=gapRefFor(ix,bi,w,s);if(!is.length||!r)return;const st=ix.cells[is[0]].stratum;const d={};keys.forEach(k=>{d[k]=is.reduce((a,i)=>a+ix.cells[i].parts[k],0)/is.length-(r[k]||0);});(per[st]=per[st]||[]).push(d);});
- return memo[mk]=Object.keys(per).length?strataAgg(names,per,keys):null;}
+ const items=[];Object.entries(ix.byWorld).forEach(([w,s])=>{const is=s[side]||[];const r=gapRefFor(ix,bi,w,s);if(!is.length||!r)return;const st=ix.cells[is[0]].stratum;const d={};keys.forEach(k=>{d[k]=is.reduce((a,i)=>a+ix.cells[i].parts[k],0)/is.length-(r[k]||0);});(per[st]=per[st]||[]).push(d);items.push({u:w,c:w,st,d:keys.reduce((a,k)=>a+d[k],0)});});
+ return memo[mk]=Object.keys(per).length?{...strataAgg(names,per,keys),items,seed:(g.gap_key||g.gap_id)+'|ref|'+bi+'|'+side}:null;}
 const gapStratumName=v=>String(v).replace(/_/g,' ');
 // the card's strata and baselines as defined labels, so the select's bare names can be looked up in place
 function gapTermsHtml(g){if(!DEFS)return '';const o={family:g.family,campaign:g.left};
@@ -941,10 +942,10 @@ function gapTermsHtml(g){if(!DEFS)return '';const o={family:g.family,campaign:g.
  const bl=[...(g.reference_side==='right'?[defTag(g.right_label,esc(g.right_label),{...o,kind:'baseline'})]:[]),...(g.baselines||[]).map(b=>defTag(b.key||b.label,esc(b.label),{...o,kind:'baseline'}))].filter(h=>h.includes('deft'));
  if(!st.length&&!bl.length)return '';return `<div class="muted" style="font-size:12px;margin:2px 0 2px">${st.length?`strata: ${st.join(', ')}`:''}${st.length&&bl.length?' · ':''}${bl.length?`measured against: ${bl.join(', ')}`:''} <span class="muted">(click a label for its definition)</span></div>`;}
 function gapSel(g){const gs=gapStrata(g);const v=((route.gapStratum||{})[g.gap_key||g.gap_id])||'';return gs&&gs.strata.some(x=>x.name===v)?v:'';}
-function gapStrataTable(comps,gs,sel,L,ul,o){const cols=[...gs.strata.map(x=>({h:gapStratumName(x.name),o:x,k:x.name})),{h:'all strata pooled',o:gs.all,k:''}];
+function gapStrataTable(comps,gs,sel,L,ul,o){const nz=gs.items?noiseBox([noiseLine('The gap, by stratum',splitNoise(gs.items,gs.seed),ul)],ul):'';const cols=[...gs.strata.map(x=>({h:gapStratumName(x.name),o:x,k:x.name})),{h:'all strata pooled',o:gs.all,k:''}];
  const max=Math.max(1e-9,...cols.flatMap(c=>comps.map(p=>Math.abs(c.o[p.key]))));
  const cell=v=>`<td class="mono" style="text-align:right;background:color-mix(in srgb,${v>=0?'var(--series-1)':'var(--series-2)'} ${Math.round(Math.min(1,Math.abs(v)/max)*45)}%,transparent)">${v>=0?'+':''}${fmt(v,1)}</td>`;
- return `<div class="scroll" style="margin:4px 0 2px"><table class="cct"><thead><tr><th>part, by stratum</th>${cols.map(c=>`<th style="text-align:right;${c.k===sel?'color:var(--accent)':''}">${c.k&&o?defTag(c.k,esc(c.h),{...o,kind:'stratum'}):esc(c.h)} <span class="muted">(${c.o._n})</span></th>`).join('')}</tr></thead><tbody>${comps.map(p=>`<tr><td>${esc(p.label)}</td>${cols.map(c=>cell(c.o[p.key])).join('')}</tr>`).join('')}<tr class="mcpool"><td><strong>gap</strong></td>${cols.map(c=>`<td class="mono" style="text-align:right"><strong>${c.o._total>=0?'+':''}${fmt(c.o._total,1)}</strong></td>`).join('')}</tr></tbody></table></div><p class="muted" style="font-size:11.5px;margin:0 0 8px">One column per stratum, ${esc(ul||'world')}s in brackets: the same parts averaged over that stratum's ${esc(ul||'world')}s, each weighted equally, so the last column is the pooled bar. Blue: ${esc(L)}'s side larger on that part; orange: smaller. No interval per stratum at these sizes.</p>`;}
+ return `${nz}<div class="scroll" style="margin:4px 0 2px"><table class="cct"><thead><tr><th>part, by stratum</th>${cols.map(c=>`<th style="text-align:right;${c.k===sel?'color:var(--accent)':''}">${c.k&&o?defTag(c.k,esc(c.h),{...o,kind:'stratum'}):esc(c.h)} <span class="muted">(${c.o._n})</span></th>`).join('')}</tr></thead><tbody>${comps.map(p=>`<tr><td>${esc(p.label)}</td>${cols.map(c=>cell(c.o[p.key])).join('')}</tr>`).join('')}<tr class="mcpool"><td><strong>gap</strong></td>${cols.map(c=>`<td class="mono" style="text-align:right"><strong>${c.o._total>=0?'+':''}${fmt(c.o._total,1)}</strong></td>`).join('')}</tr></tbody></table></div><p class="muted" style="font-size:11.5px;margin:0 0 8px">One column per stratum, ${esc(ul||'world')}s in brackets: the same parts averaged over that stratum's ${esc(ul||'world')}s, each weighted equally, so the last column is the pooled bar. Blue: ${esc(L)}'s side larger on that part; orange: smaller. No interval per stratum at these sizes.</p>`;}
 function gapCardHtml(g){if(!g)return'';
  const nm=m=>String(m||'').split('/').pop();const L=nm(g.left_model),R=g.right_label||nm(g.right_model);const oneSided=g.reference_side==='right';const us=v=>v==null?'n/a':fmt(v,1);
  const luck=g.components.filter(p=>p.group==='luck').reduce((a,p)=>a+p.difference,0);
@@ -1634,6 +1635,49 @@ function mcStats(s,mkey,dimsSel,A,B,fix){
  const order=dimsSel.map(k=>(s.dims.find(d=>d.key===k).values||[]).map(v=>v.v));
  out.sort((x,y)=>{for(let i=0;i<order.length;i++){const d=order[i].indexOf(x.vals[i])-order[i].indexOf(y.vals[i]);if(d)return d;}return 0;});
  return out;}
+// ---------------- is a split more than noise? ----------------
+// A split is worth reading only if its strata differ by more than the independent units inside each stratum differ
+// from one another. The statistic is the spread of the stratum means of the per-unit paired difference (the sum over
+// strata of units times the squared distance from the grand mean); the test compares it with the same spread after
+// shuffling the stratum labels 2000 times (seeded, so a page shows the same p every time): across independent
+// clusters when each unit sits in one stratum (a world type, the favourite listing), within each unit when every unit
+// was run in several (seat, arm, the model on the other side, difficulty on shared seeds). p is the share of shuffles
+// spread at least as far as the real split. It is not run when a stratum holds a single independent unit (the stratum
+// is then its world, so the two cannot be told apart) or on fewer than 5 clusters. tools/examiner/strata_noise.py
+// computes the same test offline and is the cross-check.
+const NOISE_N=2000,noiseMemo=new Map();
+function splitNoise(items,seed){if(noiseMemo.has(seed))return noiseMemo.get(seed);
+ const strata=[...new Set(items.map(x=>x.st))];if(strata.length<2){noiseMemo.set(seed,null);return null;}
+ const units=new Map();items.forEach((x,i)=>{if(!units.has(x.u))units.set(x.u,[]);units.get(x.u).push(i);});
+ const between=[...units.values()].every(l=>l.length===1);const clusters=[...new Set(items.map(x=>x.c))];
+ const minC=Math.min(...strata.map(v=>new Set(items.filter(x=>x.st===v).map(x=>x.c)).size));
+ const base={k:strata.length,clusters:clusters.length,between,minC};let out;
+ if(between&&minC<2)out={...base,kind:'one'};
+ else if(clusters.length<MC_MIN)out={...base,kind:'few'};
+ else{const ss=lab=>{const sum=new Map(),n=new Map();let tot=0;items.forEach((x,i)=>{const v=lab[i];sum.set(v,(sum.get(v)||0)+x.d);n.set(v,(n.get(v)||0)+1);tot+=x.d;});const g=tot/items.length;let a=0;n.forEach((k,v)=>{a+=k*(sum.get(v)/k-g)**2;});return a;};
+  const rng=mcRng(seed);const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const obs=ss(items.map(x=>x.st));let ge=0;
+  if(between){ // a cluster (a world with its twin) moves as one; if a cluster's units span strata, units move one by one
+   const labOf=new Map();items.forEach(x=>{if(!labOf.has(x.c))labOf.set(x.c,x.st);});const whole=items.every(x=>labOf.get(x.c)===x.st);
+   for(let t=0;t<NOISE_N;t++){let lab;if(whole){const ls=shuf(clusters.map(c=>labOf.get(c)));const m=new Map(clusters.map((c,i)=>[c,ls[i]]));lab=items.map(x=>m.get(x.c));}else lab=shuf(items.map(x=>x.st));if(ss(lab)>=obs-1e-9)ge++;}}
+  else{const groups=[...units.values()].filter(g=>g.length>1);
+   for(let t=0;t<NOISE_N;t++){const lab=items.map(x=>x.st);groups.forEach(g=>{const ls=shuf(g.map(i=>items[i].st));g.forEach((i,j)=>{lab[i]=ls[j];});});if(ss(lab)>=obs-1e-9)ge++;}}
+  out={...base,kind:'test',p:(1+ge)/(1+NOISE_N)};}
+ noiseMemo.set(seed,out);return out;}
+const noiseItems=rows=>rows.flatMap(r=>(r.per||[]).map(p=>({u:p.u,c:p.c,st:r.key,d:p.d})));
+function mcNoise(s,mkey,dim,A,B,fix){return splitNoise(noiseItems(mcStats(s,mkey,[dim],A,B,fix)),[s.id,mkey,dim,A,B,JSON.stringify(fix||null)].join('|'));}
+const fmtP=p=>p<0.001?'< 0.001':p.toFixed(3);
+function noiseShort(r){if(!r)return '';return r.kind==='test'?(r.p<0.05?`beyond noise (p ${fmtP(r.p)})`:`within noise (p ${fmtP(r.p)})`):'not testable';}
+function noiseLine(label,r,unit){if(!r)return '';const u=esc(unit||'world');
+ if(r.kind==='one')return `<div><strong>${esc(label)}</strong> <span class="chip na">not testable</span> <span class="muted">a stratum holds ${r.minC} independent ${u}, so a stratum cannot be told apart from its ${u}; its rows describe those ${u}s, not the stratum</span></div>`;
+ if(r.kind==='few')return `<div><strong>${esc(label)}</strong> <span class="chip na">not testable</span> <span class="muted">${r.clusters} independent ${u}s; the test needs 5</span></div>`;
+ const how=r.between?`shuffling the labels across the ${r.clusters} independent ${u}s`:`shuffling the labels within each ${u}`;
+ return r.p<0.05?`<div><strong>${esc(label)}</strong> <span class="chip acc">differs beyond noise</span> p ${fmtP(r.p)} <span class="muted">· ${how} spreads the ${r.k} strata this far in ${Math.max(1,Math.round(r.p*NOISE_N))} of ${NOISE_N} shuffles</span></div>`
+  :`<div><strong>${esc(label)}</strong> <span class="chip na">within noise</span> p ${fmtP(r.p)} <span class="muted">· ${how} spreads the ${r.k} strata this far ${Math.round(r.p*100)}% of the time: read the pooled row, the stratum rows are descriptive</span></div>`;}
+const noiseBox=(lines,unit)=>{const l=lines.filter(Boolean);return l.length?`<div class="noise"><div class="muted" style="margin-bottom:2px">Is the split more than noise? Each line tests whether the ${esc(unit||'world')}-level differences between strata exceed what shuffled stratum labels produce (2000 shuffles). One test per split; across many splits about 1 in 20 passes by chance.</div>${l.join('')}</div>`:'';};
+// the split lines for a case: every ticked stratum on its own, and the arm menu when two or more arms were run by both
+function mcNoiseLines(s,meas,A,B,dims,pk){const lines=dims.map(k=>noiseLine(s.dims.find(d=>d.key===k).label,mcNoise(s,meas.key,k,A,B,pk&&pk.fix),s.unit.label));
+ if(pk&&pk.both.length>1)lines.push(noiseLine(pk.d.label+' (the menu above)',mcNoise(s,meas.key,pk.d.key,A,B,null),s.unit.label));return lines;}
 function mcChart(title,rows,meas,s,A,B){if(!rows.length)return '';const W=820,labW=260,rowH=28,top=22,H=top+rows.length*rowH+26;
  const vals=rows.flatMap(r=>[r.d,r.lo,r.hi,...(r.per||[]).map(p=>p.d)]).filter(v=>v!=null);let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(hi===lo)hi=lo+1;const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;const X=v=>labW+(W-labW-16)*(v-lo)/(hi-lo);
  const col=r=>{const v=mcVerdict(r,meas,A,B,s);return v.cls==='mca'?'var(--series-1)':v.cls==='mcb'?'var(--series-2)':'var(--muted)';};
@@ -1752,7 +1796,7 @@ function mcCaseBody(s){
    const rest=Object.entries(has).filter(([,m])=>m.size===1).map(([k,m])=>`${mcStratumText(s,dims,k.split('\u0001'))} (only ${mcLabel(s,[...m][0])})`);
    const all=lone.concat(rest.slice(0,4)).concat(rest.length>4?[`${rest.length-4} more such strata`]:[]);
    return all.length?`<p class="banner" style="margin:0 0 8px">Not compared, one model only: ${esc(all.join('; '))}.</p>`:'';})()}
-  ${table}<div style="margin-top:8px">${chart}</div>${mcSeedHtml(s,meas,A,B,pk)}${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</div>`;}
+  ${table}${noiseBox(mcNoiseLines(s,meas,A,B,dims,pk),s.unit.label)}<div style="margin-top:8px">${chart}</div>${mcSeedHtml(s,meas,A,B,pk)}${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</div>`;}
 // the run page's comparison: every case this run belongs to (a run whose seats are both models has one per seat)
 function mcCampaignHtml(c){if(!MC)return '';const sets=(MC.sets||[]).filter(s=>s.campaigns.includes(c.id)&&!HIDDEN_FAMILIES.has(s.family));if(!sets.length)return '';
  return sets.map((s,i)=>`${sets.length>1?`<h3 style="margin:${i?'14px':'2px'} 0 4px">${esc(s.title)}</h3>`:''}${mcCaseBody(s)}`).join('');}
@@ -1781,7 +1825,7 @@ function keyCharts(c){const out=[];const nm=m=>String(m||'').split('/').pop();
   const chartRows=rows.map(r=>({...r,label:mcStratumText(s,dims,r.vals).replace(/^(.{40}).+$/,'$1…')})).concat(pooled&&rows.length>1?[{...pooled,label:'all strata pooled'}]:[]);
   out.push({tab:'compare',title:`${s.title}: ${mcLabel(s,A)} − ${mcLabel(s,B)}${pk?`, ${pk.text}`:''}${dims.length?', by '+dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × '):''}`,
    html:mcChart(`${meas.label}${meas.better?` (${meas.better} is better)`:''}`,chartRows,meas,s,A,B),
-   note:`${mcLabel(s,A)} better in ${n.a} strat${n.a===1?'um':'a'}, ${mcLabel(s,B)} in ${n.b}, not separated in ${n.ns}${n.few?`, too few ${s.unit.label}s for an interval in ${n.few}`:''}.`});});
+   note:`${mcLabel(s,A)} better in ${n.a} strat${n.a===1?'um':'a'}, ${mcLabel(s,B)} in ${n.b}, not separated in ${n.ns}${n.few?`, too few ${s.unit.label}s for an interval in ${n.few}`:''}.${dims.length?' Split against noise: '+dims.map(k=>`${s.dims.find(d=>d.key===k).label.toLowerCase()} ${noiseShort(mcNoise(s,meas.key,k,A,B,fix))}`).join('; ')+'.':''}`});});
  gapsFor(c).slice().sort((a,b)=>((b.comparison||{}).primary===true)-((a.comparison||{}).primary===true)).forEach(g=>{const L=nm(g.left_model),R=g.right_label||nm(g.right_model);
   const gs=gapStrata(g);out.push({tab:'gap',title:`${g.title||'Why they differ'}: ${L}${g.reference_side?' against '+R:' − '+R}${gs?`, all ${gs.strata.length} strata pooled`:''}`,html:waterfallSvg(g.components,g.realized.difference,g.realized.difference_ci,`gap as realized, ${L} − ${R}`,`Per ${esc(g.per_label||'market')}; the parts sum to the gap exactly.`,null,g.unit_label),note:gs?`Pooled over ${gs.strata.map(x=>gapStratumName(x.name)).join(', ')}; each stratum's own breakdown is in the Why they differ tab.`:''});
   (g.baselines||[]).forEach(b=>['left','right'].forEach(side=>{const v=b.vs&&b.vs[side];if(!v)return;const who=side==='left'?L:nm(g.right_model);
@@ -1807,7 +1851,7 @@ function mcTallyTab(){
   const tiles=rows.map(r=>{const v=mcVerdict(r,meas,P.A,P.B,s);const cls=r.lo==null?'few':v.cls==='mca'?'mca':v.cls==='mcb'?'mcb':'ns';tally[{few:'few',mca:'a',mcb:'b',ns:'ns'}[cls]]++;
    return `<span class="mctile ${cls}" data-mcset="${esc(s.id)}" title="${esc(`${mcStratumText(s,dims,r.vals)}: ${mcLabel(s,P.A)} − ${mcLabel(s,P.B)} ${mcFmt(r.d,meas,true)}${r.lo!=null?` [${mcFmt(r.lo,meas,true)}, ${mcFmt(r.hi,meas,true)}]`:''} · ${v.text}`)}"></span>`;}).join('');
   strip.push(`<button class="dbtn mcsname" data-mcset="${esc(s.id)}" title="${esc(meas.label)}">${esc(s.title)} ›</button><span class="mcstiles">${tiles}</span>`);
-  blocks.push(`<tr class="mcgrp"><td colspan="7"><button class="dbtn" data-mcset="${esc(s.id)}">${esc(s.title)} ›</button> <span class="muted">${esc(CAT.family_label[s.family]||s.family)} · ${esc(meas.label)}${meas.better?`, ${meas.better} is better`:''} · split by ${dims.length?esc(dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × ')):'nothing (no declared strata)'}</span></td></tr>`+rows.map(r=>mcRow(s,r,meas,P.A,P.B,mcStratumName(s,dims,r.vals))).join(''));});
+  blocks.push(`<tr class="mcgrp"><td colspan="7"><button class="dbtn" data-mcset="${esc(s.id)}">${esc(s.title)} ›</button> <span class="muted">${esc(CAT.family_label[s.family]||s.family)} · ${esc(meas.label)}${meas.better?`, ${meas.better} is better`:''} · split by ${dims.length?esc(dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × ')):'nothing (no declared strata)'}${dims.length?' · against noise: '+esc(dims.map(k=>`${s.dims.find(d=>d.key===k).label.toLowerCase()} ${noiseShort(mcNoise(s,meas.key,k,P.A,P.B,null))}`).join('; ')):''}</span></td></tr>`+rows.map(r=>mcRow(s,r,meas,P.A,P.B,mcStratumName(s,dims,r.vals))).join(''));});
  const hidden=sets.filter(s=>s.models.some(m=>m.key===P.A)&&s.models.some(m=>m.key===P.B)&&mcClusters(s)<MC_MIN).length;
  return `<section class="panel"><div class="rctl" style="align-items:center;gap:10px 16px"><span class="mcsel"><span class="nw">models</span> ${pairSel}</span><label class="nw"><input type="checkbox" id="mcsmall" ${st.small?'checked':''}> include cases with fewer than ${MC_MIN} independent units${hidden?` (${hidden})`:''}</label></div>
   <p style="margin:4px 0;font-size:13px"><strong>${esc(P.la)}</strong> better in <strong>${tally.a}</strong> strata · <strong>${esc(P.lb)}</strong> better in <strong>${tally.b}</strong> · not separated in <strong>${tally.ns}</strong> · too few units for an interval in <strong>${tally.few}</strong>.</p>

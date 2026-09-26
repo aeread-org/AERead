@@ -84,6 +84,15 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    interval from 5 clusters up) and lists every multi-model case it cannot compare, with the reason.
    Checked against published estimates: procurement holdout O1/O2 and per-world-type values, lemons
    realized and luck-removed payoffs, and risk allocation v2 on complete arms reproduce exactly.
+6f. `strata_noise.py` (a check, not a build step; the page computes the same test live): whether each
+   stratum split is more than noise. Every split in the model comparisons, the key charts, the cross-case
+   tally and the gap breakdowns carries a line saying whether its strata differ by more than shuffled
+   stratum labels produce (2000 shuffles across independent clusters for world-level strata, within each
+   world for seat, arm, opponent and difficulty), or that it cannot be tested (one world per stratum, or
+   fewer than 5 clusters). `python3 strata_noise.py build --json out.json` runs the test offline over a
+   build, adds a `level` test (does the stratum change how hard the worlds are), and is the cross-check:
+   on 2026-09-26 its verdicts matched the page's on all 67 comparison splits (largest p difference 0.027,
+   Monte Carlo). EX-J-02 records why the line exists.
 6e. `build_definitions.py`: what every stratum value and every baseline on the pages means.
    `definitions.json` (committed beside it) holds one entry per label: a short definition in the
    world's own terms and its source as a branch, a repository path and a verbatim quote. The build
