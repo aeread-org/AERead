@@ -48,6 +48,8 @@ echo "[6/7] quantitative results per bundle (tables, intervals, headline numbers
 python3 "$T/build_results.py" "$OUT" "$WT"
 echo "[6b] case cards: family cards and their checks evaluated per cell"
 python3 "$T/build_case_cards.py" "$OUT" "$WT" "$T/receipt_index.json" || echo "  case cards failed; the page shows none"
+echo "[6d] model comparisons: every case two or more models played, as cells with their strata"
+python3 "$T/build_model_comparisons.py" "$OUT" "$WT" || echo "  model comparisons failed; the page shows none"
 # opt-in: the owner has not released the StarCraft prototype to the examiner yet (2026-09-25)
 SC=${AEREAD_EXAMINER_STARCRAFT_RUNS:-}
 if [ -n "$SC" ] && [ -d "$SC" ]; then

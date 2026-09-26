@@ -75,6 +75,15 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    `case_cards.md`) with each diagnostic check evaluated per published cell, from the
    bundle tables and, for negotiation, the sealed events. The step view shows the card
    as a full-width panel above the three columns.
+6d. `build_model_comparisons.py`: every case two or more models played on the same worlds, as one
+   table of cells per case with its independent unit (a world, a world with its twin as one cluster, or
+   the case when seeds only repeat one prompt), the strata the design fixes before a model acts (world
+   type, seat, reasoning arm, the model on the other side, market difficulty) and each measure with the
+   direction that counts as better. The page's "model comparisons" view computes the paired comparison
+   per stratum from these cells (matched seeds or replicates, equal weight per unit, a cluster bootstrap
+   interval from 5 clusters up) and lists every multi-model case it cannot compare, with the reason.
+   Checked against published estimates: procurement holdout O1/O2 and per-world-type values, lemons
+   realized and luck-removed payoffs, and risk allocation v2 on complete arms reproduce exactly.
 6c. `build_starcraft.py` (opt-in, not released yet: runs only when `AEREAD_EXAMINER_STARCRAFT_RUNS`
    names the runs folder; `--remove` takes it out of a build): the starcraft_master OpenBW prototype's local matches as one bundle marked
    external: cases are matches, steps are strategist decisions (goals, reviews, engagement
