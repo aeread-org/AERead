@@ -713,3 +713,254 @@ the zero-attempt
 [`attempted.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
 and the pacing-aware canonical
 [`fact_manifest.json`](../../../evidence/housing/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).
+
+## 20. Lemons refusal pilot campaign
+
+The first campaign identity on the lemons world (case contract §5c) is
+[`housing_lemons_refusal_pilot_v1`](../../../configs/housing_lemons_refusal_pilot_v1.json),
+driven by `aeread_families.housing.lemons_campaign`. It is descriptive and
+single-route: one live tenant profile (Gemini 3.8 Flash via Google AI Studio)
+on a frozen pack of gate-admitted worlds, with the three scripted tenant
+policies run through the same runner on the same pack as controls. The
+primary estimand is `tenant_net_payoff`; the contrast is live minus the
+`inspect_then_sign` reference per world. It may claim no winner and no ranking.
+
+**Pack.** Six tenants, four listings, four rounds, share 0.5, loss 1000, fee 25,
+the family admission rule. Seeds are walked from 100000: the first admitted
+world is the full-trajectory world (100000), then each stratum fills to twelve
+worlds in stream order. The strata are declared slices, `favourite_is_lemon`
+and `favourite_is_sound`, where the favourite is the listing most tenants rank
+first by value-if-sound gain. The stream was scanned to seed 100030, six worlds
+excluded. The design gate re-derives the pack from the rule and refuses a
+contract whose seed lists differ from what the rule yields.
+
+**Gates.** The campaign SOP's first five, through the shared gate history:
+
+```bash
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through provider_free_validation
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through full_trajectory
+python -m aeread_families.housing.lemons_campaign \
+  --contract configs/housing_lemons_refusal_pilot_v1.json \
+  --run-root runs/housing_lemons_refusal_pilot_v1 --through variance_pilot
+```
+
+`design_contract` seals the pack facts, the plan and profile digests, and the
+worst case in integer cents (49 cells x $0.30, with the stage ceilings of $0.50
+and $6.00 binding first). `provider_free_validation` runs all 75 scripted cells
+with receipt verification and replay and refuses a policy whose runner score
+differs from the offline gate's. `profile_admission` probes the three lemons
+action schemas three times each. `full_trajectory` is one live cell;
+`variance_pilot` is 24 worlds x 2 inference seeds, executed world by world in
+ascending seed order. Set `OPENROUTER_API_KEY` before the paid gates.
+
+**Limits in the contract.** Per-profile cost ceiling $0.30 per cell, four action
+attempts with the declared retryable conditions, 120 s per action, the two stage
+ceilings, and `max_consecutive_operational_failures: 3`: after three failed
+cells in a row the stage halts, seals the untouched cells as `not_attempted`
+typed missingness, and fails its gate. A later attempt reuses the completed
+cells of earlier attempts and re-executes only failed ones under a new evidence
+root, so no cell is rerun in place and no completed cell is paid for twice.
+
+**Analysis.** Five endpoints in declared order, overall and per stratum, each a
+mean over worlds with a 95% percentile interval from a world-clustered bootstrap
+of 10000 draws; one `random.Random(20260921)` stream serves every interval in
+that order, so two analysts with the contract get the same numbers. Cells that
+signed an uninspected lemon, that fell below sign-anything, and that beat the
+reference are counted beside the intervals. Operational failures are reported
+as missingness, never as zero scores.
+
+**Result (2026-09-21, exploratory, no claim).** All five gates passed. The
+pilot needed two attempts: the first lost its network after 19 completed cells
+and the stop rule halted it (HL-O-03); the second reused those 19 and completed
+the pack, 48 of 48 cells, $4.30 for the campaign including the failed cells,
+costs exact. The sealed bundle is
+[`evidence/housing/housing_lemons_refusal_pilot_v1/`](../../../evidence/housing/housing_lemons_refusal_pilot_v1/),
+verified by recomputing every digest, re-driving all 49 live receipts through
+the environment (0 score mismatches) and recomputing the analysis from the
+published rows. Over 24 worlds, one Gemini 3.8 Flash tenant population:
+
+| endpoint (mean over worlds, 95% world-clustered interval) | overall | favourite is lemon | favourite is sound |
+|---|---|---|---|
+| tenant net payoff | 328.5 (248.0 to 405.8) | 301.4 (170.5 to 423.9) | 355.7 (264.2 to 445.1) |
+| within-case score (net / oracle) | 0.223 (0.171 to 0.271) | 0.188 (0.113 to 0.256) | 0.258 (0.194 to 0.318) |
+| abstention correctness | 0.993 (0.979 to 1.000) | 0.986 (0.958 to 1.000) | 1.000 |
+| cells signing an uninspected lemon | 2 of 48 | 2 of 24 | 0 of 24 |
+| live minus inspect-then-sign reference | -25.6 (-95.4 to 23.1) | -28.1 (-156.2 to 54.4) | -23.2 (-72.7 to 3.5) |
+| cells above the reference / below sign-anything | 34 / 0 | 14 / 0 | 20 / 0 |
+
+Read descriptively: the live tenant sits within the scripted bracket on every
+cell, never below sign-anything, above the inspect-then-sign reference on 34 of
+48 cells, and the paired difference to the reference is indistinguishable from
+zero at this size. Both uninspected lemon signings, and both negative cells, are
+the two seeds of one world (100025) in the favourite-is-lemon stratum, the only
+world where the pooled expectation of the popular listing exceeded the rent and
+the listing was a lemon. The two inference seeds gave identical net payoffs on
+16 of 24 worlds, so seed variance is small relative to world variance and a
+powered design should spend its budget on worlds. None of this ranks a model or
+supports a winner; a second route on the same pack would be a paired contrast,
+not a ranking.
+
+## 21. Lemons v2: a pooled landlord, temperature 1.0, two routes on one pack
+
+Two identities fix the v1 pilot's design defects and run a second model on the
+same frozen pack: `housing_lemons_refusal_v2_gemini38_flash` and
+`housing_lemons_refusal_v2_glm53_flash` (`lemons_campaign.IDENTITIES`). They
+differ from v1 in two controls and from each other in the route alone:
+
+- **Pooled landlord (HL-D-01).** `environment.lemon_landlord: "pooled"`: a
+  lemon's scripted landlord accepts and counters on its sound-equivalent cost,
+  so its reply no longer tells an offer below the ask apart by quality; the true
+  cost enters only the accounting. v1 keeps `true_cost` and replays unchanged.
+- **Temperature 1.0 (HL-D-02)**, carried to the profile by the runner (HL-T-02).
+- **Routes.** Gemini 3.8 Flash (Google AI Studio) and GLM 5.3 Flash (Parasail
+  fp8), each filling all six tenant seats, so a cell is a market of one model's
+  tenants. Pack, strata, seeds, limits, analysis and stream are v1's.
+
+**Execution (2026-09-25).** Both passed design, provider-free validation,
+profile admission and the full-trajectory cell. Gemini's variance pilot lost
+one cell to an unanswered call in attempt 1 (HL-O-04) and completed 48 of 48 in
+attempt 2, $4.30 for the campaign. GLM's lost six cells the same way in attempt
+1, then three, one, one and one: world 100021 seed 1 hung on every one of five
+runs in the campaign root, at a different seat and phase each time, while
+direct replays of its hung requests and two diagnostic copies of the run root
+completed (HL-O-05 to HL-O-07). Re-execution stopped under a rule fixed before
+the fifth attempt. Its gate stays failed at 47 of 48, and the owner decided to
+publish it as an incomplete pack rather than re-run the cell: the driver's
+`--publish-incomplete-pilot REASON` publishes the newest attempt as sealed,
+records `pilot_gate_status: failed_incomplete_pack`, the reason and the missing
+cell in the manifest and README, and refuses when a passed attempt exists or
+the stage halted.
+
+**Published** at
+[`evidence/housing/housing_lemons_refusal_v2_gemini38_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_gemini38_flash/)
+and
+[`evidence/housing/housing_lemons_refusal_v2_glm53_flash/`](../../../evidence/housing/housing_lemons_refusal_v2_glm53_flash/)
+(incomplete pack), each verified by recomputing every digest and the manifest
+seal, a clean prohibited-text scan, re-driving every completed live receipt
+through the environment (49 and 48, 0 score mismatches) and recomputing the
+analysis from the published rows.
+
+| endpoint, mean over worlds (95% world-clustered interval) | Gemini v2 (48/48) | GLM v2 (47/48, incomplete pack) |
+|---|---|---|
+| tenant net payoff | 327.8 (248.8 to 405.4) | 134.0 (-0.4 to 271.3) |
+| within-case score | 0.223 (0.172 to 0.269) | 0.079 (-0.013 to 0.165) |
+| abstention correctness | 1.000 | 0.927 (0.888 to 0.962) |
+| cells signing an uninspected lemon | 2 of 48 | 10 of 47 |
+| live minus inspect-then-sign reference | -26.3 (-93.5 to 21.9) | -220.2 (-336.0 to -103.8) |
+| cells above the reference / below sign-anything | 37 / 0 | 6 / 0 |
+
+Paired over the 24 worlds, derived from the two bundles at
+[`evidence/housing/housing_lemons_refusal_v2_comparison/`](../../../evidence/housing/housing_lemons_refusal_v2_comparison/)
+(`python -m aeread_families.housing.lemons_comparison --check`), Gemini minus GLM in net payoff is +193.9
+(66.9 to 321.7), Gemini ahead on 19 worlds and behind on 5. It does not rest
+on the missing cell: without world 100021 it is +161.6 (40 to 273) over 23
+worlds, and with GLM's missing seed set to the best payoff GLM reached anywhere
+it is +157.8.
+
+**Why, and how much is luck (HL-J-01).** Both populations signed about as many
+listings without inspecting them (Gemini 23, GLM 21); 2 of Gemini's were lemons
+and 11 of GLM's, at the $1,000 lemon loss each, which is the realized gap. But a
+blind signing is a bet at the tenant's own lemon probability. At signing, those
+probabilities summed to 5.0 expected lemons for Gemini (8 of its 23 were on
+listings it had deduced sound) and 7.2 for GLM: the draws favoured Gemini by
+about 3 lemons and went against GLM by about 4. Charging every blind signing its
+expected loss instead of the realized one, Gemini minus GLM is +41.1 (-69.3 to
+143.3), Gemini ahead on 14 worlds and GLM on 10: not separated. The derived
+comparison publishes this as `expected_net_payoff`, from the published expected
+values and the worlds regenerated from their seeds. What separates
+is smaller: GLM made 4 blind signings worth less than the rent in expectation
+(about $17.5 a market), Gemini none, and GLM's risky signings carried a higher
+mean lemon probability (0.45 against 0.33). GLM also inspected more (11.7
+against 10.5 per market) and walked far more holds (138 against 5).
+
+**Where the gap comes from.** The derived analysis
+[`evidence/housing/housing_lemons_refusal_v2_gap/`](../../../evidence/housing/housing_lemons_refusal_v2_gap/)
+(`python -m aeread_families.housing.lemons_gap --check`) splits every cell's payoff
+exactly into leases signed after inspecting, blind signings worth it in expectation,
+blind signings not worth it, the lemon draws on blind signings, and inspection fees.
+Of the +193.9, the lemon draws are +152.8 (62.5 to 243.1); GLM's larger inspection
+spend is +30.7 (13.0 to 48.4); its blind signings below expected value +17.5 (0.0
+to 46.0); blind signings worth it +9.9 and leases signed after inspecting -17.1,
+both crossing zero. The decision classes, judged at what each tenant knew, extend
+the Housing failure taxonomy with group `L`: GLM signed 4 uninspected holds worth
+less than their rent, signed blind 6 times after passing on an inspection worth its
+fee, declined 16 holds worth more than their rent and signed 31 leases above the
+ask; Gemini did none of these. Every instance names its cell, round and tenant.
+`tables/contributions.jsonl` carries every part down to the decision behind it
+(1,281 rows: 226 leases and draws at their commit step, 1,055 inspection fees at
+their inspect step; per cell a part's rows sum to it exactly, and every row's
+round, phase and seat lands on the matching action in the published trajectory),
+so a part of the gap can be followed to the worlds, cells and steps that make it.
+
+**Against the reference.** The same bundle splits each model's payoff against the
+scripted inspect-then-sign reference on the same worlds (`baselines`; replaying the
+policy reproduces all 24 published reference payoffs). The reference never signs
+blind, so its luck part is zero and the pair gap is exactly the difference of the
+two contrasts. Gemini is not separated from it, -26.3 (-94.5 to 22.2): it signs
+fewer leases after inspecting (1.44 a market against 1.83; -139.2, -237.3 to
+-53.1) and makes it up with blind signings worth it in expectation (+53.0, 25.1 to
+85.4) and lucky draws (+62.5, crossing zero). GLM is below it, -220.2 (-339.6 to
+-103.5), and not only by luck: it signs nearly as many inspected leases (1.77) but
+gets 283.7 of surplus from each against the reference's 335.2 (-122.2, -186.7 to
+-54.6), spends more on inspections (-33.3, -52.1 to -14.6), and its draws went
+against it (-90.3, -173.6 to -13.9). The reference is a yardstick, not an optimum,
+and the decision classes do not apply to it.
+
+**By stratum (unregistered look, a hypothesis for the next identity).** Split by the
+pack's declared strata, 12 worlds each, the two routes fall short of the reference
+in opposite worlds. Where the favourite listing is a lemon, Gemini signs 1.12
+inspected leases a market against the reference's 1.75 and 0.79 blind; with luck
+removed it is -128.6 (-221.2 to -41.4) against the reference. Where the favourite is
+sound, GLM pays above the ask on its inspected leases (+31.9 a lease; the reference
++1.0) and with luck removed is -194.8 (-272.0 to -125.4). The luck-removed pair gap
+is +145.7 (4.8 to 261.7) in sound-favourite worlds and -63.5 (-220.2 to 79.0) in
+lemon-favourite ones, a difference of +209.3 (8.4 to 404.5), resampling worlds
+within strata. This was not declared, it is one of several cuts examined, and 12
+worlds a stratum is thin: a v3 identity should declare the stratum contrast before
+it runs rather than read it off this one. It is also confounded (HL-D-03): admission drops worlds where a
+popular favourite is a lemon, so the pack's lemon-favourite worlds have less contested favourites (shared by 0.67
+of tenants against 0.79), and the split compares contested with crowded markets as much as trap with control.
+
+**Same states, both models (diagnostic, 2026-09-25).** The cells are markets of one
+model's six tenants, so the routes differ in history and competition as well as in
+policy. `tools/run_lemons_state_probe.py` removes the history: it sent each model the
+exact recorded decision states of both routes' published cells (123 blind
+sign-or-walk holds, 31 inspections before a blind signing, 80 sampled offers), three
+times each at the campaign's own sampling; plan frozen to `runs/` before the calls
+(sha256 57768ec0), 1,402 of 1,404 calls answered (one 503, one unparseable), $1.45.
+Differences are over states, bootstrapped by state:
+
+| on the same states | Gemini | GLM | Gemini minus GLM |
+|---|---|---|---|
+| signs a blind hold worth it in expectation (38 states) | 0.965 | 0.526 | +0.44 (0.32 to 0.57) |
+| signs a blind hold not worth it (85 states) | 0.039 | 0.125 | -0.09 (-0.15 to -0.03) |
+| expected surplus per sign-or-walk decision | +26.4 | -1.7 | +28.1 (14.7 to 42.8) |
+| inspects, in the round before a blind signing | 0.935 | 0.968 | |
+| offers, when asked to contact | 0.25 | 0.52 | |
+| mean offer minus ask | -2.4 | -228.5 | |
+
+So the policy difference is at the sign-or-walk decision: in identical states GLM
+declines half the uninspected holds worth signing and signs one in eight that are
+not; Gemini tracks expected value almost exactly. GLM also offers twice as often and
+haggles far below the ask; the two inspect alike. This is sharper than the
+run-level contrast, where the lemon draws swamp it (the luck-removed gap +41.1
+crosses zero), and it is what the next identity should measure directly.
+
+**Replicates.** Gemini's two seeds gave the same net payoff on 18 of 24 worlds
+at temperature 1.0 (16 at 0); GLM's on 0 of 23. Gemini's agreement is its own
+consistency, not an artefact of temperature 0 (HL-D-02, corrected).
+
+**What this supports.** The realized payoffs differ by more than the world
+variance, but most of that is which blind bets happened to be lemons; on the
+decisions themselves, judged at what each tenant knew, the two are not
+separated at this size, with GLM taking somewhat riskier bets. It does not support a ranking
+or a winner: the GLM side is an incomplete pack, 24 worlds, one pack, and both routes
+fill all six seats, so each number describes a market of one model, not one
+agent against fixed competitors. Future lemons identities run 3 rounds, not 4 (case contract §5c, ruling of
+2026-09-25). A publishable pair needs a new identity that
+declares how an unanswered call is handled (a retryable `timeout` or a longer
+action timeout), run on both routes.
