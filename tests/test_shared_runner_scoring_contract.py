@@ -3161,6 +3161,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # The full-terms menu: the same client seat with every modelled contract term
         # and its levels; the same fixture follow-up.
         ("datacenter_risk_allocation_contracts_v1", "0.1.0"),
+        # The tender: three scripted firms bid for the same delivery and the client negotiates
+        # with any of them in the same turn; the same fixture follow-up.
+        ("datacenter_risk_allocation_tender_v1", "0.1.0"),
         # #63 enrols the datacenter sub-families and a 2.1.0 of the base
         # family as trusted. Their scorers now take FamilyScoringInput
         # (#144), but none has a scoring-contract fixture yet; that is the
