@@ -541,10 +541,10 @@ def shared_runner_long(roots, catalog) -> list[Set]:
 
 
 def extra_checkouts() -> list[Path]:
-    path = Path(__file__).with_name("roots.json")
-    if not path.exists():
-        return []
-    return [Path(p) for p in json.loads(path.read_text(encoding="utf-8")).values() if Path(p).is_dir()]
+    """The same checkouts the case-card build reads (roots.json and the hand-kept roots.local.json)."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from build_case_cards import extra_checkouts as case_card_checkouts  # noqa: E402
+    return case_card_checkouts()
 
 
 def read_catalog(out: Path) -> dict:
