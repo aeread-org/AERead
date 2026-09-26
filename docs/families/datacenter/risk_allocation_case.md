@@ -604,6 +604,55 @@ replicates, the reference and the four rules seated in the run as controls. GLM'
 default-reasoning limits are raised from what v2 recorded (DC-O-12): 3,000 s and
 120,000 tokens.
 
+## Every term the case can model: the full-terms menu
+
+`datacenter_risk_allocation_contracts_v1` (`risk_allocation_contracts*.py`) keeps
+the menu's three playbooks, its hidden policy and its client seat, and adds every
+contract term the economics can grade exactly, with levels rather than on or off.
+Every cost is an expectation over the same four independent events (a
+compatibility defect, a late facility, a post-handover incident, the integrator
+failing while it holds an unprotected deposit), enumerated outcome by outcome, so
+a cap on the total is exact. With the cap off and none of the new terms, every
+cost equals the one-sided case's to 2e-12 (a test).
+
+| term | levels | what it changes |
+|---|---|---|
+| warranty | none, fix, fix and delay damages | who pays a defect's fix and delay |
+| damages | $50k, $100k, $200k a week | what fix and delay pays per week of defect delay; the integrator's reason to pre-stage |
+| liability cap | uncapped, $1,500k, $500k | the most the integrator pays in one delivery across fix, damages, standby and incident; past it the client bears the rest, and the integrator's reason to pre-stage shrinks with it |
+| readiness | client, integrator | who pays standby; an integrator that does prepares the site whenever that is cheaper for it (the late-facility chance falls to 40%) |
+| consequential | excluded, included | who carries an incident's loss |
+| deposit | none, 25%, 50% of the hardware | the client's financing cost and what it can lose; the integrator's financing gain |
+| escrow | yes, no | the deposit is safe if the integrator fails; the client pays a $10k fee and the integrator loses the financing gain |
+| burn-in | yes, no | a week's acceptance burn-in halves the incident chance; it costs the client a week of revenue and the integrator a $40k crew |
+
+**Playbooks and the menu.** Each playbook fixes some terms and makes the rest
+negotiable, every combination on its menu: coordination 64 contracts, managed
+240, turnkey 360. The list prices the base and each single change (7 or 11
+offers). The client may accept a standing offer, counter any contract on the menu
+with a price, ask its price, or walk; a contract off the menu is declined without
+a price, and every counter or request not signed spends the round. The integrator
+prices a change at its floor plus 40% of the cost the change adds, or keeps half
+of any saving, that markup decaying to nothing by round 2, and quotes in $100
+steps rounded up so every price shown is one it signs at (DC-D-25).
+
+**Grading.** The reference is exact over the client's information states (type
+sets narrowed by every price seen); once the list leaves one type, which it does
+in 51 of 52 worlds, its value has a closed form that equals brute-force search
+(a test, including a world where two types stay pooled).
+
+**Worlds.** Ten situations, each on the playbooks where it can arise: the lowest
+listed price is not the best contract; buy incident cover; keep the liability
+uncapped; take a cap (a client less averse to risk than the integrator); buy
+damages only up to the rate that makes the integrator pre-stage; protect the
+deposit; buy the burn-in; hand readiness over so the integrator prepares the site;
+take the highest damages rate; walk. 52 worlds (`contracts_eval_v1`). Through the
+kernel the reference grades zero on all 52; five lower controls lose on average
+$370k to $800k: accept the base, take the lowest listed price, haggle the base,
+ask for and sign the most protective contract, walk to the rival turnkey. Asking
+for every protection never is the best play: on 40 drawn worlds per playbook and
+client its regret averages $337k to $833k.
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.

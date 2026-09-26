@@ -74,6 +74,7 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_risk_allocation_v1` | 0.1.0 | integrator-client negotiation of who bears which risk, one model seat against a scripted counterpart; registration in draft PR #219 (kernel lane); gates in §10 | `risk_allocation_dev_v1` (16 worlds), `risk_allocation_two_prices_dev_v1`, `risk_allocation_eval_v1` (32 worlds) |
 | `datacenter_risk_allocation_two_sided_v1` | 0.1.0 | the same case with both seats played by models, graded on the exact outcome (joint value lost at both true types); registration in #224 (kernel lane); gates in §10 | `two_sided_eval_v1` (the 32 eval worlds) |
 | `datacenter_risk_allocation_menu_v1` | 0.1.0 | the client negotiating a scripted integrator's posted playbook and menu, the pricing policy hidden; registration in #224 (kernel lane); gates in §10 | `menu_eval_v1` (36 worlds) |
+| `datacenter_risk_allocation_contracts_v1` | 0.1.0 | the menu with every contract term the economics can grade exactly (damages rate, liability cap, deposit size, escrow, burn-in, site preparation), 64 to 360 contracts a playbook; registration in #224 (kernel lane); gates in §10 | `contracts_eval_v1` (52 worlds) |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,
@@ -639,4 +640,14 @@ descriptive, claim flags false. GLM as client lost less joint value than Gemini 
 client against either integrator (intervals below zero); the integrator-seat
 contrasts are not separated. The campaign's cost, $1.40, is a floor (three calls
 of unknown outcome).
+
+**The full-terms menu (`datacenter_risk_allocation_contracts_v1`).** Gate 1
+passed for a diagnostic: ten situations, each admitted only when its lesson holds
+for the reference, on the playbooks where it can arise; 52 worlds. Gate 2 passed:
+the economics reduce to the one-sided case's with the new terms off, the
+reference's closed form equals brute-force search, every shown price is one the
+integrator signs at (DC-D-25), and through the kernel the reference grades zero
+on all 52 worlds with every receipt replayed. Gate 3 partial: five lower controls
+under the same kernel path, among them asking for every protection; outcomes are
+expectations. No campaign has run.
 
