@@ -1411,11 +1411,11 @@ function mcRng(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=
 const mcMean=a=>a.reduce((x,y)=>x+y,0)/a.length;
 // matched pairs within a unit (same seed or replicate for both models), each unselected stratum counted equally
 // within the unit, equal weight per unit; the interval resamples independent clusters (a world with its twin)
-function mcStats(s,mkey,dimsSel,A,B){
+function mcStats(s,mkey,dimsSel,A,B,fix){
  const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const meas=s.measures.find(m=>m.key===mkey)||{};
  const matched=s.matched!==false&&!meas.own_cells;const rest=s.dims.map(d=>d.key).filter(k=>!dimsSel.includes(k));const cl=s.clusters||{};
  const get=(m,k,mk)=>{let v=m.get(k);if(!v){v=mk();m.set(k,v);}return v;};const tree=new Map();
- for(const r of s.rows){const m=r[ci.model],v=r[ci[mkey]];if((m!==A&&m!==B)||v==null)continue;
+ for(const r of s.rows){const m=r[ci.model],v=r[ci[mkey]];if((m!==A&&m!==B)||v==null)continue;if(fix&&Object.keys(fix).some(k=>r[ci[k]]!==fix[k]))continue;
   const byUnit=get(tree,dimsSel.map(d=>r[ci[d]]).join('\u0001'),()=>new Map());const byCombo=get(byUnit,r[ci.unit],()=>new Map());
   const byModel=get(byCombo,rest.map(d=>r[ci[d]]).join('\u0001'),()=>new Map());get(get(byModel,m,()=>new Map()),r[ci.rep],()=>[]).push(v);}
  const out=[];
@@ -1474,30 +1474,43 @@ function mcRow(s,st,meas,A,B,name,cls){const v=mcVerdict(st,meas,A,B,s);
 const MCS=(()=>{try{return JSON.parse(localStorage.getItem('aeread-examiner-mcs')||'{}')||{};}catch(e){return {};}})();
 const mcSave=()=>{try{localStorage.setItem('aeread-examiner-mcs',JSON.stringify(MCS));}catch(e){}};
 // One case's comparison, by stratum: it sits on the run page of every run in the case.
+// An arm (the reasoning control a campaign sets on the model) is chosen from a menu, not split into rows: a split
+// repeats it on every row, and an arm only one of the two models ran has nothing to compare. The menu lists every
+// arm, greys out the one-model arms, and offers "pooled" only where two or more arms were run by both.
+const mcIsPick=d=>d.pick===true||d.key==='arm';
+function mcPick(s,A,B,want){const d=s.dims.find(mcIsPick);if(!d)return null;const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));
+ const ran={};s.rows.forEach(r=>{const m=r[ci.model];if(m===A||m===B)(ran[r[ci[d.key]]]=ran[r[ci[d.key]]]||new Set()).add(m);});
+ const opts=d.values.filter(v=>ran[v.v]).map(v=>({v:v.v,label:String(v.label||v.v),both:ran[v.v].size===2,only:ran[v.v].size===1?[...ran[v.v]][0]:null}));
+ const both=opts.filter(o=>o.both);const val=want===''&&both.length>1?'':((both.find(o=>o.v===want)||both[0]||{}).v??null);
+ const cur=opts.find(o=>o.v===val);return {d,opts,both,val,fix:val?{[d.key]:val}:null,text:val===''?`all ${both.length} ${d.label.toLowerCase()}s pooled`:cur?cur.label.replace(/ \(.*?\)/g,''):'none run by both'};}
 function mcCaseBody(s){
  const st=MCS[s.id]||(MCS[s.id]={});const sid=esc(s.id);
  const meas=s.measures.find(m=>m.key===st.measure)||s.measures.find(m=>m.primary)||s.measures[0];
  const models=s.models.map(m=>m.key);let A=st.A,B=st.B;if(!models.includes(A)||!models.includes(B)||A===B)[A,B]=mcDefaultPair(s,route.campaign);
- const dims=(st.dims||s.dims.map(d=>d.key)).filter(k=>s.dims.some(d=>d.key===k));
+ const pk=mcPick(s,A,B,st.pick);const fix=pk&&pk.fix;
+ const dims=(st.dims||s.dims.map(d=>d.key)).filter(k=>s.dims.some(d=>d.key===k&&!mcIsPick(d)));
  const measSel=`<select data-mcm="${sid}">${s.measures.map(m=>`<option value="${esc(m.key)}" ${m.key===meas.key?'selected':''}>${esc(m.label)}${m.primary?' (primary)':''}${m.better?` · ${m.better} is better`:''}</option>`).join('')}</select>`;
- const dimBox=s.dims.length?s.dims.map(d=>`<label class="nw" title="${esc(d.note||'')}"><input type="checkbox" data-mcd="${sid}" data-dim="${esc(d.key)}" ${dims.includes(d.key)?'checked':''}> ${esc(d.label)} <span class="muted">(${d.values.length})</span></label>`).join(' '):'<span class="muted">this case declares no strata</span>';
+ const splitDims=s.dims.filter(d=>!mcIsPick(d));
+ const dimBox=splitDims.length?splitDims.map(d=>`<label class="nw" title="${esc(d.note||'')}"><input type="checkbox" data-mcd="${sid}" data-dim="${esc(d.key)}" ${dims.includes(d.key)?'checked':''}> ${esc(d.label)} <span class="muted">(${d.values.length})</span></label>`).join(' '):'<span class="muted">this case declares no strata</span>';
  const pairSel=models.length>2?`<span class="nw">compare <select data-mcpa="${sid}">${models.map(k=>`<option value="${esc(k)}" ${k===A?'selected':''}>${esc(mcLabel(s,k))}</option>`).join('')}</select> with <select data-mcpb="${sid}">${models.map(k=>`<option value="${esc(k)}" ${k===B?'selected':''}>${esc(mcLabel(s,k))}</option>`).join('')}</select></span>`:'';
- const rows=mcStats(s,meas.key,dims,A,B);const pooled=dims.length?mcStats(s,meas.key,[],A,B)[0]:null;
+ const pickSel=pk?`<span class="nw" title="${esc(pk.d.note||'')}">${esc(pk.d.label)} <select data-mcpick="${sid}">${pk.opts.map(o=>`<option value="${esc(o.v)}" ${o.v===pk.val?'selected':''} ${o.both?'':'disabled'}>${esc(o.label)}${o.both?'':` (only ${esc(mcLabel(s,o.only))} ran it)`}</option>`).join('')}${pk.both.length>1?`<option value="" ${pk.val===''?'selected':''}>all ${pk.both.length} run by both, pooled</option>`:''}</select></span>`:'';
+ const rows=mcStats(s,meas.key,dims,A,B,fix);const pooled=dims.length?mcStats(s,meas.key,[],A,B,fix)[0]:null;
  const nameA=esc(mcLabel(s,A)),nameB=esc(mcLabel(s,B));
  const table=`<div class="scroll"><table class="cct mct"><thead><tr><th>Stratum</th><th title="paired ${esc(s.unit.label)}s (independent clusters)">${esc(s.unit.label)}s</th><th>${nameA}</th><th>${nameB}</th><th>${nameA} − ${nameB} <span class="muted">(95% interval)</span></th><th>better on</th><th>reading</th></tr></thead><tbody>${rows.map(r=>mcRow(s,r,meas,A,B,mcStratumName(s,dims,r.vals))).join('')}${pooled?mcRow(s,pooled,meas,A,B,`<strong>All strata pooled</strong><br><span class="muted">averages over ${esc(dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' and '))}, each counted equally within a ${esc(s.unit.label)}</span>`,'mcpool'):''}</tbody></table></div>`;
  const chartRows=rows.map(r=>({...r,label:(dims.length?r.vals.map((v,i)=>{const d=s.dims.find(x=>x.key===dims[i]);return String((d.values.find(x=>x.v===v)||{}).label||v).replace(/ \(.*?\)/g,'');}).join(' · '):'all '+s.unit.label+'s').replace(/^(.{40}).+$/,'$1…')})).concat(pooled?[{...pooled,label:'all strata pooled'}]:[]);
- const chart=mcChart(`${mcLabel(s,A)} − ${mcLabel(s,B)}: ${meas.label}${meas.better?` (${meas.better} is better)`:''}`,chartRows,meas,s,A,B);
+ const chart=mcChart(`${mcLabel(s,A)} − ${mcLabel(s,B)}: ${meas.label}${meas.better?` (${meas.better} is better)`:''}${pk?` · ${pk.d.label.toLowerCase()}: ${pk.text}`:''}`,chartRows,meas,s,A,B);
  const miss=Object.entries(s.missing||{}).filter(([,v])=>Object.keys(v).length).map(([k,v])=>`${esc(mcLabel(s,k))}: ${Object.values(v).reduce((x,y)=>x+y,0)} (${Object.entries(v).map(([r,n])=>esc(r.replace(/_/g,' '))+' '+n).join(', ')})`).join('; ');
  const runs=s.campaigns.map(id=>id===route.campaign?`<span class="mono">${esc(id)}</span> <span class="muted">(this run)</span>`:byId(id)?`<button class="dbtn" data-mcrun="${esc(id)}">${esc(id)} ›</button>`:`<span class="mono">${esc(id)}</span>`).join(' · ');
  const legend=s.dims.filter(d=>dims.includes(d.key)&&d.values.some(v=>v.note)).map(d=>`<p style="margin:4px 0 0;font-size:12.5px"><strong>${esc(d.label)}</strong> <span class="muted">${esc(d.note||'')}</span></p><ul style="margin:2px 0 0 18px;padding:0;font-size:12.5px">${d.values.filter(v=>v.note).map(v=>`<li><strong>${esc(v.label)}</strong>: ${md(v.note)}</li>`).join('')}</ul>`).join('');
- const every=models.length>2?(()=>{const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const keys=dims;const strata=[...new Set(s.rows.map(r=>keys.map(k=>r[ci[k]]).join('\u0001')))];
-  const cell=(sk,m)=>{const vals=s.rows.filter(r=>r[1]===m&&r[ci[meas.key]]!=null&&keys.map(k=>r[ci[k]]).join('\u0001')===sk).map(r=>r[ci[meas.key]]);return vals.length?`${mcFmt(mcMean(vals),meas)} <span class="muted">(${vals.length})</span>`:'—';};
+ const inFix=r=>{if(!fix)return true;const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));return Object.keys(fix).every(k=>r[ci[k]]===fix[k]);};
+ const every=models.length>2?(()=>{const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const keys=dims;const strata=[...new Set(s.rows.filter(inFix).map(r=>keys.map(k=>r[ci[k]]).join('\u0001')))];
+  const cell=(sk,m)=>{const vals=s.rows.filter(r=>inFix(r)&&r[1]===m&&r[ci[meas.key]]!=null&&keys.map(k=>r[ci[k]]).join('\u0001')===sk).map(r=>r[ci[meas.key]]);return vals.length?`${mcFmt(mcMean(vals),meas)} <span class="muted">(${vals.length})</span>`:'—';};
   return `<details style="margin-top:8px"><summary style="font-size:12.5px">Every model, by stratum (mean over its own completed cells; cells in brackets)</summary><div class="scroll"><table class="cct"><thead><tr><th>Stratum</th>${models.map(m=>`<th>${esc(mcLabel(s,m))}</th>`).join('')}</tr></thead><tbody>${strata.map(sk=>`<tr><td>${mcStratumName(s,keys,keys.length?sk.split('\u0001'):[])}</td>${models.map(m=>`<td class="mono">${cell(sk,m)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;})():'';
  return `<div class="mccase"><div class="rctl" style="align-items:center;gap:10px 16px"><span class="mcsel" style="flex-basis:260px"><span class="nw">measure</span> ${measSel}</span>${pairSel}</div>
-  <div class="rctl" style="align-items:center"><span>split by</span> ${dimBox} <span class="muted">· a stratum left unticked is pooled, each of its values counted equally within a ${esc(s.unit.label)}</span></div>
+  <div class="rctl" style="align-items:center">${pickSel?pickSel+'<span class="muted">·</span>':''}<span>split by</span> ${dimBox} <span class="muted">· a stratum left unticked is pooled, each of its values counted equally within a ${esc(s.unit.label)}</span></div>
   <p style="margin:6px 0 2px;font-size:12.5px">${esc(s.what)}${(s.fixed||[]).length?` <strong>Held fixed in every cell:</strong> ${s.fixed.map(f=>`${esc(f.label)} = ${esc(f.value)}`).join('; ')}.`:''} <span class="muted">Independent unit: the ${esc(s.unit.label)} (${esc(s.unit.note)}). ${esc(s.scope)}.</span></p>
   ${meas.note?`<p class="muted" style="margin:2px 0;font-size:12.5px">${esc(meas.label)}: ${esc(meas.note)}.</p>`:''}
-  <p class="muted" style="margin:2px 0 8px;font-size:12px">Runs in this comparison: ${runs}${miss?` · cells that did not complete: ${miss}`:''}</p>${(()=>{const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const live=s.rows.filter(r=>r[ci[meas.key]]!=null&&(r[1]===A||r[1]===B));
+  <p class="muted" style="margin:2px 0 8px;font-size:12px">Runs in this comparison: ${runs}${miss?` · cells that did not complete: ${miss}`:''}</p>${(()=>{const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const live=s.rows.filter(r=>r[ci[meas.key]]!=null&&(r[1]===A||r[1]===B)&&inFix(r));
    // a value of one stratum that only one of the two models ran (an arm left unseated), then any remaining cell of the split
    const lone=[],covered=new Set();dims.forEach(d=>{const dd=s.dims.find(x=>x.key===d);const by={};live.forEach(r=>{(by[r[ci[d]]]=by[r[ci[d]]]||new Set()).add(r[1]);});
     Object.entries(by).forEach(([v,m])=>{if(m.size===1){covered.add(d+'='+v);lone.push(`${dd.label}: ${String((dd.values.find(x=>x.v===v)||{label:v}).label).replace(/ \(.*?\)/g,'')} (only ${mcLabel(s,[...m][0])} ran it)`);}});});
@@ -1513,6 +1526,7 @@ function wireMc(el){const re=()=>{const v=$('view'),top=v.scrollTop;mcSave();ren
  el.querySelectorAll('[data-mcm]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcm).measure=x.value;re();}));
  el.querySelectorAll('[data-mcpa]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpa).A=x.value;re();}));
  el.querySelectorAll('[data-mcpb]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpb).B=x.value;re();}));
+ el.querySelectorAll('[data-mcpick]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpick).pick=x.value;re();}));
  el.querySelectorAll('[data-mcd]').forEach(x=>x.addEventListener('change',()=>{const id=x.dataset.mcd;S(id).dims=[...el.querySelectorAll('[data-mcd]')].filter(y=>y.dataset.mcd===id&&y.checked).map(y=>y.dataset.dim);re();}));
  el.querySelectorAll('.mccase [data-mcrun]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();const c=byId(x.dataset.mcrun);route.view='results';route.rtab='compare';route.campaign=c.id;route.family=c.family;route.caseId=null;render();}));}
 // Open charts is tabbed: the case's model comparison, why the runs differ, and the bundle's own tables
@@ -1522,12 +1536,12 @@ function resultTabs(c){const t=[];if(mcCampaignHtml(c)||comparisonHtml(c))t.push
 // strata on the primary measure, then the gap breakdowns. Everything else is a tab in Open charts.
 function keyCharts(c){const out=[];const nm=m=>String(m||'').split('/').pop();
  if(MC)(MC.sets||[]).filter(s=>s.campaigns.includes(c.id)&&!HIDDEN_FAMILIES.has(s.family)).forEach(s=>{
-  const meas=s.measures.find(m=>m.primary)||s.measures[0];const dims=s.dims.filter(d=>d.tally!==false).map(d=>d.key);
-  const [A,B]=mcDefaultPair(s,c.id);
-  const rows=mcStats(s,meas.key,dims,A,B);if(!rows.length)return;const pooled=dims.length?mcStats(s,meas.key,[],A,B)[0]:null;
+  const meas=s.measures.find(m=>m.primary)||s.measures[0];const dims=s.dims.filter(d=>d.tally!==false&&!mcIsPick(d)).map(d=>d.key);
+  const [A,B]=mcDefaultPair(s,c.id);const pk=mcPick(s,A,B,(MCS[s.id]||{}).pick);const fix=pk&&pk.fix;
+  const rows=mcStats(s,meas.key,dims,A,B,fix);if(!rows.length)return;const pooled=dims.length?mcStats(s,meas.key,[],A,B,fix)[0]:null;
   const n={a:0,b:0,ns:0,few:0};rows.forEach(r=>{const v=mcVerdict(r,meas,A,B,s);if(r.lo==null)n.few++;else if(v.cls==='mca')n.a++;else if(v.cls==='mcb')n.b++;else n.ns++;});
   const chartRows=rows.map(r=>({...r,label:mcStratumText(s,dims,r.vals).replace(/^(.{40}).+$/,'$1…')})).concat(pooled&&rows.length>1?[{...pooled,label:'all strata pooled'}]:[]);
-  out.push({tab:'compare',title:`${s.title}: ${mcLabel(s,A)} − ${mcLabel(s,B)}${dims.length?', by '+dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × '):''}`,
+  out.push({tab:'compare',title:`${s.title}: ${mcLabel(s,A)} − ${mcLabel(s,B)}${pk?`, ${pk.text}`:''}${dims.length?', by '+dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × '):''}`,
    html:mcChart(`${meas.label}${meas.better?` (${meas.better} is better)`:''}`,chartRows,meas,s,A,B),
    note:`${mcLabel(s,A)} better in ${n.a} strat${n.a===1?'um':'a'}, ${mcLabel(s,B)} in ${n.b}, not separated in ${n.ns}${n.few?`, too few ${s.unit.label}s for an interval in ${n.few}`:''}.`});});
  gapsFor(c).slice().sort((a,b)=>((b.comparison||{}).primary===true)-((a.comparison||{}).primary===true)).forEach(g=>{const L=nm(g.left_model),R=g.right_label||nm(g.right_model);
