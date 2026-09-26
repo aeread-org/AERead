@@ -116,3 +116,15 @@ def test_the_published_contribution_table_adds_up_per_cell(monkeypatch: pytest.M
     for cell in report["cell_parts"]:
         for key, value in cell["parts"].items():
             assert sums[(cell["receipt_sha256"], key)] == pytest.approx(value, abs=1e-4)
+
+
+def test_the_published_worlds_name_their_lemons(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    monkeypatch.undo()
+    report = json.loads((gap.OUT / "reports" / "gap_decomposition.json").read_text())
+    for world in report["worlds"]:
+        regenerated = comparison._world(world["world_seed"])
+        assert sorted(world["lemon_listings"] + world["sound_listings"]) == list(range(len(regenerated.quality)))
+        assert all(regenerated.values[0][l] == pytest.approx(regenerated.values_if_sound[0][l] - regenerated.lemon_loss, abs=0.01)
+                   for l in world["lemon_listings"])  # lemon values are stored rounded to cents
+        assert world["favourite_is_lemon"] == (world["favourite_listing"] in world["lemon_listings"])

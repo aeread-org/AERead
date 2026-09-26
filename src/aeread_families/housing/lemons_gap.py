@@ -275,6 +275,21 @@ def _reference(paired: Sequence[int], world_mean, rng: random.Random) -> dict[st
             "reference_parts": [{"world_seed": w, "parts": ref[w]} for w in paired]}
 
 
+def _worlds(paired: Sequence[int]) -> list[dict[str, Any]]:
+    """What each world hides, regenerated from its seed: which listings are lemons, and the favourite."""
+    from . import lemons, lemons_campaign
+
+    out = []
+    for world_seed in paired:
+        world = comparison._world(world_seed)
+        favourite = lemons_campaign.favourite_listing(world)
+        out.append({"world_seed": world_seed, "stratum": lemons_campaign.world_stratum(world),
+                    "lemon_listings": [l for l, q in enumerate(world.quality) if q == lemons.LEMON],
+                    "sound_listings": [l for l, q in enumerate(world.quality) if q != lemons.LEMON],
+                    "favourite_listing": favourite, "favourite_is_lemon": world.quality[favourite] == lemons.LEMON})
+    return out
+
+
 def _model(bundle: str) -> str:
     contract = json.loads((comparison.ROOT / "configs" / f"{bundle}.json").read_text())
     return contract["route"]["requested_model"]
@@ -374,6 +389,7 @@ def _analyse() -> tuple[dict[str, Any], list[dict[str, Any]]]:
                                      "phase_id", "seat_id", "tenant_id", "listing_id", "component", "amount", "note"]},
         "classes": classes,
         "baselines": baselines,
+        "worlds": _worlds(paired),
         "instances": sorted(instances, key=lambda i: (i["class"], i["side"], i["world_seed"], i["replicate_index"], i["round_index"], i["tenant_id"])),
         "source_manifest_sha256": sources,
     }, table
