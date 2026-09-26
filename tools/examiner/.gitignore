@@ -2,3 +2,4 @@ build/
 receipt_index.json
 __pycache__/
 roots.json
+roots.local.json

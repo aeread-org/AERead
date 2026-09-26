@@ -143,11 +143,15 @@ def evaluate(card: dict, cell: dict, periods: list[dict], negotiation: dict | No
 
 
 def extra_checkouts() -> list[Path]:
-    """The other checkouts this build reads (roots.json, written by build_general_examiner.py)."""
-    path = Path(__file__).with_name("roots.json")
-    if not path.exists():
-        return []
-    return [Path(p) for p in json.loads(path.read_text(encoding="utf-8")).values() if Path(p).is_dir()]
+    """The other checkouts this build reads: roots.json, which build_general_examiner.py rewrites from
+    AEREAD_EXAMINER_EXTRA_CHECKOUTS on every catalog build, and roots.local.json, which nothing rewrites
+    (checkouts that carry only derived analyses, such as gap bundles). Both are local and never published."""
+    out: list[Path] = []
+    for name in ("roots.json", "roots.local.json"):
+        path = Path(__file__).with_name(name)
+        if path.exists():
+            out += [Path(p) for p in json.loads(path.read_text(encoding="utf-8")).values() if Path(p).is_dir() and Path(p) not in out]
+    return out
 
 
 def payoff_comparisons(checkouts: list[Path]) -> dict:
@@ -258,9 +262,9 @@ def gap_reports(roots: list[Path]) -> dict:
                 keys = [c["key"] for c in report["components"]]
                 rows = [json.loads(line) for line in table.read_text(encoding="utf-8").splitlines() if line.strip()]
                 entry["contribution_rows"] = {
-                    "columns": ["cell", "component", "amount", "round", "phase", "seat", "note", "step"],
+                    "columns": ["cell", "component", "amount", "round", "phase", "seat", "note", "step", "listing"],
                     "rows": [[cell[(r["campaign_id"], r["receipt_sha256"])], keys.index(r["component"]), r["amount"], r.get("round_index"),
-                              r["phase_id"], r["seat_id"], r.get("note", ""), r.get("step_index")] for r in rows]}
+                              r["phase_id"], r["seat_id"], r.get("note", ""), r.get("step_index"), r.get("listing_id")] for r in rows]}
             if isinstance(report.get("cell_parts"), list):
                 _compact_cells(entry)
             out[key] = entry

@@ -317,11 +317,28 @@ async function renderResultsPage(){
 }
 
 // ---------------- cases ----------------
+function renderLemonsCases(c,data,g){const L=lemonsFacts(g);const nm=m=>String(m||'').split('/').pop();const model=s=>s==='left'?nm(g.left_model):s==='right'?nm(g.right_model):'';
+ const rows=data.cases.map(k=>({k,f:L.byRec[k.receipt_sha256]})).sort((a,b)=>((a.f?a.f.c.side:'z')+String(a.f?a.f.c.world_seed:'')).localeCompare((b.f?b.f.c.side:'z')+String(b.f?b.f.c.world_seed:''))||((a.f?a.f.c.replicate_index:0)-(b.f?b.f.c.replicate_index:0)));
+ const money=v=>`<span class="mono" style="color:${v<0?'var(--bad)':'inherit'}">${v>=0?'+':''}${fmt(v,1)}</span>`;
+ const body=rows.map(({k,f})=>{const id=esc(k.receipt_sha256||(k.cell_id+'|'+k.episode_attempt_id));if(!f)return `<tr class="click" data-case="${id}"><td class="mono" colspan="10">${esc(k.case_id)} <span class="muted">(not in the paired analysis)</span></td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td></tr>`;const w=f.world;
+  return `<tr class="click" data-case="${id}"><td class="mono">${esc(model(f.c.side))}</td><td class="mono">${esc(f.c.world_seed)}</td><td class="mono muted">${esc(f.c.replicate_index)}</td>
+   <td><span class="chip ${w.favourite_is_lemon?'no':'yes'}" title="the listing most tenants rank first is ${w.favourite_is_lemon?'a lemon':'sound'}">favourite ${w.favourite_is_lemon?'lemon':'sound'}</span></td>
+   <td class="mono" title="${esc(lemonsWorldText(w))}">${[...w.lemon_listings.map(l=>`<span style="color:var(--bad)">L${l}${l===w.favourite_listing?'★':''}</span>`),...w.sound_listings.map(l=>`<span style="color:var(--yes)">S${l}${l===w.favourite_listing?'★':''}</span>`)].join(' ')}</td>
+   <td style="text-align:right">${money(f.payoff)}</td><td class="mono">${f.inspected} · ${f.blind}</td>
+   <td>${f.lemons.length?`<span class="chip no" title="${esc(f.lemons.map(r=>`listing ${r.listing}, ${r.how}`).join('; '))}">${f.lemons.length} (${esc([...new Set(f.lemons.map(r=>r.how))].join(', '))})</span>`:'<span class="muted">0</span>'}</td>
+   <td class="mono">${f.inspections}</td><td style="text-align:right">${f.luck?money(f.luck):'<span class="muted">0</span>'}</td><td>${k.steps?k.steps.length:(k.steps_count??'—')}</td></tr>`;}).join('');
+ const sides=['left','right'].map(s=>{const fs=rows.map(r=>r.f).filter(f=>f&&f.c.side===s);if(!fs.length)return'';return `<span class="mono">${esc(model(s))}</span>: ${fs.length} shown, mean net payoff ${fmt(fs.reduce((a,f)=>a+f.payoff,0)/fs.length,1)}, lemons signed ${fs.reduce((a,f)=>a+f.lemons.length,0)}`;}).filter(Boolean).join(' · ');
+ $('view').className='';
+ $('view').innerHTML=`<section class="panel"><h2>${esc(c.id)} · ${data.cases.length} cases · ${esc(lensNote(c))}</h2><p class="muted" style="margin:0 0 8px;font-size:12.5px">One row per sealed market (six tenants, four listings). <span style="color:var(--bad)">L</span> = lemon, <span style="color:var(--yes)">S</span> = sound, ★ = the favourite most tenants rank first; which listing is which comes from the world regenerated from its seed (<span class="mono">${esc(g.gap_id)}</span>). Net payoff and its parts come from the same analysis. ${sides}. Click a row to step through it.</p>
+  <div class="scroll"><table><thead><tr><th>model</th><th>world</th><th>seed</th><th>stratum</th><th>listings</th><th>net payoff</th><th title="leases signed after inspecting · leases signed without inspecting">leases inspected · blind</th><th title="leases the tenants signed on a listing that is a lemon">lemons signed</th><th>inspections</th><th title="which blind leases turned out lemons: true value minus the value expected at signing">lemon luck</th><th>steps</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+ $('view').querySelectorAll('tr.click').forEach(tr=>tr.addEventListener('click',()=>{route.view='step';route.caseId=tr.dataset.case;route.step=0;render();}));
+ wireCellButtons();}
 async function renderCases(){
   const c=byId(route.campaign);
   $('view').className='loading'; $('view').textContent='Loading trajectories…';
   const data=campaignCache[c.id]||(campaignCache[c.id]=await getJSON(c.trajectory_file));
   await loadCards();if(CARDS&&data.cases.some(k=>CARDS.evaluations[k.receipt_sha256]))return renderCaseTable(c,data);
+  const lem=CARDS?lemonsGapFor(c):null;if(lem&&data.cases.some(k=>lemonsFacts(lem).byRec[k.receipt_sha256]))return renderLemonsCases(c,data,lem);
   const numericKeys=(()=>{const counts={};data.cases.forEach(k=>Object.entries(k.outcome_row||{}).forEach(([key,v])=>{if(typeof v==='number'||(typeof v==='string'&&v!==''&&!isNaN(Number(v))&&key.indexOf('sha256')<0)){counts[key]=(counts[key]||0)+1;}}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(k=>!/sha|index|seed|id$/.test(k)).slice(0,4);})();
   const seedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='world_seed'||x.endsWith('.world_seed'));return key?r[key]:null;};const hasSeed=data.cases.some(k=>seedOf(k)!=null);const iseedOf=k=>{const r=k.outcome_row||{};const key=Object.keys(r).find(x=>x==='inference_seed'||x.endsWith('.inference_seed'));return key?r[key]:null;};const hasISeed=data.cases.some(k=>iseedOf(k)!=null);const archOf=id=>{const m=String(id).match(/^(.*?)(?:\.|_)?(\d+)$/);return m?{arch:m[1],n:m[2]}:{arch:id,n:''};};
   // an external bundle also shows its short text outcomes (end, winner, ...), which carry its result
@@ -648,8 +665,15 @@ function gapNorm(g){if(!g||g._norm)return g;g._norm=1;const cp=g.cell_parts;
  const ins=g.instances;if(ins&&ins.compact)g.instances=ins.rows.map(r=>{if(r.cell==null)return r;const c=g.cell_parts[r.cell]||{};const o={side:c.side,campaign_id:c.campaign_id,receipt_sha256:c.receipt_sha256,world_seed:c.world_seed,replicate_index:c.replicate_index,unit:c.unit,stratum:c.stratum,...r};delete o.cell;return o;});
  return g;}
 // cells, each part's steps per cell, and the reference's parts per world, built once per gap report
+function lemonsGapFor(c){return gapsFor(c).find(g=>g.world_kind==='lemons'&&Array.isArray(g.worlds))||null;}
+function lemonsFacts(g){if(g._lem)return g._lem;const ix=gapIndex(g);const worlds={};g.worlds.forEach(w=>worlds[w.world_seed]=w);const byRec={};
+ ix.cells.forEach((c,i)=>{const rows=k=>ix.rows[i+'|'+k]||[];const w=worlds[c.world_seed]||{lemon_listings:[]};const signed=[...rows('informed_leases').map(r=>({...r,how:'inspected'})),...rows('blind_good_bets').map(r=>({...r,how:'blind'})),...rows('blind_bad_bets').map(r=>({...r,how:'blind'}))];
+  byRec[c.receipt_sha256]={c,world:w,payoff:Object.values(c.parts).reduce((a,v)=>a+v,0),inspected:rows('informed_leases').length,blind:signed.length-rows('informed_leases').length,
+   lemons:signed.filter(r=>r.listing!=null&&w.lemon_listings.includes(r.listing)),inspections:rows('inspection_spend').length,luck:c.parts.lemon_draws||0};});
+ return g._lem={worlds,byRec};}
+function lemonsWorldText(w){const ls=a=>a.length?a.join(' and '):'none';return `lemons are listing${w.lemon_listings.length!==1?'s':''} ${ls(w.lemon_listings)}, sound ${w.sound_listings.length!==1?'are':'is'} ${ls(w.sound_listings)}; the favourite, listing ${w.favourite_listing}, is ${w.favourite_is_lemon?'a lemon':'sound'}`;}
 function gapIndex(g){if(g._ix)return g._ix;const cells=g.cell_parts||[];const rows={};const cr=g.contribution_rows;
- if(cr){const keys=g.components.map(p=>p.key);cr.rows.forEach(r=>{const k=r[0]+'|'+keys[r[1]];(rows[k]=rows[k]||[]).push({amount:r[2],round:r[3],phase:r[4],seat:r[5],note:r[6],step:r[7]});});}
+ if(cr){const keys=g.components.map(p=>p.key);cr.rows.forEach(r=>{const k=r[0]+'|'+keys[r[1]];(rows[k]=rows[k]||[]).push({amount:r[2],round:r[3],phase:r[4],seat:r[5],note:r[6],step:r[7],listing:r[8]});});}
  const byWorld={};cells.forEach((c,i)=>{const u=c.unit??c.world_seed;const w=byWorld[u]=byWorld[u]||{left:[],right:[]};w[c.side].push(i);});
  const refs=(g.baselines||[]).map(b=>{const m={};(b.reference_parts||[]).forEach(r=>m[r.world_seed]=r.parts);return m;});
  return g._ix={cells,rows,byWorld,refs,steps:!!cr};}
@@ -951,7 +975,9 @@ async function renderSealed(c,k,data,lens,lc){
   const siblings=lens.cases.filter(x=>x.case_id===lc.case_id);
   const world=lc.world;const models=Object.entries(lc.profiles||{}).map(([pid,p])=>`<li><span class="mono">${esc(pid)}</span>${p.model&&p.model.model?` → ${esc(p.model.model)}${p.model.provider?' via '+esc(p.model.provider):''}`:(p.policy_id?` → policy ${esc(p.policy_id)}`:'')}</li>`).join('');
   const flagNote=flags[route.step]?`<div class="banner" style="margin:0 0 6px">Classified decision: ${flags[route.step].map(f=>`<span class="mono">${esc(f.class)}</span> (${fmt(f.amount,1)})`).join(', ')}. See <em>Why they differ</em> on the campaign page.</div>`:'';
-  const mid=partFocusHtml(pf)+flagNote+(s.kind==='action'?sealedAction(s,steps,lens,lc):sealedResult(s,lc));
+  const lemG=lemonsGapFor(c);const lemF=lemG&&lemonsFacts(lemG).byRec[lc.receipt_sha256];
+  const lemNote=lemF?`<div class="banner" style="margin:0 0 6px">World ${esc(lemF.c.world_seed)}: ${esc(lemonsWorldText(lemF.world))}. In the state, <span class="mono">quality 0</span> is a lemon and <span class="mono">1</span> sound. This market signed ${lemF.inspected+lemF.blind} lease${lemF.inspected+lemF.blind!==1?'s':''}${lemF.lemons.length?`, <b>${lemF.lemons.length} on a lemon</b> (${esc(lemF.lemons.map(r=>'listing '+r.listing+', '+r.how).join('; '))})`:', none on a lemon'}.</div>`:'';
+  const mid=lemNote+partFocusHtml(pf)+flagNote+(s.kind==='action'?sealedAction(s,steps,lens,lc):sealedResult(s,lc));
   const stateTitle=s.kind==='action'?'State beyond the seat\'s view':'State after this phase';const st=s.kind==='action'?s.pre:(s.p.post_state||s.pre);
   let stateHtml,hiddenCount=null;
   if(!st){stateHtml=`<p class="muted" style="font-size:12.5px">The initial state is not written to the event log, only its digest <span class="mono">${esc((s.p.pre_state_sha256||'').slice(0,16))}…</span>. What the seat saw is in the middle panel; the first logged state appears after this phase's result.</p>`;}
