@@ -580,6 +580,12 @@ them; `docs/research/jev_trajectory_triage_2026-09-22.md` reports the probe.
 Both were built in one agent session. The examiner was published as a private
 artifact before this entry, so its defects reached a reader.
 
+### D — Design defects
+
+| id | defect | detection | cost | disposition |
+|---|---|---|---|---|
+| EX-D-01 | every model comparison the examiner showed was one number per case, pooled over the strata the design fixes before a model acts (world type, seat, reasoning arm, the model on the other side, market difficulty), and only four pairs had a comparison panel while the catalogue holds 46 comparison sets in which two or more models played the same worlds. A reader could not see whether a direction held inside each stratum, and in one case it does not: in risk allocation v2 GLM has more regret than Gemini in three seat-by-arm strata and less in the fourth (integrator, default reasoning) | the owner, 2026-09-26, reading the lemons and procurement panels: "right now I just see results on the aggregate level" | no published number was wrong; the pooled panels answered a coarser question than the cases were built to ask, and a tally across cases could only be assembled by hand | fixed in 93c82048: `build_model_comparisons.py` and the page's "model comparisons" view (artifact v63) compute every multi-model case by stratum (matched seeds, equal weight per world, cluster bootstrap from 5 clusters up), name each stratum, and list the cases that cannot be compared with the reason. It reproduces the published procurement O1/O2 and lemons figures and risk allocation v2's complete arms exactly. Where GLM has missing cells its per-world weighting differs from the family's per-pair mean: risk allocation v2 integrator-default reads GLM − Gemini −27.1 [−63.1, −1.0] there against the published −26.9 [−70.4, +0.1], so that one stratum's verdict depends on the weighting |
+
 ### T — Tooling and process failures
 
 | id | defect | detection | cost | disposition |
