@@ -158,6 +158,7 @@ function bestDeclared(c,vs,nodes){const cand=vs.filter(v=>nodes.every(n=>v.nodes
 // declared scope belongs to. Keyed by plugin and variant, as the build reports them.
 const DECLARED_NOTES={
  'RiskAllocationPlugin|default':'the integrator-client risk-allocation case: one phase, negotiate, repeated each round. The model proposes a full package and a price, accepts a standing offer or walks; the scripted counterpart answers inside the step',
+ 'TwoSidedPlugin|default':'the same case with both seats played: integrator and client moves alternate, six in all, each a full package and a price (or a price request), an accept or a walk; graded on the joint value lost at both true private costs',
  'DataCenterDevelopmentPlugin|default':'family version 1.0.0 · case dev/service_loan_bankability_001',
  "DataCenterStackPlugin|init('v1',)":'family version 1.1.0 · case v1/power_epc_bankability_001',
  "DataCenterStackPlugin|init('v2',)":'family version 2.0.0 · cases v2/, worlds_v2/, worlds_v3/; the counteroffer ladders run its opening agreements',
