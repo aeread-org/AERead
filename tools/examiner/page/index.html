@@ -87,6 +87,7 @@ label.tog{font-size:12.5px;color:var(--muted);display:inline-flex;gap:6px;align-
 .diff{margin:0;padding-left:14px;font-size:11.5px;list-style:none}.diff li{margin:1px 0;overflow-wrap:anywhere}.diff .add{color:var(--yes)}.diff .rm{color:var(--no)}.diff .chg{color:var(--partial)}.diff .chg .em{color:var(--ink)}
 .basis{font-size:10.5px;color:var(--muted);white-space:nowrap}table.order td.what{white-space:normal;min-width:220px;max-width:300px;font-size:12px}table.order td.lin{white-space:normal;min-width:120px;font-size:11.5px}table.order td.idc{white-space:normal;min-width:230px;max-width:300px;overflow-wrap:anywhere}table.order td.ran{white-space:nowrap}tr.grp td{background:var(--soft);font-weight:600;font-size:12px;padding:5px 6px;white-space:normal}.runline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 2px;font-size:12.5px}.runline button{padding:3px 8px;font-size:12px}.runline .mono{font-size:12px}
 .mdlink{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:help}code{background:var(--soft);padding:0 3px;border-radius:3px}
+.kcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:14px 28px}.kc{min-width:0}.kct{font-size:12.5px;font-weight:600;margin:0 0 2px}@media (max-width:760px){.kcgrid{grid-template-columns:1fr}}
 .mcstrip{display:grid;grid-template-columns:minmax(180px,420px) 1fr;gap:5px 12px;align-items:center;margin:8px 0 4px}.mcstrip .mcsname{white-space:normal;text-align:left;justify-self:start}.mcstiles{display:flex;flex-wrap:wrap;gap:3px}.mctile{display:inline-block;width:16px;height:16px;border-radius:3px;box-sizing:border-box;vertical-align:-3px;cursor:pointer}.mctile.mca{background:var(--series-1)}.mctile.mcb{background:var(--series-2)}.mctile.ns{background:var(--na-soft);border:1px solid var(--rule)}.mctile.few{border:1.5px dashed var(--na)}@media (max-width:760px){.mcstrip{grid-template-columns:1fr}}
 .mcsel{display:flex;gap:6px;align-items:center;min-width:0;flex:1 1 420px}.mcsel select{min-width:0;width:100%;max-width:680px}.mct td{vertical-align:top}.mct tr.mcpool td{border-top:2px solid var(--rule);background:var(--soft)}.mct tr.mcgrp td{background:var(--soft);padding-top:8px}.chip.mca{background:color-mix(in srgb,var(--series-1) 16%,transparent);color:var(--series-1);border-color:transparent}.chip.mcb{background:color-mix(in srgb,var(--series-2) 16%,transparent);color:var(--series-2);border-color:transparent}
 .banner{background:var(--partial-soft);color:var(--partial);border-radius:6px;padding:6px 9px;font-size:12.5px;margin:0 0 8px}
@@ -282,8 +283,7 @@ function renderCampaign(){
    <div class="status"><span class="chip ${c.chain.latest?'acc':''}">${c.chain.latest?'latest in chain':'earlier version'}</span> <span class="em">${esc(st.label)}</span>${c.manifest.cost_qualifier?` · cost ${esc(c.manifest.cost_qualifier)}`:''}${c.manifest.total_cost_usd!=null?` · ${money(c.manifest.total_cost_usd)}`:''}${c.source_receipts?` · ${c.source_receipts} source receipts`:''}<div class="why">${why.length?why.join('<br>'):'no status sentence found in the manifest, reports or README; treat as published with the claims stated in its README'}</div></div>
    ${c.readme.excerpt?`<details style="margin-top:6px"><summary class="muted" style="font-size:12px">README excerpt · <span class="mono">${esc(c.path)}/README.md</span></summary><p style="margin:6px 0 0;max-width:110ch">${md(c.readme.excerpt)}</p></details>`:''}
   </section>
-  ${(()=>{const b=comparisonBlock(c);return b?`<section class="panel" id="comparison"><h2>${b.title}</h2>${b.html}</section>`:'';})()}
-  <section class="panel"><div class="bar" style="margin:0"><h2 style="margin:0">Results</h2>${(RESULTS[c.id]&&(RESULTS[c.id].tables||RESULTS[c.id].intervals))?`<span class="muted" style="font-size:12.5px">${RESULTS[c.id].tables} numeric table${RESULTS[c.id].tables!==1?'s':''}, ${RESULTS[c.id].intervals} interval estimate${RESULTS[c.id].intervals!==1?'s':''} and ${RESULTS[c.id].headline} headline numbers published by this bundle</span><button class="primary" id="open-results">Open charts</button>`:'<span class="muted" style="font-size:12.5px">this bundle publishes no numeric tables the examiner can chart</span>'}</div></section>
+  ${keyChartsHtml(c)}
   <div class="grid2 wide">
    <div class="stack"><section class="panel" id="checklist">${c.external?`<h2>Construct validity checklist</h2><p class="banner" style="margin:0">${esc(c.external_note||'This bundle is not AERead evidence; the AERead checklist does not apply.')}</p></section><section hidden>`:''}<h2>Construct validity checklist${attn?` <span class="chip no" style="text-transform:none;letter-spacing:0">${attn} need${attn===1?'s':''} attention</span>`:''}</h2><p class="muted" style="margin:0 0 6px;font-size:12px">Each line is a fact the bundle or the repository states, mapped to the QC gate it serves. “Not stated” means the bundle does not carry the fact under a key the rule reads, not that it fails. Click a line for what it rests on: the rule, the values it read with their files, the QC standard's words, and what else the bundle says on the subject.</p><div class="scroll"><table class="checklist"><thead><tr><th>state</th><th>check</th><th>gate</th><th>what the evidence says</th><th>source</th></tr></thead><tbody>${check}</tbody></table></div></section>${phaseHtml}</div>
    <div class="stack">
@@ -300,7 +300,7 @@ function renderCampaign(){
   if(route.focus){const f=$(route.focus);route.focus=null;if(f)f.scrollIntoView({block:'start'});}
   $('view').querySelectorAll('.chain button, .runnav').forEach(b=>b.addEventListener('click',()=>{route.campaign=b.dataset.id;route.caseId=null;render();}));
   const ex=$('examine'); if(ex) ex.addEventListener('click',()=>{route.view='cases';route.worldFilter=null;render();});wireGraphToggles();
-  const orb=$('open-results'); if(orb) orb.addEventListener('click',()=>{route.view='results';route.caseId=null;render();});
+  $('view').querySelectorAll('[data-rtab]').forEach(x=>x.addEventListener('click',()=>{route.view='results';route.rtab=x.dataset.rtab;route.caseId=null;render();}));
   wireComparison($('view'));
 }
 
@@ -1082,16 +1082,25 @@ const tileKey=(path,c)=>{let k=path.split('.').slice(-2).join(' · ').replace(/_
 const tileSource=file=>{const f=String(file).replace(/^reports\//,'').replace(/\.json$/,'');const m=f.match(/^(comparison|confirmatory)_vs_/);return m?m[1]+' report':f.replace(/_/g,' ');};
 function renderResults(c,res){
   const el=$('results');if(!el)return;
-  if(!res||(!res.tables.length&&!res.intervals.length)){const cmpH=(comparisonBlock(c)||{}).html||'';el.innerHTML='<h2>Results</h2>'+(cmpH||'<p class="muted" style="margin:0">This bundle publishes no numeric tables or interval estimates the examiner can chart.</p>');wireComparison(el);return;}
-  const st=resultsUI[c.id]=resultsUI[c.id]||{};
-  const rank=h=>(/rate|admission|mean|delta|score|margin|npv|regret|effect|fraction|share|median|payoff/i.test(h.path)?0:1)+(/cost|ceiling|max_|count|tokens|seed|budget/i.test(h.path)?2:0);
-  const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(tileKey(h.path,c))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(tileSource(h.file))}</div></div>`).join('');
-  const ivs=res.intervals||[];const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40),c)}</div></div>`:'';
-  res.tables.forEach(t=>{t._hints=res.primary_hints||[];});
-  const cards=res.tables.map((t,i)=>tableCard(t,i,st[i]=st[i]||{})).join('');
-  const hintLine=(res.primary_hints||[]).length?`<p class="muted" style="margin:0 0 6px;font-size:12.5px">The bundle names its guarded or primary metric: <span class="mono">${esc(res.primary_hints.join(', '))}</span>. Charts open on that metric where a table carries it.</p>`:'';
-  el.innerHTML=`<h2>Results <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· every numeric table and interval the bundle publishes, charted as published. Dots are rows; the bar is a 95% bootstrap interval of the group mean and the tick its mean (computed here, not by the bundle).</span></h2>${(comparisonBlock(c)||{}).html||''}${hintLine}${head?`<div class="tiles" style="margin-bottom:8px">${head}</div>`:''}${ivHtml}${cards}`;wireComparison(el);
-  el.querySelectorAll('.rcard select').forEach(sel=>sel.addEventListener('change',()=>{const i=Number(sel.closest('.rcard').dataset.i);st[i][sel.dataset.k]=sel.value;renderResults(c,res);}));fitCharts();
+  const mcH=mcCampaignHtml(c),h=comparisonHtml(c),gh=gapHtml(c);const hasTables=!!(res&&(res.tables.length||res.intervals.length));
+  const tabs=resultTabs(c);const cur=tabs.some(t=>t[0]===route.rtab)?route.rtab:tabs[0][0];
+  let body;
+  if(cur==='compare')body=mcH?mcH+(h?`<details class="jd" style="margin-top:10px"><summary>As the comparison report publishes it: one number pooled over the strata, and each world's bars</summary>${h}</details>`:''):h;
+  else if(cur==='gap')body=gh;
+  else if(!hasTables)body='<p class="muted" style="margin:0">This bundle publishes no numeric tables or interval estimates the examiner can chart.</p>';
+  else{const st=resultsUI[c.id]=resultsUI[c.id]||{};
+   const rank=h=>(/rate|admission|mean|delta|score|margin|npv|regret|effect|fraction|share|median|payoff/i.test(h.path)?0:1)+(/cost|ceiling|max_|count|tokens|seed|budget/i.test(h.path)?2:0);
+   const head=(res.headline||[]).slice().sort((a,b)=>rank(a)-rank(b)).slice(0,8).map(h=>`<div class="tile" title="${esc(h.file+' · '+h.path)}"><div class="k">${esc(tileKey(h.path,c))}</div><div class="v">${esc(fmtNum(h.value))}</div><div class="s">${esc(tileSource(h.file))}</div></div>`).join('');
+   const ivs=res.intervals||[];const ivHtml=ivs.length?`<div class="rcard"><div class="rhead"><span class="em">Interval estimates</span> <span class="muted">· ${ivs.length} point estimates with a published interval; amber where the interval crosses zero</span></div><div class="graph ivgrid">${intervalChart(ivs.slice(0,40),c)}</div></div>`:'';
+   res.tables.forEach(t=>{t._hints=res.primary_hints||[];});
+   const cards=res.tables.map((t,i)=>tableCard(t,i,st[i]=st[i]||{})).join('');
+   const hintLine=(res.primary_hints||[]).length?`<p class="muted" style="margin:0 0 6px;font-size:12.5px">The bundle names its guarded or primary metric: <span class="mono">${esc(res.primary_hints.join(', '))}</span>. Charts open on that metric where a table carries it.</p>`:'';
+   body=`<p class="muted" style="margin:0 0 6px;font-size:12.5px">Every numeric table and interval the bundle publishes, charted as published. Dots are rows; the bar is a 95% bootstrap interval of the group mean and the tick its mean (computed here, not by the bundle).</p>${hintLine}${head?`<div class="tiles" style="margin-bottom:8px">${head}</div>`:''}${ivHtml}${cards}`;}
+  el.innerHTML=`<div class="tabs" style="margin:0 0 10px">${tabs.map(([k,l])=>`<button data-rt="${k}" class="${k===cur?'cur':''}">${l}</button>`).join('')}</div>${body}`;
+  el.querySelectorAll('[data-rt]').forEach(b=>b.addEventListener('click',()=>{route.rtab=b.dataset.rt;save();renderResults(c,res);}));
+  wireComparison(el);
+  if(cur==='tables'&&hasTables){const st=resultsUI[c.id];el.querySelectorAll('.rcard select').forEach(sel=>sel.addEventListener('change',()=>{const i=Number(sel.closest('.rcard').dataset.i);st[i][sel.dataset.k]=sel.value;renderResults(c,res);}));}
+  fitCharts();
 }
 
 // ---------------- draggable column gutters for the three-panel views ----------------
@@ -1328,6 +1337,12 @@ function mcChart(title,rows,meas,s,A,B){if(!rows.length)return '';const W=820,la
   if(r.lo!=null)g+=`<line x1="${X(r.lo)}" x2="${X(r.hi)}" y1="${y}" y2="${y}" stroke="${col(r)}" stroke-width="2.2" stroke-linecap="round"/>`;
   g+=`<circle cx="${X(r.d)}" cy="${y}" r="${r.lo==null?3.5:4.5}" fill="${r.lo==null?'var(--panel)':col(r)}" stroke="${col(r)}" stroke-width="1.6"><title>${esc(r.label+': '+mcFmt(r.d,meas,true)+(r.lo!=null?' ['+mcFmt(r.lo,meas,true)+', '+mcFmt(r.hi,meas,true)+']':' (no interval: too few units)'))}</title></circle>`;});
  return `<div style="font-size:12px;font-weight:600;margin:4px 0 2px">${esc(title)}</div><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${esc(title)}">${g}<text x="${W-16}" y="${top-10}" text-anchor="end" font-size="10.5" fill="var(--muted)">right of 0: ${esc(mcLabel(s,A))} higher · small grey dots: each ${esc(s.unit.label)}'s difference · hollow dot: too few units for an interval</text></svg>`;}
+// the model a run of a multi-run case played: the one model whose key appears in the run's identity
+function mcRunModel(s,cid){if(!cid||s.campaigns.length<2||!s.campaigns.includes(cid))return null;const n=x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'');const hit=s.models.filter(m=>n(cid).includes(n(m.key)));return hit.length===1?hit[0].key:null;}
+// default pair: this run's model first where the page belongs to one run of the case, against the model with most cells
+function mcDefaultPair(s,cid){const models=s.models.map(m=>m.key);const cells=k=>s.rows.filter(r=>r[1]===k).length;const own=mcRunModel(s,cid);
+ if(own){const other=models.filter(k=>k!==own).sort((x,y)=>cells(y)-cells(x)||mcLabel(s,x).localeCompare(mcLabel(s,y)))[0];return [own,other];}
+ return models.slice().sort((x,y)=>cells(y)-cells(x)).slice(0,2).sort((x,y)=>mcLabel(s,x).localeCompare(mcLabel(s,y)));}
 function mcLabel(s,key){const m=(s.models.find(x=>x.key===key)||{}).label;return m||key;}
 function mcFmt(v,meas,diff){if(v==null||isNaN(v))return 'n/a';const u=meas.unit;
  if(u==='rate')return diff?(v>0?'+':'')+(v*100).toFixed(1)+' pp':(v*100).toFixed(1)+'%';
@@ -1352,7 +1367,7 @@ const mcSave=()=>{try{localStorage.setItem('aeread-examiner-mcs',JSON.stringify(
 function mcCaseBody(s){
  const st=MCS[s.id]||(MCS[s.id]={});const sid=esc(s.id);
  const meas=s.measures.find(m=>m.key===st.measure)||s.measures.find(m=>m.primary)||s.measures[0];
- const models=s.models.map(m=>m.key);let A=st.A,B=st.B;if(!models.includes(A)||!models.includes(B)||A===B){const byCells=models.slice().sort((x,y)=>s.rows.filter(r=>r[1]===y).length-s.rows.filter(r=>r[1]===x).length);[A,B]=byCells.slice(0,2).sort((x,y)=>mcLabel(s,x).localeCompare(mcLabel(s,y)));}
+ const models=s.models.map(m=>m.key);let A=st.A,B=st.B;if(!models.includes(A)||!models.includes(B)||A===B)[A,B]=mcDefaultPair(s,route.campaign);
  const dims=(st.dims||s.dims.map(d=>d.key)).filter(k=>s.dims.some(d=>d.key===k));
  const measSel=`<select data-mcm="${sid}">${s.measures.map(m=>`<option value="${esc(m.key)}" ${m.key===meas.key?'selected':''}>${esc(m.label)}${m.primary?' (primary)':''}${m.better?` · ${m.better} is better`:''}</option>`).join('')}</select>`;
  const dimBox=s.dims.length?s.dims.map(d=>`<label class="nw" title="${esc(d.note||'')}"><input type="checkbox" data-mcd="${sid}" data-dim="${esc(d.key)}" ${dims.includes(d.key)?'checked':''}> ${esc(d.label)} <span class="muted">(${d.values.length})</span></label>`).join(' '):'<span class="muted">this case declares no strata</span>';
@@ -1382,12 +1397,32 @@ function wireMc(el){const re=()=>{const v=$('view'),top=v.scrollTop;mcSave();ren
  el.querySelectorAll('[data-mcpa]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpa).A=x.value;re();}));
  el.querySelectorAll('[data-mcpb]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpb).B=x.value;re();}));
  el.querySelectorAll('[data-mcd]').forEach(x=>x.addEventListener('change',()=>{const id=x.dataset.mcd;S(id).dims=[...el.querySelectorAll('[data-mcd]')].filter(y=>y.dataset.mcd===id&&y.checked).map(y=>y.dataset.dim);re();}));
- el.querySelectorAll('.mccase [data-mcrun]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();const c=byId(x.dataset.mcrun);route.view='campaign';route.campaign=c.id;route.family=c.family;route.caseId=null;route.focus='comparison';render();}));}
-// the comparison panel of a run page and of its results page: by stratum where the run is in a case two models
-// played, with the comparison report's pooled view kept below it; the gap decomposition follows either way
-function comparisonBlock(c){const mc=mcCampaignHtml(c),h=comparisonHtml(c),gh=gapHtml(c);if(!mc&&!h&&!gh)return null;const g=gapFor(c);
- const title=mc?'Model comparison, by stratum':h?'Model comparison':(g&&g.reference_side?'Against the '+esc(g.right_label||'reference'):'Why they differ');
- return {title,html:(mc?mc+(h?`<details class="jd" style="margin-top:10px"><summary>As the comparison report publishes it: one number pooled over the strata, and each world's bars</summary>${h}</details>`:''):h)+gh};}
+ el.querySelectorAll('.mccase [data-mcrun]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();const c=byId(x.dataset.mcrun);route.view='results';route.rtab='compare';route.campaign=c.id;route.family=c.family;route.caseId=null;render();}));}
+// Open charts is tabbed: the case's model comparison, why the runs differ, and the bundle's own tables
+function resultTabs(c){const t=[];if(mcCampaignHtml(c)||comparisonHtml(c))t.push(['compare','Model comparison']);if(gapsFor(c).length)t.push(['gap','Why they differ']);
+ const n=RESULTS[c.id]||{};if(n.tables||n.intervals||!t.length)t.push(['tables',`Published tables${n.tables?` (${n.tables})`:''}`]);return t;}
+// The run page shows at most three charts, the ones a reader needs first: the case's comparison by its declared
+// strata on the primary measure, then the gap breakdowns. Everything else is a tab in Open charts.
+function keyCharts(c){const out=[];const nm=m=>String(m||'').split('/').pop();
+ if(MC)(MC.sets||[]).filter(s=>s.campaigns.includes(c.id)&&!HIDDEN_FAMILIES.has(s.family)).forEach(s=>{
+  const meas=s.measures.find(m=>m.primary)||s.measures[0];const dims=s.dims.filter(d=>d.tally!==false).map(d=>d.key);
+  const [A,B]=mcDefaultPair(s,c.id);
+  const rows=mcStats(s,meas.key,dims,A,B);if(!rows.length)return;const pooled=dims.length?mcStats(s,meas.key,[],A,B)[0]:null;
+  const n={a:0,b:0,ns:0,few:0};rows.forEach(r=>{const v=mcVerdict(r,meas,A,B,s);if(r.lo==null)n.few++;else if(v.cls==='mca')n.a++;else if(v.cls==='mcb')n.b++;else n.ns++;});
+  const chartRows=rows.map(r=>({...r,label:mcStratumText(s,dims,r.vals).replace(/^(.{40}).+$/,'$1…')})).concat(pooled&&rows.length>1?[{...pooled,label:'all strata pooled'}]:[]);
+  out.push({tab:'compare',title:`${s.title}: ${mcLabel(s,A)} − ${mcLabel(s,B)}${dims.length?', by '+dims.map(k=>s.dims.find(d=>d.key===k).label.toLowerCase()).join(' × '):''}`,
+   html:mcChart(`${meas.label}${meas.better?` (${meas.better} is better)`:''}`,chartRows,meas,s,A,B),
+   note:`${mcLabel(s,A)} better in ${n.a} strat${n.a===1?'um':'a'}, ${mcLabel(s,B)} in ${n.b}, not separated in ${n.ns}${n.few?`, too few ${s.unit.label}s for an interval in ${n.few}`:''}.`});});
+ gapsFor(c).slice().sort((a,b)=>((b.comparison||{}).primary===true)-((a.comparison||{}).primary===true)).forEach(g=>{const L=nm(g.left_model),R=g.right_label||nm(g.right_model);
+  out.push({tab:'gap',title:`${g.title||'Why they differ'}: ${L}${g.reference_side?' against '+R:' − '+R}`,html:waterfallSvg(g.components,g.realized.difference,g.realized.difference_ci,`gap as realized, ${L} − ${R}`,`Per ${esc(g.per_label||'market')}; the parts sum to the gap exactly.`,null,g.unit_label),note:''});
+  (g.baselines||[]).forEach(b=>['left','right'].forEach(side=>{const v=b.vs&&b.vs[side];if(!v)return;const who=side==='left'?L:nm(g.right_model);
+   out.push({tab:'gap',title:`${who} − the ${b.label}`,html:waterfallSvg(v.components,v.realized.difference,v.realized.difference_ci,`${who} − reference, as realized`,`Per market, ${esc(who)} minus the ${esc(b.label)} on the same worlds.`,null),note:''});}));});
+ return out.slice(0,3);}
+function keyChartsHtml(c){const k=keyCharts(c);const tabs=resultTabs(c);const n=RESULTS[c.id]||{};const any=k.length||n.tables||n.intervals;
+ const names=Object.fromEntries(tabs);const btns=tabs.map(([t,l])=>`<button class="dbtn" data-rtab="${t}">${esc(l)} ›</button>`).join(' ');
+ if(!any)return `<section class="panel"><div class="bar" style="margin:0"><h2 style="margin:0">Charts</h2><span class="muted" style="font-size:12.5px">this bundle publishes no numeric tables the examiner can chart, and no model comparison or gap report covers it</span></div></section>`;
+ return `<section class="panel" id="keycharts"><div class="bar" style="margin:0 0 6px"><h2 style="margin:0">Key charts</h2><button class="primary" data-rtab="${tabs[0][0]}">Open charts</button><span class="muted" style="font-size:12.5px">every chart, in tabs:</span> ${btns}</div>
+  ${k.length?`<div class="kcgrid">${k.map(x=>`<div class="kc"><div class="kct">${esc(x.title)}</div>${x.html}${x.note?`<p class="muted" style="margin:2px 0 0;font-size:12px">${esc(x.note)}</p>`:''}<button class="dbtn" data-rtab="${x.tab}" style="margin-top:4px">${esc(names[x.tab]||'more')} in Open charts ›</button></div>`).join('')}</div>`:`<p class="muted" style="margin:0;font-size:12.5px">No model comparison or gap report covers this run; its published tables are in Open charts.</p>`}</section>`;}
 function mcStratumText(s,dims,vals){return dims.length?dims.map((k,i)=>{const d=s.dims.find(x=>x.key===k);return String(((d.values||[]).find(x=>x.v===vals[i])||{label:vals[i]}).label).replace(/ \(.*?\)/g,'');}).join(' · '):'all '+s.unit.label+'s';}
 function mcTallyTab(){
  const sets=mcSets();const st=route.mc;const pairs=new Map();
@@ -1408,7 +1443,7 @@ function mcTallyTab(){
  return `<section class="panel"><div class="rctl" style="align-items:center;gap:10px 16px"><span class="mcsel"><span class="nw">models</span> ${pairSel}</span><label class="nw"><input type="checkbox" id="mcsmall" ${st.small?'checked':''}> include cases with fewer than ${MC_MIN} independent units${hidden?` (${hidden})`:''}</label></div>
   <p style="margin:4px 0;font-size:13px"><strong>${esc(P.la)}</strong> better in <strong>${tally.a}</strong> strata · <strong>${esc(P.lb)}</strong> better in <strong>${tally.b}</strong> · not separated in <strong>${tally.ns}</strong> · too few units for an interval in <strong>${tally.few}</strong>.</p>
   <div class="mcstrip">${strip.join('')}</div>
-  <p class="muted" style="margin:0 0 10px;font-size:11.5px"><span class="mctile mca"></span> ${esc(P.la)} better · <span class="mctile mcb"></span> ${esc(P.lb)} better · <span class="mctile ns"></span> not separated · <span class="mctile few"></span> too few units for an interval. One tile per stratum of a case, on that case's primary measure; no common scale, so tiles carry only the reading. Hover a tile for its numbers; click to open the case's run page, where its comparison lives.</p>
+  <p class="muted" style="margin:0 0 10px;font-size:11.5px"><span class="mctile mca"></span> ${esc(P.la)} better · <span class="mctile mcb"></span> ${esc(P.lb)} better · <span class="mctile ns"></span> not separated · <span class="mctile few"></span> too few units for an interval. One tile per stratum of a case, on that case's primary measure; no common scale, so tiles carry only the reading. Hover a tile for its numbers; click to open the case's comparison.</p>
   <p class="muted" style="margin:0 0 8px;font-size:12px">One row per stratum of one case, on that case's primary measure and its declared strata (world type, seat, arm, the model on the other side, market difficulty). Rows are not added up: the measures differ in unit and meaning, and strata of one case share worlds when the stratum is a seat or an arm. Open a case to change the measure or the split.</p>
   <div class="scroll"><table class="cct mct"><thead><tr><th>Stratum</th><th>units</th><th>${esc(P.la)}</th><th>${esc(P.lb)}</th><th>${esc(P.la)} − ${esc(P.lb)} <span class="muted">(95% interval)</span></th><th>better on</th><th>reading</th></tr></thead><tbody>${blocks.join('')}</tbody></table></div></section>`;}
 function mcCoverageTab(){const nc=(MC.not_compared||[]).filter(u=>!HIDDEN_FAMILIES.has(u.family));const multi=nc.filter(u=>u.models.length>1),single=nc.filter(u=>u.models.length<2);
@@ -1421,12 +1456,12 @@ async function renderModels(){
  if(!MC||!(MC.sets||[]).length){$('view').innerHTML='<section class="panel"><h3>No model comparisons in this build</h3><p class="muted">Run build_model_comparisons.py.</p></section>';return;}
  const st=route.mc||(route.mc={tab:'tally'});if(st.tab!=='coverage')st.tab='tally';const sets=mcSets();
  const tabs=[['tally','All strata, across cases'],['coverage','Not compared, and method']];
- $('view').innerHTML=`<section class="panel" style="margin-bottom:8px"><h2 style="margin:0 0 4px">Model comparisons, by stratum</h2><p style="margin:0 0 8px;font-size:12.5px">${sets.length} cases in which two or more models played the same worlds. Each row compares two models inside one <strong>stratum</strong>: a slice the design fixes before any model acts, such as the world type, the seat, the reasoning arm, or the model on the other side. The all-strata row is shown last and says what it averages over. Nothing is pooled across cases. Each case's own comparison, with its measures and its split, is on its run page: click a case.</p><div class="tabs" style="margin:0">${tabs.map(([k,l])=>`<button data-mctab="${k}" class="${st.tab===k?'cur':''}">${l}</button>`).join('')}</div></section>${st.tab==='coverage'?mcCoverageTab():mcTallyTab()}`;
+ $('view').innerHTML=`<section class="panel" style="margin-bottom:8px"><h2 style="margin:0 0 4px">Model comparisons, by stratum</h2><p style="margin:0 0 8px;font-size:12.5px">${sets.length} cases in which two or more models played the same worlds. Each row compares two models inside one <strong>stratum</strong>: a slice the design fixes before any model acts, such as the world type, the seat, the reasoning arm, or the model on the other side. The all-strata row is shown last and says what it averages over. Nothing is pooled across cases. Each case's own comparison, with its measures and its split, is in its run's Open charts: click a case.</p><div class="tabs" style="margin:0">${tabs.map(([k,l])=>`<button data-mctab="${k}" class="${st.tab===k?'cur':''}">${l}</button>`).join('')}</div></section>${st.tab==='coverage'?mcCoverageTab():mcTallyTab()}`;
  const v=$('view');const re=()=>render();
  v.querySelectorAll('[data-mctab]').forEach(b=>b.addEventListener('click',()=>{st.tab=b.dataset.mctab;re();}));
  const on2=(id,fn)=>{const el=$(id);if(el)el.addEventListener('change',()=>{fn(el);re();});};
   on2('mcpair',el=>{st.pair=el.value;});on2('mcsmall',el=>{st.small=el.checked;});
- v.querySelectorAll('[data-mcset]').forEach(b=>b.addEventListener('click',()=>{const s=(MC.sets||[]).find(x=>x.id===b.dataset.mcset);const c=s&&s.campaigns.map(byId).find(Boolean);if(!c)return;route={view:'campaign',family:c.family,campaign:c.id,caseId:null,step:0,focus:'comparison',mc:st};re();}));
+ v.querySelectorAll('[data-mcset]').forEach(b=>b.addEventListener('click',()=>{const s=(MC.sets||[]).find(x=>x.id===b.dataset.mcset);const c=s&&s.campaigns.map(byId).find(Boolean);if(!c)return;route={view:'results',family:c.family,campaign:c.id,caseId:null,step:0,rtab:'compare',mc:st};re();}));
  v.querySelectorAll('[data-mcrun]').forEach(b=>b.addEventListener('click',()=>{const c=byId(b.dataset.mcrun);route={view:'campaign',family:c.family,campaign:c.id,caseId:null,step:0,mc:st};re();}));
 }
 
