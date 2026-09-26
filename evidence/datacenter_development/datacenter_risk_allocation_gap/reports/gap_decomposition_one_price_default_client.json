@@ -1,0 +1,1468 @@
+{
+  "accounting_check": {
+    "contribution_statement": "per cell, the contribution rows of each part sum to that cell's part",
+    "max_abs_contribution_residual": 0.0,
+    "max_abs_residual_per_cell": 0.0,
+    "statement": "each cell's parts sum to minus its published decision_regret; the residual is the rounding of the published sum to 6 decimals"
+  },
+  "amount_label": "$k/world",
+  "bootstrap": {
+    "draws": 10000,
+    "interval": "percentile_95",
+    "seed": 20260927,
+    "stream": "one random.Random(seed) per report: realized, then components in declared order, then class amounts in declared order; each draw resamples the clusters with replacement and takes the mean over their worlds",
+    "unit": "world cluster (world_seed: a twin with its base world)"
+  },
+  "cell_parts": [
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -34.8,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "55003cfceb0828917948c5a7bb0af47352a24bfbce7a945ce3dac04af3df4ae9",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "better_contract_or_walk",
+      "unit": "better_contract_or_walk_2463001_twin",
+      "world_seed": 2463001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": -1.0
+      },
+      "receipt_sha256": "3eebae11399bdb90a87e1ca087ef29ea8be3216851f4f581b305ed970e19655a",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "close_now",
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": -280.03,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "2099af087114f3593bfce2515171308a8dee95402eb3779a854bd8cdf3624402",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "close_now",
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": -101.40275
+      },
+      "receipt_sha256": "63ca9e1014e268315781f4f0ec276095b3d8661543727133f5db446b4bd453db",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "keep_their_terms",
+      "unit": "keep_their_terms_2460000",
+      "world_seed": 2460000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "0412baa941445865339bcd636b25b684eeddeacdb365702c52ebb98d937338af",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "keep_their_terms",
+      "unit": "keep_their_terms_2460001",
+      "world_seed": 2460001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -9.6,
+        "later_price": -0.02,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "9435eedb5b1af670427d2b8d4795fc11f71b628fe25bf87db4e3035b55ce348d",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -77.1,
+        "later_price": -0.38,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "21094950822d0d7e7130fcf843f98873cf9492d8b842bffb8f174166a2253b54",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -63.0,
+        "later_price": -0.28,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "3df6987da24b1c1f8bff1df536eddfc0f6f17c05b15b91b9b1768882e398a869",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461001",
+      "world_seed": 2461001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -7.2,
+        "later_price": -0.02,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "f346d1f61cb88ea43c8fa777304fc8175a8be5c834d4e9ab95c74f67b37f5ca2",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461001_twin",
+      "world_seed": 2461001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "f774edb12b0a6e01ab0df7b96835125c51093742ce487c74022a8f63d8052295",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "shift_the_tail",
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "8f2d1128e9d9049afe1ff5f6b4b2a35dc2c594f464c523f38e9d67ab2810e483",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "shift_the_tail",
+      "unit": "shift_the_tail_2462001",
+      "world_seed": 2462001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": -25.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "e7c9ffca88a4d3e7031ecff8390e798f08dfb48607ee8858fafd5e2104d37acc",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "walk_away",
+      "unit": "walk_away_2464000",
+      "world_seed": 2464000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -25.0,
+        "later_price": -324.9,
+        "opening_package": -25.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "dfbb04844be57d7edbbdfb5f1e39f806700365a829ee1c240b5f43d4b30f848e",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "walk_away",
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "2dd80086b8a7e68ad5f701be67fc883673775503994b919e28c155e390dca1f2",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "better_contract_or_walk",
+      "unit": "better_contract_or_walk_2463001_twin",
+      "world_seed": 2463001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": -32.4,
+        "opening_price": -533.98645
+      },
+      "receipt_sha256": "8eb8fafb69fc7d7009bab8334f5c3eec7f6f414ff9e6e49dafeadb24d5e580e1",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "close_now",
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": -54.625,
+        "opening_price": -77.0731
+      },
+      "receipt_sha256": "0d8f16150dd2a6ec7902072962ed57c6a64d9740071658930d8ef203f1bddd95",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "close_now",
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": -98.59725,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "163fc9d5b800761805109ed534d182ba08615c684e98d292d9e51c18b09c975b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "keep_their_terms",
+      "unit": "keep_their_terms_2460000",
+      "world_seed": 2460000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "02e3bd36731e4316d53b83b816321815e8420c76bdbbcdfa1fda4e42b772a92b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "keep_their_terms",
+      "unit": "keep_their_terms_2460001",
+      "world_seed": 2460001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -9.6,
+        "later_price": -0.72,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "ab22003b5921d92ff46a3770d537851c063a631ade1b5eebb4e8449b6c1a512b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -56.85,
+        "later_price": -59.88505,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "2f237e54e9fd1ea7d249648ff0a13469a780b0c1aaf5b0efe3c3da4ae2736e4a",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "fbe80fc18a45f0752cbcffabd2d16b6b6d785d794b7a13a70528f366da354a04",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461001",
+      "world_seed": 2461001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": -0.52,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "7986187503563b515b00663358996d22b0458f080eb9865140262a6bb61cc2e2",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "price_the_alternatives",
+      "unit": "price_the_alternatives_2461001_twin",
+      "world_seed": 2461001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": -8.16,
+        "later_price": -3.2,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "1b1b184c2472c590af9be3bfba045e83a4cdb8d555d811408c7292c70552f8b3",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "shift_the_tail",
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "dca90080667433fa60d19473c7c66e7b486eaa609fae0334c933ac49f58cce0b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "shift_the_tail",
+      "unit": "shift_the_tail_2462001",
+      "world_seed": 2462001
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "8e89c646ab7c8e17def6041e14a74a95e6c7d96d1d18d1ffa97e14fc62a68b90",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "walk_away",
+      "unit": "walk_away_2464000",
+      "world_seed": 2464000
+    },
+    {
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "parts": {
+        "accept_or_walk": 0.0,
+        "later_package": 0.0,
+        "later_price": 0.0,
+        "opening_package": 0.0,
+        "opening_price": 0.0
+      },
+      "receipt_sha256": "eda38de08b717c756f6a009b0b719f00a2c1ff5ce85a943ad2b79d71a9bbb8ef",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "walk_away",
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    }
+  ],
+  "cells": {
+    "left": 13,
+    "right": 13
+  },
+  "claim_status": "diagnostic_dev_campaign",
+  "class_heading": "what went wrong (moves judged on the model's own information; outcomes against the true types)",
+  "classes": [
+    {
+      "amount_basis": "the move's package part, $k",
+      "amount_difference": 5.769231,
+      "amount_difference_ci": [
+        0.0,
+        15.384615
+      ],
+      "group": "decision",
+      "key": "proposed_when_walking_or_accepting_was_best",
+      "label": "proposed while walking away (or accepting the standing offer) was the best move",
+      "left_amount_per_market": 5.769231,
+      "left_count": 3,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's package part, $k",
+      "amount_difference": 14.846538,
+      "amount_difference_ci": [
+        -6.942857,
+        56.35125
+      ],
+      "group": "decision",
+      "key": "opened_with_another_package",
+      "label": "the first proposal named a package the best first move did not",
+      "left_amount_per_market": 21.540769,
+      "left_count": 1,
+      "right_amount_per_market": 6.694231,
+      "right_count": 2
+    },
+    {
+      "amount_basis": "the move's package part, $k",
+      "amount_difference": 13.38,
+      "amount_difference_ci": [
+        0.0,
+        24.8175
+      ],
+      "group": "decision",
+      "key": "kept_its_first_package",
+      "label": "after an answer, proposed its first package again when another package was the best move",
+      "left_amount_per_market": 14.746154,
+      "left_count": 5,
+      "right_amount_per_market": 1.366154,
+      "right_count": 2
+    },
+    {
+      "amount_basis": "the move's package part, $k",
+      "amount_difference": -4.373077,
+      "amount_difference_ci": [
+        -12.182143,
+        0.0
+      ],
+      "group": "decision",
+      "key": "switched_to_the_wrong_package",
+      "label": "after an answer, changed package, but not to the one the best move names",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 4.373077,
+      "right_count": 1
+    },
+    {
+      "amount_basis": "the move's price part, $k",
+      "amount_difference": -53.266827,
+      "amount_difference_ci": [
+        -149.929487,
+        0.0
+      ],
+      "group": "decision",
+      "key": "asked_when_it_should_have_offered",
+      "label": "asked the price (or offered one no consistent counterpart signs) when offering the signing price was worth more",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 53.266827,
+      "right_count": 3
+    },
+    {
+      "amount_basis": "the move's price part, $k",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "asked_the_less_useful_question",
+      "label": "asked a price in a less useful way (one package where naming an alternate too was worth more, or the other way round)",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's price part, $k",
+      "amount_difference": 32.792519,
+      "amount_difference_ci": [
+        0.0,
+        90.577346
+      ],
+      "group": "decision",
+      "key": "offered_when_it_should_have_asked",
+      "label": "offered a price some consistent counterpart signs when asking first was worth more",
+      "left_amount_per_market": 32.792519,
+      "left_count": 2,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's price part, $k",
+      "amount_difference": -6.097931,
+      "amount_difference_ci": [
+        -19.718275,
+        0.153846
+      ],
+      "group": "decision",
+      "key": "offered_a_worse_signing_price",
+      "label": "offered a signing price, but not the best one for that package (paid or conceded too much, or priced out a type it should have signed)",
+      "left_amount_per_market": 0.076923,
+      "left_count": 1,
+      "right_amount_per_market": 6.174854,
+      "right_count": 2
+    },
+    {
+      "amount_basis": "the move's price part, $k",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "format",
+      "key": "refused_at_the_stated_price",
+      "label": "proposed at the price the counterpart had stated, which was rounded to the side it refuses (DC-D-25)",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's regret, $k",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "took_a_counter_when_proposing_was_better",
+      "label": "accepted the standing counter when proposing again was the best move",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's regret, $k",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "accepted_when_walking_was_better",
+      "label": "accepted a standing offer worse than walking away",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the move's regret, $k",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "walked_when_a_deal_was_better",
+      "label": "walked away when accepting or proposing was the best move",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the published allocation_gap, $k of joint value",
+      "amount_difference": 69.770769,
+      "amount_difference_ci": [
+        6.242143,
+        161.706154
+      ],
+      "group": "outcome",
+      "key": "signed_an_inefficient_contract",
+      "label": "signed a contract with less joint value than the efficient one for the true types (published allocation gap)",
+      "left_amount_per_market": 75.51,
+      "left_count": 7,
+      "right_amount_per_market": 5.739231,
+      "right_count": 3
+    },
+    {
+      "amount_basis": "the published price_gap, $k",
+      "amount_difference": 52.138462,
+      "amount_difference_ci": [
+        0.0,
+        117.230769
+      ],
+      "group": "outcome",
+      "key": "price_left_to_the_counterpart",
+      "label": "signed at a price the counterpart would have bettered (published price gap: above the integrator's floor, or below the client's final bid)",
+      "left_amount_per_market": 52.384615,
+      "left_count": 3,
+      "right_amount_per_market": 0.246154,
+      "right_count": 1
+    },
+    {
+      "amount_basis": "the published allocation_gap of the episode, $k of joint value lost against the best outcome for the true types",
+      "amount_difference": -263.564231,
+      "amount_difference_ci": [
+        -662.559615,
+        0.0
+      ],
+      "group": "luck",
+      "key": "broke_off_after_a_refusal",
+      "label": "the counterpart broke off after a refused proposal (the break-off draw; its risk is already in the move's regret)",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 263.564231,
+      "right_count": 2
+    }
+  ],
+  "clusters": 11,
+  "comparison": {
+    "arm": "one_price_default",
+    "clusters": 12,
+    "pack": "risk_allocation_dev_v1",
+    "primary": false,
+    "seat": "client",
+    "worlds": 16
+  },
+  "components": [
+    {
+      "description": "First move, a proposal: what proposing that package in its best way (best price, or asking) gives up against the best first move.",
+      "difference": -18.692692,
+      "difference_ci": [
+        -60.128636,
+        3.933333
+      ],
+      "group": "decision",
+      "key": "opening_package",
+      "label": "opening package",
+      "left": -25.386923,
+      "right": -6.694231
+    },
+    {
+      "description": "First move, a proposal: what the model's price, or its price request, gives up against the best way of proposing the same package.",
+      "difference": 39.127446,
+      "difference_ci": [
+        -17.471935,
+        137.6419
+      ],
+      "group": "decision",
+      "key": "opening_price",
+      "label": "opening price or request",
+      "left": -7.877135,
+      "right": -47.004581
+    },
+    {
+      "description": "Every proposal after the first answer: what proposing that package in its best way gives up against the best move then.",
+      "difference": -10.93,
+      "difference_ci": [
+        -20.517143,
+        -1.530909
+      ],
+      "group": "decision",
+      "key": "later_package",
+      "label": "later package",
+      "left": -16.669231,
+      "right": -5.739231
+    },
+    {
+      "description": "Every proposal after the first answer: what the model's price, or its request, gives up against the best way of proposing that package.",
+      "difference": -12.513669,
+      "difference_ci": [
+        -76.207912,
+        25.200979
+      ],
+      "group": "decision",
+      "key": "later_price",
+      "label": "later price or request",
+      "left": -25.046154,
+      "right": -12.532485
+    },
+    {
+      "description": "Every accept of a standing offer and every walk away, in any round: what it gives up against the best move then.",
+      "difference": 0.0,
+      "difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "accept_or_walk",
+      "label": "accepting or walking",
+      "left": 0.0,
+      "right": 0.0
+    }
+  ],
+  "contributions": {
+    "fields": [
+      "side",
+      "campaign_id",
+      "receipt_sha256",
+      "world_seed",
+      "replicate_index",
+      "unit",
+      "step_index",
+      "round_index",
+      "phase_id",
+      "seat_id",
+      "component",
+      "amount",
+      "move",
+      "note"
+    ],
+    "rows": 89,
+    "table": "tables/contributions_one_price_default_client.jsonl"
+  },
+  "direction": "higher",
+  "endpoint": "minus decision_regret ($ thousands): minus the published primary leaf, the sum over the episode's moves of what each gave up against the best move on the model's own information",
+  "family": "datacenter_development",
+  "inferential_model_ranking_allowed": false,
+  "instances": [
+    {
+      "amount": 533.98645,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "asked_when_it_should_have_offered",
+      "note": "Round 1: asked the price of fix_and_delay/client/included/at_signing; the best way to propose this package was to propose fix_and_delay/client/included/at_signing at 11,328, so the price gave up $534.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "8eb8fafb69fc7d7009bab8334f5c3eec7f6f414ff9e6e49dafeadb24d5e580e1",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "amount": 98.59725,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "asked_when_it_should_have_offered",
+      "note": "Round 2: asked the price of none/client/excluded/at_signing; the best way to propose this package was to propose none/client/excluded/at_signing at 10,532, so the price gave up $98.6k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "163fc9d5b800761805109ed534d182ba08615c684e98d292d9e51c18b09c975b",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "keep_their_terms_2460000",
+      "world_seed": 2460000
+    },
+    {
+      "amount": 59.88505,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "asked_when_it_should_have_offered",
+      "note": "Round 2: proposed fix_and_delay/integrator/included/at_signing at 10,863.62; the best way to propose this package was to propose fix_and_delay/integrator/included/at_signing at 10,922.12, so the price gave up $59.9k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2f237e54e9fd1ea7d249648ff0a13469a780b0c1aaf5b0efe3c3da4ae2736e4a",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 1760.605,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "broke_off_after_a_refusal",
+      "note": "The counterpart broke off after the refused proposal (round 1); with no deal, joint value fell $1,760.6k short of the best outcome for the true types.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "8eb8fafb69fc7d7009bab8334f5c3eec7f6f414ff9e6e49dafeadb24d5e580e1",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "amount": 1665.73,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "broke_off_after_a_refusal",
+      "note": "The counterpart broke off after the refused proposal (round 1); with no deal, joint value fell $1,665.7k short of the best outcome for the true types.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "0d8f16150dd2a6ec7902072962ed57c6a64d9740071658930d8ef203f1bddd95",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 34.8,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,672.32; the best move was to propose fix/client/excluded/on_delivery at 10,787.52, so the package gave up $34.8k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "55003cfceb0828917948c5a7bb0af47352a24bfbce7a945ce3dac04af3df4ae9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "better_contract_or_walk_2463001_twin",
+      "world_seed": 2463001
+    },
+    {
+      "amount": 9.6,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,781.3; the best move was to propose fix_and_delay/client/excluded/on_delivery at 10,949.28, so the package gave up $9.6k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "9435eedb5b1af670427d2b8d4795fc11f71b628fe25bf87db4e3035b55ce348d",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 77.1,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,601.5; the best move was to propose fix_and_delay/client/included/on_delivery at 10,964.12, so the package gave up $77.1k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "21094950822d0d7e7130fcf843f98873cf9492d8b842bffb8f174166a2253b54",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 63.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,604; the best move was to propose fix_and_delay/client/included/at_signing at 10,785.72, so the package gave up $63.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "3df6987da24b1c1f8bff1df536eddfc0f6f17c05b15b91b9b1768882e398a869",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461001",
+      "world_seed": 2461001
+    },
+    {
+      "amount": 7.2,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,625.7; the best move was to propose fix/client/excluded/at_signing at 10,590.48, so the package gave up $7.2k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "f346d1f61cb88ea43c8fa777304fc8175a8be5c834d4e9ab95c74f67b37f5ca2",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461001_twin",
+      "world_seed": 2461001
+    },
+    {
+      "amount": 9.6,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,782; the best move was to propose fix_and_delay/client/excluded/on_delivery at 10,949.28, so the package gave up $9.6k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "ab22003b5921d92ff46a3770d537851c063a631ade1b5eebb4e8449b6c1a512b",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 8.16,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "kept_its_first_package",
+      "note": "Round 2: proposed fix_and_delay/client/included/at_signing at 10,925; the best move was to propose fix_and_delay/client/included/on_delivery at 11,089.8, so the package gave up $8.2k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "1b1b184c2472c590af9be3bfba045e83a4cdb8d555d811408c7292c70552f8b3",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "amount": 1.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "offered_a_worse_signing_price",
+      "note": "Round 1: proposed fix_and_delay/client/included/on_delivery at 11,497; the best way to propose this package was to propose fix_and_delay/client/included/on_delivery at 11,496, so the price gave up $1.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "3eebae11399bdb90a87e1ca087ef29ea8be3216851f4f581b305ed970e19655a",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "amount": 77.0731,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "offered_a_worse_signing_price",
+      "note": "Round 1: proposed fix_and_delay/integrator/included/at_signing at 11,349; the best way to propose this package was to propose fix_and_delay/integrator/included/at_signing at 11,582.95, so the price gave up $77.1k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "0d8f16150dd2a6ec7902072962ed57c6a64d9740071658930d8ef203f1bddd95",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 3.2,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "offered_a_worse_signing_price",
+      "note": "Round 2: proposed fix_and_delay/client/included/at_signing at 10,925; the best way to propose this package was to propose fix_and_delay/client/included/at_signing at 10,921.8, so the price gave up $3.2k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "1b1b184c2472c590af9be3bfba045e83a4cdb8d555d811408c7292c70552f8b3",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "amount": 101.40275,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "offered_when_it_should_have_asked",
+      "note": "Round 1: proposed none/client/excluded/at_signing at 10,732; the best way to propose this package was to ask the price of none/client/excluded/at_signing, so the price gave up $101.4k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "63ca9e1014e268315781f4f0ec276095b3d8661543727133f5db446b4bd453db",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "keep_their_terms_2460000",
+      "world_seed": 2460000
+    },
+    {
+      "amount": 324.9,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "offered_when_it_should_have_asked",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,782.7; the best way to propose this package was to ask the price of fix_and_delay/client/excluded/at_signing, so the price gave up $324.9k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "dfbb04844be57d7edbbdfb5f1e39f806700365a829ee1c240b5f43d4b30f848e",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    },
+    {
+      "amount": 280.03,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "opened_with_another_package",
+      "note": "Round 1: proposed none/client/excluded/at_signing at 10,732; the best move was to propose fix_and_delay/client/included/at_signing at 11,407.2, so the package gave up $280.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2099af087114f3593bfce2515171308a8dee95402eb3779a854bd8cdf3624402",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 32.4,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "opened_with_another_package",
+      "note": "Round 1: asked the price of fix_and_delay/client/included/at_signing; the best move was to propose fix_and_delay/client/included/on_delivery at 11,496, so the package gave up $32.4k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "8eb8fafb69fc7d7009bab8334f5c3eec7f6f414ff9e6e49dafeadb24d5e580e1",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "amount": 54.625,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "opened_with_another_package",
+      "note": "Round 1: proposed fix_and_delay/integrator/included/at_signing at 11,349; the best move was to propose fix_and_delay/client/included/at_signing at 11,407.2, so the package gave up $54.6k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "0d8f16150dd2a6ec7902072962ed57c6a64d9740071658930d8ef203f1bddd95",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 281.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "price_left_to_the_counterpart",
+      "note": "Signed fix_and_delay/client/included/on_delivery $281.0k above the integrator's floor for that package.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "3eebae11399bdb90a87e1ca087ef29ea8be3216851f4f581b305ed970e19655a",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "close_now_2465000",
+      "world_seed": 2465000
+    },
+    {
+      "amount": 200.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "price_left_to_the_counterpart",
+      "note": "Signed none/client/excluded/at_signing $200.0k above the integrator's floor for that package.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2099af087114f3593bfce2515171308a8dee95402eb3779a854bd8cdf3624402",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 200.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "price_left_to_the_counterpart",
+      "note": "Signed none/client/excluded/at_signing $200.0k above the integrator's floor for that package.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "63ca9e1014e268315781f4f0ec276095b3d8661543727133f5db446b4bd453db",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "keep_their_terms_2460000",
+      "world_seed": 2460000
+    },
+    {
+      "amount": 3.2,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "price_left_to_the_counterpart",
+      "note": "Signed fix_and_delay/client/included/at_signing $3.2k above the integrator's floor for that package.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "1b1b184c2472c590af9be3bfba045e83a4cdb8d555d811408c7292c70552f8b3",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "amount": 25.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "proposed_when_walking_or_accepting_was_best",
+      "note": "Round 1: asked the price of fix_and_delay/client/excluded/at_signing; the best move was to walk away, so the package gave up $25.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "e7c9ffca88a4d3e7031ecff8390e798f08dfb48607ee8858fafd5e2104d37acc",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "walk_away_2464000",
+      "world_seed": 2464000
+    },
+    {
+      "amount": 25.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "proposed_when_walking_or_accepting_was_best",
+      "note": "Round 1: asked the price of fix_and_delay/client/excluded/at_signing; the best move was to walk away, so the package gave up $25.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "dfbb04844be57d7edbbdfb5f1e39f806700365a829ee1c240b5f43d4b30f848e",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    },
+    {
+      "amount": 25.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "proposed_when_walking_or_accepting_was_best",
+      "note": "Round 2: proposed fix_and_delay/client/excluded/at_signing at 10,782.7; the best move was to walk away, so the package gave up $25.0k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "dfbb04844be57d7edbbdfb5f1e39f806700365a829ee1c240b5f43d4b30f848e",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    },
+    {
+      "amount": 34.8,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix/client/excluded/on_delivery, so joint value fell $34.8k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "55003cfceb0828917948c5a7bb0af47352a24bfbce7a945ce3dac04af3df4ae9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "better_contract_or_walk_2463001_twin",
+      "world_seed": 2463001
+    },
+    {
+      "amount": 440.03,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed none/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/included/at_signing, so joint value fell $440.0k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2099af087114f3593bfce2515171308a8dee95402eb3779a854bd8cdf3624402",
+      "replicate_index": 0,
+      "round_index": 0,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 0,
+      "unit": "close_now_2465001",
+      "world_seed": 2465001
+    },
+    {
+      "amount": 9.6,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/excluded/on_delivery, so joint value fell $9.6k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "9435eedb5b1af670427d2b8d4795fc11f71b628fe25bf87db4e3035b55ce348d",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 77.1,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/included/on_delivery, so joint value fell $77.1k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "21094950822d0d7e7130fcf843f98873cf9492d8b842bffb8f174166a2253b54",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 63.0,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/included/at_signing, so joint value fell $63.0k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "3df6987da24b1c1f8bff1df536eddfc0f6f17c05b15b91b9b1768882e398a869",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461001",
+      "world_seed": 2461001
+    },
+    {
+      "amount": 7.2,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix/client/excluded/at_signing, so joint value fell $7.2k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "f346d1f61cb88ea43c8fa777304fc8175a8be5c834d4e9ab95c74f67b37f5ca2",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461001_twin",
+      "world_seed": 2461001
+    },
+    {
+      "amount": 349.9,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/included/on_delivery, so joint value fell $349.9k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "dfbb04844be57d7edbbdfb5f1e39f806700365a829ee1c240b5f43d4b30f848e",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "left",
+      "step_index": 1,
+      "unit": "walk_away_2464001",
+      "world_seed": 2464001
+    },
+    {
+      "amount": 9.6,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/excluded/at_signing; the efficient contract for the true types was fix_and_delay/client/excluded/on_delivery, so joint value fell $9.6k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "ab22003b5921d92ff46a3770d537851c063a631ade1b5eebb4e8449b6c1a512b",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 56.85,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/integrator/included/at_signing; the efficient contract for the true types was fix_and_delay/client/included/on_delivery, so joint value fell $56.9k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2f237e54e9fd1ea7d249648ff0a13469a780b0c1aaf5b0efe3c3da4ae2736e4a",
+      "replicate_index": 0,
+      "round_index": 2,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 2,
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    },
+    {
+      "amount": 8.16,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "signed_an_inefficient_contract",
+      "note": "Signed fix_and_delay/client/included/at_signing; the efficient contract for the true types was fix_and_delay/client/included/on_delivery, so joint value fell $8.2k short.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "1b1b184c2472c590af9be3bfba045e83a4cdb8d555d811408c7292c70552f8b3",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "shift_the_tail_2462000",
+      "world_seed": 2462000
+    },
+    {
+      "amount": 56.85,
+      "campaign_id": "datacenter_risk_allocation_dev_campaign_v1",
+      "class": "switched_to_the_wrong_package",
+      "note": "Round 2: proposed fix_and_delay/integrator/included/at_signing at 10,863.62; the best move was to propose fix_and_delay/client/included/on_delivery at 10,964.12, so the package gave up $56.9k.",
+      "phase_id": "negotiate",
+      "receipt_sha256": "2f237e54e9fd1ea7d249648ff0a13469a780b0c1aaf5b0efe3c3da4ae2736e4a",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "client",
+      "side": "right",
+      "step_index": 1,
+      "unit": "price_the_alternatives_2461000_twin",
+      "world_seed": 2461000
+    }
+  ],
+  "left": "datacenter_risk_allocation_dev_campaign_v1",
+  "left_model": "google/gemini-3.8-flash",
+  "moves": {
+    "left": 23,
+    "right": 24
+  },
+  "paired_worlds": 13,
+  "panel": [
+    {
+      "arm": "one_price_low",
+      "cells_per_side": 16,
+      "clusters": 12,
+      "left_valid": 16,
+      "paired_worlds": 16,
+      "primary": true,
+      "reason": null,
+      "report": "reports/gap_decomposition_one_price_low_client.json",
+      "right_valid": 16,
+      "seat": "client"
+    },
+    {
+      "arm": "one_price_low",
+      "cells_per_side": 16,
+      "clusters": 12,
+      "left_valid": 16,
+      "paired_worlds": 16,
+      "primary": true,
+      "reason": null,
+      "report": "reports/gap_decomposition_one_price_low_integrator.json",
+      "right_valid": 16,
+      "seat": "integrator"
+    },
+    {
+      "arm": "one_price_default",
+      "cells_per_side": 16,
+      "clusters": 11,
+      "left_valid": 16,
+      "paired_worlds": 13,
+      "primary": false,
+      "reason": null,
+      "report": "reports/gap_decomposition_one_price_default_client.json",
+      "right_valid": 13,
+      "seat": "client"
+    },
+    {
+      "arm": "one_price_default",
+      "cells_per_side": 16,
+      "clusters": 5,
+      "left_valid": 16,
+      "paired_worlds": 5,
+      "primary": false,
+      "reason": "5 paired worlds, fewer than the 10 a report needs",
+      "report": null,
+      "right_valid": 5,
+      "seat": "integrator"
+    },
+    {
+      "arm": "two_prices_low",
+      "cells_per_side": 16,
+      "clusters": 9,
+      "left_valid": 16,
+      "paired_worlds": 10,
+      "primary": false,
+      "reason": null,
+      "report": "reports/gap_decomposition_two_prices_low_client.json",
+      "right_valid": 10,
+      "seat": "client"
+    },
+    {
+      "arm": "two_prices_low",
+      "cells_per_side": 16,
+      "clusters": 10,
+      "left_valid": 14,
+      "paired_worlds": 13,
+      "primary": false,
+      "reason": null,
+      "report": "reports/gap_decomposition_two_prices_low_integrator.json",
+      "right_valid": 15,
+      "seat": "integrator"
+    }
+  ],
+  "per_label": "world",
+  "published_reasons": {
+    "left": {
+      "provider_rejected": 0,
+      "transport": 0,
+      "truncated_reply": 0,
+      "valid_but_unpaired": 3
+    },
+    "reasons": [
+      "provider_rejected",
+      "transport",
+      "truncated_reply",
+      "valid_but_unpaired"
+    ],
+    "right": {
+      "provider_rejected": 1,
+      "transport": 1,
+      "truncated_reply": 1,
+      "valid_but_unpaired": 0
+    },
+    "statement": "cells of this arm and seat left out of the comparison, by cause: the failure code of the step that ended an excluded or invalid cell (read from the published trajectory), or a valid cell whose other side is missing. None is scored as zero."
+  },
+  "realized": {
+    "difference": -3.008915,
+    "difference_ci": [
+      -101.809436,
+      119.764217
+    ],
+    "left": -74.979442,
+    "right": -71.970527
+  },
+  "replay_check": {
+    "cells": 171,
+    "mismatches": 0,
+    "statement": "every cell whose episode ended on a move was replayed through the plugin from its published trajectory and graded; every published grade field and the first move's regret were reproduced. Cells a provider fault ended have no terminal state and no grade."
+  },
+  "right": "datacenter_risk_allocation_dev_campaign_v1",
+  "right_label": "glm-5.3-flash",
+  "right_model": "z-ai/glm-5.3-flash",
+  "schema_version": "aeread.gap_decomposition/0.1",
+  "source_manifest_sha256": {
+    "datacenter_risk_allocation_dev_campaign_v1": "5bc56d62f0726b779d36b742af5cacee39883b635ad8fe8eb51316acb0447970"
+  },
+  "title": "Why they differ",
+  "unit": "$ thousands per world, the mean over the worlds where both models' episodes are valid; a world is one case of this seat, and a twin is clustered with its base world",
+  "unit_label": "world",
+  "winner_claim_allowed": false,
+  "world_kind": "risk_allocation_client_seat"
+}

@@ -12,6 +12,7 @@ their incident rows are carried in the log).
 | Cases | `cases/datacenter_risk_allocation_v1/risk_allocation_dev_v1/` (32 cases and `pack.json`) |
 | Probe driver | `tools/run_risk_allocation_probe.py` |
 | Tests | `tests/test_datacenter_risk_allocation.py`, `tests/test_datacenter_risk_allocation_environment.py` |
+| Gap analysis of the dev campaign (every move re-graded, Gemini against GLM per seat) | `risk_allocation_gap.py` (`--check`), bundle `evidence/datacenter_development/datacenter_risk_allocation_gap/` |
 
 ## What the negotiation half taught
 
