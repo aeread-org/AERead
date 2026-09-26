@@ -1,0 +1,76 @@
+<div class="wrap">
+  <header class="top">
+    <h1>Cluster Contract Builder</h1>
+    <p class="lede">An integrator will deliver a GPU cluster into the client's facility. Pick a world from the full-terms menu pack, set every contract term, and see what the integrator would charge, what the client carries, and what each bad outcome costs each side. Money is in $ thousands; every price and cost comes from the grader's own solver.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="world-h">
+    <div class="picker">
+      <h2 id="world-h">World</h2>
+      <select id="world" aria-label="World"></select>
+    </div>
+    <p id="lesson"></p>
+    <div class="chips" id="world-chips"></div>
+    <p class="facts" id="facts"></p>
+    <p class="note" id="reference"></p>
+  </section>
+
+  <div class="bench">
+    <section class="panel" aria-labelledby="terms-h">
+      <h2 id="terms-h">Contract terms</h2>
+      <div class="presets" id="presets"></div>
+      <div id="terms"></div>
+    </section>
+
+    <div style="display:grid; gap:18px">
+      <section class="panel cell-panel" id="cell-panel" aria-labelledby="cell-h" hidden>
+        <h2 id="cell-h" class="label">The cell being checked</h2>
+        <div id="cell"></div>
+      </section>
+      <section class="panel" aria-labelledby="verdict-h">
+        <h2 id="verdict-h" class="label">This contract on this menu</h2>
+        <div class="verdict" id="verdict"></div>
+        <div class="chips" id="verdict-chips"></div>
+        <div class="compare" id="compare"></div>
+        <p class="note">The client's expected total cost at the integrator's last-round price: what it pays plus every expected loss it carries at its own risk charge. Walking costs the outside option.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="prices-h">
+        <h2 id="prices-h">Prices and costs</h2>
+        <div class="cols">
+          <div class="scroll"><table id="prices"></table></div>
+          <div class="scroll"><table id="client-cost"></table></div>
+        </div>
+        <div class="scroll"><table id="integrator-cost"></table></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="sens-h">
+    <h2 id="sens-h">What each single change is worth</h2>
+    <p class="note">Change in the client's total at last-round prices if one term moves to another level, the rest held. Negative is cheaper for the client. Select a figure to make that change.</p>
+    <div class="scroll"><table class="sens" id="sens"></table></div>
+  </section>
+
+  <section class="panel strip" aria-labelledby="strip-h">
+    <h2 id="strip-h">Every contract on the menu</h2>
+    <p class="note" id="strip-note"></p>
+    <div id="strip"></div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>this contract</span>
+      <span><i style="background:var(--good)"></i>best contract</span>
+      <span><i style="background:var(--warn)"></i>a shortcut this world must punish</span>
+      <span id="legend-cell" hidden><i style="background:var(--cellc)"></i>the contract the checked cell signed</span>
+      <span><i style="background:var(--bar)"></i>other contracts</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="out-h">
+    <h2 id="out-h">When things go wrong</h2>
+    <p class="note">The four independent events and all sixteen ways they can combine, under this contract and the integrator's best response to it. Rows where the liability cap binds are shaded.</p>
+    <div class="stats" id="tail"></div>
+    <div class="scroll"><table id="outcomes"></table></div>
+  </section>
+</div>
+<script type="application/json" id="data">__DATA__</script>
+<script type="application/json" id="init">__INIT__</script>

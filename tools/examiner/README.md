@@ -95,6 +95,17 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    labels (hover for the definition, click for the quote and the runs that use it), lists each
    run's strata and baselines under its key charts, and lists all of them under "strata &
    baselines" in the header. Every table on the page also sorts by any column.
+6f. `build_contract_builder.py`: the contract builder for the datacenter full-terms case
+   (`contract_builder/` holds its page). Every world of the full-terms pack priced by the grader's
+   own solver (what the integrator charges for each contract in each round, what each contract
+   costs the client, the best contract, the outside options), written to `contract_builder.json`
+   with the page template and the runs that play the pack. It needs the risk-allocation family
+   source: `AEREAD_EXAMINER_CONTRACT_BUILDER`, else the first checkout that holds it. At build time
+   it recomputes every graded cell's realised cost, cost over best attainable and its split from
+   those numbers and records how many reproduce the grader (all 696 of full-terms v2 and all 482
+   graded cells of v1 on 2026-09-26). The page opens it as the "Contract builder" tab of those runs;
+   a cell's case card links to it, and the builder then shows that cell's contract with the
+   grader's numbers beside the recomputed ones. `--standalone FILE` writes the builder as one page.
 6c. `build_starcraft.py` (opt-in, not released yet: runs only when `AEREAD_EXAMINER_STARCRAFT_RUNS`
    names the runs folder; `--remove` takes it out of a build): the starcraft_master OpenBW prototype's local matches as one bundle marked
    external: cases are matches, steps are strategist decisions (goals, reviews, engagement

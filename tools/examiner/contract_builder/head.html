@@ -1,0 +1,114 @@
+<title>Cluster Contract Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #F2F4F3; --panel: #FFFFFF; --ink: #15201C; --muted: #5E6B67; --faint: #8C9894; --line: #D5DCD9; --line-soft: #E6EBE9;
+  --accent: #2D5BD2; --accent-ink: #FFFFFF; --accent-soft: #E3EAFB;
+  --good: #23805A; --good-soft: #DDF1E7; --bad: #B23A2E; --bad-soft: #F7E1DE; --warn: #9A6310; --warn-soft: #F6EBD7;
+  --bar: #B9C4C0; --cellc: #7A3FB8;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --cond: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F1513; --panel: #17201D; --ink: #E4ECE8; --muted: #9AA8A3; --faint: #71807B; --line: #2C3834; --line-soft: #222C29;
+    --accent: #7C9DF2; --accent-ink: #0F1513; --accent-soft: #1E2A45;
+    --good: #5CC495; --good-soft: #173328; --bad: #EE7B6C; --bad-soft: #3A1F1B; --warn: #E0A84A; --warn-soft: #362914;
+    --bar: #3C4945; --cellc: #C49BF0;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F1513; --panel: #17201D; --ink: #E4ECE8; --muted: #9AA8A3; --faint: #71807B; --line: #2C3834; --line-soft: #222C29;
+  --accent: #7C9DF2; --accent-ink: #0F1513; --accent-soft: #1E2A45;
+  --good: #5CC495; --good-soft: #173328; --bad: #EE7B6C; --bad-soft: #3A1F1B; --warn: #E0A84A; --warn-soft: #362914;
+  --bar: #3C4945; --cellc: #C49BF0;
+}
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--cond); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: 0.005em; }
+h1 { font-size: 30px; line-height: 1.1; }
+h2 { font-size: 19px; }
+h3 { font-size: 15px; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 72ch; }
+.label { font-family: var(--cond); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.num, td.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: grid; gap: 12px; align-content: start; }
+.top { display: grid; gap: 10px; }
+.picker { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+select { font: 500 14px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; max-width: 100%; }
+select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px var(--sans); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--panel); white-space: nowrap; }
+.chip.hidden-fact { border-style: dashed; }
+.chip.good { color: var(--good); background: var(--good-soft); border-color: transparent; }
+.chip.bad { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
+.chip.warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.chip.accent { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.facts { color: var(--muted); font-size: 13px; max-width: 110ch; }
+.bench { display: grid; grid-template-columns: minmax(290px, 370px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 880px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: 500 13px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { cursor: not-allowed; color: var(--faint); background: transparent; border-style: dashed; }
+.term { display: grid; gap: 5px; padding-block: 9px; border-top: 1px solid var(--line-soft); }
+.term:first-of-type { border-top: 0; }
+.term .hint { color: var(--muted); font-size: 12.5px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font-family: var(--mono); font-size: 12.5px; padding: 4px 9px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.seg button[aria-pressed="true"]:disabled { background: var(--line); color: var(--ink); border-style: solid; border-color: var(--line); }
+.fixed-note { color: var(--faint); font-size: 12px; }
+.verdict { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+.verdict .big { font: 600 26px/1.1 var(--cond); }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 620px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font: 600 11.5px var(--cond); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 5px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+td.num, th.num { text-align: right; }
+tr.total td { font-weight: 600; border-top: 1px solid var(--line); border-bottom: 0; }
+.scroll { overflow-x: auto; }
+.compare { display: grid; gap: 6px; }
+.crow { display: grid; grid-template-columns: 150px minmax(0, 1fr) 92px; gap: 10px; align-items: center; font-size: 13px; }
+.crow .track { height: 10px; background: var(--line-soft); border-radius: 2px; position: relative; overflow: hidden; }
+.crow .fill { position: absolute; inset: 0 auto 0 0; background: var(--bar); border-radius: 2px; }
+.crow.me .fill { background: var(--accent); }
+.crow.best .fill { background: var(--good); }
+.crow .v { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+@media (max-width: 460px) { .crow { grid-template-columns: 110px minmax(0, 1fr) 80px; } }
+.sens td.cell { cursor: pointer; font-family: var(--mono); text-align: right; white-space: nowrap; }
+.sens td.cell:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+.sens td.cell.gain { color: var(--good); font-weight: 500; }
+.sens td.cell.loss { color: var(--muted); }
+.sens td.cell.now { color: var(--faint); cursor: default; }
+.sens td.cell.now:hover { outline: 0; }
+.strip svg { width: 100%; height: auto; display: block; }
+.strip text { font: 11px var(--mono); fill: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.ev { display: flex; flex-wrap: wrap; gap: 4px; }
+.ev span { font: 500 11.5px var(--sans); padding: 1px 6px; border-radius: 3px; background: var(--bad-soft); color: var(--bad); }
+.ev span.ok { background: var(--good-soft); color: var(--good); }
+tr.capped td { background: var(--warn-soft); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; }
+.stat { display: grid; gap: 2px; }
+.stat .v { font: 500 18px var(--mono); font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 12.5px; max-width: 95ch; }
+@media (prefers-reduced-motion: no-preference) { .crow .fill { transition: width 180ms ease-out; } }
+.cell-panel { border-color: var(--cellc); }
+.cell-panel table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cell-panel td { padding: 3px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.cell-panel td.num { text-align: right; font-family: var(--mono); white-space: nowrap; }
+.cell-panel tr.total td { font-weight: 600; }
+.cell-panel .ok { color: var(--good); font-weight: 500; }
+.cell-panel .bad { color: var(--bad); font-weight: 600; }
+.cell-panel ol { margin: 4px 0 0; padding-left: 20px; font-size: 13px; }
+.cell-panel .who { font-size: 13px; margin: 0; }
+</style>

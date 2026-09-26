@@ -52,6 +52,14 @@ echo "[6d] model comparisons: every case two or more models played, as cells wit
 python3 "$T/build_model_comparisons.py" "$OUT" "$WT" || echo "  model comparisons failed; the page shows none"
 echo "[6e] strata and baselines, defined: each quote checked at its branch's pushed commit"
 python3 "$T/build_definitions.py" "$OUT" "$WT" || { echo "  definitions failed (a quoted source moved?): fix definitions.json; the page shows bare labels"; rm -f "$OUT/data/definitions.json"; }
+# the full-terms contract builder needs the risk-allocation family source: the checkout named by
+# AEREAD_EXAMINER_CONTRACT_BUILDER, else the first checkout (primary or extra) that holds it
+CBX=${AEREAD_EXAMINER_CONTRACT_BUILDER:-}
+for X in "$WT" ${AEREAD_EXAMINER_EXTRA_CHECKOUTS//:/ }; do [ -n "$CBX" ] && break; [ -f "$X/src/aeread_families/datacenter_development/risk_allocation_contracts.py" ] && CBX=$X; done
+if [ -n "$CBX" ]; then
+  echo "[6f] contract builder for the datacenter full-terms case (from $CBX)"
+  "$PY" "$T/build_contract_builder.py" "$OUT" "$CBX" || { echo "  contract builder failed; the page shows none"; rm -f "$OUT/data/contract_builder.json"; }
+fi
 # opt-in: the owner has not released the StarCraft prototype to the examiner yet (2026-09-25)
 SC=${AEREAD_EXAMINER_STARCRAFT_RUNS:-}
 if [ -n "$SC" ] && [ -d "$SC" ]; then
