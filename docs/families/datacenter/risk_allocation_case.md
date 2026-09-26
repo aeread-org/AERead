@@ -577,8 +577,9 @@ own, nobody pre-staging).
 one that carries risk and pre-stages cheaply posts turnkey; the rest post managed.
 Each option is priced at the integrator's cost plus its margin, the round's premium,
 and a markup on what the option moves (60% on incident cover, 50% on standby cover
-and on warranty upgrades, 60% on deposit timing) that halves after the first
-refusal and is gone after the second. None of this is in the client's brief.
+and on warranty upgrades, 60% on deposit timing). The list carries the whole
+markup and a 400 premium; a counter in round 1 is judged against half the markup
+and a 200 premium, and one in round 2 against the integrator's floor. None of this is in the client's brief.
 
 **Grading.** Decision regret is exact against a client who knows the policy (not
 the integrator's costs): it reads those costs off the menu and best-responds. So
