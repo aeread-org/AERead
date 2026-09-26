@@ -8,6 +8,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![Site](https://img.shields.io/badge/results-aeread.org-black.svg)](https://aeread.org)
+[![Examiner](https://img.shields.io/badge/evidence-examiner-black.svg)](https://aeread.org/examiner)
 
 **New here?** Follow the [onboarding journey](#onboarding-journey) below.
 
@@ -25,7 +26,10 @@ refund/return tasks. It asks deployment questions about attainable welfare,
 policy-correct state changes, and evidence-grounded decisions, then records the
 case-native result in an auditable receipt.
 
-Results and methodology: https://aeread.org · **Capability coverage map:**
+Results and methodology: https://aeread.org · **Evidence examiner:**
+[aeread.org/examiner](https://aeread.org/examiner) — every published run with its
+validity checklist, step-by-step trajectories, model comparisons by stratum, and
+what each stratum and baseline means · **Capability coverage map:**
 [CAPABILITIES.md](CAPABILITIES.md) — what is covered, partial, and planned,
 toward a general evaluation of agent economic capabilities.
 
