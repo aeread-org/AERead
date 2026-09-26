@@ -921,7 +921,9 @@ is +145.7 (4.8 to 261.7) in sound-favourite worlds and -63.5 (-220.2 to 79.0) in
 lemon-favourite ones, a difference of +209.3 (8.4 to 404.5), resampling worlds
 within strata. This was not declared, it is one of several cuts examined, and 12
 worlds a stratum is thin: a v3 identity should declare the stratum contrast before
-it runs rather than read it off this one.
+it runs rather than read it off this one. It is also confounded (HL-D-03): admission drops worlds where a
+popular favourite is a lemon, so the pack's lemon-favourite worlds have less contested favourites (shared by 0.67
+of tenants against 0.79), and the split compares contested with crowded markets as much as trap with control.
 
 **Same states, both models (diagnostic, 2026-09-25).** The cells are markets of one
 model's six tenants, so the routes differ in history and competition as well as in
