@@ -1,0 +1,2064 @@
+{
+ "schema": "aeread.examiner.definition_sources/0.1",
+ "entries": [
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "boundary_window",
+   "label": "Boundary window (day 30)",
+   "definition": "A customer says a $64.00 apparel item delivered 30 days ago is defective and asks for a refund. The hidden facts are: worn, defective, evidence provided, return received. Policy allows a full refund to original payment through day 30 once the return is received, so the right resolution is to approve 64.00 to original payment.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Apparel defects are eligible for a full refund to original payment through day 30 when the return is received."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "conflicting_claim",
+   "label": "Conflicting claim",
+   "definition": "A customer says a $250.00 consumer-electronics device delivered 14 days ago is defective. The hidden facts show it is liquid-damaged (evidence provided, return received). Policy covers manufacturing defects but not liquid damage, so the right resolution is to deny with amount 0, method none and reason customer-caused liquid damage.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Consumer electronics are eligible for manufacturing defects, but not liquid damage."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "full_refund",
+   "label": "Full refund",
+   "definition": "A customer says a $73.70 apparel item delivered 12 days ago arrived defective. The hidden facts are: worn, defective, evidence provided, return received. Policy gives apparel defects a full refund to original payment within 30 days once the return is received, so the right resolution is to approve 73.70 to original payment.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Apparel defects are eligible for a full refund to original payment within 30 days when the return is received."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "liquid_damage_denial",
+   "label": "Liquid-damage denial",
+   "definition": "A customer says a $420.00 speaker (consumer electronics) delivered 45 days ago stopped working. The hidden facts show liquid damage, evidence provided and the return not received. Policy says consumer electronics are not refundable when liquid damage caused the failure, so the right resolution is to deny with amount 0, method none and reason customer-caused liquid damage.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Consumer electronics are not refundable when liquid damage caused the failure."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "missing_evidence",
+   "label": "Missing evidence",
+   "definition": "A customer says a $38.00 perishable item delivered 2 days ago arrived spoiled. The hidden facts show no evidence was provided and no return was received. Policy requires evidence of the defect and says to deny without a transaction when it is missing, so the right resolution is to deny with amount 0, method none and reason missing evidence.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Perishable-goods refunds require evidence of the defect; without evidence, deny without a transaction."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "partial_software",
+   "label": "Partial software refund",
+   "definition": "A customer says a $120.00 software service delivered 10 days ago did not meet their needs and asks for a partial refund. The hidden facts are: intact condition, service-quality issue, evidence provided, return received. Policy gives lightly used software a 75 percent refund to original payment within 30 days, so the right resolution is to approve 90.00 to original payment.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_environment.py",
+    "quote": "Within 30 days, lightly used software receives a 75 percent refund to original payment."
+   },
+   "dimension": "scenario_dim",
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "refund due",
+   "label": "Refund due",
+   "definition": "Cases where the answer key's decision is to approve a refund, meaning the case authorizes a refund amount above zero. In this panel that is full_refund, partial_software and boundary_window.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_gap.py",
+    "quote": "\"stratum\": \"refund due\" if key[\"decision\"] == \"approve_direct\" else \"denial due\","
+   },
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "refund",
+   "value": "denial due",
+   "label": "Denial due",
+   "definition": "Cases where the answer key's decision is to deny, meaning the case authorizes a refund of zero with method none. In this panel that is liquid_damage_denial, conflicting_claim and missing_evidence.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_gap.py",
+    "quote": "\"stratum\": \"refund due\" if key[\"decision\"] == \"approve_direct\" else \"denial due\","
+   },
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "refund",
+   "value": "answer_key",
+   "label": "Answer key",
+   "definition": "For each case, the authorized decision, refund amount and refund method, rebuilt from the case's own definition. It approves when the authorized amount is above zero and denies otherwise, at the authorized amount and method. The gap analysis checks that the scripted canonical run reaches exactly this resolution on all 120 cells.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_gap.py",
+    "quote": "The authorized resolution of a case, rebuilt from its definition."
+   },
+   "keys": [
+    "answer key"
+   ],
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "refund",
+   "value": "refund_v2_1_canonical_scripted_20",
+   "label": "Scripted canonical policy",
+   "definition": "A fixed rule-based policy seat that first asks for any missing required facts, up to three at a time. It then approves apparel defects within 30 days with the return received at full price, and software service-quality claims within 30 days (intact or lightly used, return received, evidence provided) at 75 percent of price, both to original payment. Anything else it denies with amount 0 and method none.",
+   "source": {
+    "branch": "codex/refund-gap-analysis",
+    "path": "src/aeread_families/refund/v2_runner.py",
+    "quote": "\"decision\": \"approve_direct\" if eligible else \"deny\", \"requested_fields\": [], \"proposal_id\": \"proposal_1\", \"amount\": amount if eligible else 0.0, \"method\": \"original_payment\" if eligible else \"none\""
+   },
+   "applies_to": [
+    "refund_v2_1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "favourite_is_lemon",
+   "label": "Favourite is a lemon",
+   "definition": "A lemons-market world where the favourite listing is a lemon. The favourite is the listing most tenants rank first by value-if-sound gain, so in this world the listing most tenants want is the defective one.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "src/aeread_families/housing/lemons_campaign.py",
+    "quote": "return STRATA[0] if world.quality[favourite_listing(world)] == lemons.LEMON else STRATA[1]"
+   },
+   "dimension": "favourite"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "favourite_is_sound",
+   "label": "Favourite is sound",
+   "definition": "A lemons-market world where the favourite listing is sound. The favourite is the listing most tenants rank first by value-if-sound gain. This and favourite_is_lemon are the two strata declared for the lemons pack.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/qc.md",
+    "quote": "and `favourite_is_sound`, where the favourite is the listing most tenants rank"
+   },
+   "dimension": "favourite"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "common_weight",
+   "label": "Common weight (the cw in a difficulty name)",
+   "definition": "The share of a tenant's valuation that all tenants have in common. The rest is the tenant's own idiosyncratic taste, so 0.45 leaves 55 percent idiosyncratic and 0.95 leaves 5 percent.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "`common_weight` is the share of a tenant's valuation that is common across"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "mild_holdout",
+   "label": "Mild (confirmatory holdout)",
+   "definition": "The mild configuration of the sealed confirmatory holdout (holdout_mild_unseen), used in housing_confirmatory_parasail_v2. Eight tenants compete for six listings, and the common weight is 0.45.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "| mild | 8 / 6 | `0.45` |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "moderate_holdout",
+   "label": "Moderate (confirmatory holdout)",
+   "definition": "The moderate configuration of the sealed confirmatory holdout (holdout_moderate_unseen). Eight tenants compete for five listings, and the common weight is 0.70.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "| moderate | 8 / 5 | `0.70` |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "severe_holdout",
+   "label": "Severe (confirmatory holdout)",
+   "definition": "The severe configuration of the sealed confirmatory holdout (holdout_severe_unseen). Eight tenants compete for four listings, and the common weight is 0.95, so tenants' valuations are almost entirely shared.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "| severe | 8 / 4 | `0.95` |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "mild_cw085_r2",
+   "label": "Mild, cw 0.85, 2 rounds (development)",
+   "definition": "The development configuration the case sweep selected for the mild stratum. Six tenants compete for five listings over 2 rounds, with common_weight 0.85.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/qc.md",
+    "quote": "| Mild | `mild_cw085_r2` | 6 / 5 | 2 | 0.85 |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "moderate_cw085_r2",
+   "label": "Moderate, cw 0.85, 2 rounds (development)",
+   "definition": "The development configuration the case sweep selected for the moderate stratum. Six tenants compete for four listings over 2 rounds, with common_weight 0.85.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/qc.md",
+    "quote": "| Moderate | `moderate_cw085_r2` | 6 / 4 | 2 | 0.85 |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "severe_cw030_r2",
+   "label": "Severe, cw 0.30, 2 rounds (development)",
+   "definition": "The development configuration the case sweep selected for the severe stratum. Six tenants compete for three listings over 2 rounds, with common_weight 0.30.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/qc.md",
+    "quote": "| Severe | `severe_cw030_r2` | 6 / 3 | 2 | 0.30 |"
+   },
+   "dimension": "difficulty"
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "models_as_tenants",
+   "label": "Models as tenants",
+   "definition": "The model under test sits in the tenant seats, which is where the subject of every Housing condition sits. A tenant decides which listing to approach and what rent it agrees to pay.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "The subject of every Housing condition sits in the tenant seats. A tenant's"
+   },
+   "dimension": "opponent",
+   "applies_to": [
+    "housing_confirmatory_parasail_v2",
+    "housing_model_sensitivity_openrouter"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "models_as_landlords",
+   "label": "Models as landlords",
+   "definition": "The model plays the landlord seats, one per listing. In the respond phase a landlord sees only the real offers sent to its own listing and may accept or counter at most one of them. Either action creates a binding hold.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/case.md",
+    "quote": "2. **respond.** Each landlord sees only real offers addressed to its listing and may"
+   },
+   "dimension": "opponent",
+   "applies_to": [
+    "housing_confirmatory_parasail_v2",
+    "housing_model_sensitivity_openrouter"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "landlords_played_by",
+   "label": "The other side of the market",
+   "definition": "Which model fills the other seats. In the confirmatory and pilot campaigns the tenant model's cells run against both landlord models in equal measure, so the landlord seat in any one report is played by both models.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "src/aeread_families/housing/oracle_gap.py",
+    "quote": "both landlord models in equal measure, so the landlord seat in any one report"
+   },
+   "dimension": "opponent",
+   "applies_to": [
+    "housing_confirmatory_parasail_v2",
+    "housing_model_sensitivity_openrouter"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "housing",
+   "value": "tenants_played_by_lemons",
+   "label": "One model fills all six tenant seats",
+   "definition": "In the lemons v2 runs, one model (Gemini 3.8 Flash or GLM 5.3 Flash) fills all six tenant seats. Each cell is therefore a market of one model's tenants.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/qc.md",
+    "quote": "fp8), each filling all six tenant seats, so a cell is a market of one model's"
+   },
+   "dimension": "opponent",
+   "applies_to": [
+    "housing_lemons_refusal_v2"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "inspect_then_sign",
+   "label": "Scripted inspect-then-sign reference",
+   "definition": "A scripted tenant that sees only what a tenant sees. It inspects the best uninspected open listing when that listing's gain, weighted by its chance of being sound, is more than the inspection fee. It offers the ask plus one on the best listing it has verified sound, and signs only a verified-sound hold at or below its value.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/case.md",
+    "quote": "whose gain, weighted by its chance of being sound under the posterior, exceeds the fee | ask + 1 on the best listing it has verified sound | sign only a verified-sound hold at or below its value"
+   },
+   "keys": [
+    "scripted inspect-then-sign reference"
+   ],
+   "applies_to": [
+    "housing_lemons_refusal"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "sign_anything",
+   "label": "Sign-anything (never inspects)",
+   "definition": "A scripted tenant, and the lemons comparison baseline B. It never pays to inspect. It offers the ask plus one on the open listing with the largest value-if-sound gain, then signs any hold at or below its value-if-sound, so it signs blind.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/case.md",
+    "quote": "| `sign_anything` | never | ask + 1 on the open listing with the largest value-if-sound gain | sign any hold at or below value-if-sound |"
+   },
+   "applies_to": [
+    "housing_lemons_refusal"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "pass",
+   "label": "Pass (scripted tenant floor)",
+   "definition": "A scripted tenant that never inspects, never offers and never signs, so it books exactly zero. It is the floor L = 0 of the lemons bracket.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/case.md",
+    "quote": "| `pass` | never | never | pass |"
+   },
+   "applies_to": [
+    "housing_lemons_refusal"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "lemons_oracle",
+   "label": "Lemons full-information oracle (U)",
+   "definition": "The same max-weight matching of tenants to listings, computed on true surplus with lemons priced in. In the lemons world it is read as the most the tenants could capture under full information. within_case_score is tenant net payoff divided by U.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/case.md",
+    "quote": "on true surplus, now read as the most the tenants could capture under full"
+   },
+   "applies_to": [
+    "housing_lemons_refusal"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "oracle_upper_bound",
+   "label": "Full-information oracle",
+   "definition": "The max-weight assignment of tenants to listings in the world regenerated from its seed, using every tenant's private value and every landlord's private cost. The gap is each cell's published social_welfare minus this oracle_upper_bound, so zero means the market matched the oracle. The oracle sets no rent, and rent cancels in welfare.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "src/aeread_families/housing/oracle_gap.py",
+    "quote": "full-information oracle (max-weight assignment of the regenerated world)"
+   },
+   "keys": [
+    "oracle"
+   ],
+   "applies_to": [
+    "housing_confirmatory_parasail_v2",
+    "housing_model_sensitivity_openrouter_parasail_v23",
+    "housing_model_sensitivity_openrouter_parasail_v26"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "upper_bound_u",
+   "label": "Upper bound U (allocation oracle)",
+   "definition": "Max-weight bipartite matching on the value-minus-cost surplus matrix, where rent is a transfer. Matches with non-positive surplus are dropped. It is an allocation and welfare bound, not a price.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/case.md",
+    "quote": "The implemented upper bound `U` is max-weight bipartite matching on the"
+   }
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "scripted_landlord_v1",
+   "label": "Scripted landlord (midpoint counter)",
+   "definition": "A deterministic landlord. It accepts the highest offer at or above its cost. If every offer is below cost, it counters one of them at the midpoint between that offer and the ask. It never rejects outright.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "src/aeread_families/housing/environment.py",
+    "quote": "Accept the highest offer at or above cost; counter a below-cost offer at the"
+   }
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "pooled_lemon_landlord",
+   "label": "Scripted pooled landlord (lemons v2)",
+   "definition": "In lemons v2 (lemon_landlord: pooled), the landlord of a lemon accepts and counters on the cost a sound listing would have. Its replies therefore do not reveal quality, and the true cost enters only the accounting. The v1 pilot's landlord used its true cost instead.",
+   "source": {
+    "branch": "codex/housing-lemons-refusal",
+    "path": "docs/families/housing/qc.md",
+    "quote": "lemon's scripted landlord accepts and counters on its sound-equivalent cost,"
+   },
+   "applies_to": [
+    "housing_lemons_refusal_v2"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "naive",
+   "label": "Naive scripted tenant (comparison baseline B)",
+   "definition": "A scripted tenant that goes for its favourite available listing and does not adapt to its opponents. It is the declared comparison baseline B of the multi-round bid world.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/qc.md",
+    "quote": "| Naive | Favourite available listing with no opponent adaptation |"
+   }
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "adaptive",
+   "label": "Adaptive scripted tenant",
+   "definition": "A scripted tenant diagnostic that uses rejection history, which listings are available, holds and the history of earlier rounds.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/qc.md",
+    "quote": "| Adaptive | Uses rejection history, availability, holds, and round history |"
+   }
+  },
+  {
+   "kind": "baseline",
+   "family": "housing",
+   "value": "truthful",
+   "label": "Truthful scripted tenant (sensitivity control)",
+   "definition": "A scripted tenant that offers its full valuation on its best listing. It wins allocations as readily as a shrewd bidder but captures none of the surplus.",
+   "source": {
+    "branch": "codex/housing-oracle-gap",
+    "path": "docs/families/housing/estimand_review.md",
+    "quote": "The truthful bidder offers its full valuation on its best listing."
+   }
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "better_contract_or_walk",
+   "label": "Better contract or walk",
+   "definition": "On the integrator's opening terms the deal is worse for the client (risk charge 0.75) than its turnkey option, which costs $60k-170k less than the opening package at the integrator's floor. Only a better allocation of the risks beats walking, so the move this world rewards first is asking the integrator to price an alternative package. Twins with different hidden integrator types are included.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "on the integrator's terms the deal loses to turnkey; only a better allocation beats walking away"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "close_now",
+   "label": "Close now",
+   "definition": "The integrator is likely to break off after a refusal (35-50% chance). The deal is worth far more than turnkey, which costs $1,000k-1,400k more than the opening deal at the integrator's floor. The client (risk charge 1.55) is rewarded for signing at a price now instead of haggling.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "the integrator is likely to walk after a refusal and the deal is worth far more than turnkey; sign now"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "keep_their_terms",
+   "label": "Keep their terms",
+   "definition": "The integrator's defensive opening (no warranty, the client carries readiness and the incident, deposit at signing) is already the efficient contract for this client (risk charge 0.15). The client should ask for a price and negotiate the price, not the terms.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "the integrator's defensive proposal is already the efficient contract; negotiate the price, not the terms"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "price_the_alternatives",
+   "label": "Price the alternatives",
+   "definition": "Which risks the client (risk charge 0.75) should move to the integrator depends on the integrator's private costs of carrying them (its pre-staging cost and risk charge). The move this world rewards first is asking the integrator to price an alternative package, then signing the contract its answer points to. Twins share every public fact but differ in the hidden type.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "which risks to move depends on what the integrator charges to carry them; ask it to price the alternative first"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "shift_the_tail",
+   "label": "Shift the tail",
+   "definition": "The client (risk charge 1.55) carries the post-handover incident loss more dearly than any integrator type would. The rewarded move is to price an alternative and shift the incident tail and the delay risk to the integrator.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "the client cannot carry the incident tail as cheaply as any integrator can; move it and the delay risk across"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "walk_away",
+   "label": "Walk away",
+   "definition": "No way of allocating the risks beats the client's turnkey offer, which costs $450k-700k less than the opening deal at the integrator's floor. The rewarded move is to walk to turnkey before spending a negotiating round.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "no allocation of these risks beats the turnkey offer; walk before spending a round"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "buy_the_burn_in",
+   "label": "Buy the burn-in",
+   "definition": "A post-handover incident is likely (8-12%) and costly ($3.5M-4.5M) for a risk-averse client (charge 1.55). A week's acceptance burn-in halves the incident chance and pays for itself, so the best contract includes it. The burn-in costs the client a week of revenue and the integrator a $40k crew.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "an incident is likely and costly; a week's burn-in that halves its chance pays for itself"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "buy_the_cover",
+   "label": "Buy the cover",
+   "definition": "This client is strongly averse to risk (charge 1.55) and faces a 5-8% incident chance. Incident cover (consequential losses included) is worth its price, so the best contract includes it; taking the cheapest listed offer or the base contract each costs at least $75k more.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "incident cover is worth its price to a client this averse to risk"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "cheapest_is_not_best",
+   "label": "Cheapest is not best",
+   "definition": "The lowest price on the integrator's list is not the cheapest contract for this client (charge 0.75) once the risks it leaves the client carrying are counted. The cheapest listed offer, the base contract and asking for every protection each cost the client at least $75k more than the best contract.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "the lowest price on the list is not the cheapest contract for this client once the risks it leaves are counted"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "hand_over_readiness",
+   "label": "Hand over readiness",
+   "definition": "The client's facility is often late (30-40% chance, 4-6 weeks). An integrator that carries readiness (pays standby) prepares the site whenever that is cheaper for it, which cuts the late-facility chance. The best contract moves readiness to the integrator (coordination and turnkey playbooks).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "an integrator that carries readiness prepares the site; moving it across cuts the chance of a late facility"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "just_enough_damages",
+   "label": "Just enough damages",
+   "definition": "Delay damages are worth buying only up to the weekly rate that makes the integrator pre-stage the cluster. The best contract is fix-and-delay at a rate below $200k a week at which the integrator pre-stages. Client risk charge 0.15; managed and turnkey playbooks only.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "delay damages are worth buying only up to the rate that makes the integrator pre-stage"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "keep_the_liability",
+   "label": "Keep the liability uncapped",
+   "definition": "A lower liability cap on the integrator makes the contract cheaper but hands the incident tail back to a risk-averse client (charge 1.55, incident 5-8%, loss $3.0M-4.0M). The best contract keeps the integrator's liability uncapped, even though a capped version of it is quoted cheaper.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "a lower liability cap is cheaper but hands the tail back; keep the integrator's liability uncapped"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "protect_the_deposit",
+   "label": "Protect the deposit",
+   "definition": "The integrator may fail before delivery (3-6% chance) while holding the client's deposit. The best contract puts the deposit in escrow or pays none up front, while the cheapest listed offer carries an unprotected deposit.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "the integrator may fail before delivery; put the deposit in escrow or pay none up front"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "raise_the_damages",
+   "label": "Raise the damages",
+   "definition": "For this client (charge 1.55, defect delays of 4-6 weeks), delay damages are insurance worth more than their price. The best contract is fix-and-delay at the highest rate, $200k a week (managed and turnkey playbooks).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "delay damages are insurance this client values above their price; take the highest rate"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "buy_the_cover",
+   "label": "Buy the cover",
+   "definition": "The incident cover option is worth its markup to a client this averse to risk (charge 1.55). The rewarded move is to take the menu item that includes it.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "the incident cover is worth its markup to a client this averse to risk; take the item that includes it"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "cheapest_is_not_best",
+   "label": "Cheapest is not best",
+   "definition": "On the integrator's eight-item menu, the lowest all-in price is not the cheapest item for this client (charge 0.75) once the risks it leaves the client carrying are counted.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "the lowest price on the menu is not the cheapest item for this client once the risks it leaves are counted"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "haggle_the_list",
+   "label": "Haggle the list",
+   "definition": "The list prices carry a premium that the integrator gives up when countered, and the break-off chance is low (3-6%). The rewarded move is to counter before signing.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "the list carries a premium the integrator gives up when countered; counter before signing"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "manage_it_yourself",
+   "label": "Manage it yourself",
+   "definition": "The client has a capable own team (team cost $150k-250k) and low risk aversion (charge 0.15), so managing the deployment itself is cheapest: its own team, every risk its own, nobody pre-staging. The rewarded move is to walk to self-managing.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "a capable own team and a low aversion to risk make self-managing cheapest; walk to it"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "sign_now",
+   "label": "Sign now",
+   "definition": "The integrator is likely to break off after a refused counter (35-50% chance), and the deal is worth much more than the client's outside options (rival turnkey or self-managing). The rewarded move is to sign now.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "the integrator is likely to break off after a refusal and the deal is worth much more than the outside options; sign now"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "take_the_rival_turnkey",
+   "label": "Take the rival turnkey",
+   "definition": "No item on this integrator's menu beats the rival turnkey offer, which costs $200k-400k less than the client's best item at the integrator's floor. The rewarded move is to walk to the rival turnkey.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "no item on this menu beats the rival turnkey offer; walk to it"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "coordination",
+   "label": "Coordination playbook",
+   "definition": "The client buys the hardware at cost and pays at signing. The integrator coordinates for a fee and carries none of the risk. The negotiable options are standby cover, incident cover and a compatibility fix; integrators that carry risk dearly (risk charge 1.2) post this playbook.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "| coordination | the client buys the hardware at cost and pays at signing; the integrator carries nothing | standby cover, incident cover, a compatibility fix | a fee, hardware on top |"
+   },
+   "dimension": "playbook"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "managed",
+   "label": "Managed playbook",
+   "definition": "The integrator procures the hardware at cost, manages delivery for a fee and pays the compatibility fix. The negotiable options are incident cover, holding payment back until delivery, and delay damages. Integrators that carry risk cheaply but pre-stage expensively post this playbook.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "| managed | the integrator procures at cost and pays the fix | incident cover, a holdback until delivery, delay damages | a fee, hardware on top |"
+   },
+   "dimension": "playbook"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "turnkey",
+   "label": "Turnkey playbook",
+   "definition": "One all-in price with fix-and-delay damages, paid on delivery. The negotiable options are standby cover, incident cover, and a deposit at signing in exchange for a lower price. Integrators that carry risk and pre-stage cheaply post this playbook.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "| turnkey | all in, fix and delay damages, paid on delivery | standby cover, incident cover, a deposit at signing for a lower price | all in |"
+   },
+   "dimension": "playbook"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "one_price_low",
+   "label": "One price, low effort",
+   "definition": "Probe v1's design on the one-seat pack. Each price request names one package and the answer prices only that package. Reasoning effort is set to low, with output limits of 4,000 tokens for Gemini and 32,000 for GLM.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_campaign.py",
+    "quote": "| one_price_low | risk_allocation_dev_v1 | effort low | 4,000 / 32,000 |"
+   },
+   "dimension": "arm"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "one_price_default",
+   "label": "One price, default reasoning",
+   "definition": "The same one-price pack and protocol, but no reasoning setting is declared, so the provider's default applies. Output limits are 27,000 tokens for Gemini and 93,000 for GLM, sized from a smoke run.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_campaign.py",
+    "quote": "| one_price_default | risk_allocation_dev_v1 | none declared | 27,000 / 93,000 |"
+   },
+   "dimension": "arm"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "two_prices_low",
+   "label": "Two prices, low effort",
+   "definition": "The two-prices pack: a price request may name an alternate package, the answer prices both, and the model can accept either. Reasoning effort is low, with the same limits as one_price_low. The second price is worth $0 to the reference, which infers every package's price from one answer.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_campaign.py",
+    "quote": "| two_prices_low | risk_allocation_two_prices_dev_v1 | effort low | 4,000 / 32,000 |"
+   },
+   "dimension": "arm"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "low_effort",
+   "label": "Low reasoning effort",
+   "definition": "The low-reasoning arm of the menu and full-terms campaigns (and the only arm of the two-sided campaign). It copies one_price_low's settings: reasoning effort low, the same output limits, timeouts and per-cell cost caps.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu_campaign.py",
+    "quote": "\"low_effort\": {k: oc.ARMS[\"one_price_low\"][k] for k in (\"reasoning_effort\", \"max_output_tokens\", \"timeout_seconds\", \"max_cost_usd\")}"
+   },
+   "dimension": "arm"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "default_reasoning",
+   "label": "Default reasoning",
+   "definition": "The provider-default arm: no reasoning effort is declared. Output limits are 27,000 tokens for Gemini and 120,000 for GLM, with timeouts of 420 s and 3,000 s. The full-terms campaign does not seat GLM in this arm (DC-O-14).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu_campaign.py",
+    "quote": "Two reasoning arms per model (low effort, and the provider default)"
+   },
+   "dimension": "arm"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "client",
+   "label": "Client seat",
+   "definition": "The model plays the client buying the GPU cluster delivery. The scripted integrator's pre-staging cost and risk charge are private to it. The integrator opens with its own proposal and signs any package priced at or above its cost plus a floor margin plus an ask premium that falls each round; the client's outside option is the turnkey contract.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "- **client seat**: the model is the client; the scripted integrator's pre-staging"
+   },
+   "dimension": "seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "integrator",
+   "label": "Integrator seat",
+   "definition": "The model plays the integrator and writes the proposal. The scripted client's risk charge is private to it. The client signs any package whose price plus its expected cost of the risks it carries is at most its turnkey option less a demanded saving that falls each round; the integrator's outside option is $500k of other work.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "- **integrator seat**: the model is the integrator and writes the proposal; the"
+   },
+   "dimension": "seat"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "covenant_cliff",
+   "label": "Covenant cliff",
+   "definition": "The priced loan clears its minimum debt-service-coverage (DSCR) covenant by a thin margin during a phased tenant ramp. The tenant offers a higher rate in exchange for a slower ramp, which looks like more revenue but removes the early cash the covenant is measured on, so the loan breaches its minimum DSCR before the ramp completes.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "delayed_revenue",
+   "label": "Delayed revenue",
+   "definition": "Revenue starts only once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has built up. The lever is the loan's maturity month.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "liability_transfer",
+   "label": "Liability transfer",
+   "definition": "Construction finishes several months after energization. The customer pays a premium for a service agreement gated only on power readiness, so billing nominally starts before any capacity exists; SLA credits and delay damages accrue and debt service goes uncovered. The premium is a liability transfer dressed as revenue, and the lever is the service commencement month.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "restrictive_draws",
+   "label": "Restrictive draws",
+   "definition": "A larger headline loan commitment looks generous, but its advance-rate and loan-to-cost draw conditions fund far less of each month's construction spend than the priced facility. Equity runs out before completion; the lever is the loan's advance rate.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "revenue_without_bankability",
+   "label": "Revenue without bankability",
+   "definition": "The customer will accept a weaker take-or-pay and credit-support package. But the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget. The lever is the service agreement's take-or-pay level.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "verbal_written_divergence",
+   "label": "Verbal/written divergence",
+   "definition": "The lender answers a fee-free loan offer with a message claiming only the fee changed. Its written counter also cuts the advance rate and the loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "cases/datacenter_development_v1/worlds_v2_holdout/manifest.json",
+    "quote": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit."
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "interface2",
+   "label": "Developer interface 2",
+   "definition": "The default developer interface, used by every sealed case and by the first held-out confirmatory (datacenter_development_v2_world_panel_confirmatory_v1). The land-amendment phase has no decline: re-proposing the executed land terms is the invalid action amendment_changes_nothing, and a walk ends the project. A walk that states a reason was also typed malformed (DC-D-08).",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "docs/operations/incident_log.md",
+    "quote": "the land-amendment phase has no way to decline: the developer must propose an amendment, a proposal identical to the executed terms is the typed invalid action `amendment_changes_nothing`"
+   },
+   "dimension": "interface",
+   "applies_to": [
+    "datacenter_development_v2_world_panel_confirmatory_v1"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "interface3",
+   "label": "Developer interface 3",
+   "definition": "Adds a decline to the land-amendment phase, which keeps the executed land agreement as signed and proceeds to financing. It also lets a walk state its reason. It was used by the second held-out confirmatory (datacenter_development_v2_world_panel_interface3_confirmatory_v1, pack worlds_v3_holdout).",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "src/aeread_families/datacenter_development/stack_runner.py",
+    "quote": "#: Interface 3 (DC-D-08, DC-D-10): the amendment phase can be declined, and a"
+   },
+   "dimension": "interface",
+   "applies_to": [
+    "datacenter_development_v2_world_panel_interface3"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "decision_regret",
+   "label": "Decision regret (against the best move on the model's own information)",
+   "definition": "For each move in an episode, what the move gave up against the best move available on the model's own information (the declared prior narrowed by every price seen), in expected cost to the model in $ thousands; the moves are summed. The break-off draw never enters the score. The gap analysis reports minus decision regret, so higher is better.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation-gap",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_gap.py",
+    "quote": "gave up against the best move on the model's own information, in $ thousands."
+   },
+   "applies_to": [
+    "datacenter_risk_allocation"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_reference",
+   "label": "Reference policy (one seat)",
+   "definition": "The model's best play on its own information: an exact dynamic programme over the counterpart types still consistent with every price seen. At each move it accepts the standing offer, walks to the outside option, or proposes a package at a consistent type's signing threshold or with no price (a price request). It knows the declared prior and the counterpart's pricing rule, not the counterpart's true type, and is graded on expected cost (ex ante).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation.py",
+    "quote": "# The reference: the model's best play on its own information."
+   },
+   "keys": [
+    "reference"
+   ],
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign",
+    "datacenter_risk_allocation_two_sided"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_reference",
+   "label": "Reference policy (playbook menu)",
+   "definition": "The best play of a client who knows the integrator's hidden playbook-and-pricing policy but not the integrator's costs. It reads those costs off the posted menu and best-responds exactly, so decision regret measured against it includes what not knowing how this market prices costs a client.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_menu.py",
+    "quote": "The reference (:class:`MenuSolver`) is the best play of a client who knows the"
+   },
+   "keys": [
+    "reference"
+   ],
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_reference",
+   "label": "Reference policy (full contract terms)",
+   "definition": "An exact solver for the client that knows the integrator's pricing policy and the prior over the integrator's type, but not the type itself. It narrows the possible types by every price seen and best-responds over the whole menu of contracts.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "stated in no brief. The reference (:class:`ContractSolver`) is exact: it knows the"
+   },
+   "keys": [
+    "reference"
+   ],
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_counterpart",
+   "label": "Scripted counterpart (one seat)",
+   "definition": "In the client seat, the scripted integrator (private pre-staging cost of $40k, $120k or $200k and risk charge of 0.3 or 1.2) opens with its defensive proposal. It signs at a price of at least its cost of the package plus $500k plus an ask premium of $400k, then $200k, then $0; a proposal it won't sign gets its price for that package, and after each refusal it breaks off with a declared probability. In the integrator seat, the scripted client signs at a price of at most its turnkey all-in, less its expected cost of the package, less a demanded saving ($200k, then $0).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "at a price of at least its cost of the package plus $500k, plus an ask premium ($400k in its opening, $200k in round 1, $0 in round 2)"
+   },
+   "applies_to": [
+    "datacenter_risk_allocation_dev_campaign"
+   ],
+   "scope": "one_seat"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_counterpart",
+   "label": "Scripted integrator (playbook menu)",
+   "definition": "The integrator posts a playbook according to its hidden type and prices each option at its cost plus its margin, the round's premium, and a markup on the expected cost the option moves. The list carries the whole markup and a 400 premium; a round-1 counter is judged against half the markup and a 200 premium, and a round-2 counter against the integrator's floor. None of this is in the client's brief.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "Each option is priced at the integrator's cost plus its margin, the round's premium,"
+   },
+   "applies_to": [
+    "datacenter_risk_allocation_menu"
+   ],
+   "scope": "menu"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_counterpart",
+   "label": "Scripted integrator (full contract terms)",
+   "definition": "The integrator prices a change from its base contract at its floor plus 40% of the cost the change adds, or keeps half of any saving; that markup decays to nothing by round 2. It quotes in $100 steps rounded up, so every price it shows is one it will sign at, and it declines a contract that is off the menu without giving a price.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "docs/families/datacenter/risk_allocation_case.md",
+    "quote": "prices a change at its floor plus 40% of the cost the change adds, or keeps half"
+   },
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "scripted_baseline_developer_equity_npv_cents",
+   "label": "Scripted reference developer",
+   "definition": "Each world's scripted developer, whose developer equity NPV is the world payload's baseline, re-simulated from the scripted terms; its stack is admitted in all 24 worlds of each pack. The gap is the model's developer equity NPV minus this reference's on the same world, in USD millions (the leaderboard's 'delta vs scripted'). Mean reference NPV per world is 554.1 under interface 2 and 552.6 under interface 3.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "evidence/datacenter_development/datacenter_development_v2_world_panel_gap/README.md",
+    "quote": "The reference is `scripted_baseline_developer_equity_npv_cents`, each world's `payload.baseline`, re-simulated here from the scripted terms"
+   },
+   "keys": [
+    "reference"
+   ],
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "baseline",
+   "family": "datacenter_development",
+   "value": "outside_option_developer_equity_npv_cents",
+   "label": "Walk-away value",
+   "definition": "If the developer walks away, its equity NPV is minus the sunk predevelopment cost, drawn per world as $8M, $11M or $15M; the lender and the customer get 0. The ranking also gives this value to an invalid action or to a signed stack that fails admission. Across the two confirmatories, walking away is worth -11.9 and -11.7 USD M per world on average.",
+   "source": {
+    "branch": "codex/datacenter-world-panel-gap",
+    "path": "src/aeread_families/datacenter_development/stack_worlds.py",
+    "quote": "# Sunk predevelopment cost if the developer walks: $8M to $15M."
+   },
+   "applies_to": [
+    "datacenter_development_v2_world_panel"
+   ],
+   "scope": "world_panel"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "take_the_cap",
+   "label": "Take the cap",
+   "definition": "This client (risk charge 0.15) carries risk more cheaply than the integrator does, so capping the integrator's liability lowers the price by more than the risk it hands back. The best contract takes the cap (managed and turnkey playbooks only).",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "this client carries risk more cheaply than the integrator; a cap lowers the price by more than the risk it hands back"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "sign_now",
+   "label": "Sign now",
+   "definition": "The integrator is likely to break off after a refusal (35-50% chance), and the deal is worth far more to this client (risk charge 1.55) than walking. The rewarded move is to sign in the current round.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "the integrator is likely to break off after a refusal and the deal is worth far more than walking; sign this round"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "walk_away",
+   "label": "Walk away",
+   "definition": "No contract on the integrator's menu beats the client's better outside option, so the rewarded move is to walk to it. The client's risk charge is 0.75.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/risk_allocation_contracts.py",
+    "quote": "no contract on this menu beats the better outside option; walk to it"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "datacenter_risk_allocation_contracts"
+   ],
+   "scope": "contracts"
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "full_package",
+   "label": "Full package (baseline presentation)",
+   "definition": "The developer sees the landowner's written counteroffer only as the full package of pending counter terms, with no list of what changed. It is the paired baseline presentation.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/salience_environment.py",
+    "quote": "\"comparison_baseline\": \"paired_full_package_presentation\","
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_salience"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "explicit_delta",
+   "label": "Explicit delta",
+   "definition": "When a written counteroffer is pending, the developer's observation also lists every field the counter changed, with its prior and counter value, and tells it to apply each listed change and copy every other field exactly.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/salience_environment.py",
+    "quote": "\"Apply counter_value for every listed field, and copy every \""
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_salience"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "reemit_package",
+   "label": "Re-emit the package",
+   "definition": "To adopt the landowner's counteroffer, the developer must make a new offer that copies the pending counter terms exactly.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/affordance_environment.py",
+    "quote": "\"terms\": \"Copy pending_counter_terms exactly.\","
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_affordance"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "accept_by_reference",
+   "label": "Accept by reference",
+   "definition": "The developer can adopt the counteroffer by naming its offer id in an accept_counteroffer action, without restating the terms. The environment rejects a stale or unknown id and a counteroffer whose terms have drifted.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/affordance_environment.py",
+    "quote": "\"offer_id\": \"Copy pending_counteroffer_offer_id exactly.\","
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_affordance"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "shared_offer_schema",
+   "label": "Shared offer schema",
+   "definition": "The developer answers the landowner's counteroffer through the same broad offer action it uses for every offer; there is no separate acceptance step.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/action_schema_environment.py",
+    "quote": "\"\"\"Paired broad versus dedicated counteroffer-acceptance schemas.\"\"\""
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_action_schema"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "dedicated_accept_schema",
+   "label": "Dedicated accept schema",
+   "definition": "After the landowner responds, the developer is routed to a dedicated phase, land_developer_accept_counteroffer, with its own acceptance action schema, instead of answering through the general offer action.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/action_schema_environment.py",
+    "quote": "DEDICATED_ACTION_SCHEMA_ID = \"datacenter_land_accept_counteroffer_v1\""
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_action_schema"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "land",
+   "label": "Land only",
+   "definition": "The shortest of three nested prefixes of the same curated project used to diagnose whether the developer adopts a written counteroffer: only the land agreement is negotiated.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/adoption_environment.py",
+    "quote": "\"land\": (\"land\",),"
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_adoption"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "land_power",
+   "label": "Land, then power",
+   "definition": "The middle prefix of the same curated project: the land agreement, then the power agreement.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/adoption_environment.py",
+    "quote": "\"land_power\": (\"land\", \"power\"),"
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_adoption"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "land_power_epc",
+   "label": "Land, power, then EPC",
+   "definition": "The longest prefix of the same curated project: the land agreement, the power agreement, then the EPC (construction) contract.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "src/aeread_families/datacenter_development/adoption_environment.py",
+    "quote": "\"land_power_epc\": (\"land\", \"power\", \"epc\"),"
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_counteroffer_adoption"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "controlled_developer",
+   "label": "Controlled developer",
+   "definition": "The model plays only the developer, against fixed scripted counterparties, so the run measures the developer's policy.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "configs/datacenter_development_v2_interaction_v1.json",
+    "quote": "\"controlled_developer\": \"developer policy against fixed scripted counterparties\""
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_development_v2_interaction"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "datacenter_development",
+   "value": "homogeneous_model_to_model",
+   "label": "Same model in every seat",
+   "definition": "The same model route plays all six seats, so the run measures the behaviour of the joint system negotiating with itself.",
+   "source": {
+    "branch": "codex/datacenter-risk-allocation",
+    "path": "configs/datacenter_development_v2_interaction_v1.json",
+    "quote": "\"homogeneous_model_to_model\": \"joint-system behavior with the same route in all six seats\""
+   },
+   "dimension": "dim",
+   "applies_to": [
+    "datacenter_development_v2_interaction"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "demand_ramp",
+   "label": "Demand ramp",
+   "definition": "Demand is 10, 10, 30 and 30 kits over the four periods, with a $250 budget. The cheapest controller supplier ('small') can make only 10 units. 'Scale' costs a little more, can make 30 and gives a 6-10% loyalty discount per award. The best plan buys from scale and the steady display in every period, including the cheap early ones, so the discount is already earned when the volume arrives.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "buy from the supplier that can serve later volume before you"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "incumbent_capacity",
+   "label": "Incumbent capacity",
+   "definition": "Controller supplier 'flex' can fill only 10 units until it becomes the buyer's incumbent, then 20, with a 6-10% loyalty discount per award. 'Steady' has capacity 20. The best plan splits period 1's controllers between flex and steady, then buys from flex alone. This is the only world type where the best plan switches suppliers.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "split once to become a supplier's incumbent, then single-source"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "loyalty_investment",
+   "label": "Loyalty investment",
+   "definition": "A 'partner' controller supplier is 1.5-4% dearer than 'spot' today, but its price falls 6-10% with each consecutive award, up to three awards. Both suppliers mark up 4-10% if quoted and then dropped. The best plan buys from the partner every period; buying spot because it is cheaper today loses a gap that grows every period.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "pay slightly more now to a partner whose price falls with each"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "qualification_investment",
+   "label": "Qualification investment",
+   "definition": "An unproven display supplier is 25-34% cheaper, but it needs an $8-11 sample that takes 2-4 days before it can be awarded. The sample is paid once and counts in every later period, so it pays back over later periods but not within one. The best plan samples it in period 1 and buys from it every period.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "pay once to qualify a cheaper unproven supplier, recovered over"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "retaliation_trap",
+   "label": "Retaliation trap",
+   "definition": "The controllers are set up as in loyalty investment, but every supplier quoted and not awarded marks up its price 10-20% the next period. The two display suppliers are priced a cent or two apart, and south's 8-day lead time makes day 6 the last day a period-1 order can be placed. Quoting all four suppliers first runs past day 6. The best plan buys from partner and south every period.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "commit early, stay, and do not quote a supplier you will not"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "unreliable_incumbent",
+   "label": "Unreliable incumbent",
+   "definition": "The cheaper controller supplier ('flaky') is on time only 80-90% of the time but claims 98% and a 6-day lead time in conversation. Its quotes and its delivery history tell the truth. The display side is known vs unproven, as in qualification investment. The best plan buys the reliable controller and the unproven display every period.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/case_cards.md",
+    "quote": "trust quotes and delivery history over what a supplier says."
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "relationship_v1",
+   "label": "Curated worlds",
+   "definition": "The six repeated-sourcing worlds (relationship_v1), one per world type, written by hand. Their numbers were tuned until the admission screen accepted them, so they form a development panel and not a held-out test.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "evidence/procurement_allocation/procurement_allocation_relationship_gemini38_flash_variance_v1/README.md",
+    "quote": "The six worlds are curated and were tuned against the admission screen; this is a development panel."
+   },
+   "dimension": "pack",
+   "keys": [
+    "curated worlds"
+   ],
+   "applies_to": [
+    "relationship_gemini38_flash_variance_v1",
+    "relationship_glm53_flash_variance_v3"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "relationship_dev_v2",
+   "label": "Generated development worlds",
+   "definition": "Twelve worlds (two per world type) generated by a fixed rule, split 'dev'. Each seed from 2420000 up is assigned to a world type, and its numbers are drawn from that type's declared ranges. The world is kept only if the admission screen accepts it and the deadline_aware rule beats doing nothing. Every world declares binomial sample noise.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "cases/procurement_allocation_v1/relationship_dev_v2/pack.json",
+    "quote": "seed s is offered to stratum (s - start) mod 6; its numbers are drawn from the stratum's declared ranges by a generator seeded with s"
+   },
+   "dimension": "pack",
+   "keys": [
+    "generated development worlds"
+   ],
+   "applies_to": [
+    "relationship_dev2"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "relationship_holdout_v1",
+   "label": "Pre-registered holdout",
+   "definition": "Twelve worlds generated by the same rule from a separate seed range. No live model had seen them before the confirmatory run. The confirmatory analysis (breach rate, regret on valid orders, advantage over deadline_aware) was pre-registered and frozen before any cell ran, with seeds 76001-76005.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/qc.md",
+    "quote": "`relationship_holdout_v1` (never read by a live cell), seeds 76001-76005,"
+   },
+   "dimension": "pack",
+   "keys": [
+    "pre-registered holdout"
+   ],
+   "applies_to": [
+    "relationship_holdout"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "deadline_cost",
+   "label": "Deadline vs cost",
+   "definition": "Single order of kits made of an ESP32-S3 controller and an SSD1306 OLED display. The buyer must choose between cheap suppliers that deliver late and dearer suppliers that deliver on time.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `deadline_cost` | ESP32-S3 + SSD1306 OLED | Cheap late supply versus costly on-time supply |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "moq_capacity_split",
+   "label": "MOQ and capacity split",
+   "definition": "Single order of kits made of a tactile switch and a KY-040 encoder. Minimum order quantities and supplier capacities force the buyer to split the order across several suppliers, all within ten actions.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `moq_capacity_split` | tactile switch + KY-040 | MOQ, capacity, and multi-supplier allocation within ten actions |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "quality_refund",
+   "label": "Quality and refunds",
+   "definition": "Single order of kits made of an SHT30 sensor and a BH1750 sensor. The buyer must weigh a lower unit price against verified yield and how much can be recovered through refunds.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `quality_refund` | SHT30 + BH1750 | Unit cost versus verified yield and refund recovery |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "service_defer",
+   "label": "Service vs defer",
+   "definition": "Single order of kits made of a KY-023 joystick and an SSD1306 OLED display. An award that barely meets the minimum service level competes with the explicit option to defer and place no order.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `service_defer` | KY-023 + SSD1306 OLED | Thin service-feasible award versus the explicit defer option |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "variant_substitution",
+   "label": "Variant substitution",
+   "definition": "Single order of kits made of a protected TP4056 charger and a MOSFET driver. Cheap listings offer a near-match variant; the buyer has to find the suppliers of the exact required variant.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `variant_substitution` | protected TP4056 + MOSFET driver | Cheap near-match listings versus exact variants |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "working_capital",
+   "label": "Working capital",
+   "definition": "Single order of kits made of a DS3231 clock module and an ESP32-S3 controller. The buyer must choose between a discount for paying up front and longer payment terms.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "| `working_capital` | DS3231 + ESP32-S3 | Prepay discount versus longer payment terms |"
+   },
+   "dimension": "world_type",
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "labeled",
+   "label": "Labeled",
+   "definition": "The single-order worlds as written: suppliers keep descriptive ids and names (such as ds3231_at24c32_terms_flexible or switch_reliable) and the original listing order. A name can therefore reveal the hidden property that makes a supplier the right or wrong choice. Each labeled world has an opaque twin with identical economics.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/design_review.md",
+    "quote": "Identifiers such as `ds3231_at24c32_terms_flexible`, `switch_reliable`, and"
+   },
+   "dimension": "surface",
+   "applies_to": [
+    "strategy_confirmatory",
+    "public_policy_baselines",
+    "blinded_invariance"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "opaque",
+   "label": "Opaque",
+   "definition": "The same worlds with the same economics, same upper bound and same seeds. Every suggestive supplier id and name is replaced by a fixed meaningless id, and the listings are put in a fixed shuffled order, so names and position cannot hint at hidden terms.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "deterministic opaque identifiers and deterministically changes listing order."
+   },
+   "dimension": "surface",
+   "applies_to": [
+    "strategy_confirmatory",
+    "public_policy_baselines",
+    "blinded_invariance"
+   ]
+  },
+  {
+   "kind": "stratum",
+   "family": "procurement_allocation",
+   "value": "single_period_noisy_sample_confirmatory",
+   "label": "Noisy-sample worlds",
+   "definition": "The six single-order worlds of procurement_allocation_unified_regret_recovery_v2. Here a supplier sample gives a noisy (binomial) reading, and both prompts told the buyer so. Each seed fixes that episode's noise draw, so the three seeds are different cases of one world rather than repeats. The comparison on these worlds is the pre-award check worksheet against the strategy scaffold, 18 cells a side.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "evidence/procurement_allocation/procurement_allocation_single_period_gap/README.md",
+    "quote": "Each seed binds that episode's sample-noise draw, so seeds are distinct cases of a world"
+   },
+   "dimension": "world_kind",
+   "keys": [
+    "noisy-sample worlds"
+   ],
+   "applies_to": [
+    "unified_regret_recovery_v2"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "upper_bound_usd",
+   "label": "T-period upper bound",
+   "definition": "The highest total margin over all the periods that a buyer could earn if it knew every supplier's hidden terms. It is solved exactly over supplier standing (loyalty streaks and grievances), and every quote, sample and counter-offer is charged. Regret is this bound minus the buyer's summed period margins.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "src/aeread_families/procurement_allocation/relationship.py",
+    "quote": "The exact T-period optimum under full information."
+   },
+   "keys": [
+    "T-period bound",
+    "upper bound"
+   ],
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ],
+   "scope": "relationship"
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "upper_bound_usd",
+   "label": "Full-information upper bound",
+   "definition": "The highest margin the single order could earn if every supplier's hidden terms were known, computed deterministically. It is charged for every quote, sample and negotiation action needed to reach its award. Regret is this bound minus the buyer's margin.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "with a deterministic full-information upper bound that is charged for every quote,"
+   },
+   "keys": [
+    "full-information bound",
+    "upper bound"
+   ],
+   "applies_to": [
+    "procurement_allocation_glm",
+    "procurement_allocation_qwen",
+    "procurement_allocation_mistral",
+    "procurement_allocation_public_policy",
+    "procurement_allocation_unified_regret",
+    "procurement_allocation_trajectory_grains"
+   ],
+   "scope": "single_order"
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "myopic",
+   "label": "Scripted myopic reference",
+   "definition": "A full-information solver, not a model. Each period it takes that period's best plan and ignores later periods. It uses any loyalty discount it has already earned but never invests in one.",
+   "source": {
+    "branch": "codex/procurement-relationship-gap",
+    "path": "src/aeread_families/procurement_allocation/relationship_gap.py",
+    "quote": "Each period optimized on its own under full information: the relationship standing is used, never invested in."
+   },
+   "keys": [
+    "scripted myopic reference"
+   ],
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "loyal",
+   "label": "Scripted loyal reference",
+   "definition": "A full-information solver, not a model. It takes the best set of suppliers for period 1 and awards that same set again in every later period.",
+   "source": {
+    "branch": "codex/procurement-relationship-gap",
+    "path": "src/aeread_families/procurement_allocation/relationship_gap.py",
+    "quote": "The first period's full-information optimum, re-awarded every period after."
+   },
+   "keys": [
+    "scripted loyal reference"
+   ],
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "shopping",
+   "label": "Scripted shopping reference",
+   "definition": "Plays like the myopic reference, but every period it asks every supplier for a quote before awarding the best one, and pays for each quote. Every supplier it quoted and dropped marks up its price the next period. It is published as a control, not used to admit worlds.",
+   "source": {
+    "branch": "codex/procurement-relationship-gap",
+    "path": "src/aeread_families/procurement_allocation/relationship_gap.py",
+    "quote": "Myopic, and quoting every supplier every period: each supplier it drops retaliates the next period."
+   },
+   "keys": [
+    "scripted shopping reference"
+   ],
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "defer",
+   "label": "Defer (public policy)",
+   "definition": "Takes the explicit outside option (defer, no order) and earns only the world's defer value. It is the lower anchor among the public policies.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/qc.md",
+    "quote": "| `defer` | the explicit outside option; a lower anchor |"
+   },
+   "applies_to": [
+    "public_policy_baselines"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "displayed_price_greedy",
+   "label": "Displayed-price greedy (public policy)",
+   "definition": "A deterministic policy that qualifies suppliers starting with the cheapest displayed listing. It sees only the public observation, never suppliers' private terms.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/qc.md",
+    "quote": "| `displayed_price_greedy` | qualify the cheapest visible listing first |"
+   },
+   "applies_to": [
+    "public_policy_baselines",
+    "unified_regret_v1"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "listing_claim_fit",
+   "label": "Listing-claim fit (public policy)",
+   "definition": "A deterministic policy that puts first the suppliers whose listed variant claim best matches the required variant. It sees only the public observation, never suppliers' private terms.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/qc.md",
+    "quote": "| `listing_claim_fit` | prioritize overlap with the required variant claim |"
+   },
+   "applies_to": [
+    "public_policy_baselines"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "semantic_hint",
+   "label": "Semantic hint (public policy)",
+   "definition": "A deterministic policy that also ranks suppliers by suggestive words in their ids and names. It sees only the public observation, never suppliers' private terms.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "docs/families/procurement-allocation/qc.md",
+    "quote": "| `semantic_hint` | additionally read suggestive supplier identifiers |"
+   },
+   "applies_to": [
+    "public_policy_baselines"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "deadline_aware",
+   "label": "Deadline-aware rule",
+   "definition": "A buyer that reads only what the model reads, used by the admission screen and not part of the public policy baselines campaign. It stops quoting and sampling once qualified capacity covers the target, and only while an order could still arrive by the deadline. It then orders the target quantity instead of padding for late-delivery risk.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "src/aeread_families/procurement_allocation/headroom_screen.py",
+    "quote": "once qualified capacity covers the target and only while an award could"
+   },
+   "keys": [
+    "deadline-aware"
+   ],
+   "applies_to": [
+    "procurement_allocation_relationship"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "replay_best_qualified",
+   "label": "Best-qualified reference",
+   "definition": "A screen-only public-observation reference, used beside displayed_price_greedy in the procurement_allocation_unified_regret_v1 admission report. It qualifies the cheapest listing in each component and spends any spare actions on the component whose evidence looks worst. Then it awards the best supplier it has instead of deferring.",
+   "source": {
+    "branch": "codex/procurement-repeated-relationship",
+    "path": "src/aeread_families/procurement_allocation/headroom_screen.py",
+    "quote": "A stronger screening reference: qualify what fits, then award the best of it."
+   },
+   "applies_to": [
+    "unified_regret_v1"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "procurement_allocation_prompt_v1",
+   "label": "Unscaffolded prompt (control arm)",
+   "definition": "Not scripted: GLM 5.3 Flash on Parasail under the plain buyer prompt. It is the control arm against the strategy scaffold in procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v2, paired on the same world, surface and seed.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "evidence/procurement_allocation/procurement_allocation_single_period_gap/README.md",
+    "quote": "strategy scaffold (`procurement_allocation_strategy_scaffold_v3`) against the unscaffolded prompt (`procurement_allocation_prompt_v1`)"
+   },
+   "keys": [
+    "unscaffolded"
+   ],
+   "applies_to": [
+    "strategy_confirmatory"
+   ]
+  },
+  {
+   "kind": "baseline",
+   "family": "procurement_allocation",
+   "value": "procurement_allocation_strategy_scaffold_v3",
+   "label": "Strategy scaffold (control arm on noisy-sample worlds)",
+   "definition": "Not scripted: the same GLM buyer prompt with a short decision procedure appended; model, provider, worlds, seeds and scorer are unchanged. It is the treatment in the strategy confirmatory and the control arm against the pre-award check worksheet on the noisy-sample worlds.",
+   "source": {
+    "branch": "codex/procurement-single-period-gap",
+    "path": "docs/families/procurement-allocation/campaign.md",
+    "quote": "`strategy_scaffold` appends a compact decision procedure to the"
+   },
+   "keys": [
+    "strategy scaffold"
+   ],
+   "applies_to": [
+    "unified_regret_recovery_v2",
+    "strategy_confirmatory"
+   ]
+  }
+ ]
+}

@@ -84,6 +84,17 @@ shows 73 because it was built with the housing lemons bundle from PR #215.
    interval from 5 clusters up) and lists every multi-model case it cannot compare, with the reason.
    Checked against published estimates: procurement holdout O1/O2 and per-world-type values, lemons
    realized and luck-removed payoffs, and risk allocation v2 on complete arms reproduce exactly.
+6e. `build_definitions.py`: what every stratum value and every baseline on the pages means.
+   `definitions.json` (committed beside it) holds one entry per label: a short definition in the
+   world's own terms and its source as a branch, a repository path and a verbatim quote. The build
+   reads the file at that branch's pushed commit (`git show`), finds the quote, and stops if it is
+   gone, so a definition cannot outlive the text it paraphrases; baselines a gap report describes
+   itself are added from the report. An entry names the runs it applies to (`applies_to`, id
+   substrings) and a `scope` when two packs reuse a name for different worlds (`buy_the_cover`,
+   `walk_away`); a label never borrows another pack's definition. The page underlines defined
+   labels (hover for the definition, click for the quote and the runs that use it), lists each
+   run's strata and baselines under its key charts, and lists all of them under "strata &
+   baselines" in the header. Every table on the page also sorts by any column.
 6c. `build_starcraft.py` (opt-in, not released yet: runs only when `AEREAD_EXAMINER_STARCRAFT_RUNS`
    names the runs folder; `--remove` takes it out of a build): the starcraft_master OpenBW prototype's local matches as one bundle marked
    external: cases are matches, steps are strategist decisions (goals, reviews, engagement

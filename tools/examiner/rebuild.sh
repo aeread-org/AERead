@@ -50,6 +50,8 @@ echo "[6b] case cards: family cards and their checks evaluated per cell"
 python3 "$T/build_case_cards.py" "$OUT" "$WT" "$T/receipt_index.json" || echo "  case cards failed; the page shows none"
 echo "[6d] model comparisons: every case two or more models played, as cells with their strata"
 python3 "$T/build_model_comparisons.py" "$OUT" "$WT" || echo "  model comparisons failed; the page shows none"
+echo "[6e] strata and baselines, defined: each quote checked at its branch's pushed commit"
+python3 "$T/build_definitions.py" "$OUT" "$WT" || { echo "  definitions failed (a quoted source moved?): fix definitions.json; the page shows bare labels"; rm -f "$OUT/data/definitions.json"; }
 # opt-in: the owner has not released the StarCraft prototype to the examiner yet (2026-09-25)
 SC=${AEREAD_EXAMINER_STARCRAFT_RUNS:-}
 if [ -n "$SC" ] && [ -d "$SC" ]; then
