@@ -595,7 +595,7 @@ probe or prompt was tuned on (24 independent clusters, a twin with its base).
 
 **Gate 2, environment and verifier: passed.** The reference is an exact dynamic
 programme; in the v2 dry run it graded zero regret on all 192 of its cells, and
-v2 seats it in the run itself. Every executed receipt is replayed to the same
+seated in the v2 run itself it graded zero on all 64. Every executed receipt is replayed to the same
 digest before its cell counts. Leak tests keep the counterpart's type and the
 world's cell name out of every observation.
 
@@ -611,13 +611,19 @@ not yet a cell.
 answer the same worlds under the same per-world request seed, with retries only
 for provider faults (rate limits, 5xx, dropped connections; DC-O-10) and a
 reply cut off by the output limit typed as missingness. Partial because each
-model has one provider route, and reasoning is declared per arm (low effort, or
-the provider default), not matched in tokens.
+model has one provider route, reasoning is declared per arm (low effort, or
+the provider default) rather than matched in tokens, and v2's missingness falls
+on one model: GLM at default reasoning lost 31 of 128 cells to its time and
+token limits and upstream errors (DC-O-12, DC-T-15), Gemini none.
 
 **Gate 5, confirmatory reliability and publication: not confirmatory.** v2
 declares one contrast in its frozen plan (GLM 5.3 Flash minus Gemini 3.8 Flash,
 per arm and seat, paired on world and replicate, world-clustered bootstrap) and
 publishes it as a descriptive result: `winner_claim_allowed`,
 `inferential_model_ranking_allowed` and `causal_condition_effect_allowed` are
-false. v1's published cost is a floor (DC-T-13).
+false. v2's result: Gemini gives up less than GLM at low effort in both seats
+(+105 and +84 thousand per negotiation, intervals above zero) and at default
+reasoning in the client seat (+50, interval above zero); at default reasoning in
+the integrator seat GLM is lower (−27, interval reaching zero). Both costs are
+floors: v1's (DC-T-13) and v2's $8.94 (DC-T-14).
 

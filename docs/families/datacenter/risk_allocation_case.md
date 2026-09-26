@@ -437,11 +437,55 @@ each round makes no detectable difference. The GLM integrator row is 5 worlds
 and the Gemini client interval touches zero. This is a diagnostic dev
 campaign: one run, 16 worlds per seat, no model ranking.
 
+## Campaign v2: the two-model contrast
+
+`datacenter_risk_allocation_dev_campaign_v2` (plan `8e94fdf7893b`, 704 cells,
+$8.94 lower bound) fixes what v1's checklist found: a fresh 32-world pack (24
+independent worlds per seat), two replicates per model cell under a per-world
+request seed both models share, retries for provider faults, and the reference
+and two rules per seat seated in the run. Published at
+`evidence/datacenter_development/datacenter_risk_allocation_dev_campaign_v2/`.
+
+The contrast declared in the frozen plan, GLM 5.3 Flash minus Gemini 3.8 Flash
+in decision regret ($ thousands per negotiation; positive means GLM gave up
+more), paired on world and replicate, 95% world-clustered bootstrap:
+
+| arm / seat | pairs (worlds) | GLM minus Gemini | GLM missing |
+|---|---|---|---|
+| low effort / client | 64 (24) | +105 [+50, +155] | 0 |
+| low effort / integrator | 64 (24) | +84 [+30, +129] | 0 |
+| default reasoning / client | 50 (23) | +50 [+8, +110] | 14 |
+| default reasoning / integrator | 47 (22) | −27 [−70, +0.1] | 17 |
+
+Gemini gives up less in three of the four; at default reasoning in the
+integrator seat GLM is lower on the pairs that exist, and the interval reaches
+zero. Every missing cell is GLM at default reasoning (18 timeouts at 2,000 s, 7
+replies cut off at 93,000 tokens, 5 upstream errors, 1 empty answer); Gemini
+lost none. In the client seat GLM went missing on worlds that were harder for it
+(its low-effort regret there 245 against 187), so dropping them flatters GLM;
+in the integrator seat the missing worlds were harder for both models.
+
+Around the contrast:
+
+- **Reasoning helps both models on fresh worlds**, as in v1: default against
+  low effort lowers regret by 50 and 114 for Gemini, 87 and 221 for GLM
+  (client, integrator), every interval below zero.
+- **GLM revises the contract, Gemini does not.** At default reasoning GLM signed
+  a different package from its first proposal in 21 of 35 and 21 of 36 signed
+  deals; Gemini in 3 of 54 and 6 of 48.
+- **Gemini is the more consistent player.** It signed the same contract in both
+  replicates of a world 25 of 32 times (client, default) against GLM's 15 of
+  22; at low effort 28 of 32 against 11 of 32. Between 15% and 54% of each
+  group's variance lies between replicates of the same world.
+- **The controls hold.** The reference graded zero on all 64 of its cells;
+  the rules averaged 284 to 358, above every model group (28 to 257).
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.
-2. **Retries.** GLM at default reasoning needs declared retries for rate limits
-   and server errors, under a new campaign identity, before its missingness is
-   small enough to read.
+2. **GLM's limits.** v2's retries recovered every provider fault, but GLM at
+   default reasoning still lost 25 of 128 cells to the 2,000 s timeout and the
+   93,000-token limit (DC-O-12). The next identity sizes both from v2's own
+   distribution of move lengths, and #223 rules on the 5 upstream errors.
 3. **Pilot.** A frozen pilot on held-out worlds, sized from this campaign's
    spread of regret.
