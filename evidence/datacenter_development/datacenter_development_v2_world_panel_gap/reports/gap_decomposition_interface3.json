@@ -1,0 +1,4204 @@
+{
+  "accounting_check": {
+    "contribution_statement": "per cell, the contribution rows of each part sum to that cell's part in integer cents; an admitted cell's six agreement rows telescope from the reference's NPV to its own",
+    "max_abs_contribution_residual": 0.0,
+    "max_abs_residual_per_cell": 0.0,
+    "statement": "each cell's gap to the reference (ranking basis minus scripted baseline, integer cents) is exactly one part"
+  },
+  "admitted_terms_by_agreement": {
+    "order": [
+      "land",
+      "power",
+      "epc",
+      "service",
+      "land_amendment",
+      "loan"
+    ],
+    "statement": "the admitted-terms part split by agreement, USD M per world; each agreement's terms replace the reference's in this order",
+    "values": {
+      "epc": -1.357929,
+      "land": 1.529867,
+      "land_amendment": 0.0,
+      "loan": -0.440054,
+      "power": -1.040338,
+      "service": 0.0
+    }
+  },
+  "amount_label": "USD M/world",
+  "bootstrap": {
+    "draws": 10000,
+    "interval": "percentile_95",
+    "seed": 20260921,
+    "stream": "one random.Random(seed), the campaign's predeclared seed and draws: realized, then components in declared order, then classes in declared order",
+    "unit": "world_seed"
+  },
+  "cell_parts": [
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -564.74482781
+      },
+      "receipt_sha256": "e23693cbce6064ff3ef4336974aa5187adb9ec585ca107c96ee0abb551e92b5f",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280920
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 2.60997339,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "d6ab4290bd296bbf3d25cdc5c3f92f9a2d9da14381b48d8555ef642999879394",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280920
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -564.74482781
+      },
+      "receipt_sha256": "4bdc560ed3e79dfd64bd61b5545690db2e1f9775d078bdf12a949d47032fa445",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280920
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -470.04456941
+      },
+      "receipt_sha256": "2205c568a3ed00229242a898a133b741649af8219d5e1dd8a4793d465ee5f1f4",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280921
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -470.04456941
+      },
+      "receipt_sha256": "089ec41d3e4e82063f4a31a5992c2fc46efb47d53f95bab47ed4552cd8f80fd2",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280921
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -470.04456941
+      },
+      "receipt_sha256": "f93950ebbd5ca61a43a2c28e5cf40ba2cffa8eddf19b3389b2095cdb0c5d9f93",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280921
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.29724075,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "583e88b292fb7bcae8b0955cca297fb53c76418379443d5f94507537aa8c9369",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280922
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -686.53064343
+      },
+      "receipt_sha256": "11610ea7f29e97a143f79990f46cfae0d9c5f091a912462aab069dd1856e174d",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280922
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -686.53064343
+      },
+      "receipt_sha256": "6b289bd11138c4c22ca35ee2e33b8d2c1a9edbb05af62047938409e7952a8f97",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280922
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -667.8969316
+      },
+      "receipt_sha256": "4d0364ebad547d79dcbe3ca616260617c6367607651334ca2173dec08ad58e29",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280923
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -667.8969316
+      },
+      "receipt_sha256": "28f4cfea114c0e4994ae0806f3b1a539983ee2c25d2bd9681299d9b60a61a838",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280923
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -667.8969316
+      },
+      "receipt_sha256": "6caac1e6ed7fbd50679d499cc573fb277a29c50d73a301ed9411a2349b4b3366",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280923
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -598.91218892,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "f86c921188548419d3089d60678bbc170ba85ce381a3d142aa07047f1e3a52a7",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280924
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -598.91218892
+      },
+      "receipt_sha256": "2a39a93bae78688c28b26c7beb88465b0197a8ec11b1c00aea69e622df800581",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280924
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -598.91218892
+      },
+      "receipt_sha256": "b3bda9f2a6a33a8582fda992f257d1e54e7f128ebafd42379b5d581b7d1e92fe",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280924
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -642.09833117
+      },
+      "receipt_sha256": "d5e0c7f69fd72373642d213a8f7c80556ada648f97845faeb7024460113d2143",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280925
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -642.09833117
+      },
+      "receipt_sha256": "4a88e772f2203e119b133ad76a37fde622c3a3956718ddb579885d28b7bcd719",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280925
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -642.09833117
+      },
+      "receipt_sha256": "aee584f9975f2f65708cbdf5b842e09b253bab2d2303c74ed9c6cb00c1fa17e4",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280925
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": -577.11016351,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "c506f394352290a8b4f312b34383452db9e572880a426207de69db4211efb384",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280926
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -577.11016351
+      },
+      "receipt_sha256": "a8a28c5190f7e952a5d78ccfaf5d4db95c7be247257a96aa82ae74b395ae5e56",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280926
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -577.11016351
+      },
+      "receipt_sha256": "1ae7c8618b61cc53a1d8dd73de308a4765b5645e3a0220d270846e8ffb821c04",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280926
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -680.34341046
+      },
+      "receipt_sha256": "d7c6a782401a04f2668f55b3842ef888d23425d7d84e88a704a95166790f2034",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280927
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -680.34341046
+      },
+      "receipt_sha256": "b39f1b3b01a43a3bd0fcb75a839d476d567b2a70b01dd80a6c413350804d2d2b",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280927
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -680.34341046
+      },
+      "receipt_sha256": "0e1b010a19af384aa66d4c80bdd11247f0a5748b45cc591d4390b793231fa4ba",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280927
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 9.86984005,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "8cb2abb8f4082666cd0fceb37759c374f064fa379a00fda60a8a7f31432babce",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280928
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 8.47023509,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "31e1c0aa387fa9ac800b368e1d41df5e079dba42be5b8da5098b4a611155d13f",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280928
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -662.12430536,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "1b378492d258d23e319db2c9340b3cf1f15d003201dd40e2e47345a6b18de067",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280928
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -32.49451244,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "b2dae5926ac62ac421d8b066d207b19c9cb6543b29ac78ce995b3067c73e6bbe",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280929
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -490.37577036
+      },
+      "receipt_sha256": "90dd68739c871966262721a28638b0fa80456fd94a58cc1682925857da782e7b",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280929
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -0.04574851,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "ff7b46dfc72cb3941cf9ecda3ad5cb45c34794aa301a64c298b4ac2f09a28ca9",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280929
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -491.00196426
+      },
+      "receipt_sha256": "6dd569b3a3debaeabc1fe2d7efb02288fc341eb936404c0335afd36923235b3f",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280930
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -491.00196426
+      },
+      "receipt_sha256": "8cadadc4d1406572a259828bbca66b1d780bbe01fd1a6d2192dbef05f3cc4153",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280930
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -491.00196426
+      },
+      "receipt_sha256": "cbc04ebe6d14381821c5bcaa6894d540d7c06025e2533f6c4e77f59471255556",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280930
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -7.83800253,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "19d5910f8c35f5dfb8121b8bf41f479c32ea9ed98dfd925e4def248dccfda924",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280931
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -667.81120843
+      },
+      "receipt_sha256": "b5f5e9578d3a5511c6e049a241398791213862fa52fc121bff388eecb22d88ce",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280931
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -667.81120843
+      },
+      "receipt_sha256": "e945fe078ddf571dece2c6a84723eda2592a0700f1f9a75ee63ea06df3561cc6",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280931
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -492.37399133
+      },
+      "receipt_sha256": "2c968fd8478e059b073472cd8d31f0522f144515a644b7f386c1e650217e57af",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280932
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.83688806,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "bb38c787a7797e441c2723baed86345b8721383e890d63164a987f1302c531ef",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280932
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -1.92159119,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "3ce6d1db6e45265c60246b3ca37bf32ed01e3993e1f6067d1150eaa9df0c8821",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280932
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -477.81794679
+      },
+      "receipt_sha256": "3b3995791df5b476af002a83be6dccf45335b6e943b68aad476f011b4356077c",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280933
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -477.81794679
+      },
+      "receipt_sha256": "462401e30ee19b45707db9402fa08e83cd53f37ae4a457c2178cf0140433746e",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280933
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -477.81794679
+      },
+      "receipt_sha256": "d091d43dc7981b835299b13d31a99b1758c5f00959d412c39eb8f2818b474788",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280933
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 2.15027002,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "1c9fa9a6dda4e06ddb18f1829be7866065e459c8a375d02a7cf640c229301bda",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280934
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -416.06546033
+      },
+      "receipt_sha256": "e494f7b9ad15e7fe8deeab41ec5afc17feb0a97937d301e0822b018b5eb1b3d7",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280934
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -416.06546033
+      },
+      "receipt_sha256": "2930ea74d15236dbb90dff22797c5015bd4e8fb23f8a3c2cbf91c93084c86df1",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280934
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -39.63947445,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "e3eaa992201caf7eae40f6c187e0df9ce0c614fc531b8126dc1d28eed255f361",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280935
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.20061884,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "f306f5ab0d9789145eebd89eda06ed20bc7cd1f263ef9574ad6ed14382097004",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280935
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -535.03086028
+      },
+      "receipt_sha256": "1db4a9db3bec44d74c09a79200b02b85f80861fa61d2ed6a9fdfd9cf33c615eb",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280935
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -607.75429413
+      },
+      "receipt_sha256": "12bcef12ec4b4b5bdf626f297a857607468a0211afaf5d173a0e3be036532dca",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280936
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -607.75429413
+      },
+      "receipt_sha256": "f406a43d844c70143e3b69a8411b7c53aa557bd3532419cf8c1af713eabc6f15",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280936
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -607.75429413
+      },
+      "receipt_sha256": "a5b223496140e70ba24d903620f98705143fd84cb2d4f68c8aea0f2c7f35c241",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280936
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -1.71611256,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "811fcd0ebb26d164d18709202327d491f732750ff848f853c461c6d567c5a05d",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280937
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -705.79203777
+      },
+      "receipt_sha256": "e0e43f1289a768cc81ee1887d68b798682e507e1981ee55736f1f510509b3cf8",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280937
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -705.79203777
+      },
+      "receipt_sha256": "672f922977f6f505862faa5599663d45ec018ccc314bb8155e032b5ea2883f49",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280937
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -553.1731005
+      },
+      "receipt_sha256": "1214984e4edd862f022fe82a0e852618329d2512a07a30cce4390323773dc3be",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280938
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": -37.41907453,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "7823b649fd17bb5b07f659f472a00f831bf82f7c1e00a39d6ca95e372450c1e1",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280938
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -553.1731005
+      },
+      "receipt_sha256": "d2330a97d6e2794799bcc0cd416445872e2779c3b8ac34f25c3145c83c4142a7",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280938
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -496.77552738
+      },
+      "receipt_sha256": "7b93125f7a13a499dd686b971aa03c7356a5325e837a0d70fae813d345f92e35",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280939
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -496.77552738
+      },
+      "receipt_sha256": "bdc47a851b29f90d0aaefa496c6ff670ff270b0e82e6199c631a1d4146abd10f",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280939
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 2.43072758,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "aa28a661fd50618df32f46a740ff45c430bce103b2134bebe23693b9ad355dba",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "liability_transfer",
+      "world_seed": 20280939
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -484.95104855
+      },
+      "receipt_sha256": "4ea0126209ddc37c21af0897193a47012c8cc89509e1f76f27e423301a1ec2e9",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280940
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -484.95104855
+      },
+      "receipt_sha256": "72fa10f87a10a46a3cd8b3e7a0373fa219ab990fbd264b6d20cd9f4469fd28a9",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280940
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -484.95104855
+      },
+      "receipt_sha256": "71c2c276ebef2a02ffeedea639aa6fe5ea6e40bc911eb99a37f9723312f10fba",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280940
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -540.40909951,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "229d2fa5b045502fcc56fb27fa9a9b43ddca235c9d422c6ca237c281f2401692",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280941
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -540.40909951,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "6ffdfad1735bbb3af48dee5b33818b604b0519031b3f9dee0fdb18834b3b82b5",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280941
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -540.40909951
+      },
+      "receipt_sha256": "7685a710fbf864b8371fa5a4923daf50aafc6b512c1cb5e1cc61258bc30e9c53",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280941
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -541.76121612
+      },
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280942
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -541.76121612
+      },
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280942
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": -541.76121612,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "c1184c28889be9947ca1254abb44571a2c63f8e29c076203619b91fc4e784873",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280942
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -492.45380967,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "23563b0d88fbc213e8b7d1c27ce13bdef69608d46ed340f0dad33d073b1f6079",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280943
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": -492.45380967
+      },
+      "receipt_sha256": "683155f2ed47ef9be4a92cf41f6d44082e9b85e48e5dffde7eb6fc78f5e777bc",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280943
+    },
+    {
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": -492.45380967,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "ea45b193645082029b0aac1288dcae688f111afa579a033498582d7cc9f4adf7",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280943
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "cd3b8f62b6c85c5a490e4fbe1b49789f9b7ed853ab91c4dc6e01ea5b98f9d6e2",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280920
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "c96f8674b1ec17dd0c057851f31259ccea10afe99252310493a472abe3b31ada",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280921
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "7f08c40eb9db46c43a3dc525e32fcec53f2e0a57431a53915d9bb1ac0177c730",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280922
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "ee1ebe111199bc8e39f189567c401da99d20f6a1712c25917dca4d237e30411c",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "revenue_without_bankability",
+      "world_seed": 20280923
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "9c66abdecd5198cdab947c6b5c4151417f6560c5175585aa9a1656b8062053a1",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280924
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "0d014491c8e1ed6e0c0b6f5546b94a9533da869b3a86839b4c82733df77df261",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280925
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "41de33dd47aa553a98ff6c6fc9d4d1297b1e634da95007238f19b55aba3a2f02",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280926
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "d73984229393c27c0b11271aefac8cf33d5baec1882e713da694c73b49971273",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "delayed_revenue",
+      "world_seed": 20280927
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "afd2fc12ca35dc461febe8857c1fcca30dca77b98f9b3c18aa7db714f27c11b7",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280928
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "4d49a11df919e5318095ea96196ca9b30ce2aa1401ffa157a845cee5979314a0",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280929
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "66f2a73686aadf792d0799a6a9cb61ede608dd6b2b5698dece4745be961ed9ad",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280930
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "eb31309be35dfc734854fd7e924f886516b7a230eaa8f2ac424ab28b566eb015",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "restrictive_draws",
+      "world_seed": 20280931
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "a99fec88f141048d0e134c3d3569c4d64eeff762d880f8e30edd14b344dd439e",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280932
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "f684939c84f92e835093367a008939a4312951a4ec48d9ec5c382d36f05658cb",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280933
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "9fd249b75a2f3e375c7a13963244ac7899faa971a8579c6fc7ca9b634ac7cc79",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280934
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "556827330d112c92608d5acd581e4ed7d6ed706153a9251347ddf96b71ca56b5",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "covenant_cliff",
+      "world_seed": 20280935
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "278426a64865cf9572f3079b18a5fc88ffbdff6aa5b4e6b2c43277fe3f3d57d2",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "liability_transfer",
+      "world_seed": 20280936
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "e8cd707a10b6b96e3a5d4e8b8e5ada80f9d5a5c5dce67e9c645edc854eb33dbb",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "liability_transfer",
+      "world_seed": 20280937
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "c1ee48fb72f1e39d72020de0a06d01374a0aa25086a8be683e2d81da271358d4",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "liability_transfer",
+      "world_seed": 20280938
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "9b6cf07928c713e09b6f90f7975e53b36c3a193de3ad81503f4adff907dda66b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "liability_transfer",
+      "world_seed": 20280939
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "ed1557557e4f3b882777631528199230fe9f9b89b3da9fd162bb980bfe67c23a",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280940
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "09d896f57716f990a71e0560d136a5e3a5edf517aa43a2567e7952882e93c2c6",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280941
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "9af518d868c8204b2ad2149f4718ecd52645ab3ff22ebe5f89afc0a4a01b7068",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280942
+    },
+    {
+      "campaign_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+      "parts": {
+        "admitted_terms": 0.0,
+        "ended_by_walk_or_round_limit": 0.0,
+        "ended_on_refused_action": 0.0,
+        "ended_on_unparseable_action": 0.0,
+        "stack_failed_admission": 0.0
+      },
+      "receipt_sha256": "94550f6661d6698e1cba38344a64cf7d22e4b36dd084b3fd1794f143fafaf34b",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "verbal_written_divergence",
+      "world_seed": 20280943
+    }
+  ],
+  "cells": {
+    "left": 72,
+    "right": 24
+  },
+  "claim_status": "descriptive_single_route_confirmatory",
+  "class_heading": "what happened (diagnostic, overlapping; engine checks re-derived by re-simulation)",
+  "classes": [
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -15.53988,
+      "amount_difference_ci": [
+        -39.095179,
+        0.0
+      ],
+      "group": "format",
+      "key": "malformed_json",
+      "label": "the developer's output was not valid JSON",
+      "left_amount_per_market": -15.53988,
+      "left_count": 2,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "format",
+      "key": "parser_rejected_action",
+      "label": "the action parser rejected a JSON action (malformed_datacenter_stack_action); its text is not published",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "procedure",
+      "key": "amendment_changes_nothing",
+      "label": "re-proposed the executed land terms as the amendment",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -421.766295,
+      "amount_difference_ci": [
+        -486.521146,
+        -353.094886
+      ],
+      "group": "decision",
+      "key": "declined_land_amendment",
+      "label": "declined the land amendment (possible only under interface 3)",
+      "left_amount_per_market": -421.766295,
+      "left_count": 66,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -37.008861,
+      "amount_difference_ci": [
+        -81.003856,
+        0.0
+      ],
+      "group": "decision",
+      "key": "walked_away",
+      "label": "walked away",
+      "left_amount_per_market": -37.008861,
+      "left_count": 5,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -9.196171,
+      "amount_difference_ci": [
+        -27.588513,
+        0.0
+      ],
+      "group": "decision",
+      "key": "negotiation_rounds_exhausted",
+      "label": "a negotiation ran out of rounds",
+      "left_amount_per_market": -9.196171,
+      "left_count": 1,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -126.012784,
+      "amount_difference_ci": [
+        -208.946749,
+        -51.992258
+      ],
+      "group": "decision",
+      "key": "fails_power_capacity_covers_lease",
+      "label": "executed stack: contracted power is below the leased capacity",
+      "left_amount_per_market": -126.012784,
+      "left_count": 17,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -364.919128,
+      "amount_difference_ci": [
+        -437.895388,
+        -293.215394
+      ],
+      "group": "decision",
+      "key": "fails_site_control_holds_through_operations",
+      "label": "executed stack: site control does not reach commercial operation",
+      "left_amount_per_market": -364.919128,
+      "left_count": 46,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -74.252403,
+      "amount_difference_ci": [
+        -136.256752,
+        -22.554605
+      ],
+      "group": "decision",
+      "key": "fails_financing_funded",
+      "label": "executed stack: the loan does not fund the project",
+      "left_amount_per_market": -74.252403,
+      "left_count": 10,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -74.252403,
+      "amount_difference_ci": [
+        -136.253498,
+        -22.554605
+      ],
+      "group": "decision",
+      "key": "fails_no_default",
+      "label": "executed stack: the project defaults",
+      "left_amount_per_market": -74.252403,
+      "left_count": 10,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": -13.53602,
+      "amount_difference_ci": [
+        -33.971701,
+        0.0
+      ],
+      "group": "decision",
+      "key": "fails_epc_conditions_precedent_met",
+      "label": "executed stack: the EPC's conditions precedent are not met at notice to proceed",
+      "left_amount_per_market": -13.53602,
+      "left_count": 2,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "fails_power_conditions_precedent_met",
+      "label": "executed stack: the power agreement's conditions precedent are not met at energization",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the cell's gap to the reference, USD M; a cell can carry several classes, so amounts overlap",
+      "amount_difference": 0.0,
+      "amount_difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "decision",
+      "key": "fails_epc_capacity_covers_lease",
+      "label": "executed stack: the EPC guarantees less than the leased capacity",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "the admitted cell's gap to the reference, USD M",
+      "amount_difference": -1.681591,
+      "amount_difference_ci": [
+        -3.455287,
+        -0.217722
+      ],
+      "group": "outcome",
+      "key": "admitted_below_reference",
+      "label": "admitted, below the reference's NPV",
+      "left_amount_per_market": -1.681591,
+      "left_count": 7,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    }
+  ],
+  "components": [
+    {
+      "cells": 2,
+      "description": "The developer's action did not parse (not JSON, or JSON the action parser rejects); the episode ends and the cell scores the walk-away value.",
+      "difference": -15.53988,
+      "difference_ci": [
+        -39.095179,
+        0.0
+      ],
+      "group": "format",
+      "key": "ended_on_unparseable_action",
+      "label": "ended on output the parser refused",
+      "left": -15.53988,
+      "right": 0.0
+    },
+    {
+      "cells": 0,
+      "description": "A well-formed action the environment refuses; in these runs every one is a land amendment that changes nothing, which interface 2 types as the developer's invalid action. The cell scores the walk-away value.",
+      "difference": 0.0,
+      "difference_ci": [
+        0.0,
+        0.0
+      ],
+      "group": "procedure",
+      "key": "ended_on_refused_action",
+      "label": "ended on an action the rules refuse",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "cells": 6,
+      "description": "A valid walk, a counterparty rejection, or a negotiation that exhausted its rounds; no stack executes and the cell scores the walk-away value.",
+      "difference": -46.205032,
+      "difference_ci": [
+        -93.935989,
+        -8.318225
+      ],
+      "group": "decision",
+      "key": "ended_by_walk_or_round_limit",
+      "label": "walked, or ran out of rounds",
+      "left": -46.205032,
+      "right": 0.0
+    },
+    {
+      "cells": 49,
+      "description": "Every agreement signed, but a cross-agreement check or the financing fails, so the stack delivers no project and the cell scores the walk-away value instead of its simulated NPV.",
+      "difference": -385.19058,
+      "difference_ci": [
+        -453.179832,
+        -313.892657
+      ],
+      "group": "decision",
+      "key": "stack_failed_admission",
+      "label": "signed a stack that fails admission",
+      "left": -385.19058,
+      "right": 0.0
+    },
+    {
+      "cells": 15,
+      "description": "An admitted stack's NPV minus the reference's, split by agreement: each signed agreement's terms replace the reference's in negotiation order, and the NPV change at each replacement is its row.",
+      "difference": -1.308454,
+      "difference_ci": [
+        -3.154048,
+        0.263138
+      ],
+      "group": "decision",
+      "key": "admitted_terms",
+      "label": "admitted, on different terms",
+      "left": -1.308454,
+      "right": 0.0
+    }
+  ],
+  "contributions": {
+    "fields": [
+      "side",
+      "campaign_id",
+      "receipt_sha256",
+      "world_seed",
+      "replicate_index",
+      "step_index",
+      "round_index",
+      "phase_id",
+      "seat_id",
+      "component",
+      "agreement_key",
+      "amount",
+      "note"
+    ],
+    "rows": 147,
+    "table": "tables/contributions_interface3.jsonl"
+  },
+  "direction": "higher",
+  "endpoint": "developer equity NPV as the campaign ranks it (an admitted stack earns its NPV; a walk, an invalid action or a stack that fails admission scores the walk-away value), minus the scripted reference's on the same world: the leaderboard's delta vs scripted",
+  "family": "datacenter_development",
+  "inferential_model_ranking_allowed": false,
+  "instances": [
+    {
+      "amount": -32.49451244,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$32.5M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "b2dae5926ac62ac421d8b066d207b19c9cb6543b29ac78ce995b3067c73e6bbe",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -0.04574851,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$0.0M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "ff7b46dfc72cb3941cf9ecda3ad5cb45c34794aa301a64c298b4ac2f09a28ca9",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -7.83800253,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$7.8M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "19d5910f8c35f5dfb8121b8bf41f479c32ea9ed98dfd925e4def248dccfda924",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -1.92159119,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$1.9M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "3ce6d1db6e45265c60246b3ca37bf32ed01e3993e1f6067d1150eaa9df0c8821",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280932
+    },
+    {
+      "amount": -39.63947445,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$39.6M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "e3eaa992201caf7eae40f6c187e0df9ce0c614fc531b8126dc1d28eed255f361",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280935
+    },
+    {
+      "amount": -1.71611256,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$1.7M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "811fcd0ebb26d164d18709202327d491f732750ff848f853c461c6d567c5a05d",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -37.41907453,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "admitted_below_reference",
+      "note": "admitted at -$37.4M against the reference",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "7823b649fd17bb5b07f659f472a00f831bf82f7c1e00a39d6ca95e372450c1e1",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 29,
+      "world_seed": 20280938
+    },
+    {
+      "amount": -564.74482781,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms already satisfy project requirements; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e23693cbce6064ff3ef4336974aa5187adb9ec585ca107c96ee0abb551e92b5f",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280920
+    },
+    {
+      "amount": -564.74482781,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keep executed land agreement as signed and proceed to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4bdc560ed3e79dfd64bd61b5545690db2e1f9775d078bdf12a949d47032fa445",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280920
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with the project schedule and requirements; proceeding...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2205c568a3ed00229242a898a133b741649af8219d5e1dd8a4793d465ee5f1f4",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement as signed to proceed directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "089ec41d3e4e82063f4a31a5992c2fc46efb47d53f95bab47ed4552cd8f80fd2",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Executed land agreement remains valid and sufficient; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "f93950ebbd5ca61a43a2c28e5cf40ba2cffa8eddf19b3389b2095cdb0c5d9f93",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": 0.29724075,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project schedule and milestones. We decline to ame...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "583e88b292fb7bcae8b0955cca297fb53c76418379443d5f94507537aa8c9369",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280922
+    },
+    {
+      "amount": -686.53064343,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is acceptable as signed; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "11610ea7f29e97a143f79990f46cfae0d9c5f091a912462aab069dd1856e174d",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280922
+    },
+    {
+      "amount": -686.53064343,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keep the executed land agreement as signed and proceed to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6b289bd11138c4c22ca35ee2e33b8d2c1a9edbb05af62047938409e7952a8f97",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280922
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding to financing with the executed land agreement as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4d0364ebad547d79dcbe3ca616260617c6367607651334ca2173dec08ad58e29",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The existing land agreement remains fully compatible with project requirements; proceeding to financing withou...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6caac1e6ed7fbd50679d499cc573fb277a29c50d73a301ed9411a2349b4b3366",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with our project requirements and timeline, so no amend...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "f86c921188548419d3089d60678bbc170ba85ce381a3d142aa07047f1e3a52a7",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding with executed land agreement as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2a39a93bae78688c28b26c7beb88465b0197a8ec11b1c00aea69e622df800581",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b3bda9f2a6a33a8582fda992f257d1e54e7f128ebafd42379b5d581b7d1e92fe",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully adequate; declining amendment to proceed directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d5e0c7f69fd72373642d213a8f7c80556ada648f97845faeb7024460113d2143",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is satisfactory and no amendments are needed; proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4a88e772f2203e119b133ad76a37fde622c3a3956718ddb579885d28b7bcd719",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Executed land agreement remains fully satisfactory; proceeding to financing phase without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "aee584f9975f2f65708cbdf5b842e09b253bab2d2303c74ed9c6cb00c1fa17e4",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with our project requirements and schedule; proceeding...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "c506f394352290a8b4f312b34383452db9e572880a426207de69db4211efb384",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding with the executed land agreement as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "a8a28c5190f7e952a5d78ccfaf5d4db95c7be247257a96aa82ae74b395ae5e56",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement meets all project requirements; proceeding to financing with terms as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1ae7c8618b61cc53a1d8dd73de308a4765b5645e3a0220d270846e8ffb821c04",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with our project requirements. Declining amendment to p...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d7c6a782401a04f2668f55b3842ef888d23425d7d84e88a704a95166790f2034",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b39f1b3b01a43a3bd0fcb75a839d476d567b2a70b01dd80a6c413350804d2d2b",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are satisfactory; proceeding to financing without amendment.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "0e1b010a19af384aa66d4c80bdd11247f0a5748b45cc591d4390b793231fa4ba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": 9.86984005,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "8cb2abb8f4082666cd0fceb37759c374f064fa379a00fda60a8a7f31432babce",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280928
+    },
+    {
+      "amount": 8.47023509,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement terms as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "31e1c0aa387fa9ac800b368e1d41df5e079dba42be5b8da5098b4a611155d13f",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280928
+    },
+    {
+      "amount": -32.49451244,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project schedule and milestones. Declining amendme...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b2dae5926ac62ac421d8b066d207b19c9cb6543b29ac78ce995b3067c73e6bbe",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -490.37577036,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are sufficient; proceeding to financing without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "90dd68739c871966262721a28638b0fa80456fd94a58cc1682925857da782e7b",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -0.04574851,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with the project schedule. Proceeding directly to finan...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "ff7b46dfc72cb3941cf9ecda3ad5cb45c34794aa301a64c298b4ac2f09a28ca9",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Executed land agreement remains fully operative and aligned with project schedule; proceeding directly to fina...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6dd569b3a3debaeabc1fe2d7efb02288fc341eb936404c0335afd36923235b3f",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "8cadadc4d1406572a259828bbca66b1d780bbe01fd1a6d2192dbef05f3cc4153",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "cbc04ebe6d14381821c5bcaa6894d540d7c06025e2533f6c4e77f59471255556",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -7.83800253,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "19d5910f8c35f5dfb8121b8bf41f479c32ea9ed98dfd925e4def248dccfda924",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -667.81120843,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding to financing with executed land agreement terms unchanged.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b5f5e9578d3a5511c6e049a241398791213862fa52fc121bff388eecb22d88ce",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -667.81120843,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e945fe078ddf571dece2c6a84723eda2592a0700f1f9a75ee63ea06df3561cc6",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -492.37399133,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2c968fd8478e059b073472cd8d31f0522f144515a644b7f386c1e650217e57af",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280932
+    },
+    {
+      "amount": 0.83688806,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Existing executed land agreement terms are satisfactory. Proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "bb38c787a7797e441c2723baed86345b8721383e890d63164a987f1302c531ef",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280932
+    },
+    {
+      "amount": -1.92159119,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is satisfactory and no amendments are needed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "3ce6d1db6e45265c60246b3ca37bf32ed01e3993e1f6067d1150eaa9df0c8821",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280932
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project requirements, proceeding to financing with...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "3b3995791df5b476af002a83be6dccf45335b6e943b68aad476f011b4356077c",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is satisfactory and aligns with all project schedules; proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "462401e30ee19b45707db9402fa08e83cd53f37ae4a457c2178cf0140433746e",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding with the executed land agreement terms to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d091d43dc7981b835299b13d31a99b1758c5f00959d412c39eb8f2818b474788",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280933
+    },
+    {
+      "amount": 2.15027002,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are satisfactory; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1c9fa9a6dda4e06ddb18f1829be7866065e459c8a375d02a7cf640c229301bda",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Executed land agreement remains in full effect; proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e494f7b9ad15e7fe8deeab41ec5afc17feb0a97937d301e0822b018b5eb1b3d7",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project schedule and milestones. Declining amendme...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2930ea74d15236dbb90dff22797c5015bd4e8fb23f8a3c2cbf91c93084c86df1",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -39.63947445,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project requirements. Proceeding to financing phas...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e3eaa992201caf7eae40f6c187e0df9ce0c614fc531b8126dc1d28eed255f361",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280935
+    },
+    {
+      "amount": -535.03086028,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1db4a9db3bec44d74c09a79200b02b85f80861fa61d2ed6a9fdfd9cf33c615eb",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280935
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project schedule and milestones; proceeding to fin...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "12bcef12ec4b4b5bdf626f297a857607468a0211afaf5d173a0e3be036532dca",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement terms as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "f406a43d844c70143e3b69a8411b7c53aa557bd3532419cf8c1af713eabc6f15",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is satisfactory and no amendments are needed. Proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "a5b223496140e70ba24d903620f98705143fd84cb2d4f68c8aea0f2c7f35c241",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -1.71611256,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are sufficient and fully satisfy project requirements; proceeding to financi...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "811fcd0ebb26d164d18709202327d491f732750ff848f853c461c6d567c5a05d",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -705.79203777,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is fully aligned with project requirements; proceeding to financing without amendm...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e0e43f1289a768cc81ee1887d68b798682e507e1981ee55736f1f510509b3cf8",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -705.79203777,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "672f922977f6f505862faa5599663d45ec018ccc314bb8155e032b5ea2883f49",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -553.1731005,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project requirements and schedule; proceeding dire...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1214984e4edd862f022fe82a0e852618329d2512a07a30cce4390323773dc3be",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280938
+    },
+    {
+      "amount": -553.1731005,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with project requirements and schedule; proceeding to f...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d2330a97d6e2794799bcc0cd416445872e2779c3b8ac34f25c3145c83c4142a7",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280938
+    },
+    {
+      "amount": -496.77552738,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are satisfactory; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "7b93125f7a13a499dd686b971aa03c7356a5325e837a0d70fae813d345f92e35",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280939
+    },
+    {
+      "amount": -496.77552738,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is already aligned with the project scope and timeline; declining amendment to pro...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "bdc47a851b29f90d0aaefa496c6ff670ff270b0e82e6199c631a1d4146abd10f",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280939
+    },
+    {
+      "amount": 2.43072758,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Proceeding with executed land agreement without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "aa28a661fd50618df32f46a740ff45c430bce103b2134bebe23693b9ad355dba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280939
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain satisfactory; proceeding to financing without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4ea0126209ddc37c21af0897193a47012c8cc89509e1f76f27e423301a1ec2e9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "72fa10f87a10a46a3cd8b3e7a0373fa219ab990fbd264b6d20cd9f4469fd28a9",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keep executed land agreement as signed.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "71c2c276ebef2a02ffeedea639aa6fe5ea6e40bc911eb99a37f9723312f10fba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain satisfactory; proceeding to financing without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "229d2fa5b045502fcc56fb27fa9a9b43ddca235c9d422c6ca237c281f2401692",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms are satisfactory; proceeding to financing without amendments.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6ffdfad1735bbb3af48dee5b33818b604b0519031b3f9dee0fdb18834b3b82b5",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The existing land agreement is satisfactory; proceeding directly to financing without amendment.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "7685a710fbf864b8371fa5a4923daf50aafc6b512c1cb5e1cc61258bc30e9c53",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping the executed land agreement as signed and proceeding to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement is satisfactory and no amendments are needed; proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement terms remain fully aligned with the project milestones, site control, and financin...\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "23563b0d88fbc213e8b7d1c27ce13bdef69608d46ed340f0dad33d073b1f6079",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"Keeping executed land agreement as signed and proceeding directly to financing.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "683155f2ed47ef9be4a92cf41f6d44082e9b85e48e5dffde7eb6fc78f5e777bc",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "declined_land_amendment",
+      "note": "declined the land amendment: \"The executed land agreement meets all project requirements; proceeding to financing without amendment.\"",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "ea45b193645082029b0aac1288dcae688f111afa579a033498582d7cc9f4adf7",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_epc_conditions_precedent_met",
+      "note": "the EPC's conditions precedent (site_control, power_commitment) are not all met by notice to proceed in month 3",
+      "phase_id": "epc_developer_commit",
+      "receipt_sha256": "462401e30ee19b45707db9402fa08e83cd53f37ae4a457c2178cf0140433746e",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 16,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -496.77552738,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_epc_conditions_precedent_met",
+      "note": "the EPC's conditions precedent (power_ready, site_control) are not all met by notice to proceed in month 3",
+      "phase_id": "epc_developer_commit",
+      "receipt_sha256": "bdc47a851b29f90d0aaefa496c6ff670ff270b0e82e6199c631a1d4146abd10f",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 16,
+      "world_seed": 20280939
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "2a39a93bae78688c28b26c7beb88465b0197a8ec11b1c00aea69e622df800581",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "b3bda9f2a6a33a8582fda992f257d1e54e7f128ebafd42379b5d581b7d1e92fe",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "1ae7c8618b61cc53a1d8dd73de308a4765b5645e3a0220d270846e8ffb821c04",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "4ea0126209ddc37c21af0897193a47012c8cc89509e1f76f27e423301a1ec2e9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "72fa10f87a10a46a3cd8b3e7a0373fa219ab990fbd264b6d20cd9f4469fd28a9",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "71c2c276ebef2a02ffeedea639aa6fe5ea6e40bc911eb99a37f9723312f10fba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "7685a710fbf864b8371fa5a4923daf50aafc6b512c1cb5e1cc61258bc30e9c53",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 29,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_financing_funded",
+      "note": "the loan does not fund the project (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "683155f2ed47ef9be4a92cf41f6d44082e9b85e48e5dffde7eb6fc78f5e777bc",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "2a39a93bae78688c28b26c7beb88465b0197a8ec11b1c00aea69e622df800581",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "b3bda9f2a6a33a8582fda992f257d1e54e7f128ebafd42379b5d581b7d1e92fe",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "1ae7c8618b61cc53a1d8dd73de308a4765b5645e3a0220d270846e8ffb821c04",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "4ea0126209ddc37c21af0897193a47012c8cc89509e1f76f27e423301a1ec2e9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "72fa10f87a10a46a3cd8b3e7a0373fa219ab990fbd264b6d20cd9f4469fd28a9",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "71c2c276ebef2a02ffeedea639aa6fe5ea6e40bc911eb99a37f9723312f10fba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "7685a710fbf864b8371fa5a4923daf50aafc6b512c1cb5e1cc61258bc30e9c53",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 29,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_no_default",
+      "note": "the project defaults (funding_shortfall)",
+      "phase_id": "loan_developer_commit",
+      "receipt_sha256": "683155f2ed47ef9be4a92cf41f6d44082e9b85e48e5dffde7eb6fc78f5e777bc",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "2205c568a3ed00229242a898a133b741649af8219d5e1dd8a4793d465ee5f1f4",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "089ec41d3e4e82063f4a31a5992c2fc46efb47d53f95bab47ed4552cd8f80fd2",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "f93950ebbd5ca61a43a2c28e5cf40ba2cffa8eddf19b3389b2095cdb0c5d9f93",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "4d0364ebad547d79dcbe3ca616260617c6367607651334ca2173dec08ad58e29",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "28f4cfea114c0e4994ae0806f3b1a539983ee2c25d2bd9681299d9b60a61a838",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "6caac1e6ed7fbd50679d499cc573fb277a29c50d73a301ed9411a2349b4b3366",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "a8a28c5190f7e952a5d78ccfaf5d4db95c7be247257a96aa82ae74b395ae5e56",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 9,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "6dd569b3a3debaeabc1fe2d7efb02288fc341eb936404c0335afd36923235b3f",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "8cadadc4d1406572a259828bbca66b1d780bbe01fd1a6d2192dbef05f3cc4153",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "cbc04ebe6d14381821c5bcaa6894d540d7c06025e2533f6c4e77f59471255556",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "3b3995791df5b476af002a83be6dccf45335b6e943b68aad476f011b4356077c",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "e494f7b9ad15e7fe8deeab41ec5afc17feb0a97937d301e0822b018b5eb1b3d7",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "2930ea74d15236dbb90dff22797c5015bd4e8fb23f8a3c2cbf91c93084c86df1",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "f406a43d844c70143e3b69a8411b7c53aa557bd3532419cf8c1af713eabc6f15",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "a5b223496140e70ba24d903620f98705143fd84cb2d4f68c8aea0f2c7f35c241",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_power_capacity_covers_lease",
+      "note": "contracted 40,000 kW of power against a 50,000 kW lease",
+      "phase_id": "power_developer_commit",
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 11,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -564.74482781,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e23693cbce6064ff3ef4336974aa5187adb9ec585ca107c96ee0abb551e92b5f",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280920
+    },
+    {
+      "amount": -564.74482781,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4bdc560ed3e79dfd64bd61b5545690db2e1f9775d078bdf12a949d47032fa445",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280920
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2205c568a3ed00229242a898a133b741649af8219d5e1dd8a4793d465ee5f1f4",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "089ec41d3e4e82063f4a31a5992c2fc46efb47d53f95bab47ed4552cd8f80fd2",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -470.04456941,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "f93950ebbd5ca61a43a2c28e5cf40ba2cffa8eddf19b3389b2095cdb0c5d9f93",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280921
+    },
+    {
+      "amount": -686.53064343,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "11610ea7f29e97a143f79990f46cfae0d9c5f091a912462aab069dd1856e174d",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280922
+    },
+    {
+      "amount": -686.53064343,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6b289bd11138c4c22ca35ee2e33b8d2c1a9edbb05af62047938409e7952a8f97",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280922
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4d0364ebad547d79dcbe3ca616260617c6367607651334ca2173dec08ad58e29",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_commit",
+      "receipt_sha256": "28f4cfea114c0e4994ae0806f3b1a539983ee2c25d2bd9681299d9b60a61a838",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 24,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -667.8969316,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6caac1e6ed7fbd50679d499cc573fb277a29c50d73a301ed9411a2349b4b3366",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280923
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 25 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2a39a93bae78688c28b26c7beb88465b0197a8ec11b1c00aea69e622df800581",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 25 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b3bda9f2a6a33a8582fda992f257d1e54e7f128ebafd42379b5d581b7d1e92fe",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 25 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d5e0c7f69fd72373642d213a8f7c80556ada648f97845faeb7024460113d2143",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 25 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4a88e772f2203e119b133ad76a37fde622c3a3956718ddb579885d28b7bcd719",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -642.09833117,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 25 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "aee584f9975f2f65708cbdf5b842e09b253bab2d2303c74ed9c6cb00c1fa17e4",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280925
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 27 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "a8a28c5190f7e952a5d78ccfaf5d4db95c7be247257a96aa82ae74b395ae5e56",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 27 with no extension; commercial operation comes in month 30",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1ae7c8618b61cc53a1d8dd73de308a4765b5645e3a0220d270846e8ffb821c04",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 23 with no extension; commercial operation comes in month 26",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d7c6a782401a04f2668f55b3842ef888d23425d7d84e88a704a95166790f2034",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 23 with no extension; commercial operation comes in month 26",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b39f1b3b01a43a3bd0fcb75a839d476d567b2a70b01dd80a6c413350804d2d2b",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": -680.34341046,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 23 with no extension; commercial operation comes in month 26",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "0e1b010a19af384aa66d4c80bdd11247f0a5748b45cc591d4390b793231fa4ba",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280927
+    },
+    {
+      "amount": -490.37577036,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "90dd68739c871966262721a28638b0fa80456fd94a58cc1682925857da782e7b",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280929
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6dd569b3a3debaeabc1fe2d7efb02288fc341eb936404c0335afd36923235b3f",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "8cadadc4d1406572a259828bbca66b1d780bbe01fd1a6d2192dbef05f3cc4153",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -491.00196426,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "cbc04ebe6d14381821c5bcaa6894d540d7c06025e2533f6c4e77f59471255556",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280930
+    },
+    {
+      "amount": -667.81120843,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "b5f5e9578d3a5511c6e049a241398791213862fa52fc121bff388eecb22d88ce",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -667.81120843,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e945fe078ddf571dece2c6a84723eda2592a0700f1f9a75ee63ea06df3561cc6",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280931
+    },
+    {
+      "amount": -492.37399133,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2c968fd8478e059b073472cd8d31f0522f144515a644b7f386c1e650217e57af",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280932
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "3b3995791df5b476af002a83be6dccf45335b6e943b68aad476f011b4356077c",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -477.81794679,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d091d43dc7981b835299b13d31a99b1758c5f00959d412c39eb8f2818b474788",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280933
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e494f7b9ad15e7fe8deeab41ec5afc17feb0a97937d301e0822b018b5eb1b3d7",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -416.06546033,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "2930ea74d15236dbb90dff22797c5015bd4e8fb23f8a3c2cbf91c93084c86df1",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280934
+    },
+    {
+      "amount": -535.03086028,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1db4a9db3bec44d74c09a79200b02b85f80861fa61d2ed6a9fdfd9cf33c615eb",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280935
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "12bcef12ec4b4b5bdf626f297a857607468a0211afaf5d173a0e3be036532dca",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "f406a43d844c70143e3b69a8411b7c53aa557bd3532419cf8c1af713eabc6f15",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -607.75429413,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "a5b223496140e70ba24d903620f98705143fd84cb2d4f68c8aea0f2c7f35c241",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280936
+    },
+    {
+      "amount": -705.79203777,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "e0e43f1289a768cc81ee1887d68b798682e507e1981ee55736f1f510509b3cf8",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -705.79203777,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "672f922977f6f505862faa5599663d45ec018ccc314bb8155e032b5ea2883f49",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280937
+    },
+    {
+      "amount": -553.1731005,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "1214984e4edd862f022fe82a0e852618329d2512a07a30cce4390323773dc3be",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280938
+    },
+    {
+      "amount": -553.1731005,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "d2330a97d6e2794799bcc0cd416445872e2779c3b8ac34f25c3145c83c4142a7",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280938
+    },
+    {
+      "amount": -496.77552738,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 28",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "7b93125f7a13a499dd686b971aa03c7356a5325e837a0d70fae813d345f92e35",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280939
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "4ea0126209ddc37c21af0897193a47012c8cc89509e1f76f27e423301a1ec2e9",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -484.95104855,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "72fa10f87a10a46a3cd8b3e7a0373fa219ab990fbd264b6d20cd9f4469fd28a9",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280940
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "7685a710fbf864b8371fa5a4923daf50aafc6b512c1cb5e1cc61258bc30e9c53",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "6b8b4d5b0c525ae77f5b1de89b06cee2379dd6aea2870aaf3e372b33d5e83720",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 30 with no extension; the project never reaches commercial operation within the horizon",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "aa45757bd2a5720207159d2777b5c3bb45e847b98e7b6837bb0f2ccb15e2e159",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 22,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "fails_site_control_holds_through_operations",
+      "note": "after declining the amendment, site control runs to month 22 with no extension; commercial operation comes in month 24",
+      "phase_id": "land_amendment_developer_offer",
+      "receipt_sha256": "683155f2ed47ef9be4a92cf41f6d44082e9b85e48e5dffde7eb6fc78f5e777bc",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 20,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -577.11016351,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "malformed_json",
+      "note": "the loan offer was not valid JSON, cut off at the output-token cap",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "c506f394352290a8b4f312b34383452db9e572880a426207de69db4211efb384",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 23,
+      "world_seed": 20280926
+    },
+    {
+      "amount": -541.76121612,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "malformed_json",
+      "note": "the loan offer was not valid JSON, cut off at the output-token cap",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "c1184c28889be9947ca1254abb44571a2c63f8e29c076203619b91fc4e784873",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 29,
+      "world_seed": 20280942
+    },
+    {
+      "amount": -662.12430536,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "negotiation_rounds_exhausted",
+      "note": "made its last power agreement offer; the utility countered it and the 3 rounds ran out",
+      "phase_id": "power_developer_offer",
+      "receipt_sha256": "1b378492d258d23e319db2c9340b3cf1f15d003201dd40e2e47345a6b18de067",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 9,
+      "world_seed": 20280928
+    },
+    {
+      "amount": -598.91218892,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "walked_away",
+      "note": "walked at the loan: \"Walking due to unbridgeable credit support requirement: lender requires minimum_customer_credit_support_cents...\"",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "f86c921188548419d3089d60678bbc170ba85ce381a3d142aa07047f1e3a52a7",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 23,
+      "world_seed": 20280924
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "walked_away",
+      "note": "walked at the loan: \"Lender counter proposes non-viable financing terms (20% advance rate and 20% LTC limit) which fail project via...\"",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "229d2fa5b045502fcc56fb27fa9a9b43ddca235c9d422c6ca237c281f2401692",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 27,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -540.40909951,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "walked_away",
+      "note": "walked at the loan: \"Walking due to unresolvable verbal-written divergence: lender written counter-terms offer only 20% advance rat...\"",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "6ffdfad1735bbb3af48dee5b33818b604b0519031b3f9dee0fdb18834b3b82b5",
+      "replicate_index": 1,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280941
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "walked_away",
+      "note": "walked at the loan: \"Walking due to irreconcilable verbal-written divergence: lender's written counter-terms impose a 3,000 bps adv...\"",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "23563b0d88fbc213e8b7d1c27ce13bdef69608d46ed340f0dad33d073b1f6079",
+      "replicate_index": 0,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280943
+    },
+    {
+      "amount": -492.45380967,
+      "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+      "class": "walked_away",
+      "note": "walked at the loan: \"Lender counter terms diverge fundamentally from verbal statements and impose loan-to-cost and advance rate res...\"",
+      "phase_id": "loan_developer_offer",
+      "receipt_sha256": "ea45b193645082029b0aac1288dcae688f111afa579a033498582d7cc9f4adf7",
+      "replicate_index": 2,
+      "round_index": 1,
+      "seat_id": "developer",
+      "side": "left",
+      "step_index": 25,
+      "world_seed": 20280943
+    }
+  ],
+  "interface_pairing": {
+    "shared_case_digests": 0,
+    "shared_world_seeds": 0,
+    "statement": "interface 2 and interface 3 ran on different held-out packs (different master seeds); with no world in common they are not paired by world",
+    "worlds_each": 24
+  },
+  "intervals": null,
+  "left": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+  "left_model": "google/gemini-3.8-flash-20260902",
+  "levels": {
+    "left_mean_developer_equity_npv": 104.395749,
+    "mean_outside_option": -11.666667,
+    "right_mean_developer_equity_npv": 552.639696,
+    "statement": "per world, USD M: the model's ranking-basis NPV, the reference's, and the walk-away value both could take"
+  },
+  "paired_worlds": 24,
+  "per_label": "world",
+  "published_reasons": {
+    "left": {
+      "admitted": 15,
+      "constraint_failure:funding_shortfall": 10,
+      "constraint_failure:unfinanced": 39,
+      "developer_walk": 5,
+      "invalid_action:malformed_json": 2,
+      "power_negotiation_rounds_exhausted": 1
+    },
+    "reasons": [
+      "admitted",
+      "constraint_failure:funding_shortfall",
+      "constraint_failure:unfinanced",
+      "developer_walk",
+      "invalid_action:malformed_json",
+      "power_negotiation_rounds_exhausted"
+    ],
+    "right": {
+      "admitted": 0,
+      "constraint_failure:funding_shortfall": 0,
+      "constraint_failure:unfinanced": 0,
+      "developer_walk": 0,
+      "invalid_action:malformed_json": 0,
+      "power_negotiation_rounds_exhausted": 0
+    },
+    "statement": "the campaign summary's own labels; constraint_failure:unfinanced names a stack the engine funded (DC-T-15)"
+  },
+  "realized": {
+    "difference": -448.243947,
+    "difference_ci": [
+      -507.735431,
+      -386.531694
+    ],
+    "left": -448.243947,
+    "right": 0.0
+  },
+  "reconciliation": {
+    "leaderboard_mean_delta_from_baseline": -448.243947,
+    "leaderboard_mean_developer_equity_npv": 104.395749,
+    "score_leaf_mean_delta_from_baseline": -75.127663,
+    "score_leaf_minus_ranking_basis": 373.116284,
+    "statement": "the realized gap is the published leaderboard's delta vs scripted; the score leaf scores.developer_equity_npv credits a stack that fails admission with its simulated NPV, which the ranking basis replaces with the walk-away value, so a gap read off the leaf is smaller by the last figure (DC-T-14); outcome.agreements_executed is empty and outcome.constraint_checks null in every published row, so executed stacks are identified by project_completed and their failing checks re-derived by re-simulation"
+  },
+  "reference": {
+    "receipt_sha256_is": "the world's case digest (case_sha256 in tables/cells.jsonl); the scripted reference has no receipt or trajectory in the bundle",
+    "replay_check": {
+      "admitted": 24,
+      "mismatches": 0,
+      "statement": "the scripted terms re-simulate to every world's published baseline, and every reference stack passes every engine check",
+      "worlds": 24
+    },
+    "source": "tables/cells.jsonl scripted_baseline_developer_equity_npv_cents, equal to payload.baseline of each world in pack datacenter_development_v2_worlds_v3_holdout_v1 (manifest 58537dfe5e773b2c2dcf27e5bbbaafb591fc4f276ffd9abc7a7402858220ca7f)"
+  },
+  "reference_side": "right",
+  "right": "datacenter_development_v2_worlds_v3_holdout_v1",
+  "right_label": "reference",
+  "right_model": "scripted developer reference (each world's scripted terms, payload.baseline)",
+  "schema_version": "aeread.gap_decomposition/0.1",
+  "source_manifest_sha256": {
+    "datacenter_development_v2_world_panel_interface3_confirmatory_v1": "eca179b6b23a16939b0cfe685b84b19de71731d140c9af97562eb9c82a20dbef"
+  },
+  "stack_replay": {
+    "executed_stacks": 64,
+    "reproduced": 64,
+    "statement": "every executed stack, rebuilt from the terms its trajectory signed on the committed world, reproduces the published developer NPV, admission flag and default reasons"
+  },
+  "title": "Why it falls short of the reference",
+  "unit": "millions of USD per world, the three seeds of a world averaged first",
+  "unit_label": "world",
+  "winner_claim_allowed": false,
+  "world_kind": "v2_world_panel_interface3"
+}
