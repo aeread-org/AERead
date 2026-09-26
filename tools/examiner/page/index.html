@@ -1680,6 +1680,43 @@ function mcPick(s,A,B,want){const d=s.dims.find(mcIsPick);if(!d)return null;cons
  const opts=d.values.filter(v=>ran[v.v]).map(v=>({v:v.v,label:String(v.label||v.v),both:ran[v.v].size===2,only:ran[v.v].size===1?[...ran[v.v]][0]:null}));
  const both=opts.filter(o=>o.both);const val=want===''&&both.length>1?'':((both.find(o=>o.v===want)||both[0]||{}).v??null);
  const cur=opts.find(o=>o.v===val);return {d,opts,both,val,fix:val?{[d.key]:val}:null,text:val===''?`all ${both.length} ${d.label.toLowerCase()}s pooled`:cur?cur.label.replace(/ \(.*?\)/g,''):'none run by both'};}
+// Seed to seed, within a stratum: every world of the chosen stratum as a row, one dot per seed for each chosen model and
+// effort. The paired comparison above averages each world's seeds away; this shows how far one model's seeds on the same
+// world sit apart, which decides whether a gap between two models can be told from noise.
+function mcCorr(a,b){const ma=mcMean(a),mb=mcMean(b);let sab=0,sa=0,sb=0;a.forEach((x,i)=>{sab+=(x-ma)*(b[i]-mb);sa+=(x-ma)**2;sb+=(b[i]-mb)**2;});return sa&&sb?sab/Math.sqrt(sa*sb):null;}
+function mcSeedHtml(s,meas,A,B,pk){const sid=esc(s.id);const st0=MCS[s.id]||(MCS[s.id]={});const st=st0.seed||(st0.seed={f:{}});st.f=st.f||{};
+ const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const splitDims=s.dims.filter(d=>!mcIsPick(d));const armD=pk?pk.d:null;
+ const models=s.models.map(m=>m.key);const mSel=models.includes(st.model)||st.model==='all'?st.model:'';const showModels=mSel==='all'?models:mSel?[mSel]:[A,B];
+ const aSel=st.arm===undefined?(pk&&pk.val?pk.val:''):st.arm;const showArms=armD?(aSel?[aSel]:armD.values.map(v=>v.v)):[null];
+ const keep=r=>splitDims.every(d=>!st.f[d.key]||r[ci[d.key]]===st.f[d.key]);
+ const armLabel=a=>a==null?'':String((armD.values.find(v=>v.v===a)||{label:a}).label||a).replace(/ \(.*?\)/g,'');
+ const order=[...models].sort();const col=m=>{const i=order.indexOf(m);return i===0?'var(--series-1)':i===1?'var(--series-2)':`var(--ph${(i%8)+1})`;};
+ const series=[];showArms.forEach((a,ai)=>showModels.forEach(m=>{const rs=s.rows.filter(r=>r[ci.model]===m&&(a==null||r[ci[armD.key]]===a)&&r[ci[meas.key]]!=null&&keep(r));if(rs.length)series.push({m,a,ai,rs,label:mcLabel(s,m)+(armD&&showArms.length>1?' · '+armLabel(a):'')});}));
+ const dimSel=splitDims.map(d=>`<label class="nw">${esc(d.label)} <select data-mcss="${sid}" data-dim="${esc(d.key)}"><option value="">all</option>${d.values.map(v=>`<option value="${esc(v.v)}" ${st.f[d.key]===v.v?'selected':''}>${esc(String(v.label||v.v).replace(/ \(.*?\)/g,''))}</option>`).join('')}</select></label>`).join(' ');
+ const armSel=armD?`<label class="nw">${esc(armD.label)} <select data-mcse="${sid}"><option value="" ${aSel===''?'selected':''}>every ${esc(armD.label.toLowerCase())}</option>${armD.values.map(v=>`<option value="${esc(v.v)}" ${aSel===v.v?'selected':''}>${esc(armLabel(v.v))}</option>`).join('')}</select></label>`:'';
+ const modSel=`<label class="nw">model <select data-mcsm="${sid}"><option value="" ${!mSel?'selected':''}>${esc(mcLabel(s,A))} and ${esc(mcLabel(s,B))}</option>${models.map(m=>`<option value="${esc(m)}" ${mSel===m?'selected':''}>${esc(mcLabel(s,m))} only</option>`).join('')}${models.length>2?`<option value="all" ${mSel==='all'?'selected':''}>every model</option>`:''}</select></label>`;
+ const head=`<div class="rctl" style="align-items:center;gap:6px 14px;margin-top:4px">${dimSel}${armSel}${modSel}</div>`;
+ const title=`<div style="font-size:12.5px;font-weight:600;margin:14px 0 2px">Seed to seed, within a stratum: ${esc(meas.label.toLowerCase())}, every ${esc(s.unit.label)} as a row, one dot per seed</div>`;
+ if(!series.length)return title+head+'<p class="muted" style="font-size:12.5px">No cell in this selection.</p>';
+ // per series: each unit's values by seed
+ series.forEach(x=>{x.by={};x.rs.forEach(r=>{const u=r[ci.unit];(x.by[u]=x.by[u]||{})[r[ci.rep]]=r[ci[meas.key]];});});
+ const stratOf={};s.rows.forEach(r=>{if(!(r[ci.unit] in stratOf))stratOf[r[ci.unit]]=splitDims.map(d=>r[ci[d.key]]);});
+ const units=[...new Set(series.flatMap(x=>Object.keys(x.by)))].sort((a,b)=>String(stratOf[a]).localeCompare(String(stratOf[b]))||a.localeCompare(b,undefined,{numeric:true}));
+ const vals=series.flatMap(x=>Object.values(x.by).flatMap(o=>Object.values(o)));let lo=Math.min(0,...vals),hi=Math.max(0,...vals);if(hi===lo)hi=lo+1;const pad=(hi-lo)*.04;lo-=pad;hi+=pad;
+ const ns=series.length,rowH=Math.max(16,6+ns*7),W=820,labW=250,top=22,H=top+units.length*rowH+8,X=v=>labW+(W-labW-14)*(v-lo)/(hi-lo);
+ const uLab=u=>{const sv=stratOf[u]||[];const t=splitDims.map((d,i)=>String((d.values.find(v=>v.v===sv[i])||{label:sv[i]}).label||sv[i]).replace(/ \(.*?\)/g,'')).filter((x,i)=>!st.f[splitDims[i].key]).join(' · ');const short=String(u).split('__').pop();return {t,short};};
+ let g=niceTicks(lo,hi,6).map(v=>`<line x1="${X(v)}" x2="${X(v)}" y1="${top-6}" y2="${H-4}" stroke="var(--rule)" stroke-width="${v===0?1.6:1}"/><text x="${X(v)}" y="${top-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${esc(fmtTick(v))}</text>`).join('');
+ units.forEach((u,i)=>{const y=top+i*rowH+rowH/2;const L=uLab(u);if(i&&String(stratOf[u])!==String(stratOf[units[i-1]]))g+=`<line x1="0" x2="${W}" y1="${y-rowH/2}" y2="${y-rowH/2}" stroke="var(--ink)" stroke-width=".5" opacity=".35"/>`;
+  g+=`<text x="${labW-8}" y="${y+4}" text-anchor="end" font-size="10.5" fill="var(--ink)"><tspan font-family="var(--mono)">${esc(L.short)}</tspan>${L.t?` <tspan fill="var(--muted)">${esc(L.t.length>34?L.t.slice(0,33)+'…':L.t)}</tspan>`:''}</text>`;
+  series.forEach((x,j)=>{const o=x.by[u];if(!o)return;const yy=y+(j-(ns-1)/2)*7;const vs=Object.values(o);const c=col(x.m),hollow=x.ai%2===1;
+   if(vs.length>1)g+=`<line x1="${X(Math.min(...vs))}" x2="${X(Math.max(...vs))}" y1="${yy}" y2="${yy}" stroke="${c}" stroke-width="1.6" opacity=".55"/>`;
+   Object.entries(o).forEach(([rep,v])=>{g+=`<circle cx="${X(v)}" cy="${yy}" r="3.2" fill="${hollow?'var(--panel)':c}" stroke="${c}" stroke-width="1.4"><title>${esc(`${u} · ${x.label} · seed ${rep}: ${mcFmt(v,meas)}`)}</title></circle>`;});});});
+ const svg=`<div style="max-height:600px;overflow:auto;border:1px solid var(--rule);border-radius:6px;margin-top:4px"><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="each ${esc(s.unit.label)}'s cells by seed">${g}</svg></div>`;
+ // how far one series' seeds sit apart, against the gap between the two models on the same worlds
+ const stats=series.map(x=>{const us=Object.values(x.by);const two=us.map(o=>{const k=Object.keys(o).sort();return k.length>1?[o[k[0]],o[k[1]]]:null;}).filter(Boolean);const spread=two.map(([a,b])=>Math.abs(a-b));return {x,units:us.length,mean:mcMean(x.rs.map(r=>r[ci[meas.key]])),spread:spread.length?median(spread):null,r:two.length>2?mcCorr(two.map(p=>p[0]),two.map(p=>p[1])):null,n2:two.length};});
+ const gapLine=(()=>{const byArm={};series.forEach(x=>{(byArm[x.a]=byArm[x.a]||{})[x.m]=x;});const out=[];Object.values(byArm).forEach(o=>{const a=o[A],b=o[B];if(!a||!b)return;const us=Object.keys(a.by).filter(u=>b.by[u]);if(us.length<2)return;const mv=m=>u=>mcMean(Object.values(m.by[u]));const d=us.map(u=>Math.abs(mv(a)(u)-mv(b)(u)));out.push(`${armD&&showArms.length>1?esc(armLabel(a.a))+': ':''}on the same ${us.length} ${esc(s.unit.label)}s the two models' means differ by a median ${esc(mcFmt(median(d),meas))} per ${esc(s.unit.label)}, and ${esc(mcLabel(s,A))} is ${mcFmt(mcMean(us.map(mv(a))),meas)} against ${esc(mcLabel(s,B))}'s ${mcFmt(mcMean(us.map(mv(b))),meas)} on average`);});return out.length?`<p style="font-size:12.5px;margin:6px 0 0">${out.join('; ')}.</p>`:'';})();
+ const tbl=`<div class="scroll"><table class="cct" style="margin-top:6px"><thead><tr><th>model${armD?' · '+esc(armD.label.toLowerCase()):''}</th><th>${esc(s.unit.label)}s</th><th>mean</th><th title="the median over ${esc(s.unit.label)}s of |seed 1 − seed 2|">median gap between two seeds, same ${esc(s.unit.label)}</th><th title="correlation of the first two seeds across ${esc(s.unit.label)}s: 1 = a ${esc(s.unit.label)} decides the result, 0 = the seed does">seed-to-seed correlation</th></tr></thead><tbody>${stats.map(z=>`<tr><td class="nw"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;border:1.5px solid ${col(z.x.m)};background:${z.x.ai%2===1?'transparent':col(z.x.m)};margin-right:6px;vertical-align:-1px"></span>${esc(z.x.label)}</td><td class="mono">${z.units}</td><td class="mono">${mcFmt(z.mean,meas)}</td><td class="mono">${z.spread==null?'—':mcFmt(z.spread,meas)}</td><td class="mono">${z.r==null?'—':z.r.toFixed(2)} <span class="muted">(${z.n2})</span></td></tr>`).join('')}</tbody></table></div>`;
+ return `${title}<p class="muted" style="margin:0;font-size:12px">A line joins one model's seeds on a ${esc(s.unit.label)}; a long line is a model that plays the same ${esc(s.unit.label)} differently from seed to seed. ${armD&&showArms.length>1?'Filled dots are the first '+esc(armD.label.toLowerCase())+', hollow the next. ':''}Hover a dot for its value.</p>${head}${svg}${gapLine}${tbl}`;}
 function mcCaseBody(s){
  const st=MCS[s.id]||(MCS[s.id]={});const sid=esc(s.id);
  const meas=s.measures.find(m=>m.key===st.measure)||s.measures.find(m=>m.primary)||s.measures[0];
@@ -1715,7 +1752,7 @@ function mcCaseBody(s){
    const rest=Object.entries(has).filter(([,m])=>m.size===1).map(([k,m])=>`${mcStratumText(s,dims,k.split('\u0001'))} (only ${mcLabel(s,[...m][0])})`);
    const all=lone.concat(rest.slice(0,4)).concat(rest.length>4?[`${rest.length-4} more such strata`]:[]);
    return all.length?`<p class="banner" style="margin:0 0 8px">Not compared, one model only: ${esc(all.join('; '))}.</p>`:'';})()}
-  ${table}<div style="margin-top:8px">${chart}</div>${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</div>`;}
+  ${table}<div style="margin-top:8px">${chart}</div>${mcSeedHtml(s,meas,A,B,pk)}${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</div>`;}
 // the run page's comparison: every case this run belongs to (a run whose seats are both models has one per seat)
 function mcCampaignHtml(c){if(!MC)return '';const sets=(MC.sets||[]).filter(s=>s.campaigns.includes(c.id)&&!HIDDEN_FAMILIES.has(s.family));if(!sets.length)return '';
  return sets.map((s,i)=>`${sets.length>1?`<h3 style="margin:${i?'14px':'2px'} 0 4px">${esc(s.title)}</h3>`:''}${mcCaseBody(s)}`).join('');}
@@ -1724,6 +1761,10 @@ function wireMc(el){const re=()=>{const v=$('view'),top=v.scrollTop;mcSave();ren
  el.querySelectorAll('[data-mcpa]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpa).A=x.value;re();}));
  el.querySelectorAll('[data-mcpb]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpb).B=x.value;re();}));
  el.querySelectorAll('[data-mcpick]').forEach(x=>x.addEventListener('change',()=>{S(x.dataset.mcpick).pick=x.value;re();}));
+ const SD=id=>{const o=S(id);o.seed=o.seed||{f:{}};o.seed.f=o.seed.f||{};return o.seed;};
+ el.querySelectorAll('[data-mcss]').forEach(x=>x.addEventListener('change',()=>{SD(x.dataset.mcss).f[x.dataset.dim]=x.value;re();}));
+ el.querySelectorAll('[data-mcse]').forEach(x=>x.addEventListener('change',()=>{SD(x.dataset.mcse).arm=x.value;re();}));
+ el.querySelectorAll('[data-mcsm]').forEach(x=>x.addEventListener('change',()=>{SD(x.dataset.mcsm).model=x.value;re();}));
  el.querySelectorAll('[data-mcd]').forEach(x=>x.addEventListener('change',()=>{const id=x.dataset.mcd;S(id).dims=[...el.querySelectorAll('[data-mcd]')].filter(y=>y.dataset.mcd===id&&y.checked).map(y=>y.dataset.dim);re();}));
  el.querySelectorAll('.mccase [data-mcrun]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();const c=byId(x.dataset.mcrun);route.view='results';route.rtab='compare';route.campaign=c.id;route.family=c.family;route.caseId=null;render();}));}
 // Open charts is tabbed: the case's model comparison, why the runs differ, and the bundle's own tables
