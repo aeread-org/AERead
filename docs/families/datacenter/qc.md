@@ -646,7 +646,7 @@ passed for a diagnostic: ten situations, each admitted only when its lesson hold
 for the reference, on the playbooks where it can arise; 52 worlds. Gate 2 passed:
 the economics reduce to the one-sided case's with the new terms off, the
 reference's closed form equals brute-force search, every shown price is one the
-integrator signs at (DC-D-25), and through the kernel the reference grades zero
+integrator signs at (DC-D-26), and through the kernel the reference grades zero
 on all 52 worlds with every receipt replayed. Gate 3 partial: five lower controls
 under the same kernel path, among them asking for every protection; outcomes are
 expectations. No campaign has run.

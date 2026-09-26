@@ -634,7 +634,7 @@ with a price, ask its price, or walk; a contract off the menu is declined withou
 a price, and every counter or request not signed spends the round. The integrator
 prices a change at its floor plus 40% of the cost the change adds, or keeps half
 of any saving, that markup decaying to nothing by round 2, and quotes in $100
-steps rounded up so every price shown is one it signs at (DC-D-25).
+steps rounded up so every price shown is one it signs at (DC-D-26).
 
 **Grading.** The reference is exact over the client's information states (type
 sets narrowed by every price seen); once the list leaves one type, which it does
