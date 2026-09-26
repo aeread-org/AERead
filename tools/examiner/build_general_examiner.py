@@ -928,17 +928,7 @@ FAMILY_ROOT.update({fam: counts.most_common(1)[0][0] for fam, counts in _fam_cou
 (SC / "roots.json").write_text(json.dumps({ROOT_LABEL[r]: str(r) for r in ROOTS}, indent=1))
 
 incident_rows, incident_sections = parse_incident_log()
-COMMON_TOKEN_SHARE = 0.10
-_ROW_TEXTS = [(r["defect"] + " " + r["disposition"] + " " + r["detection"]).lower().replace("-", "_") for r in incident_rows]
-_TOKEN_SHARE: dict = {}
-
-
-def token_row_share(tok: str) -> float:
-    """The share of incident rows whose text uses this identity token as a word."""
-    if tok not in _TOKEN_SHARE:
-        pat = re.compile(rf"\b{re.escape(tok)}\b")
-        _TOKEN_SHARE[tok] = sum(bool(pat.search(t)) for t in _ROW_TEXTS) / max(1, len(_ROW_TEXTS))
-    return _TOKEN_SHARE[tok]
+PROSE_WORDS = {"action", "open"}
 bundles = sorted(BUNDLE_ROOT, key=lambda b: (str(b.name)))
 catalog = []; check_details = {}
 for bundle in bundles:
@@ -955,9 +945,9 @@ for bundle in bundles:
             "controlled", "canonical", "scripted", "case", "variance", "integrated", "policy", "baselines", "route",
             "commercial", "state", "calibration", "econevals", "govsim", "shared", "runner", "deterministic", "openrouter", "model", "sensitivity", "alt", "morph"}
     distinctive = {t for t in re.split(r"[_-]", cid) if len(t) >= 4 and t not in STOP and not re.fullmatch(r"v\d+|20\d\d.*", t)}
-    # A word that one incident row in ten already uses ("action", "open", "world") says nothing about which run a
-    # row concerns; matched alone it hung open rows on unrelated runs (EX-T-07). It still counts in a section heading.
-    distinctive_in_text = {t for t in distinctive if token_row_share(t) < COMMON_TOKEN_SHARE}
+    # Ordinary words that are also identity tokens: in row text they hung open rows on unrelated runs (EX-T-07:
+    # "action" on the counteroffer action-schema runs, "open" on the open-harness run). Headings still count.
+    distinctive_in_text = distinctive - PROSE_WORDS
     issues = []
     for r in incident_rows:
         text_all = r["defect"] + " " + r["disposition"] + " " + r["detection"]
