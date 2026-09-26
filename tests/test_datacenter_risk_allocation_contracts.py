@@ -132,12 +132,22 @@ def test_moves_are_read_strictly_and_an_off_menu_contract_is_declined_not_invali
     assert not plugin.legal(payload, state, "client", phase, accept_unknown.action).legal
 
 
-def test_the_packed_worlds_still_teach_their_lessons() -> None:
+def test_the_packed_worlds_still_teach_their_lessons_and_the_shortcuts_lose() -> None:
     manifest, cases = cp.load(cc.PACK)
-    assert len(manifest["worlds"]) == 52
+    assert len(manifest["worlds"]) == 58 and len({w["seed"] for w in manifest["worlds"]}) == 58
     for w in manifest["worlds"]:
         cw, it = rc.world_from(cases[w["case_id"]]["payload"])
         assert rc.lesson_holds(w["cell"], cw, it), w["slug"]
+        solver = rc.solver_for(cases[w["case_id"]]["payload"])
+        t, (best, best_cost) = solver.type_index(it), solver.best_contract(it)
+        assert abs(cw.best_outside[1] - best_cost) >= rc.WALK_MARGIN
+        cut = rc.shortcuts(solver, solver.start(it))
+        for name in rc.CELLS[w["cell"]]["losers"]:
+            assert solver.total[solver.rounds][solver.index[cut[name]], t] - best_cost >= rc.CHOICE_MARGIN, (w["slug"], name)
+
+
+def test_the_full_terms_campaign_does_not_seat_glm_at_default_reasoning() -> None:
+    assert ("default_reasoning", "glm53_flash") not in cc._entries(list(cc.ARMS), list(cc.oc.ROUTES))
 
 
 @pytest.mark.parametrize("policy", ["reference", "every_protection"])

@@ -74,12 +74,16 @@ ARMS: dict[str, dict[str, Any]] = {
 }
 REPLICATES = 2
 WORKERS = {"gemini38_flash": 6, "glm53_flash": 12}
-MAX_COST_USD_TOTAL = 12.0
+MAX_COST_USD_TOTAL = 8.0
 MAX_WALL_HOURS = 6.0
+# GLM at default reasoning lost 28 of its first 44 menu cells to 120,000-token cut-offs and 3,000 s timeouts (DC-O-14):
+# not seated here. Its low-effort arm is.
+NOT_SEATED = {("default_reasoning", "glm53_flash"): "DC-O-14"}
 CLAIM_STATUS = "diagnostic full-terms menu campaign with a declared two-model contrast; no winner, no ranking"
 DECLARED_ANALYSIS = {
-    "primary": "per arm, the mean paired difference in decision regret, GLM 5.3 Flash minus Gemini 3.8 Flash, over cells valid for both on the same world and replicate",
-    "also": "per model, default reasoning minus low effort on the same worlds; how often each signs a contract best for it; cost over the best attainable; which terms differ from the best contract; by playbook and situation (exploratory)",
+    "primary": "at low effort, the mean paired difference in decision regret, GLM 5.3 Flash minus Gemini 3.8 Flash, over cells valid for both on the same world and replicate",
+    "also": "Gemini 3.8 Flash, default reasoning minus low effort on the same worlds; each episode's regret split into the contract signed (its cost to the client at the integrator's last-round price over the best contract's), the price paid over that last-round price, walking or breaking off when a deal was better, and refused counters; how often each signs a contract best for it; which terms differ from the best contract; by playbook and situation (exploratory)",
+    "floor": "a client that signs the right contract after two refusals without knowing the pricing policy carries 40 to 65 thousand of regret per deal world on this pack (simulated before the freeze); regret below that needs the policy",
     "interval": "95% percentile bootstrap, 2000 draws, seed 20260928, worlds resampled as clusters",
     "missingness": "reported per model, arm and cause; a cell missing for either model drops out of that world's pair, never imputed",
     "controls": "the informed reference must grade zero regret on every cell; five rules are lower controls under the same kernel path",
@@ -272,7 +276,7 @@ def _digest_file(rel: str) -> str:
 
 
 def _entries(arms: Sequence[str], routes: Sequence[str]) -> list[tuple[str, str]]:
-    out = [(arm, route) for arm in arms for route in routes]
+    out = [(arm, route) for arm in arms for route in routes if (arm, route) not in NOT_SEATED]
     return out + [(CONTROLS_ARM, f"{SCRIPTED}{p}") for p in CONTROL_POLICIES]
 
 
@@ -280,7 +284,7 @@ def freeze(directory: Path, *, arms: Sequence[str] | None = None, routes: Sequen
            campaign_id: str = CAMPAIGN_ID) -> dict[str, Any]:
     directory.mkdir(parents=True, exist_ok=False)
     arms, routes = list(arms or ARMS), list(routes if routes is not None else oc.ROUTES)
-    entries = _entries(arms, routes) if controls else [(a, r) for a in arms for r in routes]
+    entries = _entries(arms, routes) if controls else [(a, r) for a in arms for r in routes if (a, r) not in NOT_SEATED]
     cases = _cases()
     plans = []
     for arm, route in entries:
@@ -291,6 +295,7 @@ def freeze(directory: Path, *, arms: Sequence[str] | None = None, routes: Sequen
     plan = {
         "campaign_id": campaign_id, "claim_status": CLAIM_STATUS, "pack": PACK, "arms": {a: ARMS[a] for a in arms},
         "routes": {r: asdict(oc.ROUTES[r]) for r in routes}, "controls": list(CONTROL_POLICIES) if controls else [], "replicates": REPLICATES,
+        "not_seated": {f"{a}/{r}": why for (a, r), why in NOT_SEATED.items()},
         "retry": oc.RETRY_V2, "request_seed_base": REQUEST_SEED_BASE, "workers": WORKERS, "max_cost_usd_total": MAX_COST_USD_TOTAL,
         "max_wall_hours": MAX_WALL_HOURS, "seed": SEED, "system_prompt": SYSTEM_PROMPT,
         "pack_manifest_sha256": hashlib.sha256(canonical_json_bytes(manifest)).hexdigest(), "declared_analysis": DECLARED_ANALYSIS,

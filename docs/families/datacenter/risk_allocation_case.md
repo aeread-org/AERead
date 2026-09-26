@@ -641,17 +641,34 @@ sets narrowed by every price seen); once the list leaves one type, which it does
 in 51 of 52 worlds, its value has a closed form that equals brute-force search
 (a test, including a world where two types stay pooled).
 
-**Worlds.** Ten situations, each on the playbooks where it can arise: the lowest
-listed price is not the best contract; buy incident cover; keep the liability
-uncapped; take a cap (a client less averse to risk than the integrator); buy
-damages only up to the rate that makes the integrator pre-stage; protect the
+**Worlds.** Eleven situations, each on the playbooks where it can arise: the
+lowest listed price is not the best contract; buy incident cover; keep the
+liability uncapped; take a cap (a client less averse to risk than the integrator);
+buy damages only up to the rate that makes the integrator pre-stage; protect the
 deposit; buy the burn-in; hand readiness over so the integrator prepares the site;
-take the highest damages rate; walk. 52 worlds (`contracts_eval_v1`). Through the
-kernel the reference grades zero on all 52; five lower controls lose on average
-$370k to $800k: accept the base, take the lowest listed price, haggle the base,
-ask for and sign the most protective contract, walk to the rival turnkey. Asking
-for every protection never is the best play: on 40 drawn worlds per playbook and
-client its regret averages $337k to $833k.
+take the highest damages rate; sign this round (break-off likely, the deal worth
+far more than walking); walk. A deal world needs the best deal and the better
+outside option $150k apart, and each situation names the shortcuts that must cost
+the client $75k more than the best contract: the cheapest listed offer, the base,
+asking for every protection (DC-D-27). 58 worlds (`contracts_eval_v1`). Through
+the kernel the reference grades zero on all 58; five lower controls lose on
+average $384k to $827k.
+
+**What the simulation says the regret measures** ($k, mean decision regret over
+the 58 worlds; the deal situations' range in brackets):
+
+| strategy | all | deal situations |
+|---|---|---|
+| the right contract, after two refusals | 117 | 41 to 65 (sign now 328) |
+| the right contract, signing the first answer | 306 | 216 to 297 |
+| the best single change on the list, after two refusals | 290 | 61 to 453 |
+| every protection, after two refusals | 218 | 103 to 216 |
+| the base contract, after two refusals | 502 | 146 to 859 |
+| walking to the better outside option | 253 | 156 to 431 |
+
+Choosing the contract and the price tactics both move regret by hundreds; a client
+that picks the right contract without knowing the pricing policy keeps 41 to 65,
+which is the floor reachable without the policy.
 
 A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
 output sends enum values as strings, so every term level is a string or a boolean

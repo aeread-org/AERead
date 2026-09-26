@@ -546,38 +546,53 @@ def rule_action(name: str, solver: ContractSolver, s: CState) -> CAction:
 CELLS: dict[str, dict[str, Any]] = {
     "cheapest_is_not_best": {
         "lesson": "the lowest price on the list is not the cheapest contract for this client once the risks it leaves are counted",
-        "client_charge": 0.75, "ranges": {}, "playbooks": PLAYBOOKS},
+        "client_charge": 0.75, "ranges": {}, "playbooks": PLAYBOOKS, "losers": ("cheapest_listed", "base", "every_protection")},
     "buy_the_cover": {
         "lesson": "incident cover is worth its price to a client this averse to risk",
-        "client_charge": 1.55, "ranges": dict(incident=(0.05, 0.08)), "playbooks": PLAYBOOKS},
+        "client_charge": 1.55, "ranges": dict(incident=(0.05, 0.08)), "playbooks": PLAYBOOKS, "losers": ("cheapest_listed", "base")},
     "keep_the_liability": {
         "lesson": "a lower liability cap is cheaper but hands the tail back; keep the integrator's liability uncapped",
-        "client_charge": 1.55, "ranges": dict(incident=(0.05, 0.08), incident_loss=(3000.0, 4000.0)), "playbooks": PLAYBOOKS},
+        "client_charge": 1.55, "ranges": dict(incident=(0.05, 0.08), incident_loss=(3000.0, 4000.0)), "playbooks": PLAYBOOKS,
+        "losers": ("cheapest_listed", "base")},
     "take_the_cap": {
         "lesson": "this client carries risk more cheaply than the integrator; a cap lowers the price by more than the risk it hands back",
-        "client_charge": 0.15, "ranges": {}, "playbooks": ("managed", "turnkey")},
+        "client_charge": 0.15, "ranges": dict(team=(1300.0, 1700.0)), "playbooks": ("managed", "turnkey"), "losers": ("base", "every_protection")},
     "just_enough_damages": {
         "lesson": "delay damages are worth buying only up to the rate that makes the integrator pre-stage",
-        "client_charge": 0.15, "ranges": {}, "playbooks": ("managed", "turnkey")},
+        "client_charge": 0.15, "ranges": dict(team=(1300.0, 1700.0)), "playbooks": ("managed", "turnkey"), "losers": ("base", "every_protection")},
     "protect_the_deposit": {
         "lesson": "the integrator may fail before delivery; put the deposit in escrow or pay none up front",
-        "client_charge": 0.75, "ranges": dict(insolvency=(0.03, 0.06)), "playbooks": PLAYBOOKS},
+        "client_charge": 0.75, "ranges": dict(insolvency=(0.03, 0.06)), "playbooks": PLAYBOOKS, "losers": ("cheapest_listed", "base")},
     "buy_the_burn_in": {
         "lesson": "an incident is likely and costly; a week's burn-in that halves its chance pays for itself",
-        "client_charge": 1.55, "ranges": dict(incident=(0.08, 0.12), incident_loss=(3500.0, 4500.0)), "playbooks": PLAYBOOKS},
+        "client_charge": 1.55, "ranges": dict(incident=(0.08, 0.12), incident_loss=(3500.0, 4500.0)), "playbooks": PLAYBOOKS,
+        "losers": ("cheapest_listed", "base")},
     "hand_over_readiness": {
         "lesson": "an integrator that carries readiness prepares the site; moving it across cuts the chance of a late facility",
         "client_charge": 0.75, "ranges": dict(unready=(0.3, 0.4), unready_weeks=(4.0, 6.0), site_prep=(20.0, 50.0)),
-        "playbooks": ("coordination", "turnkey")},
+        "playbooks": ("coordination", "turnkey"), "losers": ("cheapest_listed", "base", "every_protection")},
     "raise_the_damages": {
         "lesson": "delay damages are insurance this client values above their price; take the highest rate",
-        "client_charge": 1.55, "ranges": dict(defect_weeks=(4.0, 6.0)), "playbooks": ("managed", "turnkey")},
+        "client_charge": 1.55, "ranges": dict(defect_weeks=(4.0, 6.0)), "playbooks": ("managed", "turnkey"),
+        "losers": ("cheapest_listed", "base", "every_protection")},
+    "sign_now": {
+        "lesson": "the integrator is likely to break off after a refusal and the deal is worth far more than walking; sign this round",
+        "client_charge": 1.55, "ranges": dict(breakoff=(0.35, 0.5), turnkey_offset=(1000.0, 1400.0)), "playbooks": PLAYBOOKS,
+        "losers": ("cheapest_listed", "base")},
     "walk_away": {
         "lesson": "no contract on this menu beats the better outside option; walk to it",
-        "client_charge": 0.75, "ranges": dict(turnkey_offset=(-450.0, -200.0)), "playbooks": PLAYBOOKS},
+        "client_charge": 0.75, "ranges": dict(turnkey_offset=(-450.0, -200.0)), "playbooks": PLAYBOOKS, "losers": ()},
 }
 _RANGES = {**ra._COMMON, "team": (600.0, 1000.0), "turnkey_offset": (150.0, 700.0), "site_prep": (30.0, 90.0)}
-DEAL_MARGIN = 25.0
+WALK_MARGIN = 150.0  # the best deal and the better outside option are at least this far apart, either way
+CHOICE_MARGIN = 75.0  # each shortcut a situation names costs the client at least this much more than the best contract
+
+
+def shortcuts(solver: "ContractSolver", s: CState) -> dict[str, Contract]:
+    """The contracts a client that does not weigh the terms would reach for."""
+    standing = {solver.menu[ci]: price for ci, price in s.standing}
+    return {"cheapest_listed": min(standing, key=lambda c: (standing[c], c)), "base": BASES[solver.cw.playbook],
+            "every_protection": most_protective(solver.cw.playbook)}
 
 
 def draw_world(rng: random.Random, cell: str, playbook: str) -> tuple[CWorld, ra.IntegratorType]:
@@ -608,16 +623,17 @@ def lesson_holds(cell: str, cw: CWorld, it: ra.IntegratorType) -> bool:
     best, best_cost = solver.best_contract(it)
     out, out_cost = cw.best_outside
     if cell == "walk_away":
-        return ref.kind == "walk" and ref.outside == out and best_cost > out_cost + DEAL_MARGIN
-    if ref.kind == "walk" or best_cost > out_cost - DEAL_MARGIN:
+        return ref.kind == "walk" and ref.outside == out and best_cost > out_cost + WALK_MARGIN
+    if ref.kind == "walk" or best_cost > out_cost - WALK_MARGIN:
         return False
-    base = BASES[cw.playbook]
-    standing = {solver.menu[ci]: price for ci, price in s.standing}
-    cheapest = min(standing, key=lambda c: (standing[c], c))
     t = solver.type_index(it)
     last = solver.th[solver.rounds]
+    cut = shortcuts(solver, s)
+    if any(solver.total[solver.rounds][solver.index[cut[name]], t] - best_cost < CHOICE_MARGIN for name in CELLS[cell]["losers"]):
+        return False
+    cheapest = cut["cheapest_listed"]
     if cell == "cheapest_is_not_best":
-        return best != cheapest and best != base
+        return True
     if cell == "buy_the_cover":
         return best.consequential == "included"
     if cell == "keep_the_liability":
@@ -636,16 +652,19 @@ def lesson_holds(cell: str, cw: CWorld, it: ra.IntegratorType) -> bool:
         return best.readiness == "integrator" and best_response(best, cw.w, it, cw.x)[1]
     if cell == "raise_the_damages":
         return best.warranty == "fix_and_delay" and best.damages == "200"
+    if cell == "sign_now":  # the reference's first move is a counter this integrator signs
+        return (ref.kind == "propose" and ref.price is not None
+                and ref.price >= float(solver.th[s.round][solver.index[ref.contract], t]) - 1e-6)
     raise KeyError(cell)
 
 
-def build_pack(seeds_per_cell: int, base_seed: int, max_draws: int = 3000) -> list[dict[str, Any]]:
+def build_pack(seeds_per_cell: int, base_seed: int, max_draws: int = 9000) -> list[dict[str, Any]]:
     rows = []
     for ci, cell in enumerate(CELLS):
         for pi, playbook in enumerate(PLAYBOOKS):
             if playbook not in CELLS[cell]["playbooks"]:
                 continue
-            made, seed = 0, base_seed + 10000 * ci + 1000 * pi
+            made, seed = 0, base_seed + 100000 * ci + 10000 * pi  # disjoint seed ranges per situation and playbook
             stop = seed + max_draws
             while made < seeds_per_cell and seed < stop:
                 cw, it = draw_world(random.Random(seed), cell, playbook)
@@ -813,7 +832,7 @@ def grade(payload: Mapping[str, Any], decisions: list[Mapping[str, Any]], signed
 
 __all__ = [
     "BASES", "CELLS", "CAction", "CState", "CWorld", "Contract", "ContractSolver", "Extras", "LEVELS", "NEGOTIABLE", "OUTSIDE", "PLAYBOOKS",
-    "RULES", "TERMS", "action_of", "all_in", "best_response", "brief", "build_pack", "client_cost", "contract_from", "contracts", "draw_world",
+    "RULES", "TERMS", "action_of", "shortcuts", "all_in", "best_response", "brief", "build_pack", "client_cost", "contract_from", "contracts", "draw_world",
     "fee_based", "floor_price", "grade", "integrator_cost", "lesson_holds", "listed", "most_protective", "outcomes", "rule_action", "show", "solver_for",
     "threshold", "world_from",
 ]
