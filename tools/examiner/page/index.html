@@ -1082,10 +1082,9 @@ function barChart(rows,labelKey,metric){
 }
 function intervalChart(ivs,c){
   const items=ivs.filter(v=>typeof v.lo==='number'&&typeof v.hi==='number');if(!items.length)return '';
-  // one axis per outcome: estimates named only by their role (paired difference, left, right...) are grouped under the
-  // outcome above them, so a rate and a dollar amount never share a scale; others group by their own name as before
-  const ROLE=/^(paired_difference|difference|delta|effect|estimate|left|right|mean)$/;
-  const byMetric={};items.forEach(v=>{const parts=v.path.split('.');const last=parts[parts.length-1];const byOutcome=ROLE.test(last)&&parts.length>1;const m=byOutcome?parts[parts.length-2]:last;(byMetric[m]=byMetric[m]||[]).push({...v,role:byOutcome,row:byOutcome?tileKey(last,c):(parts.slice(0,-1).join('.')||v.file)});});
+  // one chart per published table: estimates group under the entry that holds them (an outcome, a contrast), one row
+  // each (paired difference, a model, an arm), so a rate and a dollar amount never share a scale
+  const byMetric={};items.forEach(v=>{const parts=v.path.split('.');const last=parts[parts.length-1];const m=parts.length>1?parts[parts.length-2]:(v.file||last);(byMetric[m]=byMetric[m]||[]).push({...v,role:true,row:tileKey(last,c)});});
   return Object.entries(byMetric).map(([m,rows])=>{let lo=Math.min(...rows.map(v=>Math.min(v.lo,v.point??v.lo))),hi=Math.max(...rows.map(v=>Math.max(v.hi,v.point??v.hi)));lo=Math.min(lo,0);hi=Math.max(hi,0);if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*.08;lo-=pad;hi+=pad;const W=680,L=300,R=24,rowH=22,top=6,H=top+rows.length*rowH+30;const x=v=>L+(v-lo)/(hi-lo)*(W-L-R);
     let s=`<div class="ivm"><div class="muted" style="font-size:12px;margin:6px 0 2px"><span class="em" style="color:var(--ink)">${esc(tileKey(m,c))}</span> · ${rows.length} estimate${rows.length!==1?'s':''}</div><svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${esc(m)} interval estimates">`+axis(x,lo,hi,top,H,W);
     rows.forEach((v,i)=>{const cy=top+i*rowH+rowH/2;const lab=v.row;const crosses=v.lo<0&&v.hi>0;const col=crosses?'var(--partial)':'var(--accent)';
@@ -1441,7 +1440,14 @@ function mcCaseBody(s){
   <div class="rctl" style="align-items:center"><span>split by</span> ${dimBox} <span class="muted">· a stratum left unticked is pooled, each of its values counted equally within a ${esc(s.unit.label)}</span></div>
   <p style="margin:6px 0 2px;font-size:12.5px">${esc(s.what)}${(s.fixed||[]).length?` <strong>Held fixed in every cell:</strong> ${s.fixed.map(f=>`${esc(f.label)} = ${esc(f.value)}`).join('; ')}.`:''} <span class="muted">Independent unit: the ${esc(s.unit.label)} (${esc(s.unit.note)}). ${esc(s.scope)}.</span></p>
   ${meas.note?`<p class="muted" style="margin:2px 0;font-size:12.5px">${esc(meas.label)}: ${esc(meas.note)}.</p>`:''}
-  <p class="muted" style="margin:2px 0 8px;font-size:12px">Runs in this comparison: ${runs}${miss?` · cells that did not complete: ${miss}`:''}</p>
+  <p class="muted" style="margin:2px 0 8px;font-size:12px">Runs in this comparison: ${runs}${miss?` · cells that did not complete: ${miss}`:''}</p>${(()=>{const ci=Object.fromEntries(s.cols.map((c,i)=>[c,i]));const live=s.rows.filter(r=>r[ci[meas.key]]!=null&&(r[1]===A||r[1]===B));
+   // a value of one stratum that only one of the two models ran (an arm left unseated), then any remaining cell of the split
+   const lone=[],covered=new Set();dims.forEach(d=>{const dd=s.dims.find(x=>x.key===d);const by={};live.forEach(r=>{(by[r[ci[d]]]=by[r[ci[d]]]||new Set()).add(r[1]);});
+    Object.entries(by).forEach(([v,m])=>{if(m.size===1){covered.add(d+'='+v);lone.push(`${dd.label}: ${String((dd.values.find(x=>x.v===v)||{label:v}).label).replace(/ \(.*?\)/g,'')} (only ${mcLabel(s,[...m][0])} ran it)`);}});});
+   const has={};live.forEach(r=>{if(dims.some(d=>covered.has(d+'='+r[ci[d]])))return;const k=dims.map(d=>r[ci[d]]).join('\u0001');(has[k]=has[k]||new Set()).add(r[1]);});
+   const rest=Object.entries(has).filter(([,m])=>m.size===1).map(([k,m])=>`${mcStratumText(s,dims,k.split('\u0001'))} (only ${mcLabel(s,[...m][0])})`);
+   const all=lone.concat(rest.slice(0,4)).concat(rest.length>4?[`${rest.length-4} more such strata`]:[]);
+   return all.length?`<p class="banner" style="margin:0 0 8px">Not compared, one model only: ${esc(all.join('; '))}.</p>`:'';})()}
   ${table}<div style="margin-top:8px">${chart}</div>${every}${legend?`<div style="margin-top:8px">${legend}</div>`:''}</div>`;}
 // the run page's comparison: every case this run belongs to (a run whose seats are both models has one per seat)
 function mcCampaignHtml(c){if(!MC)return '';const sets=(MC.sets||[]).filter(s=>s.campaigns.includes(c.id)&&!HIDDEN_FAMILIES.has(s.family));if(!sets.length)return '';
