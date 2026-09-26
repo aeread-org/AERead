@@ -659,5 +659,8 @@ reference's closed form equals brute-force search, every shown price is one the
 integrator signs at (DC-D-26), and through the kernel the reference grades zero
 on all 58 worlds with every receipt replayed. Gate 3 partial: five lower controls
 under the same kernel path, among them asking for every protection; outcomes are
-expectations. No campaign has run.
+expectations. Gate 5 not confirmatory: v1 ran on an exhausted account (DC-O-15);
+`datacenter_risk_allocation_contracts_dev_campaign_v2` (696 cells, $3.93) reports
+GLM minus Gemini at low effort of −19 [−79, +37] and Gemini default minus low
+effort of −168 [−225, −114]; GLM at default reasoning is not seated (DC-O-14).
 

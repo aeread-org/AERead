@@ -705,7 +705,31 @@ the last-round price, 50 of walking or break-off and 10 of refused counters. Ove
 its 89 signed deals in deal worlds it most often missed the damages rate (37), the
 liability cap (23), readiness (22), burn-in (20), warranty (19) and consequential
 cover (19). `..._v2` is the same design with a balance floor checked before any
-model cell and a stop at the first 402; it waits on a top-up.
+model cell and a stop at the first 402.
+
+**Campaign v2.** `datacenter_risk_allocation_contracts_dev_campaign_v2` (plan
+`1f4a30e0f86a`, 696 cells, $3.93; bundle under `evidence/datacenter_development/`):
+every cell sealed and replayed, one invalid move (GLM, a bad price).
+
+| client | valid | decision regret [95% CI] | contract signed | price over last-round price | walking or break-off |
+|---|---|---|---|---|---|
+| Gemini 3.8 Flash, low effort | 116/116 | 416 [360, 468] | 133 | 291 | 50 |
+| GLM 5.3 Flash, low effort | 115/116 | 400 [357, 443] | 116 | 312 | 26 |
+| Gemini 3.8 Flash, default reasoning | 116/116 | 248 [213, 279] | 24 | 127 | 166 |
+| reference (control) | 58/58 | 0 | 1 | 26 | 22 |
+
+The last three columns split cost over the best attainable, not decision regret
+(DC-J-04). The declared contrast, GLM minus Gemini at low effort: −19 [−79, +37] on
+115 pairs over 58 worlds, no detectable difference. Gemini's default reasoning
+lowers its regret by 168 [−225, −114]: it chooses the contract nearly as well as
+the reference (24) and pays less over the floor, but it walks away from a better
+deal in 50 of 104 deal-world cells at about $319k each. At low effort both models
+sit with the shortcuts (every protection 384, haggling the base 389, walking 399)
+and far above the 41 to 65 a client without the policy can reach; their shortfall
+is mostly price. The terms missed most often are the damages rate (Gemini 37 of
+89 signed deals, GLM 48 of 92) and, for GLM, consequential cover (35). Gemini at
+low effort reproduced v1's cells exactly: the same request seeds gave the same
+regret, 416, and the same cost.
 
 A live smoke (two cells a model, low effort, $0.02) found Gemini's structured
 output sends enum values as strings, so every term level is a string or a boolean
