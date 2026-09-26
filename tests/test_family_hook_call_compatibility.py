@@ -178,6 +178,7 @@ KNOWN_UNRESOLVABLE_IN_PLAIN_ENV: dict[tuple[str, str], str] = {
     ("datacenter_risk_allocation_v1", "0.1.0"): "registered by its campaign code (the integrator-client risk-allocation case), like the datacenter versions",
     ("datacenter_risk_allocation_two_sided_v1", "0.1.0"): "registered by its campaign code (both risk-allocation seats played by models), like the one-sided case",
     ("datacenter_risk_allocation_menu_v1", "0.1.0"): "registered by its campaign code (the client negotiating an integrator's posted playbook menu), like the one-sided case",
+    ("datacenter_risk_allocation_contracts_v1", "0.1.0"): "registered by its campaign code (the playbook menu with every modelled contract term), like the one-sided case",
     ("kernel_contract_reference_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
     ("kernel_contract_sequential_v1", "1.0.0"): "kernel-owned fixture family, registered by its test",
     # Added the day the ratchet landed: #147 enrolled these keys as trusted
