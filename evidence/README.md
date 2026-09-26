@@ -60,6 +60,15 @@ Derived analyses, per project:
   policies on the sealed panel, sweeping a counterparty that violates its own
   participation constraint. 105 cases, 4200 episodes, no provider calls;
   rebuild with `python -m aeread_families.housing.sensitivity_control`.
+- `housing/housing_oracle_gap/`: why each model, in the tenant seat, falls
+  short of the full-information oracle in the confirmatory holdout and the
+  V23 and V26 pilots. Welfare minus the oracle's welfare splits exactly by
+  listing into oracle listings left empty, the wrong tenant on an oracle
+  listing, extra listings and value-destroying leases, with the taxonomy's A
+  and B classes and the rent transfer as diagnostics; one
+  `aeread.gap_decomposition/0.1` report per model per campaign, no step-level
+  locators because none are published; rebuild with
+  `python -m aeread_families.housing.oracle_gap --write`, verify with `--check`.
 
 Current campaign directories include:
 
