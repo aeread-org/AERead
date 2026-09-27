@@ -29,9 +29,10 @@ world and its twin moving together; a stratum every world is run under (arm,
 seat, opponent, difficulty) is shuffled within each world. A split is not
 testable when a stratum holds one independent world, or the split has fewer
 than 5 clusters.
-This is a randomization test in the tradition of
-[Fisher (1935)](../../references.bib); the shuffle respects AERead's declared
-world or twin-cluster unit.
+This permutation diagnostic follows the randomization logic of
+[Fisher (1935)](../../references.bib) and respects AERead's declared world or
+twin-cluster unit. World-type labels were not randomly assigned, so their
+shuffle p-values are not exact design-based randomization p-values.
 
 The test is `tools/examiner/strata_noise.py` on `codex/examiner-case-cards`
 (commit 17271955), the offline twin of the noise line the
