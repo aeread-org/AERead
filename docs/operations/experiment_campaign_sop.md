@@ -91,6 +91,14 @@ saves; the Examiner prints the test under every split
 Do not infer a winner from the full-trajectory gate or variance pilot. Their job
 is to expose integration failures and size the confirmatory run from the
 predeclared minimum meaningful effect and paired cluster-level variance.
+This follows [Miller's evaluation guidance](https://arxiv.org/abs/2411.00640)
+on paired comparisons, clustered questions, repeated answers, and power analysis:
+worlds or twin clusters carry independent information, while seeds characterize
+variation within a world.
+
+The frozen analysis and stopping rule at `confirmatory_freeze`, followed by
+complete reporting at `confirmatory_execution`, implement the prospective
+commitment described by [Nosek et al. (2018)](https://doi.org/10.1073/pnas.1708274114).
 
 ## 3. Enforce promotion in campaign drivers
 
@@ -300,6 +308,13 @@ a tool. Use `model_calls.csv`, trajectories, and receipts for observed behavior.
   samples when the sampled unit is a world or case cluster.
 - Report fact-table coverage, exclusions, invalid measurements, missing cells,
   and telemetry completeness alongside aggregate outcomes.
+- With few independent worlds, describe the interval as the method actually
+  computed. [Cameron, Gelbach, and Miller (2008)](https://doi.org/10.1162/rest.90.3.414)
+  show that some standard cluster inference can over-reject with 5–30 clusters
+  and study cluster bootstrap-t methods for regression. AERead currently uses
+  percentile resampling of whole worlds for several paired effects; whether
+  those intervals attain nominal coverage for each AERead estimand remains to
+  be checked by simulation before treating a method change as validated.
 - Never overwrite a different fact export in place. Create a new run or output
   directory when its sealed inputs change.
 

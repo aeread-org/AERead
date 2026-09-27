@@ -58,6 +58,11 @@ something true by construction; three defects fixed on 2026-09-05 passed every
 existing suite for exactly that reason. Where a mutation does not kill a check,
 record that rather than glossing it.
 
+This standard's task and outcome validity checks align with the
+[Agentic Benchmark Checklist (Zhu et al., 2025)](https://arxiv.org/abs/2507.02825).
+The mutation requirement above is AERead's concrete check that a claimed guard
+can detect the defect it is meant to catch.
+
 Every machine-consumed evidence reference records the artifact type, path,
 SHA-256 digest, family ID and version, profile ID, and explicit required and
 observed coverage IDs. At admission, the path is resolved inside an explicitly
