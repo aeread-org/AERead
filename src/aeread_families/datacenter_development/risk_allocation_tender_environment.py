@@ -246,19 +246,25 @@ class TenderPlugin:
                 entries.append(entry)
                 continue
             new["refused"] += 1
+            gone = family_case["breakoff_draws"][j][b["round"] - 1] < w.terms.breakoff
+            # a firm that breaks off says so in its answer: the pilot's answer named the withdrawn offer (DC-D-31)
+            left = "; then broke off: it has left the tender and all its offers are withdrawn" if gone else ""
             if ci is None:
                 new["declined"] += 1
-                entry.update(answer="declined: that contract is not on its menu", their_price=None, offer=None)
+                entry.update(answer=f"declined: that contract is not on its menu{left}", their_price=None, offer=None)
             else:
                 ans = round(float(solver.th[j][b["round"]][ci]), 6)
-                oid = _upsert(new, j, contract, ans)
                 unit = "fee" if rc.fee_based(playbook) else "all in"
-                entry.update(answer=f"would sign at {rt.show(playbook, w, ans):,.1f} ({unit}) now, standing offer {oid}",
-                             their_price=rt.show(playbook, w, ans), offer=oid)
-            if family_case["breakoff_draws"][j][b["round"] - 1] < w.terms.breakoff:
+                shown = f"{rt.show(playbook, w, ans):,.1f} ({unit})"
+                if gone:
+                    entry.update(answer=f"would have signed at {shown}{left}", their_price=rt.show(playbook, w, ans), offer=None)
+                else:
+                    oid = _upsert(new, j, contract, ans)
+                    entry.update(answer=f"would sign at {shown} now, standing offer {oid}", their_price=rt.show(playbook, w, ans), offer=oid)
+            entry["broke_off"] = gone
+            if gone:
                 b["alive"] = False
                 new["offers"] = [o for o in new["offers"] if o["bidder"] != j]
-                entry["broke_off"] = True
             b["round"] += 1
             entries.append(entry)
         new["decisions"].append({"turn": state["turn"], "kind": "negotiate", "moves": moves})

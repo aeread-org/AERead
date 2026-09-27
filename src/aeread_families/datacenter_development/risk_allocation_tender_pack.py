@@ -36,7 +36,16 @@ PILOT_QUOTAS = {
     "risk_averse": {"another_bidder_is_best": 4, "lowest_bidder_is_best": 2},
     "fragile_bidders": {"self_manage": 2, "another_bidder_is_best": 2, "lowest_bidder_is_best": 2},
 }
-PACKS: dict[str, dict[str, Any]] = {"tender_pilot_v1": {"split": "eval", "base_seed": 2600000, "quotas": PILOT_QUOTAS}}
+# the sized run: two and a half times the pilot's quotas on seeds disjoint from it, 60 worlds (51 give an interval of
+# +/-50 at the pilot's spread of the per-world model difference)
+EVAL_QUOTAS = {
+    "risk_tolerant": {"another_bidder_is_best": 12, "lowest_bidder_is_best": 3},
+    "moderate": {"self_manage": 5, "another_bidder_is_best": 5, "lowest_bidder_is_best": 5},
+    "risk_averse": {"another_bidder_is_best": 10, "lowest_bidder_is_best": 5},
+    "fragile_bidders": {"self_manage": 5, "another_bidder_is_best": 5, "lowest_bidder_is_best": 5},
+}
+PACKS: dict[str, dict[str, Any]] = {"tender_pilot_v1": {"split": "eval", "base_seed": 2600000, "quotas": PILOT_QUOTAS},
+                                    "tender_eval_v1": {"split": "eval", "base_seed": 2700000, "quotas": EVAL_QUOTAS}}
 
 
 def breakoff_draws(seed: int, bidders: int, rounds: int) -> list[list[float]]:

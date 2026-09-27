@@ -46,7 +46,7 @@ def _random_action(solver: rt.TenderSolver, s: rt.TState, rng: random.Random) ->
 
 def test_every_packed_bid_reveals_its_firm_and_the_situations_hold() -> None:
     manifest, cases = tp.load(tc.PACK)
-    assert len(manifest["worlds"]) == sum(sum(q.values()) for q in tp.PILOT_QUOTAS.values())
+    assert len(manifest["worlds"]) == sum(sum(q.values()) for q in tp.PACKS[tc.PACK]["quotas"].values())
     for w in manifest["worlds"]:
         payload = cases[w["case_id"]]["payload"]
         assert rt.situation(payload) == w["situation"], w["slug"]
@@ -153,7 +153,8 @@ def test_the_pilot_seats_gemini_default_on_the_declared_subset_only_and_not_glm_
     assert ("default_reasoning", "glm53_flash") not in tc._entries(list(tc.ARMS), list(tc.oc.ROUTES))
     manifest, _ = tp.load(tc.PACK)
     subset = tc.subset_case_ids()
-    assert len(subset) == len({(w["world_type"], w["situation"]) for w in manifest["worlds"]})
+    groups = {(w["world_type"], w["situation"]) for w in manifest["worlds"]}
+    assert len(subset) == sum(min(tc.SUBSET_PER_GROUP, sum(1 for w in manifest["worlds"] if (w["world_type"], w["situation"]) == g)) for g in groups)
 
 
 @pytest.mark.parametrize("policy", ["reference", *rt.RULES])
@@ -167,3 +168,26 @@ def test_scripted_clients_seal_verified_replayable_receipts_and_the_reference_sc
             assert record["grade"]["decision_regret"] == 0.0
         else:
             assert record["grade"]["decision_regret"] >= 0.0
+
+
+def test_a_firm_that_breaks_off_says_so_and_names_no_offer() -> None:
+    """DC-D-31: the pilot's answer text named the offer a firm withdrew as it broke off."""
+    plugin = TenderPlugin()
+    seen = 0
+    for payload in _payloads():
+        solver = rt.solver_for(payload)
+        phase = plugin.phases(payload)[0]
+        for j in range(len(solver.bidders)):
+            if payload["breakoff_draws"][j][0] >= solver.beta:
+                continue
+            state = plugin.initial_state(payload, None)
+            move = {"action": "negotiate", "offer": None, "reason": "",
+                    "moves": [{"bidder": rt.BIDDER_IDS[j], "kind": "quote", "terms": rc.BASES[solver.bidders[j].playbook].as_dict(), "price": None}]}
+            parsed = parse_tender_move(move)
+            legal = plugin.legal(payload, state, "client", phase, parsed.action)
+            after = plugin.step(payload, state, phase, {"client": ActionEnvelope("client", True, parsed.action, parsed, legal)}).state
+            entry = after["history"][-1]["moves"][0]
+            assert entry["broke_off"] and entry["offer"] is None and "broke off" in entry["answer"] and "standing offer" not in entry["answer"]
+            assert not any(o["bidder"] == j for o in after["offers"])
+            seen += 1
+    assert seen, "no world in the pack where a firm breaks off at its first answer"

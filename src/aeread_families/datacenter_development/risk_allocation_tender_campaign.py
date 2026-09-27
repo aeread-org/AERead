@@ -12,8 +12,10 @@ effort as the comparison, Gemini at default reasoning on a declared subset of wo
 GLM at default reasoning not seated (DC-O-14), and the scripted clients as controls in the
 same run: the reference (zero regret by construction) and four rules.
 
-This first campaign is a pilot. It sizes a later run from the spread of the per-world paired
-difference; it ranks nothing.
+The pilot (``datacenter_risk_allocation_tender_pilot_v1``, pack ``tender_pilot_v1``) sized this
+run from the spread of the per-world paired difference. This is that run: 60 fresh worlds at one
+seed, Gemini at default reasoning on the first two worlds of each world type and situation, and a
+firm that breaks off now says so in its answer (DC-D-31). It ranks nothing.
 """
 
 from __future__ import annotations
@@ -65,8 +67,8 @@ from .risk_allocation_two_sided_measurement import combined_sha256
 
 HERE = Path(__file__).parent
 REPOSITORY_ROOT = HERE.parents[2]
-CAMPAIGN_ID = "datacenter_risk_allocation_tender_pilot_v1"
-PACK = "tender_pilot_v1"
+CAMPAIGN_ID = "datacenter_risk_allocation_tender_eval_v1"  # the pilot, datacenter_risk_allocation_tender_pilot_v1, ran tender_pilot_v1
+PACK = "tender_eval_v1"
 SEED = oc.SEED
 REQUEST_SEED_BASE = 20260926
 SCRIPTED = cc.SCRIPTED
@@ -79,10 +81,11 @@ MAX_COST_USD_TOTAL = 4.0
 MIN_ACCOUNT_BALANCE_USD = MAX_COST_USD_TOTAL
 MAX_WALL_HOURS = 4.0
 NOT_SEATED = {("default_reasoning", "glm53_flash"): "DC-O-14"}
-SUBSET_ARMS = {"default_reasoning": "the first world of each world type and situation, in pack order"}
-CLAIM_STATUS = "pilot: sizes a later tender run; no winner, no ranking"
+SUBSET_PER_GROUP = 2
+SUBSET_ARMS = {"default_reasoning": "the first two worlds of each world type and situation, in pack order"}
+CLAIM_STATUS = "a declared two-model contrast sized from the tender pilot; descriptive, no winner, no ranking"
 DECLARED_ANALYSIS = {
-    "primary": "at low effort, the mean paired difference in decision regret, GLM 5.3 Flash minus Gemini 3.8 Flash, over worlds valid for both, with its interval; reported as the size a later run must resolve, not as a result",
+    "primary": "at low effort, the mean paired difference in decision regret, GLM 5.3 Flash minus Gemini 3.8 Flash, over worlds valid for both, with its interval (the pilot, on 21 other worlds: -113 [-192, -41])",
     "sizing": "the standard deviation of the per-world paired difference, and the number of worlds at one seed that would put a 95% interval's half-width at 25, 50 and 75",
     "also": "Gemini 3.8 Flash, default reasoning minus low effort on the declared subset; each episode's cost over the best attainable split into the bidder chosen (its best contract's cost at its last-round price over the best firm's), the contract signed with it, the price over that bidder's last-round price, walking when a deal was better, and refused counters; how often each signs with a best firm and a best contract with it; how many bidders each negotiates with per turn",
     "interval": "95% percentile bootstrap, 2000 draws, seed 20260926, worlds resampled",
@@ -125,13 +128,15 @@ def _cases() -> list[CaseManifest]:
 
 
 def subset_case_ids() -> set[str]:
-    """The declared subset for the arms in ``SUBSET_ARMS``: the first world of each world type and situation, in pack order."""
+    """The declared subset for the arms in ``SUBSET_ARMS``: the first ``SUBSET_PER_GROUP`` worlds of each world type and
+    situation, in pack order."""
     manifest, _ = tp.load(PACK)
-    seen, out = set(), set()
+    seen: dict[tuple[str, str], int] = {}
+    out = set()
     for w in manifest["worlds"]:
         key = (w["world_type"], w["situation"])
-        if key not in seen:
-            seen.add(key)
+        if seen.get(key, 0) < SUBSET_PER_GROUP:
+            seen[key] = seen.get(key, 0) + 1
             out.add(w["case_id"])
     return out
 
