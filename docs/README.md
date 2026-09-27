@@ -139,6 +139,7 @@ documents so they survive moves.
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
+- [Full bibliography (BibTeX)](../references.bib)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

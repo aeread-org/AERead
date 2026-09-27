@@ -9,7 +9,9 @@ the test does not see).
 Most packs declare more strata than they can support. Of 81 stratum splits in
 the published evidence, 39 cannot be tested at all (one world per stratum, or
 fewer than 5 independent worlds), and of the 42 that can, 12 differ at
-p < 0.05 where chance alone gives 2.1; 8 survive Benjamini-Hochberg at q = 0.10,
+p < 0.05 where chance alone gives 2.1; 8 survive
+[Benjamini–Hochberg (1995)](https://doi.org/10.1111/j.2517-6161.1995.tb02031.x)
+false-discovery-rate adjustment at q = 0.10,
 seven of them datacenter reasoning-arm or world-type splits. Meanwhile the
 strata that multiply cost, the ones every world is re-run under, are mostly the
 ones that show nothing. Future packs keep a stratum only when it will be
@@ -27,6 +29,9 @@ world and its twin moving together; a stratum every world is run under (arm,
 seat, opponent, difficulty) is shuffled within each world. A split is not
 testable when a stratum holds one independent world, or the split has fewer
 than 5 clusters.
+This is a randomization test in the tradition of
+[Fisher (1935)](../../references.bib); the shuffle respects AERead's declared
+world or twin-cluster unit.
 
 The test is `tools/examiner/strata_noise.py` on `codex/examiner-case-cards`
 (commit 17271955), the offline twin of the noise line the
@@ -137,5 +142,10 @@ campaign identity, never an edit in place, and the family owner decides it.
 - The Examiner's noise line on a gap breakdown tests the total only; a part can
   separate while the total does not (procurement above). A per-part test is not
   built.
-- The lemons luck part is itself in question (HL-J-02): blind bets on listings
-  no rival bid on were lemons 11 times in 15, against 6.2 expected.
+- The housing lemons world draws on [Akerlof's quality-uncertainty problem
+  (1970)](https://doi.org/10.2307/1879431). Its luck part is itself in question
+  (HL-J-02): blind bets on listings no rival bid on were lemons 11 times in 15,
+  against 6.2 expected. The adverse selection from better-informed rivals is
+  related to the winner's curse discussed by
+  [Milgrom and Weber (1982)](https://www.jstor.org/stable/1911865), but this
+  diagnostic is not an auction result or a tested causal mechanism.
