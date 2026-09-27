@@ -32,7 +32,10 @@ than 5 clusters.
 This permutation diagnostic follows the randomization logic of
 [Fisher (1935)](../../references.bib) and respects AERead's declared world or
 twin-cluster unit. World-type labels were not randomly assigned, so their
-shuffle p-values are not exact design-based randomization p-values.
+shuffle p-values are not exact design-based randomization p-values. Multiple
+splits reuse the same worlds; the resulting p-values and Benjamini–Hochberg
+q-values are exploratory screens, not a confirmatory false-discovery-rate
+guarantee for these dependent tests.
 
 The test is `tools/examiner/strata_noise.py` on `codex/examiner-case-cards`
 (commit 17271955), the offline twin of the noise line the
