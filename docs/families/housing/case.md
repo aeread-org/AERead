@@ -328,6 +328,46 @@ the policies, the gate, the plugin and the plan-to-receipt-to-replay path;
 inspect_then_sign --run-root runs/lemons_smoke` runs one scripted cell. A live tenant
 takes `--provider openrouter --route google_gemini_38_flash` or `--route xai_grok_47`.
 
+### Exploratory price negotiation probe
+
+`housing_lemons_price_probe_v1` is a separate, provider-free experiment over the
+same `HousingMarket` inspection, offer, response, and commit transitions. It does
+not alter the frozen refusal campaigns or their scores. Each tenant inspects one
+open listing per round, offers $100 below the quality-adjusted ask for a known
+listing, and signs a counteroffer only when its inspected value covers that rent.
+The fixed landlord accepts an opening offer at or above its target; otherwise it
+counters at its reservation cost plus $25, capped at ask. A tenant can sign or
+walk that hold, but cannot continue negotiating the same listing after walking.
+
+The probe runs the same seeded mixed-quality worlds twice. In the `true_cost` arm,
+lemon landlords reserve against their lower true cost. In the `pooled` arm, both
+qualities use the sound-equivalent reservation; a counteroffer then does not
+mechanically reveal quality. The target rule is fixed in both arms, and the
+tenant receives only its own observation. This is a mechanics and information
+design comparison, not a test of model bargaining ability.
+
+Run `PYTHONPATH=src python -m aeread_families.housing.price_bargaining --seeds 30`
+for seeds 100000–100029, six tenants, four listings, three rounds, 50% lemons,
+and a $1,000 quality loss. The output retains listings, signings, counteroffers,
+signed rents, and signed rent relative to the listing's posted ask by quality.
+For this fixed 30-world development panel:
+
+| Landlord reservation | Quality | Signed / listings | Mean signed rent | Mean signed rent − ask | Signed after counter |
+|---|---|---:|---:|---:|---:|
+| true cost | sound | 56 / 60 | $2,251.95 | −$27.19 | 56 |
+| true cost | lemon | 59 / 60 | $1,407.52 | −$1,028.00 | 59 |
+| pooled | sound | 58 / 60 | $2,242.63 | −$27.18 | 58 |
+| pooled | lemon | 0 / 60 | undefined | undefined | 0 |
+
+The true-cost signed discount gap is $1,000.81 (sound minus lemon rent-minus-ask).
+Raw mean rents mix different posted asks, and signed prices condition on a lease;
+therefore the sign rates and eligible-listing denominators belong beside every
+price comparison. The near-$1,000 gap is mostly a consequence of the declared
+$1,000 cost shift and this fixed concession rule. No model tenant was run and no
+statistical population claim is made from this selected panel. A future scored
+model-tenant campaign needs its own identity and reference outcomes recomputed
+under this landlord; reusing the refusal campaign's reference would mis-score it.
+
 **Status.** Environment, endpoint, gate and scripted bracket are implemented and
 tested. No live result is claimed: the only live cells so far are a development probe
 from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
