@@ -40,6 +40,32 @@ def landlord_action(observation: Mapping[str, Any]) -> dict[str, Any]:
     return {"decision": "counter", "offer_id": chosen["offer_id"], "counter_rent": target}
 
 
+def landlord_responses(
+    market: hz.HousingMarket, inbox: Mapping[int, Any]
+) -> tuple[dict[int, dict[int, tuple[str, float | None]]], list[dict[str, Any]]]:
+    """Translate the same fixed provider action into market responses and a trace."""
+    responses: dict[int, dict[int, tuple[str, float | None]]] = {}
+    negotiations: list[dict[str, Any]] = []
+    for listing_id, listing_offers in inbox.items():
+        action = landlord_action(market.landlord_observation(listing_id))
+        chosen = next(offer for offer in listing_offers if offer.offer_id == action["offer_id"])
+        negotiations.append({
+            "round_index": market.round_index,
+            "tenant_id": chosen.tenant_id,
+            "listing_id": listing_id,
+            "offer_rent": chosen.rent,
+            "landlord_decision": action["decision"],
+            "hold_rent": chosen.rent if action["decision"] == "accept" else action["counter_rent"],
+        })
+        responses[listing_id] = {
+            offer.tenant_id: (
+                ("accept", None) if action["decision"] == "accept" else ("counter", action["counter_rent"])
+            ) if offer.tenant_id == chosen.tenant_id else ("reject", None)
+            for offer in listing_offers
+        }
+    return responses, negotiations
+
+
 def tenant_action(observation: Mapping[str, Any], phase_id: str) -> dict[str, Any]:
     """Inspect, bid below the quality-adjusted ask, and sign affordable holds."""
     board = [row for row in observation["board"] if row["status"] == "OPEN"]
@@ -104,24 +130,8 @@ def run_world(seed: int, *, landlord_reservation: str = "true_cost", rounds: int
             if action["decision"] == "offer":
                 offers[tenant_id] = (action["listing_id"], action["rent"])
         contact = market.submit_offers(offers)
-        responses = {}
-        for listing_id, listing_offers in contact.inbox.items():
-            action = landlord_action(market.landlord_observation(listing_id))
-            chosen = next(offer for offer in listing_offers if offer.offer_id == action["offer_id"])
-            negotiations.append({
-                "round_index": market.round_index,
-                "tenant_id": chosen.tenant_id,
-                "listing_id": listing_id,
-                "offer_rent": chosen.rent,
-                "landlord_decision": action["decision"],
-                "hold_rent": chosen.rent if action["decision"] == "accept" else action["counter_rent"],
-            })
-            responses[listing_id] = {
-                offer.tenant_id: (
-                    ("accept", None) if action["decision"] == "accept" else ("counter", action["counter_rent"])
-                ) if offer.tenant_id == chosen.tenant_id else ("reject", None)
-                for offer in listing_offers
-            }
+        responses, round_negotiations = landlord_responses(market, contact.inbox)
+        negotiations.extend(round_negotiations)
         response = market.submit_responses(responses)
         commits = {}
         for tenant_id in response.holds:
@@ -153,6 +163,34 @@ def run_world(seed: int, *, landlord_reservation: str = "true_cost", rounds: int
         }
         for listing_id in range(world.num_listings)
     ]
+
+
+def run_reference(world: lemons.LemonsWorld, rounds: int, policy_id: str) -> hz.HousingMarket:
+    """Recompute a lemons scripted reference against the price landlord."""
+    policy = lemons.TENANT_POLICIES[policy_id]
+    market = hz.HousingMarket(world, rounds=rounds)
+    while not market.finished:
+        inspections = {}
+        for tenant_id in market.unmatched_tenants():
+            action = policy(market.tenant_observation(tenant_id), "inspect")
+            if action["decision"] == "inspect":
+                inspections[tenant_id] = action["listing_id"]
+        market.submit_inspections(inspections)
+        offers = {}
+        for tenant_id in market.unmatched_tenants():
+            action = policy(market.tenant_observation(tenant_id), "contact")
+            if action["decision"] == "offer":
+                offers[tenant_id] = (action["listing_id"], action["rent"])
+        contact = market.submit_offers(offers)
+        responses, _ = landlord_responses(market, contact.inbox)
+        holds = market.submit_responses(responses).holds
+        commits = {}
+        for tenant_id in holds:
+            action = policy(market.tenant_observation(tenant_id), "commit")
+            if action["decision"] in {"sign", "walk"}:
+                commits[tenant_id] = (action["decision"], action["hold_id"])
+        market.submit_commits(commits)
+    return market
 
 
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:

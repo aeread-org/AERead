@@ -368,6 +368,19 @@ statistical population claim is made from this selected panel. A future scored
 model-tenant campaign needs its own identity and reference outcomes recomputed
 under this landlord; reusing the refusal campaign's reference would mis-score it.
 
+The first versioned model-tenant development pilot is declared in
+`configs/housing_lemons_price_pilot_v1.json` and run by
+`aeread_families.housing.price_campaign`. It pairs four worlds across the
+true-cost and pooled arms (eight cells, one inference seed, three rounds), pins
+Gemini 3.8 Flash on Google AI Studio, and assigns a $0.30 tenant ceiling per
+cell and a $3 total stop ceiling. `--run-root <path>` performs the provider-free
+eight-cell preflight; adding `--live` uses the pinned paid route. The driver
+writes one result per cell, verifies the receipt and state-and-score replay,
+halts on its first operational failure, and leaves untouched cells unattempted.
+The price table conditions on completed cells and retains the eligible-listing
+denominator. This small panel supports a diagnostic only; there is no model
+ranking or population interval.
+
 **Status.** Environment, endpoint, gate and scripted bracket are implemented and
 tested. No live result is claimed: the only live cells so far are a development probe
 from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
