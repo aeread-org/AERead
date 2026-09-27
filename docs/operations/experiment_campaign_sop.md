@@ -44,6 +44,37 @@ Classify every knob in the campaign contract:
 - **diagnostic:** recorded for interpretation, never used to pick the winner or
   retune a completed confirmatory campaign.
 
+### Strata: declare only the splits you will report
+
+A stratum is a slice the design fixes before any model acts: world type, seat,
+reasoning arm, opponent, difficulty. Declare each one in the design contract as
+either a **reported split** or **coverage**, and pay only for the first.
+
+- **A reported split names its estimand and is sized to be tested.** At least 5
+  independent units (worlds, or clusters of twins) per stratum. Seeds are not
+  units: a seed re-draws the noise inside one world, so two worlds with five
+  seeds each are two units, not ten. Before any
+  stratum row is read, the split is tested against shuffled stratum labels, and
+  a split within noise is reported pooled with its stratum rows marked
+  descriptive. Test the part of the outcome the stratum is meant to move, not
+  only the total: a part can separate while the total does not.
+- **Coverage is assigned, not crossed.** A label that sorts worlds costs
+  nothing. A factor every world is re-run under multiplies the cells by its
+  number of values; if it will not be reported, give each world one value,
+  balanced across the pack. Both models still meet the same world under the
+  same value, so the paired contrast is unchanged, at 1x instead of kx.
+- **Within noise is not "does not matter".** The test reads an average shift of
+  the gap between strata. A stratum that moves both sides alike, or moves the
+  gap in opposite directions in different worlds, passes as noise (EX-D-08).
+- **One world per stratum is not a split.** Stratum and world cannot be told
+  apart; those rows describe cases.
+- Changing the strata of a sealed pack is a new campaign identity.
+
+The [strata audit](../research/strata_audit_2026-09.md) records which
+published splits carried signal, which did not, and what trimming the rest
+saves; the Examiner prints the test under every split
+(`tools/examiner/strata_noise.py` is its offline twin).
+
 ## 2. Run the mandatory gates in order
 
 | Order | Gate ID | Exit evidence |

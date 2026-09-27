@@ -148,6 +148,7 @@ identities, so their citations are redirected, not rewritten.
 - [Problem-to-bound case audit](research/problem_bound_case_audit.md)
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
+- [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
 - [Representative trajectory analysis, 2026-09-05](research/representative_trajectory_analysis_2026-09-05.md)
 

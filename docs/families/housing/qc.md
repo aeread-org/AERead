@@ -120,6 +120,20 @@ varies, routes follow seat assignments, focal rotations preserve world and
 background seats, role accounting reconciles, replay is exact, and incomplete
 opponent panels cannot enter a rank.
 
+### Strata
+
+Market difficulty and the opponent model are crossed with every world, so they
+triple and double the cells, and neither changes the model contrast on the
+30-world confirmatory. Difficulty separated DeepSeek and GLM as tenants
+on the 8-world panels V23 and V26 and did not replicate on the 30-world
+confirmatory (p = 0.27 tenants, 0.082 landlords); the within-case score cannot
+move with difficulty, being scaled to each market's bound. The opponent reads
+within noise on the pooled contrast while moving each market by about 0.08 in
+either direction (D-27). Future packs assign one difficulty per world, balanced,
+after the D-27 estimand decision, and report the opponent pooled. The sensitivity
+panels with 1 to 4 worlds cannot test any split. See the
+[strata audit](../../research/strata_audit_2026-09.md).
+
 ## 5. Confirmatory reliability and publication
 
 Use the world as the independent unit. Complete a predeclared paired variance
