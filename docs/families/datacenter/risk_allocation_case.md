@@ -813,6 +813,34 @@ off at its 32,000-token limit, and two right after firms broke off, one acceptin
 withdrawn offer in a world where all three firms broke off after the first turn. The
 answer text still names the withdrawn offer (DC-D-31).
 
+**The sized run.** `datacenter_risk_allocation_tender_eval_v1` (plan `88e4c0bb179c`, 440
+cells, $1.32; bundle under `evidence/datacenter_development/`): 60 fresh worlds
+(`tender_eval_v1`, seeds disjoint from the pilot's, two and a half times its quotas), one
+seed, Gemini at default reasoning on the first two worlds of each world type and
+situation (20), and a firm that breaks off now says so and names no offer (DC-D-31).
+Every cell sealed and replayed; the reference graded zero on all 60.
+
+| client | valid | decision regret [95% CI] | signed with a best firm | firm chosen | contract | price over last-round price | bidders per turn |
+|---|---|---|---|---|---|---|---|
+| Gemini 3.8 Flash, low effort | 60/60 | 446 [408, 486] | 30 of 50 | 101 | 94 | 249 | 2.0 |
+| GLM 5.3 Flash, low effort | 54/60 | 353 [302, 401] | 26 of 44 | 56 | 66 | 184 | 2.6 |
+| Gemini 3.8 Flash, default reasoning | 20/20 | 351 [286, 420] | 10 of 16 | 59 | 63 | 203 | 2.3 |
+| reference (control) | 60/60 | 0 | 44 of 50 | 6 | 0 | 7 | 1.0 |
+
+The declared contrast, GLM minus Gemini at low effort: −99 [−144, −52] on 54 worlds,
+the pilot's −113 [−192, −41] reproduced on worlds it never saw. GLM lost six episodes
+(five replies cut off at its 32,000-token limit, one provider rejection; DC-O-16);
+scored at GLM's worst regret seen they would leave the difference at −45. Gemini's
+default reasoning lowers its regret by 114 [−191, −54] on 20 worlds, less than in the
+pilot's 10. Where each model's cost comes from is the pilot's picture: price first
+(accepting a firm's first answer rather than pressing it to its floor), then the
+firm and the contract; Gemini at low effort pays about twice GLM's cost of choosing the
+wrong firm (101 against 56). No invalid move followed a break-off (two of 24 GLM cells in
+the pilot). Lower controls: the lowest bid as it stands 609, every protection from every
+firm 486, haggling the lowest bid 355, walking 270. GLM at low effort scores what
+haggling the lowest bid scores; Gemini at low effort scores what asking every firm for
+every protection scores.
+
 ## Before a claim
 
 1. **Kernel lane.** PR #219 merged after a non-author review.

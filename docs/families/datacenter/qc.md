@@ -677,4 +677,9 @@ controls under the same kernel path (390 to 611). Gate 5 not confirmatory:
 Gemini at low effort of −113 [−192, −41] on 21 worlds and sizes a later run from the
 per-world spread (51 worlds at one seed for ±50); two of GLM's three invalid episodes
 follow a break-off the answer text does not say withdrew the offer (DC-D-31).
+`datacenter_risk_allocation_tender_eval_v1` (440 cells, $1.32), sized from the pilot on 60
+fresh worlds with DC-D-31 fixed, reports GLM minus Gemini at low effort of −99 [−144, −52]
+on 54 worlds and Gemini default minus low effort of −114 [−191, −54] on 20; GLM lost six
+episodes to its output limit and one provider rejection (DC-O-16). Descriptive, not
+confirmatory: one pack, no pre-registration beyond the frozen plan.
 
