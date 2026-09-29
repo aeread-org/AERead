@@ -1,0 +1,5485 @@
+{
+  "accounting_check": {
+    "contribution_statement": "one contribution row per unresolved cell, equal to its part",
+    "max_abs_contribution_residual": 0.0,
+    "max_abs_residual_per_cell": 0.0,
+    "statement": "each unresolved cell is exactly one part at minus 100 points; resolved cells are zero"
+  },
+  "amount_label": "points",
+  "bootstrap": null,
+  "cell_parts": [
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ee8a7abe889ab7031ba0394afc8b812b3ff63967d263cba57b8d73b7960de52e",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9ebb0c654fd23c9be7aef0d296fe20cdb684f7d4d989a066930128a71cfe1540",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "cdfcb255682283061a186987cc2985c9ac385b4cdab4e2ca82e0b869009bca46",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "028ae9596d029e7533dd2f32a3d46633f3155e963ae0b2ba8ada0f7825966460",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "40725d73173a1c7798a01fc070b606cbc2a8fa620b087fe2c2a0f22322122ee6",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f214605f3d686caf858ace5fa94b500c860b67dfa556bd8cb259ffd806cb8c47",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "edcbd4147332dcd0be9b265e561d821b6cea5c4bba1389e380dc0d4164ba5dfb",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "36fe77c52407eae477cbc3cc57746e1dd5f66bff4cf67cffab7f984f90eac7f1",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "868b754b7d07ce3dceb0e269d6862f8c4bd555750da9643c307a8a5b722b3ea3",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3ab57955550e12d4041d93f595054dfaf79dde02204f57fac9b257f2b5c9bc1f",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "853ddc735e45135f3db35dd1114ddcb8df4668d58fc6c1e62de8ad319a39f189",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3c5657e69a97fe120232aac57b92bfc2cf8b298fd537cad1dfca51ef9d3767f2",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "854b7bfa6b426ca7c9c58d6b01fa3ef6a0d6a3cf0d43923b709c130490e624be",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ee112ee40de3c532ad9d61c13c10f3f854e795e5d24e79b2ee0ba02d466e0873",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "bbddb318fb1018a591793e48d483b23cb9953a04e70d2cfa5bd7f4eb7e0f77a1",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0410660f3c0d1a20898b33ede0717979db357ec5f8b01d32a9996c681f68a5de",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9054dde181e06705f18c8f18f412f4820b8d88a99b7120f904ce83a821cfb3db",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4e43c868570df13fbb2aa83755cf191f7bf8ae8d1a88cbf59774b302131a0c96",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "60949bd96d532a1301020f285f05742ca7e98791a61d063554f5f0ce0fd76230",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c6230dec8a64f37517570530f30213666f80d7a67b1bc6ef333ee2f6f6e2b08f",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c9a082db1a5d5ad128a8dacf15ae4fea1b85753fc6dac64b8ebd851eb92aea3c",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8850b627c9ea1132d0990cc747b5dd52a2fd856aebcb3e92097f16c9b0155043",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "87c2f45411a7cfc1f5e1b8a84dc09e744004fdad7364f9ffeb0a5297ad5dd8ae",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "aa41a805345a62f6a7528abceaeb859ce85ebae1e32373b5ee43cfd88cbfbb9e",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "077d6c6e21bbabbcbbbb84a6bb3f67558b3959a5989859ce2b1b73d984a40a4e",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "05c89f83ba065d1b3b2b36917e39b82d5c15a3baee355394338ddd2d570b0da3",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9612be8f33a2c724998158c8800d44dbb75b296ec735ca3c885395dd3cec6ddf",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "15956ab6e5eb3bffc319d5f3b6161217e2106c66a15c0910ced57f3ed7d416ad",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "429ec9828e0e261c795f04cbc86dec6004d53da063f443d3816a612921ffa28c",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f2c9a4dadb5aedbb0753f1848740ad215f294e4a1e8d08469370215cc0c50fee",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "978ac0181d2fa0f965a33f1da97a12442d4499f51e54e40c75adeed70c769563",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "419b816ddb191531355be6356400c6f75b2d219bf9f18fa371b8f29c41a7eb53",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "bc14672fc75a38591cc68b867afb6f936c2531d4fc26fdded8dc7d81d886584d",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "068a9321b0b432fd5c0281f130da7465613512a6f34ba889fe25cd26979d2ccf",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "350569de67d06bd9ca0463806e09c94e2aa92039921cac64f73c46db6def7e5a",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "20b749ef23d9c5e630d492170ea61a7d509ecb2996d2c21616f3fb3ebb876a68",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3eebd35af3ada590ba46f04465daf334fed0ec7af6ef056e8f6d9a4e52bafc70",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8270c077847ea9ba7b77e6ef92f9e7fe6cc7b78b5f2442e22c91f51aeb6a3644",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4aa7fcfa3b91b185fc98cbec885e7839d2f4b209c017df128ab797be184cc865",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f2aa71f9a8c67bc92c5a76f5688b437f2917aa6a155c6918d581eabda0ecf502",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b43b22d1bf63b19250559e8dbcf100edad3e08988dd3cf89fda439d6d8f1a8af",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9b19d0104a7d41fc474ac74d4c37b0f7ce3837ffdae9a56d2efbb40c2017127d",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8d6408a8664ed295a8dee53ce42a78e8f900d3b963b17573034236c3be27c3b2",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ba33a6a978a02754674de79f5638a87ab868b3327dd735994ec2bfa0f3fcd99a",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "786e1479d6e519c330d889c56bece191d43c1bf6161aec598b3a16e9885dcebb",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0fa7c6c4ad17e3e5822da42e08b4a20dc5736690228e49e9a62a3d4282f75d94",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4b037861161c6a593bab2f5b9761c9a997265e70e5542dea7de985e7da16db9a",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "76782fcb2fb10a68745aedd043406e6fac4d0ff1c09d4298be24721e0977087e",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c3908eea3ed5eb78fb9b23483ca9efeb004edb23c113a8f37e41e261001cd0cb",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "221d7f9fefe9047465c8bca84e7e6bb992ea6f7999fb4640c6be902b3b272c43",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "70932a280c3e8e3edfea8bb2eeb8278b0bb10604284d7c5e46debbcd61a9f54f",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b6c92ac6eb052f2ea5043d8623f47e0315bd4b34447b766625e0248548aec232",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8cf16e88d4696b8c9c1b5d77b792df962a5f57d64cfef1a261bf33a4c880a3c6",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e67d3567e7eb1a7a834635a87447d34c9b9f2afa83f41fa476a67bb194d66c6b",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d1f3b2689bfbd867568ace4583f2114b105adc241a5ba95f55c5c7991b91bea0",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d8fa0fa0806e5c3fa35152df418a5477a7be66f23b8a365a24e78c168783daab",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6c33e38678dda8df5b42d5280d5ef5c7da30ae9852335d009f97a4b80ad3c21c",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9f9260b71887508a0430a8a4f91427af92f43ddaa1f39ccfab067e0d510790e1",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5a4e02d98d28549a0f42d8d2a449431cfac2c599f32c10562e81dc24b55c3c60",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5ff0fd028b76ee7b713b49db26f09ed0afa4906b4d84774e56354af93aefbaa3",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "32de7201c3f85cefaa836444b91867521c4acfe33a3f8a0fea8b400760952121",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1433689fd76cfab8376ff6eab024ad5c396ac6b440bd0012155a99a4c5a20f74",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a6e7a05fd5f22edcf552c3dbedbe671bbc56308fa4d5a746fe065552bc1ef72b",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "7b71ea28e7403880a5ec827a940ba304b1aa0f9b06c5156cdf53986b6a1ffe4a",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5f24a0520242eac4de58d16d6552a141448ae1c0e5de99596fe2700e39a3bd45",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "519896e85f5b2e132fef4c0c6ebc7cb9a188cf66c0559c7ea835e5465c3e7a4a",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "df8486daa5b35c8f24c7d3cdf9503b5d13d66f173b718ad23c7a8b18e639ae35",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ec1a09b5ac8ea9b21d1bda6ce7a89ae8dbbef4a0129e053311bf40be5ad2539d",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f4f3a0106aac34093469e876dbb31caec81e3c0c5db722632dba636e83e8d17e",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e16133625cbf37ba44ce378c15db9b978211cc63bef0792baa9b20aded5da576",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b22e62df498d964522fcb6c132ddbb4e2ce997f8ec1179e96811333ebf716760",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "715a69afde1e38827a652bdf783e575c0666d979bed368d5f79dba9267963f8c",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6de23fadb96002643b76b6996b3dc68f53bef07f1d235d644bac0b7cc5aca297",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "2a4c18c4424fef5b434330498db036247aea38a7ccc2a2f99b40095e769882d7",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "55d36f00faba9f79e63050194490be8e1ede7cd50c0bff7072dd2c9f251d0239",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3aa7e55c056f643c92b5074865de217abe4c938ee54f2b811a854fcb220a9cfe",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "612c2a838af0291b988da9378eb8470a785ff572df9ca70dffa65947e0c34671",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1019ce58ba89ee4783db5b3ff9bd6afa32be8b0bf071a4614783db118ecda552",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6ca4fcce1a24e44d0b86943d5d4ecdcc989f198e02910a70390aa2138fb2dc87",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -100.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0d801f6db05107b484e14250d41e44d91c25e23e2338e1897c912998c5a752db",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0bbcfda71fb18aae23a021cfaef978ffea44698550dec48505b7b99ddbaf96d5",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a1e4197e80aefb1f50aa3ab304f82257554c8dc12f11ef1cd41e2801c4df3102",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "cf56548a7588a272c79b635b4de622b3b95d9a0ff258512c8c1e641dddf796bf",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "51db074a66ac8433afb42413382e3a4dec3c6f993b4be55665d32f0e16f335a6",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e021988215083ab3adcee89e7fb13ba10a71891803b91cb9510dfdfbca4c42c1",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "103126cad34150397b90b2ee182953f6249591d55caad0c0e5fb9606269dca6a",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a3f7da20b0b5093554e6e4ab22a593cabf0644ec1a452d1d8023e258bbce7952",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "aa8acc77b557268b15e416320ccd294cb6652fd81c9c92dfdc69d2d91a87fe5f",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f099626861632b1147ce6ad7419e2c263d1bae880c9270930d555d7d2d456883",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ee0de8cde87d365cfb69e9b359de215c270cb747cf4584ee1c9e9a5de309fda0",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e747f44e1b9f83b2f81a3fde81258539c7ab47c75c0da0975766b2ebcef60e5b",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0bda4eff2ceab4359e25fc86ff88831a2d1f0fad93f0a447d012519ab5f71674",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "eccdb3abae776440ea48835966c03d7ad49829b42ced1cfe1997e8f12aa96607",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a41cda58743a93d867464fc6f7f0c5f39182cf0ca534da1b06b32aef8587b460",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a8b59317fd7c9e073e7cc7c3bdf5a8e34db5016fb762f5f699dd4de4ecdf0961",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6eeaaa003b9381db8c6f15f88c47060f87220a295bf51163fbce2080a30bf060",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5b052845852d710e113d85a791a1ac5cba127455860342032cf70f440fd123ef",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f523c4085a4318e82886190a1ad5dd53b84dd98e4d030c9af4525e1c15782aa7",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "922ff241918fac13e6802cd51df6617af35c176968b81e8dd046ac2f779e5efb",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": -100.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "556780c89dff8e03ce479b7e6d1c7151b83bf2eb141db6eff7c5bccf7dc687e0",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d30ec00c1a432b6b309f6683eed463a2a8fcda00007ac19d89f6af7e8ad10b7e",
+      "replicate_index": 0,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "fea2308377d5eaa5a222ec87d86af94f650e645a51677ba35620d4a4a257f689",
+      "replicate_index": 1,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "26cbc388fe41c286a823de2fac997f5186a81178d80af2897a7d0db10aa354e8",
+      "replicate_index": 2,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "05d228d56e2dbb51417644c809a2774a56899f8cbcf554671b91e94704303319",
+      "replicate_index": 4,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "fcf4092aa3782c66aee2dbefe8d500a5ce8eab2d20672ed8c00deb10dc76723d",
+      "replicate_index": 5,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e3495f114df97862c4d60e1a6fe73ec88c9c6cedf45f4602f716acb783dc7d86",
+      "replicate_index": 7,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ec6dca2968965da5032521e1f2ac1f1102f34fb44ecb80f86a035568d76f6090",
+      "replicate_index": 8,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "02cdfe070ba75029d0d6c22bfaa84ab788ac90c687848874bb5c26f54fa3b8a4",
+      "replicate_index": 9,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5d9f920cf4f5a84f80ed6b03630b7c368d7df38e3709b6384b1360b1438c7416",
+      "replicate_index": 10,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "78d8da18db2824ba740feb0f63f7f3ad8afc892da90c77dc3837ae01cb9160e7",
+      "replicate_index": 13,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9efc994267217351e7a664226905559fcf9f2c48014478903e842ac16c489dbf",
+      "replicate_index": 14,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3277170355f027bb8d2cb67a899acd9103ff07ce4f63498c1dcee99060a8fde8",
+      "replicate_index": 15,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b758e9283f7f0c51419f8a6a15bcf770b866d08080febff81a50374d07456e19",
+      "replicate_index": 16,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f2860f0f0c180874644785d3dbcf67e7dfcffcc7c6449c35d527d5c40f2a8299",
+      "replicate_index": 17,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "277a05988149a55c74f39992adef40a2ef80241887d062446369990fdec0e7a8",
+      "replicate_index": 19,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "cee041bdb27a89686fa518693e6971c24306164b7a1ce81266d147fcd59836b6",
+      "replicate_index": 20,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1193ab6ac0609b3602d6f01272d13fea2716ee67910f4f9d5fd6d9ef846bb12d",
+      "replicate_index": 23,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "baa33cfd2947c0aea75ae6e63c3b637a28888d79a2789537ee0110087e5fe930",
+      "replicate_index": 24,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ba9adfecebfacf2fd41c2473dd3cc13ba07ea29e139dde1caf214944e97bb775",
+      "replicate_index": 27,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6fa23c3afbc4c204e8c29c8c0a7659324bce93891ae89a7504e45245c2e77f6f",
+      "replicate_index": 28,
+      "side": "left",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "648d4c842ff1abc29753653b21da74ffe17b0fa0955fda742831a48197d4e04e",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "41652ae7bc7b8b5bf9fb96401d6a78d9c9c2baf2ece00a61fcaae2b77abfeca4",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a4e65b05ba9e7b4b477cee7ee73a6c8a2c638f9623da76c442f401a6b5982ae5",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1a8ce4ea4fd28cedf796c39e3c7b02d542eec7909daa72507c4acde1edbe41ae",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0422ed1781cfc4b6082558b5aee08eaf0ecb219de6cf2e5b0c0ead304267e1b0",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3324618b5846ae1461ced5a059cf579b1268572f4b6b5a517e911c276c2a1aa5",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "2abcf862b43c1e92a014856b61793e999172406c5999d8110d3e0804316fea80",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6ce5f1c37c3210976aa28024d40cb859f307d1312b13850560bfa66ed5451ae7",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0374b41e3322b7c2ff01c01bb34a558d034a21509677563d4360e639a4d7f009",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "fd7bb9475295a853530f44a900476346747979816dfc46bdb3399d66c4e04349",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4416d9497e6629e029fd2bf9a9523c20488ed7b54d68c8ae26184db489e2e259",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d6bf2e2005e08654dd7062a80546d7d0ab3bb389ff0460e6cd9c9f19780b0a90",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "87679dd3f1d57b3b1fdfe3bd924b077e7fe7a3a99b0b64f48ad5d45d7aa75403",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "88c5104374d71e9b82ca3017c9990b1d7c4450cb543b3dbe7a1ebcdddf2c449a",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b661bd86a784490d2d1d97fca9552d1b7cb02c0f685e4d1d0db1e4bd32b97ed6",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e94ebf63224a404fcf4e8f01e4f160afb100ddfd356a539f0ef3bad3180e5493",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "46781775769703c9bd81f3369c275a478f7976c8ae5e6256afce0d4097b71430",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "22aba3e56c70617996330548803c670edf8c8807f42a0b9706034a757aba308d",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b48f035d27188c0c30891811a2b13a67b67dc0ae1a64284ec8c1ebc77c58acc4",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a541a99c7a81527855094438b69b7843ddb5dd4126dea311fb8a98afc235d269",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "boundary_window",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "da23c5ce9d62e1038de9d1b08448de61148fb1fbb0b00b737ab3a406b59682b9",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3306c0113d07bdaf8c78bbb245425fe82f255a86ba6b857e3f4d0f4e24d8a349",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "91ca421c94d8a9a0b6aec0446415fed65c94f5cfacb0bb059d2df907bf73851e",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3e41e233e96cab083e73a45ae9408703f6ecb2c48f080f294b204ccf4e5c2c4f",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3d728efe7112ec937ab15c2483c526821399f889ee3bce22a9aa40a662f4ea91",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ee5fe52df5a1f317bc3e0b05582452adfa92d3f224cf02c515f78aadeb4a85a6",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "fa1ecb5a2325a9e87023563cf5ba2f7c415e866f65be340e4a7453e3f2370bb2",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8b6093113712dabab8972d7bb78ca7cd6101ac1f15c4b92571a8217e434a2fae",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4a40cb48b9b2b08b923929f2c254ff7a235eef0bbe928a279d41189e6a05fe52",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "cc0890ab04488d1115a1eda89399be3cb677054c27b6c8c83a7cd2285380871e",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1f447a61f4bb2d7603de46557b86faf1111937a77fafe692bb9e38f630418200",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e981fd7db40c18f2028e74b2d78ce16e0e1ec8ea8b9148be27e0f4120372e6aa",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "195942728b9587b4289c8af29ac7da5203a4ab96e7864c0dc866f835bdf5f46f",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "81b5eae41c3cfb53d53f6f9e817192386a384ca9981ef9551e87bda3c0aae5a5",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "47dc95898f3aaca5e84a249df861654b06be6e81489df16f5ca7f14a891c1a6c",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "da8725e581744de6febce8b8ac51f4221e5caf6292f018bfa88b22a401265333",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4587fe0fddac48a197678efa3b1427aaf7dd9c0003a33f93b2c1e7005dd1587b",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6110bbfc338f5fc1d5c1e31dbe447ba83e7c6cc563035881760dec0331aa85e3",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9cfdc6877254c4a7f65cfc617561b5b31f158c63604fc94c8f04280fda369d67",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b1c93504dccebb52e879f608859046d0ae33a6b8098e4763ee1be1236ac1b148",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "conflicting_claim",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4c246e4d5c3aaf8f071445121c9391add9ed6cd8ab6a72de04892699eb291c87",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "492461f87a7f5f139ce5e72e35bdb5c3635512039caa739e91488e16ee90b186",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6c577faba48df8a4469fb5bf5266d9b86643335c421864d858455c56fda0157e",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "200079967c4b89112953a1bfe3fe50c2ed24ab957146fee77685e649c1c3fc24",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "dbcc2028a7223bbc0f226cd6ca4a34c97cb0544d673208b7463da0dfa8d81fbc",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e8dbe25a147e6474bd6c928bef1559900bdcf6c878f1e1e41dcdb877c36a965b",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "28faa17a37b87cda3a8a82d433db2ee04c065f8c39de30fa68eb1b6af45eaa91",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6cfeea371c3101bd3c656d7e977bc2d603fe0641329b4d57831d3e74813b929c",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "591a6b284b834bec436e3cd22d0df4a735395661496b9dc770eef3720fa9d567",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "93e13453c51551bd6621a92a86f5b57b8bdfa53299aafaf790d01bf66f6545ed",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9d61ab4e34941d59ff183abb17b581f04b5cf3dc5b9ef4f0972b88e32f105fd4",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d3e861be70c2311788592ebd3573411a32fdf3043dc1fd4943e8143c990e71fe",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0636ca0818d112e3a86c002372f408edf6150d11317c5a32b1b03311a5b1aab5",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1695cca684c0c985a9d065d4dbfb90652405315d6186613e3ee8de24052357d8",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "22f1593e4e7a86b92359b89e5ea94e89759d8445ae922b982b687670a4baf797",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4cfc7f8512d2e9843a8d804848c30ebe26aa00eaaa61281549fe710d7c8c0be3",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "63bf9db4e9c0fff618ba42d12946e73ada398667672fe8992cee0ecd1f3f0565",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1fcf2cb3f73f41a388ecbcb14c4c950bcd0c7403c1b0454e024e9c49c50b8f00",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0386053dcd61b5f3af641149a91f2b09a162781f01bb904d9bd7f0859348fecc",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5e4b169024d0aa2d8d8085821fa1316a4a8fce574ef2b1520648bdd8a65be55f",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "full_refund",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8cef23390011a0a88a68a8082296a46563f5d2d54ac5542f3022b63978ca9b98",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1276846a06514a901f916a964559067b3fe1b1cbb0e80c81437fe4f84802855c",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "7ff20db619e5f38e16c31abd895f479adbe60d284223384833b3b461851e2a55",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1a40460911985e294bf6fcddcb61cccdccb5888cf17aaa16d3088557b198a2ea",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "54a83ead675eafc4ef9d09b00dc0228d91e5b747382c1bcc5a6f228f31372502",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "159613d6c0f40d44b891afface3d188d33ff1306586a8e7b8b0c780bdf503dcb",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ba63ff244244d88aab55b4e6f09560953ed0aaa253df10fbe40b7655eb7ccb53",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "469b08594ce406de91f9002430704fca51365bf47fec9c47f7ea86852e8837d6",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "dead420ea9da834cdb62422c9216ba819ed1764c22775baf92b72ffcb6c0a441",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ced38bfe874630bc66c9fdb574b5159064b238ec5a3921146824aa6753793dd3",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "da76d40677bf867ca6dd45c777cc4dfea1f6c9c7c75feb61c29a9d41fda98d63",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "fa3161ff722d19c568301372406d4c42a8a6f2ad10625de25c959c03afa79d1f",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "226eb894118903fe30ca0a7bd1d4d814d055f604122fcff27eea959c62a16d72",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5f42f5fbab25f04a3d7aaafabd49358e7572407be191073da7bc3be7dcfa6eec",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "133c65f74ff53f52bc4855485fac232a31f6ebfa744a1867ef6f4033b44993f0",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "06bf2ce1f8ec81221b9a13cd2b8d06b72094a2e9aea44d855ee1c7860d9e270f",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "175fac337c5b8dfaab7847d199213bb1ad0d29b19930f971e3f21d5ea2c4ff3e",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "ec092f17987584c1d876c679e53ea76f146ef331275cc69098ef3727cfc32068",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e980fc405fc5984ccf32d41e21d2c7bf535d9bb90d641a96c2e09488c17b325f",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c5438e51e59ed8ce44f0773c9b8662ec476a0359ffca7546312a34b24ba9bcdf",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "liquid_damage_denial",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f1b44e259bd1d77d1d0a4f48d6ede4b2f82f120d2f2988fdf891cec50362e5ac",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "dc76ab23e045b37ac05dfd6b7031e2ea60bd3bf176e11c5eadadb311f20e45cc",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b2f1ee4254509dc88feb930c07a3b6f2ad8b0db4dc45698e2ba1fb4e26ccc1a1",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "83181dfe654f72844b6397f80e2946ea3d9560b39dc26e5a8b107c990a43cd98",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b4877016c1cd30e1c67010f61d3c288bad4b74fe5c2e8f70cd6dcf8d890b5b29",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "46ea2cea79dec14cbbd007aeedef7b00bc28727e92909f1afd3bcfe62f255d4c",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "f327767f2556a43280c37994682bfa6aa5663c8b3db44de4fdbcf980bf1d505b",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "4224b965bda932f285b3d8481bee3f0a4b4b2f2cadebcc8ebd490942308ceebf",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b37326e259593963cd3960f175cc641e26c9b511ab861221be17ee2a141ac332",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "23cc53dff1b919e65f80e5772a57b4062cd5424fa102c552afb05fe36558e703",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "5ab6488242aa479415e8d2e1d0d95b0a934d2aea093a9d586c3f99bc53b5f7e8",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0bc68dfa0a96d25854db4a35de8c2409f8268cc9f2d1ccaf5dbc3fc05eeb6eaa",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "56c638631a48d47d86f4558c5263f3bcb9693567463beb7526585ab5c2b1234d",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a89defcd53b7ff264bb60bc7af905fecd6d2a2d1604dec07ed876bb80efa6c07",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "3358d52a0b4bfa0da3732169d803b3bc5dbad0358ec876fe478c025952a2a30f",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "01f72862a87b8de8dd10543fa3f8a784924e5cd83cd7a13824dd7238471df4bb",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "6fd87d173daf2fd2db84efa267ddaec4539431e16361b58c2a267497977588e0",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "13b62a882423da8e287870319137f40b4823213c24dd2170021cc2064a936d80",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "7d4ccd9ab076ba9b89065a87775c54044c3197f5214ce85aaecb0ed04dc0ac52",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "809ad28dfa831db052bb8d13f57e38ca4819b17eb13d30f7f52b6bada107955a",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "denial due",
+      "unit": "missing_evidence",
+      "world_seed": 28
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "94de865cd36b8620792d726dbc49c35d97154dfbb5d81d7092d8cee2a75ea554",
+      "replicate_index": 0,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 0
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "e95f15a801805e49552275f0840154b08395d2bae79dd44c0896996ab0754eac",
+      "replicate_index": 1,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 1
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "b48cf06a67d771f18bbc05acc19b5cb6d1c8474b07e7833097a1ae6046a39836",
+      "replicate_index": 2,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 2
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "16e1a150119661e26129dea75030b106c48b85a4b51c93834732b1f463fc2f7e",
+      "replicate_index": 4,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 4
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "60d5007d93c16962cfef35f4b4d664c691a1911818979141b1678e3961084368",
+      "replicate_index": 5,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 5
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "9b22baa2a3447a3771d5062189f0d2a5afe82b3a19261d538da401ccacc2c4ec",
+      "replicate_index": 7,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 7
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a5d43f501e2191508c87af9b9b401481653f593eafbd49dff1dad1db491a7d37",
+      "replicate_index": 8,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 8
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "d198e1996c85f2b3cf52cc4a0562d2f02dfc9d63bbcfef0b819d3ffb09dfd6e7",
+      "replicate_index": 9,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 9
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "0cd97bfd42d1fbaa9e4c292d5c2304c947984fc9f66d959ebe0af247d535bf28",
+      "replicate_index": 10,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 10
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "adf4dba7c22c744af8e59563db78261dc26386acd1fa1b99ff0da92feda6af0a",
+      "replicate_index": 13,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 13
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "29346545679603a3b787fe2a4777f843cae5cad582f4ca392479cd2b4f993d7d",
+      "replicate_index": 14,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 14
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "1576e34a5c9462406ac0c169062e0431513c75cbd5564529c217eb9f4e3b097b",
+      "replicate_index": 15,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 15
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "a5629747026e69c887de72c05b238a2ae62c80dccdc3013c3ac6359ad5e6b925",
+      "replicate_index": 16,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 16
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "59564b5d68b7ebc2ac03542152ae925744b31650a1cfa7a997fa9942b9d3b600",
+      "replicate_index": 17,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 17
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "7a95f3da5a1b1bf021325935d14bb06d5ac674f16e8e825f12bad70c2d0cc67a",
+      "replicate_index": 19,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 19
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c6df22a0e9d93599635cc29f64790cbdd6b0047cfa84d1ab00dae6c687fcd782",
+      "replicate_index": 20,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 20
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "37f8daed8121d30fc6837c40e07f6b9856cb8e05cca15292a88ed88d647f1386",
+      "replicate_index": 23,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 23
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "8517c123149dd96b5ea91690f01ed6475e73b61dea939d1e4d218962f3810b4d",
+      "replicate_index": 24,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 24
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "c9c426d3042de789607eface998ab23ef48015828f83233978520dfd7dcb4aae",
+      "replicate_index": 27,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 27
+    },
+    {
+      "campaign_id": "refund_v2_1_canonical_scripted_20_2026-09-12",
+      "parts": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "receipt_sha256": "57aa94e2c91469b2d1b4f2294a602eb21239985a6853efbff461c8fc0f6840b7",
+      "replicate_index": 28,
+      "side": "right",
+      "stratum": "refund due",
+      "unit": "partial_software",
+      "world_seed": 28
+    }
+  ],
+  "cells": {
+    "left": 120,
+    "right": 120
+  },
+  "claim_status": "descriptive_fixed_panel",
+  "class_heading": "failure class (judged against the answer key)",
+  "classes": [
+    {
+      "amount_basis": "share of cells, percentage points",
+      "amount_difference": 44.166667,
+      "amount_difference_ci": null,
+      "group": "procedure",
+      "key": "right_outcome_skipped_procedure",
+      "label": "decided before a required fact, and the decision matched the answer key",
+      "left_amount_per_market": 44.166667,
+      "left_count": 53,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "share of cells, percentage points",
+      "amount_difference": 0.0,
+      "amount_difference_ci": null,
+      "group": "outcome",
+      "key": "wrong_outcome_skipped_procedure",
+      "label": "decided before a required fact, and the decision contradicted the answer key",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "share of cells, percentage points",
+      "amount_difference": 0.0,
+      "amount_difference_ci": null,
+      "group": "procedure",
+      "key": "no_decision_reached",
+      "label": "the case ended on a rejected fact request before any decision",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "share of cells, percentage points",
+      "amount_difference": 5.833333,
+      "amount_difference_ci": null,
+      "group": "format",
+      "key": "right_outcome_format_only",
+      "label": "a correct denial failed only on method null against \"none\"",
+      "left_amount_per_market": 5.833333,
+      "left_count": 7,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    },
+    {
+      "amount_basis": "share of cells, percentage points",
+      "amount_difference": 0.0,
+      "amount_difference_ci": null,
+      "group": "outcome",
+      "key": "wrong_outcome",
+      "label": "a completed proposal with the wrong decision, amount or method",
+      "left_amount_per_market": 0.0,
+      "left_count": 0,
+      "right_amount_per_market": 0.0,
+      "right_count": 0
+    }
+  ],
+  "components": [
+    {
+      "description": "The policy seat approved or denied before every required fact was revealed; the environment rejects the decision and the case ends unresolved.",
+      "difference": -44.166667,
+      "difference_ci": null,
+      "group": "procedure",
+      "key": "decided_before_required_facts",
+      "label": "decided before a required fact",
+      "left": -44.166667,
+      "right": 0.0
+    },
+    {
+      "description": "The policy seat requested a fact already revealed; the environment rejects the request and the case ends before any decision.",
+      "difference": 0.0,
+      "difference_ci": null,
+      "group": "procedure",
+      "key": "re_requested_known_fact",
+      "label": "asked again for a known fact",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "description": "The policy seat requested a field the case does not define; the environment rejects it and the case ends before any decision.",
+      "difference": 0.0,
+      "difference_ci": null,
+      "group": "procedure",
+      "key": "requested_unknown_fact",
+      "label": "asked for a fact the case lacks",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "description": "A denial the answer key agrees with, written with method null where the key says \"none\".",
+      "difference": -5.833333,
+      "difference_ci": null,
+      "group": "format",
+      "key": "denial_method_null",
+      "label": "correct denial, method null",
+      "left": -5.833333,
+      "right": 0.0
+    },
+    {
+      "description": "A completed proposal that approves where the key denies, or denies where it approves.",
+      "difference": 0.0,
+      "difference_ci": null,
+      "group": "outcome",
+      "key": "wrong_decision",
+      "label": "wrong decision",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "description": "The right decision with an amount or method the key does not authorize.",
+      "difference": 0.0,
+      "difference_ci": null,
+      "group": "outcome",
+      "key": "wrong_amount_or_method",
+      "label": "wrong amount or method",
+      "left": 0.0,
+      "right": 0.0
+    },
+    {
+      "description": "The right proposal, but the payment was not executed exactly once as the key requires.",
+      "difference": 0.0,
+      "difference_ci": null,
+      "group": "outcome",
+      "key": "transaction_error",
+      "label": "transaction not as proposed",
+      "left": 0.0,
+      "right": 0.0
+    }
+  ],
+  "contributions": {
+    "fields": [
+      "side",
+      "campaign_id",
+      "receipt_sha256",
+      "world_seed",
+      "replicate_index",
+      "unit",
+      "step_index",
+      "phase_id",
+      "seat_id",
+      "component",
+      "amount",
+      "note"
+    ],
+    "rows": 60,
+    "table": "tables/contributions_deepseekv4flash.jsonl"
+  },
+  "direction": "higher",
+  "endpoint": "resolved: policy compliance and transaction correctness both pass",
+  "family": "refund",
+  "inferential_model_ranking_allowed": false,
+  "instances": [
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "8850b627c9ea1132d0990cc747b5dd52a2fd856aebcb3e92097f16c9b0155043",
+      "replicate_index": 1,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "conflicting_claim",
+      "world_seed": 1
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "87c2f45411a7cfc1f5e1b8a84dc09e744004fdad7364f9ffeb0a5297ad5dd8ae",
+      "replicate_index": 2,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "conflicting_claim",
+      "world_seed": 2
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "077d6c6e21bbabbcbbbb84a6bb3f67558b3959a5989859ce2b1b73d984a40a4e",
+      "replicate_index": 5,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "conflicting_claim",
+      "world_seed": 5
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "05c89f83ba065d1b3b2b36917e39b82d5c15a3baee355394338ddd2d570b0da3",
+      "replicate_index": 7,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "conflicting_claim",
+      "world_seed": 7
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "f2c9a4dadb5aedbb0753f1848740ad215f294e4a1e8d08469370215cc0c50fee",
+      "replicate_index": 13,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "conflicting_claim",
+      "world_seed": 13
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "715a69afde1e38827a652bdf783e575c0666d979bed368d5f79dba9267963f8c",
+      "replicate_index": 15,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "liquid_damage_denial",
+      "world_seed": 15
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_format_only",
+      "note": "denied as the answer key does, with method null where the key says \"none\"",
+      "phase_id": "policy_response",
+      "receipt_sha256": "0d801f6db05107b484e14250d41e44d91c25e23e2338e1897c912998c5a752db",
+      "replicate_index": 28,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 5,
+      "unit": "liquid_damage_denial",
+      "world_seed": 28
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "c9a082db1a5d5ad128a8dacf15ae4fea1b85753fc6dac64b8ebd851eb92aea3c",
+      "replicate_index": 0,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 0
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "aa41a805345a62f6a7528abceaeb859ce85ebae1e32373b5ee43cfd88cbfbb9e",
+      "replicate_index": 4,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 4
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "9612be8f33a2c724998158c8800d44dbb75b296ec735ca3c885395dd3cec6ddf",
+      "replicate_index": 8,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 8
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "15956ab6e5eb3bffc319d5f3b6161217e2106c66a15c0910ced57f3ed7d416ad",
+      "replicate_index": 9,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 9
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "429ec9828e0e261c795f04cbc86dec6004d53da063f443d3816a612921ffa28c",
+      "replicate_index": 10,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 10
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "978ac0181d2fa0f965a33f1da97a12442d4499f51e54e40c75adeed70c769563",
+      "replicate_index": 14,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 14
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "419b816ddb191531355be6356400c6f75b2d219bf9f18fa371b8f29c41a7eb53",
+      "replicate_index": 15,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 15
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "bc14672fc75a38591cc68b867afb6f936c2531d4fc26fdded8dc7d81d886584d",
+      "replicate_index": 16,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 16
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "068a9321b0b432fd5c0281f130da7465613512a6f34ba889fe25cd26979d2ccf",
+      "replicate_index": 17,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 17
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "350569de67d06bd9ca0463806e09c94e2aa92039921cac64f73c46db6def7e5a",
+      "replicate_index": 19,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 19
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "20b749ef23d9c5e630d492170ea61a7d509ecb2996d2c21616f3fb3ebb876a68",
+      "replicate_index": 20,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 20
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "3eebd35af3ada590ba46f04465daf334fed0ec7af6ef056e8f6d9a4e52bafc70",
+      "replicate_index": 23,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 23
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "8270c077847ea9ba7b77e6ef92f9e7fe6cc7b78b5f2442e22c91f51aeb6a3644",
+      "replicate_index": 24,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 24
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "4aa7fcfa3b91b185fc98cbec885e7839d2f4b209c017df128ab797be184cc865",
+      "replicate_index": 27,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 27
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "f2aa71f9a8c67bc92c5a76f5688b437f2917aa6a155c6918d581eabda0ecf502",
+      "replicate_index": 28,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "conflicting_claim",
+      "world_seed": 28
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "32de7201c3f85cefaa836444b91867521c4acfe33a3f8a0fea8b400760952121",
+      "replicate_index": 0,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 0
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "1433689fd76cfab8376ff6eab024ad5c396ac6b440bd0012155a99a4c5a20f74",
+      "replicate_index": 1,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 1
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "a6e7a05fd5f22edcf552c3dbedbe671bbc56308fa4d5a746fe065552bc1ef72b",
+      "replicate_index": 2,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 2
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "7b71ea28e7403880a5ec827a940ba304b1aa0f9b06c5156cdf53986b6a1ffe4a",
+      "replicate_index": 4,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 4
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "5f24a0520242eac4de58d16d6552a141448ae1c0e5de99596fe2700e39a3bd45",
+      "replicate_index": 5,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 5
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "519896e85f5b2e132fef4c0c6ebc7cb9a188cf66c0559c7ea835e5465c3e7a4a",
+      "replicate_index": 7,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 7
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "df8486daa5b35c8f24c7d3cdf9503b5d13d66f173b718ad23c7a8b18e639ae35",
+      "replicate_index": 8,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 8
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "ec1a09b5ac8ea9b21d1bda6ce7a89ae8dbbef4a0129e053311bf40be5ad2539d",
+      "replicate_index": 9,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 9
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "f4f3a0106aac34093469e876dbb31caec81e3c0c5db722632dba636e83e8d17e",
+      "replicate_index": 10,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 10
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "e16133625cbf37ba44ce378c15db9b978211cc63bef0792baa9b20aded5da576",
+      "replicate_index": 13,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 13
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "b22e62df498d964522fcb6c132ddbb4e2ce997f8ec1179e96811333ebf716760",
+      "replicate_index": 14,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 14
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "6de23fadb96002643b76b6996b3dc68f53bef07f1d235d644bac0b7cc5aca297",
+      "replicate_index": 16,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 16
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "2a4c18c4424fef5b434330498db036247aea38a7ccc2a2f99b40095e769882d7",
+      "replicate_index": 17,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 17
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "55d36f00faba9f79e63050194490be8e1ede7cd50c0bff7072dd2c9f251d0239",
+      "replicate_index": 19,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 19
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "3aa7e55c056f643c92b5074865de217abe4c938ee54f2b811a854fcb220a9cfe",
+      "replicate_index": 20,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 20
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "612c2a838af0291b988da9378eb8470a785ff572df9ca70dffa65947e0c34671",
+      "replicate_index": 23,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 23
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "1019ce58ba89ee4783db5b3ff9bd6afa32be8b0bf071a4614783db118ecda552",
+      "replicate_index": 24,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 24
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "6ca4fcce1a24e44d0b86943d5d4ecdcc989f198e02910a70390aa2138fb2dc87",
+      "replicate_index": 27,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "liquid_damage_denial",
+      "world_seed": 27
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "0bbcfda71fb18aae23a021cfaef978ffea44698550dec48505b7b99ddbaf96d5",
+      "replicate_index": 0,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 0
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "a1e4197e80aefb1f50aa3ab304f82257554c8dc12f11ef1cd41e2801c4df3102",
+      "replicate_index": 1,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 1
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "cf56548a7588a272c79b635b4de622b3b95d9a0ff258512c8c1e641dddf796bf",
+      "replicate_index": 2,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 2
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "51db074a66ac8433afb42413382e3a4dec3c6f993b4be55665d32f0e16f335a6",
+      "replicate_index": 4,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 4
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "e021988215083ab3adcee89e7fb13ba10a71891803b91cb9510dfdfbca4c42c1",
+      "replicate_index": 5,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 5
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "103126cad34150397b90b2ee182953f6249591d55caad0c0e5fb9606269dca6a",
+      "replicate_index": 7,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 7
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "a3f7da20b0b5093554e6e4ab22a593cabf0644ec1a452d1d8023e258bbce7952",
+      "replicate_index": 8,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 8
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "aa8acc77b557268b15e416320ccd294cb6652fd81c9c92dfdc69d2d91a87fe5f",
+      "replicate_index": 9,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 9
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "f099626861632b1147ce6ad7419e2c263d1bae880c9270930d555d7d2d456883",
+      "replicate_index": 10,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 10
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "ee0de8cde87d365cfb69e9b359de215c270cb747cf4584ee1c9e9a5de309fda0",
+      "replicate_index": 13,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 13
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "e747f44e1b9f83b2f81a3fde81258539c7ab47c75c0da0975766b2ebcef60e5b",
+      "replicate_index": 14,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 14
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "0bda4eff2ceab4359e25fc86ff88831a2d1f0fad93f0a447d012519ab5f71674",
+      "replicate_index": 15,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 15
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "eccdb3abae776440ea48835966c03d7ad49829b42ced1cfe1997e8f12aa96607",
+      "replicate_index": 16,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 16
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "a41cda58743a93d867464fc6f7f0c5f39182cf0ca534da1b06b32aef8587b460",
+      "replicate_index": 17,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 17
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "a8b59317fd7c9e073e7cc7c3bdf5a8e34db5016fb762f5f699dd4de4ecdf0961",
+      "replicate_index": 19,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 19
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "6eeaaa003b9381db8c6f15f88c47060f87220a295bf51163fbce2080a30bf060",
+      "replicate_index": 20,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 20
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "5b052845852d710e113d85a791a1ac5cba127455860342032cf70f440fd123ef",
+      "replicate_index": 23,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 23
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "f523c4085a4318e82886190a1ad5dd53b84dd98e4d030c9af4525e1c15782aa7",
+      "replicate_index": 24,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 24
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "922ff241918fac13e6802cd51df6617af35c176968b81e8dd046ac2f779e5efb",
+      "replicate_index": 27,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 27
+    },
+    {
+      "amount": -100.0,
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "class": "right_outcome_skipped_procedure",
+      "note": "deny before return_received was revealed; the answer key also says deny",
+      "phase_id": "policy_response",
+      "receipt_sha256": "556780c89dff8e03ce479b7e6d1c7151b83bf2eb141db6eff7c5bccf7dc687e0",
+      "replicate_index": 28,
+      "seat_id": "policy",
+      "side": "left",
+      "step_index": 3,
+      "unit": "missing_evidence",
+      "world_seed": 28
+    }
+  ],
+  "intervals": "none: the 20 seeds of a scenario repeat one case (RF-D-01), so there are six clusters, too few for an interval",
+  "left": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+  "left_model": "deepseek-v4-flash-0731",
+  "outcome_view": {
+    "left": {
+      "no_decision_reached": 0.0,
+      "resolved_as_scored": 50.0,
+      "right_outcome": 100.0,
+      "wrong_outcome": 0.0
+    },
+    "right": {
+      "no_decision_reached": 0.0,
+      "resolved_as_scored": 100.0,
+      "right_outcome": 100.0,
+      "wrong_outcome": 0.0
+    },
+    "statement": "resolved as scored, against reaching the answer key's decision and terms whatever the procedure or format"
+  },
+  "paired_worlds": 6,
+  "panel": [
+    {
+      "campaign_id": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+      "components": {
+        "decided_before_required_facts": -44.166667,
+        "denial_method_null": -5.833333,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "label": "deepseekv4flash",
+      "model": "deepseek-v4-flash-0731",
+      "outcome_view": {
+        "no_decision_reached": 0.0,
+        "resolved_as_scored": 50.0,
+        "right_outcome": 100.0,
+        "wrong_outcome": 0.0
+      },
+      "realized": -50.0
+    },
+    {
+      "campaign_id": "refund_v2_1_gemini25flashlite_controlled_2026-09-12",
+      "components": {
+        "decided_before_required_facts": 0.0,
+        "denial_method_null": -16.666667,
+        "re_requested_known_fact": -80.833333,
+        "requested_unknown_fact": -0.833333,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "label": "gemini25flashlite",
+      "model": "gemini-2.5-flash-lite",
+      "outcome_view": {
+        "no_decision_reached": 81.6667,
+        "resolved_as_scored": 1.6667,
+        "right_outcome": 18.3333,
+        "wrong_outcome": 0.0
+      },
+      "realized": -98.333333
+    },
+    {
+      "campaign_id": "refund_v2_1_gpt56luna_controlled_2026-09-12",
+      "components": {
+        "decided_before_required_facts": -15.0,
+        "denial_method_null": 0.0,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": -5.833333,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": 0.0
+      },
+      "label": "gpt56luna",
+      "model": "gpt-5.6-luna",
+      "outcome_view": {
+        "no_decision_reached": 5.8333,
+        "resolved_as_scored": 79.1667,
+        "right_outcome": 94.1667,
+        "wrong_outcome": 0.0
+      },
+      "realized": -20.833333
+    },
+    {
+      "campaign_id": "refund_v2_1_grok43_controlled_2026-09-12",
+      "components": {
+        "decided_before_required_facts": -29.166667,
+        "denial_method_null": -17.5,
+        "re_requested_known_fact": 0.0,
+        "requested_unknown_fact": 0.0,
+        "transaction_error": 0.0,
+        "wrong_amount_or_method": 0.0,
+        "wrong_decision": -0.833333
+      },
+      "label": "grok43",
+      "model": "grok-4.3",
+      "outcome_view": {
+        "no_decision_reached": 0.0,
+        "resolved_as_scored": 52.5,
+        "right_outcome": 99.1667,
+        "wrong_outcome": 0.8333
+      },
+      "realized": -47.5
+    }
+  ],
+  "per_label": "case",
+  "published_reasons": {
+    "left": {
+      "invalid_fact_request": 53,
+      "missing_proposal": 53,
+      "policy_terms_mismatch": 7,
+      "required_facts_missing": 53,
+      "transaction_not_exactly_once": 0
+    },
+    "reasons": [
+      "missing_proposal",
+      "invalid_fact_request",
+      "required_facts_missing",
+      "policy_terms_mismatch",
+      "transaction_not_exactly_once"
+    ],
+    "right": {
+      "invalid_fact_request": 0,
+      "missing_proposal": 0,
+      "policy_terms_mismatch": 0,
+      "required_facts_missing": 0,
+      "transaction_not_exactly_once": 0
+    }
+  },
+  "realized": {
+    "difference": -50.0,
+    "difference_ci": null,
+    "left": -50.0,
+    "right": 0.0
+  },
+  "reference_side": "right",
+  "right": "refund_v2_1_canonical_scripted_20_2026-09-12",
+  "right_label": "answer key",
+  "right_model": "answer key (the scripted canonical policy)",
+  "schema_version": "aeread.gap_decomposition/0.1",
+  "source_manifest_sha256": {
+    "refund_v2_1_canonical_scripted_20_2026-09-12": "6ba274974b53868a3ddcba6677ff2a7b9611b6e65d28eee1df2f5b5a10cf028f",
+    "refund_v2_1_deepseekv4flash_controlled_2026-09-12": "9b6fc43d255f0cbb5735ac43bcff885c6b4ee31e6725a1d31e237eb20d908018"
+  },
+  "title": "Why it falls short of the answer key",
+  "unit": "percentage points of cells resolved, averaged per case then over cases",
+  "unit_label": "case",
+  "winner_claim_allowed": false,
+  "world_kind": "refund_v2_1n"
+}
