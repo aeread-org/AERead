@@ -43,7 +43,18 @@ CONTRACT_SCHEMA_VERSION = "aeread.datacenter_world_campaign_contract/0.1"
 #: design digest no longer depends on the interpreter's float summation
 #: (DC-T-05: 72 x 0.20 was 14.39999999999998 on Python 3.10 and 14.4 on 3.13).
 #: 0.1 contracts keep the float sum so their sealed designs still reproduce.
-CONTRACT_SCHEMA_VERSIONS = (CONTRACT_SCHEMA_VERSION, "aeread.datacenter_world_campaign_contract/0.2")
+#: 0.3 adds one execution control, ``max_consecutive_operational_failures``:
+#: the run halts once that many cells in a row fail operationally, and every
+#: cell it never reached is written as typed missingness (DC-T-08: with the
+#: network down the driver walked 14 cells of a design, each failing in 0 s).
+#: A limit that can end a run belongs in the contract, so 0.1 and 0.2
+#: contracts, which have none, keep running to the end as they always did.
+CONTRACT_SCHEMA_VERSIONS = (
+    CONTRACT_SCHEMA_VERSION,
+    "aeread.datacenter_world_campaign_contract/0.2",
+    "aeread.datacenter_world_campaign_contract/0.3",
+)
+HALT_CONDITION = "halted_after_consecutive_operational_failures"
 CAMPAIGN_ID = "datacenter_development_v2_world_panel_v1"
 CONDITIONS = ("controlled_developer",)
 LIVE_PROFILE_COUNT = 1
@@ -203,8 +214,13 @@ def load_contract(path: Path | str = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         "response_cache",
         "provider_fallbacks",
     }
+    if contract["schema_version"] == CONTRACT_SCHEMA_VERSIONS[2]:
+        execution_fields.add("max_consecutive_operational_failures")
     if set(execution) != execution_fields:
         raise ValueError("campaign execution fields differ")
+    limit = execution.get("max_consecutive_operational_failures")
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+        raise ValueError("execution.max_consecutive_operational_failures must be a positive integer")
     frozen_controls = {
         "harness": "minimal_chat/1.0",
         "max_concurrent_cells_per_route_provider": 1,
@@ -661,6 +677,50 @@ def _prior_attempts(cell_root: Path) -> list[dict[str, Any]]:
     return prior
 
 
+def _halted_cell_result(
+    contract: Mapping[str, Any], design_cell: Mapping[str, Any], *, run_root: Path, after: str
+) -> dict[str, Any]:
+    """A cell the run never reached, written as typed missingness.
+
+    It carries no receipt because nothing was attempted; the failure names
+    the halt and the cell it followed, and a later ``--retry-failed`` sets it
+    aside and runs it like any other failed cell."""
+
+    cell_root = run_root / "live" / str(design_cell["cell_key"])
+    result_path = cell_root / "result.json"
+    if result_path.exists():
+        return _read_sealed(result_path)
+    result = _sealed(
+        {
+            "schema_version": "aeread.datacenter_world_live_cell/0.1",
+            "campaign_id": contract["campaign_id"],
+            **dict(design_cell),
+            "status": "operational_failure",
+            "attempt_ordinal": len(_prior_attempts(cell_root)),
+            "prior_attempts": _prior_attempts(cell_root),
+            "receipt_status": "not_attempted",
+            "inclusion_status": "excluded",
+            "receipt_sha256": None,
+            "replay_verified": False,
+            "elapsed_seconds": 0.0,
+            "usage": None,
+            "route_verified": False,
+            "verified_openrouter_call_count": 0,
+            "outcome": None,
+            "scores": None,
+            "failure": {
+                "failure_class": "operational",
+                "failure_condition": HALT_CONDITION,
+                "error_type": None,
+                "halted_after_cell": after,
+            },
+        }
+    )
+    cell_root.mkdir(parents=True, exist_ok=True)
+    _atomic_write(result_path, result)
+    return result
+
+
 async def _run_live_cell(
     contract: Mapping[str, Any],
     design_cell: Mapping[str, Any],
@@ -1000,6 +1060,17 @@ def summarize(
 ) -> dict[str, Any]:
     completed = [row for row in rows if row["status"] == "completed"]
     operational = [row for row in rows if row["status"] != "completed"]
+    halted = [row for row in operational if (row.get("failure") or {}).get("failure_condition") == HALT_CONDITION]
+    halt = (
+        {
+            "condition": HALT_CONDITION,
+            "limit": contract["execution"].get("max_consecutive_operational_failures"),
+            "after_cell": halted[0]["failure"].get("halted_after_cell"),
+            "cells_not_attempted": len(halted),
+        }
+        if halted
+        else None
+    )
     reported_cost = sum(
         float(row["usage"]["reported_cost_usd"]) for row in completed if row["usage"] is not None
     )
@@ -1019,6 +1090,7 @@ def summarize(
     return _sealed(
         {
             "schema_version": "aeread.datacenter_world_campaign_summary/0.1",
+            "halt": halt,
             "campaign_id": contract["campaign_id"],
             "contract_sha256": _sha256(contract),
             "design_sha256": design["artifact_sha256"],
@@ -1226,7 +1298,7 @@ def publish(
             "campaign_id": summary["campaign_id"],
             "summary_sha256": summary["artifact_sha256"],
             "design_sha256": design["artifact_sha256"],
-            "source_receipt_sha256s": sorted(row["receipt_sha256"] for row in rows),
+            "source_receipt_sha256s": sorted(row["receipt_sha256"] for row in rows if row.get("receipt_sha256")),
             "files": manifest_files,
         }
     )
@@ -1289,13 +1361,24 @@ async def run_campaign(
     }
 
     cooldown = float(contract["execution"]["provider_cooldown_seconds_after_cell"])
+    limit = contract["execution"].get("max_consecutive_operational_failures")
+    halt = {"streak": 0, "after": None}
 
     async def execute(cell: Mapping[str, Any]) -> dict[str, Any]:
         provider_name = str(contract["models"][cell["model_id"]]["provider"])
         async with concurrency, route_locks[provider_name]:
+            if halt["after"] is not None:
+                return _halted_cell_result(contract, cell, run_root=root, after=halt["after"])
+            attempted = not (root / "live" / str(cell["cell_key"]) / "result.json").exists()
             result = await _run_live_cell(
                 contract, cell, run_root=root, pack_root=pack, provider=provider_factory()
             )
+            if limit is not None and attempted:
+                # Only cells executed now count toward the streak; a resumed
+                # result is a record of an earlier run, not of this provider.
+                halt["streak"] = halt["streak"] + 1 if result["status"] != "completed" else 0
+                if halt["streak"] >= int(limit) and halt["after"] is None:
+                    halt["after"] = str(cell["cell_key"])
             if cooldown > 0.0 and result["status"] != "resumed":
                 # Hold the route lock so the provider sees a quiet gap between cells.
                 await asyncio.sleep(cooldown)
@@ -1339,6 +1422,12 @@ async def run_campaign(
     return summary
 
 
+def halt_record(summary: Mapping[str, Any]) -> dict[str, Any] | None:
+    """What a halted run left unattempted, from its summary, or None."""
+
+    return summary.get("halt")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT_PATH)
@@ -1375,11 +1464,14 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.publish and arguments.stop_after == "live":
         result = publish(run_root=run_root, publication_root=publication_root)
     print(canonical_json_bytes(result).decode("utf-8"))
-    return 0
+    # A halted run is not a finished one: say so to whoever chained on this.
+    return 2 if isinstance(result, Mapping) and halt_record(result) else 0
 
 
 __all__ = [
     "CAMPAIGN_ID",
+    "HALT_CONDITION",
+    "halt_record",
     "DEFAULT_CONTRACT_PATH",
     "DEFAULT_RUN_ROOT",
     "build_design",
