@@ -106,6 +106,18 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "route_id": "parasail_glm_53_flash", "profile": "housing_price_glm53_parasail_tenant_v2",
         "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 0.5,
     },
+    # K=2 over the same four worlds (owner decision 2026-09-30): the K=1 runs left the
+    # replicate noise unmeasured, and the realized arm contrast changed sign by model.
+    "housing_lemons_price_pilot_v3_glm53_flash_parasail_k2": {
+        "route_id": "parasail_glm_53_flash", "profile": "housing_price_glm53_parasail_tenant_v3",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 0.5,
+        "replicates": 2,
+    },
+    "housing_lemons_price_pilot_v3_gpt56_luna_k2": {
+        "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v3",
+        "reasoning_effort": "low", "temperature": "unavailable", "top_p": None,
+        "total_cost_ceiling_usd": 1.0, "replicates": 2,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
@@ -149,7 +161,11 @@ def load_contract(path: Path) -> dict[str, Any]:
         raise ValueError("price pilot claim or route drifted")
     if value["world_seeds"] != [100000, 100001, 100002, 100003]:
         raise ValueError("price pilot world panel drifted")
-    if value["arms"] != ["true_cost", "pooled"] or value["replicates"] != 1 or value["rounds"] != 3:
+    if (
+        value["arms"] != ["true_cost", "pooled"]
+        or value["replicates"] != spec.get("replicates", 1)
+        or value["rounds"] != 3
+    ):
         raise ValueError("price pilot arms, replicates or rounds drifted")
     if (
         value["tenant_cost_ceiling_usd_per_cell"] != 0.3
@@ -285,68 +301,75 @@ async def run(
     results_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
     halted = False
+    replicates = int(contract["replicates"])
     for seed in contract["world_seeds"]:
         for arm in contract["arms"]:
-            setup = setups[arm]
-            cell = next(item for item in setup.plan.cells if item.world_seed == seed)
-            result_path = results_root / f"world_{seed}__{arm}.json"
-            if result_path.exists():
-                row = json.loads(result_path.read_text())
-                if row["status"] != "completed":
-                    halted = True
-                rows.append(row)
-                continue
-            if halted:
-                rows.append({"world_seed": seed, "arm": arm, "status": "not_attempted", "cost_usd": 0.0})
-                continue
-            spent = sum(float(row.get("cost_usd", 0.0)) for row in rows)
-            if live and spent + contract["tenant_cost_ceiling_usd_per_cell"] > contract["total_cost_ceiling_usd"]:
-                halted = True
-                rows.append({"world_seed": seed, "arm": arm, "status": "not_attempted_budget", "cost_usd": 0.0})
-                continue
-            evidence_root = results_root / f"world_{seed}__{arm}_evidence"
-            try:
-                execution = await execute_plan_cell(
-                    plan=setup.plan, cell_id=cell.cell_id, registry=setup.registry,
-                    evidence_root=evidence_root, prompt_sources=setup.prompt_sources,
-                    providers={"openrouter" if live else "housing_scripted_tenant": provider,
-                               "housing_scripted_landlord": HousingScriptedLandlordProvider()},
-                    pricing=setup.pricing, harnesses=setup.harnesses,
+            for replicate in range(replicates):
+                setup = setups[arm]
+                cell = next(
+                    item for item in setup.plan.cells
+                    if item.world_seed == seed and item.replicate_index == replicate
                 )
-                receipt = finalize_housing_execution(setup=setup, execution=execution)
-                verify_evaluation_receipt(receipt)
-                replayed = replay_housing_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
-                if canonical_json_bytes(replayed.scores) != canonical_json_bytes(receipt.scores):
-                    raise ValueError("score replay mismatch")
-                row = {"world_seed": seed, "arm": arm, "status": "completed",
-                       "cost_usd": execution.total_cost_usd, "receipt_sha256": receipt.receipt_sha256,
-                       "run_plan_id": setup.plan.run_plan_id, "cell_id": cell.cell_id,
-                       "tenant_net_total": execution.episode_result.outcome["tenant_net_total"],
-                       "price_rows": price_rows(execution.episode_result.outcome, seed, arm),
-                       # What the ex-ante endpoint scores from (price_endpoint.py).
-                       "outcome_facts": {
-                           key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
-                       }}
-            except Exception as error:
-                failure_receipt = None
+                # One replicate keeps the original file names, so sealed v1 and v2 run roots read as before.
+                tag = "" if replicates == 1 else f"__r{replicate}"
+                result_path = results_root / f"world_{seed}__{arm}{tag}.json"
+                if result_path.exists():
+                    row = json.loads(result_path.read_text())
+                    if row["status"] != "completed":
+                        halted = True
+                    rows.append(row)
+                    continue
+                if halted:
+                    rows.append({"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted", "cost_usd": 0.0})
+                    continue
+                spent = sum(float(row.get("cost_usd", 0.0)) for row in rows)
+                if live and spent + contract["tenant_cost_ceiling_usd_per_cell"] > contract["total_cost_ceiling_usd"]:
+                    halted = True
+                    rows.append({"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted_budget", "cost_usd": 0.0})
+                    continue
+                evidence_root = results_root / f"world_{seed}__{arm}{tag}_evidence"
                 try:
-                    failure_receipt = finalize_housing_failure(
-                        setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error
+                    execution = await execute_plan_cell(
+                        plan=setup.plan, cell_id=cell.cell_id, registry=setup.registry,
+                        evidence_root=evidence_root, prompt_sources=setup.prompt_sources,
+                        providers={"openrouter" if live else "housing_scripted_tenant": provider,
+                                   "housing_scripted_landlord": HousingScriptedLandlordProvider()},
+                        pricing=setup.pricing, harnesses=setup.harnesses,
                     )
-                except Exception:
-                    pass
-                usage = _failure_usage(evidence_root=evidence_root, run_plan_id=setup.plan.run_plan_id, cell_id=cell.cell_id)
-                row = {"world_seed": seed, "arm": arm, "status": "operational_failure",
-                       "failure_condition": getattr(error, "condition", type(error).__name__),
-                       "cost_usd": usage["cost_usd"],
-                       "receipt_sha256": failure_receipt.receipt_sha256 if failure_receipt else None}
-                halted = True
-            if live and (not math.isfinite(float(row["cost_usd"])) or float(row["cost_usd"]) > contract["tenant_cost_ceiling_usd_per_cell"]):
-                halted = True
-            result_path.write_bytes(canonical_json_bytes(row) + b"\n")
-            rows.append(row)
-            print(json.dumps({k: row[k] for k in ("world_seed", "arm", "status", "cost_usd")}), flush=True)
-    summary = summarize(rows, len(contract["world_seeds"]) * len(contract["arms"]))
+                    receipt = finalize_housing_execution(setup=setup, execution=execution)
+                    verify_evaluation_receipt(receipt)
+                    replayed = replay_housing_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+                    if canonical_json_bytes(replayed.scores) != canonical_json_bytes(receipt.scores):
+                        raise ValueError("score replay mismatch")
+                    row = {"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "completed",
+                           "cost_usd": execution.total_cost_usd, "receipt_sha256": receipt.receipt_sha256,
+                           "run_plan_id": setup.plan.run_plan_id, "cell_id": cell.cell_id,
+                           "tenant_net_total": execution.episode_result.outcome["tenant_net_total"],
+                           "price_rows": price_rows(execution.episode_result.outcome, seed, arm),
+                           # What the ex-ante endpoint scores from (price_endpoint.py).
+                           "outcome_facts": {
+                               key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
+                           }}
+                except Exception as error:
+                    failure_receipt = None
+                    try:
+                        failure_receipt = finalize_housing_failure(
+                            setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error
+                        )
+                    except Exception:
+                        pass
+                    usage = _failure_usage(evidence_root=evidence_root, run_plan_id=setup.plan.run_plan_id, cell_id=cell.cell_id)
+                    row = {"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "operational_failure",
+                           "failure_condition": getattr(error, "condition", type(error).__name__),
+                           "cost_usd": usage["cost_usd"],
+                           "receipt_sha256": failure_receipt.receipt_sha256 if failure_receipt else None}
+                    halted = True
+                if live and (not math.isfinite(float(row["cost_usd"])) or float(row["cost_usd"]) > contract["tenant_cost_ceiling_usd_per_cell"]):
+                    halted = True
+                result_path.write_bytes(canonical_json_bytes(row) + b"\n")
+                rows.append(row)
+                print(json.dumps({k: row[k] for k in ("world_seed", "arm", "status", "cost_usd")}), flush=True)
+    summary = summarize(rows, len(contract["world_seeds"]) * len(contract["arms"]) * replicates)
     (results_root / "summary.json").write_bytes(canonical_json_bytes(summary) + b"\n")
     return summary
 

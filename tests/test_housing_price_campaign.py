@@ -72,6 +72,14 @@ V2_CONTRACTS = {
         "model": "z-ai/glm-5.3-flash", "revision": "z-ai/glm-5.3-flash-20260826",
         "provider": "Parasail", "quantization": "fp8", "temperature": 1.0, "top_p": 1.0,
     },
+    "housing_lemons_price_pilot_v3_glm53_flash_parasail_k2": {
+        "model": "z-ai/glm-5.3-flash", "revision": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Parasail", "quantization": "fp8", "temperature": 1.0, "top_p": 1.0, "replicates": 2,
+    },
+    "housing_lemons_price_pilot_v3_gpt56_luna_k2": {
+        "model": "openai/gpt-5.6-luna", "revision": "openai/gpt-5.6-luna-20260709",
+        "provider": "OpenAI", "quantization": "unknown", "temperature": None, "top_p": None, "replicates": 2,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "model": "openai/gpt-5.6-luna", "revision": "openai/gpt-5.6-luna-20260709",
         "provider": "OpenAI", "quantization": "unknown", "temperature": None, "top_p": None,
@@ -114,7 +122,9 @@ def test_v2_identity_sends_exactly_its_declared_route_and_sampling(tmp_path, cam
     assert contract["world_seeds"] == [100000, 100001, 100002, 100003]  # the v1 draws
     provider = _RecordingProvider()
     summary = asyncio.run(price_campaign.run(contract, tmp_path, live=True, provider=provider))
-    assert summary["completed_cells"] == summary["planned_cells"] == 8
+    cells = 8 * expected.get("replicates", 1)
+    assert contract["replicates"] == expected.get("replicates", 1)
+    assert summary["completed_cells"] == summary["planned_cells"] == cells
     assert summary["operational_failures"] == 0
     assert provider.requests
     for request in provider.requests:
@@ -158,3 +168,29 @@ def test_new_cells_carry_the_facts_the_endpoint_scores_from(tmp_path):
     assert len(report["cells"]) == 8 and report["max_abs_residual"] < 1e-6
     # The scripted reference never signs blind, so the reply cannot have misled it.
     assert all(cell["signed_blind"] == 0 for cell in report["cells"])
+
+
+def test_replicates_run_as_distinct_cells_with_their_own_seeds_and_files(tmp_path):
+    campaign_id = "housing_lemons_price_pilot_v3_glm53_flash_parasail_k2"
+    contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json"))
+    provider = _RecordingProvider()
+    asyncio.run(price_campaign.run(contract, tmp_path, live=True, provider=provider))
+    files = sorted(path.name for path in (tmp_path / "live").glob("world_*__*.json"))
+    assert len(files) == 16 and "world_100000__true_cost__r0.json" in files and "world_100000__true_cost__r1.json" in files
+    rows = [json.loads((tmp_path / "live" / name).read_text()) for name in files]
+    assert sorted({row["replicate_index"] for row in rows}) == [0, 1]
+    assert len({row["cell_id"] for row in rows}) == 16
+    # A replicate is a different draw, not a copy.
+    first = json.loads((tmp_path / "live/world_100000__true_cost__r0.json").read_text())
+    second = json.loads((tmp_path / "live/world_100000__true_cost__r1.json").read_text())
+    assert first["cell_id"] != second["cell_id"] and first["receipt_sha256"] != second["receipt_sha256"]
+    assert len({request.seed for request in provider.requests}) > 1
+
+
+def test_k2_contract_refuses_one_replicate(tmp_path):
+    path = price_campaign.DEFAULT_CONTRACT.with_name("housing_lemons_price_pilot_v3_gpt56_luna_k2.json")
+    changed = dict(json.loads(path.read_text()), replicates=1)
+    bad = tmp_path / "k1.json"
+    bad.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="arms, replicates or rounds drifted"):
+        price_campaign.load_contract(bad)

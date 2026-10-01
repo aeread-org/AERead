@@ -68,3 +68,37 @@ def test_floor_is_the_lowest_rent_a_sound_landlord_takes():
         # A lemon's own cost sits a full loss below, so its landlord accepts far less.
         if world.quality[listing] == lemons.LEMON:
             assert world.costs[listing] + 25.0 < floor
+
+
+def _cell(seed, arm, replicate, realized):
+    value = float(realized)
+    return {"world_seed": seed, "arm": arm, "replicate_index": replicate, "net_realized": value,
+            "net_expected_stated_odds": value, "net_expected_response_odds": value}
+
+
+def test_replicate_noise_reads_sigma_against_the_world_signal():
+    # True contrast per world: +100 in world 1, -100 in world 2 (signal sd about 141);
+    # replicate noise of +/-10 on the true_cost cells only, so the contrast moves +/-10.
+    cells = []
+    for seed, base in ((1, 100.0), (2, -100.0)):
+        for replicate, noise in ((0, 10.0), (1, -10.0)):
+            cells += [_cell(seed, "true_cost", replicate, base + noise), _cell(seed, "pooled", replicate, 0.0)]
+    noise = price_endpoint.replicate_noise(cells)
+    contrast = noise["contrast"]["net_realized"]
+    assert contrast["replicate_sd_of_contrast"] == pytest.approx(14.14, abs=0.01)  # sqrt(200)
+    assert contrast["world_sd_of_true_contrast"] == pytest.approx(141.42, abs=0.5)
+    assert contrast["sigma2_over_world_signal"] < 0.02  # the signal swamps the noise
+    assert noise["cells_with_replicates"] == 4 and noise["cells_with_identical_replicates"] == 2  # pooled repeat exactly
+
+
+def test_replicate_noise_is_absent_without_replicates():
+    assert price_endpoint.replicate_noise([_cell(1, "true_cost", 0, 1.0), _cell(1, "pooled", 0, 2.0)]) is None
+
+
+def test_pooling_runs_relabels_replicates_past_each_runs_own():
+    first = [_cell(1, "true_cost", 0, 1.0), _cell(1, "pooled", 0, 0.0)]
+    second = [_cell(1, "true_cost", r, 2.0 + r) for r in (0, 1)] + [_cell(1, "pooled", r, 0.0) for r in (0, 1)]
+    pooled = price_endpoint.pool_cells([first, second])
+    assert sorted({c["replicate_index"] for c in pooled}) == [0, 1, 2]
+    assert [c["net_realized"] for c in pooled if c["arm"] == "true_cost" and c["replicate_index"] == 2] == [3.0]
+    assert first[0]["replicate_index"] == 0  # the inputs are not mutated

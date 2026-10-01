@@ -403,6 +403,20 @@ worlds for Gemini, GLM and Luna), while the realized `true_cost` minus `pooled`
 contrast changes sign by model and by world (per-world spreads of 160 to 420), so the
 arm effect is not established; the reply leak is the consistent finding.
 
+K=2 identities on the same four worlds (`housing_lemons_price_pilot_v3_glm53_flash_parasail_k2`
+and `..._v3_gpt56_luna_k2`, 16 cells each, $0.101 and $0.214, no operational failure)
+measure the replicate noise the K=1 runs could not. Pooling each model's K=1 and K=2
+cells as three replicates is an exploratory analysis across identities
+(`price_endpoint --pool`, `status: exploratory_pool`), not part of either identity's
+evidence. Within one world, arm and model, net payoff moves by a standard deviation of
+about $266 (GLM) and $200 (Luna) between runs. GLM's arm contrast is dominated by
+replicate noise (realized +72, replicate SD 402 against a world SD of 187, so no
+world-level signal is detectable); Luna's is dominated by the world (realized -110,
+world means +493, -319, -561, -52, a strong world-by-arm interaction). Neither is
+distinguishable from zero over four worlds (SE 94 and 226). The consistent finding is
+the reply leak: Luna signed a blind lemon the reply had already marked in 10 of 12
+`true_cost` cells ($569 expected loss per cell), GLM in 4 of 12 ($250).
+
 **The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
 mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
 third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound
