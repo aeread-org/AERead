@@ -237,6 +237,46 @@ control differs across treatment cells. Preserve the failure as evidence, and
 record it in the [incident log](incident_log.md) with its detection, its cost,
 and its disposition.
 
+### Halt rule
+
+A run also stops itself when the next cell cannot succeed. Declare the limit in
+the contract's execution block and let the kernel enforce it:
+
+```python
+from aeread.shared_runner import (
+    CellOutcome,
+    OperationalHaltGuard,
+    require_halt_rule,
+    run_cells_under_halt_rule,
+)
+
+limit = require_halt_rule(contract["execution"])  # max_consecutive_operational_failures
+run = await run_cells_under_halt_rule(
+    cell_keys,
+    execute_cell,
+    guard=OperationalHaltGuard(limit),
+    outcome=lambda result: CellOutcome(
+        operational_failure=result["status"] != "completed",
+        failure_condition=(result.get("failure") or {}).get("failure_condition"),
+        attempted_now=result["status"] != "resumed",
+    ),
+)
+raise SystemExit(run.exit_code)  # 2 when the run halted
+```
+
+- The run halts after `max_consecutive_operational_failures` cells in a row
+  fail operationally, and at once on `account_fault` (HTTP 402): an exhausted
+  balance fails every remaining cell the same way.
+- A cell the run never reached is `not_attempted`. It has no receipt and is not
+  a failure of the cell; write `run.not_attempted` as typed missingness and
+  report `run.halt` in the summary.
+- Only cells executed now count. A resumed result describes an earlier run.
+- A contract schema that predates the control passes `required=False` and keeps
+  running to the end; a sealed contract never acquires a stop rule.
+- A driver that interleaves cells across routes holds the
+  `OperationalHaltGuard` itself: check `guard.halted` before each cell and call
+  `guard.observe(...)` after it.
+
 Before `confirmatory_freeze`, a design change starts a new gate attempt and must
 be documented. After the freeze, any change to treatment, controls, cases,
 sample size, seeds, stopping, or analysis starts a new campaign identity. A
