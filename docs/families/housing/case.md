@@ -328,6 +328,146 @@ the policies, the gate, the plugin and the plan-to-receipt-to-replay path;
 inspect_then_sign --run-root runs/lemons_smoke` runs one scripted cell. A live tenant
 takes `--provider openrouter --route google_gemini_38_flash` or `--route xai_grok_47`.
 
+### Exploratory price negotiation probe
+
+`housing_lemons_price_probe_v1` is a separate, provider-free experiment over the
+same `HousingMarket` inspection, offer, response, and commit transitions. It does
+not alter the frozen refusal campaigns or their scores. Each tenant inspects one
+open listing per round, offers $100 below the quality-adjusted ask for a known
+listing, and signs a counteroffer only when its inspected value covers that rent.
+The fixed landlord accepts an opening offer at or above its target; otherwise it
+counters at its reservation cost plus $25, capped at ask. A tenant can sign or
+walk that hold, but cannot continue negotiating the same listing after walking.
+
+The probe runs the same seeded mixed-quality worlds twice. In the `true_cost` arm,
+lemon landlords reserve against their lower true cost. In the `pooled` arm, both
+qualities use the sound-equivalent reservation; a counteroffer then does not
+mechanically reveal quality. The target rule is fixed in both arms, and the
+tenant receives only its own observation. This is a mechanics and information
+design comparison, not a test of model bargaining ability.
+
+Run `PYTHONPATH=src python -m aeread_families.housing.price_bargaining --seeds 30`
+for seeds 100000–100029, six tenants, four listings, three rounds, 50% lemons,
+and a $1,000 quality loss. The output retains listings, signings, counteroffers,
+signed rents, and signed rent relative to the listing's posted ask by quality.
+For this fixed 30-world development panel:
+
+| Landlord reservation | Quality | Signed / listings | Mean signed rent | Mean signed rent − ask | Signed after counter |
+|---|---|---:|---:|---:|---:|
+| true cost | sound | 56 / 60 | $2,251.95 | −$27.19 | 56 |
+| true cost | lemon | 59 / 60 | $1,407.52 | −$1,028.00 | 59 |
+| pooled | sound | 58 / 60 | $2,242.63 | −$27.18 | 58 |
+| pooled | lemon | 0 / 60 | undefined | undefined | 0 |
+
+The true-cost signed discount gap is $1,000.81 (sound minus lemon rent-minus-ask).
+Raw mean rents mix different posted asks, and signed prices condition on a lease;
+therefore the sign rates and eligible-listing denominators belong beside every
+price comparison. The near-$1,000 gap is mostly a consequence of the declared
+$1,000 cost shift and this fixed concession rule. No model tenant was run and no
+statistical population claim is made from this selected panel. A future scored
+model-tenant campaign needs its own identity and reference outcomes recomputed
+under this landlord; reusing the refusal campaign's reference would mis-score it.
+
+The first versioned model-tenant development pilot is declared in
+`configs/housing_lemons_price_pilot_v1.json` and run by
+`aeread_families.housing.price_campaign`. It pairs four worlds across the
+true-cost and pooled arms (eight cells, one inference seed, three rounds), pins
+Gemini 3.8 Flash on Google AI Studio, and assigns a $0.30 tenant ceiling per
+cell and a $3 total stop ceiling. `--run-root <path>` performs the provider-free
+eight-cell preflight; adding `--live` uses the pinned paid route. The driver
+writes one result per cell, verifies the receipt and state-and-score replay,
+halts on its first operational failure, and leaves untouched cells unattempted.
+The price table conditions on completed cells and retains the eligible-listing
+denominator. This small panel supports a diagnostic only; there is no model
+ranking or population interval.
+
+Two further identities, `housing_lemons_price_pilot_v2_glm53_flash_deepinfra` and
+`housing_lemons_price_pilot_v2_gpt56_luna`, put the same four worlds and both arms
+in front of GLM 5.3 Flash (DeepInfra, fp4) and GPT-5.6 Luna (OpenAI), so the models
+see identical lemon draws. Luna accepts no temperature or top_p; its profile
+declares `sampling_controls.temperature = "unavailable"` and sends neither, and a
+test asserts exactly what each identity puts on the wire. Their route pins live in
+`price_campaign.py` and not in `runner.py`, because a plan's implementation digests
+hash `runner.py`, `environment.py`, `lemons.py` and `price_bargaining.py`, and
+editing any of them moves the run-plan id of every sealed Housing identity (HL-T-04;
+`test_sealed_v1_plan_identity_survives_edits_to_this_module` pins the sealed ids).
+The DeepInfra identity ran once and failed (HL-O-08): its fp4 endpoint returns the
+answer in `reasoning` with `content` null on most calls, so a cell of about 57 calls
+cannot complete under this client. The same model on Parasail
+(`housing_lemons_price_pilot_v2_glm53_flash_parasail`, same controls) and Luna each
+completed all eight cells live ($0.051 and $0.105, no operational failure), as
+unpublished development pilots in local run roots. On the same four worlds all three
+models signed blind lowballs that the landlord's reply had already marked as lemons
+(2, 2 and 4 signings; expected loss $833, $1,333 and $1,833 over the four `true_cost`
+worlds for Gemini, GLM and Luna), while the realized `true_cost` minus `pooled`
+contrast changes sign by model and by world (per-world spreads of 160 to 420), so the
+arm effect is not established; the reply leak is the consistent finding.
+
+K=2 identities on the same four worlds (`housing_lemons_price_pilot_v3_glm53_flash_parasail_k2`
+and `..._v3_gpt56_luna_k2`, 16 cells each, $0.101 and $0.214, no operational failure)
+measure the replicate noise the K=1 runs could not. Pooling each model's K=1 and K=2
+cells as three replicates is an exploratory analysis across identities
+(`price_endpoint --pool`, `status: exploratory_pool`), not part of either identity's
+evidence. Within one world, arm and model, net payoff moves by a standard deviation of
+about $266 (GLM) and $200 (Luna) between runs. GLM's arm contrast is dominated by
+replicate noise (realized +72, replicate SD 402 against a world SD of 187, so no
+world-level signal is detectable); Luna's is dominated by the world (realized -110,
+world means +493, -319, -561, -52, a strong world-by-arm interaction). Neither is
+distinguishable from zero over four worlds (SE 94 and 226). The consistent finding is
+the reply leak: Luna signed a blind lemon the reply had already marked in 10 of 12
+`true_cost` cells ($569 expected loss per cell), GLM in 4 of 12 ($250).
+
+The 60-world panels (`housing_lemons_price_pilot_v4_glm53_flash_parasail_w60` and
+`..._v4_gpt56_luna_w60`, seeds 100000-100059, K=1, 118 and 114 completed cells,
+$0.81 and about $1.9) were sized to detect a $150 arm contrast. Four cells ended in
+rate-limit or timeout failures caused by the session's parallel workers (HL-O-09,
+HL-O-10) and stay missing, so GLM has 59 complete world pairs and Luna 57. With worlds
+as the resampling unit, `true_cost` minus `pooled`: GLM realized -49 [-148, +53],
+Luna realized -176 [-269, -80]; at the stated odds +208 [112, 308] and +266 [181, 349];
+at the reply-conditioned odds -150 [-244, -55] and -278 [-371, -182]. A blind signing the
+landlord's reply had already marked as a lemon occurred in 59% of GLM's and 82% of Luna's
+`true_cost` worlds (never under `pooled`), $359 and $544 expected loss per cell; Luna
+did it alone in 18 worlds against 6 for GLM (sign test p = 0.023). The stated-odds
+measure ranks `true_cost` above `pooled` and the realized and reply-conditioned measures
+rank it below, because a lowball the landlord accepts looks worth its price at the prior
+and is a certain lemon once the reply is read. The favourite's quality (the covariate,
+about 50/50 by chance) does not separate the contrasts. The four-world K=3 estimates
+(GLM +72, Luna -110) were inside their noise; GLM's had the wrong sign.
+
+**Same-state disclosure probe** (`price_disclosure_probe.py`; a diagnostic, not evidence).
+The commit-phase states the 60-world panels recorded are replayed unchanged with the
+original instructions, a qualitative hint, and an explicit statement that a sound listing's
+landlord never concedes more than $250 below the ask. For blind `true_cost` holds more than
+$250 below ask, signing falls from 72% to 7% (GLM) and from 91% to 13% (Luna); holds within
+$250, informed holds and `pooled`-arm holds do not move. Both models therefore discount for
+adverse selection when told how, and the panels' exposure is a disclosure gap, not a
+reasoning one. Turning the disclosure into an identity needs a tenant prompt with its own id,
+which lives in `runner.py`; editing that file moves every sealed Housing plan id (HL-T-04).
+
+**The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
+mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
+third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound
+listing's landlord would take proves the listing a lemon, while the tenant's stated
+odds do not move. Each commit decision is scored at the stated odds (the
+`lemons_gap` decomposition: informed leases, blind good and bad bets, lemon draws,
+inspection spend, which sums exactly to the realized net) and at the
+response-conditioned odds, where such a hold is a certain lemon; the difference is the
+reply leak. On the Gemini pilot the `true_cost` arm looks better than `pooled` by
++$129 per world at the stated odds and worse by $79 realized, because in two worlds a
+blind lowball was accepted and the acceptance had already said lemon ($500 and $333 in
+expectation). The "lemon draw" in that arm is therefore selection by the landlord's
+reply, not luck, and a luck-removed score at stated odds is biased there. The
+response-conditioned score is an evaluator's benchmark: the floor uses the sound cost,
+which no tenant sees.
+
+**Quality-blind admission and a declared stratum** (`lemons_design.py`, HL-D-03). The
+favourite's quality is a declared stratum; a seed is admitted only if the sealed rule
+passes under both strata, so every admitted world appears in both and the stratum
+contrast is paired within the world. Built and tested, wired to no contract: a new
+identity must declare it, and must declare that blind admission shifts the pack toward
+less contested favourites (41% of seeds with a five-or-six-tenant favourite survive,
+against 69% for three or four).
+
 **Status.** Environment, endpoint, gate and scripted bracket are implemented and
 tested. No live result is claimed: the only live cells so far are a development probe
 from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
