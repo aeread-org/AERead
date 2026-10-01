@@ -792,6 +792,13 @@ class ProviderRequest:
     messages: tuple["CanonicalMessage", ...] | None = None
     tools: tuple["ToolSchema", ...] | None = None
     reasoning_token_budget: int | None = None
+    # Ask the provider to stream the reply. A long reasoning call sent with
+    # ``stream: false`` holds a connection that carries no bytes until the
+    # answer, and such connections were cut mid-call (DC-T-14: 76 calls lost
+    # 76 s after starting). Declared per profile as
+    # ``harness.config["provider_stream"]``; like the fields above it joins
+    # the hash only when set, so every earlier request hashes as it did.
+    stream: bool = False
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -823,6 +830,8 @@ class ProviderRequest:
         ):
             if value is not None:
                 payload[field] = value
+        if self.stream:
+            payload["stream"] = True
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -872,6 +881,120 @@ _LENGTH_RETRY_MAX_GROWTH = 8
 # Finish reasons that mean the provider stopped at the output-token limit.
 # A reply that ends this way was interrupted, not finished (#152).
 TRUNCATED_FINISH_REASONS = frozenset({"length", "max_output_tokens"})
+
+
+def declared_provider_stream(profile: AgentProfile) -> bool:
+    """Whether a profile declares streamed provider calls.
+
+    ``harness.config["provider_stream"]`` must be a literal boolean when
+    present. Absent means not streamed: no sealed profile changes what it
+    sends.
+    """
+
+    declared = profile.harness.config.get("provider_stream", False)
+    if not isinstance(declared, bool):
+        raise EvidenceIntegrityError(
+            f"provider_stream must be true or false for profile {profile.profile_id!r}"
+        )
+    return declared
+
+
+def _named_in_mro(error: BaseException, *names: str) -> bool:
+    return any(base.__name__ in names for base in type(error).__mro__)
+
+
+class _AssembledResponse:
+    """A streamed reply reassembled into the non-streamed response shape."""
+
+    def __init__(self, raw: Mapping[str, Any]) -> None:
+        self._raw = raw
+
+    def model_dump(self, mode: str = "json") -> Mapping[str, Any]:
+        del mode
+        return self._raw
+
+
+def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Rebuild one chat completion from its stream chunks.
+
+    The result has the shape a non-streamed call returns, so everything
+    downstream -- route verification, usage, cost, finish reason, parsing --
+    reads it unchanged. Content and tool-call argument fragments are joined
+    in arrival order; ``usage`` and ``openrouter_metadata`` arrive on the
+    final chunk; an ``error`` on any chunk is carried through.
+    """
+
+    response_id: Any = None
+    model: Any = None
+    finish_reason: Any = None
+    content: list[str] = []
+    tool_calls: dict[int, dict[str, Any]] = {}
+    choice_error: Any = None
+    assembled: dict[str, Any] = {}
+    for chunk in chunks:
+        if not isinstance(chunk, Mapping):
+            raise ProviderFailure(
+                "provider_contract", "stream chunk must be an object", retryable=False
+            )
+        response_id = response_id or chunk.get("id")
+        model = model or chunk.get("model")
+        for key in ("usage", "openrouter_metadata", "provider", "error"):
+            if chunk.get(key) is not None:
+                assembled[key] = chunk[key]
+        choices = chunk.get("choices") or []
+        if not isinstance(choices, list) or len(choices) > 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "stream chunk must contain at most one choice",
+                retryable=False,
+            )
+        for choice in choices:
+            if not isinstance(choice, Mapping):
+                continue
+            if choice.get("finish_reason") is not None:
+                finish_reason = choice["finish_reason"]
+            if choice.get("error") is not None:
+                choice_error = choice["error"]
+            delta = choice.get("delta")
+            if not isinstance(delta, Mapping):
+                continue
+            if isinstance(delta.get("content"), str):
+                content.append(delta["content"])
+            for fragment in delta.get("tool_calls") or ():
+                if not isinstance(fragment, Mapping):
+                    continue
+                index = fragment.get("index")
+                slot = tool_calls.setdefault(
+                    index if isinstance(index, int) else len(tool_calls),
+                    {"id": None, "type": "function", "function": {"name": None, "arguments": ""}},
+                )
+                slot["id"] = slot["id"] or fragment.get("id")
+                function = fragment.get("function")
+                if isinstance(function, Mapping):
+                    slot["function"]["name"] = slot["function"]["name"] or function.get("name")
+                    if isinstance(function.get("arguments"), str):
+                        slot["function"]["arguments"] += function["arguments"]
+    text = "".join(content)
+    choice: dict[str, Any] = {
+        "index": 0,
+        "finish_reason": finish_reason,
+        "message": {
+            "role": "assistant",
+            "content": text if text or not tool_calls else None,
+            "tool_calls": [tool_calls[index] for index in sorted(tool_calls)] or None,
+        },
+    }
+    if choice_error is not None:
+        choice["error"] = choice_error
+    assembled.update(
+        {
+            "id": response_id,
+            "model": model,
+            "choices": [choice],
+            "stream": {"chunk_count": len(chunks)},
+        }
+    )
+    return assembled
 
 
 def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
@@ -1088,6 +1211,12 @@ class OpenAIResponsesClient:
                 f"OpenAI adapter received provider {request.provider!r}",
                 retryable=False,
             )
+        if request.stream:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenAI Responses adapter does not support streamed requests",
+                retryable=False,
+            )
         requested_base_url = (request.base_url or "https://api.openai.com/v1").rstrip("/")
         if requested_base_url != self._base_url:
             raise ProviderFailure(
@@ -1142,8 +1271,16 @@ class OpenAIResponsesClient:
     def _classify_error(error: Exception) -> ProviderFailure:
         name = type(error).__name__
         status_code = getattr(error, "status_code", None)
-        if name in {"APITimeoutError", "TimeoutError"}:
+        # A stream is read after the SDK has returned, so a connection that
+        # dies mid-reply surfaces as the transport library's own exception
+        # rather than the SDK's wrapper. It is the same fault and gets the
+        # same type; untyped it fell through to a non-retryable rejection.
+        if name in {"APITimeoutError", "TimeoutError"} or _named_in_mro(
+            error, "TimeoutException"
+        ):
             return ProviderFailure("timeout", str(error), retryable=True)
+        if _named_in_mro(error, "TransportError"):
+            return ProviderFailure("transport", str(error), retryable=True)
         if name == "RateLimitError" or status_code == 429:
             retry_after_seconds = None
             response = getattr(error, "response", None)
@@ -1266,7 +1403,7 @@ class OpenRouterChatClient:
                 },
             },
             "tools": [],
-            "stream": False,
+            "stream": request.stream,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": extra_body,
         }
@@ -1370,7 +1507,7 @@ class OpenRouterChatClient:
             "seed": request.seed,
             "max_tokens": request.max_output_tokens,
             "tools": wire_tools,
-            "stream": False,
+            "stream": request.stream,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": extra_body,
         }
@@ -1555,11 +1692,24 @@ class OpenRouterChatClient:
 
     async def _create(self, **kwargs: Any) -> Any:
         try:
-            return await self._client.chat.completions.create(**kwargs)
+            if not kwargs.get("stream"):
+                return await self._client.chat.completions.create(**kwargs)
+            # Usage, cost and the routing metadata arrive on the final chunk.
+            stream = await self._client.chat.completions.create(
+                **kwargs, stream_options={"include_usage": True}
+            )
+            chunks = [chunk.model_dump(mode="json") async for chunk in stream]
         except asyncio.CancelledError:
+            raise
+        except ProviderFailure:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+        if not chunks:
+            raise ProviderFailure(
+                "transport", "OpenRouter stream ended before any chunk", retryable=True
+            )
+        return _AssembledResponse(_assemble_chat_stream(chunks))
 
     @staticmethod
     def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
@@ -1789,6 +1939,12 @@ class ArenaChatClient:
             raise ProviderFailure(
                 "provider_contract",
                 f"Arena adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        if request.stream:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter does not support streamed requests",
                 retryable=False,
             )
         requested_base_url = (request.base_url or "").rstrip("/")
@@ -2304,6 +2460,7 @@ class MinimalChatExecutor:
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         self._length_retry_ceiling(profile)
+        declared_provider_stream(profile)
         if profile.model.provider not in self._providers:
             raise EvidenceIntegrityError(
                 f"no provider client registered for {profile.model.provider!r}"
@@ -2502,6 +2659,7 @@ class MinimalChatExecutor:
             seed=self._request_seed_by_profile.get(
                 profile.profile_id, profile.sampling.seed
             ),
+            stream=declared_provider_stream(profile),
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -4076,5 +4234,6 @@ __all__ = [
     "ToolFailure",
     "ToolInvocationRecord",
     "TRUNCATED_FINISH_REASONS",
+    "declared_provider_stream",
     "execute_plan_cell",
 ]
