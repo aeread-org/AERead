@@ -865,8 +865,34 @@ _ACCOUNT_FAULT_STATUS = 402
 # How far a length retry may grow the output budget, as a multiple of what
 # the profile declared. Doubling is the right tactic and unbounded doubling
 # is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
-# produced before this cap existed.
+# produced before this cap existed. A profile that wants a different bound
+# declares it as harness.config["max_output_tokens_ceiling"].
 _LENGTH_RETRY_MAX_GROWTH = 8
+
+# Finish reasons that mean the provider stopped at the output-token limit.
+# A reply that ends this way was interrupted, not finished (#152).
+TRUNCATED_FINISH_REASONS = frozenset({"length", "max_output_tokens"})
+
+
+def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
+    """Whether a reply cut off at the output-token limit still holds an answer.
+
+    It does when a harness already built an action from it, or when the text
+    is a complete JSON value: the limit fell after the answer closed. Anything
+    else -- nothing at all, or JSON cut mid-object -- is a typed ``length``
+    failure and never reaches a family parser, on every client (#152, ruled
+    2026-09-10). Before this, an OpenRouter reply cut mid-object was scored
+    as the model's own malformed action, while the same reply on Arena was a
+    retryable ``length``.
+    """
+
+    if response.action is not None:
+        return True
+    try:
+        json.loads(response.text)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -1287,11 +1313,12 @@ class OpenRouterChatClient:
         try:
             structured_output = json.loads(content)
         except json.JSONDecodeError:
-            # The provider returned a completed, billable model response.  Keep
-            # it on the normal response path so the family parser can classify
-            # malformed model output as agent behavior instead of converting an
-            # observed response into operational missingness (and losing its
-            # usage/cost metadata).
+            # The provider returned a billable model response.  Keep it on
+            # the normal response path with its usage and cost. A finished
+            # reply that is malformed is the model's own behaviour and goes
+            # to the family parser; one cut off at the output-token limit
+            # (finish_reason "length") is typed ``length`` by the executor
+            # before any parser sees it (#152).
             output_text = content
         else:
             output_text = canonical_json_bytes(structured_output).decode("utf-8")
@@ -1359,7 +1386,16 @@ class OpenRouterChatClient:
                 "OpenRouter response choice has no message",
                 retryable=False,
             )
-        tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        try:
+            tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        except ProviderFailure as error:
+            if choice.get("finish_reason") == "length":
+                raise ProviderFailure(
+                    "length",
+                    "OpenRouter truncated the tool call at the output-token limit",
+                    retryable=True,
+                ) from error
+            raise
         content = message.get("content")
         if tool_calls is None and not isinstance(content, str):
             raise ProviderFailure(
@@ -2267,6 +2303,7 @@ class MinimalChatExecutor:
         self._validate_harness_profile(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
+        self._length_retry_ceiling(profile)
         if profile.model.provider not in self._providers:
             raise EvidenceIntegrityError(
                 f"no provider client registered for {profile.model.provider!r}"
@@ -2596,6 +2633,7 @@ class MinimalChatExecutor:
                     failure,
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
+                    max_output_tokens=max_output_tokens,
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2750,7 +2788,7 @@ class MinimalChatExecutor:
                 text=result.output_text,
                 finish_reason=result.finish_reason,
                 empty=not bool(result.output_text.strip()),
-                truncated=result.finish_reason in {"length", "max_output_tokens"},
+                truncated=result.finish_reason in TRUNCATED_FINISH_REASONS,
                 provider_call_ids=provider_call_ids,
                 tool_invocation_ids=self._harness_tool_invocation_ids(
                     action_attempt_id
@@ -2766,10 +2804,23 @@ class MinimalChatExecutor:
                 if canonical.truncated
                 else ("empty_response" if canonical.empty else None)
             )
+            # Bounded doubling. A truncated answer probably needs more room,
+            # but unbounded growth walks past the model's own context window:
+            # a 2,400-token budget over ten attempts became 1,228,800 and the
+            # provider refused the request outright, turning a recoverable
+            # truncation into a dead case. Once the limit has reached its
+            # ceiling a further retry would send the same request again and
+            # be billed for the same truncation, so it is not issued.
+            next_limit = (
+                self._grow_length_budget(profile, max_output_tokens)
+                if retry_condition == "length"
+                else max_output_tokens
+            )
             can_retry_response = (
                 retry_condition is not None
                 and retry_condition in profile.retry_policy.retryable_conditions
                 and ordinal + 1 < profile.retry_policy.max_action_attempts
+                and not (retry_condition == "length" and next_limit == max_output_tokens)
             )
             if can_retry_response:
                 attempt = ActionAttemptRecord(
@@ -2784,20 +2835,6 @@ class MinimalChatExecutor:
                     canonical_response=canonical,
                 )
                 attempts.append(attempt)
-                # Bounded doubling. A truncated answer probably needs more
-                # room, but unbounded growth walks past the model's own
-                # context window: a 2,400-token budget over ten attempts
-                # became 1,228,800 and the provider refused the request
-                # outright, turning a recoverable truncation into a dead
-                # case. The ceiling is the provider's advertised context
-                # window when it declares one, else a fixed multiple of what
-                # the profile asked for -- either way the growth stops
-                # somewhere the request can still be sent.
-                next_limit = (
-                    self._grow_length_budget(profile, max_output_tokens)
-                    if retry_condition == "length"
-                    else max_output_tokens
-                )
                 self.evidence.append_event(
                     "action_attempt_failed",
                     {
@@ -2813,7 +2850,10 @@ class MinimalChatExecutor:
                 max_output_tokens = next_limit
                 continue
 
-            if retry_condition == "empty_response":
+            if retry_condition == "length" and _is_usable_truncated_reply(canonical):
+                # The limit fell after the answer closed; it is an answer.
+                retry_condition = None
+            if retry_condition is not None:
                 attempt = ActionAttemptRecord(
                     action_attempt_id=action_attempt_id,
                     logical_action_id=decision.logical_action_id,
@@ -2836,8 +2876,13 @@ class MinimalChatExecutor:
                 self._finish_logical_failure(decision, attempts, retry_condition)
                 raise ProviderFailure(
                     retry_condition,
-                    f"provider call {request.provider_call_id} returned an empty "
-                    "completion",
+                    (
+                        f"provider call {request.provider_call_id} returned an empty "
+                        "completion"
+                        if retry_condition == "empty_response"
+                        else f"provider call {request.provider_call_id} was cut off "
+                        "at the output-token limit before a complete answer"
+                    ),
                     retryable=True,
                 )
 
@@ -3012,8 +3057,32 @@ class MinimalChatExecutor:
         One helper, so the ProviderResult path and the Arena exception path
         cannot disagree about how a length retry grows (review finding 4).
         """
-        ceiling = profile.sampling.max_output_tokens * _LENGTH_RETRY_MAX_GROWTH
-        return min(max_output_tokens * 2, ceiling)
+        return min(max_output_tokens * 2, self._length_retry_ceiling(profile))
+
+    @staticmethod
+    def _length_retry_ceiling(profile: AgentProfile) -> int:
+        """The largest output budget a length retry may reach for a profile.
+
+        ``harness.config["max_output_tokens_ceiling"]`` when the profile
+        declares it, else the declared budget times a fixed multiple. A limit
+        that decides whether a truncated cell recovers belongs where the
+        experiment is defined, so the declared form is the one to prefer.
+        """
+
+        declared_budget = profile.sampling.max_output_tokens
+        ceiling = profile.harness.config.get("max_output_tokens_ceiling")
+        if ceiling is None:
+            return declared_budget * _LENGTH_RETRY_MAX_GROWTH
+        if (
+            isinstance(ceiling, bool)
+            or not isinstance(ceiling, int)
+            or ceiling < declared_budget
+        ):
+            raise EvidenceIntegrityError(
+                "max_output_tokens_ceiling must be an integer no smaller than "
+                f"sampling.max_output_tokens for profile {profile.profile_id!r}"
+            )
+        return ceiling
 
     def _record_provider_failure(
         self,
@@ -3028,6 +3097,7 @@ class MinimalChatExecutor:
         *,
         prior_rounds: tuple[ProviderCallRecord, ...] = (),
         pending: PendingRound | None = None,
+        max_output_tokens: int | None = None,
     ) -> tuple[bool, str]:
         # A round that already answered inside this attempt proves the route
         # as surely as a completed attempt does. Without this, round 1
@@ -3108,6 +3178,15 @@ class MinimalChatExecutor:
             and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
         )
+        if (
+            should_retry
+            and condition == "length"
+            and max_output_tokens is not None
+            and self._grow_length_budget(profile, max_output_tokens) == max_output_tokens
+        ):
+            # The limit is already at its ceiling: a retry would resend the
+            # same request and be cut off, and billed, the same way.
+            should_retry = False
         if not should_retry:
             self._finish_logical_failure(decision, attempts, condition)
         else:
@@ -3996,5 +4075,6 @@ __all__ = [
     "ToolExecutor",
     "ToolFailure",
     "ToolInvocationRecord",
+    "TRUNCATED_FINISH_REASONS",
     "execute_plan_cell",
 ]
