@@ -417,6 +417,23 @@ distinguishable from zero over four worlds (SE 94 and 226). The consistent findi
 the reply leak: Luna signed a blind lemon the reply had already marked in 10 of 12
 `true_cost` cells ($569 expected loss per cell), GLM in 4 of 12 ($250).
 
+The 60-world panels (`housing_lemons_price_pilot_v4_glm53_flash_parasail_w60` and
+`..._v4_gpt56_luna_w60`, seeds 100000-100059, K=1, 118 and 114 completed cells,
+$0.81 and about $1.9) were sized to detect a $150 arm contrast. Four cells ended in
+rate-limit or timeout failures caused by the session's parallel workers (HL-O-09,
+HL-O-10) and stay missing, so GLM has 59 complete world pairs and Luna 57. With worlds
+as the resampling unit, `true_cost` minus `pooled`: GLM realized -49 [-148, +53],
+Luna realized -176 [-269, -80]; at the stated odds +208 [112, 308] and +266 [181, 349];
+at the reply-conditioned odds -150 [-244, -55] and -278 [-371, -182]. A blind signing the
+landlord's reply had already marked as a lemon occurred in 59% of GLM's and 82% of Luna's
+`true_cost` worlds (never under `pooled`), $359 and $544 expected loss per cell; Luna
+did it alone in 18 worlds against 6 for GLM (sign test p = 0.023). The stated-odds
+measure ranks `true_cost` above `pooled` and the realized and reply-conditioned measures
+rank it below, because a lowball the landlord accepts looks worth its price at the prior
+and is a certain lemon once the reply is read. The favourite's quality (the covariate,
+about 50/50 by chance) does not separate the contrasts. The four-world K=3 estimates
+(GLM +72, Luna -110) were inside their noise; GLM's had the wrong sign.
+
 **The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
 mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
 third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound
