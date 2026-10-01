@@ -219,3 +219,16 @@ def test_every_world_in_the_sixty_panel_scores_without_a_degenerate_oracle():
     for seed in range(100000, 100060):
         world = lemons.make_lemons_world(6, 4, seed, 0.6, landlord_reservation="true_cost")
         assert world.lemon_count == 2 and max(max(row) for row in world.surplus) > 0
+
+
+def test_workers_share_one_run_root_by_disjoint_world_ranges(tmp_path):
+    contract = dict(price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT), world_seeds=[100000, 100001, 100002, 100003])
+    first = asyncio.run(price_campaign.run(contract, tmp_path, live=False, only_worlds=(100000, 100002)))
+    second = asyncio.run(price_campaign.run(contract, tmp_path, live=False, only_worlds=(100002, 100004)))
+    assert first["planned_cells"] == second["planned_cells"] == 4
+    assert (tmp_path / "preflight/summary_100000_100002.json").exists()
+    assert (tmp_path / "preflight/summary_100002_100004.json").exists()
+    assert not (tmp_path / "preflight/summary.json").exists()  # only a whole-panel process writes it
+    # A process that covers everything reads the workers' cells instead of rerunning them.
+    whole = asyncio.run(price_campaign.run(contract, tmp_path, live=False))
+    assert whole["completed_cells"] == whole["planned_cells"] == 8

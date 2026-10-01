@@ -299,9 +299,18 @@ def summarize(rows: list[Mapping[str, Any]], planned: int) -> dict[str, Any]:
 
 
 async def run(
-    contract: Mapping[str, Any], run_root: Path, *, live: bool, provider: Any = None
+    contract: Mapping[str, Any], run_root: Path, *, live: bool, provider: Any = None,
+    only_worlds: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
-    """``provider`` replaces the paid client in live mode; a test passes a recording stub."""
+    """``provider`` replaces the paid client in live mode; a test passes a recording stub.
+
+    ``only_worlds=(first, stop)`` restricts this process to the declared worlds whose seed is in
+    ``[first, stop)``, so several workers can share one run root: a cell is a pure function of the
+    contract, each worker writes only its own cells' result files, and any process skips a cell
+    that already has one. Execution parallelism is not a control of the experiment, so it is not
+    in the contract; a worker writes ``summary_<first>_<stop>.json`` and never ``summary.json``,
+    which only a process that covered the whole panel writes.
+    """
     run_root.mkdir(parents=True, exist_ok=True)
     identity_path = run_root / "contract_sha256.txt"
     digest = hashlib.sha256(canonical_json_bytes(contract)).hexdigest()
@@ -316,7 +325,11 @@ async def run(
     rows: list[dict[str, Any]] = []
     halted = False
     replicates = int(contract["replicates"])
-    for seed in contract["world_seeds"]:
+    seeds = [
+        seed for seed in contract["world_seeds"]
+        if only_worlds is None or only_worlds[0] <= seed < only_worlds[1]
+    ]
+    for seed in seeds:
         for arm in contract["arms"]:
             for replicate in range(replicates):
                 setup = setups[arm]
@@ -383,8 +396,9 @@ async def run(
                 result_path.write_bytes(canonical_json_bytes(row) + b"\n")
                 rows.append(row)
                 print(json.dumps({k: row[k] for k in ("world_seed", "arm", "status", "cost_usd")}), flush=True)
-    summary = summarize(rows, len(contract["world_seeds"]) * len(contract["arms"]) * replicates)
-    (results_root / "summary.json").write_bytes(canonical_json_bytes(summary) + b"\n")
+    summary = summarize(rows, len(seeds) * len(contract["arms"]) * replicates)
+    name = "summary.json" if only_worlds is None else f"summary_{only_worlds[0]}_{only_worlds[1]}.json"
+    (results_root / name).write_bytes(canonical_json_bytes(summary) + b"\n")
     return summary
 
 
@@ -393,9 +407,11 @@ def main() -> None:
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--live", action="store_true", help="make paid OpenRouter tenant calls")
+    parser.add_argument("--only-worlds", metavar="FIRST:STOP", help="run only declared seeds in [FIRST, STOP)")
     args = parser.parse_args()
     contract = load_contract(args.contract)
-    print(json.dumps(asyncio.run(run(contract, args.run_root, live=args.live)), sort_keys=True))
+    only = tuple(int(part) for part in args.only_worlds.split(":")) if args.only_worlds else None
+    print(json.dumps(asyncio.run(run(contract, args.run_root, live=args.live, only_worlds=only)), sort_keys=True))
 
 
 if __name__ == "__main__":
