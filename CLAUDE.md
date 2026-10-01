@@ -60,6 +60,24 @@ attempt count, a timeout or a route policy that lives only in code is
 invisible to anyone reading the experiment definition and silently changes
 what the experiment measured.
 
+## Analysing results
+
+Before a result is read as a claim about a model, report:
+
+- **Evaluation-result distributions.** The spread across cases and the share
+  at each outcome, beside any average, and how many cases are missing and why.
+- **Run-to-run variance.** How much one case varies between runs. With one run
+  per case, say that this is unmeasured.
+- **Confidence intervals of performance.** For every score and every
+  difference between models or conditions. The case is the resampling unit,
+  cases that share their facts are one cluster, and conditions run on the
+  same cases are compared as paired differences.
+- **Agreement between judge models.** When a model grades, how often judges
+  agree and where they differ. An exact grader cites its replay verification
+  instead.
+- **Anything else worth a look.** What the numbers suggest beyond the
+  headline, labelled as exploratory.
+
 ## Pull requests
 
 Follow [`docs/operations/pr_lanes.md`](docs/operations/pr_lanes.md). The
@@ -197,3 +215,7 @@ this repository, with where it is written down.
   adapter and kernel-review documents at the root of `docs/`, unindexed, with
   ninety-two stale cross-references. Hence the placement rule in
   `docs/README.md` and the deferred move in #123.
+- **Point estimates from one run.** The risk-allocation probes of
+  2026-09-24/25 compared arms on one run per world with no interval, and
+  counted provider failures as the model's moves (DC-O-08, DC-T-12; rows on
+  `codex/datacenter-risk-allocation` until it merges). Hence the analysis rules.
