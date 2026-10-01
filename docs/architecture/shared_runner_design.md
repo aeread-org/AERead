@@ -348,7 +348,7 @@ Failures are classified at the layer that owns them:
 
 | Class | Examples | Measurement consequence |
 |---|---|---|
-| `retryable_infrastructure` | timeout, rate limit, transient transport/provider 5xx | Retry only under the declared policy. Exhaustion is `invalid_measurement`. |
+| `retryable_infrastructure` | timeout, rate limit, transient transport/provider 5xx, a choice that finished with an upstream error (`provider_choice_error`) | Retry only under the declared policy. Exhaustion is `invalid_measurement`. |
 | `agent_action_failure` | missing, malformed, or illegal action after a successful response | Apply the family-declared no-op, penalty, or forfeit. The economic episode can remain valid. |
 | `integration_or_configuration` | missing plugin, incompatible schema, unpinned implementation, failed preflight | Invalid cell; normally reject before paid calls. |
 | `environment_failure` | hook exception or inconsistent transition | `invalid_measurement`; never turn into economic zero. |

@@ -20,6 +20,7 @@ from .run.campaign import (
 
 from .task.execution import (
     ACCOUNT_FAULT,
+    PROVIDER_CHOICE_ERROR,
     ActionAttemptRecord,
     ArtifactRef,
     CanonicalResponse,
@@ -328,6 +329,7 @@ __all__ = [
     "RunPlan",
     "RunLayout",
     "ACCOUNT_FAULT",
+    "PROVIDER_CHOICE_ERROR",
     "CellOutcome",
     "HALT_CONDITIONS",
     "HALT_EXIT_CODE",

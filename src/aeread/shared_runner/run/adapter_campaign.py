@@ -22,6 +22,7 @@ _SAFE_PROVIDER_FAILURE_CONDITIONS = frozenset(
         "empty_response",
         "length",
         "provider_5xx",
+        "provider_choice_error",
         "provider_contract",
         "provider_rejected",
         "rate_limit",
