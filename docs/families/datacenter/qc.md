@@ -183,6 +183,17 @@ Still missing for `passed`: near-duplicate clustering across strata, and a
 measured control rate per world from the frozen control rather than from the
 scripted reference alone.
 
+**Strata.** World type separates the models on most datacenter designs that
+can test it (world panel interfaces 2 and 3, p = 0.014 and 0.009; risk
+allocation one seat, two-sided as client and the menu, p = 0.003 to 0.036; not
+the two-sided integrator view, 0.17), and so does the reasoning arm on risk
+allocation v2 (p = 0.001). Both are kept and reported, and world types are sized to at
+least 5 worlds each (the 24-world packs hold 4). The seat does not change the
+gap (p = 0.92, 0.56) and doubles the cells: future one-seat packs assign one
+seat per world unless the claim is per seat. The full-terms world types
+(9 to 11, p = 0.99 on 58 worlds) are coverage and the integrator's playbook a
+hypothesis. See the [strata audit](../../research/strata_audit_2026-09.md).
+
 ## 2. Environment and verifier
 
 **Status: partial.**

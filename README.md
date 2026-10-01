@@ -399,3 +399,7 @@ Building on AERead, or want your framework listed? Open a
 
 Apache-2.0. A methodology preprint is in preparation; until then, cite this
 repository and https://aeread.org.
+
+The [full bibliography](references.bib) records the methodology, economics,
+and external benchmarks referenced in the design. Its entries include related
+work that is not claimed as an implemented AERead mechanism.

@@ -40,6 +40,25 @@ Each case has a distinct world seed and BOM signature. Three inference seeds per
 produce 18 declared trajectories. Replicates within one case measure stochastic
 reliability; they are not counted as additional independent procurement cases.
 
+### Strata
+
+The six cases above are one world each, so a per-case row describes that world
+and is not a stratum estimate. The repeated-sourcing packs
+(`relationship_dev_v2`, `relationship_holdout_v1`) hold six world types of two
+worlds each. A world fixes the economics (suppliers, prices, capacities, true
+reliability and yield, the relationship schedule, the demand plan, and so the
+bound); a seed re-seals the same world with new draws, the model's inference
+seed, the delivery history and, where declared, the sample noise, and leaves
+what any plan earns unchanged. Five seeds on two worlds are therefore two
+independent units per type, and on a deterministic arm the seeds can repeat each
+other to the cent (P-D-01, P-D-03). The total model gap does not differ between
+the types (p = 0.46, 0.61),
+while the loyalty-and-retaliation part separates the three types that carry
+those terms from the three that do not (p = 0.003 in each pack) and nothing
+finer. Report the pooled total and that two-way split; treat the six types as
+coverage. A reportable six-way split would need 30 worlds per pack. See the
+[strata audit](../../research/strata_audit_2026-09.md).
+
 ## Blinded label/order invariance campaign
 
 `cases/procurement_allocation_v1/blinded_v3/` is a paired mirror of the six-case
