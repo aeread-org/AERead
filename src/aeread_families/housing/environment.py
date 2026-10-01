@@ -706,11 +706,30 @@ class HousingMarket:
         )
 
 
+SCRIPTED_LANDLORD_POLICY_VERSIONS = ("1.0.0", "2.0.0")
+
+
+def scripted_landlord_counter_rent(
+    offered_rent: float, asking_rent: float, private_cost: float, *, policy_version: str
+) -> float:
+    """V1 preserves the historical midpoint; V2 never counters below cost."""
+    if policy_version not in SCRIPTED_LANDLORD_POLICY_VERSIONS:
+        raise ValueError(f"unknown scripted landlord policy: {policy_version!r}")
+    midpoint = round((offered_rent + asking_rent) / 2.0, 2)
+    # Clamp after rounding, so even a sub-cent cost cannot be rounded downward.
+    return max(private_cost, midpoint) if policy_version == "2.0.0" else midpoint
+
+
 def scripted_landlord_responses(
-    market: HousingMarket, inbox: Dict[int, Sequence[Offer]]
+    market: HousingMarket, inbox: Dict[int, Sequence[Offer]], *, policy_version: str = "1.0.0"
 ) -> Dict[int, Dict[int, Tuple[str, Optional[float]]]]:
-    """Accept the highest offer at or above cost; counter a below-cost offer at the
-    midpoint between it and the ask; never reject outright. Deterministic."""
+    """Accept the highest viable offer; use the selected counteroffer policy.
+
+    The default preserves frozen V1 controls. New controlled opponents should
+    explicitly select V2, whose counteroffers cover the landlord's private cost.
+    """
+    if policy_version not in SCRIPTED_LANDLORD_POLICY_VERSIONS:
+        raise ValueError(f"unknown scripted landlord policy: {policy_version!r}")
     out: Dict[int, Dict[int, Tuple[str, Optional[float]]]] = {}
     for l, offers in inbox.items():
         per: Dict[int, Tuple[str, Optional[float]]] = {}
@@ -725,7 +744,9 @@ def scripted_landlord_responses(
         else:
             best = offers[0]
             per[best.tenant_id] = (
-                "counter", round((best.rent + market.world.ask[l]) / 2.0, 2)
+                "counter", scripted_landlord_counter_rent(
+                    best.rent, market.world.ask[l], cost, policy_version=policy_version
+                )
             )
             for offer in offers[1:]:
                 per[offer.tenant_id] = ("reject", None)
