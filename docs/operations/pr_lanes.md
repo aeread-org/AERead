@@ -22,6 +22,21 @@ than one) and enforces the one rule that differs.
 | **evidence** | `evidence/**` | CI green. Review is **verification, not reading**: run the bundle's replay/digest check, the prohibited-text scan, and `aeread errata`, and paste the output as the review comment. A 70k-line bundle is reviewed in ten minutes this way, and better. |
 | **family** | everything else (`src/aeread_families/**`, `configs/`, `cases/`, `docs/`, tests) | CI green. Ask for a review when the change touches a scoring contract, a verifier declaration, or a frozen self-hashed module. |
 
+The replay check for a bundle is one command, and its output is what gets
+pasted:
+
+```bash
+aeread verify-replay evidence/<family>/<publication_id> \
+  --run-root runs/<campaign_id> --setup aeread_families.<family>.<module>:<callable>
+```
+
+It finds each published receipt's sealed attempt under the run root, re-drives
+it through the family environment, recomputes the score, and reports every row
+as `verified`, `differs` or `evidence_missing`; it exits non-zero unless every
+row verified. `--setup` names the family callable that returns the evaluation
+setup (sealed plan and registry) for a durable receipt. A `replay_verified`
+field inside a bundle is the producing run's own claim and is not this check.
+
 The kernel is small and load-bearing; a second pair of eyes there has paid
 for itself twice in one week. Evidence is large and generated; eyes on the
 diff are worth less than a script that recomputes it.

@@ -80,6 +80,7 @@ def test_cli_verb_modules_use_the_organized_package_paths() -> None:
         "publish-trajectories": "aeread.shared_runner.run.publish_trajectories",
         "seal-manifest": "aeread.shared_runner.run.seal_manifest",
         "source-commit": "aeread.shared_runner.run.provenance",
+        "verify-replay": "aeread.shared_runner.run.replay_verification",
     }
     for verb, (module_name, _description) in cli.VERBS.items():
         if verb in kernel_verbs:
