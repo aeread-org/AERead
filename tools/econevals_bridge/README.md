@@ -21,7 +21,7 @@ produce byte-identical entries, item groups, effectiveness scores, and start
 allocation, but a **different budget** whenever any other code in that
 process consumed the global RNG first — this is upstream's bug, not ours, and
 it is exactly the kind of gap the corpus admission gate exists to catch (see
-`docs/econevals_adapter_spec.md` S1).
+`docs/families/econevals/adapter_spec.md` S1).
 
 The bridge driver therefore runs one instance generation (or one scoring
 call) per fresh subprocess and pins `np.random.seed(seed)` at the top of that

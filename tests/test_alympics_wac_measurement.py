@@ -1,6 +1,6 @@
 """Tests for the alympics.wac measurement leaves (measurement.py).
 
-Covers the five QC Gate-2 goldens from ``docs/alympics_adapter_spec.md``
+Covers the five QC Gate-2 goldens from ``docs/families/alympics-wac/adapter_spec.md``
 section 4 as executable, typed-result assertions -- never as environment-
 only trajectory checks (those already live in
 ``tests/test_alympics_wac_environment.py``, milestone 1's scope). Every
@@ -165,7 +165,7 @@ def test_opponent_panel_is_part_of_the_leaf_1_2_reference_identity() -> None:
 
 
 def test_focal_seat_is_part_of_the_leaf_1_2_reference_identity_even_for_an_identical_panel() -> None:
-    """Reference-provenance finding (docs/alympics_migration_review.md,
+    """Reference-provenance finding (docs/families/alympics-wac/migration_review.md,
     second review pass): `_opponent_panel_sha256`'s own `focal_seat`
     parameter, isolated from `leaves_for_focal_seat`'s separate choice of
     WHICH panel dict to pass (`panel_policy_ids(focal_seat)` -- whose key
@@ -227,7 +227,7 @@ def test_leaves_for_focal_seat_builds_leaf_1_2_identity_from_the_opponent_panel_
 # build_terminal_wealth_leaf/build_survival_leaf but never referenced in
 # either body, never threaded through AlympicsWacScorer.leaves_for_focal_seat,
 # and never checked against the baseline evidence a caller actually supplies
-# to the scorers (docs/alympics_codex_triage.md).
+# to the scorers (docs/families/alympics-wac/reviews/alympics_codex_triage.md).
 # ---------------------------------------------------------------------------
 
 
@@ -285,12 +285,12 @@ def test_scorer_leaves_for_focal_seat_threads_the_declared_baseline_policy_id_th
 
 
 def test_leaves_for_focal_seat_reference_identity_depends_on_the_focal_seat() -> None:
-    """Reference-provenance finding (docs/alympics_migration_review.md,
+    """Reference-provenance finding (docs/families/alympics-wac/migration_review.md,
     second review pass): a previous version of `leaves_for_focal_seat`
     built leaves 1/2's identity from the case's FULL policy assignment,
     deliberately independent of `focal_seat`, purely to satisfy a
     since-fixed gap in the kernel's own leaf-identity stability check
-    (kernel_r12_seat_context.md, PR #103 finding 7, predating ruling R12).
+    (docs/architecture/reviews/kernel_r12_seat_context.md, PR #103 finding 7, predating ruling R12).
     That made two MATERIALLY DIFFERENT baselines -- the SAME case
     recomputed with a DIFFERENT seat's policy replaced -- collide on one
     `source_sha256`: false provenance, not a cosmetic gap.
@@ -420,7 +420,7 @@ def test_score_survival_rejects_baseline_evidence_declared_under_a_mismatched_po
 
 
 # ---------------------------------------------------------------------------
-# docs/alympics_fix_verification.md finding 2: `score_terminal_wealth`/
+# docs/families/alympics-wac/reviews/alympics_fix_verification.md finding 2: `score_terminal_wealth`/
 # `score_survival` bind `baseline_policy_id` to the leaf's own reference
 # identity and reject a mismatched *label*, but never verify the supplied
 # baseline state was actually *produced by* that policy -- an arbitrary
@@ -575,14 +575,14 @@ def test_alive_at_terminal_reads_the_final_players_alive_flag() -> None:
 
 
 def test_golden_1_successful_reports_positive_wealth_and_the_actual_elimination_pattern() -> None:
-    """Renamed from ...and_full_survival (docs/alympics_fix_verification.md
+    """Renamed from ...and_full_survival (docs/families/alympics-wac/reviews/alympics_fix_verification.md
     finding 7): the real, hand-verified reference run is not "full
     survival" at all -- 4 of the 5 seats are eliminated well before round
     20. Codex triage finding 7's own point was that this golden's former
     name/docstring intent was never actually asserted; the assertions below
     were already strengthened to check the real pattern, but the function's
     own name still claimed the opposite of what it checks. See also
-    docs/alympics_adapter_spec.md section 4's "Successful" row, corrected to
+    docs/families/alympics-wac/adapter_spec.md section 4's "Successful" row, corrected to
     match."""
     case = _case("reference_baseline")
     final_players, round_log, terminal = _run(case, _multiplier_response_source(ALL_PROPORTIONAL))
@@ -915,7 +915,7 @@ def test_golden_3_over_balance_bid_end_to_end_through_run_episode_becomes_invali
 # ---------------------------------------------------------------------------
 # Codex triage finding 3 -- missing `bid_legal` evidence used to silently
 # pass as legal, permitting wealth/survival scoring on a round no legality
-# check ever actually ran for (docs/alympics_codex_triage.md).
+# check ever actually ran for (docs/families/alympics-wac/reviews/alympics_codex_triage.md).
 # ---------------------------------------------------------------------------
 
 

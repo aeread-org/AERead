@@ -1,4 +1,4 @@
-"""Five QC Gate-2 goldens for the ``steer`` adapter (docs/steer_adapter_spec.md
+"""Five QC Gate-2 goldens for the ``steer`` adapter (docs/families/steer/adapter_spec.md
 section 4).
 
 Goldens 1-4 each run one scripted trajectory through the REAL kernel
@@ -273,7 +273,7 @@ def test_golden_5_degenerate_reference_question_id_is_a_real_zero_correct_row() 
     check that this specific question really has zero correct options,
     re-derived from the raw upstream answers frame through a genuinely
     different code path than the driver's own classification (a critical
-    review finding, docs/steer_codex_triage.md finding 7), see
+    review finding, docs/families/steer/reviews/steer_codex_triage.md finding 7), see
     tests/test_steer_cases.py's
     ``test_golden_5s_sample_is_independently_verified_to_have_zero_correct_options``.
     """

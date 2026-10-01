@@ -1,4 +1,4 @@
-"""Tests for the steer offline replayer (replay.py, docs/steer_adapter_spec.md
+"""Tests for the steer offline replayer (replay.py, docs/families/steer/adapter_spec.md
 section 5, "Offline replay").
 
 Structural tests (``RecordedDecision``/``RecordedEpisode`` round-tripping,
@@ -406,7 +406,7 @@ def test_replay_and_verify_with_no_original_is_still_scored_but_not_compared(
     )
 
     assert report.comparison is None
-    # Finding 3 (docs/steer_codex_triage.md): a replay never compared against
+    # Finding 3 (docs/families/steer/reviews/steer_codex_triage.md): a replay never compared against
     # a live run must never report "match" -- that is an authenticated claim
     # ("this replay agreed with a real original run"), not merely the
     # absence of a disagreement. "not_compared" is the explicit, typed
@@ -420,7 +420,7 @@ def test_replay_and_verify_with_no_original_is_still_scored_but_not_compared(
 def test_replay_report_status_distinguishes_an_uncompared_replay_from_a_verified_match(
     tmp_path: Path,
 ) -> None:
-    """Finding 3 (docs/steer_codex_triage.md): before this fix,
+    """Finding 3 (docs/families/steer/reviews/steer_codex_triage.md): before this fix,
     ``ReplayReport.status`` returned ``"match"`` whenever ``comparison`` was
     ``None`` -- exactly the same value a genuinely-compared, genuinely
     matching replay reports. A caller that gates on ``status == "match"``
@@ -464,7 +464,7 @@ def test_replay_report_status_distinguishes_an_uncompared_replay_from_a_verified
 def test_replay_of_a_tampered_record_diverges_and_is_caught_by_comparison(
     tmp_path: Path,
 ) -> None:
-    """A stated limit (docs/steer_adapter_status.md): unlike
+    """A stated limit (docs/families/steer/adapter_status.md): unlike
     ``tau3_retail.replay`` (whose ``Tau3RetailPlugin.step()`` independently
     re-executes and cross-checks every recorded tool result against the
     pinned upstream bridge), nothing in ``replay_episode`` itself can detect

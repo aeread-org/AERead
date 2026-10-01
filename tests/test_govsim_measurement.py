@@ -255,7 +255,7 @@ def test_build_leaves_returns_exactly_five_leaves_matching_the_spec_table() -> N
 
 
 def test_no_objective_reference_leaf_is_declared_per_p06() -> None:
-    """docs/problem_bound_case_audit.md row P06: no certified policy upper
+    """docs/research/problem_bound_case_audit.md row P06: no certified policy upper
     bound exists for any of these estimands -- never framed as an approach
     to a bound."""
     for leaf in m.build_leaves():
@@ -641,7 +641,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
         scorer.score_equality_gini(terminal=terminal, baseline_gini=0.0),
     )
     for envelope in envelopes:
-        # Never a silently promoted scored zero (docs/verifier_taxonomy.md
+        # Never a silently promoted scored zero (docs/research/verifier_taxonomy.md
         # section 9); never a crash either -- we got this far.
         assert envelope.status == "invalid_measurement"
         assert envelope.primary is None

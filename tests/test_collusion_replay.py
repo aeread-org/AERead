@@ -313,7 +313,7 @@ def test_replay_cell_identity_mismatch_raises_a_typed_replay_error_even_with_mat
     execution unit, ``resolver.py``) produced the recording. A recording
     made under one cell must not be silently accepted for replay under a
     different, merely case-compatible cell (independent second-pass review,
-    ``docs/collusion_fix_verification.md``: "no test exercises replay under
+    ``docs/families/collusion/reviews/collusion_fix_verification.md``: "no test exercises replay under
     a different compatible cell").
     """
     case = _short_case(horizon=1)
@@ -635,13 +635,13 @@ def test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_
     differ in general, but do here, materially, for both seats).
 
     Scope note (independent second-pass review,
-    ``docs/collusion_fix_verification.md``): this test and its sibling
+    ``docs/families/collusion/reviews/collusion_fix_verification.md``): this test and its sibling
     reproduction test below pin *this test file's own fixture* to the
     economically correct baseline and guard against it silently drifting
     back to the wrong one. Neither test exercises production's ability to
     reject a wrong baseline, because ``score_long_run_profit`` has none --
     it trusts the caller for provenance by design (``measurement.py``'s own
-    docstring; ``docs/collusion_adapter_spec.md`` section 6's stated
+    docstring; ``docs/families/collusion/adapter_spec.md`` section 6's stated
     limit). A caller that mistakenly supplied ``gold_reference["pi_nash"]``
     here would still be accepted by production and would still produce a
     silently wrong delta; only this test file would (still) know the
@@ -1215,7 +1215,7 @@ def test_finalize_wires_collusion_to_the_shared_family_finalizer(tmp_path: Any) 
     ``FamilyScorer`` protocol has no parameter for one). The receipt is
     therefore always ``inclusion_status="excluded"`` for this family when
     driven through the generic finalizer -- see
-    ``docs/collusion_adapter_status.md``'s "Receipt" section.
+    ``docs/families/collusion/adapter_status.md``'s "Receipt" section.
     """
     case = _short_case(horizon=4)
     setup = build_collusion_setup(case, suffix="finalize_receipt")
@@ -1284,7 +1284,7 @@ def test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_eviden
     tmp_path: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """``evidence_refs`` provenance is enforced by the caller, not trusted
-    from the callee (independent review, ``docs/collusion_migration_review.md``
+    from the callee (independent review, ``docs/families/collusion/migration_review.md``
     finding 4): ``CollusionScorer.__call__`` -- like every migrated family's
     own ``__call__`` (kernel_scoring_contract_spec.md section 2's call site)
     -- takes ``evidence_refs`` as an independent keyword argument and

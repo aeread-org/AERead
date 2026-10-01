@@ -1,6 +1,6 @@
-"""QC Gate 2 goldens for econagent_v1 (docs/econagent_adapter_spec.md section 4).
+"""QC Gate 2 goldens for econagent_v1 (docs/families/econagent/adapter_spec.md section 4).
 
-Per ``docs/benchmark_qc.md``'s Gate 2 ("Environment and verifier"), every
+Per ``docs/operations/benchmark_qc.md``'s Gate 2 ("Environment and verifier"), every
 family maintains five goldens: successful, valid-but-poor, invalid-or-
 unauthorized, malformed-or-operational-failure, and degenerate-reference.
 Milestone 1's spec left two of these flagged as needing re-derivation before
@@ -528,7 +528,7 @@ def test_request_raises_a_distinctly_typed_error_when_a_step_month_response_neve
     must raise :class:`EconAgentBridgeMutationOutcomeUnknownError` -- never
     the plain :class:`EconAgentBridgeError` an ordinary bridge failure
     raises -- specifically for a ``step_month`` request whose response never
-    arrives (docs/econagent_codex_triage.md finding 3: the driver's real
+    arrives (docs/families/econagent/reviews/econagent_codex_triage.md finding 3: the driver's real
     mutation runs before it writes and flushes a response, so this ambiguity
     can never be safely treated the same as "the month was never
     attempted"). A minimal fake process double (write succeeds, then EOF on
@@ -591,7 +591,7 @@ def test_request_raises_the_generic_error_when_a_non_mutating_response_never_arr
 
 def test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcome_unknown_error() -> None:
     """Regression test for the "mutation can precede every durable outcome"
-    finding (docs/econagent_codex_triage.md finding 3):
+    finding (docs/families/econagent/reviews/econagent_codex_triage.md finding 3):
     ``econagent_bridge_driver.py`` calls the real, mutating
     ``env.step(actions)`` before writing and flushing its response; if the
     process crashes in that window, upstream has already executed the month
@@ -630,10 +630,10 @@ def test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcom
 
 
 def test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real_scheduler() -> None:
-    """Strengthens the golden above (docs/econagent_codex_triage.md finding
+    """Strengthens the golden above (docs/families/econagent/reviews/econagent_codex_triage.md finding
     3), which only exercises ``EconAgentBridge._request`` directly. A later,
     independent cross-model verification pass
-    (docs/econagent_fix_verification.md) found that fix's own regression
+    (docs/families/econagent/reviews/econagent_fix_verification.md) found that fix's own regression
     tests "asserted only a new exception type" without ever proving what
     happens to a real, in-flight episode -- this drives the identical lost-
     response race through the REAL production path
@@ -643,7 +643,7 @@ def test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real
 
     Why the underlying race itself is not "fixed away" here, and cannot be
     without a kernel change or a product decision (see
-    ``docs/econagent_adapter_status.md``'s "Known limits" for the narrowed
+    ``docs/families/econagent/adapter_status.md``'s "Known limits" for the narrowed
     claim): the driver's real, mutating ``env.step(actions)``
     (``econagent_bridge_driver.py``'s ``_op_step_month``) necessarily runs
     BEFORE its response is computed and flushed, because the response's own
@@ -738,7 +738,7 @@ class _StdoutThatMustNeverBeReadDirectly:
     blocks -- it raises immediately.
 
     This is the crux of the finding-7-verification fix
-    (docs/econagent_fix_verification.md): the ORIGINAL version of these two
+    (docs/families/econagent/reviews/econagent_fix_verification.md): the ORIGINAL version of these two
     tests used a real OS pipe whose write end nothing ever wrote to, so
     ``readline()`` genuinely blocked forever. That is correct when the
     bounded-wait fix is present (``_readline_with_timeout`` never reaches
@@ -801,11 +801,11 @@ class _FakeHungProcess:
 
 def test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever() -> None:
     """Pure, no bridge subprocess required: reproduces
-    docs/econagent_codex_triage.md finding 7 ("persistent requests do not
+    docs/families/econagent/reviews/econagent_codex_triage.md finding 7 ("persistent requests do not
     enforce their timeout") deterministically, without needing the real
     upstream engine to actually hang.
 
-    Restructured per docs/econagent_fix_verification.md's own follow-up
+    Restructured per docs/families/econagent/reviews/econagent_fix_verification.md's own follow-up
     finding on this exact test: the earlier version waited on a real,
     never-written OS pipe, which is fast when the fix is present but HANGS
     (rather than fails) if the fix is ever reverted -- a hang on regression
@@ -888,7 +888,7 @@ def test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_
 
 
 def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever() -> None:
-    """Regression test for finding 7 (docs/econagent_codex_triage.md):
+    """Regression test for finding 7 (docs/families/econagent/reviews/econagent_codex_triage.md):
     "persistent requests do not enforce their timeout". Unlike finding 3's
     crash marker (which closes the pipe immediately, so even the pre-fix
     code detected it via a normal EOF), this fault injector
@@ -901,7 +901,7 @@ def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever(
     few seconds, not the driver's own multi-hour sleep, through the real
     upstream engine, never a mock.
 
-    Restructured per docs/econagent_fix_verification.md's follow-up finding
+    Restructured per docs/families/econagent/reviews/econagent_fix_verification.md's follow-up finding
     on this exact test: this golden must keep exercising the REAL bridge
     subprocess and the REAL driver hang (no fake stands in for either --
     that would defeat the point of a golden), so unlike the pure test above,

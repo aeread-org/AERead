@@ -4,7 +4,7 @@ These tests exercise the real pinned upstream checkout on disk (read-only,
 plain file reads and ``ast``-based static extraction only -- never imports or
 executes upstream source). Where a computed value is asserted, it is
 compared against upstream's own governing facts
-(docs/agenticpay_adapter_spec.md) or against the kernel's own resolver
+(docs/families/agenticpay-bilateral/adapter_spec.md) or against the kernel's own resolver
 helpers -- never a value this test suite invents.
 """
 from __future__ import annotations

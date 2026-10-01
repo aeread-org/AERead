@@ -347,7 +347,7 @@ def test_replay_reproduces_state_and_score_byte_identically(
 def test_replay_rejects_a_case_with_the_same_case_id_but_different_content(
     tmp_path: Path, bridge
 ) -> None:
-    """docs/negarena_codex_triage.md Finding 2: a ``RecordedEpisode`` binds
+    """docs/families/negarena/reviews/negarena_codex_triage.md Finding 2: a ``RecordedEpisode`` binds
     the case it was produced from by content hash, not just ``case_id`` --
     a case can be re-authored (different valuation, different upstream pin)
     while keeping the same ``case_id``. Drives ``replay_episode`` itself
@@ -430,7 +430,7 @@ def test_replay_rejects_a_cell_with_a_different_opponent_profile(
 def test_record_episode_rejects_a_cell_that_did_not_produce_the_result(
     tmp_path: Path, bridge
 ) -> None:
-    """docs/negarena_fix_verification.md Finding 2 (remaining gap):
+    """docs/families/negarena/reviews/negarena_fix_verification.md Finding 2 (remaining gap):
     ``record_episode`` validated ``case.case_id == result.case_id`` but never
     ``cell.cell_id == result.cell_id`` -- a caller could seal a recording's
     ``cell_sha256`` from an entirely different cell than the one that
@@ -489,7 +489,7 @@ def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
 
     # Without an ``original`` supplied, replay still runs and re-scores;
     # comparison is an explicit "not comparable", never a fabricated match
-    # (docs/negarena_codex_triage.md Finding 4: no equality check ever ran
+    # (docs/families/negarena/reviews/negarena_codex_triage.md Finding 4: no equality check ever ran
     # here, so ``status`` must not report "match" for it).
     report_no_original = asyncio.run(
         replay_and_verify(
@@ -531,7 +531,7 @@ def test_recorded_response_source_rejects_phase_seat_mismatch() -> None:
 def test_replay_report_status_is_not_compared_when_no_comparison_was_made() -> None:
     """Pure, no bridge/episode required: ``ReplayReport.status`` must not
     report ``"match"`` for a comparison that never actually ran
-    (docs/negarena_codex_triage.md Finding 4) -- a caller reading only
+    (docs/families/negarena/reviews/negarena_codex_triage.md Finding 4) -- a caller reading only
     ``status`` (never ``comparison`` itself) must be able to tell "verified
     identical" apart from "never compared"."""
     from aeread.shared_runner.task.scheduler import EpisodeResult

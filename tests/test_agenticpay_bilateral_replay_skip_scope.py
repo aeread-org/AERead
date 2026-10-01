@@ -1,4 +1,4 @@
-"""Regression coverage for review finding 1 (docs/agenticpay_migration_review.md):
+"""Regression coverage for review finding 1 (docs/families/agenticpay-bilateral/migration_review.md):
 a missing pinned AgenticPay upstream checkout must skip only the
 bridge-gated tests it actually affects, never suppress collection of a whole
 module wholesale -- and, because ``tests/test_shared_runner_scoring_contract.py``

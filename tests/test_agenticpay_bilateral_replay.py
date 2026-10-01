@@ -2,7 +2,7 @@
 (harness.py/replay.py, spec section 5, Milestone 3).
 
 Per-test skip, never module-level (migration review finding 1,
-docs/agenticpay_migration_review.md): a module-level skip -- this module's
+docs/families/agenticpay-bilateral/migration_review.md): a module-level skip -- this module's
 own convention before that fix -- suppresses collection of every test in
 this file, including the bridge-INDEPENDENT ones below (JSON round-tripping,
 recorded-response ordering, mismatch reporting), hiding a regression in any

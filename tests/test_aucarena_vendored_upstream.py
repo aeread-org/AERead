@@ -5,7 +5,7 @@ from the upstream source text quoted in each function's provenance docstring
 (``src/aeread_families/aucarena/_vendored_upstream.py``) -- a reviewer can
 check the vendored body against the citation without running upstream. This
 is deliberately a plain pytest unit-test file, not the "hand-computed-trace
-parity runner" (``parity.py``) named in ``docs/aucarena_adapter_spec.md``
+parity runner" (``parity.py``) named in ``docs/families/aucarena/adapter_spec.md``
 section 4 -- that module (and its own richer parity report) lands with the
 measurement milestone.
 """
