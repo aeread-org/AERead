@@ -5,7 +5,7 @@ enumeration, content digest).
 These tests exercise the real pinned upstream checkout on disk (read-only,
 never executed -- only its ``data/pseudo_items.jsonl`` data file is ever
 read) and, where a computed value is asserted, compare against the
-governing facts in ``docs/aucarena_adapter_spec.md`` or against the
+governing facts in ``docs/families/aucarena/adapter_spec.md`` or against the
 kernel's own resolver helpers -- never against a value this test suite
 invents.
 """
@@ -41,7 +41,7 @@ def _upstream_root() -> Path:
             # "1 skipped" line with zero further signal -- set
             # $AEREAD_AUCARENA_QC_GATE_REQUIRED=1 (conftest.py's
             # pytest_terminal_summary) to turn that into a failed run
-            # instead (docs/aucarena_codex_triage.md Finding 8).
+            # instead (docs/families/aucarena/reviews/aucarena_codex_triage.md Finding 8).
             allow_module_level=True,
         )
     return root

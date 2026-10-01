@@ -1,5 +1,5 @@
 """Component parity: ``measurement.py``'s independent recompute vs the
-environment's own recorded trajectory (docs/aucarena_adapter_spec.md
+environment's own recorded trajectory (docs/families/aucarena/adapter_spec.md
 section 3 / ``verifier_taxonomy.md`` section 13's P21 row: "Environment
 enforcement and independent verification remain distinct").
 
@@ -173,7 +173,7 @@ def test_mutated_recorded_hammer_consequence_is_caught_by_the_independent_recomp
 
 def test_hammer_rule_does_not_silently_trust_a_forged_envelope_valid_flag() -> None:
     """``aucarena_hammer_rule`` must not depend on ``record.envelope.valid``
-    for its own accept/reject partition (``docs/aucarena_review_claude.md``
+    for its own accept/reject partition (``docs/families/aucarena/reviews/aucarena_review_claude.md``
     WARNING 1): a hypothetical bug in ``environment.py.legal()`` that
     incorrectly accepted an illegal bid must still be caught by this leaf
     alone, not only by ``score_bid_legality``.

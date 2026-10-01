@@ -2,7 +2,7 @@
 
 Every test here runs the pinned, real upstream ``waterAllocation`` /
 ``Alympics`` checkout in-process (no bridge, no network, no LLM call --
-``docs/alympics_adapter_spec.md`` section 1's "No bridge" decision). The five
+``docs/families/alympics-wac/adapter_spec.md`` section 1's "No bridge" decision). The five
 goldens in the spec's section 4 are exercised as environment/trajectory
 behavior (state transitions, exceptions caught, termination reasons), never
 as a scoring claim -- ``build_scorer`` is deliberately not built yet
@@ -242,7 +242,7 @@ def test_round_1_proportional_bids_and_winner_match_the_hand_verified_golden() -
 
 # ---------------------------------------------------------------------------
 # Codex triage finding 1 -- `observe` must show this round's already-credited
-# salary and a leak-free public settlement history (docs/alympics_codex_triage.md).
+# salary and a leak-free public settlement history (docs/families/alympics-wac/reviews/alympics_codex_triage.md).
 # ---------------------------------------------------------------------------
 
 
@@ -295,7 +295,7 @@ def test_observe_shows_post_salary_balance_and_prior_round_public_winners_histor
         # here -- plus round 2's own about-to-be-credited salary.
         expected_balance = state["players"][seat]["balance"] + PERSONAS[seat]["daily_salary"]
         assert round_2_observations[seat]["balance"] == expected_balance
-        # Round 1's real winner -- and, per docs/alympics_fix_verification.md
+        # Round 1's real winner -- and, per docs/families/alympics-wac/reviews/alympics_fix_verification.md
         # finding 1's still-open sub-claim, every seat's own already-settled
         # round-1 bid (upstream's own `bidding_details`, fully public the
         # instant a round completes) -- is now visible; but never another
@@ -312,7 +312,7 @@ def test_observe_shows_post_salary_balance_and_prior_round_public_winners_histor
 
 
 def test_public_round_history_includes_every_seats_own_bid_for_an_already_completed_round() -> None:
-    """docs/alympics_fix_verification.md finding 1's still-open sub-claim:
+    """docs/families/alympics-wac/reviews/alympics_fix_verification.md finding 1's still-open sub-claim:
     upstream's own `round_results_prompt` broadcasts every survivor's *bid*
     for a round it has already settled (`bidding_details`) to every
     surviving player's own history -- fully public the instant a round
@@ -744,7 +744,7 @@ def test_scheduler_aborts_the_episode_on_a_malformed_bid_schema() -> None:
 # ---------------------------------------------------------------------------
 # Codex triage finding 6 -- a `sys.modules["waterAllocation"]` pre-populated
 # by anything else in the process must never be silently trusted
-# (docs/alympics_codex_triage.md).
+# (docs/families/alympics-wac/reviews/alympics_codex_triage.md).
 # ---------------------------------------------------------------------------
 
 

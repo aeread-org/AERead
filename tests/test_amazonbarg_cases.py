@@ -2,7 +2,7 @@
 
 These tests exercise the real pinned upstream checkout on disk (read-only)
 and, where a computed value is asserted, compare against upstream's own
-governing facts (docs/amazonbarg_adapter_spec.md) or the kernel's own
+governing facts (docs/families/amazonbarg/adapter_spec.md) or the kernel's own
 resolver helpers -- never a value this test suite invents.
 """
 from __future__ import annotations

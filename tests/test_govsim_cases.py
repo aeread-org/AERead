@@ -1,6 +1,6 @@
 """Tests for the govsim foundation stage: pins, case generator, corpus.
 
-Structural only -- no bridge needed (mirrors ``docs/govsim_adapter_spec.md``
+Structural only -- no bridge needed (mirrors ``docs/families/govsim/adapter_spec.md``
 section 5's test-plan classification). These tests read the pinned upstream
 checkout's *files* (to hash them for ``pins.json``) but never import or
 execute upstream code; they never need ``bridges/govsim-venv``.

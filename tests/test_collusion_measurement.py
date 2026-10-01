@@ -1,6 +1,6 @@
 """Tests for the collusion measurement declarations and the five QC Gate-2 goldens.
 
-This milestone builds the scorer (``docs/collusion_adapter_spec.md`` section
+This milestone builds the scorer (``docs/families/collusion/adapter_spec.md`` section
 2): four typed leaves, reported as an admitted vector, never blended into
 one score. Two kinds of coverage:
 
@@ -13,7 +13,7 @@ one score. Two kinds of coverage:
   own ``test_collusion_environment.py`` convention (spec section 5's
   milestone note) rather than a built ``ScriptedCollusionHarness``. Every
   numeric expectation is hand-computed from the paper's own closed-form
-  Appendix A.5 figures (``docs/collusion_adapter_spec.md``'s "Governing
+  Appendix A.5 figures (``docs/families/collusion/adapter_spec.md``'s "Governing
   facts": ``p_nash=1.472927``, ``pi_nash=22.292666``,
   ``p_monopoly=1.924981``, ``pi_monopoly=33.749046``, all per firm at
   alpha=1) and shown in comments at each golden.
@@ -415,7 +415,7 @@ def test_baseline_nash_play_profit_matches_gold_reference_pi_nash(
 
 # ---------------------------------------------------------------------------
 # Golden 1 -- successful: legal trajectory, known successful outcome, exact
-# accounting (docs/collusion_adapter_spec.md section 4).
+# accounting (docs/families/collusion/adapter_spec.md section 4).
 # ---------------------------------------------------------------------------
 
 
@@ -446,7 +446,7 @@ def test_golden_successful_monopoly_play_scores_near_zero_monopoly_distance_and_
     assert monopoly_leaf_score.metrics["converged_firm_b"].value == 1.0
 
     # distance-to-Nash = |p_monopoly - p_nash| ~= 1.924981 - 1.472927 = 0.452054
-    # (docs/collusion_adapter_spec.md's "Governing facts", paper Appendix A.5).
+    # (docs/families/collusion/adapter_spec.md's "Governing facts", paper Appendix A.5).
     nash_leaf_score = scores[m.DISTANCE_TO_NASH_LEAF_ID]
     assert nash_leaf_score.status == "ok"
     expected_distance = abs(p_monopoly["firm_a"] - p_nash["firm_a"])
@@ -565,7 +565,7 @@ def test_golden_invalid_unauthorized_price_gates_leaf_1_and_excludes_later_round
     # The App. A.4 profit-reporting window (periods 251-300) also never
     # intersects the 150 admitted rounds -- reported as invalid_measurement,
     # never a substituted or fabricated delta (spec section 4's own
-    # "degenerate reference" non-fabrication rule; docs/verifier_taxonomy.md
+    # "degenerate reference" non-fabrication rule; docs/research/verifier_taxonomy.md
     # section 9).
     profit_leaf_score = scores[m.LONG_RUN_PROFIT_LEAF_ID]
     assert profit_leaf_score.status == "invalid_measurement"
@@ -745,7 +745,7 @@ def test_golden_degenerate_ceiling_case_is_not_one_of_the_six_pilot_cells() -> N
 # malformed ``baseline_profit_by_seat`` must report typed invalidity, never
 # an uncaught KeyError or a silently propagated NaN/inf "profit delta".
 # Cross-cell/opponent *provenance* is a stated limit, not covered here --
-# see docs/collusion_adapter_spec.md section 6.
+# see docs/families/collusion/adapter_spec.md section 6.
 # ---------------------------------------------------------------------------
 
 

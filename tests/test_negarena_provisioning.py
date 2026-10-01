@@ -1,6 +1,6 @@
 """Tests for ``tools/negarena_bridge/provision.sh``'s default upstream path.
 
-docs/negarena_codex_triage.md Finding 5: from ``tools/negarena_bridge``, a
+docs/families/negarena/reviews/negarena_codex_triage.md Finding 5: from ``tools/negarena_bridge``, a
 fixed-depth ``../../../..`` resolves correctly from a main checkout
 (``AERead/tools/negarena_bridge``) but lands two levels too high from inside
 a linked git worktree (``AERead/.worktrees/<name>/tools/negarena_bridge``),
@@ -19,7 +19,7 @@ These tests exercise only the path-resolution logic
 provisioning run (which creates a venv and calls ``pip install``, i.e. the
 network access this suite must stay free of).
 
-docs/negarena_fix_verification.md points out that the tests above never
+docs/families/negarena/reviews/negarena_fix_verification.md points out that the tests above never
 actually exercise the real provisioning use-site: the ``UPSTREAM_ROOT=...``
 assignment the normal (non-flag) run performs, which is what really gates
 the upstream import check. ``--print-default-upstream-root`` calls
@@ -60,7 +60,7 @@ def _ancestor_named(path: Path, name: str) -> Path:
     raise AssertionError(f"no ancestor named {name!r} found above {path}")
 
 
-# The relationship docs/negarena_adapter_spec.md and every negarena test/doc
+# The relationship docs/families/negarena/adapter_spec.md and every negarena test/doc
 # actually promise: "upstream-negarena" sits next to the top-level "AERead"
 # directory itself, regardless of which machine or checkout depth this runs
 # from. Computed from REPO_ROOT (this test file's own location), exactly
@@ -152,7 +152,7 @@ def test_default_upstream_root_agrees_between_a_main_checkout_and_a_worktree(
 
 
 def test_resolved_upstream_root_matches_the_default_when_no_override_is_set() -> None:
-    """docs/negarena_fix_verification.md Finding 5: this drives the real
+    """docs/families/negarena/reviews/negarena_fix_verification.md Finding 5: this drives the real
     provisioning use-site's own ``UPSTREAM_ROOT=...`` assignment (via
     ``--print-resolved-upstream-root``), not just the ``default_upstream_root``
     helper function in isolation. With no ``AEREAD_NEGARENA_UPSTREAM_ROOT``

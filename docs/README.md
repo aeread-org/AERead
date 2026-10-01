@@ -57,8 +57,13 @@ not intended as a second reading order.
 - [Open-harness testing and leaderboards](operations/open_harness_testing.md)
 - [QC and SOP open items](operations/qc_sop_open_items.md)
 - [Pull-request lanes and limits](operations/pr_lanes.md)
+- [Incident log](operations/incident_log.md)
+- [Moved documents](operations/moved_documents.md): where a cited path went
 
 ## Benchmark families
+
+The [family index](families/README.md) lists every document under
+`families/`; the entry points are below.
 
 Browse the [evidence index by benchmark](../evidence/README.md#benchmark-index)
 for published campaigns and registers, including the 17 preserved legacy paths.
@@ -79,37 +84,39 @@ the disposition is only meaningful next to the findings it answers.
 
 | Adapter | Family package | Spec | Status | Disposition | Review trail |
 |---|---|---|---|---|---|
-| AgenticPay | `agenticpay_bilateral` | [spec](agenticpay_adapter_spec.md) | [status](agenticpay_adapter_status.md) | [disposition](agenticpay_review_disposition.md) | [claude](agenticpay_review_claude.md), [codex](agenticpay_review_codex.md), [triage](agenticpay_codex_triage.md) |
-| Alympics WAC | `alympics_wac` | [spec](alympics_adapter_spec.md) | [status](alympics_adapter_status.md) | [disposition](alympics_review_disposition.md) | [claude](alympics_review_claude.md), [codex](alympics_review_codex.md), [triage](alympics_codex_triage.md), [fix verification](alympics_fix_verification.md) |
-| AmazonHistoryPrice | `amazonbarg` | [spec](amazonbarg_adapter_spec.md) | [status](amazonbarg_adapter_status.md) | [disposition](amazonbarg_review_disposition.md) | [claude](amazonbarg_review_claude.md), [codex](amazonbarg_review_codex.md), [triage](amazonbarg_codex_triage.md), [fix verification](amazonbarg_fix_verification.md) |
-| AucArena | `aucarena` | [spec](aucarena_adapter_spec.md) | [status](aucarena_adapter_status.md) | [disposition](aucarena_review_disposition.md) | [claude](aucarena_review_claude.md), [codex](aucarena_review_codex.md), [triage](aucarena_codex_triage.md), [fix verification](aucarena_fix_verification.md) |
-| Algorithmic collusion | `collusion` | [spec](collusion_adapter_spec.md) | [status](collusion_adapter_status.md) | [disposition](collusion_review_disposition.md) | [claude](collusion_review_claude.md), [codex](collusion_review_codex.md), [triage](collusion_codex_triage.md), [fix verification](collusion_fix_verification.md) |
-| EconAgent | `econagent_v1` | [spec](econagent_adapter_spec.md) | [status](econagent_adapter_status.md) | [disposition](econagent_review_disposition.md) | [claude](econagent_review_claude.md), [codex](econagent_review_codex.md), [triage](econagent_codex_triage.md), [fix verification](econagent_fix_verification.md) |
-| EconEvals | `econevals` | [spec](econevals_adapter_spec.md) | [status](econevals_adapter_status.md) | [disposition](econevals_review_disposition.md) | [claude](econevals_review_claude.md), [codex](econevals_review_codex.md) |
-| GovSim | `govsim` | [spec](govsim_adapter_spec.md) | [status](govsim_adapter_status.md) | [disposition](govsim_review_disposition.md) | [claude](govsim_review_claude.md), [codex](govsim_review_codex.md), [triage](govsim_codex_triage.md), [fix verification](govsim_fix_verification.md) |
-| NegotiationArena | `negarena` | [spec](negarena_adapter_spec.md) | [status](negarena_adapter_status.md) | [disposition](negarena_review_disposition.md) | [claude](negarena_review_claude.md), [codex](negarena_review_codex.md), [triage](negarena_codex_triage.md), [fix verification](negarena_fix_verification.md) |
-| STEER | `steer` | [spec](steer_adapter_spec.md) | [status](steer_adapter_status.md) | [disposition](steer_review_disposition.md) | [claude](steer_review_claude.md), [codex](steer_review_codex.md), [triage](steer_codex_triage.md), [fix verification](steer_fix_verification.md) |
-| TERMS-Bench | `termsbench` | [spec](termsbench_adapter_spec.md) | [status](termsbench_adapter_status.md) | [disposition](termsbench_review_disposition.md) | [claude](termsbench_review_claude.md), [codex](termsbench_review_codex.md), [triage](termsbench_codex_triage.md) |
+| AgenticPay | `agenticpay_bilateral` | [spec](families/agenticpay-bilateral/adapter_spec.md) | [status](families/agenticpay-bilateral/adapter_status.md) | [disposition](families/agenticpay-bilateral/reviews/agenticpay_review_disposition.md) | [claude](families/agenticpay-bilateral/reviews/agenticpay_review_claude.md), [codex](families/agenticpay-bilateral/reviews/agenticpay_review_codex.md), [triage](families/agenticpay-bilateral/reviews/agenticpay_codex_triage.md) |
+| Alympics WAC | `alympics_wac` | [spec](families/alympics-wac/adapter_spec.md) | [status](families/alympics-wac/adapter_status.md) | [disposition](families/alympics-wac/reviews/alympics_review_disposition.md) | [claude](families/alympics-wac/reviews/alympics_review_claude.md), [codex](families/alympics-wac/reviews/alympics_review_codex.md), [triage](families/alympics-wac/reviews/alympics_codex_triage.md), [fix verification](families/alympics-wac/reviews/alympics_fix_verification.md) |
+| AmazonHistoryPrice | `amazonbarg` | [spec](families/amazonbarg/adapter_spec.md) | [status](families/amazonbarg/adapter_status.md) | [disposition](families/amazonbarg/reviews/amazonbarg_review_disposition.md) | [claude](families/amazonbarg/reviews/amazonbarg_review_claude.md), [codex](families/amazonbarg/reviews/amazonbarg_review_codex.md), [triage](families/amazonbarg/reviews/amazonbarg_codex_triage.md), [fix verification](families/amazonbarg/reviews/amazonbarg_fix_verification.md) |
+| AucArena | `aucarena` | [spec](families/aucarena/adapter_spec.md) | [status](families/aucarena/adapter_status.md) | [disposition](families/aucarena/reviews/aucarena_review_disposition.md) | [claude](families/aucarena/reviews/aucarena_review_claude.md), [codex](families/aucarena/reviews/aucarena_review_codex.md), [triage](families/aucarena/reviews/aucarena_codex_triage.md), [fix verification](families/aucarena/reviews/aucarena_fix_verification.md) |
+| Algorithmic collusion | `collusion` | [spec](families/collusion/adapter_spec.md) | [status](families/collusion/adapter_status.md) | [disposition](families/collusion/reviews/collusion_review_disposition.md) | [claude](families/collusion/reviews/collusion_review_claude.md), [codex](families/collusion/reviews/collusion_review_codex.md), [triage](families/collusion/reviews/collusion_codex_triage.md), [fix verification](families/collusion/reviews/collusion_fix_verification.md) |
+| EconAgent | `econagent_v1` | [spec](families/econagent/adapter_spec.md) | [status](families/econagent/adapter_status.md) | [disposition](families/econagent/reviews/econagent_review_disposition.md) | [claude](families/econagent/reviews/econagent_review_claude.md), [codex](families/econagent/reviews/econagent_review_codex.md), [triage](families/econagent/reviews/econagent_codex_triage.md), [fix verification](families/econagent/reviews/econagent_fix_verification.md) |
+| EconEvals | `econevals` | [spec](families/econevals/adapter_spec.md) | [status](families/econevals/adapter_status.md) | [disposition](families/econevals/reviews/econevals_review_disposition.md) | [claude](families/econevals/reviews/econevals_review_claude.md), [codex](families/econevals/reviews/econevals_review_codex.md) |
+| GovSim | `govsim` | [spec](families/govsim/adapter_spec.md) | [status](families/govsim/adapter_status.md) | [disposition](families/govsim/reviews/govsim_review_disposition.md) | [claude](families/govsim/reviews/govsim_review_claude.md), [codex](families/govsim/reviews/govsim_review_codex.md), [triage](families/govsim/reviews/govsim_codex_triage.md), [fix verification](families/govsim/reviews/govsim_fix_verification.md) |
+| NegotiationArena | `negarena` | [spec](families/negarena/adapter_spec.md) | [status](families/negarena/adapter_status.md) | [disposition](families/negarena/reviews/negarena_review_disposition.md) | [claude](families/negarena/reviews/negarena_review_claude.md), [codex](families/negarena/reviews/negarena_review_codex.md), [triage](families/negarena/reviews/negarena_codex_triage.md), [fix verification](families/negarena/reviews/negarena_fix_verification.md) |
+| STEER | `steer` | [spec](families/steer/adapter_spec.md) | [status](families/steer/adapter_status.md) | [disposition](families/steer/reviews/steer_review_disposition.md) | [claude](families/steer/reviews/steer_review_claude.md), [codex](families/steer/reviews/steer_review_codex.md), [triage](families/steer/reviews/steer_codex_triage.md), [fix verification](families/steer/reviews/steer_fix_verification.md) |
+| TERMS-Bench | `termsbench` | [spec](families/termsbench/adapter_spec.md) | [status](families/termsbench/adapter_status.md) | [disposition](families/termsbench/reviews/termsbench_review_disposition.md) | [claude](families/termsbench/reviews/termsbench_review_claude.md), [codex](families/termsbench/reviews/termsbench_review_codex.md), [triage](families/termsbench/reviews/termsbench_codex_triage.md) |
 
-These files sit at the root of `docs/` today. Their home is
-`families/<adapter>/` (`adapter_spec.md`, `adapter_status.md`, `reviews/`),
-matching Tau3 retail; the move is deferred until the open adapter migration
-stack lands, because every one of those pull requests edits these files. New
-adapter documents go straight to `families/<adapter>/`. See §Placement.
+Each adapter's documents live in `families/<adapter>/` (`adapter_spec.md`,
+`adapter_status.md`, `reviews/`), matching Tau3 retail. The scoring-contract
+migration plans and reviews sit beside them and are listed in the
+[family index](families/README.md). Source and tests still cite the earlier
+root-level paths (`docs/steer_adapter_spec.md`); those resolve through
+[moved documents](operations/moved_documents.md).
 
 ## Kernel reviews and reports
 
 Point-in-time reviews of the shared runner. Each records what was examined at
 one commit and what was ruled; later rulings live in the issues they cite.
 
-- [Kernel scoring-contract design critique](kernel_contract_design_critique.md)
-- [Kernel scoring-contract conformance-gap review](kernel_contract_gap_review.md)
-- [Kernel scoring-contract implementation review](kernel_contract_impl_review.md)
-- [Kernel contract rebase review](kernel_contract_rebase_review.md)
-- [Shared-runner kernel hardening report](runner_hardening_report.md) (nineteen ledger entries, branch `zeyu/runner-hardening`, #55)
-- [CI cancellation-context diagnosis](ci_cancellation_context_diagnosis.md)
-
-Their home is `architecture/reviews/`; same deferral as above.
+- [Kernel scoring-contract design critique](architecture/reviews/kernel_contract_design_critique.md)
+- [Kernel scoring-contract conformance-gap review](architecture/reviews/kernel_contract_gap_review.md)
+- [Kernel scoring-contract implementation review](architecture/reviews/kernel_contract_impl_review.md)
+- [Kernel contract rebase review](architecture/reviews/kernel_contract_rebase_review.md)
+- [Shared-runner kernel hardening report](architecture/reviews/runner_hardening_report.md) (nineteen ledger entries, branch `zeyu/runner-hardening`, #55)
+- [CI cancellation-context diagnosis](architecture/reviews/ci_cancellation_context_diagnosis.md)
+- [Kernel R9/R10 scoring-contract review and dispositions](architecture/reviews/kernel_r9r10_review.md)
+- [Kernel ruling R12: seat context reaches the scorer](architecture/reviews/kernel_r12_seat_context.md)
+- [Kernel ruling R13: case-conditional leaves](architecture/reviews/kernel_r13_conditional_leaves.md)
 
 ## Placement
 
@@ -127,7 +134,11 @@ Where a new document goes, so `docs/` stays navigable from this page:
 The root of `docs/` holds this index only. Every document is linked from here
 or from its section's `README.md`. Repository-root-style paths
 (`docs/operations/benchmark_qc.md`) are used for cross-references inside
-documents so they survive moves.
+documents so they survive moves. `tests/test_docs_layout.py` enforces all
+three, and that every cited `docs/…md` path exists or is listed in
+[moved documents](operations/moved_documents.md). When a document moves, add
+its row there in the same pull request: source files are hashed into sealed
+identities, so their citations are redirected, not rewritten.
 
 ## Research and measurement
 
@@ -138,6 +149,7 @@ documents so they survive moves.
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
+- [Representative trajectory analysis, 2026-09-05](research/representative_trajectory_analysis_2026-09-05.md)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

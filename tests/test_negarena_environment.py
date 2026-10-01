@@ -1,5 +1,5 @@
 """Tests for the negarena environment: registration, phase graph, and the
-scripted-golden mechanics from docs/negarena_adapter_spec.md section 4.
+scripted-golden mechanics from docs/families/negarena/adapter_spec.md section 4.
 
 Bridge-dependent tests (parse_action/legal, which delegate to upstream's own
 parser and admission-gate methods) skip cleanly when no provisioned bridge
@@ -118,7 +118,7 @@ def test_family_manifest_declares_mode_b_two_seat_alternation() -> None:
 def test_family_manifest_declares_both_leaves_with_seat_outcome_primary() -> None:
     """kernel_scoring_contract_spec.md section 3: the manifest, not the
     scorer or a test fixture, is the one source of the leaf set, the
-    primary, and admission membership. See docs/negarena_adapter_status.md's
+    primary, and admission membership. See docs/families/negarena/adapter_status.md's
     "Leaf policy" section for why `negarena_seat_outcome` is primary and why
     it alone gates admission.
 
@@ -226,7 +226,7 @@ def test_validate_payload_rejects_seats_missing_a_color(plugin) -> None:
 
 
 def test_validate_payload_rejects_a_nonzero_blue_ultimatum_endowment(plugin) -> None:
-    """Regression for docs/negarena_review_claude.md WARNING-2.
+    """Regression for docs/families/negarena/reviews/negarena_review_claude.md WARNING-2.
 
     Upstream's after_game_ends() reports RED's outcome as its absolute
     final holdings but BLUE's as a *delta* from BLUE's own starting
@@ -418,7 +418,7 @@ def test_golden_4_missing_trade_tag_is_caught_not_a_crash(plugin) -> None:
 
 
 def test_golden_4_missing_player_answer_tag_is_caught_not_a_crash(plugin) -> None:
-    """Regression for docs/negarena_review_claude.md CRITICAL-1.
+    """Regression for docs/families/negarena/reviews/negarena_review_claude.md CRITICAL-1.
 
     Upstream's own ``get_tag_indices`` (``negotiationarena/utils.py``) never
     raises on an absent tag -- it returns ``-1``/``-1`` and the resulting

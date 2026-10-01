@@ -6,7 +6,7 @@ split:
 * Leaf-declaration tests -- ``build_leaves``/``build_scorer`` construct
   without raising and match the ``verifier_family``/``reference_kind``/
   ``evaluation_class``/``input_scope``/``direction``/``units`` table in
-  ``docs/aucarena_adapter_spec.md`` section 2 exactly, including the kernel's
+  ``docs/families/aucarena/adapter_spec.md`` section 2 exactly, including the kernel's
   own ``_REFERENCE_KINDS``/``_REFERENCE_SCOPE`` acceptance (a construction
   that violated either table would raise ``MeasurementContractError``
   before this module ever ran).
@@ -154,7 +154,7 @@ def test_build_scorer_field_seats_excludes_the_tested_seat() -> None:
 
 
 def test_profit_vs_field_reference_hash_distinguishes_item_order_not_only_the_field() -> None:
-    """``docs/aucarena_codex_triage.md`` Finding 6: the adapter spec (section
+    """``docs/families/aucarena/reviews/aucarena_codex_triage.md`` Finding 6: the adapter spec (section
     2) declares the item order part of ``aucarena_profit_vs_field``'s
     estimand identity ("the pairing (same case_id, same item order, same
     world_seed) are part of the estimand"), but the reference hash used to
@@ -217,7 +217,7 @@ def test_golden_1_all_rule_constraint_leaves_pass() -> None:
     # score_budget_invariant) -- never a violation entry, since this golden
     # is clean. Exact value AND unit, not just the key (restoring the
     # pre-24f07c4c exact-equality assertion this metric weakened -- see
-    # docs/aucarena_migration_review.md's second independent review):
+    # docs/families/aucarena/migration_review.md's second independent review):
     # golden 1 auctions four items, one recorded ``TransitionResult`` per
     # bid round, agent/field_high alternating minimum-markup raises with
     # field_low never bidding (``max_bid_cnt=0``) -- item 1 sells in 9

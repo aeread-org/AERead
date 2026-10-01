@@ -473,7 +473,7 @@ def test_receipt_sealed_before_deferred_leaf_ids_verifies_through_both_paths() -
 
 def test_receipt_with_deferred_leaf_ids_still_seals_and_protects_them() -> None:
     """Digest neutrality is only for the empty case. A declared deferred leaf
-    stays visible on the receipt (kernel_contract_impl_review.md finding 12)
+    stays visible on the receipt (docs/architecture/reviews/kernel_contract_impl_review.md finding 12)
     and stays under the digest, so clearing it is detected as tampering.
     """
 

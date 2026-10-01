@@ -801,7 +801,7 @@ def test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_pol
 
 
 def test_registry_rejects_a_manifest_whose_measurement_field_bypassed_validation() -> None:
-    """kernel_contract_gap_review.md finding 8.
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 8.
 
     Both ``test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_policy``
     above and the registration case inside
@@ -832,7 +832,7 @@ def test_registry_rejects_a_manifest_whose_measurement_field_bypassed_validation
 
 
 def test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace() -> None:
-    """kernel_contract_impl_review.md finding 4.
+    """docs/architecture/reviews/kernel_contract_impl_review.md finding 4.
 
     ``from_dict`` is not the only way to construct a ``MeasurementDeclaration``:
     ``dataclasses.replace`` on an already-validated, registered manifest calls
@@ -1165,7 +1165,7 @@ def test_leaf_policy_declaration_rejects_subject_reduction_on_a_cell_scoped_leaf
 
 
 def test_leaf_policy_declaration_post_init_rejects_subject_reduction_bypassing_from_dict() -> None:
-    """Ruling R12, same pattern as kernel_contract_impl_review.md finding 4's
+    """Ruling R12, same pattern as docs/architecture/reviews/kernel_contract_impl_review.md finding 4's
     ``scope``/``deferred_artifact`` guard: ``__post_init__`` must reject the
     same invalid combination ``from_dict`` rejects, so a ``dataclasses.replace``
     cannot smuggle a ``subject_reduction`` onto a ``cell``-scoped leaf past
@@ -1263,7 +1263,7 @@ def test_measurement_declaration_rejects_a_case_conditional_admission_leaf() -> 
 
 
 def test_measurement_declaration_post_init_rejects_a_case_conditional_primary_bypassing_from_dict() -> None:
-    """Ruling R13, same pattern as kernel_contract_impl_review.md finding
+    """Ruling R13, same pattern as docs/architecture/reviews/kernel_contract_impl_review.md finding
     4's ``scope``/``deferred_artifact`` guard: ``__post_init__`` must reject
     the same invalid combination ``from_dict`` rejects, so a
     ``dataclasses.replace`` on an already-validated manifest cannot smuggle
@@ -1328,7 +1328,7 @@ def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclas
 
 
 def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path() -> None:
-    """kernel_r9r10_review.md finding 4: ``_JSON_POINTER_RE`` alone accepts an
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 4: ``_JSON_POINTER_RE`` alone accepts an
     RFC 6901 array-index segment (e.g. "/history/0"), but the
     scoring-contract protocol test's projection helper can only navigate
     JSON objects and raises on a list -- a manifest accepted here could
@@ -1354,7 +1354,7 @@ def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path_
 
 
 def test_measurement_declaration_rejects_overlapping_trajectory_outcome_paths() -> None:
-    """kernel_r9r10_review.md finding 4: one declared path being a strict
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 4: one declared path being a strict
     prefix of another is redundant overlap -- projecting the shorter path
     away already drops everything the longer path would have named."""
     with pytest.raises(AuthoringValidationError, match="overlapping"):

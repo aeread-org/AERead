@@ -15,7 +15,7 @@ determinism pre-check (invoke the scorer twice on the SAME input) runs first,
 so a nondeterministic scorer is reported as nondeterministic rather than as
 mislabelled. The stated limit: one counterexample pair cannot prove
 non-dependence, only refute it when it fires (see
-``docs/kernel_contract_design_critique.md``).
+``docs/architecture/reviews/kernel_contract_design_critique.md``).
 
 This registry is local to this test, not a production one: the five families
 already migrated to the ``FamilyScoringInput`` contract (housing,
@@ -701,14 +701,14 @@ def _seat_scoped_family_manifest(*, subject_reduction: str | None = None) -> Fam
 def _seat_scoped_reference_leaf(
     *, seat: str | None, reference_version: str = "1.0.0"
 ) -> MeasurementLeafSpec:
-    """A ``_SEAT_SCOPED_LEAF_ID`` leaf spec for the kernel_r12_seat_context.md
+    """A ``_SEAT_SCOPED_LEAF_ID`` leaf spec for the docs/architecture/reviews/kernel_r12_seat_context.md
     stability-rule tests below, built on ``_reference_leaf``.
 
     ``seat`` drives the REFERENCE's own identity -- ``reference_id`` and
     ``source_sha256`` -- the only two fields the stability rule permits a
     ``seat_scope="subject_seat"`` leaf to vary per subject seat, because
     that reference genuinely names a different computed object depending
-    on which seat is the subject (kernel_r12_seat_context.md). ``seat=None``
+    on which seat is the subject (docs/architecture/reviews/kernel_r12_seat_context.md). ``seat=None``
     reuses ``_reference_leaf``'s fixed, seat-independent reference exactly.
 
     ``reference_version`` is left at ``_reference_leaf``'s own fixed value
@@ -1087,7 +1087,7 @@ async def _run_case_conditional_deferred_episode(*, evidence_root: Path, mode: s
 
 
 # ---------------------------------------------------------------------------
-# kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
+# docs/architecture/reviews/kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
 # output alternates strictly by a GLOBAL call counter -- never by
 # ``scoring_input`` -- so fresh ``build_scorer(...)`` instances (as every
 # real family constructs) still share state across invocations, unlike a
@@ -1163,7 +1163,7 @@ class _TrajectoryEmbeddingPlugin(_ReferencePlugin):
 
 
 class _TrajectoryCorruptingEmbeddingPlugin(_TrajectoryEmbeddingPlugin):
-    """kernel_r9r10_review.md finding 5 mutation fixture: seals a REVERSED
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 5 mutation fixture: seals a REVERSED
     copy of the trajectory in ``outcome["labels"]`` -- disagreeing with
     ``phase_instances`` at the same declared pointer, exactly the
     corruption ruling R10 exists to catch, produced by a REAL sealed
@@ -1254,7 +1254,7 @@ _OVER_BROAD_TRAJECTORY_LEAF_ID = "over_broad_first_round_choice_is_x"
 
 
 class _OverBroadTrajectoryEmbeddingPlugin(_TrajectoryEmbeddingPlugin):
-    """kernel_r9r10_review.md finding 1 (guard a) mutation fixture, redriven
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard a) mutation fixture, redriven
     through the real protocol path by the second-pass review's finding R3:
     outcome consists ENTIRELY of the per-step ``labels`` sequence -- a
     genuine list (satisfying finding 1's guard b), at the SAME state key
@@ -1704,7 +1704,7 @@ def _with_declared_leaf_policy(
     the protocol test can assert against it without touching production
     manifest builders or any frozen digest.
 
-    kernel_r9r10_review.md finding 5: ``trajectory_outcome_paths`` (ruling
+    docs/architecture/reviews/kernel_r9r10_review.md finding 5: ``trajectory_outcome_paths`` (ruling
     R9) defaults to empty, unaffected for the four real families this is
     also used for -- the R9/R10 end-to-end fixtures (``_embedding_fixtures``
     below) are the only callers that pass a non-empty value, so their
@@ -1937,7 +1937,7 @@ def _embedding_fixtures(
     """Same shape as ``_reference_fixtures``, but for a family whose outcome
     embeds its trajectory (ruling R9).
 
-    kernel_r9r10_review.md finding 5: ``_TrajectoryEmbeddingPlugin`` and its
+    docs/architecture/reviews/kernel_r9r10_review.md finding 5: ``_TrajectoryEmbeddingPlugin`` and its
     siblings are ``_ReferencePlugin`` subclasses registered under the SAME
     trusted ``kernel_contract_reference_v1`` identity (see
     ``_build_reference_setup``, which always builds ``_reference_family_manifest()``
@@ -1981,7 +1981,7 @@ def _embedding_fixtures(
 # ---------------------------------------------------------------------------
 # steer: a real family with exactly one declared finalize-time leaf,
 # ``steer_answer_key``, declared ``input_scope="answer"`` -- neither
-# ``"terminal_state"`` nor ``"trajectory"`` (docs/steer_migration_plan.md),
+# ``"terminal_state"`` nor ``"trajectory"`` (docs/families/steer/migration_plan.md),
 # so ruling R7's mislabelling contrapositive applies vacuously here
 # (``terminal_leaf_ids`` is empty for this family). The unconditional
 # paired-history cardinality check still applies, though (this family is not
@@ -2027,7 +2027,7 @@ def _steer_cache_root() -> Path:
 def _steer_cache_available() -> bool:
     """Non-skipping counterpart to ``_steer_cache_root``.
 
-    docs/steer_migration_review.md finding 1: the trusted-catalog closure
+    docs/families/steer/migration_review.md finding 1: the trusted-catalog closure
     check needs to know whether ``test_steer_obeys_the_scoring_contract``
     will actually be able to run ``_assert_family_scoring_contract`` for
     steer this session, WITHOUT itself skipping (that would propagate a
@@ -2519,7 +2519,7 @@ def _build_protocol_test_registry_and_fixtures(
 def _metric_value_content(value: MetricValue | None) -> tuple[float, str] | None:
     """A ``MetricValue`` reduced to its measured ``(value, unit)``.
 
-    kernel_contract_gap_review.md finding 6: ``MetricValue.metadata`` is an
+    docs/architecture/reviews/kernel_contract_gap_review.md finding 6: ``MetricValue.metadata`` is an
     unrestricted mapping that participates in dataclass equality (it is a
     plain field, not ``compare=False``). A genuinely terminal-scoped metric
     could hold a byte-identical ``value``/``unit`` across two fixtures while
@@ -2550,14 +2550,14 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
     only ``status`` + ``reasons``, so safe); ``leaf`` and ``evidence_refs`` on
     ``ScoreEnvelope`` are provenance or identity, not measurement content.
 
-    kernel_contract_gap_review.md finding 5: ``utility_by_seat`` and
+    docs/architecture/reviews/kernel_contract_gap_review.md finding 5: ``utility_by_seat`` and
     ``capture_by_seat`` are also ``ScoreEnvelope`` measurement fields (a
     per-seat allocation breakdown), not provenance -- a leaf could hold its
     aggregate ``primary`` constant while deriving a per-seat breakdown from
     trajectory order, which is exactly the kind of mislabelling this check
     exists to catch. Both are now included.
 
-    kernel_contract_gap_review.md finding 6: every ``MetricValue`` here
+    docs/architecture/reviews/kernel_contract_gap_review.md finding 6: every ``MetricValue`` here
     (``primary`` and each value inside ``metrics``, ``reference_values``,
     ``utility_by_seat``, and ``capture_by_seat``) is reduced by
     ``_metric_value_content``/``_metric_mapping_content`` to its
@@ -2597,7 +2597,7 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 #     pair).
 #   R10 the consistency duty -- for every declared path, the outcome's copy
 #     of the trajectory must equal the SAME pointer read from the final
-#     replayed state. kernel_r9r10_review.md finding 2: this is NOT a
+#     replayed state. docs/architecture/reviews/kernel_r9r10_review.md finding 2: this is NOT a
 #     "canonical derivation" of history from actions -- the kernel does not
 #     re-derive anything. It only re-reads
 #     ``phase_instances[-1].transitions[-1].state`` -- exactly the state
@@ -2653,7 +2653,7 @@ def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mappi
     paired-history check is then byte-for-byte the pre-R9 whole-outcome
     comparison, including when the legitimate whole outcome is ``{}``.
 
-    kernel_r9r10_review.md finding 1, second-pass review R2(b), accepted
+    docs/architecture/reviews/kernel_r9r10_review.md finding 1, second-pass review R2(b), accepted
     residual: this function and the guards built on it (non-empty
     projection, sequence-shaped path) are STRUCTURAL checks on shape and
     byte-equality -- they cannot decide which of a family's OWN residual
@@ -2710,7 +2710,7 @@ def _first_differing_top_level_key_hint(
 def _assert_projection_is_not_vacuous(
     projection: Any, *, family_id: str, trajectory_outcome_paths: tuple[str, ...]
 ) -> None:
-    """kernel_r9r10_review.md finding 1 (guard a): a declared
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard a): a declared
     ``trajectory_outcome_paths`` that covers an object subtree wider than
     the trajectory itself (e.g. ``"/payload"`` when ``payload`` holds both
     terminal fields and the history) projects EVERY fixture's outcome down
@@ -2719,7 +2719,7 @@ def _assert_projection_is_not_vacuous(
     exactly the vacuous check ruling R7 exists to prevent. This guard fires
     before that comparison, on each fixture's own projection individually.
 
-    kernel_r9r10_review.md second-pass review R2(b), accepted residual:
+    docs/architecture/reviews/kernel_r9r10_review.md second-pass review R2(b), accepted residual:
     "non-empty" is a STRUCTURAL check -- it catches total erasure, not
     partial erasure. A family whose residual projection still holds SOME
     field (any field) passes, even if the specific terminal fact a leaf
@@ -2756,7 +2756,7 @@ def _assert_trajectory_outcome_paths_are_consistent(
     """Ruling R10: each declared path's outcome copy must equal the SAME
     pointer read from the final replayed state.
 
-    kernel_r9r10_review.md finding 2: this is precisely what is compared,
+    docs/architecture/reviews/kernel_r9r10_review.md finding 2: this is precisely what is compared,
     and no more. This does NOT re-derive history from actions -- it re-reads
     ``_final_replayed_state`` (the state ``plugin.terminal()`` was called on,
     the product of replaying the family's own sealed transitions through its
@@ -2784,7 +2784,7 @@ def _assert_trajectory_outcome_paths_are_consistent(
                 f"outcome{pointer} does not exist in the outcome -- every declared "
                 "trajectory_outcome_path must be present in every fixture outcome"
             ) from error
-        # kernel_r9r10_review.md finding 1 (guard b): a declared path that
+        # docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard b): a declared path that
         # navigates to an object subtree, not a per-step record sequence,
         # may hide terminal facts behind the projection (``project_outcome``
         # drops the WHOLE subtree, not just a trajectory-shaped part of it).
@@ -2797,7 +2797,7 @@ def _assert_trajectory_outcome_paths_are_consistent(
         # ``project_outcome``'s docstring. Third-pass review C1: an EMPTY
         # sequence is deliberately not rejected here (a guard doing exactly
         # that was added in the second pass and removed in the third --
-        # see this module's docstring banner and kernel_r9r10_review.md for
+        # see this module's docstring banner and docs/architecture/reviews/kernel_r9r10_review.md for
         # why an empty declared trajectory is not a hole).
         assert isinstance(outcome_value, (list, tuple)), (
             f"outcome{pointer} is a {type(outcome_value).__name__}, not a "
@@ -2808,7 +2808,7 @@ def _assert_trajectory_outcome_paths_are_consistent(
         try:
             derived_value = _json_pointer_get(final_state, pointer)
         except KeyError as error:
-            # kernel_r9r10_review.md finding 2: ruling R10 reads the SAME
+            # docs/architecture/reviews/kernel_r9r10_review.md finding 2: ruling R10 reads the SAME
             # pointer from both the outcome and the final replayed state --
             # a family whose outcome stores its trajectory under a
             # different field name than its own state (e.g. outcome
@@ -2841,7 +2841,7 @@ def _assert_trajectory_leaves_are_witnessed(
     """Ruling R9(b): each trajectory-scoped leaf must change on SOME
     SAME-CASE pair -- a SANITY CHECK, not a proof of trajectory-dependence.
 
-    kernel_r9r10_review.md finding 3, fourth-pass review W1: the second-pass
+    docs/architecture/reviews/kernel_r9r10_review.md finding 3, fourth-pass review W1: the second-pass
     review (cf85c02f, 42d9fd60) additionally required a byte-identical
     PROJECTED outcome for a pair to count ("controlled"). A real family
     counterexample shows that requirement makes a legitimate
@@ -2939,7 +2939,7 @@ def _assert_trajectory_leaves_are_witnessed(
 # before being wired in here.
 #
 # Two SEPARATE paired-history pairs, not one four-fixture list, and this is a
-# deliberate choice, not an oversight: kernel_contract_gap_review.md finding
+# deliberate choice, not an oversight: docs/architecture/reviews/kernel_contract_gap_review.md finding
 # 7's leaf-identity-stability check (this module's own
 # ``_assert_family_obeys_the_scoring_contract``, "stable_leaf_specs") compares
 # the FULL ``MeasurementLeafSpec`` for a given leaf id across every fixture
@@ -3109,7 +3109,7 @@ def test_agenticpay_obeys_the_scoring_contract(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Ruling R6 (kernel_contract_gap_review.md finding 1): the protocol test's
+# Ruling R6 (docs/architecture/reviews/kernel_contract_gap_review.md finding 1): the protocol test's
 # closed-world assertion previously compared this test's own locally-built
 # registry against fixtures built by that same local construction -- true by
 # construction, so a family enrolled in TRUSTED_BUILTIN_PLUGIN_KEYS without a
@@ -3130,7 +3130,7 @@ def _trusted_family_versions(
 # families that have not yet migrated to the FamilyScoringInput contract
 # (spec section 5 -- "eleven migration agents," per-family work this kernel
 # change does not perform; see this module's docstring and
-# kernel_contract_impl_review.md findings 5/7 for why declaring a fixture for
+# docs/architecture/reviews/kernel_contract_impl_review.md findings 5/7 for why declaring a fixture for
 # an unmigrated family is not honestly possible today). This set is
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
@@ -3250,7 +3250,7 @@ def _steer_fixtures_required_env() -> bool:
 def _assert_steer_bridge_gated_enrollment_is_honest(
     *, cache_available: bool, fixtures_required: bool
 ) -> None:
-    """docs/steer_migration_review.md finding 1.
+    """docs/families/steer/migration_review.md finding 1.
 
     ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` tells
     ``_assert_trusted_catalog_is_closed`` steer is enrolled unconditionally,
@@ -3342,7 +3342,7 @@ def _assert_trusted_catalog_is_closed(
 
 
 def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
-    """kernel_contract_gap_review.md finding 1, mutation check.
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 1, mutation check.
 
     Without ``_assert_trusted_catalog_is_closed`` (or with its body neutered),
     a key that is neither enrolled nor exempted passes silently -- the
@@ -3372,7 +3372,7 @@ def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
 
 
 def test_steer_bridge_gated_enrollment_is_not_honest_about_required_fixtures() -> None:
-    """docs/steer_migration_review.md finding 1, mutation check.
+    """docs/families/steer/migration_review.md finding 1, mutation check.
 
     Without ``_assert_steer_bridge_gated_enrollment_is_honest`` (or with its
     body neutered), ``test_every_registered_family_obeys_the_scoring_contract``
@@ -3432,7 +3432,7 @@ def test_steer_fixtures_required_env_reads_the_documented_truthy_values() -> Non
 
 
 # ---------------------------------------------------------------------------
-# Ruling R7 (kernel_contract_gap_review.md finding 3): an all-mislabelled
+# Ruling R7 (docs/architecture/reviews/kernel_contract_gap_review.md finding 3): an all-mislabelled
 # family (every trajectory-reading leaf declared terminal_state) could
 # previously supply exactly one fixture and skip the paired-history
 # contrapositive entirely, since the old cardinality guard fired only when
@@ -3470,7 +3470,7 @@ def test_steer_fixtures_required_env_reads_the_documented_truthy_values() -> Non
 # exemption or ``_assert_family_obeys_the_scoring_contract`` at all --
 # see ``test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_
 # trajectory`` (tests/test_econagent_replay.py) and
-# ``docs/econagent_adapter_status.md``'s "Scoring-contract enrollment" section for the full
+# ``docs/families/econagent/adapter_status.md``'s "Scoring-contract enrollment" section for the full
 # argument.
 # ---------------------------------------------------------------------------
 
@@ -3509,7 +3509,7 @@ def _leaf_spec_fields(
     """A field-by-field breakdown of a ``MeasurementLeafSpec``, for the
     stability check below.
 
-    kernel_r12_seat_context.md: a ``seat_scope="subject_seat"`` leaf may
+    docs/architecture/reviews/kernel_r12_seat_context.md: a ``seat_scope="subject_seat"`` leaf may
     legitimately instantiate its REFERENCE's own identity -- ``reference_id``
     and ``source_sha256`` -- differently per subject seat, because that
     reference genuinely names a different computed object (e.g. a baseline
@@ -3563,8 +3563,8 @@ def _leaf_spec_stability_violation(
     stable_leaf_specs: "dict[str, MeasurementLeafSpec]",
     subject_seat_leaf_specs_by_group: "dict[str, dict[tuple[str, ...], MeasurementLeafSpec]]",
 ) -> str | None:
-    """kernel_contract_gap_review.md finding 7, reconciled with ruling R12
-    (kernel_r12_seat_context.md): one fixture's worth of one leaf's
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 7, reconciled with ruling R12
+    (docs/architecture/reviews/kernel_r12_seat_context.md): one fixture's worth of one leaf's
     declared identity, checked against every OTHER fixture already seen
     for that same leaf_id (recorded into the two mutable dicts, which the
     caller owns and reuses across the whole family).
@@ -3684,7 +3684,7 @@ def _assert_family_obeys_the_scoring_contract(
 ) -> _FamilyContractResult:
     """One family's full scoring-contract protocol check (spec section 6).
 
-    kernel_r9r10_review.md finding 5, pure extraction: this is the per-family
+    docs/architecture/reviews/kernel_r9r10_review.md finding 5, pure extraction: this is the per-family
     body ``test_every_registered_family_obeys_the_scoring_contract`` used to
     run inline in its own loop. Moving it here, unchanged, lets the R9/R10
     end-to-end tests below drive their synthetic embedding families through
@@ -3703,7 +3703,7 @@ def _assert_family_obeys_the_scoring_contract(
     # Ruling R12 introduced ``seat_scope="subject_seat"`` leaves without
     # reconciling them against finding 7's stability check below: such a
     # leaf's REFERENCE legitimately depends on which seat is the subject
-    # (kernel_r12_seat_context.md), so a fixture-keyed-only-by-leaf_id
+    # (docs/architecture/reviews/kernel_r12_seat_context.md), so a fixture-keyed-only-by-leaf_id
     # comparison of the FULL spec is unsound for it. ``leaf_policy_by_id``
     # is how each score's ``seat_scope`` is looked up below to decide which
     # of the two comparisons (full spec, or invariant-fields-only) applies.
@@ -3781,8 +3781,8 @@ def _assert_family_obeys_the_scoring_contract(
             for score in produced.scores
         )
 
-        # kernel_contract_gap_review.md finding 7, reconciled with ruling
-        # R12 (kernel_r12_seat_context.md): a leaf's declared identity must
+        # docs/architecture/reviews/kernel_contract_gap_review.md finding 7, reconciled with ruling
+        # R12 (docs/architecture/reviews/kernel_r12_seat_context.md): a leaf's declared identity must
         # be stable across fixtures for the same family/version -- except a
         # seat_scope="subject_seat" leaf's own reference identity
         # (reference_id, source_sha256), which may legitimately vary WITH
@@ -3801,7 +3801,7 @@ def _assert_family_obeys_the_scoring_contract(
             assert violation is None, f"{key[0]}/{violation}"
 
         # Determinism pre-check (ruling R7), made adjacent to the
-        # original call for THIS case (kernel_contract_gap_review.md
+        # original call for THIS case (docs/architecture/reviews/kernel_contract_gap_review.md
         # finding 4): the previous structure batched both fixtures'
         # original calls, then both fixtures' repeat calls -- call order
         # original-left, original-right, repeat-left, repeat-right -- so
@@ -3843,7 +3843,7 @@ def _assert_family_obeys_the_scoring_contract(
 
         produced_by_case.append((scoring_input, produced, case.family_case))
 
-    # kernel_contract_gap_review.md finding 3: the paired-history
+    # docs/architecture/reviews/kernel_contract_gap_review.md finding 3: the paired-history
     # requirement is now unconditional except for the named exemption
     # above -- it no longer depends on the scorer's OWN (possibly
     # mislabelled) output already declaring a trajectory leaf.
@@ -3901,7 +3901,7 @@ def _assert_family_obeys_the_scoring_contract(
     # outcome) for govsim and every terminal-only family.
     left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
     right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
-    # kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
+    # docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
     # path (one covering an object subtree wider than the trajectory
     # itself) can project BOTH fixtures down to an empty mapping, which
     # would make the equality check below pass vacuously -- {} == {} --
@@ -3978,7 +3978,7 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # below for that check.)
     assert set(fixtures) == set(registrations)
 
-    # docs/steer_migration_review.md finding 1: steer's enrollment via
+    # docs/families/steer/migration_review.md finding 1: steer's enrollment via
     # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below is a promise that
     # test_steer_obeys_the_scoring_contract actually checks it elsewhere --
     # a promise that stops being true the moment AEREAD_STEER_FIXTURES_REQUIRED
@@ -3989,7 +3989,7 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
         fixtures_required=_steer_fixtures_required_env(),
     )
 
-    # Ruling R6 (kernel_contract_gap_review.md finding 1): the real closed
+    # Ruling R6 (docs/architecture/reviews/kernel_contract_gap_review.md finding 1): the real closed
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
@@ -4137,7 +4137,7 @@ def test_steer_obeys_the_scoring_contract(tmp_path: Path) -> None:
 # outcome minus `/eliminated_order`) byte-identical. Verified directly
 # against the real pinned upstream checkout before being wired in here
 # (never trusted as hand-derived arithmetic alone, per the worked example's
-# warning) -- see docs/alympics_adapter_status.md, "Protocol-test fixtures
+# warning) -- see docs/families/alympics-wac/adapter_status.md, "Protocol-test fixtures
 # (paired history + sensitivity witness)".
 #
 # A third fixture ("alt", same case) has every seat bid illegally (exceeding
@@ -4156,7 +4156,7 @@ _ALYMPICS_BIG_BID = 10**9
 # reach the SAME terminal (hp=0, no_drink=5) at DIFFERENT round counts:
 # "short" dies after round 5 (win once, then lose four times), "long" dies
 # after round 6 (win twice, then lose four times) -- see this section's own
-# banner and docs/alympics_adapter_status.md, "Protocol-test fixtures
+# banner and docs/families/alympics-wac/adapter_status.md, "Protocol-test fixtures
 # (paired history + sensitivity witness)" for the arithmetic.
 _ALYMPICS_SHORT_DEATH_BIDS = (120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
 _ALYMPICS_LONG_DEATH_BIDS = (120, 120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
@@ -4363,7 +4363,7 @@ class _NegarenaBridgeMustNotBeCalled:
 
 
 def test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridge() -> None:
-    """negarena_migration_review.md finding 2, fix.
+    """docs/families/negarena/migration_review.md finding 2, fix.
 
     ``test_negarena_obeys_the_scoring_contract`` above needs the real,
     provisioned NegotiationArena bridge for both its fixtures -- a genuinely
@@ -4434,7 +4434,7 @@ def test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridg
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
-    """kernel_contract_gap_review.md finding 4, mutation check.
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 4, mutation check.
 
     Reproduces the review's exact adversary (``_CallParityAdversarialScorer``)
     against two REAL sealed episodes -- byte-identical outcome, differing
@@ -4547,7 +4547,7 @@ def test_r9_projection_pairs_a_trajectory_embedding_outcome_when_the_path_is_dec
     byte-identical-outcome precondition would otherwise make unsatisfiable
     by construction (ruling R9, round 3).
 
-    kernel_r9r10_review.md finding 5: this now drives the fixtures through
+    docs/architecture/reviews/kernel_r9r10_review.md finding 5: this now drives the fixtures through
     ``_assert_family_obeys_the_scoring_contract`` -- the SAME protocol path
     ``test_every_registered_family_obeys_the_scoring_contract`` uses for the
     four real families -- instead of calling ``project_outcome``/
@@ -4600,7 +4600,7 @@ def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
     the two outcomes apart, proving the declaration above is doing real
     work rather than coincidentally matching.
 
-    kernel_r9r10_review.md finding 5, fourth-pass review W1: the
+    docs/architecture/reviews/kernel_r9r10_review.md finding 5, fourth-pass review W1: the
     sensitivity witness (which runs first) no longer requires a matching
     projection -- same case and differing phase_instances are enough, which
     this pair still satisfies even with no declared paths -- so the witness
@@ -4672,7 +4672,7 @@ def test_r9_no_paths_accepts_an_empty_outcome_through_the_protocol_path(
 
 
 def test_projection_is_not_vacuous_rejects_a_projection_erased_to_an_empty_mapping() -> None:
-    """kernel_r9r10_review.md finding 1 (guard a), unit check."""
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard a), unit check."""
     with pytest.raises(AssertionError, match="vacuous"):
         _assert_projection_is_not_vacuous(
             {}, family_id="fixture_family", trajectory_outcome_paths=("/payload",)
@@ -4686,7 +4686,7 @@ def test_projection_is_not_vacuous_accepts_a_non_empty_projection() -> None:
 
 
 def test_trajectory_outcome_path_consistency_rejects_a_mapping_shaped_path() -> None:
-    """kernel_r9r10_review.md finding 1 (guard b), unit check: a declared
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard b), unit check: a declared
     path that navigates to an object subtree, not a per-step record
     sequence, is rejected before the equality check ever runs -- an object
     subtree may hide terminal facts behind the projection."""
@@ -4701,7 +4701,7 @@ def test_trajectory_outcome_path_consistency_rejects_a_mapping_shaped_path() -> 
 def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad(
     tmp_path: Path,
 ) -> None:
-    """kernel_r9r10_review.md finding 1 (guard a), second-pass review R3:
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 1 (guard a), second-pass review R3:
     a REAL family whose outcome is ENTIRELY the per-step ``labels``
     sequence declares that one field as its trajectory_outcome_path.
     Projecting it away erases the whole outcome, not merely a subtree.
@@ -4709,7 +4709,7 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
     Driven through ``_assert_family_obeys_the_scoring_contract`` -- the SAME
     protocol path the registered-family test uses -- instead of calling
     ``project_outcome``/``_assert_projection_is_not_vacuous`` directly: the
-    original shape of this test (kernel_r9r10_review.md finding 5's own
+    original shape of this test (docs/architecture/reviews/kernel_r9r10_review.md finding 5's own
     residual) would have stayed green even if the protocol path stopped
     calling the vacuous-projection guard at all.
     """
@@ -4757,7 +4757,7 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
 def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independently(
     tmp_path: Path,
 ) -> None:
-    """kernel_r9r10_review.md finding 5, third-pass review C2: the protocol-
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 5, third-pass review C2: the protocol-
     path version of the test above raises on the LEFT fixture's projection
     before the RIGHT fixture's guard call is ever reached -- one raised
     ``AssertionError`` aborts ``_assert_family_obeys_the_scoring_contract``
@@ -4871,7 +4871,7 @@ def test_r10_rejects_a_corrupted_trajectory_outcome_copy_end_to_end(
 
 
 def test_score_measurement_content_includes_seat_breakdowns() -> None:
-    """kernel_contract_gap_review.md finding 5, mutation check.
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 5, mutation check.
 
     A leaf could hold its aggregate ``primary`` constant while varying its
     per-seat allocation breakdown by trajectory order -- exactly the kind of
@@ -4915,7 +4915,7 @@ def test_score_measurement_content_includes_seat_breakdowns() -> None:
 
 
 def test_score_measurement_content_ignores_metric_metadata() -> None:
-    """kernel_contract_gap_review.md finding 6, mutation check.
+    """docs/architecture/reviews/kernel_contract_gap_review.md finding 6, mutation check.
 
     ``MetricValue.metadata`` is an unrestricted mapping that participates in
     ``MetricValue.__eq__`` -- a scorer could legitimately (or adversarially)
@@ -5050,7 +5050,7 @@ def test_r10_rejects_a_corrupted_trajectory_outcome_copy() -> None:
 
 
 def test_r10_rejects_a_declared_path_the_final_state_does_not_have() -> None:
-    """kernel_r9r10_review.md finding 2, mutation check: ruling R10 reads the
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 2, mutation check: ruling R10 reads the
     SAME pointer from both the outcome and the final replayed state. A
     family whose outcome stores its trajectory under a different field name
     than its own state (e.g. "/public_history" copied from state
@@ -5133,7 +5133,7 @@ _FAKE_CASE = {"case_id": "fixture_case"}
 
 
 def test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair() -> None:
-    """A SAME-CASE pair (kernel_r9r10_review.md finding 3, fourth-pass
+    """A SAME-CASE pair (docs/architecture/reviews/kernel_r9r10_review.md finding 3, fourth-pass
     review W1): every fixture below shares the same ``family_case`` and a
     distinct ``phase_instances``, so every pair here qualifies, regardless
     of their (here, identical anyway) outcome."""
@@ -5191,7 +5191,7 @@ def test_sensitivity_witness_fails_when_a_trajectory_leaf_ignores_every_fixture(
 
 
 def test_sensitivity_witness_passes_a_leaf_that_changes_only_via_a_differing_outcome_field() -> None:
-    """kernel_r9r10_review.md finding 3, fourth-pass review W1: this is the
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 3, fourth-pass review W1: this is the
     case the second-pass review's identical-projection rule REJECTED
     (formerly ``test_sensitivity_witness_rejects_a_leaf_that_only_changes_on_an_uncontrolled_pair``)
     -- flipped, because that rule is unsatisfiable for a real family.
@@ -5235,7 +5235,7 @@ def test_sensitivity_witness_passes_a_leaf_that_changes_only_via_a_differing_out
 
 
 def test_sensitivity_witness_rejects_a_pair_whose_case_differs() -> None:
-    """kernel_r9r10_review.md finding 3, second-pass review R1 (kept by the
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 3, second-pass review R1 (kept by the
     fourth-pass review W1, which dropped only the identical-projection
     requirement, not this one): two fixtures from DIFFERENT cases, with
     differing ``phase_instances``, and a leaf that differs between them --
@@ -5262,7 +5262,7 @@ def test_sensitivity_witness_rejects_a_pair_whose_case_differs() -> None:
 
 
 def test_sensitivity_witness_counts_a_status_only_flip() -> None:
-    """kernel_r9r10_review.md finding 3: ``_score_measurement_content``
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 3: ``_score_measurement_content``
     counts a bare status/validity flip as a witnessed difference on a
     same-case pair, not only a differing ``primary`` value -- the compared
     content is unchanged from before the fourth-pass review's W1, which
@@ -5306,7 +5306,7 @@ def test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves() -> None:
 
 
 def test_sensitivity_witness_requires_at_least_one_same_case_pair() -> None:
-    """kernel_r9r10_review.md finding 3, fourth-pass review W1: if no
+    """docs/architecture/reviews/kernel_r9r10_review.md finding 3, fourth-pass review W1: if no
     supplied pair shares a case (with differing phase_instances), the
     family has not given the witness anything sound to check -- rejected
     explicitly, naming the cause, rather than silently accepting a pair
@@ -5505,8 +5505,8 @@ def test_seat_scoped_two_subject_seats_with_declared_reduction_is_accepted_at_fi
 
 
 # ---------------------------------------------------------------------------
-# kernel_r12_seat_context.md: the stability rule that reconciles ruling R12
-# (seat_scope="subject_seat" leaves) with kernel_contract_gap_review.md
+# docs/architecture/reviews/kernel_r12_seat_context.md: the stability rule that reconciles ruling R12
+# (seat_scope="subject_seat" leaves) with docs/architecture/reviews/kernel_contract_gap_review.md
 # finding 7 (a leaf's declared identity must be stable across fixtures).
 # Driven directly against ``_leaf_spec_stability_violation`` -- the exact
 # per-fixture function ``_assert_family_obeys_the_scoring_contract`` calls
@@ -6502,7 +6502,7 @@ def test_amazonbarg_obeys_the_scoring_contract(tmp_path: Path) -> None:
 # (negarena_seat_outcome) is genuinely seat-scoped (ruling R12) and
 # trajectory-scoped. Verified constructible against the real bridge
 # directly before being wired in here
-# (docs/negarena_migration_plan.md's "Paired-history pair: constructible"):
+# (docs/families/negarena/migration_plan.md's "Paired-history pair: constructible"):
 # golden-1's buy_sell transcript (parity.build_buy_sell_golden_one) ends in
 # an ACCEPT whose own trade tag upstream's parser always reduces to the
 # fixed sentinel ``{"kind": "none"}`` (environment.py's ``terminal()``
@@ -6864,7 +6864,7 @@ def _negarena_fixture_pair(
     (``negarena_scripted_v1`` -> ``"scripted"``,
     ``measurement.OPPONENT_PROFILE_TO_POLICY_ID``) -- the ordinary,
     single-subject-seat case this corpus's real evaluation cells are
-    shaped like (docs/negarena_adapter_status.md's seat-scope
+    shaped like (docs/families/negarena/adapter_status.md's seat-scope
     classification), never the self-play/ambiguous shape
     ``tests/test_negarena_kernel_finalizer.py``'s own fixtures use.
     """

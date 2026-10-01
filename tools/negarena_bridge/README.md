@@ -14,7 +14,7 @@ upstream negarena module, including the "pure" game-object arithmetic in
 `negotiationarena/game_objects/*.py`, transitively imports `openai` and
 `anthropic` at module scope (`negotiationarena/utils.py` does
 `from negotiationarena.agents import ChatGPTAgent, ClaudeAgent`; see
-`docs/negarena_adapter_spec.md`'s governing facts and
+`docs/families/negarena/adapter_spec.md`'s governing facts and
 `ledger_entries/negarena.md`). This project's own venv must never carry those
 two packages, so the adapter delegates across a subprocess instead:
 `src/aeread_families/negarena/negarena_bridge.py` spawns

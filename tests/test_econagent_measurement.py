@@ -383,7 +383,7 @@ def test_score_budget_identity_accepts_a_legitimate_boundary_month_interest_resi
 
 def test_score_budget_identity_rejects_a_boundary_month_residual_that_does_not_match_the_recorded_interest_rate() -> None:
     """Regression test for the "boundary-month inventory corruption passes"
-    finding (docs/econagent_codex_triage.md finding 1): the scorer used to
+    finding (docs/families/econagent/reviews/econagent_codex_triage.md finding 1): the scorer used to
     accept ANY positive residual on a boundary month as legitimate interest,
     checking only that it was not negative. An arbitrarily large, unexplained
     positive residual -- the exact reproduction from the review (+1,000,000

@@ -723,7 +723,7 @@ def test_finalize_wires_econagent_to_the_shared_family_finalizer(tmp_path: Path)
 
 # ---------------------------------------------------------------------------
 # The whole-outcome paired-history pair (kernel_scoring_contract_spec.md
-# ruling R7/R9(a)'s precondition): docs/econagent_migration_plan.md found it
+# ruling R7/R9(a)'s precondition): docs/families/econagent/migration_plan.md found it
 # "constructible... to be verified against the real bridge in a later
 # milestone, not merely asserted". Verified below, against two real,
 # bridge-backed episodes.
@@ -890,7 +890,7 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
 def test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf(
     tmp_path: Path,
 ) -> None:
-    """docs/econagent_migration_review.md finding 3: neither existing check
+    """docs/families/econagent/migration_review.md finding 3: neither existing check
     would catch ``EconAgentV1Scorer.__call__`` regressing to a constant,
     always-``"ok"`` output that never actually reads its OWN call's
     ``scoring_input.phase_instances``. ``tests/test_shared_runner_scoring_
@@ -1061,7 +1061,7 @@ def test_recorded_bridge_rejects_a_method_order_mismatch() -> None:
 
 def test_recorded_bridge_rejects_a_start_episode_argument_mismatch() -> None:
     """Regression guard for the "replay ignores episode-start arguments"
-    finding (docs/econagent_codex_triage.md finding 2): ``start_episode``
+    finding (docs/families/econagent/reviews/econagent_codex_triage.md finding 2): ``start_episode``
     used to discard its own ``kwargs`` entirely (``del kwargs``) and serve
     the recorded response purely by call order, so a replayed episode's
     genuinely different scenario parameters (``n_agents``/``episode_length``/
@@ -1219,7 +1219,7 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_run() -> No
 
     # `EconAgentV1Plugin.initial_state` derives `bridge_session_id`
     # deterministically from the real scheduler's own `cell.cell_id` (fix
-    # for docs/econagent_codex_triage.md finding 6), so the RAW, byte-exact
+    # for docs/families/econagent/reviews/econagent_codex_triage.md finding 6), so the RAW, byte-exact
     # state matches too here -- both this live run and its replay were
     # driven through the same `cell`. See
     # `test_replay_reproduces_the_byte_exact_canonical_final_state_for_the_identical_cell`
@@ -1233,7 +1233,7 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_run() -> No
 
 
 def test_replay_reproduces_the_byte_exact_canonical_final_state_for_the_identical_cell() -> None:
-    """Finding 6 (docs/econagent_codex_triage.md): ``initial_state()`` used
+    """Finding 6 (docs/families/econagent/reviews/econagent_codex_triage.md): ``initial_state()`` used
     to mint a fresh ``uuid.uuid4().hex`` ``bridge_session_id`` on every call,
     so two executions of the identical case/plan/seed -- a live run and its
     own offline replay, both driven through the real production path
@@ -1395,7 +1395,7 @@ def test_replay_leaf2_detects_a_recorded_recompute_tax_income_mismatch() -> None
 
 def test_replay_rejects_a_recorded_start_episode_argument_mismatch() -> None:
     """Mutation check for the "replay ignores episode-start arguments"
-    finding (docs/econagent_codex_triage.md finding 2), exercised through the
+    finding (docs/families/econagent/reviews/econagent_codex_triage.md finding 2), exercised through the
     REAL production path (``replay_episode`` -> ``run_episode`` ->
     ``EconAgentV1Plugin.initial_state`` -> the replay bridge's own
     ``start_episode``), never a hand-constructed ``RecordedEconAgentBridge``
@@ -1460,7 +1460,7 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report() -> None:
 
 
 def test_replay_and_verify_without_an_original_reports_not_comparable_not_match() -> None:
-    """Finding 4 (docs/econagent_codex_triage.md): ``replay_and_verify``'s own
+    """Finding 4 (docs/families/econagent/reviews/econagent_codex_triage.md): ``replay_and_verify``'s own
     documented, supported "genuinely offline" mode (``original=None``, no live
     run held in memory to compare against) leaves ``comparison`` as ``None`` --
     there is nothing to have agreed. ``ReplayReport.status`` must not report

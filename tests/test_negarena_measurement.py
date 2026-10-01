@@ -1,6 +1,6 @@
 """Tests for the negarena measurement declarations and scorer
 (measurement.py, spec section 2) -- the QC Gate-2 goldens from
-``docs/negarena_adapter_spec.md`` section 4, now asserting on the actual
+``docs/families/negarena/adapter_spec.md`` section 4, now asserting on the actual
 scored leaves rather than only on structural termination facts (which
 ``tests/test_negarena_environment.py`` already covers).
 

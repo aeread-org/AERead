@@ -3,7 +3,7 @@
 There is no upstream corpus (the paper's own repository link is dead), so
 Gate 1 check #1's "source" re-resolution target is our own deterministic
 generator: regenerating from the same ``(generator_version, world_seed)``
-must be byte-identical. See docs/termsbench_adapter_spec.md section 1.
+must be byte-identical. See docs/families/termsbench/adapter_spec.md section 1.
 """
 from __future__ import annotations
 

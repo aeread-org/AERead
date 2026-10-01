@@ -3,7 +3,7 @@
 Unlike ``tests/test_tau3_retail_replay.py`` (which gates its live/replay
 tests on a pinned upstream Python interpreter that may not be provisioned),
 every test in this module runs unconditionally: this family has no external
-process to bridge to at all (``docs/aucarena_adapter_spec.md`` section 3,
+process to bridge to at all (``docs/families/aucarena/adapter_spec.md`` section 3,
 "Not delegated, and why that's safe here") -- the pinned item data is
 materialized into the case payload at import time, and every rule the
 environment applies is a vendored pure function. There is nothing to skip.
@@ -451,7 +451,7 @@ def test_tampering_decision_order_is_caught_by_the_response_source_itself(
 def test_tampering_a_legal_withdraw_into_a_malformed_response_is_caught_even_though_state_is_unchanged(
     tmp_path: Path,
 ) -> None:
-    """``docs/aucarena_codex_triage.md`` Finding 3: golden 5
+    """``docs/families/aucarena/reviews/aucarena_codex_triage.md`` Finding 3: golden 5
     (``degenerate_reference``, one seat, one item) legally withdraws
     (response ``"-1"``). Replaying that one recorded decision as a
     malformed string instead (``"uh, I'll think about it"`` -- golden 4's
@@ -713,7 +713,7 @@ def kernel_contract_fixture_case(*, world_seed: int = 0) -> CaseManifest:
     paired-history fixtures and this module's own
     ``finalize_family_execution`` receipt test can drive real episodes
     quickly and deterministically, with full control over how many rounds
-    each item takes to sell (``docs/aucarena_migration_plan.md``'s own
+    each item takes to sell (``docs/families/aucarena/migration_plan.md``'s own
     constructibility finding: a seat jumping straight to the eventual
     hammer price in round 0 instead of via intermediate rounds is still
     legal). Never written to the on-disk corpus. ``payload.item_pool_sha256``

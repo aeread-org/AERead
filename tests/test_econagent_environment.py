@@ -101,7 +101,7 @@ def test_family_manifest_declares_the_three_leaf_finalize_time_policy() -> None:
     ``econagent_tax_bracket_arithmetic_leaf`` (the two ``rule_constraint``
     accounting leaves) gate admission, and ``econagent_macro_trajectory_leaf``
     (comparative, descriptive-only, per ``build_macro_trajectory_leaf``'s own
-    docstring) does not -- see ``docs/econagent_adapter_status.md``'s
+    docstring) does not -- see ``docs/families/econagent/adapter_status.md``'s
     "Leaf policy" section for the full reasoning.
     """
     manifest = family_manifest()
