@@ -17,6 +17,7 @@ from ..task.execution import ArenaChatClient, ProviderFailure, ProviderRequest
 
 _SAFE_PROVIDER_FAILURE_CONDITIONS = frozenset(
     {
+        "account_fault",
         "auth",
         "empty_response",
         "length",

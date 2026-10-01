@@ -12,7 +12,13 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
+from .execution import (
+    ACCOUNT_FAULT,
+    CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
+    TokenPricing,
+)
 from ..run.layout import RunLayout
 from ..measurement import (
     FamilyScoreSet,
@@ -1103,7 +1109,10 @@ def finalize_family_failure(
     }
     if any(condition in retryable_conditions for condition in failure_conditions):
         failure_class = "retryable_infrastructure"
-    elif any(condition == "provider_contract" for condition in failure_conditions):
+    elif any(
+        condition in {"provider_contract", ACCOUNT_FAULT}
+        for condition in failure_conditions
+    ):
         failure_class = "integration_or_configuration"
     else:
         failure_class = "environment_failure"

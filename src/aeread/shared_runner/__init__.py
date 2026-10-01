@@ -19,6 +19,7 @@ from .run.campaign import (
 )
 
 from .task.execution import (
+    ACCOUNT_FAULT,
     ActionAttemptRecord,
     ArtifactRef,
     CanonicalResponse,
@@ -86,6 +87,19 @@ from .run.contract import (
     sealed,
     sha256_bytes,
     sha256_json,
+)
+from .run.halt import (
+    HALT_CONDITIONS,
+    HALT_EXIT_CODE,
+    HALT_RULE_FIELD,
+    HALTED_AFTER_CONSECUTIVE_FAILURES,
+    HALTED_ON_ACCOUNT_FAULT,
+    NOT_ATTEMPTED,
+    CellOutcome,
+    HaltedRun,
+    OperationalHaltGuard,
+    require_halt_rule,
+    run_cells_under_halt_rule,
 )
 from .run.publication import (
     PROHIBITED_PUBLIC_TEXT,
@@ -313,6 +327,18 @@ __all__ = [
     "ResourceLimits",
     "RunPlan",
     "RunLayout",
+    "ACCOUNT_FAULT",
+    "CellOutcome",
+    "HALT_CONDITIONS",
+    "HALT_EXIT_CODE",
+    "HALT_RULE_FIELD",
+    "HALTED_AFTER_CONSECUTIVE_FAILURES",
+    "HALTED_ON_ACCOUNT_FAULT",
+    "HaltedRun",
+    "NOT_ATTEMPTED",
+    "OperationalHaltGuard",
+    "require_halt_rule",
+    "run_cells_under_halt_rule",
     "ContractError",
     "load_contract",
     "read_sealed",

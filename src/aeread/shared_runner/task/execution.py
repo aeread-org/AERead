@@ -853,6 +853,15 @@ class ProviderResult:
 # route-identity error retryable.
 POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
 
+# HTTP 402: the account cannot pay for the call. Typed separately from
+# "provider_rejected" because it is a fault of the account, not of the request
+# or the cell: the next cell fails the same way, so a run that declares a halt
+# rule stops on it instead of sealing every remaining cell as a failure
+# (DC-O-15: 214 of 348 cells sealed against an exhausted balance). Never
+# retryable -- no wait inside one run refills a balance.
+ACCOUNT_FAULT = "account_fault"
+_ACCOUNT_FAULT_STATUS = 402
+
 # How far a length retry may grow the output budget, as a multiple of what
 # the profile declared. Doubling is the right tactic and unbounded doubling
 # is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
@@ -1130,6 +1139,10 @@ class OpenAIResponsesClient:
             )
         if name == "APIConnectionError":
             return ProviderFailure("transport", str(error), retryable=True)
+        if status_code == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(
+                ACCOUNT_FAULT, str(error), retryable=False, status_code=status_code
+            )
         if name == "InternalServerError" or (
             isinstance(status_code, int) and status_code >= 500
         ):
@@ -1571,6 +1584,10 @@ class OpenRouterChatClient:
                 retryable=True,
                 status_code=resolved_status,
                 retry_after_seconds=_retry_after_from_mapping(payload),
+            )
+        if resolved_status == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(
+                ACCOUNT_FAULT, message, retryable=False, status_code=resolved_status
             )
         retryable = resolved_status is not None and resolved_status >= 500
         return ProviderFailure(
@@ -3953,6 +3970,7 @@ async def execute_plan_cell(
 
 
 __all__ = [
+    "ACCOUNT_FAULT",
     "ActionAttemptRecord",
     "ArtifactRef",
     "CanonicalResponse",
