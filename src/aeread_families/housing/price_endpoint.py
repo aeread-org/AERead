@@ -83,6 +83,32 @@ def score_decisions(
     return rows
 
 
+def seat_view(rows: Sequence[Mapping[str, Any]], spend: Any, seat: int) -> dict[str, Any]:
+    """One seat's realized net and its ex-ante parts, from the same rows the cell total uses.
+
+    The cell decomposition is a sum over seats, so a seat's own net is the sum of its signed
+    decisions' true surplus less its own inspection spend. Rows carry ``tenant_id``.
+    """
+    mine = [r for r in rows if r["tenant_id"] == seat]
+    signed = [r for r in mine if r["decision"] == "sign"]
+    blind = [r for r in signed if not r["informed"]]
+    own_spend = 0.0
+    if isinstance(spend, Mapping):
+        own_spend = float(spend.get(f"tenant_{seat}", spend.get(seat, spend.get(str(seat), 0.0))))
+    lemon_draws = sum(r["true_value"] - r["expected_value_stated"] for r in blind)
+    leak = sum(r["expected_value_stated"] - r["expected_value_response"] for r in blind)
+    net = sum(r["true_value"] - r["rent"] for r in signed) - own_spend
+    return {
+        "seat": seat, "net_realized": round(net, 2),
+        "net_expected_stated_odds": round(net - lemon_draws, 2),
+        "net_expected_response_odds": round(net - lemon_draws - leak, 2),
+        "reply_leak_expected_loss": round(leak, 2), "signed_blind": len(blind),
+        "signed_blind_after_revealing_reply": sum(r["reply_revealed_lemon"] for r in blind),
+        "walked_revealing_reply": sum(r["reply_revealed_lemon"] and r["decision"] == "walk" for r in mine),
+        "inspection_spend": round(own_spend, 2),
+    }
+
+
 def score_cell(
     outcome: Mapping[str, Any], *, world_seed: int, arm: str, margin: float = LANDLORD_MARGIN,
     replicate_index: int = 0,
@@ -127,6 +153,7 @@ def score_cell(
         "signed_blind_after_revealing_reply": sum(r["reply_revealed_lemon"] for r in signed_blind),
         "signed_informed": sum(r["decision"] == "sign" and r["informed"] for r in rows),
         "walked_revealing_reply": sum(r["reply_revealed_lemon"] and r["decision"] == "walk" for r in rows),
+        "by_seat": {seat: seat_view(rows, spend, seat) for seat in range(world.num_tenants)},
         "decisions": rows,
     }
 
@@ -200,7 +227,35 @@ def replicate_noise(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None
     return out
 
 
-def score_run(live_root: Path, margin: float = LANDLORD_MARGIN) -> dict[str, Any]:
+SEAT_METRICS = ("net_realized", "net_expected_stated_odds", "net_expected_response_odds", "signed_blind_after_revealing_reply")
+
+
+def seat_contrast(cells: Sequence[Mapping[str, Any]], seat: int) -> dict[str, Any]:
+    """One seat's true_cost-minus-pooled contrast, paired by world, with a t-interval (n is small)."""
+    by_key: dict[tuple[int, int], dict[str, Mapping[str, Any]]] = {}
+    for cell in cells:
+        if seat in cell.get("by_seat", {}):
+            by_key.setdefault((cell["world_seed"], cell["replicate_index"]), {})[cell["arm"]] = cell["by_seat"][seat]
+    pairs = [arms for arms in by_key.values() if {"true_cost", "pooled"} <= set(arms)]
+    out: dict[str, Any] = {"seat": seat, "paired_worlds": len(pairs)}
+    for key in SEAT_METRICS:
+        diffs = [a["true_cost"][key] - a["pooled"][key] for a in pairs]
+        if len(diffs) < 2:
+            out[key] = None
+            continue
+        mean, sd = statistics.fmean(diffs), statistics.stdev(diffs)
+        half = _t95(len(diffs) - 1) * sd / math.sqrt(len(diffs))
+        out[key] = {"mean": round(mean, 2), "ci95": [round(mean - half, 2), round(mean + half, 2)]}
+    return out
+
+
+def _t95(df: int) -> float:
+    table = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
+             15: 2.131, 20: 2.086, 25: 2.060, 30: 2.042, 40: 2.021, 60: 2.000}
+    return table[min(table, key=lambda k: abs(k - df))] if df not in table else table[df]
+
+
+def score_run(live_root: Path, margin: float = LANDLORD_MARGIN, seat: int | None = None) -> dict[str, Any]:
     """Score every completed cell of a run root, and pair the two arms world by world and replicate."""
     cells: list[dict[str, Any]] = []
     for path in sorted(live_root.glob("world_*__*.json")):
@@ -233,6 +288,7 @@ def score_run(live_root: Path, margin: float = LANDLORD_MARGIN) -> dict[str, Any
         "paired_arm_contrast": paired,
         "paired_mean": {key: round(statistics.fmean(row[key] for row in paired), 2) for key in value_keys},
         "replicate_noise": replicate_noise(cells),
+        "seat_contrast": seat_contrast(cells, seat) if seat is not None else None,
         "max_abs_residual": max((abs(c["residual"]) for c in cells), default=0.0),
     }
 
@@ -283,8 +339,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("live_root", type=Path, nargs="+",
                         help="a price pilot run root's live/ directory; several pool as replicates (exploratory)")
     parser.add_argument("--json", action="store_true", help="print the full report")
+    parser.add_argument("--seat", type=int, default=None, help="also report this seat's own paired arm contrast (focal-seat runs)")
     args = parser.parse_args(argv)
-    report = score_run(args.live_root[0]) if len(args.live_root) == 1 else score_pool(args.live_root)
+    report = score_run(args.live_root[0], seat=args.seat) if len(args.live_root) == 1 else score_pool(args.live_root)
     if args.json:
         print(json.dumps(report, indent=1, sort_keys=True))
         return 0

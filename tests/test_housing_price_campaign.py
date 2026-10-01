@@ -232,3 +232,141 @@ def test_workers_share_one_run_root_by_disjoint_world_ranges(tmp_path):
     # A process that covers everything reads the workers' cells instead of rerunning them.
     whole = asyncio.run(price_campaign.run(contract, tmp_path, live=False))
     assert whole["completed_cells"] == whole["planned_cells"] == 8
+
+
+def test_seat_router_sends_rival_seats_to_the_rival_model_at_temperature_zero(tmp_path):
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import ProviderRequest, ProviderResult
+
+    contract = price_campaign.load_contract(
+        price_campaign.DEFAULT_CONTRACT.parent / "housing_lemons_price_pilot_v6_glm53_flash_rivals_g31lite_w60.json"
+    )
+    model, route = price_campaign.ROUTES["google_gemini_31_flash_lite"]
+    seen = []
+
+    class Stub:
+        async def complete(self, request):
+            seen.append(request)
+            return ProviderResult(
+                response_id="r", requested_model=request.model, resolved_model=request.revision, output_text="{}",
+                finish_reason="stop", input_tokens=1, cached_input_tokens=0, output_tokens=1, cost_usd=0.001,
+                raw_response={},
+            )
+
+    router = price_campaign.SeatRouterClient(
+        Stub(), Stub(), rival_block=contract["rivals"],
+        rewrite=price_campaign.llm_rival_rewrite(model, route, contract["rivals"]),
+        log_path=tmp_path / "seat_calls.jsonl",
+    )
+    base = ProviderRequest(
+        provider_call_id="c", provider="openrouter", base_url="https://openrouter.ai/api/v1",
+        model="z-ai/glm-5.3-flash", revision="z-ai/glm-5.3-flash-20260826", instructions="", input_text="",
+        temperature=1.0, top_p=1.0, max_output_tokens=4096, reasoning_effort="low", timeout_seconds=120.0,
+        request_sha256="x", max_cost_usd=0.3, output_schema={}, provider_metadata={"route_provider": "Parasail"},
+        seed=1, messages=None, tools=None, reasoning_token_budget=None,
+    )
+    for seat in range(6):
+        request = dataclasses.replace(base, provider_call_id=f"c{seat}", input_text=json.dumps({"observation": {"tenant_id": seat}}))
+        asyncio.run(router.complete(request))
+    assert [r.model for r in seen] == ["z-ai/glm-5.3-flash"] + [model] * 5
+    assert [r.temperature for r in seen] == [1.0] + [0.0] * 5
+    assert {r.provider_metadata["route_provider"] for r in seen[1:]} == {"Google"}
+    logged = [json.loads(line) for line in (tmp_path / "seat_calls.jsonl").read_text().splitlines()]
+    assert [row["role"] for row in logged] == ["focal"] + ["rival"] * 5
+    changed = dict(contract, rivals=dict(contract["rivals"], temperature=1.0))
+    path = tmp_path / "changed.json"
+    path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="rival seats drifted"):
+        price_campaign.load_contract(path)
+
+
+def test_seat_router_backs_off_on_rival_rate_limit_and_never_retries_the_focal_seat(tmp_path, monkeypatch):
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import ProviderFailure, ProviderRequest, ProviderResult
+
+    contract = price_campaign.load_contract(
+        price_campaign.DEFAULT_CONTRACT.parent / "housing_lemons_price_pilot_v6_glm53_flash_rivals_g31lite_w60.json"
+    )
+    model, route = price_campaign.ROUTES["google_gemini_31_flash_lite"]
+    block = dict(contract["rivals"], backoff_seconds=0.0)
+    calls = {"rival": 0, "focal": 0}
+
+    class Flaky:
+        def __init__(self, role, fail_first):
+            self.role, self.left = role, fail_first
+
+        async def complete(self, request):
+            calls[self.role] += 1
+            if self.left:
+                self.left -= 1
+                raise ProviderFailure("rate_limit", "429", retryable=True)
+            return ProviderResult(
+                response_id="r", requested_model=request.model, resolved_model=request.revision, output_text="{}",
+                finish_reason="stop", input_tokens=1, cached_input_tokens=0, output_tokens=1, cost_usd=0.0, raw_response={},
+            )
+
+    base = ProviderRequest(
+        provider_call_id="c", provider="openrouter", base_url="https://openrouter.ai/api/v1", model="m", revision="m",
+        instructions="", input_text="", temperature=1.0, top_p=1.0, max_output_tokens=1, reasoning_effort="low",
+        timeout_seconds=1.0, request_sha256="x", max_cost_usd=0.1, output_schema={}, provider_metadata={}, seed=1,
+        messages=None, tools=None, reasoning_token_budget=None,
+    )
+    def req(seat):
+        return dataclasses.replace(base, input_text=json.dumps({"observation": {"tenant_id": seat}}))
+    router = price_campaign.SeatRouterClient(
+        Flaky("focal", 1), Flaky("rival", 3), rival_block=block,
+        rewrite=price_campaign.llm_rival_rewrite(model, route, block), log_path=tmp_path / "l.jsonl",
+    )
+    asyncio.run(router.complete(req(1)))
+    assert calls["rival"] == 4
+    with pytest.raises(ProviderFailure):
+        asyncio.run(router.complete(req(0)))
+    assert calls["focal"] == 1
+
+
+def test_scripted_rivals_play_seats_one_to_five_and_the_plan_stays_one_profile(tmp_path):
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import ProviderRequest, ProviderResult
+
+    path = price_campaign.DEFAULT_CONTRACT.parent / "housing_lemons_price_pilot_v7_glm53_flash_rivals_inspect_w60.json"
+    contract = price_campaign.load_contract(path)
+    assert contract["rivals"]["kind"] == "scripted_tenant"
+    setup = price_campaign.build_setup(contract, "true_cost", live=True)
+    assert len([p for p in setup.plan.agent_profiles if p.model.provider == "openrouter"]) == 1
+    changed = dict(contract, rivals=dict(contract["rivals"], model="housing_scripted_tenant_sign_anything_v1"))
+    other = tmp_path / "changed.json"
+    other.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="rival seats drifted"):
+        price_campaign.load_contract(other)
+    seen = []
+
+    class Stub:
+        def __init__(self, name):
+            self.name = name
+
+        async def complete(self, request):
+            seen.append((self.name, request.provider, request.model))
+            return ProviderResult(
+                response_id="r", requested_model=request.model, resolved_model=request.revision, output_text="{}",
+                finish_reason="stop", input_tokens=0, cached_input_tokens=0, output_tokens=0, cost_usd=0.0, raw_response={},
+            )
+
+    router = price_campaign.SeatRouterClient(
+        Stub("focal"), Stub("rival"), rival_block=contract["rivals"],
+        rewrite=price_campaign.scripted_rival_rewrite(contract["rivals"]), log_path=tmp_path / "l.jsonl",
+    )
+    base = ProviderRequest(
+        provider_call_id="c", provider="openrouter", base_url="u", model="z-ai/glm-5.3-flash", revision="r",
+        instructions="", input_text="", temperature=1.0, top_p=1.0, max_output_tokens=1, reasoning_effort="low",
+        timeout_seconds=1.0, request_sha256="x", max_cost_usd=0.1, output_schema={}, provider_metadata={}, seed=1,
+        messages=None, tools=None, reasoning_token_budget=None,
+    )
+    for seat in (0, 3):
+        asyncio.run(router.complete(dataclasses.replace(base, input_text=json.dumps({"observation": {"tenant_id": seat}}))))
+    assert seen == [
+        ("focal", "openrouter", "z-ai/glm-5.3-flash"),
+        ("rival", "housing_scripted_tenant", "housing_scripted_tenant_inspect_then_sign_v1"),
+    ]

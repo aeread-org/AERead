@@ -102,3 +102,21 @@ def test_pooling_runs_relabels_replicates_past_each_runs_own():
     assert sorted({c["replicate_index"] for c in pooled}) == [0, 1, 2]
     assert [c["net_realized"] for c in pooled if c["arm"] == "true_cost" and c["replicate_index"] == 2] == [3.0]
     assert first[0]["replicate_index"] == 0  # the inputs are not mutated
+
+
+def test_seat_views_sum_to_the_cell_and_keep_the_per_seat_spend_keys():
+    # tenant_<n> spend keys, and a seat that inspected but signed nothing, must both be counted.
+    world = lemons.make_lemons_world(6, 4, 100000, 0.6, lemon_share=0.5, lemon_loss=1000.0,
+                                     inspection_cost=25.0, landlord_reservation="true_cost")
+    outcome = {
+        "commit_decisions": [{
+            "tenant_id": 2, "listing_id": 0, "round_index": 1, "decision": "sign", "informed": True,
+            "quality": "sound", "rent": float(world.ask[0]), "expected_value": float(world.values[2][0]),
+        }],
+        "inspection_count": 7, "tenant_net_total": 0.0,
+        "tenant_inspection_spend": {f"tenant_{s}": 25.0 for s in range(6)},
+    }
+    outcome["tenant_net_total"] = float(world.values[2][0]) - float(world.ask[0]) - 150.0
+    cell = price_endpoint.score_cell(outcome, world_seed=100000, arm="true_cost")
+    assert abs(sum(v["net_realized"] for v in cell["by_seat"].values()) - cell["net_realized"]) < 0.011
+    assert cell["by_seat"][1]["net_realized"] == -25.0 and cell["by_seat"][1]["inspection_spend"] == 25.0
