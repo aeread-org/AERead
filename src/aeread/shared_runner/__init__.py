@@ -103,10 +103,14 @@ from .run.halt import (
     require_halt_rule,
     run_cells_under_halt_rule,
 )
+from .run.provenance import ProvenanceError, source_commit_for_pins
 from .run.publication import (
+    EPISODE_KEY_FIELDS,
     PROHIBITED_PUBLIC_TEXT,
     SANITIZATION_DECLARATION,
     assert_public_payload,
+    assert_unique_episode_keys,
+    episode_key,
     atomic_publish,
     jsonl,
     receipt_projection,
@@ -331,6 +335,11 @@ __all__ = [
     "RunLayout",
     "ACCOUNT_FAULT",
     "AttemptSpend",
+    "EPISODE_KEY_FIELDS",
+    "ProvenanceError",
+    "assert_unique_episode_keys",
+    "episode_key",
+    "source_commit_for_pins",
     "PROVIDER_CHOICE_ERROR",
     "attempt_spend",
     "total_spend",
