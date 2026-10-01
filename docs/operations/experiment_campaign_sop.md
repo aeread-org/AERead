@@ -242,3 +242,11 @@ be documented. After the freeze, any change to treatment, controls, cases,
 sample size, seeds, stopping, or analysis starts a new campaign identity. A
 purely mechanical correction may be published only when both the original and
 corrected artifacts remain traceable and the scientific contract is unchanged.
+
+## 6. Note the result on the run
+
+When a campaign's cells are in and its result is worth reading, attach a note to the run in the
+Examiner before reporting it: the headline estimate with its interval and sample, the missing
+cells and why, and any caveat that changes the reading. The procedure, tags and limits are in
+[run notes](run_notes.md). A note points to the incident row for anything that failed; it does
+not replace it.

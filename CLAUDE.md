@@ -78,6 +78,16 @@ Before a result is read as a claim about a model, report:
 - **Anything else worth a look.** What the numbers suggest beyond the
   headline, labelled as exploratory.
 
+## Note results on the run
+
+When a run finishes and its result is worth reading (a headline estimate with its interval,
+missing cells and why, a caveat that changes how it is read, a run that supersedes or
+invalidates another), attach a note to the run in the Examiner before reporting it. One claim per
+note, at most 280 characters, numbers with unit, interval and sample, append-only. A note is not
+the failure record: failures go to the incident log first and the note points to the row. A run
+not yet published is noted under the id it will have. See
+[`docs/operations/run_notes.md`](docs/operations/run_notes.md).
+
 ## Pull requests
 
 Follow [`docs/operations/pr_lanes.md`](docs/operations/pr_lanes.md). The
