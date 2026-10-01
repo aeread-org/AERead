@@ -1159,7 +1159,9 @@ class ProviderClient(Protocol):
 def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
     """The reasoning controls to send, carrying exactly what the profile declared.
 
-    A profile may declare an effort, a token budget, or both.  Substituting a
+    A profile may declare an effort, a token budget, or -- for a provider that
+    accepts the pair -- both.  OpenRouter does not, and plan resolution refuses
+    such a profile before a plan is frozen (#133).  Substituting a
     default for an absent control -- the previous `or "low"` -- meant a run
     labelled with one reasoning condition executed another, which is how a
     treatment silently fails to be delivered.  Absent controls are simply not
