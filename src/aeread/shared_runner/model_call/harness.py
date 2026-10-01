@@ -24,6 +24,8 @@ from typing import Any, Callable, Literal, Mapping, Protocol
 from ..task.execution import (
     TRUNCATED_FINISH_REASONS,
     declared_provider_stream,
+    failed_call_cost,
+    failed_call_event_fields,
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
@@ -357,7 +359,13 @@ class KernelModelPort:
                     "message": str(failure),
                     "retryable": failure.retryable,
                     "status_code": failure.status_code,
-                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                    # The executor charges this cost when it records the
+                    # failed attempt; the port only writes the event.
+                    **failed_call_event_fields(
+                        failure,
+                        failed_call_cost(failure, self._pricing),
+                        outcome_unknown=outcome_unknown,
+                    ),
                     "round": round_ordinal,
                 },
                 phase_instance_id=self._phase_instance_id,

@@ -1377,7 +1377,12 @@ def _extract_model_calls(
             )
             exception_type = None
         elif status == "failed":
-            prompt_tokens = cached_tokens = completion_tokens = 0
+            # A call that failed after the provider answered reports its
+            # usage on the event; one that was never billed reports none.
+            failed = terminal_payload if isinstance(terminal_payload, Mapping) else {}
+            prompt_tokens = _optional_nonnegative_int(failed.get("input_tokens")) or 0
+            cached_tokens = _optional_nonnegative_int(failed.get("cached_input_tokens")) or 0
+            completion_tokens = _optional_nonnegative_int(failed.get("output_tokens")) or 0
             cost = _optional_nonnegative_float(
                 terminal_payload.get("cost_usd", 0.0)
                 if isinstance(terminal_payload, Mapping)

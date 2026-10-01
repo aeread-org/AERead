@@ -52,8 +52,22 @@ class EvidenceIntegrityError(RuntimeError):
     """Evidence, pins, or budgets cannot support a valid execution."""
 
 
+#: Whether a failed provider call was paid for.
+#: ``not_billed``: no response carrying a completion came back.
+#: ``reported``: the response reported token usage, so the call has a cost.
+#: ``unknown``: a completion came back without usable usage.
+FAILURE_BILLING_STATES = ("not_billed", "reported", "unknown")
+
+
 class ProviderFailure(RuntimeError):
-    """Typed provider failure visible to the action-attempt retry policy."""
+    """Typed provider failure visible to the action-attempt retry policy.
+
+    A call can fail after the provider answered and billed it: a truncated
+    reply, a route that does not match the pin, an upstream error halfway
+    through a generation. ``billing`` and the usage fields carry what the
+    provider reported for such a call, so the spend of a failed cell is
+    recorded instead of written as zero (#226 item 7).
+    """
 
     def __init__(
         self,
@@ -77,6 +91,102 @@ class ProviderFailure(RuntimeError):
                 "ProviderFailure.retry_after_seconds must be finite and non-negative"
             )
         self.retry_after_seconds = retry_after_seconds
+        self.billing = "not_billed"
+        self.cost_usd: float | None = None
+        self.input_tokens = 0
+        self.cached_input_tokens = 0
+        self.output_tokens = 0
+
+    def with_reported_usage(self, raw_response: Any) -> "ProviderFailure":
+        """Record what a chat-completions response reported for this call.
+
+        A response with no choices is an error body, not a completion, and is
+        not billed. One with choices is billed: its usage is taken when it is
+        well formed, and the cost is unknown when it is not.
+        """
+
+        if not isinstance(raw_response, Mapping) or not raw_response.get("choices"):
+            return self
+        usage = raw_response.get("usage")
+
+        def count(source: Any, field: str) -> int | None:
+            value = source.get(field, 0) if isinstance(source, Mapping) else None
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                return None
+            return value
+
+        input_tokens = count(usage, "prompt_tokens")
+        output_tokens = count(usage, "completion_tokens")
+        if not isinstance(usage, Mapping) or input_tokens is None or output_tokens is None:
+            self.billing = "unknown"
+            return self
+        details = usage.get("prompt_tokens_details")
+        cached = count(details, "cached_tokens") if isinstance(details, Mapping) else 0
+        cost = usage.get("cost")
+        self.billing = "reported"
+        self.input_tokens = input_tokens
+        self.cached_input_tokens = cached or 0
+        self.output_tokens = output_tokens
+        self.cost_usd = (
+            float(cost)
+            if isinstance(cost, (int, float))
+            and not isinstance(cost, bool)
+            and math.isfinite(cost)
+            and cost >= 0
+            else None
+        )
+        return self
+
+
+def failed_call_cost(failure: ProviderFailure, pricing: "TokenPricing") -> float | None:
+    """The cost of a failed provider call, or ``None`` when it is unknown.
+
+    The provider's own figure when it reported one, else the profile's
+    pricing applied to the reported tokens -- the same rule a completed call
+    is costed by.
+    """
+
+    if failure.billing == "not_billed":
+        return 0.0
+    if failure.billing != "reported":
+        return None
+    if failure.cost_usd is not None:
+        return failure.cost_usd
+    return pricing.cost(
+        input_tokens=failure.input_tokens,
+        cached_input_tokens=failure.cached_input_tokens,
+        output_tokens=failure.output_tokens,
+    )
+
+
+def failed_call_event_fields(
+    failure: ProviderFailure, cost: float | None, *, outcome_unknown: bool
+) -> dict[str, Any]:
+    """The cost fields of a failed call's terminal event.
+
+    ``cost_usd`` is a number when the cost is known and the string
+    ``"unknown"`` when it is not. The token counts appear only for a call
+    the provider reported usage for, so the event of a call that was never
+    billed is byte for byte what it always was.
+    """
+
+    fields: dict[str, Any] = {
+        "cost_usd": "unknown" if outcome_unknown or cost is None else cost
+    }
+    if failure.billing == "reported":
+        fields.update(
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+        )
+    return fields
+
+
+def _dumped(response: Any) -> Any:
+    try:
+        return response.model_dump(mode="json")
+    except Exception:
+        return None
 
 
 def _retry_after_value(value: Any) -> float | None:
@@ -1424,6 +1534,21 @@ class OpenRouterChatClient:
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
+        try:
+            return self._structured_result(
+                request, response, canonical_model=canonical_model, route_provider=route_provider
+            )
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _structured_result(
+        self,
+        request: ProviderRequest,
+        response: Any,
+        *,
+        canonical_model: str,
+        route_provider: str,
+    ) -> ProviderResult:
         raw_response, choice, message = self._parsed_choice(response)
         content = message.get("content") if isinstance(message, Mapping) else None
         input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
@@ -1528,6 +1653,21 @@ class OpenRouterChatClient:
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
+        try:
+            return self._native_result(
+                request, response, canonical_model=canonical_model, route_provider=route_provider
+            )
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _native_result(
+        self,
+        request: ProviderRequest,
+        response: Any,
+        *,
+        canonical_model: str,
+        route_provider: str,
+    ) -> ProviderResult:
         raw_response, choice, message = self._parsed_choice(response)
         if not isinstance(message, Mapping):
             raise ProviderFailure(
@@ -2004,6 +2144,12 @@ class ArenaChatClient:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+        try:
+            return self._result(request, response)
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _result(self, request: ProviderRequest, response: Any) -> ProviderResult:
         try:
             raw_response = response.model_dump(mode="json")
         except Exception as error:
@@ -3290,6 +3436,13 @@ class MinimalChatExecutor:
             condition = POST_ADMISSION_REJECTION
             retryable = True
         outcome_unknown = failure.condition in {"timeout", "transport"}
+        # A call that failed after the provider answered was still billed.
+        # Its cost is charged against the profile's budget and recorded on
+        # the call; before this it was written as zero and never charged, so
+        # the totals of a run that was going wrong were the least accurate.
+        failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+        if failed_cost:
+            self._charge(profile, failed_cost)
         # A harness-driven attempt fails inside whichever round it reached;
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
@@ -3303,10 +3456,10 @@ class MinimalChatExecutor:
             resolved_model=None,
             response_id=None,
             finish_reason=None,
-            input_tokens=0,
-            cached_input_tokens=0,
-            output_tokens=0,
-            cost_usd=0.0,
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+            cost_usd=failed_cost or 0.0,
             failure_condition=condition,
         )
         if pending is None or not pending.terminalized:
@@ -3321,7 +3474,9 @@ class MinimalChatExecutor:
                     "message": str(failure),
                     "retryable": failure.retryable,
                     "status_code": failure.status_code,
-                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                    **failed_call_event_fields(
+                        failure, failed_cost, outcome_unknown=outcome_unknown
+                    ),
                 },
                 phase_instance_id=decision.phase_instance_id,
                 logical_action_id=decision.logical_action_id,
@@ -4224,6 +4379,9 @@ async def execute_plan_cell(
 
 __all__ = [
     "ACCOUNT_FAULT",
+    "FAILURE_BILLING_STATES",
+    "failed_call_cost",
+    "failed_call_event_fields",
     "PROVIDER_CHOICE_ERROR",
     "ActionAttemptRecord",
     "ArtifactRef",

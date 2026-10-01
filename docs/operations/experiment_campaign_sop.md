@@ -167,6 +167,27 @@ fields, and raw-response retention. The service must execute the same AERead
 cases and produce AERead-verifiable receipts; an external arena score is not a
 substitute for the Housing scorer or canonical fact tables.
 
+### Spend of a failed cell
+
+A cell that fails after paid calls still spent money, and a total that omits
+it understates what the failures consumed. Read every cell's spend, completed
+or failed, from its event log with the kernel reader instead of from a
+checkpoint or a receipt:
+
+```python
+from aeread.shared_runner import attempt_spend, total_spend
+
+spend = attempt_spend(attempt_dir)          # works on a failed or interrupted attempt
+run_total = total_spend(attempt_spend(path) for path in attempt_dirs)
+```
+
+`cost_accounting` is `exact` or `lower_bound`. It is a lower bound whenever a
+call has no known cost: its outcome is unknown (timeout, dropped connection),
+the attempt was interrupted before the call closed, or the provider answered
+without usable usage. Report the qualifier with the figure. A call that failed
+after the provider answered is charged against the profile's cost budget and
+carries its usage on the `provider_call_failed` event.
+
 ### Long calls
 
 A reasoning-heavy profile can spend minutes on one call. Two controls keep
