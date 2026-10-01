@@ -27,6 +27,8 @@ VERBS: dict[str, tuple[str, str]] = {
                              "add the kernel trajectory grain to a published bundle and re-seal it"),
     "seal-manifest": ("aeread.shared_runner.run.seal_manifest",
                       "write or rebuild a bundle's kernel-standard publication manifest"),
+    "source-commit": ("aeread.shared_runner.run.provenance",
+                      "find the commit a bundle's pinned source digests came from"),
 }
 
 
