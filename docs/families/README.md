@@ -10,6 +10,11 @@ Directory names are the kebab-case family names; the package under
 records: each says what was examined at one commit, and the disposition is
 only meaningful next to the findings it answers.
 
+[Versioned campaign modules](campaign_modules.md) lists, for each campaign a
+family has revised, which module is current and which are frozen earlier
+versions. The repository-wide family table is in the
+[root README](../../README.md#every-family).
+
 ## AgenticPay
 
 Directory `agenticpay-bilateral/`, package `agenticpay_bilateral`.
