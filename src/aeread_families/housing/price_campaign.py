@@ -23,8 +23,11 @@ from . import lemons
 from .population_campaign import _failure_usage
 from .runner import (
     GEMINI_38_FLASH_MODEL,
+    GLM_53_FLASH_MODEL,
+    GLM_53_FLASH_REVISION,
     GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE,
     HousingScriptedLandlordProvider,
+    OpenRouterRoutePin,
     HousingScriptedTenantProvider,
     build_housing_smoke,
     finalize_housing_execution,
@@ -32,11 +35,93 @@ from .runner import (
     replay_housing_receipt,
 )
 from .price_bargaining import LANDLORD_MODEL
+from .price_endpoint import OUTCOME_FACTS
 from .price_bargaining import LANDLORD_MARGIN
 
 
 DEFAULT_CONTRACT = Path(__file__).resolve().parents[3] / "configs/housing_lemons_price_pilot_v1.json"
 EXPECTED_ID = "housing_lemons_price_pilot_v1_gemini38_flash"
+
+# Route pins for the v2 price identities. They live here and not in runner.py:
+# a plan's implementation digests hash the bytes of runner.py, environment.py,
+# lemons.py and price_bargaining.py, so editing any of them changes the run-plan
+# id of every sealed Housing identity (HL-T-04). This module is not hashed.
+#
+# The OpenRouter catalog read on 2026-09-30 lists DeepInfra's GLM 5.3 Flash at
+# fp4 and the route filter sends ``quantizations`` upstream, so the fp8 pin in
+# runner.py can no longer find its endpoint. Prices are unchanged.
+DEEPINFRA_GLM_53_FLASH_FP4_ROUTE = OpenRouterRoutePin(
+    provider="DeepInfra",
+    quantization="fp4",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.075,
+    cached_input_per_million=0.015,
+    output_per_million=0.25,
+    pricing_id="openrouter_deepinfra_2026-09-30_glm-5.3-flash-fp4",
+)
+# GPT-5.6 Luna on OpenAI. The catalog lists three OpenAI tiers ($0.10/$0.60,
+# $0.20/$1.20, $0.40/$2.40 per million); the pin names the standard tier, so the
+# route price ceiling also admits the cheaper tier and a priced cost is an upper
+# bound. The model accepts no temperature or top_p.
+GPT_56_LUNA_MODEL = "openai/gpt-5.6-luna"
+OPENAI_GPT_56_LUNA_ROUTE = OpenRouterRoutePin(
+    provider="OpenAI",
+    quantization="unknown",
+    canonical_model="openai/gpt-5.6-luna-20260709",
+    input_per_million=0.2,
+    cached_input_per_million=0.02,
+    output_per_million=1.2,
+    pricing_id="openrouter_openai_2026-09-30_gpt-5.6-luna",
+)
+
+#: Sealed routes this driver knows. A contract names one; the driver refuses a
+#: route whose identity drifts from the pin the runner carries.
+ROUTES: dict[str, tuple[str, Any]] = {
+    "google_gemini_38_flash": (GEMINI_38_FLASH_MODEL, GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE),
+    "deepinfra_glm_53_flash_fp4": (GLM_53_FLASH_MODEL, DEEPINFRA_GLM_53_FLASH_FP4_ROUTE),
+    "openai_gpt_56_luna": (GPT_56_LUNA_MODEL, OPENAI_GPT_56_LUNA_ROUTE),
+}
+
+#: Every identity this driver runs. v1 is the sealed Gemini pilot as run. The two
+#: v2 identities put the same four worlds and both landlord arms in front of a
+#: second and third model, so the models see identical lemon draws. Luna accepts
+#: no temperature or top_p, so its sampling controls are declared unavailable and
+#: its replicates differ only through the request seed.
+IDENTITIES: dict[str, dict[str, Any]] = {
+    EXPECTED_ID: {
+        "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v1",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 3.0,
+    },
+    "housing_lemons_price_pilot_v2_glm53_flash_deepinfra": {
+        "route_id": "deepinfra_glm_53_flash_fp4", "profile": "housing_price_glm53_deepinfra_tenant_v2",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 0.5,
+    },
+    "housing_lemons_price_pilot_v2_gpt56_luna": {
+        "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
+        "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
+    },
+}
+
+
+def _route_block(route_id: str) -> dict[str, Any]:
+    model, pin = ROUTES[route_id]
+    return {
+        "route_id": route_id,
+        "requested_model": model,
+        "canonical_model": pin.canonical_model,
+        "provider": pin.provider,
+        "quantization": pin.quantization,
+        "input_per_million_usd": pin.input_per_million,
+        "cached_input_per_million_usd": pin.cached_input_per_million,
+        "output_per_million_usd": pin.output_per_million,
+    }
+
+
+def identity(contract: Mapping[str, Any]) -> dict[str, Any]:
+    spec = IDENTITIES.get(contract.get("campaign_id"))
+    if spec is None:
+        raise ValueError("price pilot identity drifted")
+    return spec
 
 
 def load_contract(path: Path) -> dict[str, Any]:
@@ -47,30 +132,26 @@ def load_contract(path: Path) -> dict[str, Any]:
         "total_cost_ceiling_usd", "max_consecutive_operational_failures", "controls", "analysis",
     }:
         raise ValueError("price pilot contract fields drifted")
-    if value["schema_version"] != "aeread.housing_price_pilot/1" or value["campaign_id"] != EXPECTED_ID:
+    spec = identity(value)
+    if value["schema_version"] != "aeread.housing_price_pilot/1":
         raise ValueError("price pilot identity drifted")
-    if value["claim_status"] != "development_pilot" or value["route"] != {
-        "route_id": "google_gemini_38_flash",
-        "requested_model": GEMINI_38_FLASH_MODEL,
-        "canonical_model": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.canonical_model,
-        "provider": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.provider,
-        "quantization": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.quantization,
-        "input_per_million_usd": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.input_per_million,
-        "cached_input_per_million_usd": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.cached_input_per_million,
-        "output_per_million_usd": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.output_per_million,
-    }:
+    if value["claim_status"] != "development_pilot" or value["route"] != _route_block(spec["route_id"]):
         raise ValueError("price pilot claim or route drifted")
     if value["world_seeds"] != [100000, 100001, 100002, 100003]:
         raise ValueError("price pilot world panel drifted")
     if value["arms"] != ["true_cost", "pooled"] or value["replicates"] != 1 or value["rounds"] != 3:
         raise ValueError("price pilot arms, replicates or rounds drifted")
-    if value["tenant_cost_ceiling_usd_per_cell"] != 0.3 or value["total_cost_ceiling_usd"] != 3.0:
+    if (
+        value["tenant_cost_ceiling_usd_per_cell"] != 0.3
+        or value["total_cost_ceiling_usd"] != spec["total_cost_ceiling_usd"]
+    ):
         raise ValueError("price pilot cost cap drifted")
     if value["max_consecutive_operational_failures"] != 1:
         raise ValueError("price pilot halt rule drifted")
     if value["controls"] != {
         "harness": "minimal_chat/1.0", "tools": "disabled", "memory": "disabled",
-        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0,
+        "reasoning_effort": spec["reasoning_effort"], "temperature": spec["temperature"],
+        "top_p": spec["top_p"],
         "max_output_tokens": 4096, "timeout_seconds": 120.0,
         "sdk_retries": 0, "max_action_attempts": 4,
         "retryable_conditions": ["length", "rate_limit", "provider_5xx", "empty_response"],
@@ -93,16 +174,20 @@ def load_contract(path: Path) -> dict[str, Any]:
 def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool):
     if arm not in contract["arms"]:
         raise ValueError("undeclared price arm")
+    spec = identity(contract)
+    model, route = ROUTES[spec["route_id"]]
+    controls = contract["controls"]
+    unavailable = controls["temperature"] == "unavailable"
     tenant = (
-        {"tenant_provider": "openrouter", "tenant_model": GEMINI_38_FLASH_MODEL,
-         "tenant_revision": GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE.canonical_model}
+        {"tenant_provider": "openrouter", "tenant_model": model,
+         "tenant_revision": route.canonical_model}
         if live else
         {"tenant_provider": "housing_scripted_tenant",
          "tenant_model": "housing_scripted_tenant_inspect_then_sign_v1", "tenant_revision": "1.0.0"}
     )
     return build_housing_smoke(
         **tenant,
-        landlord_model=contract["controls"]["landlord_model"],
+        landlord_model=controls["landlord_model"],
         world_kind="lemons",
         lemon_landlord=arm,
         world_seeds=tuple(contract["world_seeds"]),
@@ -115,17 +200,22 @@ def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool):
         inspection_cost=25.0,
         replicates=contract["replicates"],
         reasoning_condition_id="housing_price_bargaining_v1",
-        reasoning_effort=contract["controls"]["reasoning_effort"],
-        inference_seed_base=contract["controls"]["tenant_inference_seed_base"],
-        openrouter_route=GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE,
-        tenant_profile_id_override=f"housing_price_{'gemini38' if live else 'scripted'}_tenant_v1",
+        reasoning_effort=controls["reasoning_effort"],
+        inference_seed_base=controls["tenant_inference_seed_base"],
+        openrouter_route=route,
+        tenant_profile_id_override=spec["profile"] if live else "housing_price_scripted_tenant_v1",
         tenant_max_cost_usd_override=contract["tenant_cost_ceiling_usd_per_cell"] if live else None,
-        tenant_temperature=contract["controls"]["temperature"] if live else 0.0,
-        tenant_top_p=contract["controls"]["top_p"],
-        max_output_tokens_override=contract["controls"]["max_output_tokens"],
-        timeout_seconds_override=contract["controls"]["timeout_seconds"],
-        max_action_attempts_override=contract["controls"]["max_action_attempts"],
-        retryable_conditions_override=contract["controls"]["retryable_conditions"],
+        # A model that accepts no temperature is declared so in its harness config;
+        # the profile's own value is then a placeholder the request never sends.
+        tenant_temperature=0.0 if (unavailable or not live) else controls["temperature"],
+        tenant_harness_config=(
+            {"sampling_controls": {"temperature": "unavailable"}} if unavailable and live else None
+        ),
+        tenant_top_p=controls["top_p"],
+        max_output_tokens_override=controls["max_output_tokens"],
+        timeout_seconds_override=controls["timeout_seconds"],
+        max_action_attempts_override=controls["max_action_attempts"],
+        retryable_conditions_override=controls["retryable_conditions"],
     )
 
 
@@ -168,7 +258,10 @@ def summarize(rows: list[Mapping[str, Any]], planned: int) -> dict[str, Any]:
     return result
 
 
-async def run(contract: Mapping[str, Any], run_root: Path, *, live: bool) -> dict[str, Any]:
+async def run(
+    contract: Mapping[str, Any], run_root: Path, *, live: bool, provider: Any = None
+) -> dict[str, Any]:
+    """``provider`` replaces the paid client in live mode; a test passes a recording stub."""
     run_root.mkdir(parents=True, exist_ok=True)
     identity_path = run_root / "contract_sha256.txt"
     digest = hashlib.sha256(canonical_json_bytes(contract)).hexdigest()
@@ -176,7 +269,8 @@ async def run(contract: Mapping[str, Any], run_root: Path, *, live: bool) -> dic
         raise ValueError("run root belongs to a different price contract")
     identity_path.write_text(digest + "\n")
     setups = {arm: build_setup(contract, arm, live=live) for arm in contract["arms"]}
-    provider = OpenRouterChatClient() if live else HousingScriptedTenantProvider()
+    if provider is None:
+        provider = OpenRouterChatClient() if live else HousingScriptedTenantProvider()
     results_root = run_root / ("live" if live else "preflight")
     results_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
@@ -218,7 +312,11 @@ async def run(contract: Mapping[str, Any], run_root: Path, *, live: bool) -> dic
                        "cost_usd": execution.total_cost_usd, "receipt_sha256": receipt.receipt_sha256,
                        "run_plan_id": setup.plan.run_plan_id, "cell_id": cell.cell_id,
                        "tenant_net_total": execution.episode_result.outcome["tenant_net_total"],
-                       "price_rows": price_rows(execution.episode_result.outcome, seed, arm)}
+                       "price_rows": price_rows(execution.episode_result.outcome, seed, arm),
+                       # What the ex-ante endpoint scores from (price_endpoint.py).
+                       "outcome_facts": {
+                           key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
+                       }}
             except Exception as error:
                 failure_receipt = None
                 try:

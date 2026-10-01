@@ -56,3 +56,101 @@ def test_provider_free_price_cells_replay_and_report_selection(tmp_path):
     assert all(row["world_seed"] == 100000 for row in result["price_rows"])
     # A resumed preflight reads immutable cell results instead of rerunning them.
     assert asyncio.run(price_campaign.run(contract, tmp_path, live=False)) == summary
+
+
+# Run-plan ids of the sealed v1 Gemini pilot (runs/housing_lemons_price_pilot_v1_*,
+# 2026-09-27). A plan's implementation digests hash the bytes of runner.py,
+# environment.py, lemons.py and price_bargaining.py, so editing any of them moves
+# these ids and breaks replay of every sealed Housing identity (HL-T-04).
+SEALED_V1_PLAN_IDS = {"true_cost": "runplan_e4c1e3fa9ff83e6c", "pooled": "runplan_2db0b54b7ff8b51d"}
+V2_CONTRACTS = {
+    "housing_lemons_price_pilot_v2_glm53_flash_deepinfra": {
+        "model": "z-ai/glm-5.3-flash", "revision": "z-ai/glm-5.3-flash-20260826",
+        "provider": "DeepInfra", "quantization": "fp4", "temperature": 1.0, "top_p": 1.0,
+    },
+    "housing_lemons_price_pilot_v2_gpt56_luna": {
+        "model": "openai/gpt-5.6-luna", "revision": "openai/gpt-5.6-luna-20260709",
+        "provider": "OpenAI", "quantization": "unknown", "temperature": None, "top_p": None,
+    },
+}
+
+
+def test_sealed_v1_plan_identity_survives_edits_to_this_module():
+    contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT)
+    for arm, sealed in SEALED_V1_PLAN_IDS.items():
+        assert price_campaign.build_setup(contract, arm, live=True).plan.run_plan_id == sealed
+
+
+class _RecordingProvider:
+    """Stands in for the paid client: records each request, answers like the scripted tenant."""
+
+    def __init__(self):
+        self.requests = []
+
+    async def complete(self, request):
+        import dataclasses
+
+        from aeread_families.housing.runner import HousingScriptedTenantProvider
+
+        self.requests.append(request)
+        return await HousingScriptedTenantProvider().complete(
+            dataclasses.replace(
+                request, provider="housing_scripted_tenant",
+                model="housing_scripted_tenant_inspect_then_sign_v1", revision="1.0.0",
+            )
+        )
+
+
+@pytest.mark.parametrize("campaign_id", sorted(V2_CONTRACTS))
+def test_v2_identity_sends_exactly_its_declared_route_and_sampling(tmp_path, campaign_id):
+    expected = V2_CONTRACTS[campaign_id]
+    path = price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json")
+    contract = price_campaign.load_contract(path)
+    assert contract["campaign_id"] == campaign_id
+    assert contract["world_seeds"] == [100000, 100001, 100002, 100003]  # the v1 draws
+    provider = _RecordingProvider()
+    summary = asyncio.run(price_campaign.run(contract, tmp_path, live=True, provider=provider))
+    assert summary["completed_cells"] == summary["planned_cells"] == 8
+    assert summary["operational_failures"] == 0
+    assert provider.requests
+    for request in provider.requests:
+        assert request.provider == "openrouter"
+        assert (request.model, request.revision) == (expected["model"], expected["revision"])
+        assert request.temperature == expected["temperature"]
+        assert request.top_p == expected["top_p"]
+        assert request.reasoning_effort == "low"
+        assert request.provider_metadata["route_provider"] == expected["provider"]
+        assert request.provider_metadata["quantization"] == expected["quantization"]
+        assert request.seed is not None
+
+
+def test_v2_contracts_refuse_drift(tmp_path):
+    glm = json.loads(price_campaign.DEFAULT_CONTRACT.with_name(
+        "housing_lemons_price_pilot_v2_glm53_flash_deepinfra.json").read_text())
+    luna = json.loads(price_campaign.DEFAULT_CONTRACT.with_name(
+        "housing_lemons_price_pilot_v2_gpt56_luna.json").read_text())
+    stale = dict(glm, route=dict(glm["route"], quantization="fp8"))  # the sealed pin's quantization
+    with_temperature = dict(luna, controls=dict(luna["controls"], temperature=1.0, top_p=1.0))
+    over_budget = dict(luna, total_cost_ceiling_usd=3.0)
+    for name, changed, message in (
+        ("stale.json", stale, "claim or route drifted"),
+        ("temperature.json", with_temperature, "execution controls drifted"),
+        ("budget.json", over_budget, "cost cap drifted"),
+    ):
+        path = tmp_path / name
+        path.write_text(json.dumps(changed))
+        with pytest.raises(ValueError, match=message):
+            price_campaign.load_contract(path)
+
+
+def test_new_cells_carry_the_facts_the_endpoint_scores_from(tmp_path):
+    from aeread_families.housing import price_endpoint
+
+    contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT)
+    asyncio.run(price_campaign.run(contract, tmp_path, live=False))
+    row = json.loads((tmp_path / "preflight/world_100002__true_cost.json").read_text())
+    assert set(row["outcome_facts"]) == set(price_endpoint.OUTCOME_FACTS)
+    report = price_endpoint.score_run(tmp_path / "preflight")
+    assert len(report["cells"]) == 8 and report["max_abs_residual"] < 1e-6
+    # The scripted reference never signs blind, so the reply cannot have misled it.
+    assert all(cell["signed_blind"] == 0 for cell in report["cells"])

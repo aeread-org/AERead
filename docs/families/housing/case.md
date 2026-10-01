@@ -381,6 +381,42 @@ The price table conditions on completed cells and retains the eligible-listing
 denominator. This small panel supports a diagnostic only; there is no model
 ranking or population interval.
 
+Two further identities, `housing_lemons_price_pilot_v2_glm53_flash_deepinfra` and
+`housing_lemons_price_pilot_v2_gpt56_luna`, put the same four worlds and both arms
+in front of GLM 5.3 Flash (DeepInfra, fp4) and GPT-5.6 Luna (OpenAI), so the models
+see identical lemon draws. Luna accepts no temperature or top_p; its profile
+declares `sampling_controls.temperature = "unavailable"` and sends neither, and a
+test asserts exactly what each identity puts on the wire. Their route pins live in
+`price_campaign.py` and not in `runner.py`, because a plan's implementation digests
+hash `runner.py`, `environment.py`, `lemons.py` and `price_bargaining.py`, and
+editing any of them moves the run-plan id of every sealed Housing identity (HL-T-04;
+`test_sealed_v1_plan_identity_survives_edits_to_this_module` pins the sealed ids).
+Both are provider-free preflighted; neither has run live.
+
+**The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
+mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
+third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound
+listing's landlord would take proves the listing a lemon, while the tenant's stated
+odds do not move. Each commit decision is scored at the stated odds (the
+`lemons_gap` decomposition: informed leases, blind good and bad bets, lemon draws,
+inspection spend, which sums exactly to the realized net) and at the
+response-conditioned odds, where such a hold is a certain lemon; the difference is the
+reply leak. On the Gemini pilot the `true_cost` arm looks better than `pooled` by
++$129 per world at the stated odds and worse by $79 realized, because in two worlds a
+blind lowball was accepted and the acceptance had already said lemon ($500 and $333 in
+expectation). The "lemon draw" in that arm is therefore selection by the landlord's
+reply, not luck, and a luck-removed score at stated odds is biased there. The
+response-conditioned score is an evaluator's benchmark: the floor uses the sound cost,
+which no tenant sees.
+
+**Quality-blind admission and a declared stratum** (`lemons_design.py`, HL-D-03). The
+favourite's quality is a declared stratum; a seed is admitted only if the sealed rule
+passes under both strata, so every admitted world appears in both and the stratum
+contrast is paired within the world. Built and tested, wired to no contract: a new
+identity must declare it, and must declare that blind admission shifts the pack toward
+less contested favourites (41% of seeds with a five-or-six-tenant favourite survive,
+against 69% for three or four).
+
 **Status.** Environment, endpoint, gate and scripted bracket are implemented and
 tested. No live result is claimed: the only live cells so far are a development probe
 from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
