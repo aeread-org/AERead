@@ -23,6 +23,7 @@ from typing import Any, Callable, Literal, Mapping, Protocol
 
 from ..task.execution import (
     TRUNCATED_FINISH_REASONS,
+    declared_provider_stream,
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
@@ -321,6 +322,7 @@ class KernelModelPort:
                 seed=self._profile.sampling.seed,
                 messages=messages if response_mode == "native_tools" else None,
                 tools=tools if response_mode == "native_tools" and tools else None,
+                stream=declared_provider_stream(self._profile),
             ).with_computed_hash()
 
         # With emit_events=False the executor sealed round 0 and already wrote

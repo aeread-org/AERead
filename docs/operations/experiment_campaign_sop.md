@@ -167,6 +167,28 @@ fields, and raw-response retention. The service must execute the same AERead
 cases and produce AERead-verifiable receipts; an external arena score is not a
 substitute for the Housing scorer or canonical fact tables.
 
+### Long calls
+
+A reasoning-heavy profile can spend minutes on one call. Two controls keep
+that call alive, and both are declared in the profile so a reader of the
+experiment definition sees them:
+
+- `harness.config.provider_stream: true` asks the provider to stream the
+  reply. A call sent whole holds a connection that carries no bytes until the
+  answer, and 76 such calls lost their connection 76 s after starting
+  (DC-T-14). The streamed reply is reassembled to the same result, with the
+  same usage, cost and route verification. Only the OpenRouter client streams;
+  the Arena and OpenAI Responses clients refuse a streamed request instead of
+  ignoring the declaration. Absent means not streamed.
+- `budgets.timeout_seconds` is sized from the sealed full-trajectory gate, not
+  from a smoke: take the longest completed call the gate recorded for that
+  profile and leave room above it. Limits sized from a six-prompt smoke cost
+  one model 25 cells (DC-O-09).
+
+A connection that dies mid-reply is `transport` and a stalled one is
+`timeout`. Both are retried only when the profile lists them in
+`retry_policy.retryable_conditions`.
+
 ## 4. Publish canonical fact-table projections
 
 The benchmark export writes four reportable artifacts in addition to the
