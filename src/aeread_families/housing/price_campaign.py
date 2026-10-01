@@ -118,6 +118,20 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None,
         "total_cost_ceiling_usd": 1.0, "replicates": 2,
     },
+    # 60 worlds at K=1 (owner decision 2026-10-01). Sized from the pooled K=3 variance
+    # components of the two models on the four-world pilots: to detect a $150 arm contrast
+    # at 80% power the panel needs ~57 worlds for GLM and ~81 for Luna's realized contrast
+    # (~38 for Luna's reply-conditioned one). Seeds 100000-100059 rerun the original four.
+    "housing_lemons_price_pilot_v4_glm53_flash_parasail_w60": {
+        "route_id": "parasail_glm_53_flash", "profile": "housing_price_glm53_parasail_tenant_v4",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)),
+    },
+    "housing_lemons_price_pilot_v4_gpt56_luna_w60": {
+        "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v4",
+        "reasoning_effort": "low", "temperature": "unavailable", "top_p": None,
+        "total_cost_ceiling_usd": 3.0, "world_seeds": list(range(100000, 100060)),
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
@@ -159,7 +173,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         raise ValueError("price pilot identity drifted")
     if value["claim_status"] != "development_pilot" or value["route"] != _route_block(spec["route_id"]):
         raise ValueError("price pilot claim or route drifted")
-    if value["world_seeds"] != [100000, 100001, 100002, 100003]:
+    if value["world_seeds"] != spec.get("world_seeds", [100000, 100001, 100002, 100003]):
         raise ValueError("price pilot world panel drifted")
     if (
         value["arms"] != ["true_cost", "pooled"]

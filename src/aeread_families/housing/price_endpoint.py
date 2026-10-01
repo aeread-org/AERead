@@ -30,7 +30,7 @@ import statistics
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from . import lemons
+from . import lemons, lemons_design
 from .price_bargaining import LANDLORD_MARGIN
 
 SCHEMA_VERSION = "aeread.housing_price_endpoint/0.1"
@@ -114,6 +114,9 @@ def score_cell(
     signed_blind = [r for r in rows if r["decision"] == "sign" and not r["informed"]]
     return {
         "world_seed": world_seed, "arm": arm, "replicate_index": replicate_index,
+        # The favourite's quality, kept as a covariate: the panel is consecutive seeds with
+        # no admission gate, so it is balanced only by chance (HL-D-03).
+        "stratum": lemons_design.stratum_of(world),
         "net_realized": round(net, 2),
         "net_expected_stated_odds": round(net - parts["lemon_draws"], 2),
         "net_expected_response_odds": round(net - parts["lemon_draws"] - leak, 2),

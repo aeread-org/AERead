@@ -194,3 +194,28 @@ def test_k2_contract_refuses_one_replicate(tmp_path):
     bad.write_text(json.dumps(changed))
     with pytest.raises(ValueError, match="arms, replicates or rounds drifted"):
         price_campaign.load_contract(bad)
+
+
+@pytest.mark.parametrize("campaign_id", [
+    "housing_lemons_price_pilot_v4_glm53_flash_parasail_w60",
+    "housing_lemons_price_pilot_v4_gpt56_luna_w60",
+])
+def test_sixty_world_panels_declare_their_seeds_and_run_the_same_wire_path(tmp_path, campaign_id):
+    contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json"))
+    assert contract["world_seeds"] == list(range(100000, 100060)) and contract["replicates"] == 1
+    assert price_campaign.build_setup(contract, "true_cost", live=True).plan.cells.__len__() == 60
+    # Two worlds through the live path with a recording stub; the other 58 are the same code.
+    short = dict(contract, world_seeds=[100000, 100059])
+    provider = _RecordingProvider()
+    summary = asyncio.run(price_campaign.run(short, tmp_path, live=True, provider=provider))
+    assert summary["completed_cells"] == summary["planned_cells"] == 4 and summary["operational_failures"] == 0
+    assert {request.model for request in provider.requests} == {V2_CONTRACTS[
+        "housing_lemons_price_pilot_v2_glm53_flash_parasail" if "glm" in campaign_id else "housing_lemons_price_pilot_v2_gpt56_luna"
+    ]["model"]}
+
+
+def test_every_world_in_the_sixty_panel_scores_without_a_degenerate_oracle():
+    from aeread_families.housing import lemons
+    for seed in range(100000, 100060):
+        world = lemons.make_lemons_world(6, 4, seed, 0.6, landlord_reservation="true_cost")
+        assert world.lemon_count == 2 and max(max(row) for row in world.surplus) > 0
