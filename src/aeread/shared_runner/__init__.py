@@ -46,6 +46,7 @@ from .task.execution import (
     ToolInvocationRecord,
     execute_plan_cell,
 )
+from .task.spend import AttemptSpend, attempt_spend, total_spend
 from .model_call.harness import (
     AttemptContext,
     BudgetView,
@@ -329,7 +330,10 @@ __all__ = [
     "RunPlan",
     "RunLayout",
     "ACCOUNT_FAULT",
+    "AttemptSpend",
     "PROVIDER_CHOICE_ERROR",
+    "attempt_spend",
+    "total_spend",
     "CellOutcome",
     "HALT_CONDITIONS",
     "HALT_EXIT_CODE",

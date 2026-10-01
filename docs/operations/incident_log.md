@@ -327,7 +327,7 @@ making 600 sequential calls.
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | E-J-01 | sized the panel's retry policy by copying tau3's profile instead of multiplying out this family's call count | a 429 killing a run at case 00 | one attempt | attempts raised to 10 with declared backoff, and the arithmetic written into the profile |
-| E-J-03 | reported per-attempt costs from checkpoints that omit a failed case's spend, understating what the failures consumed by 44% | the operator asked whether a 429 costs anything | an understated incident ledger, corrected the same day | failure checkpoints now recover sealed spend; ledger figures restated |
+| E-J-03 | reported per-attempt costs from checkpoints that omit a failed case's spend, understating what the failures consumed by 44% | the operator asked whether a 429 costs anything | an understated incident ledger, corrected the same day | failure checkpoints now recover sealed spend; ledger figures restated. Kernel 2026-10-01 (#226 item 7): `shared_runner.attempt_spend` reads any attempt's spend from its event log and qualifies it `lower_bound` when a call's cost is unknown, and a call that failed after the provider answered is now costed and charged instead of written as zero |
 
 **E-J-03 is not econevals-only.** A survey of every family's failure path:
 
