@@ -20,6 +20,8 @@ from aeread_families.datacenter_development.scored_controls import (
     bundle_root_for,
     write_bundle,
 )
+from tests.test_datacenter_controls import assert_bundle_regenerates
+
 from aeread_families.datacenter_development.stack_worlds import (
     DEFAULT_OUTPUT_ROOT,
     MASTER_SEED,
@@ -73,12 +75,8 @@ def test_the_interface_three_controls_bundle_regenerates_and_the_adopter_is_neve
     assert summary["adoption_completes_the_stack_in"] == 25
     assert summary["adoption_admitted_in"] == 1  # the curated case only
     assert summary["world_pack"]["adoption_terminations"] == ["agreement_stack_executed"]
-    for relative in ("tables/controls.csv", "reports/summary.json", "README.md"):
-        assert (tmp_path / "bundle" / relative).read_bytes() == (committed / relative).read_bytes(), relative
-    fresh = json.loads((tmp_path / "bundle" / "publication_manifest.json").read_text())
+    assert_bundle_regenerates(tmp_path / "bundle", committed)
     sealed = json.loads((committed / "publication_manifest.json").read_text())
-    assert fresh["artifacts"] == sealed["artifacts"]
-    assert fresh["source_bindings"] == sealed["source_bindings"]
     assert sealed["source_bindings"]["world_pack_sha256"] == load_pack_manifest(WORLDS_V3)["artifact_sha256"]
 
 
