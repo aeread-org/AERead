@@ -65,6 +65,8 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "environment.py",
         "harness_bakeoff.py",
         "harness_leaderboard.py",
+        "lemons.py",
+        "lemons_campaign.py",
         "model_sensitivity.py",
         "population_campaign.py",
         "provider_pacing.py",
