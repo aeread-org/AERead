@@ -14,6 +14,7 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .execution import (
     ACCOUNT_FAULT,
+    PROVIDER_CHOICE_ERROR,
     CanonicalResponse,
     CellExecution,
     EvidenceStore,
@@ -1104,6 +1105,7 @@ def finalize_family_failure(
         "length",
         "rate_limit",
         "provider_5xx",
+        PROVIDER_CHOICE_ERROR,
         "timeout",
         "transport",
     }

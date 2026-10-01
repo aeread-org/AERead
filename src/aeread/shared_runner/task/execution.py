@@ -871,6 +871,16 @@ POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
 ACCOUNT_FAULT = "account_fault"
 _ACCOUNT_FAULT_STATUS = 402
 
+# A 200 response whose single choice finished with ``error`` and carries no
+# HTTP status of its own: the upstream failed mid-generation. The request was
+# accepted, so this is not a rejection, and the same request succeeds on the
+# same route minutes later (#223, DC-T-15: 9 cells in three campaigns, all on
+# one model, each removing a world from a paired contrast). It has its own
+# condition rather than borrowing ``provider_5xx`` so that a profile retries
+# it only by naming it: a partial generation may have been billed, and
+# re-issuing it is a choice the experiment definition should show.
+PROVIDER_CHOICE_ERROR = "provider_choice_error"
+
 # How far a length retry may grow the output budget, as a multiple of what
 # the profile declared. Doubling is the right tactic and unbounded doubling
 # is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
@@ -1746,14 +1756,18 @@ class OpenRouterChatClient:
         if isinstance(choice_error, Mapping):
             status_code = choice_error.get("code")
             message = str(choice_error.get("message") or "OpenRouter choice failed")
-            raise OpenRouterChatClient._provider_error(
-                status_code, message, choice_error
-            )
+            if isinstance(status_code, int) and not isinstance(status_code, bool):
+                raise OpenRouterChatClient._provider_error(
+                    status_code, message, choice_error
+                )
+            # An error with no status to type it by is the same mid-generation
+            # fault as a bare ``finish_reason: error``.
+            raise ProviderFailure(PROVIDER_CHOICE_ERROR, message, retryable=True)
         if isinstance(choice, Mapping) and choice.get("finish_reason") == "error":
             raise ProviderFailure(
-                "provider_rejected",
+                PROVIDER_CHOICE_ERROR,
                 "OpenRouter choice finished with an error",
-                retryable=False,
+                retryable=True,
             )
         message = choice.get("message") if isinstance(choice, Mapping) else None
         return raw_response, choice, message
@@ -4208,6 +4222,7 @@ async def execute_plan_cell(
 
 __all__ = [
     "ACCOUNT_FAULT",
+    "PROVIDER_CHOICE_ERROR",
     "ActionAttemptRecord",
     "ArtifactRef",
     "CanonicalResponse",
