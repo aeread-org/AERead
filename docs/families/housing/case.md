@@ -434,6 +434,16 @@ and is a certain lemon once the reply is read. The favourite's quality (the cova
 about 50/50 by chance) does not separate the contrasts. The four-world K=3 estimates
 (GLM +72, Luna -110) were inside their noise; GLM's had the wrong sign.
 
+**Same-state disclosure probe** (`price_disclosure_probe.py`; a diagnostic, not evidence).
+The commit-phase states the 60-world panels recorded are replayed unchanged with the
+original instructions, a qualitative hint, and an explicit statement that a sound listing's
+landlord never concedes more than $250 below the ask. For blind `true_cost` holds more than
+$250 below ask, signing falls from 72% to 7% (GLM) and from 91% to 13% (Luna); holds within
+$250, informed holds and `pooled`-arm holds do not move. Both models therefore discount for
+adverse selection when told how, and the panels' exposure is a disclosure gap, not a
+reasoning one. Turning the disclosure into an identity needs a tenant prompt with its own id,
+which lives in `runner.py`; editing that file moves every sealed Housing plan id (HL-T-04).
+
 **The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
 mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
 third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound

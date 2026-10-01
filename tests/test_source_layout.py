@@ -74,6 +74,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "population_campaign.py",
         "price_bargaining.py",
         "price_campaign.py",
+        "price_disclosure_probe.py",
         "price_endpoint.py",
         "provider_pacing.py",
         "qc.py",
