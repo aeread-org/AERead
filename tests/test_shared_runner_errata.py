@@ -331,7 +331,7 @@ def test_bundle_pin_selector_reaches_register_and_sidecar(tmp_path: Path, source
 
 def test_fixture_erratum_matches_a_real_published_bundle(tmp_path: Path) -> None:
     repo = Path(__file__).resolve().parents[1]
-    name = "datacenter_development_terms_public_integrated_v8"
+    name = "datacenter_development_terms/datacenter_development_terms_public_integrated_v8"
     source = repo / "evidence" / name
     evidence = tmp_path / "evidence"
     bundle = evidence / name
@@ -357,6 +357,23 @@ def test_fixture_erratum_matches_a_real_published_bundle(tmp_path: Path) -> None
     for path in paths:
         assert (bundle / path).read_bytes() == (source / path).read_bytes()
     assert publish_register(evidence, write_notes=True) == summary
+
+
+def test_scan_finds_bundles_filed_under_a_family_directory(tmp_path: Path) -> None:
+    """A one-level scan reported every per-family bundle as unaffected."""
+    evidence = tmp_path / "evidence"
+    _bundle(evidence, "preserved_v1", plan=PLAN_A)
+    _bundle(evidence / "some_family", "nested_v1", plan=PLAN_A)
+    assert [bundle.path for bundle in scan_bundles(evidence)] == [
+        "preserved_v1",
+        "some_family/nested_v1",
+    ]
+    errata_root = evidence / "errata"
+    write_erratum(errata_root, Erratum.from_dict(_erratum()))
+    summary = publish_register(evidence, errata_root=errata_root, write_notes=True)
+    assert summary["affected_bundles"] == ["preserved_v1", "some_family/nested_v1"]
+    for path in summary["affected_bundles"]:
+        assert (evidence / path / "ERRATA.md").is_file()
 
 
 def test_publish_register_writes_tables_summary_and_sidecar_notes(tmp_path: Path) -> None:

@@ -78,7 +78,8 @@ records and the evidence have diverged.
   affected bundle) with what matched (`matched_by`), effect, disposition, fix.
 - `evidence/errata_register/reports/summary.json` — sealed counts, by-erratum
   and by-effect indexes, `rows_sha256`.
-- `evidence/<bundle>/ERRATA.md` — a sidecar next to each affected bundle,
+- `evidence/<family>/<bundle>/ERRATA.md` (or `evidence/<bundle>/ERRATA.md` at a
+  preserved path) — a sidecar next to each affected bundle,
   never inside its manifest, so the seal is untouched and a reader sees the
   finding where they would look for the numbers.
 - Research ledgers built with `build_research_ledger(..., errata=...)` carry

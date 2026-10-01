@@ -449,12 +449,26 @@ def _published_pins(value: Any) -> tuple[Mapping[str, str], ...]:
     return tuple(pins)
 
 
+def _bundle_manifests(root: Path) -> list[Path]:
+    """Manifests of bundles filed per family and of those at preserved paths.
+
+    Campaigns are published as ``evidence/<family>/<campaign>/``; a few that
+    frozen material names by path stay at ``evidence/<campaign>/``. A scan of
+    one depth sees only the second kind and reports the rest as unaffected.
+    """
+
+    return sorted(
+        set(root.glob("*/publication_manifest.json"))
+        | set(root.glob("*/*/publication_manifest.json"))
+    )
+
+
 def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
     """Published bundles whose manifest declares a non-empty campaign identity."""
 
     root = Path(evidence_root)
     bundles: list[PublishedBundle] = []
-    for manifest_path in sorted(root.glob("*/publication_manifest.json")):
+    for manifest_path in _bundle_manifests(root):
         try:
             manifest = json.loads(manifest_path.read_bytes())
         except (OSError, json.JSONDecodeError):
@@ -491,7 +505,7 @@ def scan_bundles(evidence_root: Path | str) -> tuple[PublishedBundle, ...]:
         bundles.append(
             PublishedBundle(
                 campaign_id=campaign_id,
-                path=manifest_path.parent.name,
+                path=manifest_path.parent.relative_to(root).as_posix(),
                 run_plan_sha256s=tuple(sorted(plans)),
                 receipt_sha256s=tuple(sorted(receipts)),
                 implementation_pins=tuple(
