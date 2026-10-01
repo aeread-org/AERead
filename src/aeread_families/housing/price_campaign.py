@@ -26,6 +26,7 @@ from .runner import (
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
     GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE,
+    PARASAIL_GLM_53_FLASH_ROUTE,
     HousingScriptedLandlordProvider,
     OpenRouterRoutePin,
     HousingScriptedTenantProvider,
@@ -80,6 +81,7 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "google_gemini_38_flash": (GEMINI_38_FLASH_MODEL, GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE),
     "deepinfra_glm_53_flash_fp4": (GLM_53_FLASH_MODEL, DEEPINFRA_GLM_53_FLASH_FP4_ROUTE),
     "openai_gpt_56_luna": (GPT_56_LUNA_MODEL, OPENAI_GPT_56_LUNA_ROUTE),
+    "parasail_glm_53_flash": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_ROUTE),
 }
 
 #: Every identity this driver runs. v1 is the sealed Gemini pilot as run. The two
@@ -94,6 +96,14 @@ IDENTITIES: dict[str, dict[str, Any]] = {
     },
     "housing_lemons_price_pilot_v2_glm53_flash_deepinfra": {
         "route_id": "deepinfra_glm_53_flash_fp4", "profile": "housing_price_glm53_deepinfra_tenant_v2",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 0.5,
+    },
+    # The DeepInfra identity above ran once and failed (HL-O-08): its fp4 endpoint
+    # returns the answer in ``reasoning`` with ``content`` null on most calls. This one
+    # keeps the model and every control and moves to the route the lemons v2 GLM run
+    # used, which returns content.
+    "housing_lemons_price_pilot_v2_glm53_flash_parasail": {
+        "route_id": "parasail_glm_53_flash", "profile": "housing_price_glm53_parasail_tenant_v2",
         "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 0.5,
     },
     "housing_lemons_price_pilot_v2_gpt56_luna": {

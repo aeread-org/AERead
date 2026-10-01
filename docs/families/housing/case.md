@@ -391,7 +391,17 @@ test asserts exactly what each identity puts on the wire. Their route pins live 
 hash `runner.py`, `environment.py`, `lemons.py` and `price_bargaining.py`, and
 editing any of them moves the run-plan id of every sealed Housing identity (HL-T-04;
 `test_sealed_v1_plan_identity_survives_edits_to_this_module` pins the sealed ids).
-Both are provider-free preflighted; neither has run live.
+The DeepInfra identity ran once and failed (HL-O-08): its fp4 endpoint returns the
+answer in `reasoning` with `content` null on most calls, so a cell of about 57 calls
+cannot complete under this client. The same model on Parasail
+(`housing_lemons_price_pilot_v2_glm53_flash_parasail`, same controls) and Luna each
+completed all eight cells live ($0.051 and $0.105, no operational failure), as
+unpublished development pilots in local run roots. On the same four worlds all three
+models signed blind lowballs that the landlord's reply had already marked as lemons
+(2, 2 and 4 signings; expected loss $833, $1,333 and $1,833 over the four `true_cost`
+worlds for Gemini, GLM and Luna), while the realized `true_cost` minus `pooled`
+contrast changes sign by model and by world (per-world spreads of 160 to 420), so the
+arm effect is not established; the reply leak is the consistent finding.
 
 **The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
 mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a

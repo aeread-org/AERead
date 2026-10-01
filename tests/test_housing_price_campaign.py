@@ -68,6 +68,10 @@ V2_CONTRACTS = {
         "model": "z-ai/glm-5.3-flash", "revision": "z-ai/glm-5.3-flash-20260826",
         "provider": "DeepInfra", "quantization": "fp4", "temperature": 1.0, "top_p": 1.0,
     },
+    "housing_lemons_price_pilot_v2_glm53_flash_parasail": {
+        "model": "z-ai/glm-5.3-flash", "revision": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Parasail", "quantization": "fp8", "temperature": 1.0, "top_p": 1.0,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "model": "openai/gpt-5.6-luna", "revision": "openai/gpt-5.6-luna-20260709",
         "provider": "OpenAI", "quantization": "unknown", "temperature": None, "top_p": None,
