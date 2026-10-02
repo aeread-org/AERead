@@ -12,6 +12,7 @@ import dataclasses
 import hashlib
 import json
 import math
+import os
 import statistics
 from pathlib import Path
 from typing import Any, Mapping
@@ -613,9 +614,16 @@ async def run(
     run_root.mkdir(parents=True, exist_ok=True)
     identity_path = run_root / "contract_sha256.txt"
     digest = hashlib.sha256(canonical_json_bytes(contract)).hexdigest()
-    if identity_path.exists() and identity_path.read_text().strip() != digest:
-        raise ValueError("run root belongs to a different price contract")
-    identity_path.write_text(digest + "\n")
+    if identity_path.exists():
+        if identity_path.read_text().strip() != digest:
+            raise ValueError("run root belongs to a different price contract")
+    else:
+        # Workers share a run root (``only_worlds``). Rewriting this file in place let a second
+        # worker read it empty mid-write and refuse its own contract (HL-T-07), so it is
+        # written once, whole, by rename.
+        scratch = run_root / f".contract_sha256.{os.getpid()}.tmp"
+        scratch.write_text(digest + "\n")
+        os.replace(scratch, identity_path)
     setups = {arm: build_setup(contract, arm, live=live) for arm in contract["arms"]}
     if provider is None:
         provider = OpenRouterChatClient() if live else HousingScriptedTenantProvider()

@@ -474,6 +474,57 @@ from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The firs
 campaign identity on this world, the descriptive single-route pilot
 `housing_lemons_refusal_pilot_v1`, is specified in the [QC profile](qc.md) §20.
 
+### One deciding tenant and outside demand
+
+The six-tenant price panels measured mostly who won a contested listing (HL-D-04): a
+tie-break by seat number, the scripted rivals' one-dollar overbid, and, with six sampled
+copies, an opening round that already differed between the two landlord arms. The
+outside-demand pilot (`price_outside_demand.py`) keeps one deciding tenant, seat 0, and
+replaces the rivals with a declared rule: at the end of every round each open listing the
+tenant made no offer on is taken with probability 0.5, sound or lemon alike, on a
+schedule the world fixes, so both landlord arms and every model meet the same departures.
+A listing the tenant bid on cannot be taken in that round. The tenant is told the rule.
+The worlds are the 60 of the earlier panels (seeds 100000-100059), so the asks, the
+lemons and seat 0's values are unchanged.
+
+`housing_lemons_price_pilot_v10_glm53_flash_parasail_outside_w60` and
+`..._v10_deepseek_v4_flash_parasail_outside_w60`, K=1, 120 of 120 cells each, $0.09 and
+$0.58. The owner asked for DeepInfra; its shared pool was overloaded and the v8 and v9
+identities on that route have only failed gate cells (HL-O-15, HL-O-16). These are
+development pilots: the notice that tells the tenant the rule is appended by the seat
+router and is not in the kernel's sealed request (HL-D-05).
+
+| Seat 0 | GLM 5.3 Flash | DeepSeek V4 Flash 0731 |
+|---|---|---|
+| Signs a sound listing, lemon-landlord / pooled arm | 77% / 80% | 77% / 85% |
+| Signs a lemon, lemon-landlord / pooled arm | 17% / 2% | 15% / 3% |
+| Signs nothing, lemon-landlord / pooled arm | 7% / 18% | 8% / 12% |
+| Signs an uninspected listing after a revealing reply (lemon-landlord arm) | 15% of cells | 10% of cells |
+| Mean net payoff, lemon-landlord / pooled arm | $204 / $247 | $251 / $289 |
+| `true_cost` minus `pooled`, realized | -43 [-117, +31] | -38 [-86, +11] |
+| `true_cost` minus `pooled`, at the stated odds | +57 [0, +114] | +40 [-4, +85] |
+| `true_cost` minus `pooled`, at the reply-conditioned odds | -43 [-102, +16] | -26 [-78, +25] |
+
+Intervals are 95% t-intervals over 60 paired worlds. No arm contrast is distinguishable
+from zero on the realized or the reply-conditioned measure for either model; the sign
+pattern of the six-tenant panels survives (the lemon landlord looks better at the stated
+odds and worse once the reply is read). The sizes are not comparable with those panels'
+published contrasts, which summed six seats. DeepSeek minus
+GLM on the same worlds, both arms averaged: realized +45 [+1, +88], stated odds
++6 [-34, +46], reply-conditioned +23 [-24, +69]; the two ex-ante measures do not separate
+the models. The two share a declared reasoning effort and not a reasoning condition:
+DeepSeek writes 2,600 to 12,000 reasoning tokens a call and GLM 35 to 530 (HL-O-17).
+
+What the redesign bought. Seat 0 reaches a sound listing in 77 to 85% of cells, against
+38% with six copies of GLM and 22% against either scripted rival. In worlds where seat 0
+held no lemon in either arm, where the landlord arm cannot matter, the contrast has a
+standard deviation of $126 for GLM (6 of 40 worlds beyond $100) and $81 for DeepSeek
+(4 of 45); in the six-copy GLM panel it was $259 (16 of 34). What is left is the
+tenant's own sampling: its round-0 offer is the same listing at the same rent in both
+arms in only 8 (GLM) and 12 (DeepSeek) of 60 worlds. The arm's effect sits in the worlds
+where seat 0 held a lemon: 20 for GLM (mean -121, sd 451) and 15 for DeepSeek
+(mean -87, sd 339), too few to size from one replicate.
+
 ## 6. Metrics
 
 | metric | definition |
