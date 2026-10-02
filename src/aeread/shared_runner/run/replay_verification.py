@@ -104,7 +104,8 @@ def _declared_receipts(bundle: Path) -> dict[str, dict[str, str] | None]:
     """Receipts the bundle declares it published, by digest, with identity if known.
 
     The union of the manifest's ``source_receipt_sha256s`` (top level or under
-    ``source_bindings``; both layouts exist) and every ``source_receipt_sha256``
+    ``source_bindings``; both layouts exist), its ``source_bindings``
+    ``receipt_sha256s`` (the refund layout), and every ``source_receipt_sha256``
     in the trajectory grain and the receipts/ projections. ``receipt_sha256``
     in reports/ and tables/ is deliberately not read: those summaries also cite
     qualification and preflight receipts that are not published rows.
@@ -119,8 +120,13 @@ def _declared_receipts(bundle: Path) -> dict[str, dict[str, str] | None]:
     manifest = json.loads((bundle / MANIFEST_FILENAME).read_bytes())
     if isinstance(manifest, Mapping):
         bindings = manifest.get("source_bindings")
-        for holder in (manifest, bindings if isinstance(bindings, Mapping) else {}):
-            listed = holder.get("source_receipt_sha256s")
+        bindings = bindings if isinstance(bindings, Mapping) else {}
+        lists = (
+            manifest.get("source_receipt_sha256s"),
+            bindings.get("source_receipt_sha256s"),
+            bindings.get("receipt_sha256s"),
+        )
+        for listed in lists:
             for digest in listed if isinstance(listed, list) else ():
                 add(digest, None)
     for _relative, node in _published_objects(bundle):

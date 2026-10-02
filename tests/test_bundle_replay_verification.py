@@ -180,7 +180,9 @@ def _projection(receipt, **changes):
     return row
 
 
-def _bundle_without_grain(tmp_path, *, declared=(), projections=(), summary=("0" * 64,), name="nograin"):
+def _bundle_without_grain(
+    tmp_path, *, declared=(), projections=(), summary=("0" * 64,), bindings=None, name="nograin"
+):
     """A correctly sealed bundle with no trajectory grain."""
 
     bundle = tmp_path / name
@@ -196,6 +198,7 @@ def _bundle_without_grain(tmp_path, *, declared=(), projections=(), summary=("0"
         bundle,
         publication_id="housing_replay_fixture_v1",
         privacy_boundary={"included": "receipt digests", "excluded": "raw run evidence"},
+        source_bindings=bindings,
         **fields,
     )
     return bundle
@@ -210,6 +213,20 @@ def test_a_declared_receipt_without_the_grain_and_without_evidence_is_missing(pu
     assert report["verified"] is False
     assert report["coverage"] == "declared_receipts" and report["declared_receipts"] == 2
     assert report["verdict_reasons"]
+
+
+def test_a_source_binding_receipt_list_declares_receipts_too(published, tmp_path) -> None:
+    """The refund bundles list their receipts as ``source_bindings.receipt_sha256s``."""
+
+    _bundle, run_root, receipts, attempt_dirs = published
+    bundle = _bundle_without_grain(
+        tmp_path, bindings={"receipt_sha256s": [r.receipt_sha256 for r in receipts]}
+    )
+    shutil.rmtree(attempt_dirs[1])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["coverage"] == "declared_receipts" and report["declared_receipts"] == 2
+    assert report["counts"] == {VERIFIED: 1, DIFFERS: 0, EVIDENCE_MISSING: 1}
+    assert report["verified"] is False
 
 
 def test_projection_rows_declare_receipts_and_are_compared(published, tmp_path) -> None:
