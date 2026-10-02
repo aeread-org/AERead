@@ -557,6 +557,46 @@ was given; and the landlord's rule leaves a median of $30 between a sound listin
 and its lowest acceptable rent, against $449 between the tenant's best- and
 worst-looking listing, so the score is listing choice and inspection, not bargaining.
 
+#### The retry with those factors controlled (v11 and v12)
+
+Same 60 worlds and market. Changed: the tenant is told the market lasts three rounds and
+that it may offer again on a listing it walked from, and it is shown its own earlier
+offers, the landlords' binding rents and its decisions (notice v2); temperature 0 for
+every model; both open-weight models on one provider at fp8 (NextBit). Lost actions are
+counted apart from decisions. Not changed: the market still rewards choosing and
+inspecting far more than bargaining, and Gemini's serving stack cannot be matched.
+
+Reasoning could not be made equal. GLM and Gemini refuse effort "none"; GLM writes about
+the same at any declared effort; DeepSeek writes nothing at "none" and thousands of tokens
+at anything else, ignoring a token budget. The light tier is the closest available set:
+
+| Seat 0, 120 of 120 cells each | Scripted rule | GLM 5.3 Flash, "low" | DeepSeek V4 Flash, "none" | Gemini 3.8 Flash, "minimal" |
+|---|---|---|---|---|
+| Reasoning tokens per call, median (max) | 0 | 32 (310) | 0 (0) | 240 (1,591) |
+| Signs sound / lemon / nothing | 70 / 0 / 30% | 81 / 14 / 5% | 49 / 2 / 49% | 91 / 3 / 6% |
+| Lost actions (cells) | 0 | 3 (3) | 6 (6) | 0 |
+| Same opening move in both arms | 60 of 60 | 22 of 60 | 28 of 60 | 58 of 60 |
+| Mean net, realized | $241 | $186 | $104 | $301 |
+| Mean net, at the stated odds | $241 | $257 | $113 | $296 |
+| Mean net, at the reply-conditioned odds | $241 | $192 | $113 | $285 |
+| Cost | $0 | $0.08 | $0.29 | $1.01 |
+
+Against the scripted rule, paired by world: Gemini +61 [+23, +99] realized, +55 [+22, +88]
+at the stated odds and +44 [+6, +82] at the reply-conditioned odds, the first model in
+this market to beat it. GLM is -54 [-120, +11], +17 [-28, +61] and -49 [-104, +6].
+DeepSeek without reasoning is -136 [-190, -83], below the rule on every measure: it ends
+with no lease in half its cells. Gemini minus GLM is +115 [+53, +177] realized and
++93 [+41, +145] reply-conditioned (+92 [+38, +145] on the 58 worlds where neither lost an
+action), and +39 [-3, +81] at the stated odds: the two choose listings about equally
+well and differ in what they do with the landlord's reply. GLM signs an uninspected
+listing after a revealing reply in 20% of lemon-landlord cells, Gemini in 3%, DeepSeek in
+none; GLM's `true_cost` minus `pooled` contrast at the reply-conditioned odds is
+-71 [-131, -10], Gemini's -20 [-50, +11].
+
+Temperature 0 did not make the open-weight route repeat itself: the opening move is the
+same in both arms in 22 (GLM) and 28 (DeepSeek) of 60 worlds, up from 8 and 12 at
+temperature 1, against 58 for Gemini. Their pairs still carry the tenant's own noise.
+
 ## 6. Metrics
 
 | metric | definition |
