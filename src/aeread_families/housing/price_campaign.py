@@ -20,7 +20,7 @@ from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderFailure, execute_plan_cell
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 
-from . import lemons
+from . import lemons, price_outside_demand
 from .population_campaign import _failure_usage
 from .runner import (
     GEMINI_38_FLASH_MODEL,
@@ -92,6 +92,20 @@ GOOGLE_GEMINI_31_FLASH_LITE_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_google_2026-10-01_gemini-3.1-flash-lite",
 )
 
+# DeepSeek V4 Flash 0731 on DeepInfra, read from the catalog on 2026-10-01. The runner's
+# own DeepInfra pin for this model carries the 2026-08-26 prices ($0.08 in); the endpoint
+# is $0.06 now, and a pin is also the price a call is costed at, so this one is current.
+DEEPSEEK_V4_FLASH_0731_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEEPINFRA_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
+    provider="DeepInfra",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.06,
+    cached_input_per_million=0.015,
+    output_per_million=0.18,
+    pricing_id="openrouter_deepinfra_2026-10-01_deepseek-v4-flash-0731",
+)
+
 #: Sealed routes this driver knows. A contract names one; the driver refuses a
 #: route whose identity drifts from the pin the runner carries.
 ROUTES: dict[str, tuple[str, Any]] = {
@@ -100,6 +114,7 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "openai_gpt_56_luna": (GPT_56_LUNA_MODEL, OPENAI_GPT_56_LUNA_ROUTE),
     "parasail_glm_53_flash": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_ROUTE),
     "google_gemini_31_flash_lite": (GEMINI_31_FLASH_LITE_MODEL, GOOGLE_GEMINI_31_FLASH_LITE_ROUTE),
+    "deepinfra_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, DEEPINFRA_DEEPSEEK_V4_FLASH_0731_ROUTE),
 }
 
 #: Seats the rival model plays in a focal-seat identity. Seat 0 is the focal model.
@@ -210,6 +225,43 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "world_seeds": list(range(100000, 100060)),
         "rival_scripted_model": "housing_scripted_tenant_sign_anything_v1",
     },
+    # One deciding tenant, four landlords (owner decision 2026-10-01). The six-tenant panels
+    # measured mostly who won a contested listing: with six copies the opening round differed
+    # between the two arms in 48 of 57 worlds, and scripted rivals shut seat 0 out of sound
+    # listings with a one-dollar overbid. Here seats 1-5 are outside demand (see
+    # price_outside_demand): each open listing seat 0 did not bid on is taken at the end of a
+    # round with probability 0.5, sound or lemon alike, on a schedule the world fixes. Same 60
+    # worlds, so asks, lemons and seat 0's values are those of the v4-v7 panels.
+    "housing_lemons_price_pilot_v8_glm53_flash_deepinfra_outside_w60": {
+        "route_id": "deepinfra_glm_53_flash_fp4", "profile": "housing_price_glm53_deepinfra_tenant_v8",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+    },
+    "housing_lemons_price_pilot_v8_deepseek_v4_flash_deepinfra_outside_w60": {
+        "route_id": "deepinfra_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_deepinfra_tenant_v8",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+    },
+    # v8 above stopped at its first cell on both models (HL-O-15): DeepInfra's shared pool
+    # answered 429 engine_overloaded past the kernel's four attempts (about 16 s of backoff),
+    # and one DeepSeek call ran 116 s before the next hit the 120 s timeout. v9 keeps the
+    # market, the notice, the routes and the sampling, and declares the two limits that ended
+    # those cells: eight attempts (the kernel's exponential backoff then waits about two
+    # minutes in total) and a 300 s call timeout. v8's run roots stay as the record.
+    "housing_lemons_price_pilot_v9_glm53_flash_deepinfra_outside_w60": {
+        "route_id": "deepinfra_glm_53_flash_fp4", "profile": "housing_price_glm53_deepinfra_tenant_v9",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v9_deepseek_v4_flash_deepinfra_outside_w60": {
+        "route_id": "deepinfra_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_deepinfra_tenant_v9",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
@@ -233,6 +285,8 @@ def _route_block(route_id: str) -> dict[str, Any]:
 
 def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     """What the contract must declare about the rival seats of a focal-seat identity."""
+    if spec.get("outside_demand"):
+        return price_outside_demand.block()
     seats = {"seats": list(RIVAL_SEATS), "focal_seat": FOCAL_SEAT}
     if spec.get("rival_scripted_model"):
         return {"kind": "scripted_tenant", "model": spec["rival_scripted_model"],
@@ -245,7 +299,9 @@ def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def has_rivals(spec: Mapping[str, Any]) -> bool:
-    return bool(spec.get("rival_route_id") or spec.get("rival_scripted_model"))
+    return bool(
+        spec.get("rival_route_id") or spec.get("rival_scripted_model") or spec.get("outside_demand")
+    )
 
 
 def identity(contract: Mapping[str, Any]) -> dict[str, Any]:
@@ -292,8 +348,8 @@ def load_contract(path: Path) -> dict[str, Any]:
         "harness": "minimal_chat/1.0", "tools": "disabled", "memory": "disabled",
         "reasoning_effort": spec["reasoning_effort"], "temperature": spec["temperature"],
         "top_p": spec["top_p"],
-        "max_output_tokens": 4096, "timeout_seconds": 120.0,
-        "sdk_retries": 0, "max_action_attempts": 4,
+        "max_output_tokens": 4096, "timeout_seconds": spec.get("timeout_seconds", 120.0),
+        "sdk_retries": 0, "max_action_attempts": spec.get("max_action_attempts", 4),
         "retryable_conditions": ["length", "rate_limit", "provider_5xx", "empty_response"],
         "tenant_inference_seed_base": 87001,
         "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
@@ -325,10 +381,14 @@ class SeatRouterClient:
     identity (HL-T-04).
     """
 
-    def __init__(self, focal: Any, rival: Any, *, rival_block: Mapping[str, Any], rewrite: Any, log_path: Path):
+    def __init__(self, focal: Any, rival: Any, *, rival_block: Mapping[str, Any], rewrite: Any, log_path: Path,
+                 focal_rewrite: Any = None):
         self._focal, self._rival, self._log = focal, rival, log_path
         self._block, self._rewrite = rival_block, rewrite
         self._seats = set(rival_block["seats"])
+        # Outside-demand identities tell the focal seat the departure rule here (see
+        # price_outside_demand): the request the kernel logged does not carry the notice.
+        self._focal_rewrite = focal_rewrite
 
     @staticmethod
     def seat_of(request: Any) -> int:
@@ -338,7 +398,10 @@ class SeatRouterClient:
     async def complete(self, request: Any) -> Any:
         seat = self.seat_of(request)
         rival = seat in self._seats
-        sent = self._rewrite(request) if rival else request
+        if rival:
+            sent = self._rewrite(request)
+        else:
+            sent = self._focal_rewrite(request) if self._focal_rewrite is not None else request
         client = self._rival if rival else self._focal
         # Google's shared upstream pool answers 429 in bursts that outlast the kernel's four
         # immediate attempts (HL-O-11), and one failed cell halts the pilot. A rival call backs
@@ -357,6 +420,8 @@ class SeatRouterClient:
                 "provider_call_id": request.provider_call_id, "seat": seat, "role": "rival" if rival else "focal",
                 "requested_model": result.requested_model, "resolved_model": result.resolved_model,
                 "temperature": sent.temperature, "cost_usd": result.cost_usd,
+                **({"instructions_sha256": price_outside_demand.instructions_sha256(sent)}
+                   if self._focal_rewrite is not None and not rival else {}),
             }, sort_keys=True) + "\n")
         return result
 
@@ -387,6 +452,12 @@ def scripted_rival_rewrite(block: Mapping[str, Any]) -> Any:
 
 def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path) -> SeatRouterClient:
     block = contract["rivals"]
+    if block.get("kind") == "outside_demand":
+        return SeatRouterClient(
+            focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,
+            rewrite=price_outside_demand.rival_rewrite, log_path=log_path,
+            focal_rewrite=price_outside_demand.focal_rewrite,
+        )
     if block.get("kind") == "scripted_tenant":
         return SeatRouterClient(
             focal, HousingScriptedTenantProvider(), rival_block=block,
@@ -508,7 +579,8 @@ async def run(
     if provider is None:
         provider = OpenRouterChatClient() if live else HousingScriptedTenantProvider()
     spec = identity(contract)
-    if live and has_rivals(spec):
+    # Outside demand is part of the market, so the provider-free preflight plays it too.
+    if has_rivals(spec) and (live or spec.get("outside_demand")):
         provider = make_seat_router(spec, contract, provider, run_root / "seat_calls.jsonl")
     results_root = run_root / ("live" if live else "preflight")
     results_root.mkdir(exist_ok=True)
