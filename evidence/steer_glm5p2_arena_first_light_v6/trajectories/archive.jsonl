@@ -1,0 +1,6 @@
+{"case_id":"steer.transitivity.0_0","cost_usd":0.00040340000000000005,"inclusion_status":"included","primary":1.0,"receipt_replayed":true,"receipt_sha256":"29f812293554d806e79b430384baed0f6e36d6cbad09656331c83c6e49472130","status":"ok"}
+{"case_id":"steer.certainty_effect.0_0","evidence":"evidence/steer_glm5p2_arena_first_light_v4/reports/summary.json","failure_condition":null,"failure_type":null,"reason":"repeated_provider_length_without_visible_answer","status":"skipped_prior_operational_failure"}
+{"case_id":"steer.pure_nash.0_0","evidence":null,"failure_condition":"length","failure_type":"SchedulerContractError","reason":null,"status":"operational_failure"}
+{"case_id":"steer.backward_induction.50_0","cost_usd":0.0025258,"inclusion_status":"included","primary":0.0,"receipt_replayed":true,"receipt_sha256":"b2ef14d12e0f5feb5267187db3d62382f93cf717289044c8c6cb617572278ac0","status":"ok"}
+{"case_id":"steer.plurality_voting.0_0","cost_usd":0.0010363999999999998,"inclusion_status":"included","primary":1.0,"receipt_replayed":true,"receipt_sha256":"3063eba53d9406483b748a38e89d4816c200acaac3d7ba83c3603631131039db","status":"ok"}
+{"case_id":"steer.dsic_mechanism.0_0","cost_usd":0.00142844,"inclusion_status":"included","primary":1.0,"receipt_replayed":true,"receipt_sha256":"14fe95b8c5404137085e9fb6ac986e89860df30a101311afed77207ba6f462b0","status":"ok"}

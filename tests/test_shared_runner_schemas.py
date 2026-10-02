@@ -1206,8 +1206,6 @@ def test_leaf_policy_declaration_post_init_rejects_malformed_subject_reduction(
         )
     with pytest.raises(AuthoringValidationError, match="subject_reduction"):
         dataclasses.replace(valid, subject_reduction=invalid_reduction)
-
-
 def test_leaf_policy_declaration_without_case_conditional_defaults_to_false() -> None:
     family = FamilyManifest.from_dict(_family_data_with_leaves())
     assert family.measurement.leaves[0].case_conditional is False
