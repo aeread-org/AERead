@@ -15,7 +15,10 @@ from pathlib import Path
 import pytest
 
 from aeread.shared_runner.run import replay_verification
-from aeread.shared_runner.run.publication import seal_publication_manifest
+from aeread.shared_runner.run.publication import (
+    rebuild_publication_manifest,
+    seal_publication_manifest,
+)
 from aeread.shared_runner.run.publish_trajectories import GRAIN, publish_trajectory_grain
 from aeread.shared_runner.run.replay_verification import (
     DIFFERS,
@@ -159,16 +162,128 @@ def test_a_setup_built_from_other_source_does_not_verify(published) -> None:
     assert report["counts"] == {VERIFIED: 0, DIFFERS: 2, EVIDENCE_MISSING: 0}
 
 
-def test_without_the_grain_only_the_receipts_found_can_be_checked_and_the_report_says_so(published, tmp_path) -> None:
-    bundle, run_root, _receipts, _ = published
-    (bundle / GRAIN).unlink()
+def _sealed_receipts(attempt_dirs):
+    return [json.loads((d / "evaluation_receipt.json").read_bytes()) for d in attempt_dirs]
+
+
+def _projection(receipt, **changes):
+    row = {
+        "source_receipt_sha256": receipt["receipt_sha256"],
+        "run_plan_id": receipt["run_plan_id"],
+        "cell_id": receipt["cell_id"],
+        "episode_id": receipt["episode_id"],
+        "episode_attempt_id": receipt["episode_attempt_id"],
+        "scores": receipt["scores"],
+    }
+    row.update(changes)
+    return row
+
+
+def _bundle_without_grain(tmp_path, *, declared=(), projections=(), summary=("0" * 64,), name="nograin"):
+    """A correctly sealed bundle with no trajectory grain."""
+
+    bundle = tmp_path / name
+    (bundle / "reports").mkdir(parents=True)
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipts": list(summary)}))
+    if projections:
+        (bundle / "receipts").mkdir()
+        (bundle / "receipts" / "projections.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in projections)
+        )
+    fields = {"source_receipt_sha256s": list(declared)} if declared else {}
+    seal_publication_manifest(
+        bundle,
+        publication_id="housing_replay_fixture_v1",
+        privacy_boundary={"included": "receipt digests", "excluded": "raw run evidence"},
+        **fields,
+    )
+    return bundle
+
+
+def test_a_declared_receipt_without_the_grain_and_without_evidence_is_missing(published, tmp_path) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    bundle = _bundle_without_grain(tmp_path, declared=[r.receipt_sha256 for r in receipts])
+    shutil.rmtree(attempt_dirs[1])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["counts"] == {VERIFIED: 1, DIFFERS: 0, EVIDENCE_MISSING: 1}
+    assert report["verified"] is False
+    assert report["coverage"] == "declared_receipts" and report["declared_receipts"] == 2
+    assert report["verdict_reasons"]
+
+
+def test_projection_rows_declare_receipts_and_are_compared(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    bundle = _bundle_without_grain(tmp_path, projections=[_projection(r) for r in sealed])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is True and report["verdict_reasons"] == []
+    assert report["coverage"] == "declared_receipts"
+    assert report["published_projections_checked"] == 2
+    assert report["counts"][VERIFIED] == 2
+
+
+def test_a_projection_whose_scores_were_altered_differs(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    altered = json.loads(json.dumps(sealed[0]["scores"]))
+    altered[0]["value"] = (altered[0].get("value") or 0) + 1
+    rows = [_projection(sealed[0], scores=altered), _projection(sealed[1])]
+    bundle = _bundle_without_grain(tmp_path, projections=rows)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert differs["source_receipt_sha256"] == sealed[0]["receipt_sha256"]
+    assert "receipts/projections.jsonl" in differs["reason"] and "scores" in differs["reason"]
+
+
+def test_a_projection_whose_cell_id_changed_differs(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    rows = [_projection(sealed[0]), _projection(sealed[1], cell_id="some_other_cell")]
+    bundle = _bundle_without_grain(tmp_path, projections=rows)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert "cell_id" in differs["reason"]
+
+
+def test_a_projection_row_the_grain_cannot_list_is_still_expected(published) -> None:
+    """A zero-action episode has no grain row; its projection row still declares it."""
+
+    bundle, run_root, _receipts, attempt_dirs = published
+    ghost = "ab" * 32
+    ghost_row = _projection(_sealed_receipts(attempt_dirs)[0], source_receipt_sha256=ghost)
+    del ghost_row["scores"]
+    (bundle / "receipts").mkdir()
+    (bundle / "receipts" / "projections.jsonl").write_text(json.dumps(ghost_row) + "\n")
+    rebuild_publication_manifest(bundle)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["coverage"] == "every_published_episode"
+    assert report["verified"] is False and report["counts"][EVIDENCE_MISSING] == 1
+    (missing,) = [row for row in report["rows"] if row["status"] == EVIDENCE_MISSING]
+    assert missing["source_receipt_sha256"] == ghost
+
+
+def test_without_the_grain_and_without_a_declared_inventory_nothing_verifies(published, tmp_path) -> None:
+    """Missing evidence cannot be detected when nothing says what should exist."""
+
+    _bundle, run_root, _receipts, _ = published
+    summary = [r["receipt_sha256"] for r in _sealed_receipts(_attempts(run_root))]
+    bundle = _bundle_without_grain(tmp_path, summary=summary)
     report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
     assert report["coverage"] == "receipts_found_under_run_root"
-    assert report["verified"] is True and report["counts"][VERIFIED] == 2
+    assert report["counts"][VERIFIED] == 2 and report["declared_receipts"] == 0
+    assert report["verified"] is False
+    assert any("no receipt inventory" in reason for reason in report["verdict_reasons"])
     empty = tmp_path / "empty_runs"
     empty.mkdir()
     nothing = verify_bundle_replay(bundle, empty, setup_for=setup_for)
     assert nothing["verified"] is False and nothing["rows"] == []
+    assert "no row was checked" in nothing["verdict_reasons"]
+
+
+def _attempts(run_root):
+    return sorted(path.parent for path in run_root.rglob("evaluation_receipt.json"))
 
 
 def test_a_copy_of_the_same_run_root_is_not_counted_twice(published) -> None:
