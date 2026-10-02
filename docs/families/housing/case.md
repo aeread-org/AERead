@@ -593,6 +593,20 @@ listing after a revealing reply in 20% of lemon-landlord cells, Gemini in 3%, De
 none; GLM's `true_cost` minus `pooled` contrast at the reply-conditioned odds is
 -71 [-131, -10], Gemini's -20 [-50, +11].
 
+DeepSeek with reasoning on, the bracket (`..._v12_deepseek_v4_flash_nextbit_reason_outside_w60`,
+120 of 120 cells, $2.54): a median of 3,541 reasoning tokens a call and up to 16,384; 196 of
+its 649 calls ended at the output cap and were retried. Mean net $273 realized, $290 at the
+stated odds, $229 at the reply-conditioned odds; it signs a sound listing in 82% of cells, a
+lemon in 12%, nothing in 7%, and loses no action. Reasoning is worth +169 [+103, +235] a
+world to DeepSeek realized and +116 [+54, +178] at the reply-conditioned odds, against the
+same model with reasoning off. With it, DeepSeek is level with the scripted rule
+(+32 [-12, +77] realized, -12 [-46, +22] reply-conditioned) and ahead of GLM realized
+(+87 [+27, +146]). Gemini, on about a fifteenth of the reasoning, is not behind it:
++28 [-10, +67] realized, +6 [-30, +43] at the stated odds, and +56 [+13, +99] at the
+reply-conditioned odds, because DeepSeek signs an uninspected listing after a revealing reply
+in 18% of lemon-landlord cells and Gemini in 3%. Thousands of reasoning tokens improve
+which listing DeepSeek ends up with; they do not make it read the landlord's reply.
+
 Temperature 0 did not make the open-weight route repeat itself: the opening move is the
 same in both arms in 22 (GLM) and 28 (DeepSeek) of 60 worlds, up from 8 and 12 at
 temperature 1, against 58 for Gemini. Their pairs still carry the tenant's own noise.
