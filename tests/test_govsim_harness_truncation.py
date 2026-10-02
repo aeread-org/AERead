@@ -22,9 +22,12 @@ from aeread_families.govsim.live import (
     REFLECT_PHASE,
     GovsimJsonHarness,
 )
-from tests.test_shared_runner_execution import _decision
 from tests.test_shared_runner_harness import ScriptedProvider, _result
-from tests.test_truncated_response_typing import _harness_executor, _json_dialect_profile
+from tests.test_truncated_response_typing import (
+    _events,
+    _harness_executor,
+    _json_dialect_profile,
+)
 
 CUT = {
     DISCUSS_PHASE: '{"message":"We should harv',
@@ -115,7 +118,7 @@ def test_the_executor_runs_the_declared_length_retry_with_a_doubled_budget(tmp_p
             _result(text='{"quantity": 3}'),
         ]
     )
-    executor, decision, _evidence = _harness_executor(
+    executor, decision, evidence = _harness_executor(
         tmp_path,
         provider,
         harnesses={"govsim_json/1.0": GovsimJsonHarness()},
@@ -133,3 +136,22 @@ def test_the_executor_runs_the_declared_length_retry_with_a_doubled_budget(tmp_p
     calls = [call for attempt in execution.attempts for call in attempt.provider_calls]
     assert len(calls) == 2 and all(call.cost_usd > 0 for call in calls)
     assert executor.total_cost_usd == pytest.approx(sum(call.cost_usd for call in calls))
+    # The cut-off call completed and was billed: it is recorded as a succeeded
+    # provider call inside a failed attempt, never as a failed or unknown call.
+    lifecycle = [
+        event["event_type"]
+        for event in _events(evidence)
+        if event["event_type"].startswith(("provider_call_", "action_attempt_"))
+        and event["event_type"] != "provider_call_started"
+        and event["event_type"] != "action_attempt_started"
+    ]
+    assert lifecycle == [
+        "provider_call_succeeded",
+        "action_attempt_failed",
+        "provider_call_succeeded",
+        "action_attempt_succeeded",
+    ]
+    executor.finalize_logical_action(
+        decision.logical_action_id, valid=True, failure_code=None
+    )
+    evidence.audit_reconciliation()
