@@ -587,11 +587,17 @@ this market to beat it. GLM is -54 [-120, +11], +17 [-28, +61] and -49 [-104, +6
 DeepSeek without reasoning is -136 [-190, -83], below the rule on every measure: it ends
 with no lease in half its cells. Gemini minus GLM is +115 [+53, +177] realized and
 +93 [+41, +145] reply-conditioned (+92 [+38, +145] on the 58 worlds where neither lost an
-action), and +39 [-3, +81] at the stated odds: the two choose listings about equally
-well, and the gap is in lemons the landlord's reply had already revealed. That is not
-Gemini reading the reply: it was granted only three such holds and signed two. It seldom
-bids on a listing it has not inspected (4 such bids on lemons in the 60 lemon-landlord
-cells, against GLM's 12), so it seldom gets that reply. GLM signs an uninspected
+action), and +39 [-3, +81] at the stated odds. The stated odds flatter GLM, because they price a
+revealed lemon as the coin flip the tenant was told. Splitting each model's
+reply-conditioned net by the kind of signing, $65 [+15, +116] of Gemini's $93 lead is
+verified sound leases (70%) and $19 [-2, +40] is lemons the landlord's reply had revealed
+(20%); against DeepSeek with reasoning the same parts are $55 of $56 and $11. Gemini ends
+82% of cells in a verified sound lease, GLM 68%, and ends 11% on a listing it never
+inspected against GLM's 27%. The split is accounting, not a counterfactual: a cell that
+ends on an uninspected listing cannot also end in a verified lease. Nor is Gemini reading
+the reply: it was granted only three revealing holds and signed two. It seldom bids on a
+listing it has not inspected (4 such bids on lemons in the 60 lemon-landlord cells,
+against GLM's 12), so it seldom gets that reply. GLM signs an uninspected
 listing after a revealing reply in 20% of lemon-landlord cells, Gemini in 3%, DeepSeek in
 none; GLM's `true_cost` minus `pooled` contrast at the reply-conditioned odds is
 -71 [-131, -10], Gemini's -20 [-50, +11].
@@ -616,8 +622,11 @@ and offer, which precede any landlord reply, are the same in both arms in 24 (GL
 pairs still carry the tenant's own noise.
 
 Every conclusion in this section is restated as a claim with a computed verdict in the
-Examiner trajectory notebook (`trajectory_claims.py` in the Examiner repository, 24 claims):
-10 supported, 7 mixed, 4 refuted, 1 not established, 2 not tested at this data.
+Examiner trajectory notebook (`trajectory_claims.py` in the Examiner repository, 25 claims),
+each with the tables and interval plots that decide it: 10 supported, 7 mixed, 5 refuted,
+2 not established, 1 not tested at this data. One of the two not established is whether the
+retry's changes widened Gemini's lead over GLM: per world the lead changed by
++65 [-2, +132], and Gemini already led in the first run (+50 [+10, +90]).
 
 ## 6. Metrics
 
