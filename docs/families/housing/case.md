@@ -575,7 +575,7 @@ at anything else, ignoring a token budget. The light tier is the closest availab
 | Reasoning tokens per call, median (max) | 0 | 32 (310) | 0 (0) | 240 (1,591) |
 | Signs sound / lemon / nothing | 70 / 0 / 30% | 81 / 14 / 5% | 49 / 2 / 49% | 91 / 3 / 6% |
 | Lost actions (cells) | 0 | 3 (3) | 6 (6) | 0 |
-| Same opening move in both arms | 60 of 60 | 22 of 60 | 28 of 60 | 58 of 60 |
+| Same opening inspection and offer in both arms | 60 of 60 | 24 of 60 | 31 of 60 | 60 of 60 |
 | Mean net, realized | $241 | $186 | $104 | $301 |
 | Mean net, at the stated odds | $241 | $257 | $113 | $296 |
 | Mean net, at the reply-conditioned odds | $241 | $192 | $113 | $285 |
@@ -588,7 +588,10 @@ DeepSeek without reasoning is -136 [-190, -83], below the rule on every measure:
 with no lease in half its cells. Gemini minus GLM is +115 [+53, +177] realized and
 +93 [+41, +145] reply-conditioned (+92 [+38, +145] on the 58 worlds where neither lost an
 action), and +39 [-3, +81] at the stated odds: the two choose listings about equally
-well and differ in what they do with the landlord's reply. GLM signs an uninspected
+well, and the gap is in lemons the landlord's reply had already revealed. That is not
+Gemini reading the reply: it was granted only three such holds and signed two. It seldom
+bids on a listing it has not inspected (4 such bids on lemons in the 60 lemon-landlord
+cells, against GLM's 12), so it seldom gets that reply. GLM signs an uninspected
 listing after a revealing reply in 20% of lemon-landlord cells, Gemini in 3%, DeepSeek in
 none; GLM's `true_cost` minus `pooled` contrast at the reply-conditioned odds is
 -71 [-131, -10], Gemini's -20 [-50, +11].
@@ -607,9 +610,14 @@ reply-conditioned odds, because DeepSeek signs an uninspected listing after a re
 in 18% of lemon-landlord cells and Gemini in 3%. Thousands of reasoning tokens improve
 which listing DeepSeek ends up with; they do not make it read the landlord's reply.
 
-Temperature 0 did not make the open-weight route repeat itself: the opening move is the
-same in both arms in 22 (GLM) and 28 (DeepSeek) of 60 worlds, up from 8 and 12 at
-temperature 1, against 58 for Gemini. Their pairs still carry the tenant's own noise.
+Temperature 0 did not make the open-weight route repeat itself: the opening inspection
+and offer, which precede any landlord reply, are the same in both arms in 24 (GLM) and 31
+(DeepSeek) of 60 worlds, up from 8 and 10 at temperature 1, against 60 for Gemini. Their
+pairs still carry the tenant's own noise.
+
+Every conclusion in this section is restated as a claim with a computed verdict in the
+Examiner trajectory notebook (`trajectory_claims.py` in the Examiner repository, 24 claims):
+10 supported, 7 mixed, 4 refuted, 1 not established, 2 not tested at this data.
 
 ## 6. Metrics
 
