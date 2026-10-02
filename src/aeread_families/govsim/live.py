@@ -279,6 +279,15 @@ class GovsimJsonHarness:
             try:
                 value = json.loads(turn.text or "")
             except json.JSONDecodeError:
+                # #152: a reply cut off at the output-token limit is a typed
+                # length failure for the declared retry, not malformed output.
+                if getattr(turn, "truncated", False):
+                    raise ProviderFailure(
+                        "length",
+                        f"govsim {request.phase_id} reply was cut off at the "
+                        "output-token limit before a complete JSON object",
+                        retryable=True,
+                    )
                 value = {}
             text = value.get(field) if isinstance(value, Mapping) else None
             if not isinstance(text, str):
@@ -322,6 +331,17 @@ class GovsimJsonHarness:
                     "govsim harvest returned an empty response",
                     retryable=True,
                 )
+            # #152: cut off before a complete JSON value is a length failure.
+            if getattr(turn, "truncated", False):
+                try:
+                    json.loads(turn.text or "")
+                except json.JSONDecodeError:
+                    raise ProviderFailure(
+                        "length",
+                        "govsim harvest reply was cut off at the output-token "
+                        "limit before a complete JSON object",
+                        retryable=True,
+                    )
             quantity, reason = self._quantity(turn.text or "")
             if quantity is not None:
                 return HarnessOutput(

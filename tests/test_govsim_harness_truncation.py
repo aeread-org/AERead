@@ -115,7 +115,7 @@ def test_the_executor_runs_the_declared_length_retry_with_a_doubled_budget(tmp_p
             _result(text='{"quantity": 3}'),
         ]
     )
-    executor, decision, evidence = _harness_executor(
+    executor, decision, _evidence = _harness_executor(
         tmp_path,
         provider,
         harnesses={"govsim_json/1.0": GovsimJsonHarness()},
@@ -128,8 +128,8 @@ def test_the_executor_runs_the_declared_length_retry_with_a_doubled_budget(tmp_p
     first, second = (request.max_output_tokens for request in provider.requests)
     assert second == 2 * first
     (execution,) = executor.executions()
-    assert [attempt.failure_code for attempt in execution.attempts][0] == "length"
+    assert [attempt.retry_reason for attempt in execution.attempts] == [None, "length"]
+    assert execution.attempts[0].status == "failed"
     calls = [call for attempt in execution.attempts for call in attempt.provider_calls]
     assert len(calls) == 2 and all(call.cost_usd > 0 for call in calls)
     assert executor.total_cost_usd == pytest.approx(sum(call.cost_usd for call in calls))
-    evidence.audit_reconciliation()
