@@ -129,6 +129,28 @@ PARASAIL_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_parasail_2026-10-01_deepseek-v4-flash-0731",
 )
 
+# StreamLake, read from the catalog on 2026-10-01: the one provider probed that serves both
+# open-weight models at fp8 and answered every call (five each, at the planned settings), so
+# v11 compares them on one serving stack. On Parasail GLM is fp4 and DeepSeek fp8.
+STREAMLAKE_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="StreamLake",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.087,
+    cached_input_per_million=0.0174,
+    output_per_million=0.29,
+    pricing_id="openrouter_streamlake_2026-10-01_glm-5.3-flash-fp8",
+)
+STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
+    provider="StreamLake",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.044,
+    cached_input_per_million=0.0014,
+    output_per_million=0.132,
+    pricing_id="openrouter_streamlake_2026-10-01_deepseek-v4-flash-0731",
+)
+
 #: Sealed routes this driver knows. A contract names one; the driver refuses a
 #: route whose identity drifts from the pin the runner carries.
 ROUTES: dict[str, tuple[str, Any]] = {
@@ -140,6 +162,8 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "deepinfra_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, DEEPINFRA_DEEPSEEK_V4_FLASH_0731_ROUTE),
     "parasail_glm_53_flash_fp4": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_FP4_ROUTE),
     "parasail_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, PARASAIL_DEEPSEEK_V4_FLASH_0731_ROUTE),
+    "streamlake_glm_53_flash": (GLM_53_FLASH_MODEL, STREAMLAKE_GLM_53_FLASH_ROUTE),
+    "streamlake_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE),
 }
 
 #: Seats the rival model plays in a focal-seat identity. Seat 0 is the focal model.
@@ -314,6 +338,45 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "world_seeds": list(range(100000, 100060)), "outside_demand": True,
         "max_action_attempts": 8, "timeout_seconds": 300.0,
     },
+    # v11 (owner decision 2026-10-01): the v10 panels again, with what they left uncontrolled
+    # fixed where a control exists (case.md, "What this panel does not control").
+    #  * Horizon and memory: notice v2 states the three rounds and appends the tenant's own
+    #    offers, the landlords' binding rents and its decisions.
+    #  * Sampling: temperature 0 for every model, so the two arms of a world start from the
+    #    same policy and a pair differs by the landlord arm and not by a re-draw.
+    #  * Serving stack: both open-weight models on StreamLake at fp8.
+    #  * Reasoning cannot be made equal. Probed on a pilot prompt: GLM and Gemini refuse
+    #    effort "none"; GLM writes 100-150 reasoning tokens at any declared effort and runs to
+    #    the output cap with none declared; Gemini writes about 600-700 at "minimal";
+    #    DeepSeek writes 0 at "none" and 2,000-6,000 at anything else, and ignores a token
+    #    budget. The light tier is therefore GLM "low", Gemini "minimal" and DeepSeek "none"
+    #    (all under about 700 tokens), and DeepSeek also runs at "low" as the bracket.
+    "housing_lemons_price_pilot_v11_glm53_flash_streamlake_outside_w60": {
+        "route_id": "streamlake_glm_53_flash", "profile": "housing_price_glm53_streamlake_tenant_v11",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_noreason_outside_w60": {
+        "route_id": "streamlake_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_streamlake_noreason_tenant_v11",
+        "reasoning_effort": "none", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_reason_outside_w60": {
+        "route_id": "streamlake_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_streamlake_reason_tenant_v11",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 2.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v11_gemini38_flash_outside_w60": {
+        "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v11",
+        "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 3.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
@@ -338,7 +401,7 @@ def _route_block(route_id: str) -> dict[str, Any]:
 def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     """What the contract must declare about the rival seats of a focal-seat identity."""
     if spec.get("outside_demand"):
-        return price_outside_demand.block()
+        return price_outside_demand.block_v2() if spec.get("notice_version") == 2 else price_outside_demand.block()
     seats = {"seats": list(RIVAL_SEATS), "focal_seat": FOCAL_SEAT}
     if spec.get("rival_scripted_model"):
         return {"kind": "scripted_tenant", "model": spec["rival_scripted_model"],
@@ -434,13 +497,16 @@ class SeatRouterClient:
     """
 
     def __init__(self, focal: Any, rival: Any, *, rival_block: Mapping[str, Any], rewrite: Any, log_path: Path,
-                 focal_rewrite: Any = None):
+                 focal_rewrite: Any = None, focal_after: Any = None):
         self._focal, self._rival, self._log = focal, rival, log_path
         self._block, self._rewrite = rival_block, rewrite
         self._seats = set(rival_block["seats"])
         # Outside-demand identities tell the focal seat the departure rule here (see
         # price_outside_demand): the request the kernel logged does not carry the notice.
         self._focal_rewrite = focal_rewrite
+        # Notice v2 also keeps what the focal seat was answered; ``focal_after`` sees each focal
+        # result and returns the fields this log records for that call.
+        self._focal_after = focal_after
 
     @staticmethod
     def seat_of(request: Any) -> int:
@@ -472,7 +538,8 @@ class SeatRouterClient:
                 "provider_call_id": request.provider_call_id, "seat": seat, "role": "rival" if rival else "focal",
                 "requested_model": result.requested_model, "resolved_model": result.resolved_model,
                 "temperature": sent.temperature, "cost_usd": result.cost_usd,
-                **({"instructions_sha256": price_outside_demand.instructions_sha256(sent)}
+                **(self._focal_after(request, sent, result) if self._focal_after is not None and not rival
+                   else {"instructions_sha256": price_outside_demand.instructions_sha256(sent)}
                    if self._focal_rewrite is not None and not rival else {}),
             }, sort_keys=True) + "\n")
         return result
@@ -504,6 +571,13 @@ def scripted_rival_rewrite(block: Mapping[str, Any]) -> Any:
 
 def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path) -> SeatRouterClient:
     block = contract["rivals"]
+    if block.get("kind") == "outside_demand" and block.get("notice_version") == 2:
+        notice = price_outside_demand.FocalNoticeV2()
+        return SeatRouterClient(
+            focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,
+            rewrite=price_outside_demand.rival_rewrite, log_path=log_path,
+            focal_rewrite=notice.rewrite, focal_after=notice.after,
+        )
     if block.get("kind") == "outside_demand":
         return SeatRouterClient(
             focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,

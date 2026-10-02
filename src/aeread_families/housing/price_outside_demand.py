@@ -150,6 +150,124 @@ def block() -> dict[str, Any]:
     }
 
 
+# --- notice v2: the horizon, and what the landlords already answered -------------------------
+#
+# The v10 panels left two things out of what the tenant could know (case.md, "What this panel
+# does not control"). It was never told the market lasts three rounds, so it could not weigh
+# signing now against inspecting first; and after it walked from a hold its observation kept
+# only ``rejected_listing_ids``, not the rent the landlord had named, so nothing it learned
+# from a reply survived the round. Notice v2 states the horizon and appends the tenant's own
+# earlier offers, the landlords' binding rents and its decisions. The history holds only what
+# the tenant itself did or was shown; nothing about quality, costs or the departure schedule.
+
+ROUNDS = 3
+FOCAL_NOTICE_V2 = FOCAL_NOTICE + (
+    f"\nThe market lasts {ROUNDS} rounds, round_index 0 to {ROUNDS - 1}; nothing can be signed "
+    "after the last round. Walking away from a hold does not close the listing to you: while it "
+    "is still open you may offer on it again in a later round."
+)
+FOCAL_NOTICE_V2_SHA256 = hashlib.sha256(FOCAL_NOTICE_V2.encode("utf-8")).hexdigest()
+HISTORY_HEADER = "\nYour earlier offers in this market and the landlords' answers:"
+
+
+def block_v2() -> dict[str, Any]:
+    """The outside-demand block of a contract that uses notice v2."""
+    return {
+        **block(), "notice_version": 2, "rounds_stated": ROUNDS,
+        "focal_notice": FOCAL_NOTICE_V2, "focal_notice_sha256": FOCAL_NOTICE_V2_SHA256,
+        "focal_history": "own offers, landlords' binding rents and own commit decisions of this "
+                         "cell, appended after the notice; each call's text is in seat_calls.jsonl",
+    }
+
+
+def _history_line(round_index: int, entry: Mapping[str, Any], *, current: bool) -> str | None:
+    offer, hold, commit = entry.get("offer"), entry.get("hold"), entry.get("commit")
+    when = f"round_index {round_index}" + (" (this round)" if current else "")
+    if offer is None and hold is None:
+        return None if current else f"- {when}: you made no offer."
+    parts = [f"- {when}:"]
+    if offer is not None:
+        parts.append(f"you offered {offer[1]} on listing {offer[0]};")
+    if hold is None:
+        if current:
+            return None
+        parts.append("you got no hold.")
+        return " ".join(parts)
+    if offer is not None and hold[0] == offer[0] and abs(float(hold[1]) - float(offer[1])) < 0.005:
+        parts.append(f"the landlord accepted, a binding rent of {hold[1]};")
+    else:
+        parts.append(f"the landlord's binding rent for listing {hold[0]} was {hold[1]};")
+    if current:
+        parts.append("you now sign or walk.")
+    elif commit == "sign":
+        parts.append("you signed.")
+    elif commit == "walk":
+        parts.append("you walked away.")
+    else:
+        parts.append("the hold expired unsigned.")
+    return " ".join(parts)
+
+
+class FocalNoticeV2:
+    """Appends notice v2 and the cell's reply history to the focal seat's instructions.
+
+    One instance serves one process, which runs its cells one after another; a request for
+    round 0's inspection starts a new cell. Entries are keyed by round, so a call the kernel
+    retries rewrites the same entry.
+    """
+
+    def __init__(self) -> None:
+        self._rounds: dict[int, dict[str, Any]] = {}
+        self._last_history = ""
+
+    def history(self, round_index: int, phase_id: str) -> str:
+        lines = []
+        for r in sorted(self._rounds):
+            if r > round_index:
+                continue
+            current = r == round_index
+            if current and phase_id != "commit":
+                continue
+            line = _history_line(r, self._rounds[r], current=current)
+            if line:
+                lines.append(line)
+        return (HISTORY_HEADER + "\n" + "\n".join(lines)) if lines else ""
+
+    def rewrite(self, request: Any) -> Any:
+        payload = json.loads(request.input_text)
+        observation = payload["observation"]
+        round_index, phase_id = int(observation["round_index"]), payload["phase_id"]
+        if round_index == 0 and phase_id == "inspect":
+            self._rounds = {}
+        entry = self._rounds.setdefault(round_index, {})
+        if phase_id == "commit":
+            hold = observation.get("active_hold")
+            entry["hold"] = (int(hold["listing_id"]), float(hold["rent"])) if hold else None
+        self._last_history = self.history(round_index, phase_id)
+        return dataclasses.replace(
+            request, instructions=request.instructions + FOCAL_NOTICE_V2 + self._last_history
+        )
+
+    def after(self, request: Any, sent: Any, result: Any) -> dict[str, Any]:
+        """Record what the tenant just did; returns the fields the seat log keeps."""
+        payload = json.loads(request.input_text)
+        round_index, phase_id = int(payload["observation"]["round_index"]), payload["phase_id"]
+        entry = self._rounds.setdefault(round_index, {})
+        try:
+            action = json.loads(result.output_text)
+        except (TypeError, ValueError):
+            action = {}
+        if not isinstance(action, Mapping):
+            action = {}
+        if phase_id == "contact":
+            valid = action.get("decision") == "offer" and isinstance(action.get("rent"), (int, float)) \
+                and isinstance(action.get("listing_id"), int)
+            entry["offer"] = (int(action["listing_id"]), float(action["rent"])) if valid else None
+        elif phase_id == "commit":
+            entry["commit"] = action.get("decision") if action.get("decision") in ("sign", "walk") else None
+        return {"instructions_sha256": instructions_sha256(sent), "history": self._last_history}
+
+
 def rival_rewrite(request: Any) -> Any:
     return dataclasses.replace(request, provider=PROVIDER, model=MODEL, revision=REVISION)
 

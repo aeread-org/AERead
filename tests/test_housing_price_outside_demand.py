@@ -215,3 +215,109 @@ def test_outside_demand_contracts_declare_the_rule_and_refuse_drift(tmp_path, ca
         path.write_text(json.dumps(dict(contract, rivals=dict(contract["rivals"], **{field: value}))))
         with pytest.raises(ValueError, match="rival seats drifted"):
             price_campaign.load_contract(path)
+
+
+V11 = (
+    "housing_lemons_price_pilot_v11_glm53_flash_streamlake_outside_w60",
+    "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_noreason_outside_w60",
+    "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_reason_outside_w60",
+    "housing_lemons_price_pilot_v11_gemini38_flash_outside_w60",
+)
+
+
+class _Request:
+    """The two fields the notice reads and rewrites."""
+
+    def __init__(self, round_index, phase_id, hold=None):
+        self.instructions = "PLAN PROMPT"
+        self.input_text = json.dumps({
+            "phase_id": phase_id,
+            "observation": {"tenant_id": 0, "round_index": round_index, "active_hold": hold},
+        })
+
+
+class _Result:
+    def __init__(self, action):
+        self.output_text = action if isinstance(action, str) else json.dumps(action)
+
+
+def _step(notice, round_index, phase_id, action, hold=None, monkeypatch=None):
+    request = _Request(round_index, phase_id, hold)
+    sent = dataclasses.replace(_Sent("PLAN PROMPT"), instructions=notice.rewrite(_Sent.wrap(request)).instructions)
+    logged = notice.after(request, sent, _Result(action))
+    return sent.instructions, logged
+
+
+@dataclasses.dataclass
+class _Sent:
+    instructions: str
+    input_text: str = ""
+
+    @classmethod
+    def wrap(cls, request):
+        return cls(instructions=request.instructions, input_text=request.input_text)
+
+
+def test_notice_v2_states_the_horizon_and_remembers_only_what_the_tenant_did_and_was_told():
+    notice = od.FocalNoticeV2()
+    text, _ = _step(notice, 0, "inspect", {"decision": "inspect", "listing_id": 2})
+    assert text == "PLAN PROMPT" + od.FOCAL_NOTICE_V2
+    assert "lasts 3 rounds" in od.FOCAL_NOTICE_V2 and "offer on it again" in od.FOCAL_NOTICE_V2
+    text, _ = _step(notice, 0, "contact", {"decision": "offer", "listing_id": 2, "rent": 1500.0})
+    assert od.HISTORY_HEADER not in text
+    hold = {"hold_id": "hold:r0:t0:l2", "listing_id": 2, "rent": 1600.0}
+    text, logged = _step(notice, 0, "commit", {"decision": "walk", "hold_id": "hold:r0:t0:l2"}, hold)
+    assert text.endswith(
+        "- round_index 0 (this round): you offered 1500.0 on listing 2; "
+        "the landlord's binding rent for listing 2 was 1600.0; you now sign or walk."
+    )
+    assert logged["history"] in text and logged["instructions_sha256"]
+    # A call the kernel retries rewrites the same entry; it does not add a second line.
+    again, _ = _step(notice, 0, "commit", {"decision": "walk", "hold_id": "hold:r0:t0:l2"}, hold)
+    assert again == text
+    text, _ = _step(notice, 1, "inspect", {"decision": "pass", "listing_id": None})
+    assert text.endswith(
+        "- round_index 0: you offered 1500.0 on listing 2; "
+        "the landlord's binding rent for listing 2 was 1600.0; you walked away."
+    )
+    # An accepted offer is reported as an acceptance, an unsigned hold as expired.
+    _step(notice, 1, "contact", {"decision": "offer", "listing_id": 0, "rent": 1720.0})
+    text, _ = _step(notice, 1, "commit", "not json", {"hold_id": "h", "listing_id": 0, "rent": 1720.0})
+    assert "the landlord accepted, a binding rent of 1720.0; you now sign or walk." in text
+    text, _ = _step(notice, 2, "contact", {"decision": "pass", "listing_id": None, "rent": None})
+    assert "- round_index 1: you offered 1720.0 on listing 0; the landlord accepted, a binding rent of 1720.0; the hold expired unsigned." in text
+    # Nothing about quality or cost enters the history: only listings, rents and decisions.
+    history = text[len("PLAN PROMPT" + od.FOCAL_NOTICE_V2):]
+    assert not any(word in history for word in ("lemon", "sound", "cost", "quality", "taken"))
+    # A new cell starts clean.
+    text, _ = _step(notice, 0, "inspect", {"decision": "pass", "listing_id": None})
+    assert text == "PLAN PROMPT" + od.FOCAL_NOTICE_V2
+
+
+@pytest.mark.parametrize("campaign_id", V11)
+def test_v11_contracts_declare_notice_two_temperature_zero_and_their_reasoning(tmp_path, campaign_id):
+    contract = price_campaign.load_contract(CONFIGS / f"{campaign_id}.json")
+    assert contract["rivals"] == od.block_v2() and contract["rivals"]["rounds_stated"] == contract["rounds"]
+    assert contract["controls"]["temperature"] == 0.0 and contract["world_seeds"] == list(SEEDS)
+    expected = {"glm53": ("StreamLake", "fp8", "low"), "noreason": ("StreamLake", "fp8", "none"),
+                "_reason_": ("StreamLake", "fp8", "low"), "gemini": ("Google AI Studio", "unknown", "minimal")}
+    provider, quantization, effort = next(v for k, v in expected.items() if k in campaign_id)
+    assert (contract["route"]["provider"], contract["route"]["quantization"]) == (provider, quantization)
+    assert contract["controls"]["reasoning_effort"] == effort
+    setup = price_campaign.build_setup(contract, "true_cost", live=True)
+    profile = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+    assert profile.reasoning.effort == effort
+    path = tmp_path / "drift.json"
+    path.write_text(json.dumps(dict(contract, rivals=od.block())))
+    with pytest.raises(ValueError, match="rival seats drifted"):
+        price_campaign.load_contract(path)
+
+
+def test_v11_provider_free_cells_run_with_the_history_notice_and_log_it(tmp_path):
+    contract = price_campaign.load_contract(CONFIGS / f"{V11[0]}.json")
+    summary = asyncio.run(price_campaign.run(contract, tmp_path, live=False, only_worlds=(100000, 100002)))
+    assert summary["completed_cells"] == 4 and summary["operational_failures"] == 0
+    focal = [json.loads(line) for line in (tmp_path / "seat_calls.jsonl").read_text().splitlines()]
+    focal = [row for row in focal if row["role"] == "focal"]
+    assert focal and all("history" in row and "instructions_sha256" in row for row in focal)
+    assert any(row["history"].startswith(od.HISTORY_HEADER) for row in focal)
