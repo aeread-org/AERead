@@ -218,6 +218,9 @@ def test_outside_demand_contracts_declare_the_rule_and_refuse_drift(tmp_path, ca
 
 
 V11 = (
+    "housing_lemons_price_pilot_v12_glm53_flash_nextbit_outside_w60",
+    "housing_lemons_price_pilot_v12_deepseek_v4_flash_nextbit_noreason_outside_w60",
+    "housing_lemons_price_pilot_v12_deepseek_v4_flash_nextbit_reason_outside_w60",
     "housing_lemons_price_pilot_v11_glm53_flash_streamlake_outside_w60",
     "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_noreason_outside_w60",
     "housing_lemons_price_pilot_v11_deepseek_v4_flash_streamlake_reason_outside_w60",
@@ -299,8 +302,9 @@ def test_v11_contracts_declare_notice_two_temperature_zero_and_their_reasoning(t
     contract = price_campaign.load_contract(CONFIGS / f"{campaign_id}.json")
     assert contract["rivals"] == od.block_v2() and contract["rivals"]["rounds_stated"] == contract["rounds"]
     assert contract["controls"]["temperature"] == 0.0 and contract["world_seeds"] == list(SEEDS)
-    expected = {"glm53": ("StreamLake", "fp8", "low"), "noreason": ("StreamLake", "fp8", "none"),
-                "_reason_": ("StreamLake", "fp8", "low"), "gemini": ("Google AI Studio", "unknown", "minimal")}
+    open_weight = "NextBit" if "nextbit" in campaign_id else "StreamLake"
+    expected = {"glm53": (open_weight, "fp8", "low"), "noreason": (open_weight, "fp8", "none"),
+                "_reason_": (open_weight, "fp8", "low"), "gemini": ("Google AI Studio", "unknown", "minimal")}
     provider, quantization, effort = next(v for k, v in expected.items() if k in campaign_id)
     assert (contract["route"]["provider"], contract["route"]["quantization"]) == (provider, quantization)
     assert contract["controls"]["reasoning_effort"] == effort

@@ -151,6 +151,29 @@ STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_streamlake_2026-10-01_deepseek-v4-flash-0731",
 )
 
+# NextBit, read from the catalog on 2026-10-01. StreamLake above lacks ``seed`` and
+# ``structured_outputs``, which the strict client requires, so its v11 gates were refused
+# before any model call (HL-O-18). NextBit is the provider that serves both open-weight
+# models at fp8 with every required parameter; four strict probes of each answered.
+NEXTBIT_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="NextBit",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.165,
+    cached_input_per_million=0.033,
+    output_per_million=0.55,
+    pricing_id="openrouter_nextbit_2026-10-01_glm-5.3-flash-fp8",
+)
+NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
+    provider="NextBit",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.352,
+    cached_input_per_million=0.012,
+    output_per_million=1.056,
+    pricing_id="openrouter_nextbit_2026-10-01_deepseek-v4-flash-0731",
+)
+
 #: Sealed routes this driver knows. A contract names one; the driver refuses a
 #: route whose identity drifts from the pin the runner carries.
 ROUTES: dict[str, tuple[str, Any]] = {
@@ -164,6 +187,8 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "parasail_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, PARASAIL_DEEPSEEK_V4_FLASH_0731_ROUTE),
     "streamlake_glm_53_flash": (GLM_53_FLASH_MODEL, STREAMLAKE_GLM_53_FLASH_ROUTE),
     "streamlake_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE),
+    "nextbit_glm_53_flash": (GLM_53_FLASH_MODEL, NEXTBIT_GLM_53_FLASH_ROUTE),
+    "nextbit_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE),
 }
 
 #: Seats the rival model plays in a focal-seat identity. Seat 0 is the focal model.
@@ -374,6 +399,29 @@ IDENTITIES: dict[str, dict[str, Any]] = {
     "housing_lemons_price_pilot_v11_gemini38_flash_outside_w60": {
         "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v11",
         "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 3.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    # v12: the three open-weight v11 identities on NextBit, nothing else changed. The StreamLake
+    # route was refused by the router before any model call (HL-O-18), so those three v11
+    # identities hold one failed cell each and no result. Gemini's v11 identity stands.
+    "housing_lemons_price_pilot_v12_glm53_flash_nextbit_outside_w60": {
+        "route_id": "nextbit_glm_53_flash", "profile": "housing_price_glm53_nextbit_tenant_v12",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v12_deepseek_v4_flash_nextbit_noreason_outside_w60": {
+        "route_id": "nextbit_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_nextbit_noreason_tenant_v12",
+        "reasoning_effort": "none", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 2.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v12_deepseek_v4_flash_nextbit_reason_outside_w60": {
+        "route_id": "nextbit_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_nextbit_reason_tenant_v12",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 8.0,
         "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
         "max_action_attempts": 8, "timeout_seconds": 300.0,
     },
