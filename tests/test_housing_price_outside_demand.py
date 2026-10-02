@@ -13,6 +13,7 @@ from aeread_families.housing.price_bargaining import LANDLORD_MARGIN, landlord_r
 
 CONFIGS = price_campaign.DEFAULT_CONTRACT.parent
 CAMPAIGNS = (
+    "housing_lemons_price_pilot_v10_gemini38_flash_outside_w60",
     "housing_lemons_price_pilot_v10_glm53_flash_parasail_outside_w60",
     "housing_lemons_price_pilot_v10_deepseek_v4_flash_parasail_outside_w60",
     "housing_lemons_price_pilot_v9_glm53_flash_deepinfra_outside_w60",
@@ -128,7 +129,7 @@ def test_a_wanted_listing_is_taken_at_the_landlords_own_price_unless_the_focal_s
 
 
 def test_provider_free_cells_take_only_what_the_schedule_says(tmp_path):
-    contract = price_campaign.load_contract(CONFIGS / f"{CAMPAIGNS[1]}.json")
+    contract = price_campaign.load_contract(CONFIGS / f"{CAMPAIGNS[2]}.json")
     summary = asyncio.run(price_campaign.run(contract, tmp_path, live=False, only_worlds=(100000, 100003)))
     assert summary["completed_cells"] == 6 and summary["operational_failures"] == 0
     paired = {}
@@ -158,7 +159,7 @@ def test_provider_free_cells_take_only_what_the_schedule_says(tmp_path):
 def test_router_tells_only_the_focal_seat_the_rule_and_logs_what_it_sent(tmp_path):
     from aeread.shared_runner.task.execution import ProviderRequest, ProviderResult
 
-    contract = price_campaign.load_contract(CONFIGS / f"{CAMPAIGNS[0]}.json")
+    contract = price_campaign.load_contract(CONFIGS / f"{CAMPAIGNS[1]}.json")
     spec = price_campaign.identity(contract)
     seen = []
 
@@ -205,7 +206,8 @@ def test_outside_demand_contracts_declare_the_rule_and_refuse_drift(tmp_path, ca
     assert contract["rivals"] == od.block()
     assert contract["rivals"]["rate_per_round"] == 0.5 and contract["rivals"]["quality_dependence"] == "none"
     assert contract["world_seeds"] == list(SEEDS)
-    assert contract["route"]["provider"] == ("Parasail" if "parasail" in campaign_id else "DeepInfra")
+    expected = "Parasail" if "parasail" in campaign_id else "Google AI Studio" if "gemini" in campaign_id else "DeepInfra"
+    assert contract["route"]["provider"] == expected
     setup = price_campaign.build_setup(contract, "pooled", live=True)
     assert len([p for p in setup.plan.agent_profiles if p.model.provider == "openrouter"]) == 1
     for field, value in (("rate_per_round", 0.3), ("focal_notice", "something else"), ("opening_offer_usd", 1.0)):

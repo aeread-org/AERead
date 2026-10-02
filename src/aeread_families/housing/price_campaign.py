@@ -304,6 +304,16 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "world_seeds": list(range(100000, 100060)), "outside_demand": True,
         "max_action_attempts": 8, "timeout_seconds": 300.0,
     },
+    # A third model on the same 60 worlds and the same outside-demand market (owner decision
+    # 2026-10-01): GLM and DeepSeek did not separate on the ex-ante measures and neither beat
+    # the scripted inspect-then-sign rule, so this asks whether Gemini 3.8 Flash does. The
+    # route and sampling are those of the sealed v1 Gemini pilot; the limits are v10's.
+    "housing_lemons_price_pilot_v10_gemini38_flash_outside_w60": {
+        "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v10",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 3.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
