@@ -525,6 +525,38 @@ arms in only 8 (GLM) and 12 (DeepSeek) of 60 worlds. The arm's effect sits in th
 where seat 0 held a lemon: 20 for GLM (mean -121, sd 451) and 15 for DeepSeek
 (mean -87, sd 339), too few to size from one replicate.
 
+Gemini 3.8 Flash on the same panel (`..._v10_gemini38_flash_outside_w60`, 120 of 120
+cells, $0.80) signs a sound listing in 87% and 88% of cells and a lemon in 8% and 3%.
+Its `true_cost` minus `pooled` contrast is +3 [-2, +8]: it plays the same opening
+inspection and offer in both arms in all 60 worlds, so 56 world pairs are identical and
+the tenant's own sampling noise, which dominates the GLM and DeepSeek pairs, is absent.
+Mean net payoff per world over both arms, and the scripted inspect-then-sign rule run
+through the same market provider-free:
+
+| Seat 0 | Realized | At the stated odds | At the reply-conditioned odds |
+|---|---|---|---|
+| Scripted inspect-then-sign | $241 | $241 | $241 |
+| GLM 5.3 Flash | $225 | $253 | $203 |
+| DeepSeek V4 Flash 0731 | $270 | $259 | $225 |
+| Gemini 3.8 Flash | $275 | $258 | $253 |
+
+At the stated odds the three models are within $6 of each other and none is
+distinguishable from the scripted rule (Gemini +18 [-10, +45]). Gemini minus GLM is
++50 [+7, +93] at the reply-conditioned odds and +50 [+10, +90] realized; Gemini minus
+DeepSeek is +27 [-3, +57] and +5 [-22, +32]. The gap to GLM has two sources that are not
+the same capability: Gemini signs an uninspected listing after a revealing reply in 2% of
+lemon-landlord cells against GLM's 15%, and GLM lost 21 actions in 12 cells to malformed
+or unavailable-listing outputs where DeepSeek and Gemini lost none.
+
+What this panel does not control, and so what a model gap here may be instead of
+capability: the declared reasoning effort is the same and the reasoning is not (GLM 35 to
+530 tokens a call, Gemini a median of 196, DeepSeek 2,600 to 12,000); one route returns
+the same answer for the same seed and the other two do not; the tenant is not told that
+there are three rounds; after walking from a hold it no longer sees the counteroffer it
+was given; and the landlord's rule leaves a median of $30 between a sound listing's ask
+and its lowest acceptable rent, against $449 between the tenant's best- and
+worst-looking listing, so the score is listing choice and inspection, not bargaining.
+
 ## 6. Metrics
 
 | metric | definition |
