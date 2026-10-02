@@ -50,13 +50,34 @@ the owner explicitly selected Arena's `glm-5p2` model instead. It runs one
 unscored admission canary followed by five
 scored cases, one from each predeclared pilot stratum, sequentially and with no
 fallback. The driver aborts on the first operational failure, enforces a
-per-trajectory ceiling of $0.05 and a total ceiling of $0.30,
+per-trajectory ceiling of $0.15 and a total ceiling of $1.00,
 checkpoints only
 complete replayed receipts, and separates execution from publication.
 
 Arena reports request cost in each response, so the driver records and enforces
 those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
 uses the same completion budget for hidden reasoning and visible JSON.
+Arena may also return an ordinary customer-facing reply even when instructed
+to emit the reply envelope. The adapter normalizes such completed prose only
+when the declared schema explicitly permits `kind=reply`; malformed JSON and
+non-reply schemas still fail the provider contract.
+The assistant request places the invariant policy and tool catalog before the
+changing conversation state. The harness supplies that same rendered message
+when the executor seals round 0, preserving a stable prompt prefix for later
+rounds; without that ordering, repeated 5–8k-token uncached prefixes exhausted
+the assistant's case-level budget before the episode completed.
+Both model seats reserve 4096 completion tokens because Arena counts hidden
+reasoning and visible output against one limit. The $0.15 case ceiling is
+allocated 60/40 between the assistant and user profiles, so their sealed
+profile budgets cannot exceed the case allowance.
+These ceilings replace the original $0.05/$0.30 estimate after the first
+pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
+campaign gives each seat a measured share of the case allowance, then enforces
+$0.15 on the completed trajectory and $1.00
+across the campaign.
+Both frozen role prompts require concise, non-repetitive replies so conversation
+growth does not turn later calls into 9–12k-token requests. The support prompt
+also restates that account and order claims require actual tool results.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -64,11 +85,24 @@ schema-constrained JSON actions rather than upstream's GPT-4.1 user simulator
 and native provider tool calling. The deterministic database-state scorer and
 pinned tau2 bridge remain the authoritative evaluation path.
 
+The published v9 bundle predates the merged kernel fix that accumulates every
+model round, so its sealed `total_cost_usd` remains a historical lower bound.
+The bundle README carries the same disclosure, and its publication manifest
+seals that text. Republish from raw responses if corrected totals are needed.
+
+The v19 replacement seals a `$0.15` case ceiling in the plan and allocates it
+60/40 between the two profiles. Its tau3 harness also seals
+`prose_prefixed_json_recovery_v1`: exactly one JSON
+object following a prose prefix may be recovered inside the family harness,
+with a `tau3_retail_response_normalized` evidence note. Fenced, trailing, or
+otherwise ambiguous content remains `malformed_structured_output`. The profile
+also opts into one bounded `length` retry supplied by the shared kernel.
+
 Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v19
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -78,7 +112,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v19 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -87,8 +121,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v19 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v19 \
   --publish-only
 ```
 

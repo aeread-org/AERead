@@ -44,16 +44,19 @@ PRICING = TokenPricing(
     output_per_million=0.0,
     pricing_id="arena_2026-09-05_glm5p2_response_reported_cost",
 )
-ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
-USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
+ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v2"
+USER_PROMPT_ID = "tau3_retail_user_sim_json_v2"
 ASSISTANT_PROMPT = """You are the retail support assistant. Follow the policy and
-tool definitions supplied in the observation. Return only the required JSON object.
+tool definitions supplied in the context. Return only the required JSON object.
 Use kind=tool_calls with one or more calls when a tool is needed. Use kind=reply with
 a customer-facing response only when no tool call is needed. Never invent tool results.
+Never claim that an account or order was found unless the corresponding tool result is
+present. Keep customer-facing replies under 80 words and do not repeat known details.
 """
 USER_PROMPT = """You are the simulated retail customer. Follow the user scenario and
 simulation guidelines supplied in the observation. Return only a kind=reply JSON object.
 Use the exact upstream stop markers when the scenario and guidelines require stopping.
+Keep each reply under 40 words and do not repeat details already established.
 """
 
 
@@ -132,7 +135,7 @@ def _profile(
     max_output_tokens: int,
     max_cost_usd: float,
 ) -> AgentProfile:
-    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v1"
+    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v3"
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
@@ -151,6 +154,7 @@ def _profile(
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": output_schema,
                     "max_rounds": 12 if seat == "assistant" else 1,
+                    "prose_prefixed_json_recovery": "prose_prefixed_json_recovery_v1",
                     "provider_metadata": {
                         "catalog_model_id": MODEL,
                         "provider_cost_status": "response_reported",
@@ -186,8 +190,8 @@ def _profile(
                 "max_cost_usd": max_cost_usd,
             },
             "retry_policy": {
-                "max_action_attempts": 1,
-                "retryable_conditions": [],
+                "max_action_attempts": 2,
+                "retryable_conditions": ["length"],
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
@@ -218,7 +222,11 @@ def build_live_setup(
         ).read_text(encoding="utf-8")
     )
     session = RetailToolSession(bridge.normalize_db(raw_db))
-    harness = Tau3RetailJsonHarness(bridge=bridge, session=session)
+    harness = Tau3RetailJsonHarness(
+        bridge=bridge,
+        session=session,
+        prose_prefixed_json_recovery=True,
+    )
     assistant = _profile(
         seat="assistant",
         prompt_id=ASSISTANT_PROMPT_ID,
@@ -226,8 +234,8 @@ def build_live_setup(
         output_schema=assistant_output_schema(),
         tools=tool_names,
         seed=seed,
-        max_output_tokens=900,
-        max_cost_usd=max_trajectory_cost_usd * 0.6,
+        max_output_tokens=4096,
+        max_cost_usd=max_trajectory_cost_usd * 0.60,
     )
     user = _profile(
         seat="user",
@@ -236,8 +244,8 @@ def build_live_setup(
         output_schema=user_output_schema(),
         tools=(),
         seed=seed,
-        max_output_tokens=400,
-        max_cost_usd=max_trajectory_cost_usd * 0.4,
+        max_output_tokens=4096,
+        max_cost_usd=max_trajectory_cost_usd * 0.40,
     )
     sampling = SamplingPlan.from_dict(
         {
@@ -305,7 +313,7 @@ def build_live_setup(
             },
             "execution_mode": "evaluate",
             "replicate_override": None,
-            "budget_overrides": None,
+            "budget_overrides": {"max_cost_usd": max_trajectory_cost_usd},
         }
     )
     registry = PluginRegistry()
@@ -334,7 +342,7 @@ def build_live_setup(
             bridge_path,
             version="0.1.0",
         ),
-        _pin(Tau3RetailJsonHarness.id, "harness", harness_path, version="1.0"),
+        _pin(Tau3RetailJsonHarness.id, "harness", harness_path, version="1.1"),
         _pin(
             "aeread_families.tau3_retail.harness",
             "runtime",

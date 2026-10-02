@@ -12,11 +12,20 @@ from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     replay_family_receipt,
 )
-from aeread.shared_runner.task.execution import ProviderResult, execute_plan_cell
+from aeread.shared_runner.task.execution import (
+    ProviderFailure,
+    ProviderResult,
+    execute_plan_cell,
+)
 from aeread_families.tau3_retail.campaign import (
     CAMPAIGN_ID,
     PANEL_CASE_IDS,
     PANEL_STRATA,
+    _accounted_failure_cost,
+    _cap_cost,
+    _is_malformed_response,
+    _sealed_successful_provider_cost,
+    _provider_failure_condition,
     _digest,
     build_campaign_plan,
     publish_campaign,
@@ -24,6 +33,7 @@ from aeread_families.tau3_retail.campaign import (
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.tau3_retail.live import build_live_setup
 from aeread_families.tau3_retail.live import PROVIDER
+from aeread_families.tau3_retail.harness import Tau3RetailJsonHarness
 from aeread_families.tau3_retail.tau2_bridge import (
     Tau2Bridge,
     Tau2BridgeUnavailableError,
@@ -42,9 +52,126 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["route"]["fallbacks"] == "not_reported"
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True
+    assert plan["execution"]["continue_on_case_cost_cap"] is True
+    assert plan["execution"]["continue_on_malformed_response"] is True
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
         "hard_total_cost_ceiling_usd"
     ]
+
+
+def test_malformed_failure_preserves_the_accounted_execution_cost() -> None:
+    provider_failure = ProviderFailure(
+        "malformed_structured_output",
+        "tau3 retail response is not valid JSON",
+        retryable=False,
+    )
+    scheduler_failure = RuntimeError("response_source failed")
+    scheduler_failure.__cause__ = provider_failure
+    scheduler_failure.aeread_total_cost_usd = 0.0412
+
+    assert _provider_failure_condition(scheduler_failure) == "malformed_structured_output"
+    assert _accounted_failure_cost(scheduler_failure) == pytest.approx(0.0412)
+
+
+def test_arena_schema_mismatch_is_a_malformed_campaign_response() -> None:
+    provider_failure = ProviderFailure(
+        "provider_contract",
+        "Arena response contains no JSON action matching the schema",
+        retryable=False,
+    )
+    scheduler_failure = RuntimeError("response_source failed")
+    scheduler_failure.__cause__ = provider_failure
+
+    assert _is_malformed_response(scheduler_failure)
+
+
+def test_unknown_provider_failure_is_not_treated_as_malformed() -> None:
+    provider_failure = ProviderFailure(
+        "provider_contract",
+        "Arena request was rejected by the provider",
+        retryable=False,
+    )
+
+    assert not _is_malformed_response(provider_failure)
+
+
+def test_malformed_response_cost_can_be_recovered_from_sealed_events(tmp_path: Path) -> None:
+    attempt_root = tmp_path / "run" / "attempts" / "one"
+    attempt_root.mkdir(parents=True)
+    payload_path = attempt_root / "artifacts" / "sha256" / "aa" / "payload"
+    payload_path.parent.mkdir(parents=True)
+    payload_path.write_text(json.dumps({"cost_usd": 0.0086}), encoding="utf-8")
+    (attempt_root / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "event_type": "provider_call_succeeded",
+                "payload_ref": "artifacts/sha256/aa/payload",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert _sealed_successful_provider_cost(tmp_path / "run") == pytest.approx(0.0086)
+
+
+def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:
+    message = Tau3RetailJsonHarness.request_message(
+        SimpleNamespace(
+            phase_id="assistant_turn",
+            seat_id="assistant",
+            role="assistant",
+            observation_schema="assistant_observation",
+            action_schema="assistant_action",
+            observation={
+                "messages": [{"role": "user", "content": "hello"}],
+                "policy": "fixed policy",
+                "tools": {"lookup": {"description": "fixed tool"}},
+                "policy_sha256": "a" * 64,
+                "tool_schema_sha256": "b" * 64,
+                "upstream_step_count": 1,
+            },
+        )
+    )
+
+    assert message.content.startswith("STATIC_CONTEXT\n")
+    assert message.content.index("fixed policy") < message.content.index("TURN_CONTEXT")
+    assert message.content.index("fixed tool") < message.content.index("hello")
+
+
+def test_tau3_harness_rejects_prose_prefixed_structured_output() -> None:
+    with pytest.raises(ProviderFailure) as captured:
+        Tau3RetailJsonHarness._decode(
+            'Let me look that up.\n{"kind":"tool_calls","calls":[]}'
+        )
+
+    assert captured.value.condition == "malformed_structured_output"
+
+
+def test_tau3_harness_recovers_prose_prefixed_json_only_under_the_sealed_policy() -> None:
+    notes = []
+    harness = object.__new__(Tau3RetailJsonHarness)
+    harness.prose_prefixed_json_recovery = True
+    value = harness._decode_turn(
+        'I will check that now.\n{"kind":"tool_calls","text":null,"calls":[]}',
+        SimpleNamespace(note=lambda kind, payload: notes.append((kind, payload))),
+    )
+
+    assert value["kind"] == "tool_calls"
+    assert notes == [
+        (
+            "tau3_retail_response_normalized",
+            {
+                "policy": "prose_prefixed_json_recovery_v1",
+                "prefix_length": len("I will check that now.\n"),
+            },
+        )
+    ]
+    with pytest.raises(ProviderFailure):
+        harness._decode_turn(
+            'prefix {"kind":"reply","text":"ok","calls":[]} trailing',
+            SimpleNamespace(note=lambda *_: None),
+        )
 
 
 def test_publish_only_is_provider_free_digest_bound_and_repeatable(
@@ -145,6 +272,7 @@ def _bridge() -> tuple[Path, Tau2Bridge]:
 
 class _ToolPathProvider:
     def __init__(self) -> None:
+        self.requests = []
         self._outputs = iter(
             (
                 {"kind": "reply", "text": "Please check order #W5272531."},
@@ -165,6 +293,7 @@ class _ToolPathProvider:
         )
 
     async def complete(self, request):
+        self.requests.append(request)
         output = json.dumps(next(self._outputs), separators=(",", ":"))
         return ProviderResult(
             response_id="fixture",
@@ -182,11 +311,31 @@ class _ToolPathProvider:
 
 def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) -> None:
     upstream_root, bridge = _bridge()
+    provider = _ToolPathProvider()
     setup = build_live_setup(
         case_id="tau3.retail.base.14",
         upstream_root=upstream_root,
         bridge=bridge,
         seed=300,
+    )
+    profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
+    assert setup.plan.run_spec.budget_overrides is not None
+    assert setup.plan.run_spec.budget_overrides.max_cost_usd == pytest.approx(0.05)
+    assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].harness.config[
+        "prose_prefixed_json_recovery"
+    ] == "prose_prefixed_json_recovery_v1"
+    assert profiles[
+        "tau3_retail_assistant_glm5p2_arena_v3"
+    ].retry_policy.retryable_conditions == ("length",)
+    assert (
+        profiles["tau3_retail_assistant_glm5p2_arena_v3"].retry_policy.max_action_attempts
+        == 2
+    )
+    assert profiles["tau3_retail_assistant_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
+        0.03
+    )
+    assert profiles["tau3_retail_user_glm5p2_arena_v3"].budgets.max_cost_usd == pytest.approx(
+        0.02
     )
     execution = asyncio.run(
         execute_plan_cell(
@@ -195,11 +344,22 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
             registry=setup.registry,
             evidence_root=tmp_path / "run",
             prompt_sources=setup.prompt_sources,
-            providers={PROVIDER: _ToolPathProvider()},
+            providers={PROVIDER: provider},
             pricing=setup.pricing,
             harnesses=setup.harnesses,
             tool_runtime_factories=setup.tool_runtime_factories,
         )
+    )
+    assistant_requests = [
+        json.loads(request.input_text)
+        for request in provider.requests
+        if "messages" in json.loads(request.input_text)
+        and "STATIC_CONTEXT"
+        in json.loads(request.input_text)["messages"][0]["content"]
+    ]
+    assert assistant_requests
+    assert assistant_requests[0]["messages"][0]["content"].startswith(
+        "STATIC_CONTEXT\n"
     )
     receipt = finalize_family_execution(setup=setup, execution=execution)
     replayed = replay_family_receipt(
