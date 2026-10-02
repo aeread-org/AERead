@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import re
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -48,19 +49,102 @@ ReplaySetupFactory = Callable[[Mapping[str, Any]], EvaluationSetup]
 _IDENTITY_FIELDS = ("run_plan_id", "cell_id", "episode_attempt_id")
 
 
-def _published_episodes(bundle: Path) -> dict[str, dict[str, str]]:
-    """Episodes the bundle names in its trajectory grain, by receipt digest."""
+_DIGEST = re.compile(r"[0-9a-f]{64}")
 
-    path = bundle / GRAIN
-    episodes: dict[str, dict[str, str]] = {}
-    if not path.is_file():
-        return episodes
-    for line in path.read_text(encoding="utf-8").splitlines():
-        row = json.loads(line)
-        digest = row.get("source_receipt_sha256")
-        if isinstance(digest, str):
-            episodes[digest] = {name: row.get(name) for name in _IDENTITY_FIELDS}
-    return episodes
+
+def _is_digest(value: Any) -> bool:
+    return isinstance(value, str) and _DIGEST.fullmatch(value) is not None
+
+
+def _identity_of(node: Mapping[str, Any]) -> dict[str, str] | None:
+    values = {name: node.get(name) for name in _IDENTITY_FIELDS}
+    if all(isinstance(value, str) and value for value in values.values()):
+        return values  # type: ignore[return-value]
+    return None
+
+
+def _json_objects(value: Any):
+    """Every JSON object in ``value``, nested ones included."""
+
+    if isinstance(value, Mapping):
+        yield value
+        for child in value.values():
+            yield from _json_objects(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _json_objects(child)
+
+
+def _published_objects(bundle: Path):
+    """Objects in the grain and in receipts/, with the bundle-relative file."""
+
+    paths = sorted((bundle / "trajectories").glob("*.jsonl"))
+    paths += sorted((bundle / "receipts").glob("*.jsonl"))
+    paths += sorted((bundle / "receipts").glob("*.json"))
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        documents = (
+            [json.loads(line) for line in text.splitlines() if line.strip()]
+            if path.suffix == ".jsonl"
+            else [json.loads(text)]
+        )
+        relative = path.relative_to(bundle).as_posix()
+        for document in documents:
+            for node in _json_objects(document):
+                yield relative, node
+
+
+def _declared_receipts(bundle: Path) -> dict[str, dict[str, str] | None]:
+    """Receipts the bundle declares it published, by digest, with identity if known.
+
+    The union of the manifest's ``source_receipt_sha256s`` (top level or under
+    ``source_bindings``; both layouts exist) and every ``source_receipt_sha256``
+    in the trajectory grain and the receipts/ projections. ``receipt_sha256``
+    in reports/ and tables/ is deliberately not read: those summaries also cite
+    qualification and preflight receipts that are not published rows.
+    """
+
+    declared: dict[str, dict[str, str] | None] = {}
+
+    def add(digest: Any, identity: dict[str, str] | None) -> None:
+        if _is_digest(digest) and (declared.get(digest) is None):
+            declared[digest] = identity
+
+    manifest = json.loads((bundle / MANIFEST_FILENAME).read_bytes())
+    if isinstance(manifest, Mapping):
+        bindings = manifest.get("source_bindings")
+        for holder in (manifest, bindings if isinstance(bindings, Mapping) else {}):
+            listed = holder.get("source_receipt_sha256s")
+            for digest in listed if isinstance(listed, list) else ():
+                add(digest, None)
+    for _relative, node in _published_objects(bundle):
+        add(node.get("source_receipt_sha256"), _identity_of(node))
+    return declared
+
+
+def _published_projections(bundle: Path) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
+    """Published projection rows (digest and scores) in receipts/, by digest."""
+
+    projections: dict[str, list[tuple[str, Mapping[str, Any]]]] = {}
+    for relative, node in _published_objects(bundle):
+        digest = node.get("source_receipt_sha256")
+        if relative.startswith("receipts/") and _is_digest(digest) and "scores" in node:
+            projections.setdefault(digest, []).append((relative, node))
+    return projections
+
+
+def _projection_difference(
+    projections: Sequence[tuple[str, Mapping[str, Any]]], audited: Mapping[str, Any]
+) -> str | None:
+    """Why a published projection disagrees with the audited receipt, if it does."""
+
+    for relative, projection in projections:
+        if canonical_json_bytes(projection["scores"]) != canonical_json_bytes(audited.get("scores")):
+            return f"published projection {relative} scores differ from the recomputed scores"
+        for name in ("run_plan_id", "cell_id", "episode_id", "episode_attempt_id"):
+            if name in projection and projection[name] != audited.get(name):
+                return f"published projection {relative} {name} differs from the receipt"
+    return None
 
 
 def _row(
@@ -95,14 +179,18 @@ def verify_bundle_replay(
     A row is ``verified`` when its sealed attempt is found under ``run_root``
     and :func:`audit_family_receipt` recomputes the same state and score from
     the sealed events; ``differs`` with the reason when it does not; and
-    ``evidence_missing`` when the bundle's trajectory grain names an episode
-    whose receipt is not under ``run_root``. ``verified`` at the top level is
-    true only when at least one row was checked and every row verified.
+    ``evidence_missing`` when the bundle declares a receipt (manifest list,
+    grain or projection row) that is not under ``run_root``. A row also
+    differs when a published projection of it carries other scores or
+    identities than the recomputed receipt. ``verified`` at the top level is
+    true only when at least one row verified, none differs or is missing, and
+    the bundle declares what it published; otherwise ``verdict_reasons`` says
+    why.
 
-    Coverage is ``every_published_episode`` when the bundle carries the
-    kernel trajectory grain, which lists its episodes; without it only the
-    receipts found under ``run_root`` can be checked, and the report says so
-    (``receipts_found_under_run_root``).
+    Coverage is ``every_published_episode`` with the trajectory grain,
+    ``declared_receipts`` when only the manifest or projections declare the
+    set, and ``receipts_found_under_run_root`` when nothing is declared: then
+    missing evidence cannot be detected and the run is never verified.
     """
 
     bundle = Path(bundle_root)
@@ -112,7 +200,10 @@ def verify_bundle_replay(
     if not root.is_dir():
         raise ValueError(f"run root is not a directory: {root}")
     published = published_receipt_digests(bundle)
-    expected = _published_episodes(bundle)
+    declared = _declared_receipts(bundle)
+    projections = _published_projections(bundle)
+    has_grain = (bundle / GRAIN).is_file()
+    projections_checked = 0
 
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -123,7 +214,7 @@ def verify_bundle_replay(
         except (OSError, json.JSONDecodeError):
             continue
         digest = receipt.get("receipt_sha256") if isinstance(receipt, Mapping) else None
-        if not isinstance(digest, str) or digest not in published:
+        if not isinstance(digest, str) or digest not in published and digest not in declared:
             continue
         if digest in seen:
             duplicates += 1
@@ -138,10 +229,16 @@ def verify_bundle_replay(
                 _row(digest, receipt, status=DIFFERS, reason=f"{type(error).__name__}: {error}")
             )
             continue
+        published_rows = projections.get(digest, [])
+        projections_checked += len(published_rows)
+        difference = _projection_difference(published_rows, audited)
+        if difference:
+            rows.append(_row(digest, audited, status=DIFFERS, reason=difference))
+            continue
         rows.append(_row(digest, audited, status=VERIFIED, scored=bool(audited.get("scores"))))
-    for digest, identity in sorted(expected.items()):
+    for digest, identity in sorted(declared.items()):
         if digest not in seen:
-            rows.append(_row(digest, identity, status=EVIDENCE_MISSING))
+            rows.append(_row(digest, identity or {}, status=EVIDENCE_MISSING))
 
     rows.sort(key=lambda row: (row["episode_key"] or "", row["source_receipt_sha256"]))
     counts = {
@@ -149,21 +246,38 @@ def verify_bundle_replay(
         for status in (VERIFIED, DIFFERS, EVIDENCE_MISSING)
     }
     manifest = json.loads((bundle / MANIFEST_FILENAME).read_bytes())
+    if has_grain:
+        coverage = "every_published_episode"
+    elif declared:
+        coverage = "declared_receipts"
+    else:
+        coverage = "receipts_found_under_run_root"
+    reasons: list[str] = []
+    if coverage == "receipts_found_under_run_root":
+        reasons.append(
+            "the bundle declares no receipt inventory (no manifest source_receipt_sha256s, "
+            "no source_receipt_sha256 rows), so missing evidence cannot be detected"
+        )
+    if counts[EVIDENCE_MISSING]:
+        reasons.append(f"{counts[EVIDENCE_MISSING]} published receipts have no evidence under the run root")
+    if counts[DIFFERS]:
+        reasons.append(f"{counts[DIFFERS]} rows differ")
+    if not counts[VERIFIED] and not counts[DIFFERS] and not counts[EVIDENCE_MISSING]:
+        reasons.append("no row was checked")
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
         "publication_id": manifest.get("publication_id") if isinstance(manifest, Mapping) else None,
         "manifest_sha256": manifest.get("manifest_sha256") if isinstance(manifest, Mapping) else None,
-        "coverage": (
-            "every_published_episode" if expected else "receipts_found_under_run_root"
-        ),
+        "coverage": coverage,
+        "declared_receipts": len(declared),
+        "published_projections_checked": projections_checked,
         "counts": counts,
         "scored_rows_verified": sum(
             row["status"] == VERIFIED and bool(row["scored"]) for row in rows
         ),
         "duplicate_receipt_copies_ignored": duplicates,
-        "verified": counts[VERIFIED] > 0
-        and counts[DIFFERS] == 0
-        and counts[EVIDENCE_MISSING] == 0,
+        "verified": not reasons,
+        "verdict_reasons": reasons,
         "rows": rows,
     }
     return report
@@ -212,6 +326,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     for row in report["rows"]:
         if row["status"] != VERIFIED:
             print(f"  {row['status']}: {row['source_receipt_sha256']} {row['reason'] or ''}".rstrip())
+    for reason in report["verdict_reasons"]:
+        print(f"  not verified: {reason}")
     return 0 if report["verified"] else 1
 
 
