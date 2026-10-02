@@ -13,6 +13,8 @@ from aeread_families.housing.price_bargaining import LANDLORD_MARGIN, landlord_r
 
 CONFIGS = price_campaign.DEFAULT_CONTRACT.parent
 CAMPAIGNS = (
+    "housing_lemons_price_pilot_v10_glm53_flash_parasail_outside_w60",
+    "housing_lemons_price_pilot_v10_deepseek_v4_flash_parasail_outside_w60",
     "housing_lemons_price_pilot_v9_glm53_flash_deepinfra_outside_w60",
     "housing_lemons_price_pilot_v9_deepseek_v4_flash_deepinfra_outside_w60",
     "housing_lemons_price_pilot_v8_glm53_flash_deepinfra_outside_w60",
@@ -202,7 +204,8 @@ def test_outside_demand_contracts_declare_the_rule_and_refuse_drift(tmp_path, ca
     contract = price_campaign.load_contract(CONFIGS / f"{campaign_id}.json")
     assert contract["rivals"] == od.block()
     assert contract["rivals"]["rate_per_round"] == 0.5 and contract["rivals"]["quality_dependence"] == "none"
-    assert contract["world_seeds"] == list(SEEDS) and contract["route"]["provider"] == "DeepInfra"
+    assert contract["world_seeds"] == list(SEEDS)
+    assert contract["route"]["provider"] == ("Parasail" if "parasail" in campaign_id else "DeepInfra")
     setup = price_campaign.build_setup(contract, "pooled", live=True)
     assert len([p for p in setup.plan.agent_profiles if p.model.provider == "openrouter"]) == 1
     for field, value in (("rate_per_round", 0.3), ("focal_notice", "something else"), ("opening_offer_usd", 1.0)):

@@ -106,6 +106,28 @@ DEEPINFRA_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_deepinfra_2026-10-01_deepseek-v4-flash-0731",
 )
 
+# Parasail, read from the catalog on 2026-10-01 evening. Its GLM 5.3 Flash endpoint is fp4
+# now: the runner's Parasail pin says fp8 and the route filter sends ``quantizations``
+# upstream, so that pin finds no endpoint any more. Prices are unchanged.
+PARASAIL_GLM_53_FLASH_FP4_ROUTE = OpenRouterRoutePin(
+    provider="Parasail",
+    quantization="fp4",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.15,
+    cached_input_per_million=0.03,
+    output_per_million=0.5,
+    pricing_id="openrouter_parasail_2026-10-01_glm-5.3-flash-fp4",
+)
+PARASAIL_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
+    provider="Parasail",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.14,
+    cached_input_per_million=0.05,
+    output_per_million=0.28,
+    pricing_id="openrouter_parasail_2026-10-01_deepseek-v4-flash-0731",
+)
+
 #: Sealed routes this driver knows. A contract names one; the driver refuses a
 #: route whose identity drifts from the pin the runner carries.
 ROUTES: dict[str, tuple[str, Any]] = {
@@ -115,6 +137,8 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "parasail_glm_53_flash": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_ROUTE),
     "google_gemini_31_flash_lite": (GEMINI_31_FLASH_LITE_MODEL, GOOGLE_GEMINI_31_FLASH_LITE_ROUTE),
     "deepinfra_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, DEEPINFRA_DEEPSEEK_V4_FLASH_0731_ROUTE),
+    "parasail_glm_53_flash_fp4": (GLM_53_FLASH_MODEL, PARASAIL_GLM_53_FLASH_FP4_ROUTE),
+    "parasail_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, PARASAIL_DEEPSEEK_V4_FLASH_0731_ROUTE),
 }
 
 #: Seats the rival model plays in a focal-seat identity. Seat 0 is the focal model.
@@ -259,6 +283,23 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "route_id": "deepinfra_deepseek_v4_flash_0731",
         "profile": "housing_price_deepseek_v4_flash_deepinfra_tenant_v9",
         "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    # v9's gate failed too, and a health-gated range after it (HL-O-16): DeepInfra's shared pool
+    # stayed overloaded for GLM and bursty for DeepSeek. v10 moves both models to Parasail, which
+    # answered every probe, and keeps everything else of v9. The owner asked for DeepInfra; the
+    # v9 identities stay for when that route recovers, with worlds 100000 and 100001 used up.
+    "housing_lemons_price_pilot_v10_glm53_flash_parasail_outside_w60": {
+        "route_id": "parasail_glm_53_flash_fp4", "profile": "housing_price_glm53_parasail_tenant_v10",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v10_deepseek_v4_flash_parasail_outside_w60": {
+        "route_id": "parasail_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_parasail_tenant_v10",
+        "reasoning_effort": "low", "temperature": 1.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
         "world_seeds": list(range(100000, 100060)), "outside_demand": True,
         "max_action_attempts": 8, "timeout_seconds": 300.0,
     },
