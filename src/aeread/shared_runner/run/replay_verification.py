@@ -30,7 +30,13 @@ from pathlib import Path
 from typing import Any
 
 from ..task.evaluation import EvaluationSetup, audit_family_receipt
-from .publication import MANIFEST_FILENAME, episode_key
+from .publication import (
+    KERNEL_MANIFEST_SCHEMA_VERSION,
+    MANIFEST_FILENAME,
+    _sealed_manifest,
+    bundle_artifact_digests,
+    episode_key,
+)
 from .publish_trajectories import GRAIN, published_receipt_digests
 from .resolver import canonical_json_bytes
 
@@ -147,6 +153,48 @@ def _projection_difference(
     return None
 
 
+def _manifest_check(bundle: Path, manifest: Any) -> dict[str, Any]:
+    """Is the bundle still what its manifest sealed?
+
+    Only the kernel layout seals a digest per artifact; family-specific
+    layouts are reported ``unchecked``, not failed. Files added after sealing
+    (a README, qc/) are listed as unsealed and are not a failure; a sealed
+    file that changed or vanished, or a seal that does not recompute, is.
+    """
+
+    result: dict[str, Any] = {
+        "status": "unchecked",
+        "reason": None,
+        "altered_or_missing_artifacts": [],
+        "unsealed_artifacts": [],
+    }
+    if not isinstance(manifest, Mapping) or manifest.get("schema_version") != KERNEL_MANIFEST_SCHEMA_VERSION:
+        schema = manifest.get("schema_version") if isinstance(manifest, Mapping) else None
+        result["reason"] = f"manifest schema {schema!r} is not {KERNEL_MANIFEST_SCHEMA_VERSION}"
+        return result
+    sealed = manifest.get("artifacts")
+    if not isinstance(sealed, Mapping):
+        result["reason"] = "manifest has no artifact digest list"
+        return result
+    current = bundle_artifact_digests(bundle)
+    result["altered_or_missing_artifacts"] = sorted(
+        path for path, digest in sealed.items() if current.get(path) != digest
+    )
+    result["unsealed_artifacts"] = sorted(set(current) - set(sealed))
+    seal_ok = _sealed_manifest(manifest).get("manifest_sha256") == manifest.get("manifest_sha256")
+    problems = []
+    if not seal_ok:
+        problems.append("manifest_sha256 does not recompute from the manifest")
+    if result["altered_or_missing_artifacts"]:
+        problems.append(
+            f"{len(result['altered_or_missing_artifacts'])} sealed artifacts altered or missing: "
+            + ", ".join(result["altered_or_missing_artifacts"][:5])
+        )
+    result["status"] = "tampered" if problems else "sealed"
+    result["reason"] = "; ".join(problems) or None
+    return result
+
+
 def _row(
     receipt_sha256: str,
     identity: Mapping[str, Any],
@@ -184,7 +232,9 @@ def verify_bundle_replay(
     differs when a published projection of it carries other scores or
     identities than the recomputed receipt. ``verified`` at the top level is
     true only when at least one row verified, none differs or is missing, and
-    the bundle declares what it published; otherwise ``verdict_reasons`` says
+    the bundle declares what it published and its manifest is not ``tampered``
+    (seal not recomputing, or a sealed artifact altered or missing; family
+    layouts without an artifact list are ``unchecked``); otherwise ``verdict_reasons`` says
     why.
 
     Coverage is ``every_published_episode`` with the trajectory grain,
@@ -252,7 +302,10 @@ def verify_bundle_replay(
         coverage = "declared_receipts"
     else:
         coverage = "receipts_found_under_run_root"
+    manifest_check = _manifest_check(bundle, manifest)
     reasons: list[str] = []
+    if manifest_check["status"] == "tampered":
+        reasons.append(f"manifest check failed: {manifest_check['reason']}")
     if coverage == "receipts_found_under_run_root":
         reasons.append(
             "the bundle declares no receipt inventory (no manifest source_receipt_sha256s, "
@@ -268,6 +321,7 @@ def verify_bundle_replay(
         "schema_version": REPORT_SCHEMA_VERSION,
         "publication_id": manifest.get("publication_id") if isinstance(manifest, Mapping) else None,
         "manifest_sha256": manifest.get("manifest_sha256") if isinstance(manifest, Mapping) else None,
+        "manifest": manifest_check,
         "coverage": coverage,
         "declared_receipts": len(declared),
         "published_projections_checked": projections_checked,
@@ -321,6 +375,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{report['publication_id']}: {counts[VERIFIED]} verified "
         f"({report['scored_rows_verified']} scored), {counts[DIFFERS]} differ, "
         f"{counts[EVIDENCE_MISSING]} evidence missing; coverage={report['coverage']}; "
+        f"manifest={report['manifest']['status']}; "
         f"manifest_sha256={report['manifest_sha256']}"
     )
     for row in report["rows"]:

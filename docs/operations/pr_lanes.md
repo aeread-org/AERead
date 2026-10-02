@@ -33,7 +33,13 @@ aeread verify-replay evidence/<family>/<publication_id> \
 It finds each published receipt's sealed attempt under the run root, re-drives
 it through the family environment, recomputes the score, and reports every row
 as `verified`, `differs` or `evidence_missing`; it exits non-zero unless every
-row verified. `--setup` names the family callable that returns the evaluation
+row verified. The expected receipts are the manifest's `source_receipt_sha256s`
+plus every `source_receipt_sha256` row binding (the trajectory grain and
+`receipts/`); a bundle declaring neither cannot verify. Published projection
+rows in `receipts/` are compared with the recomputed scores, and the kernel
+manifest seal and artifact digests are checked (family-specific manifests are
+reported `unchecked`; files added after sealing are listed, not failed).
+`--setup` names the family callable that returns the evaluation
 setup (sealed plan and registry) for a durable receipt. A `replay_verified`
 field inside a bundle is the producing run's own claim and is not this check.
 

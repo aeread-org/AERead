@@ -16,6 +16,7 @@ import pytest
 
 from aeread.shared_runner.run import replay_verification
 from aeread.shared_runner.run.publication import (
+    MANIFEST_FILENAME,
     rebuild_publication_manifest,
     seal_publication_manifest,
 )
@@ -330,7 +331,7 @@ def test_the_dispatcher_returns_the_verdict_as_the_exit_status(published, monkey
 
 
 def _rewrite_manifest(bundle, **changes):
-    path = bundle / "manifest.json"
+    path = bundle / MANIFEST_FILENAME
     manifest = json.loads(path.read_bytes())
     manifest.update(changes)
     path.write_text(json.dumps(manifest))
