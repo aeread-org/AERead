@@ -327,3 +327,69 @@ def test_the_dispatcher_returns_the_verdict_as_the_exit_status(published, monkey
     shutil.rmtree(attempt_dirs[0])
     assert cli.main() == 1
     assert "1 evidence missing" in capsys.readouterr().out
+
+
+def _rewrite_manifest(bundle, **changes):
+    path = bundle / "manifest.json"
+    manifest = json.loads(path.read_bytes())
+    manifest.update(changes)
+    path.write_text(json.dumps(manifest))
+
+
+def test_editing_a_sealed_artifact_without_resealing_is_tampered(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipts": ["edited"]}))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["counts"] == {VERIFIED: 2, DIFFERS: 0, EVIDENCE_MISSING: 0}
+    assert report["manifest"]["status"] == "tampered"
+    assert report["manifest"]["altered_or_missing_artifacts"] == ["reports/summary.json"]
+    assert report["verified"] is False
+    assert any("manifest" in reason for reason in report["verdict_reasons"])
+
+
+def test_deleting_a_sealed_artifact_without_resealing_is_tampered(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    (bundle / "reports" / "summary.json").unlink()
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["manifest"]["altered_or_missing_artifacts"] == ["reports/summary.json"]
+    assert report["verified"] is False
+
+
+def test_an_unsealed_addition_is_reported_not_a_failure(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    (bundle / "README.md").write_text("added after sealing\n")
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["manifest"]["unsealed_artifacts"] == ["README.md"]
+    assert report["manifest"]["altered_or_missing_artifacts"] == []
+    assert report["verified"] is True
+
+
+def test_a_family_layout_manifest_is_unchecked_and_still_verifies(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    _rewrite_manifest(bundle, schema_version="aeread.family_publication/0.1")
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "unchecked"
+    assert "aeread.family_publication/0.1" in report["manifest"]["reason"]
+    assert report["verified"] is True
+
+
+def test_an_edited_manifest_seal_is_tampered(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    _rewrite_manifest(bundle, manifest_sha256="0" * 64)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["verified"] is False
+
+
+def test_the_verb_prints_the_manifest_status_and_fails_a_tampered_bundle(published, capsys) -> None:
+    bundle, run_root, _receipts, _ = published
+    arguments = [str(bundle), "--run-root", str(run_root), "--setup", f"{__name__}:setup_for"]
+    assert replay_verification.main(arguments) == 0
+    assert "manifest=sealed" in capsys.readouterr().out
+    (bundle / "reports" / "summary.json").write_text("{}")
+    assert replay_verification.main(arguments) == 1
+    out = capsys.readouterr().out
+    assert "manifest=tampered" in out
+    assert "  not verified: " in out and "reports/summary.json" in out
