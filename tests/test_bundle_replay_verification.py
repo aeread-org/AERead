@@ -1160,4 +1160,7 @@ def test_a_sealed_path_outside_the_bundle_is_tampered_and_never_read(published, 
     path.write_text(json.dumps(_sealed_manifest(manifest)))
     report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
     assert report["manifest"]["status"] == "tampered"
+    # Rejected as a malformed entry before any read, not as an altered file.
+    assert "malformed" in report["manifest"]["reason"]
+    assert report["manifest"]["altered_or_missing_artifacts"] == []
     assert report["verified"] is False

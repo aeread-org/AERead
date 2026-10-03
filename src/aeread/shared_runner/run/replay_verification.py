@@ -27,14 +27,13 @@ import importlib
 import json
 import re
 from collections.abc import Callable, Collection, Mapping, Sequence
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ..task.evaluation import EvaluationSetup, audit_family_receipt
 from .publication import (
     MANIFEST_FILENAME,
     _sealed_manifest,
-    bundle_artifact_digests,
     episode_key,
 )
 from .publish_trajectories import GRAIN, published_receipt_digests
@@ -258,12 +257,12 @@ _PROJECTION_UNCOMPARED = frozenset(
 )
 
 
-def _failure_matches(published: Any, sealed: Any) -> bool:
-    """A projection keeps only a failure's condition and class; compare those."""
+def _published_failure(sealed: Any) -> Any:
+    """The failure as every publisher projects it: condition and class, or null."""
 
-    if not isinstance(published, Mapping) or not isinstance(sealed, Mapping):
-        return not isinstance(published, Mapping) and not isinstance(sealed, Mapping)
-    return all(published.get(name) == sealed.get(name) for name in ("condition", "failure_class"))
+    if isinstance(sealed, Mapping):
+        return {"condition": sealed.get("condition"), "failure_class": sealed.get("failure_class")}
+    return None
 
 
 def _projection_difference(
@@ -281,9 +280,7 @@ def _projection_difference(
             if name == "deferred_leaf_ids":
                 expected: Any = audited.get("deferred_leaf_ids", [])
             elif name == "failure":
-                if not _failure_matches(value, audited.get("failure")):
-                    return f"published projection {relative} failure differs from the receipt"
-                continue
+                expected = _published_failure(audited.get("failure"))
             elif name in audited:
                 expected = audited[name]
             else:
@@ -338,7 +335,15 @@ def _artifact_list(manifest: Mapping[str, Any]) -> tuple[dict[str, str] | None, 
         return None, f"artifacts is a {type(listed).__name__}, not a digest map or list"
     sealed: dict[str, str] = {}
     for path, digest in pairs:
-        if not isinstance(path, str) or not path or not _is_digest(digest) or sealed.get(path, digest) != digest:
+        if (
+            not isinstance(path, str)
+            or not path
+            or "\\" in path
+            or PurePosixPath(path).is_absolute()
+            or ".." in PurePosixPath(path).parts
+            or not _is_digest(digest)
+            or sealed.get(path, digest) != digest
+        ):
             return None, f"artifacts holds a malformed or duplicate entry: {path!r}"
         sealed[path] = digest
     return sealed, None
@@ -359,6 +364,36 @@ def _seal_check(manifest: Mapping[str, Any]) -> tuple[str | None, bool]:
             body = {key: value for key, value in manifest.items() if key != field}
             return field, hashlib.sha256(canonical_json_bytes(body)).hexdigest() == manifest[field]
     return None, False
+
+
+def _sealed_file_digest(bundle: Path, relative: str) -> str | None:
+    """The sha256 of one sealed file, or ``None`` when it is absent or unreadable."""
+
+    path = bundle / relative
+    if not path.is_file() or path.is_symlink():
+        return None
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def _bundle_file_names(bundle: Path) -> set[str]:
+    """The files bundle_artifact_digests would list, found without reading them.
+
+    A file added after sealing is only named in the report, so an unreadable
+    one cannot abort the verification of the files that were sealed.
+    """
+
+    names: set[str] = set()
+    for path in bundle.rglob("*"):
+        relative = path.relative_to(bundle)
+        if not path.is_file() or path.is_symlink() or path.suffix == ".tmp":
+            continue
+        if relative.as_posix() == MANIFEST_FILENAME or any(part.startswith(".") for part in relative.parts):
+            continue
+        names.add(relative.as_posix())
+    return names
 
 
 def _symlinks(bundle: Path) -> list[str]:
@@ -409,11 +444,10 @@ def _manifest_check(bundle: Path, manifest: Any) -> tuple[dict[str, Any], dict[s
     if result["symlinks"]:
         problems.append("symlinks in the bundle: " + ", ".join(result["symlinks"][:5]))
     if sealed is not None:
-        current = bundle_artifact_digests(bundle)
         result["altered_or_missing_artifacts"] = sorted(
-            path for path, digest in sealed.items() if current.get(path) != digest
+            path for path, digest in sealed.items() if _sealed_file_digest(bundle, path) != digest
         )
-        result["unsealed_artifacts"] = sorted(set(current) - set(sealed))
+        result["unsealed_artifacts"] = sorted(_bundle_file_names(bundle) - set(sealed))
         if result["altered_or_missing_artifacts"]:
             problems.append(
                 f"{len(result['altered_or_missing_artifacts'])} sealed artifacts altered or missing: "
