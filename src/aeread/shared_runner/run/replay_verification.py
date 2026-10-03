@@ -189,7 +189,7 @@ def _declared_receipts(
 
 
 def _published_projections(
-    bundle: Path, readable_paths: Collection[str]
+    bundle: Path, readable_paths: Collection[str], malformed: list[str]
 ) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
     """Every published projection row in the given receipts/ files, by digest.
 
@@ -203,10 +203,15 @@ def _published_projections(
         for relative in _published_files(bundle)
         if relative.startswith("receipts/") and relative in readable_paths
     ]
-    for relative, node in _published_objects(bundle, receipts):
-        digest = node.get("source_receipt_sha256")
-        if _is_digest(digest):
-            projections.setdefault(digest, []).append((relative, node))
+    for relative, node in _published_objects(bundle, receipts, malformed):
+        if "source_receipt_sha256" not in node:
+            continue
+        digest = node["source_receipt_sha256"]
+        if not _is_digest(digest):
+            # Same wording as the inventory, so a sealed file is reported once.
+            malformed.append(f"{relative}: source_receipt_sha256 is not a sha256 digest: {digest!r}"[:160])
+            continue
+        projections.setdefault(digest, []).append((relative, node))
     return projections
 
 
@@ -433,7 +438,8 @@ def verify_bundle_replay(
         projection_files: Collection[str] = _published_files(bundle)
     else:
         projection_files = readable
-    projections = _published_projections(bundle, projection_files) if no_symlinks else {}
+    projections = _published_projections(bundle, projection_files, malformed) if no_symlinks else {}
+    malformed[:] = list(dict.fromkeys(malformed))
     projections_checked = 0
 
     rows: list[dict[str, Any]] = []

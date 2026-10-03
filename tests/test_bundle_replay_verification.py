@@ -501,6 +501,20 @@ def test_a_family_layout_manifest_is_seal_only_and_verifies_on_its_declared_list
     assert missing["verified"] is False and missing["counts"][EVIDENCE_MISSING] == 1
 
 
+def test_a_malformed_projection_digest_in_a_seal_only_bundle_is_reported(published) -> None:
+    """Projection files of a seal_only bundle are read for comparison; a bad digest is not skipped."""
+
+    bundle, run_root, receipts, attempt_dirs = published
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts])
+    (bundle / "receipts").mkdir(exist_ok=True)
+    row = _projection(_sealed_receipts(attempt_dirs)[0], source_receipt_sha256="not-a-digest")
+    (bundle / "receipts" / "projections.jsonl").write_text(json.dumps(row) + "\n")
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "seal_only"
+    assert report["verified"] is False
+    assert any("not-a-digest" in entry for entry in report["malformed_declarations"])
+
+
 def test_an_edited_family_seal_is_tampered(published) -> None:
     bundle, run_root, receipts, _ = published
     sealed = _family_manifest(bundle, [r.receipt_sha256 for r in receipts])
