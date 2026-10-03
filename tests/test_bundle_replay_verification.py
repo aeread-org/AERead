@@ -278,7 +278,7 @@ def _expected_primary(receipt):
 def _bare(receipt, **changes):
     """A production-shaped row: identity and a primary score, no ``scores``."""
 
-    row = _projection(receipt, primary_leaf_id=receipt["primary_leaf_id"], **changes)
+    row = _projection(receipt, **{"primary_leaf_id": receipt["primary_leaf_id"], **changes})
     del row["scores"]
     return row
 
@@ -723,3 +723,219 @@ def test_a_projection_file_that_does_not_parse_is_reported_not_skipped(published
     assert report["verified"] is False
     assert report["manifest"]["status"] == "sealed"
     assert any("receipts/projections.jsonl" in item for item in report["malformed_declarations"])
+
+
+def _seal_again(bundle, *, declared=()):
+    """A correctly sealed bundle after a sealed file changed: drop the manifest and seal anew."""
+
+    (bundle / MANIFEST_FILENAME).unlink()
+    fields = {"source_receipt_sha256s": list(declared)} if declared else {}
+    seal_publication_manifest(
+        bundle,
+        publication_id="housing_replay_fixture_v1",
+        privacy_boundary={"included": "receipt digests", "excluded": "raw run evidence"},
+        **fields,
+    )
+
+
+def _grain_rows(bundle):
+    return [json.loads(line) for line in (bundle / GRAIN).read_text().splitlines() if line.strip()]
+
+
+def _write_grain(bundle, rows):
+    (bundle / GRAIN).write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+
+# R1: rows may not cite receipts the manifest does not declare.
+
+
+@pytest.mark.parametrize("where", ["projections", "grain"])
+def test_a_seal_only_bundle_whose_rows_cite_an_undeclared_receipt_does_not_verify(published, where) -> None:
+    bundle, run_root, receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    if where == "projections":
+        shutil.rmtree(bundle / "trajectories")
+        (bundle / "receipts").mkdir()
+        (bundle / "receipts" / "projections.jsonl").write_text(
+            "".join(json.dumps(_projection(r)) + "\n" for r in sealed)
+        )
+    _family_manifest(bundle, [receipts[0].receipt_sha256])
+    shutil.rmtree(attempt_dirs[1])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "seal_only"
+    assert report["verified"] is False
+    assert any("references receipts the bundle does not declare: 1" in reason for reason in report["verdict_reasons"])
+
+
+# R2 + R8: every identity and admission field of a projection is compared.
+
+_COMPARED_FIELDS = [
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
+    "primary_leaf_id",
+    "status",
+    "inclusion_status",
+    "replay_level",
+]
+
+
+@pytest.mark.parametrize("with_scores", [True, False], ids=["with_scores", "without_scores"])
+@pytest.mark.parametrize("field", _COMPARED_FIELDS)
+def test_every_identity_and_admission_field_of_a_projection_is_compared(published, tmp_path, field, with_scores) -> None:
+    sealed = _sealed_receipts(published[3])
+    build = _projection if with_scores else _bare
+    rows = [build(sealed[0], **{field: "altered"}), build(sealed[1])]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert field in differs["reason"] and "receipts/projections.jsonl" in differs["reason"]
+
+
+@pytest.mark.parametrize("with_scores", [True, False], ids=["with_scores", "without_scores"])
+def test_a_projection_carrying_every_compared_field_unaltered_verifies(published, tmp_path, with_scores) -> None:
+    sealed = _sealed_receipts(published[3])
+    build = _projection if with_scores else _bare
+    rows = [build(r, **{name: r[name] for name in _COMPARED_FIELDS}) for r in sealed]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is True and report["published_projections_checked"] == 2
+
+
+def test_one_wrong_projection_among_correct_ones_for_the_same_digest_differs(published, tmp_path) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [_projection(sealed[0]), _projection(sealed[0], cell_id="some_other_cell"), _projection(sealed[1])]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert differs["source_receipt_sha256"] == sealed[0]["receipt_sha256"] and "cell_id" in differs["reason"]
+
+
+# R3: trajectory grain rows are compared against the audited receipt.
+
+
+def test_a_clean_grain_is_compared_row_by_row(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is True
+    assert report["trajectory_rows_checked"] == len(_grain_rows(bundle)) > 0
+
+
+def test_a_resealed_grain_with_a_rewritten_run_plan_id_differs(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    rows = _grain_rows(bundle)
+    for row in rows:
+        row["run_plan_id"] = "some_other_plan"
+    _write_grain(bundle, rows)
+    _seal_again(bundle)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["verified"] is False
+    assert report["counts"][DIFFERS] >= 1
+    assert any("trajectories/sanitized.jsonl" in r["reason"] and "run_plan_id" in r["reason"] for r in report["rows"] if r["status"] == DIFFERS)
+
+
+def test_only_the_last_grain_row_of_a_digest_is_altered_and_still_differs(published) -> None:
+    bundle, run_root, receipts, _ = published
+    rows = _grain_rows(bundle)
+    mine = [row for row in rows if row["source_receipt_sha256"] == receipts[0].receipt_sha256]
+    assert len(mine) > 1
+    mine[-1]["episode_attempt_id"] = "altered"
+    _write_grain(bundle, rows)
+    _seal_again(bundle)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+
+
+def test_a_seal_only_grain_is_read_for_comparison(published) -> None:
+    bundle, run_root, receipts, _ = published
+    rows = _grain_rows(bundle)
+    for row in rows:
+        row["cell_id"] = "some_other_cell"
+    _write_grain(bundle, rows)
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "seal_only"
+    assert report["verified"] is False and report["counts"][DIFFERS] == 2
+
+
+# R4: nested files are discovered.
+
+
+def test_a_nested_sealed_projection_file_is_compared(published, tmp_path) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    bundle = _bundle_without_grain(tmp_path, declared=[r.receipt_sha256 for r in receipts])
+    (bundle / "receipts" / "nested").mkdir(parents=True)
+    rows = [_projection(sealed[0]), _projection(sealed[1], cell_id="some_other_cell")]
+    (bundle / "receipts" / "nested" / "projections.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows)
+    )
+    _seal_again(bundle, declared=[r.receipt_sha256 for r in receipts])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["published_projections_checked"] == 2
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+
+
+# R5: every record must be a JSON object.
+
+
+def test_non_object_records_in_a_sealed_projection_file_are_malformed(published, tmp_path) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    rows = [_projection(r) for r in _sealed_receipts(attempt_dirs)]
+    bundle = _bundle_without_grain(tmp_path, declared=[r.receipt_sha256 for r in receipts], projections=rows)
+    with (bundle / "receipts" / "projections.jsonl").open("a") as handle:
+        handle.write("null\n17\n")
+    _seal_again(bundle, declared=[r.receipt_sha256 for r in receipts])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["verified"] is False
+    assert "receipts/projections.jsonl: record 2 is not a JSON object" in report["malformed_declarations"]
+    assert "receipts/projections.jsonl: record 3 is not a JSON object" in report["malformed_declarations"]
+
+
+@pytest.mark.parametrize("document", ["17", '[{"a": 1}, 5]'])
+def test_a_json_document_that_is_not_an_object_or_a_list_of_objects_is_malformed(published, tmp_path, document) -> None:
+    _bundle, run_root, receipts, _ = published
+    declared = [r.receipt_sha256 for r in receipts]
+    bundle = _bundle_without_grain(tmp_path, declared=declared)
+    (bundle / "receipts").mkdir()
+    (bundle / "receipts" / "extra.json").write_text(document)
+    _seal_again(bundle, declared=declared)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert any(item.startswith("receipts/extra.json: record") and "not a JSON object" in item for item in report["malformed_declarations"])
+
+
+# R6: symlinks are detected everywhere.
+
+
+def test_a_hidden_symlink_is_tampered_and_listed(published, tmp_path) -> None:
+    bundle, run_root, _receipts, _ = published
+    outside = tmp_path / "outside.json"
+    outside.write_text("{}")
+    (bundle / "reports" / ".hidden.json").symlink_to(outside)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["symlinks"] == ["reports/.hidden.json"]
+    assert report["manifest"]["status"] == "tampered" and report["verified"] is False
+
+
+# R7: an unsealed note does not steer which receipts are audited.
+
+
+def test_an_unsealed_note_naming_another_receipt_does_not_reject_a_valid_bundle(published, tmp_path) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    bundle = _bundle_without_grain(tmp_path, declared=[receipts[0].receipt_sha256])
+    receipt_path = attempt_dirs[1] / "evaluation_receipt.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    receipt["scores"][0]["value"] = (receipt["scores"][0].get("value") or 0) + 1
+    receipt_path.write_text(json.dumps(receipt))
+    (bundle / "reports" / "note.json").write_text(json.dumps({"see": receipts[1].receipt_sha256}))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["counts"] == {VERIFIED: 1, DIFFERS: 0, EVIDENCE_MISSING: 0}
+    assert report["verified"] is True
