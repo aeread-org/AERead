@@ -93,11 +93,20 @@ def _identity_of(node: Mapping[str, Any]) -> dict[str, str] | None:
 def _published_files(bundle: Path) -> list[str]:
     """Bundle-relative grain and receipts/ files; symlinks are never read."""
 
+    root = bundle.resolve()
     paths: list[Path] = []
     for folder in ("trajectories", "receipts"):
         for pattern in ("*.jsonl", "*.json"):
             paths += sorted((bundle / folder).rglob(pattern))
-    relatives = {path.relative_to(bundle).as_posix() for path in paths if path.is_file() and not path.is_symlink()}
+    relatives: set[str] = set()
+    for path in paths:
+        try:
+            # A symlinked folder would otherwise lead the scan outside the bundle.
+            inside = path.resolve().is_relative_to(root)
+            if inside and path.is_file() and not path.is_symlink():
+                relatives.add(path.relative_to(bundle).as_posix())
+        except (OSError, ValueError):
+            continue
     return sorted(relatives)
 
 
@@ -339,6 +348,7 @@ def _artifact_list(manifest: Mapping[str, Any]) -> tuple[dict[str, str] | None, 
             not isinstance(path, str)
             or not path
             or "\\" in path
+            or "\x00" in path
             # One spelling per file: './a', 'a//b' and 'a/./b' would be hashed
             # under one name and compared under another.
             or PurePosixPath(path).as_posix() != path
@@ -381,7 +391,7 @@ def _sealed_file_digest(bundle: Path, relative: str) -> str | None:
         if not path.is_file() or path.is_symlink():
             return None
         return hashlib.sha256(path.read_bytes()).hexdigest()
-    except OSError:
+    except (OSError, ValueError):
         return None
 
 
@@ -533,8 +543,11 @@ def verify_bundle_replay(
         manifest = None
     manifest_check, sealed_paths = _manifest_check(bundle, manifest)
     malformed: list[str] = []
-    if manifest_check["status"] == "sealed":
-        readable: Collection[str] = sealed_paths or ()
+    if manifest_check["symlinks"]:
+        # Tampered already; nothing in it is read, through any reader.
+        readable: Collection[str] = ()
+    elif manifest_check["status"] == "sealed":
+        readable = sealed_paths or ()
     elif manifest_check["status"] == "seal_only":
         readable = ()
     else:
