@@ -33,6 +33,9 @@ FAMILY_PROFILES: dict[str, str] = {
     "datacenter_counteroffer_affordance_v1": "docs/families/datacenter/qc.md",
     "datacenter_counteroffer_salience_v1": "docs/families/datacenter/qc.md",
     "datacenter_risk_allocation_v1": "docs/families/datacenter/qc.md",
+    "datacenter_risk_allocation_two_sided_v1": "docs/families/datacenter/qc.md",
+    "datacenter_risk_allocation_menu_v1": "docs/families/datacenter/qc.md",
+    "datacenter_risk_allocation_contracts_v1": "docs/families/datacenter/qc.md",
 }
 
 #: family_id -> why it has no profile yet. Dated 2026-09-06.

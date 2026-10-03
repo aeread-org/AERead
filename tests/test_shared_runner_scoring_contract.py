@@ -3152,6 +3152,15 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # the joint venture): its scorer takes FamilyScoringInput; a
         # scoring-contract fixture is the same follow-up as the others here.
         ("datacenter_risk_allocation_v1", "0.1.0"),
+        # The two-sided risk-allocation case: both seats are models; its scorer
+        # takes FamilyScoringInput; the same fixture follow-up as the one-sided case.
+        ("datacenter_risk_allocation_two_sided_v1", "0.1.0"),
+        # The playbook-menu variant: the client negotiates a scripted integrator's posted
+        # menu; the same fixture follow-up as the other risk-allocation keys.
+        ("datacenter_risk_allocation_menu_v1", "0.1.0"),
+        # The full-terms menu: the same client seat with every modelled contract term
+        # and its levels; the same fixture follow-up.
+        ("datacenter_risk_allocation_contracts_v1", "0.1.0"),
         # #63 enrols the datacenter sub-families and a 2.1.0 of the base
         # family as trusted. Their scorers now take FamilyScoringInput
         # (#144), but none has a scoring-contract fixture yet; that is the
