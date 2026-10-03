@@ -1048,7 +1048,20 @@ def test_a_correct_production_shaped_projection_verifies(published, tmp_path) ->
     assert report["published_projections_checked"] == 2
 
 
-@pytest.mark.parametrize("field", replay_verification._TRAJECTORY_IDENTITY_FIELDS)
+#: The trajectory identity contract, written out here rather than read from the
+#: module, so that dropping a field from the implementation fails a test.
+TRAJECTORY_IDENTITY_FIELDS = (
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
+)
+
+
+@pytest.mark.parametrize("field", TRAJECTORY_IDENTITY_FIELDS)
 def test_every_trajectory_identity_field_is_compared(published, field) -> None:
     bundle, run_root, receipts, _ = published
     rows = _grain_rows(bundle)
@@ -1110,3 +1123,41 @@ def test_an_unreadable_declared_receipt_is_evidence_missing(published) -> None:
     report = _verify_no_crash(bundle, run_root)
     assert report["verified"] is False
     assert report["counts"] == {VERIFIED: 1, DIFFERS: 0, EVIDENCE_MISSING: 1}
+
+
+@pytest.mark.parametrize("published_failure", ["provider_timeout", [{"condition": "x", "failure_class": "y"}], 0])
+def test_a_non_mapping_published_failure_differs_from_a_receipt_without_one(published, tmp_path, published_failure) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    assert not isinstance(sealed[0].get("failure"), dict)
+    rows = [_production_projection(r) for r in sealed]
+    assert rows[0]["failure"] is None
+    rows[0]["failure"] = published_failure
+    bundle = _sealed_projection_bundle(tmp_path, receipts, rows)
+    report = _verify_no_crash(bundle, run_root)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+
+
+def test_an_unreadable_unsealed_addition_does_not_abort_a_valid_bundle(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    note = bundle / "reports" / "unreadable_note.json"
+    note.write_text("{}")
+    note.chmod(0)
+    try:
+        report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    finally:
+        note.chmod(0o644)
+    assert report["verified"] is True
+    assert "reports/unreadable_note.json" in report["manifest"]["unsealed_artifacts"]
+
+
+@pytest.mark.parametrize("escape", ["../outside.json", "/etc/hosts", "reports/../../outside.json"])
+def test_a_sealed_path_outside_the_bundle_is_tampered_and_never_read(published, escape) -> None:
+    bundle, run_root, *_ = published
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"] = {**manifest["artifacts"], escape: "0" * 64}
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["verified"] is False
