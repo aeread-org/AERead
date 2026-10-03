@@ -494,6 +494,15 @@ identities on that route have only failed gate cells (HL-O-15, HL-O-16). These a
 development pilots: the notice that tells the tenant the rule is appended by the seat
 router and is not in the kernel's sealed request (HL-D-05).
 
+The run roots are git-ignored, so this branch holds the code, the contracts and this
+write-up but not the cells. All thirteen v8-v12 roots and the scripted-rule reference run
+are archived on the owner's Google Drive at
+`LOCAL_DISK_CLEANUP_ARCHIVES/2026-10-02-housing-outside-demand-pilots/` (one `tar.zst`
+per root with a SHA-256 manifest of every file; restore steps in its `README.txt`). The
+numbers below are recomputed from them by the Examiner's `build_price_pilots.py`, and
+its `analysis/housing/claims_and_evidence.html` states every conclusion here as a claim
+with the analysis that decides it.
+
 | Seat 0 | GLM 5.3 Flash | DeepSeek V4 Flash 0731 |
 |---|---|---|
 | Signs a sound listing, lemon-landlord / pooled arm | 77% / 80% | 77% / 85% |
