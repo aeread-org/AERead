@@ -439,7 +439,10 @@ The commit-phase states the 60-world panels recorded are replayed unchanged with
 original instructions, a qualitative hint, and an explicit statement that a sound listing's
 landlord never concedes more than $250 below the ask. For blind `true_cost` holds more than
 $250 below ask, signing falls from 72% to 7% (GLM) and from 91% to 13% (Luna); holds within
-$250, informed holds and `pooled`-arm holds do not move. Both models therefore discount for
+$250, informed holds and `pooled`-arm holds do not move. The stated $250 is true but loose:
+these worlds draw a sound cost $20 to $80 under the ask (`make_bid_world`), so no sound landlord
+agrees to more than $55 below it, and holds $55 to $250 below the ask also prove a lemon; they
+sat in the "within $250" group, which the disclosure did not name (HL-J-09). Both models therefore discount for
 adverse selection when told how, and the panels' exposure is a disclosure gap, not a
 reasoning one. Turning the disclosure into an identity needs a tenant prompt with its own id,
 which lives in `runner.py`; editing that file moves every sealed Housing plan id (HL-T-04).
@@ -636,6 +639,24 @@ each with the tables and interval plots that decide it: 10 supported, 7 mixed, 5
 2 not established, 1 not tested at this data. One of the two not established is whether the
 retry's changes widened Gemini's lead over GLM: per world the lead changed by
 +65 [-2, +132], and Gemini already led in the first run (+50 [+10, +90]).
+
+**Stating the pricing rule (v13, run 2026-10-03).** The one claim not tested is that telling
+the tenant how landlords price would close the gap between Gemini and the other models; the
+data bounds only its direct part (re-scoring every revealed-lemon signing as a walk cuts
+Gemini's lead over GLM from $93 to $74 and over DeepSeek with reasoning from $56 to $45). v13
+runs the retry's three reading models again (`..._v13_gemini38_flash_rule_...`,
+`..._v13_glm53_flash_nextbit_rule_...`, `..._v13_deepseek_v4_flash_nextbit_reason_rule_...`),
+each contract identical to the run it is compared with except its id and its notice: notice v3
+is notice v2 plus how a sound landlord prices (`price_outside_demand.PRICING_RULE`), which is
+true in both arms and says that a rent more than $55 below the ask means a lemon. It is the
+sharpest true statement of the rule, so it bounds what disclosure can do. Decided before any
+v13 cell was read, per world on the 60 paired worlds, at the reply-conditioned odds (realized
+reported beside it): the gap is Gemini minus the other model in the same notice, and its change
+is the v13 gap minus the retry's gap. **Supported** if, for both GLM and DeepSeek with
+reasoning, the v13 gap's 95% interval includes zero and the change's interval is below zero;
+**refuted** if, for both, the change's interval includes zero and the v13 gap's interval is
+above zero; **mixed** otherwise. Mechanism check beside it: how often each model signs a hold
+below the listing's sound floor, with and without the rule.
 
 ## 6. Metrics
 

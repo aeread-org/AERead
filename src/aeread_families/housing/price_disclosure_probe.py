@@ -32,9 +32,11 @@ from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderRe
 from . import lemons
 from .price_endpoint import sound_floor
 
-#: What a sound listing's landlord can concede under the price rule: its cost sits at most
-#: $250 under the ask and it counters at cost plus $25, so no sound hold is more than $225
-#: below the ask. The explicit disclosure states the looser, true bound.
+#: What a sound listing's landlord can concede under the price rule: the lemons world draws a
+#: sound cost $20 to $80 under the ask (``make_bid_world``) and the landlord's floor is cost plus
+#: $25, so no sound hold is more than $55 below the ask. The explicit disclosure below states a
+#: looser bound, $250, which is true but leaves holds $55 to $250 below the ask unnamed (HL-J-09;
+#: an earlier version of this comment said $250 and $225, from the attribute world's generator).
 EXPLICIT = (
     "\nHow landlords in this market price. A landlord whose listing is sound keeps a margin: "
     "it never agrees to a rent more than $250 below the posted ask. A landlord whose listing "
