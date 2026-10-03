@@ -270,6 +270,77 @@ def test_a_projection_whose_cell_id_changed_differs(published, tmp_path) -> None
     assert "cell_id" in differs["reason"]
 
 
+def _expected_primary(receipt):
+    (entry,) = [e for e in receipt["scores"] if e["leaf"]["leaf_id"] == receipt["primary_leaf_id"]]
+    return entry["primary"]["value"]
+
+
+def _bare(receipt, **changes):
+    """A production-shaped row: identity and a primary score, no ``scores``."""
+
+    row = _projection(receipt, primary_leaf_id=receipt["primary_leaf_id"], **changes)
+    del row["scores"]
+    return row
+
+
+def _verify_rows(published, tmp_path, rows):
+    _bundle, run_root, _receipts, _ = published
+    bundle = _bundle_without_grain(tmp_path, projections=rows)
+    return verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+
+
+def test_a_projection_without_scores_but_a_wrong_cell_id_differs(published, tmp_path) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [_bare(sealed[0]), _bare(sealed[1], cell_id="some_other_cell")]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert "cell_id" in differs["reason"] and "receipts/projections.jsonl" in differs["reason"]
+
+
+def test_a_projection_without_scores_and_the_derived_primary_score_verifies(published, tmp_path) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [_bare(r, primary_score=_expected_primary(r)) for r in sealed]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is True and report["verdict_reasons"] == []
+    assert report["published_projections_checked"] == 2
+
+
+def test_a_projection_with_a_wrong_primary_score_differs(published, tmp_path) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [_bare(sealed[0], primary_score=999), _bare(sealed[1], primary_score=_expected_primary(sealed[1]))]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert "primary_score" in differs["reason"]
+
+
+@pytest.mark.parametrize("field", ["case_id", "case_sha256", "run_plan_sha256"])
+def test_a_projection_whose_case_or_plan_identity_changed_differs(published, tmp_path, field) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [_projection(sealed[0], **{field: "altered"}), _projection(sealed[1])]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is False and report["counts"][DIFFERS] == 1
+    (differs,) = [row for row in report["rows"] if row["status"] == DIFFERS]
+    assert field in differs["reason"]
+
+
+def test_a_production_shaped_projection_verifies(published, tmp_path) -> None:
+    sealed = _sealed_receipts(published[3])
+    rows = [
+        _projection(
+            r,
+            case_id=r["case_id"],
+            case_sha256=r["case_sha256"],
+            run_plan_sha256=r["run_plan_sha256"],
+            primary_leaf_id=r["primary_leaf_id"],
+        )
+        for r in sealed
+    ]
+    report = _verify_rows(published, tmp_path, rows)
+    assert report["verified"] is True and report["published_projections_checked"] == 2
+
+
 def test_a_projection_row_the_grain_cannot_list_is_still_expected(published) -> None:
     """A zero-action episode has no grain row; its projection row still declares it."""
 
