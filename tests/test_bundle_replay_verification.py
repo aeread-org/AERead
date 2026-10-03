@@ -8,6 +8,7 @@ sealed attempt, re-drive it, recompute the score, compare.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -16,10 +17,14 @@ import pytest
 
 from aeread.shared_runner.run import replay_verification
 from aeread.shared_runner.run.publication import (
+    KERNEL_MANIFEST_SCHEMA_VERSION,
     MANIFEST_FILENAME,
+    _sealed_manifest,
+    bundle_artifact_digests,
     rebuild_publication_manifest,
     seal_publication_manifest,
 )
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.run.publish_trajectories import GRAIN, publish_trajectory_grain
 from aeread.shared_runner.run.replay_verification import (
     DIFFERS,
@@ -384,13 +389,221 @@ def test_an_unsealed_addition_is_reported_not_a_failure(published) -> None:
     assert report["verified"] is True
 
 
-def test_a_family_layout_manifest_is_unchecked_and_still_verifies(published) -> None:
+def _family_manifest(bundle, receipts=None, **changes):
+    """A datacenter-style manifest: no per-file digests, a self-seal over the rest."""
+
+    rest = {
+        "schema_version": "aeread.example_family_publication/0.1",
+        "publication_id": "housing_replay_fixture_v1",
+    }
+    if receipts is not None:
+        rest["source_receipt_sha256s"] = list(receipts)
+    rest.update(changes)
+    sealed = {**rest, "artifact_sha256": hashlib.sha256(canonical_json_bytes(rest)).hexdigest()}
+    (bundle / MANIFEST_FILENAME).write_text(json.dumps(sealed))
+    return sealed
+
+
+def _reseal(bundle, **changes):
+    """Edit a kernel manifest and recompute its seal, as a forger who knows the format would."""
+
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest.update(changes)
+    manifest = {key: value for key, value in manifest.items() if value is not _DELETE}
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+
+
+_DELETE = object()
+
+
+def test_a_family_layout_manifest_is_seal_only_and_verifies_on_its_declared_list(published) -> None:
+    bundle, run_root, receipts, attempt_dirs = published
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "seal_only"
+    assert report["manifest"]["seal_field"] == "artifact_sha256"
+    assert report["verified"] is True and report["coverage"] == "declared_receipts"
+    shutil.rmtree(attempt_dirs[1])
+    missing = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert missing["manifest"]["status"] == "seal_only"
+    assert missing["verified"] is False and missing["counts"][EVIDENCE_MISSING] == 1
+
+
+def test_an_edited_family_seal_is_tampered(published) -> None:
+    bundle, run_root, receipts, _ = published
+    sealed = _family_manifest(bundle, [r.receipt_sha256 for r in receipts])
+    sealed["source_receipt_sha256s"] = sealed["source_receipt_sha256s"][:1]
+    (bundle / MANIFEST_FILENAME).write_text(json.dumps(sealed))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered" and report["verified"] is False
+
+
+def test_a_family_manifest_without_a_receipt_list_does_not_read_unsealed_projections(published, tmp_path) -> None:
+    """Family files are not sealed, so a projection file cannot stand in for the inventory."""
+
+    _bundle, run_root, _receipts, attempt_dirs = published
+    bundle = tmp_path / "family_nolist"
+    (bundle / "receipts").mkdir(parents=True)
+    rows = [_projection(r) for r in _sealed_receipts(attempt_dirs)]
+    (bundle / "receipts" / "projections.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    _family_manifest(bundle)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "seal_only"
+    assert report["verified"] is False and report["declared_receipts"] == 0
+    assert report["coverage"] == "receipts_found_under_run_root"
+
+
+def _early_manifest(bundle, **changes):
+    """The early kernel layout: artifacts as a list of objects, a publication_sha256 self-seal."""
+
+    digests = bundle_artifact_digests(bundle)
+    rest = {
+        "schema_version": KERNEL_MANIFEST_SCHEMA_VERSION,
+        "publication_id": "housing_replay_fixture_v1",
+        "artifacts": [
+            {"path": path, "sha256": digest, "size_bytes": (bundle / path).stat().st_size}
+            for path, digest in digests.items()
+        ],
+    }
+    rest.update(changes)
+    sealed = {**rest, "publication_sha256": hashlib.sha256(canonical_json_bytes(rest)).hexdigest()}
+    (bundle / MANIFEST_FILENAME).write_text(json.dumps(sealed))
+
+
+def test_an_early_kernel_manifest_with_an_artifact_list_is_sealed_and_checked(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    _early_manifest(bundle)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["manifest"]["seal_field"] == "publication_sha256"
+    assert report["verified"] is True and report["coverage"] == "every_published_episode"
+    (bundle / "reports" / "summary.json").write_text("{}")
+    tampered = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert tampered["manifest"]["status"] == "tampered"
+    assert tampered["manifest"]["altered_or_missing_artifacts"] == ["reports/summary.json"]
+    assert tampered["verified"] is False
+
+
+def test_a_manifest_with_no_recognised_seal_is_unchecked_and_not_verified(published) -> None:
+    bundle, run_root, _receipts, _ = published
+    (bundle / MANIFEST_FILENAME).write_text(json.dumps({"schema_version": "x/0.1", "publication_id": "p"}))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "unchecked" and report["verified"] is False
+    assert "no recognised seal" in report["manifest"]["reason"]
+
+
+def test_a_kernel_manifest_whose_schema_was_edited_is_tampered(published) -> None:
     bundle, run_root, _receipts, _ = published
     _rewrite_manifest(bundle, schema_version="aeread.family_publication/0.1")
     report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
-    assert report["manifest"]["status"] == "unchecked"
-    assert "aeread.family_publication/0.1" in report["manifest"]["reason"]
-    assert report["verified"] is True
+    assert report["manifest"]["status"] == "tampered" and report["verified"] is False
+
+
+_MANIFEST_EDITS = {
+    "schema": {"schema_version": "aeread.family_publication/0.1"},
+    "artifacts_deleted": {"artifacts": _DELETE},
+    "artifacts_as_list": {"artifacts": []},
+}
+
+
+@pytest.mark.parametrize("edit", sorted(_MANIFEST_EDITS))
+def test_a_sealed_artifact_edit_cannot_be_hidden_by_changing_the_manifest(published, edit) -> None:
+    """Edited without resealing, and edited then resealed: neither may verify."""
+
+    bundle, run_root, _receipts, _ = published
+    (bundle / "reports" / "summary.json").write_text(json.dumps({"receipts": ["edited"]}))
+    changes = _MANIFEST_EDITS[edit]
+    _reseal(bundle, **changes)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["verified"] is False
+
+
+@pytest.mark.parametrize("edit", ["artifacts_deleted", "artifacts_as_list"])
+def test_a_kernel_manifest_without_a_digest_map_is_tampered_even_when_unedited(published, edit) -> None:
+    bundle, run_root, _receipts, _ = published
+    _reseal(bundle, **_MANIFEST_EDITS[edit])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered" and report["verified"] is False
+
+
+def test_an_empty_grain_and_reports_only_receipts_is_not_a_declared_inventory(published, tmp_path) -> None:
+    """One attempt removed, grain empty, receipts only in reports/: nothing says what should exist."""
+
+    _bundle, run_root, receipts, attempt_dirs = published
+    bundle = tmp_path / "emptygrain"
+    (bundle / "reports").mkdir(parents=True)
+    (bundle / "reports" / "summary.json").write_text(
+        json.dumps({"receipts": [r.receipt_sha256 for r in receipts]})
+    )
+    (bundle / "trajectories").mkdir()
+    (bundle / GRAIN).write_text("")
+    seal_publication_manifest(
+        bundle,
+        publication_id="housing_replay_fixture_v1",
+        privacy_boundary={"included": "receipt digests", "excluded": "raw run evidence"},
+    )
+    shutil.rmtree(attempt_dirs[1])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert report["coverage"] == "receipts_found_under_run_root"
+    assert any("no receipt inventory" in reason for reason in report["verdict_reasons"])
+
+
+def test_a_projection_file_added_after_sealing_is_not_an_inventory(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    bundle = _bundle_without_grain(tmp_path)
+    (bundle / "receipts").mkdir()
+    rows = [_projection(r) for r in _sealed_receipts(attempt_dirs)]
+    (bundle / "receipts" / "projections.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False and report["declared_receipts"] == 0
+    assert report["manifest"]["status"] == "sealed"
+    assert report["manifest"]["unsealed_artifacts"] == ["receipts/projections.jsonl"]
+
+
+def test_a_symlinked_projection_is_tampered_and_listed(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    bundle = _bundle_without_grain(tmp_path)
+    outside = tmp_path / "outside.jsonl"
+    outside.write_text("".join(json.dumps(_projection(r)) + "\n" for r in _sealed_receipts(attempt_dirs)))
+    (bundle / "receipts").mkdir()
+    (bundle / "receipts" / "projections.jsonl").symlink_to(outside)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["manifest"]["symlinks"] == ["receipts/projections.jsonl"]
+    assert report["verified"] is False and report["declared_receipts"] == 0
+
+
+def test_a_malformed_manifest_digest_is_reported_not_dropped(published, tmp_path) -> None:
+    _bundle, run_root, receipts, _ = published
+    bundle = _bundle_without_grain(tmp_path, declared=[r.receipt_sha256 for r in receipts] + ["not-a-digest"])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert any("not-a-digest" in item or "[2]" in item for item in report["malformed_declarations"])
+
+
+def test_a_manifest_receipt_list_that_is_a_string_is_malformed(published, tmp_path) -> None:
+    _bundle, run_root, receipts, _ = published
+    bundle = _bundle_without_grain(
+        tmp_path,
+        declared=[r.receipt_sha256 for r in receipts],
+        bindings={"receipt_sha256s": receipts[0].receipt_sha256},
+    )
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert any("receipt_sha256s" in item for item in report["malformed_declarations"])
+
+
+def test_a_projection_row_with_a_malformed_digest_is_reported(published, tmp_path) -> None:
+    _bundle, run_root, _receipts, attempt_dirs = published
+    sealed = _sealed_receipts(attempt_dirs)
+    rows = [_projection(r) for r in sealed] + [_projection(sealed[0], source_receipt_sha256="NOT-HEX")]
+    bundle = _bundle_without_grain(tmp_path, projections=rows)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert any("receipts/projections.jsonl" in item for item in report["malformed_declarations"])
 
 
 def test_an_edited_manifest_seal_is_tampered(published) -> None:
