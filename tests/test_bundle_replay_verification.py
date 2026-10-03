@@ -624,3 +624,17 @@ def test_the_verb_prints_the_manifest_status_and_fails_a_tampered_bundle(publish
     out = capsys.readouterr().out
     assert "manifest=tampered" in out
     assert "  not verified: " in out and "reports/summary.json" in out
+
+
+def test_a_projection_file_that_does_not_parse_is_reported_not_skipped(published, tmp_path) -> None:
+    _bundle, run_root, receipts, attempt_dirs = published
+    rows = [_projection(r) for r in _sealed_receipts(attempt_dirs)]
+    bundle = _bundle_without_grain(
+        tmp_path, declared=[r.receipt_sha256 for r in receipts], projections=rows
+    )
+    (bundle / "receipts" / "projections.jsonl").write_text("{not json\n")
+    _reseal(bundle, artifacts=bundle_artifact_digests(bundle))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["verified"] is False
+    assert report["manifest"]["status"] == "sealed"
+    assert any("receipts/projections.jsonl" in item for item in report["malformed_declarations"])
