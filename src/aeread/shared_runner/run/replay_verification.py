@@ -91,18 +91,6 @@ def _identity_of(node: Mapping[str, Any]) -> dict[str, str] | None:
     return None
 
 
-def _json_objects(value: Any):
-    """Every JSON object in ``value``, nested ones included."""
-
-    if isinstance(value, Mapping):
-        yield value
-        for child in value.values():
-            yield from _json_objects(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _json_objects(child)
-
-
 def _published_files(bundle: Path) -> list[str]:
     """Bundle-relative grain and receipts/ files; symlinks are never read."""
 
@@ -115,10 +103,15 @@ def _published_files(bundle: Path) -> list[str]:
 
 
 def _published_objects(bundle: Path, relatives: Sequence[str], malformed: list[str] | None = None):
-    """Objects in the given files, with the bundle-relative file.
+    """Top-level records of the given files that carry a receipt binding.
 
-    A file that does not parse is recorded in ``malformed`` (when given) and
-    skipped, never silently dropped.
+    Only top-level records count: a binding nested inside a record is data,
+    not a row. A file that does not parse is recorded in ``malformed`` (when
+    given) and skipped, never silently dropped. Every record of a receipts/
+    file must carry a valid ``source_receipt_sha256``, and a trajectories/
+    file that binds any record must bind them all; a record that does not
+    is recorded in ``malformed``. A trajectories/ file with no bindings at
+    all is a family archive and is ignored. Yields ``(relative, record)``.
     """
 
     for relative in relatives:
@@ -135,13 +128,23 @@ def _published_objects(bundle: Path, relatives: Sequence[str], malformed: list[s
                 malformed.append(f"{relative}: does not parse as JSON ({type(error).__name__})")
             continue
         records = documents if path.suffix == ".jsonl" else (documents[0] if isinstance(documents[0], list) else documents)
+        objects: list[tuple[int, Mapping[str, Any]]] = []
         for index, record in enumerate(records):
             if not isinstance(record, Mapping):
                 if malformed is not None:
                     malformed.append(f"{relative}: record {index} is not a JSON object")
                 continue
-            for node in _json_objects(record):
-                yield relative, node
+            objects.append((index, record))
+        bound = [(index, record) for index, record in objects if "source_receipt_sha256" in record]
+        if relative.startswith("receipts/") or bound:
+            if malformed is not None:
+                malformed.extend(
+                    f"{relative}: record {index} has no source_receipt_sha256"
+                    for index, record in objects
+                    if "source_receipt_sha256" not in record
+                )
+        for _index, record in bound:
+            yield relative, record
 
 
 def _declared_receipts(
@@ -248,6 +251,21 @@ def _expected_primary_score(projection: Mapping[str, Any], audited: Mapping[str,
     return None
 
 
+#: Projection keys that are not compared field for field: the binding itself,
+#: a key the receipt does not carry, and the fields compared by their own rule.
+_PROJECTION_UNCOMPARED = frozenset(
+    {"source_receipt_sha256", "campaign_cell_key", "scores", "primary_score"}
+)
+
+
+def _failure_matches(published: Any, sealed: Any) -> bool:
+    """A projection keeps only a failure's condition and class; compare those."""
+
+    if not isinstance(published, Mapping) or not isinstance(sealed, Mapping):
+        return not isinstance(published, Mapping) and not isinstance(sealed, Mapping)
+    return all(published.get(name) == sealed.get(name) for name in ("condition", "failure_class"))
+
+
 def _projection_difference(
     projections: Sequence[tuple[str, Mapping[str, Any]]], audited: Mapping[str, Any]
 ) -> str | None:
@@ -256,6 +274,21 @@ def _projection_difference(
     for relative, projection in projections:
         for name in _PROJECTION_IDENTITY_FIELDS:
             if name in projection and (name not in audited or projection[name] != audited[name]):
+                return f"published projection {relative} {name} differs from the receipt"
+        for name, value in projection.items():
+            if name in _PROJECTION_UNCOMPARED or name in _PROJECTION_IDENTITY_FIELDS:
+                continue
+            if name == "deferred_leaf_ids":
+                expected: Any = audited.get("deferred_leaf_ids", [])
+            elif name == "failure":
+                if not _failure_matches(value, audited.get("failure")):
+                    return f"published projection {relative} failure differs from the receipt"
+                continue
+            elif name in audited:
+                expected = audited[name]
+            else:
+                continue
+            if canonical_json_bytes(value) != canonical_json_bytes(expected):
                 return f"published projection {relative} {name} differs from the receipt"
         if "scores" in projection and canonical_json_bytes(projection["scores"]) != canonical_json_bytes(
             audited.get("scores")
@@ -467,7 +500,14 @@ def verify_bundle_replay(
     declared, grain_declared = _declared_receipts(manifest, bundle, readable, malformed)
     # A symlinked bundle is tampered whatever it holds; none of it is read.
     no_symlinks = not manifest_check["symlinks"]
-    published = published_receipt_digests(bundle) if no_symlinks else frozenset()
+    published: frozenset[str] = frozenset()
+    if no_symlinks and not declared:
+        # The broad scan is only the fallback when nothing is declared; an
+        # unsealed file it cannot read must not reject a bundle that does.
+        try:
+            published = published_receipt_digests(bundle)
+        except (OSError, ValueError) as error:
+            malformed.append(f"published receipt scan could not read a file ({type(error).__name__})")
     # Comparison may read receipts/ of a seal_only bundle (never as inventory).
     if manifest_check["status"] == "seal_only":
         projection_files: Collection[str] = _published_files(bundle)
@@ -496,7 +536,7 @@ def verify_bundle_replay(
     for receipt_path in sorted(root.rglob(RECEIPT_FILENAME)):
         try:
             receipt = json.loads(receipt_path.read_bytes())
-        except (OSError, json.JSONDecodeError):
+        except (OSError, ValueError):
             continue
         digest = receipt.get("receipt_sha256") if isinstance(receipt, Mapping) else None
         if not isinstance(digest, str) or digest not in (declared or published):

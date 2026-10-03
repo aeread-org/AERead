@@ -1092,7 +1092,7 @@ def test_an_unreadable_published_file_with_no_declared_inventory_is_malformed_no
     _seal_again(bundle)
     report = _verify_no_crash(bundle, run_root)
     assert report["verified"] is False
-    assert any("note.json" in item for item in report["malformed_declarations"])
+    assert any("published receipt scan" in item for item in report["malformed_declarations"])
 
 
 def test_an_unrelated_binary_receipt_file_under_the_run_root_is_ignored(published) -> None:
