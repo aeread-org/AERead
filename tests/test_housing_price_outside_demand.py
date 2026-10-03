@@ -325,3 +325,67 @@ def test_v11_provider_free_cells_run_with_the_history_notice_and_log_it(tmp_path
     focal = [row for row in focal if row["role"] == "focal"]
     assert focal and all("history" in row and "instructions_sha256" in row for row in focal)
     assert any(row["history"].startswith(od.HISTORY_HEADER) for row in focal)
+
+
+V13 = {
+    "housing_lemons_price_pilot_v13_gemini38_flash_rule_outside_w60": "housing_lemons_price_pilot_v11_gemini38_flash_outside_w60",
+    "housing_lemons_price_pilot_v13_glm53_flash_nextbit_rule_outside_w60": "housing_lemons_price_pilot_v12_glm53_flash_nextbit_outside_w60",
+    "housing_lemons_price_pilot_v13_deepseek_v4_flash_nextbit_reason_rule_outside_w60":
+        "housing_lemons_price_pilot_v12_deepseek_v4_flash_nextbit_reason_outside_w60",
+}
+
+
+def test_the_stated_pricing_rule_is_true_in_every_world_and_both_arms():
+    # No sound landlord agrees to a rent more than $55 below the ask, in either arm; a pooled lemon landlord
+    # prices on the sound cost, so the deep hold the rule names can only come from a lemon under true_cost.
+    from aeread_families.housing import lemons
+    from aeread_families.housing.price_endpoint import sound_floor
+
+    deepest = 0.0
+    for seed in SEEDS:
+        for arm in ("true_cost", "pooled"):
+            world = lemons.make_lemons_world(6, 4, seed, 0.6, lemon_share=0.5, lemon_loss=1000.0,
+                                             inspection_cost=25.0, landlord_reservation=arm)
+            for listing in range(4):
+                assert 20.0 - 1e-6 <= world.ask[listing] - world.sound_costs[listing] <= 80.0 + 1e-6
+                deepest = max(deepest, world.ask[listing] - sound_floor(world, listing))
+    assert deepest <= od.SOUND_FLOOR_MAX_BELOW_ASK
+    assert "$55 below the ask" in od.PRICING_RULE and "$20 to $80" in od.PRICING_RULE
+
+
+def test_notice_v3_is_notice_v2_plus_the_pricing_rule_and_nothing_about_lemon_landlords():
+    assert od.FOCAL_NOTICE_V3 == od.FOCAL_NOTICE_V2 + od.PRICING_RULE
+    block = od.block_v3()
+    assert {k: v for k, v in block.items() if k not in {"notice_version", "focal_notice", "focal_notice_sha256",
+                                                         "pricing_rule_stated", "pricing_rule_basis"}} == \
+        {k: v for k, v in od.block_v2().items() if k not in {"notice_version", "focal_notice", "focal_notice_sha256"}}
+    assert block["notice_version"] == 3 and block["focal_notice"] == od.FOCAL_NOTICE_V3
+    # the rule must not say how a lemon's landlord prices: that is what the two arms differ in
+    assert "lemon's landlord" not in od.PRICING_RULE and "own cost" in od.PRICING_RULE
+
+
+@pytest.mark.parametrize("campaign_id,baseline", sorted(V13.items()))
+def test_v13_contracts_change_only_the_notice_from_the_run_they_are_compared_with(campaign_id, baseline):
+    new = price_campaign.load_contract(CONFIGS / f"{campaign_id}.json")
+    old = price_campaign.load_contract(CONFIGS / f"{baseline}.json")
+    assert new["rivals"] == od.block_v3()
+    assert {k: v for k, v in new.items() if k not in {"campaign_id", "rivals"}} == \
+        {k: v for k, v in old.items() if k not in {"campaign_id", "rivals"}}
+
+
+def test_v13_provider_free_cells_send_the_pricing_rule_before_the_history(tmp_path):
+    contract = price_campaign.load_contract(CONFIGS / f"{sorted(V13)[0]}.json")
+    summary = asyncio.run(price_campaign.run(contract, tmp_path, live=False, only_worlds=(100000, 100002)))
+    assert summary["completed_cells"] == 4 and summary["operational_failures"] == 0
+    focal = [json.loads(line) for line in (tmp_path / "seat_calls.jsonl").read_text().splitlines()]
+    focal = [row for row in focal if row["role"] == "focal"]
+    assert focal and all("history" in row and "instructions_sha256" in row for row in focal)
+
+    @dataclasses.dataclass
+    class _Request:
+        instructions: str
+        input_text: str
+
+    opening = _Request("PLAN PROMPT", json.dumps({"phase_id": "inspect", "observation": {"round_index": 0}}))
+    assert od.FocalNoticeV3().rewrite(opening).instructions == "PLAN PROMPT" + od.FOCAL_NOTICE_V3
+    assert od.FocalNoticeV2().rewrite(opening).instructions == "PLAN PROMPT" + od.FOCAL_NOTICE_V2

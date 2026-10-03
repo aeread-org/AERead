@@ -425,6 +425,29 @@ IDENTITIES: dict[str, dict[str, Any]] = {
         "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 2,
         "max_action_attempts": 8, "timeout_seconds": 300.0,
     },
+    # v13 (owner decision 2026-10-03): the retry's three reading models again, every control as in
+    # v11 Gemini / v12 NextBit, and notice v3 in place of v2: the same text plus how a sound
+    # landlord prices (price_outside_demand.PRICING_RULE). Tests the claim that telling the tenant
+    # how landlords price closes the gap between Gemini and the other models.
+    "housing_lemons_price_pilot_v13_gemini38_flash_rule_outside_w60": {
+        "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v13",
+        "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 3.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 3,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v13_glm53_flash_nextbit_rule_outside_w60": {
+        "route_id": "nextbit_glm_53_flash", "profile": "housing_price_glm53_nextbit_tenant_v13",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 3,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
+    "housing_lemons_price_pilot_v13_deepseek_v4_flash_nextbit_reason_rule_outside_w60": {
+        "route_id": "nextbit_deepseek_v4_flash_0731",
+        "profile": "housing_price_deepseek_v4_flash_nextbit_reason_tenant_v13",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 8.0,
+        "world_seeds": list(range(100000, 100060)), "outside_demand": True, "notice_version": 3,
+        "max_action_attempts": 8, "timeout_seconds": 300.0,
+    },
     "housing_lemons_price_pilot_v2_gpt56_luna": {
         "route_id": "openai_gpt_56_luna", "profile": "housing_price_gpt56_luna_tenant_v2",
         "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.0,
@@ -449,7 +472,10 @@ def _route_block(route_id: str) -> dict[str, Any]:
 def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     """What the contract must declare about the rival seats of a focal-seat identity."""
     if spec.get("outside_demand"):
-        return price_outside_demand.block_v2() if spec.get("notice_version") == 2 else price_outside_demand.block()
+        version = spec.get("notice_version")
+        if version == 3:
+            return price_outside_demand.block_v3()
+        return price_outside_demand.block_v2() if version == 2 else price_outside_demand.block()
     seats = {"seats": list(RIVAL_SEATS), "focal_seat": FOCAL_SEAT}
     if spec.get("rival_scripted_model"):
         return {"kind": "scripted_tenant", "model": spec["rival_scripted_model"],
@@ -619,8 +645,9 @@ def scripted_rival_rewrite(block: Mapping[str, Any]) -> Any:
 
 def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path) -> SeatRouterClient:
     block = contract["rivals"]
-    if block.get("kind") == "outside_demand" and block.get("notice_version") == 2:
-        notice = price_outside_demand.FocalNoticeV2()
+    if block.get("kind") == "outside_demand" and block.get("notice_version") in (2, 3):
+        notice = (price_outside_demand.FocalNoticeV3() if block["notice_version"] == 3
+                  else price_outside_demand.FocalNoticeV2())
         return SeatRouterClient(
             focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,
             rewrite=price_outside_demand.rival_rewrite, log_path=log_path,

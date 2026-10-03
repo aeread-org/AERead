@@ -211,10 +211,14 @@ def _history_line(round_index: int, entry: Mapping[str, Any], *, current: bool) 
 class FocalNoticeV2:
     """Appends notice v2 and the cell's reply history to the focal seat's instructions.
 
+    ``NOTICE`` is the text appended before the history; notice v3 changes only that.
+
     One instance serves one process, which runs its cells one after another; a request for
     round 0's inspection starts a new cell. Entries are keyed by round, so a call the kernel
     retries rewrites the same entry.
     """
+
+    NOTICE = FOCAL_NOTICE_V2
 
     def __init__(self) -> None:
         self._rounds: dict[int, dict[str, Any]] = {}
@@ -245,7 +249,7 @@ class FocalNoticeV2:
             entry["hold"] = (int(hold["listing_id"]), float(hold["rent"])) if hold else None
         self._last_history = self.history(round_index, phase_id)
         return dataclasses.replace(
-            request, instructions=request.instructions + FOCAL_NOTICE_V2 + self._last_history
+            request, instructions=request.instructions + self.NOTICE + self._last_history
         )
 
     def after(self, request: Any, sent: Any, result: Any) -> dict[str, Any]:
@@ -266,6 +270,48 @@ class FocalNoticeV2:
         elif phase_id == "commit":
             entry["commit"] = action.get("decision") if action.get("decision") in ("sign", "walk") else None
         return {"instructions_sha256": instructions_sha256(sent), "history": self._last_history}
+
+
+# --- notice v3: how landlords price, stated --------------------------------------------------
+#
+# The claims page leaves one conclusion untested: telling the tenant how landlords price would
+# close the gap between Gemini and the other models. Notice v3 is notice v2 plus how a sound
+# listing's landlord prices, which is true in both landlord arms: the world draws a sound cost
+# $20 to $80 under the ask (``make_bid_world``) and every sound landlord's floor is its cost
+# plus $25, capped at the ask, so no sound landlord agrees to a rent more than $55 below the ask.
+# It says nothing about how a lemon's landlord prices, which is what the two arms differ in:
+# under ``true_cost`` a hold more than $55 below the ask happens and proves a lemon; under
+# ``pooled`` it never happens. This is the sharpest true statement of the rule, so it bounds
+# what disclosure can do: if it does not close the gap, a vaguer one will not.
+
+PRICING_RULE = (
+    "\nHow landlords in this market price. A landlord whose listing is sound accepts any offer at "
+    "or above its own cost plus $25 (or the ask, if that is lower) and otherwise counters at that "
+    "amount. A sound listing's cost is $20 to $80 below its posted ask, so a sound landlord never "
+    "agrees to a rent more than $55 below the ask. If a landlord agrees to a rent more than $55 "
+    "below the ask, by accepting your offer or by countering, the listing is a lemon. A rent within "
+    "$55 of the ask can come from either."
+)
+SOUND_FLOOR_MAX_BELOW_ASK = 55.0
+FOCAL_NOTICE_V3 = FOCAL_NOTICE_V2 + PRICING_RULE
+FOCAL_NOTICE_V3_SHA256 = hashlib.sha256(FOCAL_NOTICE_V3.encode("utf-8")).hexdigest()
+
+
+def block_v3() -> dict[str, Any]:
+    """The outside-demand block of a contract that uses notice v3 (v2 plus the pricing rule)."""
+    return {
+        **block_v2(), "notice_version": 3,
+        "focal_notice": FOCAL_NOTICE_V3, "focal_notice_sha256": FOCAL_NOTICE_V3_SHA256,
+        "pricing_rule_stated": PRICING_RULE.strip(),
+        "pricing_rule_basis": "make_bid_world draws sound cost = ask - U(20, 80); a sound landlord's floor is "
+                              "min(ask, cost + 25), so it is at most $55 below the ask; true in both landlord arms",
+    }
+
+
+class FocalNoticeV3(FocalNoticeV2):
+    """Notice v2 and the reply history, with the pricing rule stated before the history."""
+
+    NOTICE = FOCAL_NOTICE_V3
 
 
 def rival_rewrite(request: Any) -> Any:
