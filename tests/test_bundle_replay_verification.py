@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -1163,4 +1164,70 @@ def test_a_sealed_path_outside_the_bundle_is_tampered_and_never_read(published, 
     # Rejected as a malformed entry before any read, not as an altered file.
     assert "malformed" in report["manifest"]["reason"]
     assert report["manifest"]["altered_or_missing_artifacts"] == []
+    assert report["verified"] is False
+
+
+@pytest.mark.parametrize(
+    "alias", ["./receipts/projections.jsonl", "receipts//projections.jsonl", "receipts/./projections.jsonl"]
+)
+def test_an_aliased_sealed_path_is_malformed(published, tmp_path, alias) -> None:
+    """An alias would be hashed but never compared, letting a wrong projection pass."""
+
+    _bundle, run_root, receipts, attempt_dirs = published
+    rows = [_production_projection(r) for r in _sealed_receipts(attempt_dirs)]
+    rows[0]["cell_id"] = "cell_wrong"
+    bundle = _sealed_projection_bundle(tmp_path, receipts, rows)
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"][alias] = manifest["artifacts"].pop("receipts/projections.jsonl")
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "malformed" in report["manifest"]["reason"]
+    assert report["verified"] is False
+
+
+def test_a_sealed_path_through_a_symlinked_directory_is_never_read(published, tmp_path, monkeypatch) -> None:
+    bundle, run_root, *_ = published
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "probe.json").write_text("{}")
+    os.symlink(outside, bundle / "reports" / "link", target_is_directory=True)
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"]["reports/link/probe.json"] = hashlib.sha256(b"{}").hexdigest()
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    read: list[Path] = []
+    original = Path.read_bytes
+
+    def recording(self):
+        read.append(Path(self).resolve())
+        return original(self)
+
+    monkeypatch.setattr(Path, "read_bytes", recording)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["verified"] is False
+    assert not [p for p in read if outside.resolve() in p.parents]
+
+
+def test_a_windows_drive_path_is_malformed(published) -> None:
+    bundle, run_root, *_ = published
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"]["C:/outside.json"] = "0" * 64
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "malformed" in report["manifest"]["reason"]
+
+
+def test_an_overlong_sealed_path_is_reported_not_raised(published) -> None:
+    bundle, run_root, *_ = published
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"]["reports/" + "a" * 300 + ".json"] = "0" * 64
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
     assert report["verified"] is False
