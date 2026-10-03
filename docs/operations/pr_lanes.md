@@ -35,22 +35,22 @@ it through the family environment, recomputes the score, and reports every row
 as `verified`, `differs` or `evidence_missing`; it exits non-zero unless every
 row verified. The verdict rests only on sealed inputs. The manifest's own seal
 must recompute (`manifest_sha256`, or a family layout's `artifact_sha256` or
-`publication_sha256`), and every file it lists must be unchanged; listed
-paths must be plain bundle-relative names, and a symlink fails the bundle.
-Where the manifest lists per-file digests, files added after sealing are named
-and never read. The expected
-receipts are the manifest's receipt lists (`source_receipt_sha256s`,
-`source_bindings.receipt_sha256s`) plus the `source_receipt_sha256` rows of
-sealed `receipts/` and `trajectories/` files. A family layout that seals no
-per-file digests declares through its manifest lists alone; its `receipts/`
-and `trajectories/` files are still read, but only to be compared with the
-recomputed receipts. A bundle that declares nothing cannot verify. Every published projection row is compared
-with its recomputed receipt (ids, admission fields, scores, failure condition
-and class), every grain row on its ids. A row citing an undeclared receipt, a
-record without its binding, or a malformed entry fails the verdict.
-`--setup` names the family callable that returns the evaluation
-setup (sealed plan and registry) for a durable receipt. A `replay_verified`
-field inside a bundle is the producing run's own claim and is not this check.
+`publication_sha256`), and every file it lists must be unchanged; listed paths
+must be plain bundle-relative names, and a symlink fails the bundle. Where the
+manifest lists per-file digests, files added after sealing are named and never
+read. The expected receipts are the manifest's receipt lists
+(`source_receipt_sha256s`, `source_bindings.receipt_sha256s`) plus the
+`source_receipt_sha256` rows of sealed `receipts/` and `trajectories/` files.
+A family layout that seals no per-file digests declares through its manifest
+lists alone; its `receipts/` and `trajectories/` files are still read, but
+only to be compared with the recomputed receipts. A bundle that declares
+nothing cannot verify. Every published projection row is compared with its
+recomputed receipt (ids, admission fields, scores, failure condition and
+class), every grain row on its ids. A row citing an undeclared receipt, a
+record without its binding, or a malformed entry fails the verdict. `--setup`
+names the family callable that returns the evaluation setup (sealed plan and
+registry) for a durable receipt. A `replay_verified` field inside a bundle is
+the producing run's own claim and is not this check.
 
 The kernel is small and load-bearing; a second pair of eyes there has paid
 for itself twice in one week. Evidence is large and generated; eyes on the
