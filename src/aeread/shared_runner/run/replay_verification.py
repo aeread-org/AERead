@@ -53,6 +53,16 @@ EVIDENCE_MISSING = "evidence_missing"
 ReplaySetupFactory = Callable[[Mapping[str, Any]], EvaluationSetup]
 
 _IDENTITY_FIELDS = ("run_plan_id", "cell_id", "episode_attempt_id")
+_PROJECTION_IDENTITY_FIELDS = (
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
+    "primary_leaf_id",
+)
 
 
 _DIGEST = re.compile(r"[0-9a-f]{64}")
@@ -178,16 +188,39 @@ def _declared_receipts(
     return declared, grain_declared
 
 
-def _published_projections(bundle: Path) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
-    """Published projection rows (digest and scores) in receipts/, by digest."""
+def _published_projections(
+    bundle: Path, readable_paths: Collection[str]
+) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
+    """Every published projection row in the given receipts/ files, by digest.
+
+    A projection is any object with a ``source_receipt_sha256``, whatever else
+    it carries: a row without ``scores`` is still compared.
+    """
 
     projections: dict[str, list[tuple[str, Mapping[str, Any]]]] = {}
-    receipts = [relative for relative in _published_files(bundle) if relative.startswith("receipts/")]
+    receipts = [
+        relative
+        for relative in _published_files(bundle)
+        if relative.startswith("receipts/") and relative in readable_paths
+    ]
     for relative, node in _published_objects(bundle, receipts):
         digest = node.get("source_receipt_sha256")
-        if _is_digest(digest) and "scores" in node:
+        if _is_digest(digest):
             projections.setdefault(digest, []).append((relative, node))
     return projections
+
+
+def _expected_primary_score(projection: Mapping[str, Any], audited: Mapping[str, Any]) -> Any:
+    """The primary score the audited receipt gives the projection's primary leaf."""
+
+    leaf_id = projection["primary_leaf_id"] if "primary_leaf_id" in projection else audited.get("primary_leaf_id")
+    scores = audited.get("scores")
+    for entry in scores if isinstance(scores, list) else []:
+        leaf = entry.get("leaf") if isinstance(entry, Mapping) else None
+        if isinstance(leaf, Mapping) and leaf.get("leaf_id") == leaf_id:
+            primary = entry.get("primary")
+            return primary.get("value") if isinstance(primary, Mapping) else None
+    return None
 
 
 def _projection_difference(
@@ -196,11 +229,17 @@ def _projection_difference(
     """Why a published projection disagrees with the audited receipt, if it does."""
 
     for relative, projection in projections:
-        if canonical_json_bytes(projection["scores"]) != canonical_json_bytes(audited.get("scores")):
-            return f"published projection {relative} scores differ from the recomputed scores"
-        for name in ("run_plan_id", "cell_id", "episode_id", "episode_attempt_id"):
-            if name in projection and projection[name] != audited.get(name):
+        for name in _PROJECTION_IDENTITY_FIELDS:
+            if name in projection and (name not in audited or projection[name] != audited[name]):
                 return f"published projection {relative} {name} differs from the receipt"
+        if "scores" in projection and canonical_json_bytes(projection["scores"]) != canonical_json_bytes(
+            audited.get("scores")
+        ):
+            return f"published projection {relative} scores differ from the recomputed scores"
+        if "primary_score" in projection and canonical_json_bytes(
+            projection["primary_score"]
+        ) != canonical_json_bytes(_expected_primary_score(projection, audited)):
+            return f"published projection {relative} primary_score differs from the recomputed primary score"
     return None
 
 
@@ -389,7 +428,12 @@ def verify_bundle_replay(
     # A symlinked bundle is tampered whatever it holds; none of it is read.
     no_symlinks = not manifest_check["symlinks"]
     published = published_receipt_digests(bundle) if no_symlinks else frozenset()
-    projections = _published_projections(bundle)
+    # Comparison may read receipts/ of a seal_only bundle (never as inventory).
+    if manifest_check["status"] == "seal_only":
+        projection_files: Collection[str] = _published_files(bundle)
+    else:
+        projection_files = readable
+    projections = _published_projections(bundle, projection_files) if no_symlinks else {}
     projections_checked = 0
 
     rows: list[dict[str, Any]] = []
