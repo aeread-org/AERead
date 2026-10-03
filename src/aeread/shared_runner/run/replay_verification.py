@@ -62,6 +62,18 @@ _PROJECTION_IDENTITY_FIELDS = (
     "episode_id",
     "episode_attempt_id",
     "primary_leaf_id",
+    "status",
+    "inclusion_status",
+    "replay_level",
+)
+_TRAJECTORY_IDENTITY_FIELDS = (
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
 )
 
 
@@ -94,10 +106,12 @@ def _json_objects(value: Any):
 def _published_files(bundle: Path) -> list[str]:
     """Bundle-relative grain and receipts/ files; symlinks are never read."""
 
-    paths = sorted((bundle / "trajectories").glob("*.jsonl"))
-    paths += sorted((bundle / "receipts").glob("*.jsonl"))
-    paths += sorted((bundle / "receipts").glob("*.json"))
-    return [path.relative_to(bundle).as_posix() for path in paths if path.is_file() and not path.is_symlink()]
+    paths: list[Path] = []
+    for folder in ("trajectories", "receipts"):
+        for pattern in ("*.jsonl", "*.json"):
+            paths += sorted((bundle / folder).rglob(pattern))
+    relatives = {path.relative_to(bundle).as_posix() for path in paths if path.is_file() and not path.is_symlink()}
+    return sorted(relatives)
 
 
 def _published_objects(bundle: Path, relatives: Sequence[str], malformed: list[str] | None = None):
@@ -120,8 +134,13 @@ def _published_objects(bundle: Path, relatives: Sequence[str], malformed: list[s
             if malformed is not None:
                 malformed.append(f"{relative}: does not parse as JSON ({type(error).__name__})")
             continue
-        for document in documents:
-            for node in _json_objects(document):
+        records = documents if path.suffix == ".jsonl" else (documents[0] if isinstance(documents[0], list) else documents)
+        for index, record in enumerate(records):
+            if not isinstance(record, Mapping):
+                if malformed is not None:
+                    malformed.append(f"{relative}: record {index} is not a JSON object")
+                continue
+            for node in _json_objects(record):
                 yield relative, node
 
 
@@ -189,19 +208,20 @@ def _declared_receipts(
 
 
 def _published_projections(
-    bundle: Path, readable_paths: Collection[str], malformed: list[str]
+    bundle: Path, readable_paths: Collection[str], malformed: list[str], folder: str = "receipts/"
 ) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
-    """Every published projection row in the given receipts/ files, by digest.
+    """Every published row in the given ``folder`` files (receipts/ projections
+    by default, trajectories/ grain rows otherwise), by digest.
 
-    A projection is any object with a ``source_receipt_sha256``, whatever else
-    it carries: a row without ``scores`` is still compared.
+    A row is any object with a ``source_receipt_sha256``, whatever else it
+    carries: a projection without ``scores`` is still compared.
     """
 
     projections: dict[str, list[tuple[str, Mapping[str, Any]]]] = {}
     receipts = [
         relative
         for relative in _published_files(bundle)
-        if relative.startswith("receipts/") and relative in readable_paths
+        if relative.startswith(folder) and relative in readable_paths
     ]
     for relative, node in _published_objects(bundle, receipts, malformed):
         if "source_receipt_sha256" not in node:
@@ -245,6 +265,21 @@ def _projection_difference(
             projection["primary_score"]
         ) != canonical_json_bytes(_expected_primary_score(projection, audited)):
             return f"published projection {relative} primary_score differs from the recomputed primary score"
+    return None
+
+
+def _trajectory_difference(
+    rows: Sequence[tuple[str, Mapping[str, Any]]], audited: Mapping[str, Any]
+) -> str | None:
+    """Why a published grain row disagrees with the audited receipt, if it does.
+
+    Grain rows carry identities and no scores, so only identities are compared.
+    """
+
+    for relative, row in rows:
+        for name in _TRAJECTORY_IDENTITY_FIELDS:
+            if name in row and (name not in audited or row[name] != audited[name]):
+                return f"published trajectory row {relative} {name} differs from the receipt"
     return None
 
 
@@ -297,7 +332,7 @@ def _symlinks(bundle: Path) -> list[str]:
     return sorted(
         path.relative_to(bundle).as_posix()
         for path in bundle.rglob("*")
-        if path.is_symlink() and not any(part.startswith(".") for part in path.relative_to(bundle).parts)
+        if path.is_symlink()
     )
 
 
@@ -439,8 +474,21 @@ def verify_bundle_replay(
     else:
         projection_files = readable
     projections = _published_projections(bundle, projection_files, malformed) if no_symlinks else {}
+    trajectories = (
+        _published_projections(bundle, projection_files, malformed, "trajectories/") if no_symlinks else {}
+    )
+    if declared:
+        for label, group in (("receipts/", projections), ("trajectories/", trajectories)):
+            undeclared: dict[str, set[str]] = {}
+            for digest, found in group.items():
+                if digest not in declared:
+                    for relative, _node in found:
+                        undeclared.setdefault(relative, set()).add(digest)
+            for relative, digests in sorted(undeclared.items()):
+                malformed.append(f"{relative} references receipts the bundle does not declare: {len(digests)}")
     malformed[:] = list(dict.fromkeys(malformed))
     projections_checked = 0
+    trajectory_rows_checked = 0
 
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -451,7 +499,7 @@ def verify_bundle_replay(
         except (OSError, json.JSONDecodeError):
             continue
         digest = receipt.get("receipt_sha256") if isinstance(receipt, Mapping) else None
-        if not isinstance(digest, str) or digest not in published and digest not in declared:
+        if not isinstance(digest, str) or digest not in (declared or published):
             continue
         if digest in seen:
             duplicates += 1
@@ -468,7 +516,11 @@ def verify_bundle_replay(
             continue
         published_rows = projections.get(digest, [])
         projections_checked += len(published_rows)
-        difference = _projection_difference(published_rows, audited)
+        grain_rows = trajectories.get(digest, [])
+        trajectory_rows_checked += len(grain_rows)
+        difference = _projection_difference(published_rows, audited) or _trajectory_difference(
+            grain_rows, audited
+        )
         if difference:
             rows.append(_row(digest, audited, status=DIFFERS, reason=difference))
             continue
@@ -513,6 +565,7 @@ def verify_bundle_replay(
         "declared_receipts": len(declared),
         "malformed_declarations": malformed,
         "published_projections_checked": projections_checked,
+        "trajectory_rows_checked": trajectory_rows_checked,
         "counts": counts,
         "scored_rows_verified": sum(
             row["status"] == VERIFIED and bool(row["scored"]) for row in rows

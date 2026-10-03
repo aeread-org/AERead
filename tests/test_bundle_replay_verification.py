@@ -821,7 +821,7 @@ def test_a_clean_grain_is_compared_row_by_row(published) -> None:
     bundle, run_root, _receipts, _ = published
     report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
     assert report["verified"] is True
-    assert report["trajectory_rows_checked"] == len(_grain_rows(bundle)) > 0
+    assert report.get("trajectory_rows_checked") == len(_grain_rows(bundle)) > 0
 
 
 def test_a_resealed_grain_with_a_rewritten_run_plan_id_differs(published) -> None:
