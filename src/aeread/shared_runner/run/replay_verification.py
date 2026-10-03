@@ -27,7 +27,7 @@ import importlib
 import json
 import re
 from collections.abc import Callable, Collection, Mapping, Sequence
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from ..task.evaluation import EvaluationSetup, audit_family_receipt
@@ -339,7 +339,11 @@ def _artifact_list(manifest: Mapping[str, Any]) -> tuple[dict[str, str] | None, 
             not isinstance(path, str)
             or not path
             or "\\" in path
+            # One spelling per file: './a', 'a//b' and 'a/./b' would be hashed
+            # under one name and compared under another.
+            or PurePosixPath(path).as_posix() != path
             or PurePosixPath(path).is_absolute()
+            or PureWindowsPath(path).drive
             or ".." in PurePosixPath(path).parts
             or not _is_digest(digest)
             or sealed.get(path, digest) != digest
@@ -370,9 +374,12 @@ def _sealed_file_digest(bundle: Path, relative: str) -> str | None:
     """The sha256 of one sealed file, or ``None`` when it is absent or unreadable."""
 
     path = bundle / relative
-    if not path.is_file() or path.is_symlink():
-        return None
     try:
+        # Resolve first: a symlinked parent must not lead the read outside.
+        if not path.resolve().is_relative_to(bundle.resolve()):
+            return None
+        if not path.is_file() or path.is_symlink():
+            return None
         return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError:
         return None
@@ -443,7 +450,8 @@ def _manifest_check(bundle: Path, manifest: Any) -> tuple[dict[str, Any], dict[s
         problems.append("kernel manifest without an artifact digest map")
     if result["symlinks"]:
         problems.append("symlinks in the bundle: " + ", ".join(result["symlinks"][:5]))
-    if sealed is not None:
+    if sealed is not None and not result["symlinks"]:
+        # A bundle with a symlink is tampered already; none of its files is read.
         result["altered_or_missing_artifacts"] = sorted(
             path for path, digest in sealed.items() if _sealed_file_digest(bundle, path) != digest
         )
