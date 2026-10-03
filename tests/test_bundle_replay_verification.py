@@ -1231,3 +1231,41 @@ def test_an_overlong_sealed_path_is_reported_not_raised(published) -> None:
     report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
     assert report["manifest"]["status"] == "tampered"
     assert report["verified"] is False
+
+
+def test_a_symlinked_receipts_directory_is_never_read(published, tmp_path, monkeypatch) -> None:
+    """A failed bundle is still not read through a symlink, by any reader."""
+
+    bundle, run_root, receipts, attempt_dirs = published
+    outside = tmp_path / "outside_receipts"
+    outside.mkdir()
+    row = _production_projection(_sealed_receipts(attempt_dirs)[0])
+    (outside / "probe.jsonl").write_text(json.dumps(row) + "\n")
+    os.symlink(outside, bundle / "receipts", target_is_directory=True)
+    read: list[Path] = []
+    original_bytes, original_text = Path.read_bytes, Path.read_text
+
+    def recording_bytes(self):
+        read.append(Path(self).resolve())
+        return original_bytes(self)
+
+    def recording_text(self, *args, **kwargs):
+        read.append(Path(self).resolve())
+        return original_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_bytes", recording_bytes)
+    monkeypatch.setattr(Path, "read_text", recording_text)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered" and report["verified"] is False
+    assert not [p for p in read if outside.resolve() in p.parents]
+
+
+def test_a_sealed_path_with_a_nul_character_is_malformed(published) -> None:
+    bundle, run_root, *_ = published
+    path = bundle / MANIFEST_FILENAME
+    manifest = json.loads(path.read_bytes())
+    manifest["artifacts"]["reports/bad\u0000.json"] = "0" * 64
+    path.write_text(json.dumps(_sealed_manifest(manifest)))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "malformed" in report["manifest"]["reason"]
