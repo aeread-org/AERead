@@ -371,6 +371,11 @@ def test_t1_an_error_frame_is_typed_by_its_code(code, condition, retryable) -> N
         assert failure.retry_after_seconds == 7
 
 
+def test_t1_a_decimal_string_code_counts_as_numeric() -> None:
+    failure = _outcome([_content(), _error_frame("502")])
+    assert (failure.condition, failure.retryable, failure.status_code) == ("provider_5xx", True, 502)
+
+
 def test_t2_a_stream_with_usage_but_no_finish_is_a_retryable_transport_failure() -> None:
     failure = _outcome([_content(), _usage_chunk()])
     assert failure.condition == "transport" and failure.retryable
