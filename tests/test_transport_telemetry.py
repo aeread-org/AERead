@@ -203,6 +203,40 @@ def test_a_scripted_cell_is_byte_identical_with_telemetry_off_and_on(
     assert off.evidence.seal_path.read_bytes() == on.evidence.seal_path.read_bytes()
 
 
+def test_execute_plan_cell_binds_the_cell_scope_around_the_episode(
+    monkeypatch, tmp_path
+) -> None:
+    from aeread_families.single_offer.runner import FixedResponseProvider
+
+    seen: list[Any] = []
+
+    class ScopeProbe(FixedResponseProvider):
+        async def complete(self, request):
+            seen.append(tt.current_scope())
+            return await super().complete(request)
+
+    setup = build_single_offer_smoke(
+        provider="fake", model="fake-model", revision="fixed-v1"
+    )
+    execution_result = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "probe",
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": ScopeProbe('{"offer":7}')},
+            pricing=setup.pricing,
+            harnesses=default_harnesses(),
+        )
+    )
+    (scope,) = seen
+    assert scope.run_plan_id == setup.plan.run_plan_id
+    assert scope.cell_id == setup.plan.cells[0].cell_id
+    assert scope.episode_attempt_id == execution_result.episode_attempt_id
+    assert tt.current_scope() is None, "the token is reset after the episode"
+
+
 def test_a_live_call_returns_an_equal_result_with_telemetry_off_and_on(
     monkeypatch, tmp_path
 ) -> None:
