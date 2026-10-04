@@ -658,6 +658,15 @@ reasoning, the v13 gap's 95% interval includes zero and the change's interval is
 above zero; **mixed** otherwise. Mechanism check beside it: how often each model signs a hold
 below the listing's sound floor, with and without the rule.
 
+**Result: Mixed.** Gemini minus DeepSeek with reasoning, reply-conditioned, goes from +66 [+20, +112] in the retry to
++0 [-33, +34] with the rule stated (change -65 [-120, -11], n=54); Gemini minus GLM goes from +97 [+44, +150] to
++89 [+56, +122] (change -8 [-58, +41], n=59). The rule does what it says: GLM signs 3 of 9 holds below a listing's sound
+floor against 12 of 12 before, DeepSeek 4 of 6 against 11 of 11, Gemini 1 of 7 against 2 of 3. It lifts every model
+(Gemini +32 [+2, +62], GLM +40 [-2, +81], DeepSeek +91 [+47, +134] a world), and DeepSeek, which had lost most of its
+ground to revealed lemons, catches Gemini. GLM does not: most of its deficit is ending on a listing it never inspected
+(26% of retry cells against Gemini's 11%), which a statement about landlords' prices does not reach. Missing cells:
+HL-O-19 (Gemini, one) and HL-O-20 (DeepSeek, five); the snapshot and claim E4 are in the Examiner repository.
+
 ## 6. Metrics
 
 | metric | definition |
