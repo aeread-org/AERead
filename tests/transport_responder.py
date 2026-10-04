@@ -57,6 +57,7 @@ class TransportResponder:
         self.requests: list[dict[str, Any]] = []
         self.connections = 0
         self._server: asyncio.AbstractServer | None = None
+        self._writers: set[asyncio.StreamWriter] = set()
         self.port = port  # 0: any free port; a fixed port keeps request bytes equal across runs
 
     @property
@@ -71,6 +72,11 @@ class TransportResponder:
     async def __aexit__(self, *exc: object) -> None:
         assert self._server is not None
         self._server.close()
+        # From Python 3.12, wait_closed() waits until every accepted connection
+        # is closed, so a kept-alive or deliberately stalled connection would
+        # hang the test here: close them first.
+        for writer in list(self._writers):
+            writer.close()
         await self._server.wait_closed()
 
     def _next_reply(self) -> Reply:
@@ -81,6 +87,7 @@ class TransportResponder:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
         self.connections += 1
+        self._writers.add(writer)
         try:
             while True:
                 head = await reader.readuntil(b"\r\n\r\n")
@@ -98,6 +105,7 @@ class TransportResponder:
         except (asyncio.IncompleteReadError, ConnectionError):
             pass
         finally:
+            self._writers.discard(writer)
             writer.close()
 
     async def _reply(self, writer: asyncio.StreamWriter, reply: Reply) -> bool:
