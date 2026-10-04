@@ -31,10 +31,12 @@ VERBS: dict[str, tuple[str, str]] = {
                       "find the commit a bundle's pinned source digests came from"),
     "verify-replay": ("aeread.shared_runner.run.replay_verification",
                       "recompute a published bundle's scores from its sealed run evidence"),
+    "provider-failures": ("aeread.shared_runner.run.provider_failures",
+                          "count provider failures across run roots, with hang candidates"),
 }
 
 
-_DIRECT_VERBS = frozenset({"source-commit", "verify-replay"})
+_DIRECT_VERBS = frozenset({"source-commit", "verify-replay", "provider-failures"})
 
 
 def main() -> int:
