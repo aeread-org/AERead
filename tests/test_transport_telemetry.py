@@ -2244,7 +2244,10 @@ def test_a_live_adapter_cell_finalizes_to_identical_receipt_bytes_off_and_on(
     assert off_bytes
     assert off_bytes == (on_cell.evidence.root / "evaluation_receipt.json").read_bytes()
     assert off_receipt.receipt_sha256 == on_receipt.receipt_sha256
-    assert _records(tmp_path / "telemetry", wanted=4)
+    # The on run's four exchanges must all be on disk, not merely some record:
+    # _records returns what it has once its deadline passes.
+    records = _records(tmp_path / "telemetry", wanted=4)
+    assert sum(r["event"] == "http11.response_closed.complete" for r in records) == 4
 
 
 # --- finding 14: warmed overhead smoke guard -----------------------------------
