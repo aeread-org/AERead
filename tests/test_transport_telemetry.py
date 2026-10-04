@@ -835,6 +835,18 @@ CASES: dict[str, tuple[Reply, set[str]]] = {
         ),
         {"first_delta.content"},
     ),
+    "crlf_multiline_split": (
+        # CRLF cut between its CR and LF in the middle of one multi-line event.
+        sse_reply(
+            [
+                b'data: {"choices":[{"delta":\r',
+                b'\ndata: {"content":"x"}}]}\r\n\r\n',
+                SSE_DONE,
+            ],
+            chunk_delays=_DELAYS,
+        ),
+        {"first_delta.content"},
+    ),
     "multiline_data": (sse_reply([_multiline_frame(), SSE_DONE]), {"first_delta.content"}),
     "unknown_encoding": (
         sse_reply([_BODY, SSE_DONE], headers={"Content-Encoding": "x-custom"}),
@@ -1211,3 +1223,49 @@ def test_a_budget_breach_stops_observation_and_delivers_the_chunk_unchanged(
     names = [r["event"] for r in _marks(tmp_path)]
     assert names[0] == "first_body_chunk" and names[-1] == "last_chunk"
     assert not any(n.startswith("first_delta") for n in names)
+
+
+def test_the_observer_decodes_utf8_split_across_chunks_into_one_character() -> None:
+    seen: list[Any] = []
+    real = tt._delta_channels
+    tt._delta_channels = lambda payload: seen.append(payload) or real(payload)  # type: ignore[assignment]
+    try:
+        first, second, _ = _utf8_split()
+        observer = tt._SseObserver(None, lambda name: None)
+        observer.feed(first)
+        observer.feed(second)
+    finally:
+        tt._delta_channels = real  # type: ignore[assignment]
+    assert seen[0]["choices"][0]["delta"]["content"] == "caf\u00e9"
+
+
+def test_the_observer_inflates_at_most_the_budget_per_chunk(monkeypatch) -> None:
+    produced: list[int] = []
+    real = zlib.decompressobj
+
+    class Spy:
+        def __init__(self, wbits):
+            self._inner = real(wbits)
+
+        def decompress(self, data, max_length=0):
+            out = self._inner.decompress(data, max_length)
+            produced.append(len(out))
+            return out
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+    monkeypatch.setattr(tt.zlib, "decompressobj", Spy)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        tt._SseObserver(47, lambda name: None).feed(_bomb())
+    assert produced and max(produced) <= tt.DECOMPRESS_LIMIT
+
+
+def test_an_empty_delta_marks_nothing_and_a_real_one_marks_once() -> None:
+    marks: list[str] = []
+    observer = tt._SseObserver(None, marks.append)
+    observer.feed(_frame({"role": "assistant", "content": ""}))
+    observer.feed(_frame({"reasoning": "", "tool_calls": []}))
+    assert marks == []
+    observer.feed(_frame({"content": "a"}))
+    assert marks == ["first_delta.content"]
