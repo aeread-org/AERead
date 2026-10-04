@@ -1749,6 +1749,40 @@ def test_a_drain_pass_writes_a_bounded_batch_before_taking_more(
     assert len(path.read_text().splitlines()) == 1 + 10  # header + the batch
 
 
+def test_a_consumed_call_record_is_on_disk_before_a_process_write_that_blocks(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    runtime = tt.get_runtime()
+    runtime._stop.set()
+    runtime._thread.join(5)
+    scope = tt.CallScope("p", "c", "a", "e", provider_call_id="x")
+    runtime.emit(scope, "http11.send_request_headers.complete", {})
+    runtime.emit_process("loop_lag", drift_seconds=1.0)
+
+    def stuck(*args, **kwargs):
+        raise RuntimeError("process write blocked")
+
+    monkeypatch.setattr(runtime, "_process_record", stuck)
+    with pytest.raises(RuntimeError, match="blocked"):
+        runtime._drain()
+    (path,) = runtime.session_dir.rglob("*.transport.jsonl")
+    assert "http11.send_request_headers.complete" in path.read_text()
+
+
+def test_a_drain_pass_is_bounded_by_elapsed_time_as_well_as_count(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    runtime = tt.get_runtime()
+    runtime._stop.set()
+    runtime._thread.join(5)
+    monkeypatch.setattr(tt, "DRAIN_BATCH_SECONDS", 0.0)
+    scope = tt.CallScope("p", "c", "a", "e", provider_call_id="x")
+    for index in range(5):
+        runtime.emit(scope, f"probe_{index}", {})
+    runtime._drain()
+    assert len(runtime.queue) == 4  # one record per pass once the budget is spent
+
+
 def _raw_deflate_chunks() -> list[bytes]:
     compressor = zlib.compressobj(wbits=-15)  # what httpx 0.28 accepts for "deflate"
     return [
@@ -1899,6 +1933,22 @@ def test_a_complete_oversized_frame_is_refused_even_when_its_delimiter_arrives_l
     observer.feed(b"x" * 100_000)
     with pytest.raises(tt.ObservationBudgetExceeded):
         observer.feed(b"x" * 100_000 + b'"}}]}\n\n')
+    assert marks == []
+
+
+@pytest.mark.parametrize(
+    "chunks",
+    [
+        [b":" + b"x" * 200_000, b"x" * 100_000 + b"\n\n"],
+        [b"event: " + b"x" * 200_000, b"x" * 100_000 + b"\n\n"],
+    ],
+)
+def test_a_complete_oversized_comment_or_ignored_field_line_is_refused(chunks) -> None:
+    marks: list[str] = []
+    observer = tt._SseObserver(None, marks.append)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        for chunk in chunks:
+            observer.feed(chunk)
     assert marks == []
 
 

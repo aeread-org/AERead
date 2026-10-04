@@ -59,6 +59,8 @@ MAX_LINES_PER_CHUNK = 2_000
 MAX_FRAME_BUFFER = 262_144
 # Records the writer takes per pass before it writes them out and heartbeats.
 DRAIN_BATCH = 1_000
+# ... and the wall-clock share of one pass, so a slow disk cannot starve the loop.
+DRAIN_BATCH_SECONDS = 0.05
 # major.minor families the trace-extension names, the wrapper class and the tee were
 # checked on; a patch release inside a family keeps telemetry on.
 SUPPORTED_VERSIONS = (("openai", "2.53"), ("httpx", "0.28"), ("httpcore", "1.0"))
@@ -309,14 +311,25 @@ class _Runtime:
     def _drain(self) -> None:
         batch: dict[Path, list[str]] = {}
         taken = 0
-        # A bounded pass: sustained producers cannot keep it from writing.
-        while self.queue and taken < DRAIN_BATCH:
+        started = time.monotonic()
+        # A bounded pass (count and elapsed time): sustained producers cannot keep
+        # it from writing.
+        while (
+            self.queue
+            and taken < DRAIN_BATCH
+            and (taken == 0 or time.monotonic() - started < DRAIN_BATCH_SECONDS)
+        ):
             try:
                 record = self.queue.popleft()
             except IndexError:  # shutdown cleared the queue under us
                 break
             taken += 1
             kind = record.get("_kind")
+            if kind in ("process", "hang"):
+                # Records already consumed reach their sidecars before any other
+                # filesystem work that may stall.
+                self._write_calls(batch)
+                batch = {}
             if kind == "process":
                 self._process_record(record["event"], **record["fields"])
                 continue
@@ -331,6 +344,9 @@ class _Runtime:
             batch.setdefault(self._call_path(record), []).append(
                 json.dumps(record, sort_keys=True, default=str)
             )
+        self._write_calls(batch)
+
+    def _write_calls(self, batch: Mapping[Path, list[str]]) -> None:
         for path, lines in batch.items():
             path.parent.mkdir(parents=True, exist_ok=True)
             fresh = not path.exists()
@@ -732,6 +748,9 @@ class _SseObserver:
             raise ObservationBudgetExceeded("frame buffer")
 
     def _line(self, line: str) -> None:
+        # Every accumulated line counts, comments and ignored fields included.
+        if len(line.encode("utf-8")) + self._data_size > MAX_FRAME_BUFFER:
+            raise ObservationBudgetExceeded("frame buffer")
         if not line:
             self._dispatch()
         elif line.startswith(":"):
