@@ -197,7 +197,7 @@ def _read_attempt(log: Path, failures: list[dict[str, Any]]) -> dict[str, Any]:
     sealed = os.path.lexists(root / _SEAL_NAME)
     audited = _audit_passes(root)
     labels = sorted(
-        ({"unaudited"} if not audited else set())
+        ({"unaudited"} if not (sealed and audited) else set())
         | ({"incomplete"} if issues else set())
     )
     return {
@@ -267,14 +267,29 @@ def _judge_call(
             unobservable = True
     if delta_seen:
         return None
-    anchor = next(
-        (r for r in reversed(records) if r["event"] == phase), records[-1]
+    anchor_at = next(
+        (i for i in range(len(records) - 1, -1, -1) if names[i] == phase), len(records) - 1
     )
-    # The call never finished, so its own last record says nothing about how long it
-    # waited: measure to the latest wall-clock record of its session (heartbeats
-    # included), and say unknown when nothing later than the anchor was observed.
+    anchor = records[anchor_at]
     started = _parse_wall(anchor.get("wall"))
-    if started is not None and horizon is not None and horizon > started:
+    # A call that ended in a failure or a close stops at that event; only an
+    # unfinished call has no end of its own and is measured to the latest
+    # wall-clock record of its session (heartbeats included).
+    end = next(
+        (
+            r
+            for n, r in zip(names[anchor_at + 1 :], records[anchor_at + 1 :])
+            if n.endswith(".failed") or n.rpartition(".")[0].endswith("response_closed")
+        ),
+        None,
+    )
+    if end is not None:
+        ended_at = _parse_wall(end.get("wall"))
+        if started is not None and ended_at is not None and ended_at >= started:
+            duration, basis = round((ended_at - started).total_seconds(), 3), "failure"
+        else:
+            duration, basis = None, "unknown"
+    elif started is not None and horizon is not None and horizon > started:
         duration, basis = round((horizon - started).total_seconds(), 3), "session_horizon"
     else:
         duration, basis = None, "unknown"

@@ -250,8 +250,9 @@ def test_a_log_written_by_the_kernel_is_counted_with_its_seat(tmp_path: Path) ->
     (seat,) = report["by_seat"]
     assert seat and report["by_seat"][seat] == 1
     (attempt,) = report["attempts"]
-    # Unsealed (an interrupted run), but the kernel audit verifies its event chain.
-    assert attempt["labels"] == [] and attempt["audited"] and not attempt["sealed"]
+    # Unsealed (an interrupted run): the chain audits, but only a seal clears `unaudited`.
+    assert attempt["labels"] == ["unaudited"] and not attempt["sealed"]
+    assert attempt["audited"] is True  # chain audit is a separate fact from the label
 
 
 def _kernel_attempt(tmp_path: Path, name: str, *, seal: bool) -> Path:
@@ -389,6 +390,19 @@ def test_a_stalled_call_is_measured_to_the_session_observation_horizon(tmp_path:
     assert hang["duration_seconds"] == 40.25 and hang["duration_basis"] == "session_horizon"
 
 
+def test_a_call_that_failed_ends_at_its_failure_not_at_the_session_horizon(tmp_path: Path) -> None:
+    calls = [_call_record(STALL[0], "2026-10-04T09:00:00Z"),
+             _call_record(STALL[1], "2026-10-04T09:00:00Z"),
+             _call_record(STALL[2], "2026-10-04T09:00:00Z"),
+             _call_record("http11.receive_response_headers.failed", "2026-10-04T09:00:01Z"),
+             _call_record("http11.response_closed.started", "2026-10-04T09:00:02Z")]
+    process = [_proc("session_start", "2026-10-04T08:59:00Z"),
+               _proc("heartbeat", "2026-10-04T09:01:00Z")]
+    _telemetry_files(tmp_path, calls, process)
+    (hang,) = _census([], [tmp_path])["hang_candidates"]
+    assert hang["duration_seconds"] == 1.0 and hang["duration_basis"] == "failure"
+
+
 def test_a_stall_with_no_later_observation_has_an_unknown_duration(tmp_path: Path) -> None:
     calls = [_call_record(n, "2026-10-04T09:00:00Z") for n in STALL]
     _telemetry_files(tmp_path, calls, [_proc("session_start", "2026-10-04T08:59:00Z")])
@@ -500,7 +514,16 @@ def test_stalls_from_the_real_writer_are_hang_candidates_with_phase_and_duration
     assert by_call["call_1"]["status"] == "stalled_before_first_delta"
     assert by_call["call_2"]["phase"] == BODY_PHASE
     assert by_call["call_2"]["status"] == "stalled_before_first_delta"
-    assert 0.2 < by_call["call_1"]["duration_seconds"] < 3.0
+    calls, _, _ = provider_failures._read_telemetry(telemetry_dir)
+    walls = {
+        r["event"]: provider_failures._parse_wall(r["wall"])
+        for r in calls
+        if r["provider_call_id"] == "call_1" and r["execution_id"] == by_call["call_1"]["execution_id"]
+    }
+    started = walls[HEADERS_PHASE]
+    ended = walls["http11.receive_response_headers.failed"]
+    assert by_call["call_1"]["duration_seconds"] == round((ended - started).total_seconds(), 3)
+    assert by_call["call_1"]["duration_basis"] == "failure"
 
 
 def test_a_budget_disabled_stream_then_a_stall_is_progress_unknown(telemetry_dir: Path) -> None:
