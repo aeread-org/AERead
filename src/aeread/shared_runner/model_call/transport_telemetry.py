@@ -69,6 +69,9 @@ class CallScope:
     run_plan_id: str
     cell_id: str
     episode_attempt_id: str
+    # Telemetry-only, minted per `execute_plan_cell` entry: the same cell run
+    # twice in one process must not share a sidecar. Kernel ids are unchanged.
+    execution_id: str = ""
     provider_call_id: str | None = None
     route_provider: str | None = None
     quantization: str | None = None
@@ -89,7 +92,13 @@ def current_scope() -> CallScope | None:
 def bind_cell_scope(
     *, run_plan_id: str, cell_id: str, episode_attempt_id: str
 ) -> Iterator[None]:
-    token = _SCOPE.set(CallScope(run_plan_id, cell_id, episode_attempt_id))
+    if get_runtime() is None:
+        # Off path: touch nothing, so it stays identical to a build without telemetry.
+        yield
+        return
+    token = _SCOPE.set(
+        CallScope(run_plan_id, cell_id, episode_attempt_id, uuid.uuid4().hex)
+    )
     try:
         yield
     finally:
@@ -160,6 +169,7 @@ class _Runtime:
             "unscoped_calls": 0,
             "writer_disabled": 0,
         }
+        self._producer_lock = threading.Lock()
         self.credential_fps: set[str] = set()
         self.samplers: dict[Any, asyncio.Task[None]] = {}
         self._hang_ids = itertools.count(1)
@@ -179,15 +189,27 @@ class _Runtime:
     def count(self, name: str) -> None:
         self.counters[name] += 1
 
+    def _enqueue(self, item: dict[str, Any]) -> None:
+        """Bounded append: the length check and append are one step, and a
+        producer that finds the lock held drops and counts instead of waiting."""
+
+        if not self._producer_lock.acquire(blocking=False):
+            self.count("telemetry_dropped")
+            return
+        try:
+            if len(self.queue) >= QUEUE_LIMIT:
+                self.count("telemetry_dropped")
+            else:
+                self.queue.append(item)
+        finally:
+            self._producer_lock.release()
+
     def emit(self, scope: CallScope, event: str, fields: Mapping[str, Any]) -> None:
         if self.disabled:
             return
-        if len(self.queue) >= QUEUE_LIMIT:
-            self.count("telemetry_dropped")
-            return
         if scope.credential_fp:
             self.credential_fps.add(scope.credential_fp)
-        self.queue.append(
+        self._enqueue(
             {
                 **dataclasses.asdict(scope),
                 "pid": os.getpid(),
@@ -204,21 +226,15 @@ class _Runtime:
 
         if self.disabled:
             return
-        if len(self.queue) >= QUEUE_LIMIT:
-            self.count("telemetry_dropped")
-            return
-        self.queue.append({"_kind": "process", "event": event, "fields": fields})
+        self._enqueue({"_kind": "process", "event": event, "fields": fields})
 
     def emit_hang(self, scope: CallScope, text: str) -> None:
         """Hand a hang snapshot to the writer as `hang_<n>.txt` in the session dir."""
 
         if self.disabled:
             return
-        if len(self.queue) >= QUEUE_LIMIT:
-            self.count("telemetry_dropped")
-            return
         name = f"hang_{next(self._hang_ids)}.txt"
-        self.queue.append(
+        self._enqueue(
             {
                 "_kind": "hang",
                 "file": name,
@@ -248,7 +264,7 @@ class _Runtime:
             self.session_dir
             / str(record["run_plan_id"])
             / str(record["cell_id"])
-            / f"{record['episode_attempt_id']}.transport.jsonl"
+            / f"{record['episode_attempt_id']}.{record['execution_id']}.transport.jsonl"
         )
 
     def _drain(self) -> None:

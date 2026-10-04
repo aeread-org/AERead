@@ -211,6 +211,7 @@ def test_execute_plan_cell_binds_the_cell_scope_around_the_episode(
     from aeread_families.single_offer.runner import FixedResponseProvider
 
     seen: list[Any] = []
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
 
     class ScopeProbe(FixedResponseProvider):
         async def complete(self, request):
@@ -236,6 +237,7 @@ def test_execute_plan_cell_binds_the_cell_scope_around_the_episode(
     assert scope.run_plan_id == setup.plan.run_plan_id
     assert scope.cell_id == setup.plan.cells[0].cell_id
     assert scope.episode_attempt_id == execution_result.episode_attempt_id
+    assert len(scope.execution_id) == 32
     assert tt.current_scope() is None, "the token is reset after the episode"
 
 
@@ -309,7 +311,10 @@ def test_the_sidecar_has_a_header_line_and_the_process_sidecar_a_session_start(
     _records(tmp_path, wanted=1)
     session_dir = tmp_path / tt.HIDDEN_DIRNAME / tt.SESSION_ID
     (sidecar,) = session_dir.rglob("*.transport.jsonl")
-    assert sidecar == session_dir / "plan_x" / "cell_x" / "attempt_x.transport.jsonl"
+    assert sidecar.parent == session_dir / "plan_x" / "cell_x"
+    assert sidecar.name.startswith("attempt_x.") and sidecar.name.endswith(".transport.jsonl")
+    execution_id = sidecar.name.split(".")[1]
+    assert len(execution_id) == 32
     header = json.loads(sidecar.read_text().splitlines()[0])
     assert header["schema"] == "aeread.transport_telemetry/0.2"
     assert header["pid"] == os.getpid() and header["session_id"] == tt.SESSION_ID
@@ -445,10 +450,9 @@ def test_two_processes_running_the_same_scope_write_separate_session_files(
     ]
     assert sessions[0] != sessions[1]
     for session in sessions:
-        sidecar = (
+        (sidecar,) = (
             tmp_path / tt.HIDDEN_DIRNAME / session / "plan_x" / "cell_x"
-            / "attempt_x.transport.jsonl"
-        )
+        ).glob("attempt_x.*.transport.jsonl")
         events = [json.loads(l)["event"] for l in sidecar.read_text().splitlines()[1:]]
         assert [e for e in events if e not in MARK_EVENTS] == EXPECTED_PHASES
 
@@ -486,7 +490,9 @@ def test_concurrent_cells_each_land_in_their_own_sidecar_with_their_own_ids(
     records = _records(tmp_path, wanted=4)
     session_dir = tmp_path / tt.HIDDEN_DIRNAME / tt.SESSION_ID
     for name in ("a", "b"):
-        sidecar = session_dir / f"plan_{name}" / f"cell_{name}" / f"attempt_{name}.transport.jsonl"
+        (sidecar,) = (session_dir / f"plan_{name}" / f"cell_{name}").glob(
+            f"attempt_{name}.*.transport.jsonl"
+        )
         mine = [json.loads(l) for l in sidecar.read_text().splitlines()[1:]]
         assert {r["provider_call_id"] for r in mine} == {f"call_{name}_0", f"call_{name}_1"}
         assert {(r["run_plan_id"], r["cell_id"], r["episode_attempt_id"]) for r in mine} == {
@@ -1455,3 +1461,89 @@ def test_two_consecutive_loops_each_start_and_cancel_their_own_sampler(
     assert len(seen) == 2 and seen[0] is not seen[1]
     assert all(task.cancelled() for task in seen)
     assert runtime.samplers == {}
+
+
+# --- M3 addendum: execution id, strict off path, atomic producer ---------------
+
+
+def _run_probe_cell(tmp_path: Path, seen: list[Any], evidence: str):
+    from aeread_families.single_offer.runner import FixedResponseProvider
+
+    class ScopeProbe(FixedResponseProvider):
+        async def complete(self, request):
+            seen.append(tt.current_scope())
+            return await super().complete(request)
+
+    setup = build_single_offer_smoke(
+        provider="fake", model="fake-model", revision="fixed-v1"
+    )
+    return asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / evidence,
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": ScopeProbe('{"offer":7}')},
+            pricing=setup.pricing,
+            harnesses=default_harnesses(),
+        )
+    )
+
+
+def test_two_executions_of_one_cell_in_one_process_get_distinct_execution_ids(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+    seen: list[Any] = []
+    _run_probe_cell(tmp_path, seen, "first")
+    _run_probe_cell(tmp_path, seen, "second")
+    first, second = seen
+    assert first.execution_id and second.execution_id
+    assert first.execution_id != second.execution_id
+    assert (first.run_plan_id, first.cell_id) == (second.run_plan_id, second.cell_id)
+
+
+def test_with_telemetry_off_no_scope_is_bound_in_an_episode_or_a_client_call(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.delenv(tt.ENV_DIR, raising=False)
+    seen: list[Any] = []
+    _run_probe_cell(tmp_path, seen, "off")
+    assert seen == [None]
+
+    with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+        assert tt.current_scope() is None
+        with tt.bind_call_scope(
+            provider_call_id="x", provider_metadata=None, credential_fp=None
+        ):
+            assert tt.current_scope() is None
+
+
+def test_a_producer_that_finds_the_lock_held_drops_and_counts_without_waiting(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+    runtime = tt.get_runtime()
+    scope = tt.CallScope("p", "c", "a", "e")
+    dropped = runtime.counters["telemetry_dropped"]
+    held = threading.Event()
+    release = threading.Event()
+
+    def holder() -> None:
+        with runtime._producer_lock:
+            held.set()
+            release.wait(5)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    assert held.wait(5)
+    before = len(runtime.queue)
+    started = time.monotonic()
+    runtime.emit(scope, "probe", {})
+    elapsed = time.monotonic() - started
+    release.set()
+    thread.join()
+    assert elapsed < 0.5
+    assert runtime.counters["telemetry_dropped"] == dropped + 1
+    assert len(runtime.queue) <= before
