@@ -1,8 +1,9 @@
-"""Opt-in transport telemetry, foundation slice (#226 S1, M1a).
+"""Opt-in transport telemetry, foundation and isolation slices (#226 S1, M1a/M1b).
 
 Real HTTP over loopback (tests/transport_responder.py), so httpcore emits real
 trace events.  Covers spec tests 1 (off-path parity), 2 (success phases and
-connection reuse), 10 (client lifecycle) and 11 (placement).
+connection reuse), 10 (client lifecycle) and 11 (placement); M1b adds the
+correlation (9) and isolation (8, minus the observation budget) tests.
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -448,3 +450,292 @@ def test_two_processes_running_the_same_scope_write_separate_session_files(
         )
         events = [json.loads(l)["event"] for l in sidecar.read_text().splitlines()[1:]]
         assert events == EXPECTED_PHASES
+
+
+# --- test 9: correlation across concurrent cells, rounds, cancellation -------
+
+
+def _cell(plan: str, cell: str, attempt: str):
+    return tt.bind_cell_scope(run_plan_id=plan, cell_id=cell, episode_attempt_id=attempt)
+
+
+def test_concurrent_cells_each_land_in_their_own_sidecar_with_their_own_ids(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+
+    async def one_cell(client, base_url, name: str) -> None:
+        with _cell(f"plan_{name}", f"cell_{name}", f"attempt_{name}"):
+            for index in range(2):
+                await client.complete(_request_for(base_url, f"call_{name}_{index}"))
+
+    async def main() -> None:
+        # Overlapping replies force the two cells' calls to interleave.
+        async with TransportResponder(
+            [json_reply(OPENROUTER_BODY, header_delay=0.05)]
+        ) as responder:
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            await asyncio.gather(
+                *(one_cell(client, responder.base_url, n) for n in ("a", "b"))
+            )
+            await client._client.close()
+
+    asyncio.run(main())
+    records = _records(tmp_path, wanted=4)
+    session_dir = tmp_path / tt.HIDDEN_DIRNAME / tt.SESSION_ID
+    for name in ("a", "b"):
+        sidecar = session_dir / f"plan_{name}" / f"cell_{name}" / f"attempt_{name}.transport.jsonl"
+        mine = [json.loads(l) for l in sidecar.read_text().splitlines()[1:]]
+        assert {r["provider_call_id"] for r in mine} == {f"call_{name}_0", f"call_{name}_1"}
+        assert {(r["run_plan_id"], r["cell_id"], r["episode_attempt_id"]) for r in mine} == {
+            (f"plan_{name}", f"cell_{name}", f"attempt_{name}")
+        }
+        assert [r["event"] for r in mine].count("http11.response_closed.complete") == 2
+    assert len(records) == sum(
+        len(path.read_text().splitlines()) - 1 for path in session_dir.rglob("*.transport.jsonl")
+    )
+
+
+def test_harness_rounds_keep_the_kernel_provider_call_ids(monkeypatch, tmp_path) -> None:
+    from aeread.shared_runner.model_call.harness import CanonicalMessage, KernelModelPort
+    from tests.test_shared_runner_harness import (
+        FAKE_PRICING,
+        SYSTEM_PROMPT,
+        _evidence,
+        _profile,
+    )
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+
+    class LiveProvider:
+        """The live client, pointed at the responder; keeps the port's call ids."""
+
+        def __init__(self, client, base_url: str) -> None:
+            self._client, self._base_url = client, base_url
+
+        async def complete(self, request):
+            # The port's request is a fake-provider one; keep only its call id.
+            return await self._client.complete(
+                _request_for(self._base_url, request.provider_call_id)
+            )
+
+    async def main() -> list[str]:
+        async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            port = KernelModelPort(
+                evidence=_evidence(tmp_path),
+                provider=LiveProvider(client, responder.base_url),
+                pricing=FAKE_PRICING,
+                profile=_profile(),
+                instructions=SYSTEM_PROMPT,
+                action_attempt_id="action_attempt_fixture",
+            )
+            ids = []
+            with _cell("plan_h", "cell_h", "attempt_h"):
+                for _ in range(3):
+                    turn = await port.complete(
+                        messages=(CanonicalMessage(role="user", content="hi"),),
+                        response_mode="text",
+                    )
+                    ids.append(turn.provider_call_id)
+            await client._client.close()
+            return ids
+
+    ids = asyncio.run(main())
+    assert len(set(ids)) == 3 and all(ids)
+    records = _records(tmp_path / "telemetry", wanted=3)
+    closed = [r["provider_call_id"] for r in records if r["event"] == "http11.response_closed.complete"]
+    assert closed == ids
+    assert {r["episode_attempt_id"] for r in records} == {"attempt_h"}
+
+
+def test_a_cancelled_call_resets_its_context_for_the_next_call(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    seen: list[Any] = []
+
+    async def main() -> None:
+        async with TransportResponder(
+            [Reply(header_delay=30.0), Reply(header_delay=30.0), json_reply(OPENROUTER_BODY)]
+        ) as responder:
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            with _cell("plan_c", "cell_c", "attempt_c"):
+                slow = asyncio.ensure_future(
+                    client.complete(_request_for(responder.base_url, "call_cancelled"))
+                )
+                await asyncio.sleep(0.2)
+                slow.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await slow
+                seen.append(tt.current_scope())
+                with pytest.raises(asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        client.complete(_request_for(responder.base_url, "call_timeout")), 0.05
+                    )
+                seen.append(tt.current_scope())
+                # The same task's next call carries only its own ids.
+                await client.complete(_request_for(responder.base_url, "call_next"))
+                seen.append(tt.current_scope())
+            await client._client.close()
+
+    asyncio.run(main())
+    for scope in seen:
+        assert scope.provider_call_id is None and scope.credential_fp is None
+        assert scope.cell_id == "cell_c"
+
+    records = _records(tmp_path, wanted=3)
+    nxt = [r for r in records if r["provider_call_id"] == "call_next"]
+    assert [r["event"] for r in nxt][-1] == "http11.response_closed.complete"
+    assert {r["provider_call_id"] for r in records} == {
+        "call_cancelled", "call_timeout", "call_next",
+    }
+
+
+def test_an_unscoped_call_beside_a_scoped_one_is_untraced_and_counted(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+
+    async def scoped(client, base_url) -> None:
+        with _cell("plan_s", "cell_s", "attempt_s"):
+            await client.complete(_request_for(base_url, "call_scoped"))
+
+    async def main() -> None:
+        async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            await asyncio.gather(
+                scoped(client, responder.base_url),
+                client.complete(_request_for(responder.base_url, "call_canary")),
+            )
+            await client._client.close()
+
+    asyncio.run(main())
+    records = _records(tmp_path, wanted=1)
+    assert {r["provider_call_id"] for r in records} == {"call_scoped"}
+    assert tt.get_runtime().counters["unscoped_calls"] == 1
+
+
+# --- test 8: isolation (observation budget lands with the tee in M2) ---------
+
+
+def _block_writer(monkeypatch) -> threading.Event:
+    """Make the writer thread's file work wait on an Event, as a hung disk would."""
+
+    release = threading.Event()
+    real = tt._Runtime._drain
+
+    def blocked(self) -> None:
+        release.wait(30)
+        real(self)
+
+    monkeypatch.setattr(tt._Runtime, "_drain", blocked)
+    return release
+
+
+def test_a_raising_trace_recorder_leaves_the_result_unchanged_and_is_counted(
+    monkeypatch, tmp_path
+) -> None:
+    script = [json_reply(OPENROUTER_BODY)]
+    _, off = _scoped_calls(script, ["c1"], env_dir=None, monkeypatch=monkeypatch)
+
+    def boom(self, scope, event, fields) -> None:
+        raise RuntimeError("recorder exploded")
+
+    monkeypatch.setattr(tt._Runtime, "emit", boom)
+    _, on = _scoped_calls(script, ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch)
+    assert on[0] == off[0]
+    assert tt.get_runtime().counters["telemetry_dropped"] >= len(EXPECTED_PHASES)
+
+
+@pytest.mark.parametrize("bad", ["relative/m1b_dir", "FILE_PARENT"])
+def test_an_unusable_directory_leaves_the_call_result_unchanged(
+    monkeypatch, tmp_path, capsys, bad
+) -> None:
+    if bad == "FILE_PARENT":
+        (tmp_path / "afile").write_text("x")
+        bad = str(tmp_path / "afile" / "sub")
+    script = [json_reply(OPENROUTER_BODY)]
+    _, off = _scoped_calls(script, ["c1"], env_dir=None, monkeypatch=monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.setenv(tt.ENV_DIR, bad)
+
+    async def main():
+        async with TransportResponder(script) as responder:
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            with _cell("plan_x", "cell_x", "attempt_x"):
+                result = await client.complete(_request_for(responder.base_url, "c1"))
+            await client._client.close()
+            return result
+
+    assert asyncio.run(main()) == off[0]
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == 1 and "telemetry disabled" in lines[0]
+
+
+def test_a_full_deque_drops_and_counts_without_touching_the_call(
+    monkeypatch, tmp_path
+) -> None:
+    script = [json_reply(OPENROUTER_BODY)]
+    _, off = _scoped_calls(script, ["c1"], env_dir=None, monkeypatch=monkeypatch)
+    release = _block_writer(monkeypatch)
+    monkeypatch.setattr(tt, "QUEUE_LIMIT", 1)
+    try:
+        _, on = _scoped_calls(script, ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch)
+        runtime = tt.get_runtime()
+        assert on[0] == off[0]
+        assert len(runtime.queue) == 1
+        assert runtime.counters["telemetry_dropped"] == len(EXPECTED_PHASES) - 1
+    finally:
+        release.set()
+
+
+def test_a_blocked_writer_does_not_delay_a_call(monkeypatch, tmp_path) -> None:
+    script = [json_reply(OPENROUTER_BODY)]
+    _scoped_calls(script, ["warm"], env_dir=None, monkeypatch=monkeypatch)
+    release = _block_writer(monkeypatch)
+    try:
+        started = time.monotonic()
+        _scoped_calls(script, ["c1"] * 5, env_dir=tmp_path, monkeypatch=monkeypatch)
+        elapsed = time.monotonic() - started
+    finally:
+        release.set()
+    # The writer is stuck for up to 30 s; five calls still finish within a margin.
+    assert elapsed < 2.0
+
+
+_BLOCKED_CHILD = """
+import asyncio, threading, time
+from aeread.shared_runner.model_call import transport_telemetry as tt
+tt._Runtime._drain = lambda self: threading.Event().wait()
+from aeread.shared_runner.task.execution import OpenRouterChatClient
+from tests.test_transport_telemetry import OPENROUTER_BODY, _request_for
+from tests.transport_responder import TransportResponder, json_reply
+
+async def main():
+    async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
+        client = OpenRouterChatClient(base_url=responder.base_url)
+        with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+            await client.complete(_request_for(responder.base_url))
+asyncio.run(main())
+print(time.time(), flush=True)
+"""
+
+
+def test_a_subprocess_whose_writer_is_blocked_still_exits_promptly(tmp_path) -> None:
+    env = {
+        **os.environ,
+        "PYTHONPATH": f"{REPO_ROOT / 'src'}{os.pathsep}{REPO_ROOT}",
+        "OPENROUTER_API_KEY": "sk-test-key",
+        tt.ENV_DIR: str(tmp_path),
+    }
+    completed = subprocess.run(
+        [sys.executable, "-c", _BLOCKED_CHILD],
+        cwd=REPO_ROOT, env=env, capture_output=True, text=True, timeout=60, check=True,
+    )
+    exit_lag = time.time() - float(completed.stdout.strip().splitlines()[-1])
+    assert exit_lag < 5.0, f"interpreter exit took {exit_lag:.1f}s with a blocked writer"
