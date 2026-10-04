@@ -142,6 +142,6 @@ Each slice starts with a spec that is reviewed before implementation. Each is ve
 **The S1 specification** went through three rounds: 11, 7 and 5 findings. One round was answered by removing mechanisms rather than adding them: a watchdog thread and a `faulthandler` dump, which could block the interpreter.
 
 **The S1 implementation** went through four rounds: 15, 11, 4 and 1 findings. Three were declined, each with a recorded reason:
-- an exact patch-version pin, because telemetry gates on the `major.minor` family;
+- an exact patch-version pin. A later change removed version gating altogether: CI installs openai 3.x, which moved from httpx/httpcore to httpx2/httpcore2. Telemetry now resolves whichever pair the installed SDK uses and gates on capabilities, not version numbers. Its tests run under both openai 2.53 and 3.24, on Python 3.10, 3.11 and 3.12;
 - a cold-import concern, because the SDK's own default client already imports `httpcore` on the calling thread;
 - a family-level receipt fixture. It was first declined, then adopted, once it was shown that finalization depends on the runtime outcome.
