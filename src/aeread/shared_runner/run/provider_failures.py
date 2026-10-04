@@ -10,7 +10,8 @@ Read-only. It reads every ``attempts/*/events.jsonl`` with its own diagnostic
 reader instead of ``task/spend.py``'s, because that one raises on a torn line
 and a census must survive the logs an interrupted run leaves.  It keeps the
 payload checks of the spend reader: a payload must exist, match its event's
-``payload_sha256`` and parse as JSON.  A seal alone never makes a log audited.
+``payload_sha256`` and parse as JSON.  A log is `audited` only when ``EvidenceStore.audit_existing`` accepts it (event
+chain, and the seal when present); `sealed` is reported separately as a presence fact.
 """
 
 from __future__ import annotations
@@ -32,6 +33,44 @@ REPORT_SCHEMA = "aeread.provider_failures/0.1"
 
 _FAILURE_EVENTS = frozenset({"provider_call_failed", "provider_call_outcome_unknown"})
 _SEAL_NAME = "events.jsonl.sealed.json"
+_UNSET = "<unset>"
+
+
+def _text_or_none(value: Any) -> bool:
+    return value is None or isinstance(value, str)
+
+
+def _valid_event(event: Mapping[str, Any]) -> bool:
+    """Types of the evidence-event fields the census consumes."""
+
+    return isinstance(event.get("event_type"), str) and all(
+        _text_or_none(event.get(name)) for name in ("logical_action_id", "provider_call_id", "occurred_at")
+    )
+
+
+def _valid_telemetry_record(record: Mapping[str, Any]) -> bool:
+    """Types of the telemetry fields the census consumes (call and process records)."""
+
+    fps = record.get("credential_fps")
+    return (
+        isinstance(record.get("event"), str)
+        and all(_text_or_none(record.get(n)) for n in ("session_id", "execution_id", "provider_call_id", "cell_id", "wall"))
+        and (fps is None or (isinstance(fps, list) and all(isinstance(fp, str) for fp in fps)))
+    )
+
+
+def _route_key(request: Mapping[str, Any]) -> str:
+    """Provider/model plus the endpoint and pinned upstream; missing fields are explicit."""
+
+    metadata = request.get("provider_metadata")
+    metadata = metadata if isinstance(metadata, Mapping) else {}
+    fields = (
+        ("base_url", request.get("base_url")),
+        ("route_provider", metadata.get("route_provider")),
+        ("quantization", metadata.get("quantization")),
+    )
+    extra = " ".join(f"{name}={_UNSET if value in (None, '') else value}" for name, value in fields)
+    return f"{request.get('provider')}/{request.get('model')} {extra}"
 
 
 def read_jsonl(path: Path) -> tuple[list[dict[str, Any]], str | None]:
@@ -102,6 +141,18 @@ def _hour(occurred_at: Any) -> str:
     return occurred_at[:13] + "Z" if isinstance(occurred_at, str) and len(occurred_at) >= 13 else "unknown"
 
 
+def _audit_passes(root: Path) -> bool:
+    """True only when the kernel's own audit (event chain, and seal if present) accepts the log."""
+
+    from ..task.execution import EvidenceStore
+
+    try:
+        EvidenceStore.audit_existing(root)
+    except Exception:
+        return False
+    return True
+
+
 def _read_attempt(log: Path, failures: list[dict[str, Any]]) -> dict[str, Any]:
     root = log.parent
     events, problem = read_jsonl(log)
@@ -110,6 +161,9 @@ def _read_attempt(log: Path, failures: list[dict[str, Any]]) -> dict[str, Any]:
     routes: dict[str, str] = {}
     pending: list[dict[str, Any]] = []
     for event in events:
+        if not _valid_event(event):
+            issues.append("corrupt_record")
+            continue
         payload, payload_problem = _payload_of(root, event)
         if payload_problem:
             # The event is left out of the counts; the attempt is incomplete.
@@ -125,7 +179,7 @@ def _read_attempt(log: Path, failures: list[dict[str, Any]]) -> dict[str, Any]:
             request = payload.get("request")
             call = event.get("provider_call_id")
             if isinstance(request, Mapping) and call:
-                routes[call] = f"{request.get('provider')}/{request.get('model')}"
+                routes[call] = _route_key(request)
         elif kind in _FAILURE_EVENTS and isinstance(payload, Mapping):
             pending.append({"event": event, "payload": payload})
     for item in pending:
@@ -141,13 +195,15 @@ def _read_attempt(log: Path, failures: list[dict[str, Any]]) -> dict[str, Any]:
             }
         )
     sealed = os.path.lexists(root / _SEAL_NAME)
+    audited = _audit_passes(root)
     labels = sorted(
-        ({"unaudited"} if not sealed else set())
+        ({"unaudited"} if not audited else set())
         | ({"incomplete"} if issues else set())
     )
     return {
         "attempt": str(log.parent),
         "sealed": sealed,
+        "audited": audited,
         "labels": labels,
         "issues": sorted(set(issues)),
     }
@@ -173,7 +229,13 @@ def _read_telemetry(directory: Path) -> tuple[list[dict[str, Any]], list[dict[st
         else:
             continue
         records, problem = read_jsonl(path)
-        target.extend(r for r in records if "event" in r)
+        for record in records:
+            if "event" not in record:
+                continue
+            if not _valid_telemetry_record(record):
+                problem = "corrupt"  # the rest of this file is not trusted; other files are read
+                break
+            target.append(record)
         if problem:
             files.append({"file": str(path), "issue": problem})
     return calls, process, files
@@ -187,7 +249,9 @@ def _call_key(record: Mapping[str, Any]) -> tuple[str, str, str]:
     )
 
 
-def _judge_call(key: tuple[str, str, str], records: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _judge_call(
+    key: tuple[str, str, str], records: list[dict[str, Any]], horizon: datetime | None = None
+) -> dict[str, Any] | None:
     """A hang candidate (or progress-unknown stall) for one call, else None."""
 
     names = [str(r["event"]) for r in records]
@@ -206,10 +270,14 @@ def _judge_call(key: tuple[str, str, str], records: list[dict[str, Any]]) -> dic
     anchor = next(
         (r for r in reversed(records) if r["event"] == phase), records[-1]
     )
-    try:
-        duration = round(float(records[-1]["mono"]) - float(anchor["mono"]), 3)
-    except (KeyError, TypeError, ValueError):
-        duration = None
+    # The call never finished, so its own last record says nothing about how long it
+    # waited: measure to the latest wall-clock record of its session (heartbeats
+    # included), and say unknown when nothing later than the anchor was observed.
+    started = _parse_wall(anchor.get("wall"))
+    if started is not None and horizon is not None and horizon > started:
+        duration, basis = round((horizon - started).total_seconds(), 3), "session_horizon"
+    else:
+        duration, basis = None, "unknown"
     return {
         "session_id": key[0],
         "execution_id": key[1],
@@ -217,15 +285,31 @@ def _judge_call(key: tuple[str, str, str], records: list[dict[str, Any]]) -> dic
         "cell_id": records[0].get("cell_id"),
         "phase": phase,
         "duration_seconds": duration,
+        "duration_basis": basis,
         "status": "stalled_progress_unknown" if unobservable else "stalled_before_first_delta",
     }
 
 
 def _parse_wall(value: Any) -> datetime | None:
+    """An aware timestamp, or None when missing, malformed or without a zone (not comparable)."""
+
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
+        when = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
         return None
+    return when if when.tzinfo is not None else None
+
+
+def _horizons(records: Sequence[Mapping[str, Any]]) -> dict[str, datetime]:
+    """Latest comparable wall-clock record per session."""
+
+    latest: dict[str, datetime] = {}
+    for record in records:
+        when = _parse_wall(record.get("wall"))
+        session = str(record.get("session_id"))
+        if when is not None and (session not in latest or when > latest[session]):
+            latest[session] = when
+    return latest
 
 
 def _sessions(process: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -294,10 +378,11 @@ def build_report(runs: Sequence[Path], telemetry: Sequence[Path]) -> dict[str, A
                 call_records.setdefault(_call_key(record), []).append(record)
         process.extend(proc)
         telemetry_issues.extend(issues)
+    horizons = _horizons([*process, *(r for records in call_records.values() for r in records)])
     hangs = [
         found
         for key, records in sorted(call_records.items())
-        if (found := _judge_call(key, records)) is not None
+        if (found := _judge_call(key, records, horizons.get(key[0]))) is not None
     ]
 
     def counted(field: str) -> dict[str, int]:
@@ -342,7 +427,8 @@ def render_text(report: Mapping[str, Any]) -> str:
     for hang in report["hang_candidates"]:
         lines.append(
             f"  {hang['status']} {hang['session_id']}/{hang['execution_id']}/{hang['provider_call_id']}"
-            f" phase={hang['phase']} duration={hang['duration_seconds']}s"
+            f" phase={hang['phase']} duration="
+            + (f"{hang['duration_seconds']}s" if hang["duration_seconds"] is not None else "unknown")
         )
     for issue in report["telemetry_issues"]:
         lines.append(f"telemetry {issue['issue']}: {issue['file']}")

@@ -79,14 +79,14 @@ def _event(attempt: Path, sequence: int, event_type: str, payload: Any, **ids: A
 
 def _failure_events(
     attempt: Path, *, start: int, condition: str, status: int | None, seat: str, model: str,
-    occurred_at: str = "2026-10-04T09:15:00.000000Z",
+    occurred_at: str = "2026-10-04T09:15:00.000000Z", request_extra: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     action, call = f"la{start}", f"call{start}"
     return [
         _event(attempt, start, "logical_action_started",
                {"profile_id": "p", "request": {"seat_id": seat}}, logical_action_id=action),
         _event(attempt, start + 1, "provider_call_started",
-               {"request": {"provider": "openrouter", "model": model}},
+               {"request": {"provider": "openrouter", "model": model, **(request_extra or {})}},
                logical_action_id=action, provider_call_id=call),
         _event(attempt, start + 2, "provider_call_failed",
                {"failure_condition": condition, "status_code": status},
@@ -154,25 +154,27 @@ def test_counts_by_condition_status_route_hour_and_seat(run_roots: list[Path]) -
     assert report["failures_total"] == 5
     assert report["by_failure_condition"] == {"provider_5xx": 4, "rate_limited": 1}
     assert report["by_status"] == {"429": 1, "502": 1, "503": 3}
-    assert report["by_route"] == {"openrouter/m1": 4, "openrouter/m2": 1}
+    unset = "base_url=<unset> route_provider=<unset> quantization=<unset>"
+    assert report["by_route"] == {f"openrouter/m1 {unset}": 4, f"openrouter/m2 {unset}": 1}
     assert report["by_hour"] == {"2026-10-04T09Z": 4, "2026-10-04T10Z": 1}
     assert report["by_seat"] == {"seat_a": 4, "seat_b": 1}
 
 
 def test_labels_distinguish_unaudited_truncated_and_corrupt_logs(run_roots: list[Path]) -> None:
     attempts = _by_name(_census(run_roots))
-    assert attempts["sealed_clean"]["labels"] == [] and attempts["sealed_clean"]["sealed"]
+    # The fixture's seal is `{}` and its event hashes are fake: present, but not audited.
+    assert attempts["sealed_clean"]["labels"] == ["unaudited"] and attempts["sealed_clean"]["sealed"]
     assert attempts["unsealed"]["labels"] == ["unaudited"]
-    assert attempts["torn_tail"]["labels"] == ["incomplete"]
+    assert attempts["torn_tail"]["labels"] == ["incomplete", "unaudited"]
     assert attempts["torn_tail"]["issues"] == ["truncated_tail"]
-    assert attempts["corrupt_line"]["labels"] == ["incomplete"]
+    assert attempts["corrupt_line"]["labels"] == ["incomplete", "unaudited"]
     assert attempts["corrupt_line"]["issues"] == ["corrupt"]
 
 
 def test_a_seal_alone_does_not_make_a_damaged_log_audited(run_roots: list[Path]) -> None:
     # torn_tail is sealed, yet it carries a label: sealed is a fact, not a verdict.
     torn = _by_name(_census(run_roots))["torn_tail"]
-    assert torn["sealed"] is True and torn["labels"] == ["incomplete"]
+    assert torn["sealed"] is True and torn["labels"] == ["incomplete", "unaudited"]
 
 
 @pytest.mark.parametrize(
@@ -215,7 +217,7 @@ def test_a_damaged_payload_is_reported_left_out_and_reading_continues(
         sealed=True,
     )
     report = _census([root, other])
-    assert _by_name(report)["damaged"]["labels"] == ["incomplete"]
+    assert _by_name(report)["damaged"]["labels"] == ["incomplete", "unaudited"]
     assert _by_name(report)["damaged"]["issues"] == [issue]
     # The damaged event is out of the counts; the next event and the next root are read.
     assert report["by_failure_condition"] == {"rate_limited": 1, "timeout": 1}
@@ -244,11 +246,174 @@ def test_a_log_written_by_the_kernel_is_counted_with_its_seat(tmp_path: Path) ->
     report = _census([tmp_path / "run"])
     assert report["by_failure_condition"] == {"provider_rejected": 1}
     assert report["by_status"] == {"400": 1}
-    assert report["by_route"] == {"fake/fake-model": 1}
+    assert report["by_route"] == {"fake/fake-model base_url=<unset> route_provider=<unset> quantization=<unset>": 1}
     (seat,) = report["by_seat"]
     assert seat and report["by_seat"][seat] == 1
     (attempt,) = report["attempts"]
-    assert attempt["labels"] == ["unaudited"]
+    # Unsealed (an interrupted run), but the kernel audit verifies its event chain.
+    assert attempt["labels"] == [] and attempt["audited"] and not attempt["sealed"]
+
+
+def _kernel_attempt(tmp_path: Path, name: str, *, seal: bool) -> Path:
+    """A completed single-offer attempt written by the kernel; optionally sealed by it."""
+
+    from aeread.shared_runner.task.execution import EvidenceStore  # noqa: F401
+    from aeread_families.single_offer.runner import FixedResponseProvider
+
+    setup = build_single_offer_smoke(provider="fake", model="fake-model", revision="fixed-v1")
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "run" / "attempts" / name,
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": FixedResponseProvider('{"offer":7}')},
+            pricing=setup.pricing,
+            harnesses=default_harnesses(),
+        )
+    )
+    if seal:
+        execution.evidence.seal()
+    return execution.evidence.root
+
+
+def test_only_a_log_the_kernel_audit_accepts_is_audited(tmp_path: Path) -> None:
+    good = _kernel_attempt(tmp_path, "good", seal=True)
+    tampered = _kernel_attempt(tmp_path, "tampered", seal=True)
+    (tampered / "events.jsonl.sealed.json").write_text("{}")  # present, but not this log's seal
+    by_dir = {a["attempt"]: a for a in _census([tmp_path / "run"])["attempts"]}
+    assert by_dir[str(good)]["labels"] == [] and by_dir[str(good)]["sealed"] and by_dir[str(good)]["audited"]
+    assert by_dir[str(tampered)]["labels"] == ["unaudited"]
+    assert by_dir[str(tampered)]["sealed"] and not by_dir[str(tampered)]["audited"]
+
+
+def test_a_chain_broken_after_sealing_is_unaudited(tmp_path: Path) -> None:
+    broken = _kernel_attempt(tmp_path, "broken", seal=True)
+    log = broken / "events.jsonl"
+    lines = log.read_bytes().splitlines(keepends=True)
+    record = json.loads(lines[0])
+    record["event_hash"] = "0" * 64
+    log.write_bytes(json.dumps(record).encode() + b"\n" + b"".join(lines[1:]))
+    (attempt,) = _census([tmp_path / "run"])["attempts"]
+    assert attempt["labels"] == ["unaudited"] and attempt["sealed"]
+
+
+@pytest.mark.parametrize("field", ["event_type", "logical_action_id", "provider_call_id", "occurred_at"])
+def test_a_wrongly_typed_event_field_is_corrupt_and_reading_continues(tmp_path: Path, field: str) -> None:
+    bad_root, other = tmp_path / "bad", tmp_path / "other"
+    attempt = bad_root / "attempts" / "bad"
+    events = _failure_events(attempt, start=1, condition="provider_5xx", status=503, seat="seat_a", model="m1")
+    events += _failure_events(attempt, start=11, condition="rate_limited", status=429, seat="seat_a", model="m1")
+    events[1][field] = []  # the first provider_call_started: valid payload, list-valued field
+    _write_attempt(bad_root, "bad", events, sealed=False)
+    _write_attempt(
+        other, "fine",
+        _failure_events(other / "attempts" / "fine", start=1, condition="timeout", status=None,
+                        seat="seat_c", model="m3"),
+        sealed=False,
+    )
+    report = _census([bad_root, other])
+    assert "corrupt_record" in _by_name(report)["bad"]["issues"]
+    assert "incomplete" in _by_name(report)["bad"]["labels"]
+    assert report["by_failure_condition"]["timeout"] == 1  # the next root was read
+
+
+def _telemetry_files(
+    directory: Path, calls: list[dict[str, Any]], process: list[dict[str, Any]], name: str = "s1"
+) -> None:
+    session = directory / name
+    session.mkdir(parents=True)
+    (session / "x.transport.jsonl").write_text("".join(json.dumps(r) + "\n" for r in calls))
+    (session / "process.jsonl").write_text("".join(json.dumps(r) + "\n" for r in process))
+
+
+def _call_record(event: str, wall: str, **extra: Any) -> dict[str, Any]:
+    return {"session_id": "s1", "execution_id": "x1", "provider_call_id": "c1", "cell_id": "cell",
+            "event": event, "wall": wall, "mono": 1.0, **extra}
+
+
+def _proc(event: str, wall: str, **extra: Any) -> dict[str, Any]:
+    return {"session_id": "s1", "event": event, "wall": wall, "credential_fps": [], **extra}
+
+
+STALL = ["http11.send_request_headers.started", "http11.send_request_headers.complete",
+         "http11.receive_response_headers.started"]
+
+
+def test_a_wrongly_typed_telemetry_record_is_corrupt_for_its_file_only(tmp_path: Path) -> None:
+    bad = [_call_record(STALL[0], "2026-10-04T09:00:00Z"), _call_record("x", "2026-10-04T09:00:01Z")]
+    bad[1]["event"] = []
+    _telemetry_files(tmp_path, bad, [_proc("session_start", "2026-10-04T09:00:00Z")])
+    good = [_call_record(n, f"2026-10-04T09:00:0{i}Z", provider_call_id="c2") for i, n in enumerate(STALL)]
+    for r in good:
+        r["session_id"] = "s2"
+    _telemetry_files(tmp_path, good, [], name="s2")
+    report = _census([], [tmp_path])
+    issues = [i["issue"] for i in report["telemetry_issues"]]
+    assert issues == ["corrupt"]
+    # The later file and its stall were still read.
+    assert "c2" in {h["provider_call_id"] for h in report["hang_candidates"]}
+
+
+def test_a_list_valued_telemetry_id_is_corrupt_not_a_crash(tmp_path: Path) -> None:
+    calls = [_call_record(n, "2026-10-04T09:00:00Z", provider_call_id=["c1"]) for n in STALL]
+    _telemetry_files(tmp_path, calls, [_proc("session_start", "2026-10-04T09:00:00Z", credential_fps="fp")])
+    report = _census([], [tmp_path])
+    assert {i["issue"] for i in report["telemetry_issues"]} == {"corrupt"}
+
+
+def test_mixed_naive_and_aware_timestamps_are_unknown_not_an_error(tmp_path: Path) -> None:
+    calls = [_call_record(n, "2026-10-04T09:00:00") for n in STALL]  # naive
+    process = [_proc("session_start", "2026-10-04T09:00:00Z", credential_fps=["fp"]),
+               _proc("heartbeat", "2026-10-04T09:00:30", credential_fps=["fp"]),  # naive
+               _proc("session_end", "2026-10-04T09:01:00Z", credential_fps=["fp"])]
+    _telemetry_files(tmp_path, calls, process)
+    other = [_proc("session_start", "2026-10-04T09:00:10Z", credential_fps=["fp"])]
+    other[0]["session_id"] = "s9"
+    (tmp_path / "s1" / "process.jsonl").write_text(
+        (tmp_path / "s1" / "process.jsonl").read_text() + "".join(json.dumps(r) + "\n" for r in other)
+    )
+    report = _census([], [tmp_path])
+    (hang,) = report["hang_candidates"]
+    assert hang["duration_seconds"] is None and hang["duration_basis"] == "unknown"
+
+
+def test_a_stalled_call_is_measured_to_the_session_observation_horizon(tmp_path: Path) -> None:
+    calls = [_call_record(n, "2026-10-04T09:00:00Z") for n in STALL]
+    process = [_proc("session_start", "2026-10-04T08:59:00Z"),
+               _proc("heartbeat", "2026-10-04T09:00:20.500000Z"),
+               _proc("heartbeat", "2026-10-04T09:00:40.250000Z")]
+    _telemetry_files(tmp_path, calls, process)
+    (hang,) = _census([], [tmp_path])["hang_candidates"]
+    assert hang["duration_seconds"] == 40.25 and hang["duration_basis"] == "session_horizon"
+
+
+def test_a_stall_with_no_later_observation_has_an_unknown_duration(tmp_path: Path) -> None:
+    calls = [_call_record(n, "2026-10-04T09:00:00Z") for n in STALL]
+    _telemetry_files(tmp_path, calls, [_proc("session_start", "2026-10-04T08:59:00Z")])
+    (hang,) = _census([], [tmp_path])["hang_candidates"]
+    assert hang["duration_seconds"] is None and hang["duration_basis"] == "unknown"
+    assert "duration=unknown" in provider_failures.render_text(_census([], [tmp_path]))
+
+
+def test_routes_differing_in_endpoint_or_pinned_upstream_are_separate_buckets(tmp_path: Path) -> None:
+    root = tmp_path / "run"
+    attempt = root / "attempts" / "a"
+    events: list[dict[str, Any]] = []
+    for start, extra in (
+        (1, {"base_url": "https://a.example/v1", "provider_metadata": {"route_provider": "p1", "quantization": "fp8"}}),
+        (11, {"base_url": "https://b.example/v1", "provider_metadata": {"route_provider": "p1", "quantization": "fp8"}}),
+        (21, {"base_url": "https://a.example/v1", "provider_metadata": {"route_provider": "p2", "quantization": "fp8"}}),
+        (31, {"base_url": "https://a.example/v1", "provider_metadata": {"route_provider": "p1", "quantization": "bf16"}}),
+        (41, {"base_url": "https://a.example/v1"}),
+    ):
+        events += _failure_events(attempt, start=start, condition="provider_5xx", status=503, seat="s",
+                                  model="m1", request_extra=extra)
+    _write_attempt(root, "a", events, sealed=False)
+    routes = _census([root])["by_route"]
+    assert len(routes) == 5 and set(routes.values()) == {1}
+    assert any("quantization=<unset>" in r and "route_provider=<unset>" in r for r in routes)
 
 
 # --- telemetry from the real writer -------------------------------------------
