@@ -17,6 +17,7 @@ component keeps publication from hashing them into a bundle manifest.
 from __future__ import annotations
 
 import atexit
+import codecs
 import collections
 import contextlib
 import contextvars
@@ -24,13 +25,15 @@ import dataclasses
 import hashlib
 import json
 import os
+import re
 import sys
 import threading
 import time
 import uuid
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator, Mapping
+from typing import Any, AsyncIterator, Callable, Iterator, Mapping
 
 ENV_DIR = "AEREAD_TRANSPORT_TELEMETRY_DIR"
 SCHEMA = "aeread.transport_telemetry/0.2"
@@ -40,6 +43,11 @@ POLL_SECONDS = 0.05
 HEARTBEAT_SECONDS = 30.0
 DRAIN_SECONDS = 2.0
 _ROUTE_FIELDS = ("route_provider", "quantization", "canonical_model")
+# Per-source-chunk observation budget (spec section 4): observing must not add
+# unbounded work or memory before the chunk is yielded.
+DECOMPRESS_LIMIT = 262_144
+MAX_LINES_PER_CHUNK = 2_000
+MAX_FRAME_BUFFER = 262_144
 
 # One random id per process: two processes running the same cell never share a file.
 SESSION_ID = uuid.uuid4().hex
@@ -298,7 +306,7 @@ class _CallTrace:
 
     def __init__(self, runtime: _Runtime, scope: CallScope) -> None:
         self._runtime = runtime
-        self._scope = scope
+        self.scope = scope
         self._connected = False
         self._reused: bool | str = "unknown"
 
@@ -323,9 +331,197 @@ class _CallTrace:
                 if status is not None:
                     fields["status"] = status
             fields["connection_reused"] = self._reused
-            self._runtime.emit(self._scope, name, fields)
+            self._runtime.emit(self.scope, name, fields)
         except Exception:
             self._runtime.count("telemetry_dropped")
+
+
+class ObservationBudgetExceeded(Exception):
+    """A chunk would cost more to observe than the per-chunk budget allows."""
+
+
+# Content-Encoding value -> zlib wbits; anything else is unobservable.
+_ZLIB_WBITS = {"": None, "identity": None, "gzip": 47, "x-gzip": 47, "deflate": 15}
+_LINE_BREAK = re.compile(r"\r\n|\n|\r")
+# Responses-API streaming events carry the channel in the event type instead.
+_RESPONSES_CHANNELS = {
+    "response.output_text.delta": "content",
+    "response.reasoning_summary_text.delta": "reasoning",
+    "response.reasoning_text.delta": "reasoning",
+    "response.function_call_arguments.delta": "tool_args",
+}
+
+
+def _nonempty(value: Any) -> bool:
+    return bool(value) and value != []
+
+
+def _delta_channels(payload: Any) -> list[str]:
+    """Channels in which one SSE data frame carries a non-empty value."""
+
+    if not isinstance(payload, dict):
+        return []
+    channel = _RESPONSES_CHANNELS.get(str(payload.get("type")))
+    if channel is not None:
+        return [channel] if _nonempty(payload.get("delta")) else []
+    found: list[str] = []
+    choices = payload.get("choices")
+    delta = choices[0].get("delta") if isinstance(choices, list) and choices else None
+    if not isinstance(delta, dict):
+        return found
+    if _nonempty(delta.get("content")):
+        found.append("content")
+    if any(
+        _nonempty(delta.get(key))
+        for key in ("reasoning", "reasoning_content", "reasoning_details")
+    ):
+        found.append("reasoning")
+    calls = delta.get("tool_calls")
+    if isinstance(calls, list) and any(
+        isinstance(call, dict)
+        and isinstance(call.get("function"), dict)
+        and _nonempty(call["function"].get("arguments"))
+        for call in calls
+    ):
+        found.append("tool_args")
+    return found
+
+
+class _SseObserver:
+    """Decode, frame and inspect a copy of the body; raises only on budget or bugs."""
+
+    def __init__(self, wbits: int | None, mark: Callable[[str], None]) -> None:
+        self._inflater = None if wbits is None else zlib.decompressobj(wbits)
+        # "replace": a malformed byte must not end observation of the stream.
+        self._text = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        self._mark = mark
+        self._buffer = ""
+        self._data: list[str] = []
+        self._data_size = 0
+
+    def feed(self, chunk: bytes) -> None:
+        data = chunk
+        if self._inflater is not None:
+            data = self._inflater.decompress(chunk, DECOMPRESS_LIMIT)
+            if self._inflater.unconsumed_tail:
+                raise ObservationBudgetExceeded("decompression")
+        self._buffer += self._text.decode(data)
+        # A trailing CR may be the first half of CRLF: hold it for the next chunk.
+        held = "\r" if self._buffer.endswith("\r") else ""
+        lines = _LINE_BREAK.split(self._buffer[: len(self._buffer) - len(held)])
+        self._buffer = lines.pop() + held
+        if len(lines) > MAX_LINES_PER_CHUNK:
+            raise ObservationBudgetExceeded("lines")
+        for line in lines:
+            self._line(line)
+        if len(self._buffer) + self._data_size > MAX_FRAME_BUFFER:
+            raise ObservationBudgetExceeded("frame buffer")
+
+    def _line(self, line: str) -> None:
+        if not line:
+            self._dispatch()
+        elif line.startswith(":"):
+            self._mark("keepalive")
+        elif line.startswith("data:"):
+            value = line[5:]
+            value = value[1:] if value.startswith(" ") else value
+            self._data.append(value)
+            self._data_size += len(value)
+
+    def _dispatch(self) -> None:
+        data, self._data, self._data_size = "\n".join(self._data), [], 0
+        if not data or data == "[DONE]":
+            return
+        try:
+            payload = json.loads(data)
+        except ValueError:
+            return
+        for channel in _delta_channels(payload):
+            self._mark(f"first_delta.{channel}")
+
+
+def _make_stream_class() -> type:
+    # httpx checks `isinstance(stream, AsyncByteStream)`; imported lazily so the
+    # telemetry-off path never pays for it.
+    import httpx
+
+    class ObservedStream(httpx.AsyncByteStream):
+        """Tee over the response's raw byte stream (an `httpx.AsyncByteStream`).
+
+        Every chunk is yielded exactly once, unmodified.  Observation works on the
+        chunk after it is held for yielding; its failures are caught and counted
+        and only switch observation off.  Source exceptions (including
+        `CancelledError`) pass through as the same object, and `aclose()` always
+        reaches the source.
+        """
+
+        def __init__(
+            self,
+            source: Any,
+            runtime: _Runtime,
+            scope: CallScope,
+            *,
+            sse: bool,
+            content_encoding: str,
+        ) -> None:
+            self._source = source
+            self._runtime = runtime
+            self._scope = scope
+            self._seen: set[str] = set()
+            self._observer: _SseObserver | None = None
+            if sse:
+                encodings = [e.strip().lower() for e in content_encoding.split(",")]
+                encoding = content_encoding.strip().lower()
+                if len(encodings) == 1 and encoding in _ZLIB_WBITS:
+                    self._observer = _SseObserver(_ZLIB_WBITS[encoding], self._mark)
+                else:
+                    self._emit("delta_marks", delta_marks=f"unobservable(encoding={encoding})")
+
+        def _emit(self, event: str, **fields: Any) -> None:
+            try:
+                self._runtime.emit(self._scope, event, fields)
+            except Exception:
+                self._runtime.count("telemetry_dropped")
+
+        def _mark(self, name: str) -> None:
+            if name not in self._seen:
+                self._seen.add(name)
+                self._emit(name)
+
+        def _observe(self, chunk: bytes) -> None:
+            if chunk:
+                self._mark("first_body_chunk")
+            if self._observer is None or not chunk:
+                return
+            try:
+                self._observer.feed(chunk)
+            except ObservationBudgetExceeded:
+                self._observer = None
+                self._emit("delta_marks", delta_marks="unobservable(budget)")
+            except Exception:
+                self._observer = None
+                self._runtime.count("observer_disabled")
+
+        async def __aiter__(self) -> AsyncIterator[bytes]:
+            async for chunk in self._source:
+                self._observe(chunk)
+                yield chunk
+            self._emit("last_chunk")
+
+        async def aclose(self) -> None:
+            await self._source.aclose()
+
+    return ObservedStream
+
+
+_STREAM_CLASS: type | None = None
+
+
+def observed_stream_class() -> type:
+    global _STREAM_CLASS
+    if _STREAM_CLASS is None:
+        _STREAM_CLASS = _make_stream_class()
+    return _STREAM_CLASS
 
 
 def _status_of(return_value: Any) -> int | None:
@@ -369,8 +565,22 @@ def _make_client_class() -> type:
                     runtime.count("telemetry_dropped")
 
             async def on_response(response: httpx.Response) -> None:
-                # Placeholder: the stream tee is installed here in M2.
-                return None
+                try:
+                    trace = response.request.extensions.get("trace")
+                    if not isinstance(trace, _CallTrace):
+                        return
+                    headers = response.headers
+                    response.stream = observed_stream_class()(
+                        response.stream,
+                        runtime,
+                        trace.scope,
+                        sse=headers.get("content-type", "")
+                        .lower()
+                        .startswith("text/event-stream"),
+                        content_encoding=headers.get("content-encoding", ""),
+                    )
+                except Exception:
+                    runtime.count("telemetry_dropped")
 
             hooks = kwargs.setdefault("event_hooks", {})
             hooks["request"] = [*hooks.get("request", []), on_request]
@@ -431,6 +641,7 @@ __all__ = [
     "credential_fp_if_enabled",
     "current_scope",
     "get_runtime",
+    "observed_stream_class",
     "sdk_client_kwargs",
     "telemetry_client_class",
     "telemetry_enabled",

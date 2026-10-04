@@ -270,9 +270,10 @@ def test_phases_appear_in_order_and_the_second_call_reuses_the_connection(
         call: [r for r in records if r["provider_call_id"] == call]
         for call in ("call_one", "call_two")
     }
-    first = [r["event"] for r in by_call["call_one"]]
+    # Tee marks (first_body_chunk, last_chunk) are checked in the M2 tests.
+    first = [r["event"] for r in by_call["call_one"] if r["event"] not in MARK_EVENTS]
     assert first == EXPECTED_PHASES
-    second = [r["event"] for r in by_call["call_two"]]
+    second = [r["event"] for r in by_call["call_two"] if r["event"] not in MARK_EVENTS]
     assert second == [e for e in EXPECTED_PHASES if not e.startswith("connection.connect_tcp")]
 
     def reuse(call: str) -> Any:
@@ -449,7 +450,7 @@ def test_two_processes_running_the_same_scope_write_separate_session_files(
             / "attempt_x.transport.jsonl"
         )
         events = [json.loads(l)["event"] for l in sidecar.read_text().splitlines()[1:]]
-        assert events == EXPECTED_PHASES
+        assert [e for e in events if e not in MARK_EVENTS] == EXPECTED_PHASES
 
 
 # --- test 9: correlation across concurrent cells, rounds, cancellation -------
@@ -689,7 +690,8 @@ def test_a_full_deque_drops_and_counts_without_touching_the_call(
         runtime = tt.get_runtime()
         assert on[0] == off[0]
         assert len(runtime.queue) == 1
-        assert runtime.counters["telemetry_dropped"] == len(EXPECTED_PHASES) - 1
+        # Every phase plus the two chunk marks of a JSON body, minus the one queued.
+        assert runtime.counters["telemetry_dropped"] == len(EXPECTED_PHASES) + 2 - 1
     finally:
         release.set()
 
@@ -739,3 +741,473 @@ def test_a_subprocess_whose_writer_is_blocked_still_exits_promptly(tmp_path) -> 
     )
     exit_lag = time.time() - float(completed.stdout.strip().splitlines()[-1])
     assert exit_lag < 5.0, f"interpreter exit took {exit_lag:.1f}s with a blocked writer"
+
+
+# --- M2: the stream tee (spec section 4; tests 5, 6, 7 and the budget case of 8) ---
+
+import gzip  # noqa: E402
+import zlib  # noqa: E402
+
+import httpx  # noqa: E402
+import openai  # noqa: E402
+
+from tests.transport_responder import (  # noqa: E402
+    SSE_DONE,
+    SSE_KEEPALIVE,
+    sse_reply,
+)
+
+MARK_EVENTS = {
+    "first_body_chunk",
+    "last_chunk",
+    "keepalive",
+    "first_delta.content",
+    "first_delta.reasoning",
+    "first_delta.tool_args",
+    "delta_marks",
+}
+
+
+def _chunk_obj(delta: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": "c1",
+        "object": "chat.completion.chunk",
+        "created": 1,
+        "model": "m",
+        "choices": [{"index": 0, "delta": delta, "finish_reason": None}],
+    }
+
+
+def _frame(delta: dict[str, Any]) -> bytes:
+    return b"data: " + json.dumps(_chunk_obj(delta), ensure_ascii=False).encode() + b"\n\n"
+
+
+TOOL_DELTA = {"tool_calls": [{"index": 0, "function": {"arguments": "{"}}]}
+
+
+def _bomb() -> bytes:
+    # ~50 MiB of zeros inflate from a few tens of KiB.
+    return gzip.compress(b"\0" * 50_000_000, 1)
+
+
+def _utf8_split() -> list[bytes]:
+    whole = _frame({"content": "café"})
+    cut = whole.index("é".encode()) + 1  # between the two bytes of the character
+    return [whole[:cut], whole[cut:], SSE_DONE]
+
+
+def _multiline_frame() -> bytes:
+    text = json.dumps(_chunk_obj({"content": "x"}), indent=1)
+    return ("".join(f"data: {line}\n" for line in text.splitlines()) + "\n").encode()
+
+
+_BODY = _frame({"content": "hi"})
+_DELAYS = (0, 0.05, 0.05, 0.05)
+# name -> (reply, marks the tee must record besides first_body_chunk and last_chunk)
+CASES: dict[str, tuple[Reply, set[str]]] = {
+    "keepalive_only": (sse_reply([SSE_KEEPALIVE, SSE_KEEPALIVE, SSE_DONE]), {"keepalive"}),
+    "content": (sse_reply([_frame({"content": "hi"}), SSE_DONE]), {"first_delta.content"}),
+    "reasoning": (
+        sse_reply([_frame({"reasoning": "think"}), SSE_DONE]),
+        {"first_delta.reasoning"},
+    ),
+    "tool_only": (sse_reply([_frame(TOOL_DELTA), SSE_DONE]), {"first_delta.tool_args"}),
+    "empty_then_content": (
+        sse_reply([_frame({"role": "assistant", "content": ""}), _BODY, SSE_DONE]),
+        {"first_delta.content"},
+    ),
+    "gzip": (
+        sse_reply([SSE_KEEPALIVE, _BODY, SSE_DONE], gzip=True),
+        {"keepalive", "first_delta.content"},
+    ),
+    "utf8_split": (
+        sse_reply(_utf8_split(), chunk_delays=_DELAYS),
+        {"first_delta.content"},
+    ),
+    "delimiter_split": (
+        sse_reply([_BODY[:-1], b"\n", SSE_DONE], chunk_delays=_DELAYS),
+        {"first_delta.content"},
+    ),
+    "crlf_split": (
+        sse_reply(
+            [_BODY[:-2].rstrip(b"\n") + b"\r", b"\n\r", b"\n", SSE_DONE],
+            chunk_delays=_DELAYS,
+        ),
+        {"first_delta.content"},
+    ),
+    "multiline_data": (sse_reply([_multiline_frame(), SSE_DONE]), {"first_delta.content"}),
+    "unknown_encoding": (
+        sse_reply([_BODY, SSE_DONE], headers={"Content-Encoding": "x-custom"}),
+        {"delta_marks"},
+    ),
+}
+
+
+async def _raw_read(base_url: str, **client_kwargs: Any):
+    """Read the raw body; returns (chunks, exception).  Telemetry follows the env."""
+
+    client = tt.build_http_client(**client_kwargs) or httpx.AsyncClient(**client_kwargs)
+    chunks: list[bytes] = []
+    error: BaseException | None = None
+    try:
+        with tt.bind_cell_scope(
+            run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+        ):
+            async with client.stream("POST", base_url + "/chat/completions") as response:
+                async for chunk in response.aiter_raw():
+                    chunks.append(chunk)
+    except Exception as exc:
+        error = exc
+    finally:
+        await client.aclose()
+    return chunks, error
+
+
+def _env(monkeypatch, directory: Path | None) -> None:
+    if directory is None:
+        monkeypatch.delenv(tt.ENV_DIR, raising=False)
+    else:
+        monkeypatch.setenv(tt.ENV_DIR, str(directory))
+
+
+def _off_and_on(reply: Reply, tmp_path: Path, monkeypatch, **client_kwargs: Any):
+    async def once():
+        async with TransportResponder([reply]) as responder:
+            return await _raw_read(responder.base_url, **client_kwargs)
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+    return off, on
+
+
+def _marks(directory: Path) -> list[dict[str, Any]]:
+    _records(directory, 1)  # wait for the writer to flush the call
+    return [r for r in _records(directory, 1) if r["event"] in MARK_EVENTS]
+
+
+def _mark_names(directory: Path) -> list[str]:
+    return [r["event"] for r in _marks(directory)]
+
+
+@pytest.mark.parametrize("name", sorted(CASES))
+def test_sse_bytes_and_marks(monkeypatch, tmp_path, name) -> None:
+    reply, expected = CASES[name]
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(reply, tmp_path, monkeypatch)
+    assert off_error is None and on_error is None
+    assert on_chunks == off_chunks  # same raw bytes, same chunking
+    marks = _mark_names(tmp_path)
+    assert set(marks) == {"first_body_chunk", "last_chunk"} | expected
+    if name != "unknown_encoding":  # its note is written when the stream opens
+        assert marks[0] == "first_body_chunk"
+    assert marks[-1] == "last_chunk"
+    assert len(marks) == len(set(marks))  # each mark once per stream
+    if name == "unknown_encoding":
+        (note,) = [r for r in _marks(tmp_path) if r["event"] == "delta_marks"]
+        assert note["delta_marks"] == "unobservable(encoding=x-custom)"
+    assert tt.get_runtime().counters["observer_disabled"] == 0
+
+
+@pytest.mark.parametrize("name", sorted(CASES))
+def test_sse_sdk_result_equals_telemetry_off(monkeypatch, tmp_path, name) -> None:
+    reply, _ = CASES[name]
+
+    async def once():
+        async with TransportResponder([reply]) as responder:
+            client = openai.AsyncOpenAI(
+                api_key="k",
+                base_url=responder.base_url,
+                max_retries=0,
+                **tt.sdk_client_kwargs(),
+            )
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                stream = await client.chat.completions.create(
+                    model="m", messages=[{"role": "user", "content": "x"}], stream=True
+                )
+                return [c.model_dump(mode="json") async for c in stream]
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+    assert on == off
+    assert off or name == "keepalive_only"  # the SDK yields nothing for keepalives
+
+
+def test_a_non_streamed_body_records_only_chunk_marks(monkeypatch, tmp_path) -> None:
+    _scoped_calls(
+        [json_reply(OPENROUTER_BODY)], ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch
+    )
+    assert _mark_names(tmp_path) == ["first_body_chunk", "last_chunk"]
+
+
+# --- test 6: mid-stream drop, early close, cancellation ----------------------
+
+
+def test_a_mid_stream_drop_delivers_the_same_bytes_and_error(monkeypatch, tmp_path) -> None:
+    reply = sse_reply([_BODY, _BODY, SSE_DONE], close_after_chunks=2, chunk_delays=_DELAYS)
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(reply, tmp_path, monkeypatch)
+    assert off_chunks and on_chunks == off_chunks
+    assert type(on_error) is type(off_error) is httpx.RemoteProtocolError
+    assert str(on_error) == str(off_error)
+    names = _mark_names(tmp_path)
+    assert "first_body_chunk" in names
+    assert "last_chunk" not in names  # the stream never ended
+
+
+def test_read_timeout_on_sse_stays_read_timeout(monkeypatch, tmp_path) -> None:
+    reply = sse_reply([_BODY, _BODY], chunk_delays=(0, 2.0))
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(
+        reply, tmp_path, monkeypatch, timeout=httpx.Timeout(5.0, read=0.3)
+    )
+    assert off_chunks == on_chunks == [_BODY]
+    assert type(on_error) is type(off_error) is httpx.ReadTimeout
+
+
+def test_a_non_streamed_timeout_is_the_same_api_timeout_error(monkeypatch, tmp_path) -> None:
+    async def once():
+        async with TransportResponder([json_reply({}, header_delay=2.0)]) as responder:
+            client = openai.AsyncOpenAI(
+                api_key="k",
+                base_url=responder.base_url,
+                max_retries=0,
+                timeout=0.3,
+                **tt.sdk_client_kwargs(),
+            )
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                with pytest.raises(openai.APITimeoutError) as caught:
+                    await client.chat.completions.create(
+                        model="m", messages=[{"role": "user", "content": "x"}]
+                    )
+            return caught.value
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+    assert type(on.__cause__) is type(off.__cause__) is httpx.ReadTimeout
+    assert str(on) == str(off)
+
+
+def test_an_early_close_delivers_the_first_chunk_once_and_closes_the_response(
+    monkeypatch, tmp_path
+) -> None:
+    async def once():
+        async with TransportResponder(
+            [sse_reply([_BODY, _BODY, SSE_DONE], chunk_delays=(0, 0.3, 0.3))]
+        ) as responder:
+            client = tt.build_http_client() or httpx.AsyncClient()
+            chunks: list[bytes] = []
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                async with client.stream("POST", responder.base_url + "/x") as response:
+                    async for chunk in response.aiter_raw():
+                        chunks.append(chunk)
+                        break
+            await client.aclose()
+            return chunks
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+    assert on == off == [_BODY]
+    names = [r["event"] for r in _records(tmp_path, 1)]
+    assert "http11.response_closed.complete" in names  # aclose reached the source
+    assert "last_chunk" not in names
+
+
+def test_cancellation_mid_stream_propagates_and_delivers_the_same_bytes(
+    monkeypatch, tmp_path
+) -> None:
+    async def once():
+        async with TransportResponder(
+            [sse_reply([_BODY, _BODY], chunk_delays=(0, 5.0))]
+        ) as responder:
+            client = tt.build_http_client() or httpx.AsyncClient()
+            chunks: list[bytes] = []
+            first = asyncio.Event()
+
+            async def reader():
+                with tt.bind_cell_scope(
+                    run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+                ):
+                    async with client.stream("POST", responder.base_url + "/x") as response:
+                        async for chunk in response.aiter_raw():
+                            chunks.append(chunk)
+                            first.set()
+
+            task = asyncio.ensure_future(reader())
+            await first.wait()
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            await client.aclose()
+            return chunks
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+    assert on == off == [_BODY]
+    assert "http11.response_closed.complete" in [r["event"] for r in _records(tmp_path, 1)]
+
+
+class _Source(httpx.AsyncByteStream):
+    """A scripted source stream that records how it is used."""
+
+    def __init__(self, chunks: list[bytes], raises: BaseException | None = None) -> None:
+        self._chunks = chunks
+        self._raises = raises
+        self.closed = 0
+
+    async def __aiter__(self):
+        for chunk in self._chunks:
+            yield chunk
+        if self._raises is not None:
+            raise self._raises
+
+    async def aclose(self) -> None:
+        self.closed += 1
+
+
+def _tee(tmp_path, monkeypatch, source, *, sse=True, encoding=""):
+    _env(monkeypatch, tmp_path)
+    runtime = tt.get_runtime()
+    scope = tt.CallScope("plan_x", "cell_x", "attempt_x", provider_call_id="c")
+    return tt.observed_stream_class()(source, runtime, scope, sse=sse, content_encoding=encoding), runtime
+
+
+@pytest.mark.parametrize(
+    "error", [RuntimeError("boom"), asyncio.CancelledError(), httpx.ReadTimeout("t")]
+)
+def test_the_tee_propagates_source_errors_as_the_same_object(
+    monkeypatch, tmp_path, error
+) -> None:
+    source = _Source([_BODY], raises=error)
+    stream, _ = _tee(tmp_path, monkeypatch, source)
+
+    async def drain():
+        seen = []
+        try:
+            async for chunk in stream:
+                seen.append(chunk)
+        except BaseException as caught:
+            return seen, caught
+        raise AssertionError("no error")
+
+    seen, caught = asyncio.run(drain())
+    assert caught is error
+    assert seen == [_BODY]
+
+    asyncio.run(stream.aclose())
+    assert source.closed == 1
+
+
+# --- test 7: observer failure after a chunk was consumed ---------------------
+
+
+def test_an_observer_failure_still_delivers_every_chunk_exactly_once(
+    monkeypatch, tmp_path
+) -> None:
+    calls = {"n": 0}
+    real = tt._SseObserver.feed
+
+    def flaky(self, chunk):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("observer bug")
+        return real(self, chunk)
+
+    chunks = [b"data: first\n\n", b"data: second\n\n", b"data: third\n\n"]
+    source = _Source(chunks)
+    stream, runtime = _tee(tmp_path, monkeypatch, source)
+    monkeypatch.setattr(tt._SseObserver, "feed", flaky)
+
+    async def drain():
+        out = [c async for c in stream]
+        await stream.aclose()
+        return out
+
+    before = runtime.counters["observer_disabled"]
+    assert asyncio.run(drain()) == chunks
+    assert runtime.counters["observer_disabled"] > before
+    assert calls["n"] == 2  # observation stayed off for the third chunk
+    assert source.closed == 1
+
+
+def test_an_observer_failure_over_http_leaves_bytes_and_chunk_marks(
+    monkeypatch, tmp_path
+) -> None:
+    reply = sse_reply([_BODY, _BODY, SSE_DONE], chunk_delays=_DELAYS)
+
+    async def off_run():
+        async with TransportResponder([reply]) as responder:
+            return await _raw_read(responder.base_url)
+
+    _env(monkeypatch, None)
+    off_chunks, _ = asyncio.run(off_run())
+
+    def broken(self, chunk):
+        raise RuntimeError("observer bug")
+
+    monkeypatch.setattr(tt._SseObserver, "feed", broken)
+    _env(monkeypatch, tmp_path)
+
+    async def once():
+        async with TransportResponder([reply]) as responder:
+            return await _raw_read(responder.base_url)
+
+    on_chunks, on_error = asyncio.run(once())
+    assert on_error is None and on_chunks == off_chunks
+    assert tt.get_runtime().counters["observer_disabled"] > 0
+    names = _mark_names(tmp_path)
+    assert names == ["first_body_chunk", "last_chunk"]
+
+
+# --- test 8 (budget): a bomb and many tiny frames stop observation, chunk unchanged ---
+
+
+def test_the_observer_refuses_a_gzip_bomb_before_inflating_it() -> None:
+    observer = tt._SseObserver(47, lambda name: None)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        observer.feed(_bomb())
+
+
+def test_the_observer_refuses_too_many_lines_and_an_unbounded_frame() -> None:
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        tt._SseObserver(None, lambda name: None).feed(b":\n" * (tt.MAX_LINES_PER_CHUNK + 1))
+    observer = tt._SseObserver(None, lambda name: None)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        observer.feed(b"data: " + b"x" * (tt.MAX_FRAME_BUFFER + 1))
+    # Exactly at the line budget is fine.
+    tt._SseObserver(None, lambda name: None).feed(b":\n" * tt.MAX_LINES_PER_CHUNK)
+
+
+@pytest.mark.parametrize(
+    "body, headers",
+    [
+        (_bomb(), {"Content-Encoding": "gzip"}),
+        (b":\n" * 5000, {}),
+        (b"data: " + b"x" * 300_000, {}),
+    ],
+    ids=["gzip_bomb", "many_tiny_frames", "huge_frame"],
+)
+def test_a_budget_breach_stops_observation_and_delivers_the_chunk_unchanged(
+    monkeypatch, tmp_path, body, headers
+) -> None:
+    reply = sse_reply([body, SSE_DONE], headers=headers)
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(reply, tmp_path, monkeypatch)
+    assert off_error is None and on_error is None
+    assert b"".join(on_chunks) == b"".join(off_chunks) == body + SSE_DONE
+    notes = [r for r in _marks(tmp_path) if r["event"] == "delta_marks"]
+    assert [n["delta_marks"] for n in notes] == ["unobservable(budget)"]
+    names = [r["event"] for r in _marks(tmp_path)]
+    assert names[0] == "first_body_chunk" and names[-1] == "last_chunk"
+    assert not any(n.startswith("first_delta") for n in names)
