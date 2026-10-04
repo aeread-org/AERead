@@ -2000,3 +2000,19 @@ def test_warmed_telemetry_overhead_smoke_guard(monkeypatch, tmp_path, kind) -> N
 
     added = asyncio.run(main())
     assert added < 0.005, f"median added latency {added * 1000:.2f} ms"
+
+
+def test_a_runtime_owned_by_another_pid_is_not_used_by_a_client_hook(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    runtime = tt.get_runtime()
+    runtime.pid = os.getpid() + 1  # as if inherited across a fork
+    started: list[Any] = []
+    monkeypatch.setattr(tt, "ensure_lag_sampler", lambda rt: started.append(rt))
+    script = [json_reply(OPENROUTER_BODY)]
+    _, on = _scoped_calls(script, ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch)
+    _, off = _scoped_calls(script, ["c1"], env_dir=None, monkeypatch=monkeypatch)
+    assert on[0] == off[0]
+    assert not started and not runtime.queue
+    assert runtime.counters["telemetry_dropped"] == 0
