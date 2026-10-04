@@ -89,6 +89,10 @@ class TransportResponder:
         self.connections += 1
         self._writers.add(writer)
         try:
+            if self._server is not None and not self._server.is_serving():
+                # Accepted just before __aexit__ but started after it collected
+                # the writers to close: close it here or wait_closed() hangs.
+                return
             while True:
                 head = await reader.readuntil(b"\r\n\r\n")
                 lines = head.decode("latin-1").split("\r\n")
