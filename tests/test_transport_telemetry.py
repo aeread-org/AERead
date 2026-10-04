@@ -2160,6 +2160,93 @@ def test_an_executor_action_through_a_live_adapter_is_byte_identical_off_and_on(
     assert _records(tmp_path / "telemetry", wanted=1)
 
 
+def _housing_body(output: dict[str, Any]) -> dict[str, Any]:
+    body = json.loads(json.dumps(OPENROUTER_BODY))
+    body["choices"][0]["message"]["content"] = json.dumps(output)
+    return body
+
+
+def test_a_live_adapter_cell_finalizes_to_identical_receipt_bytes_off_and_on(
+    monkeypatch, tmp_path
+) -> None:
+    """A Housing cell whose tenants are a live OpenRouterChatClient against the
+    local responder, run through `execute_plan_cell` and finalized to a receipt."""
+
+    from aeread_families.housing.runner import (
+        HousingScriptedLandlordProvider,
+        build_housing_smoke,
+        finalize_housing_execution,
+    )
+
+    _fixed_clock(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+    monkeypatch.delenv(tt.ENV_DIR, raising=False)
+    contact = json_reply(
+        _housing_body({"decision": "pass", "listing_id": None, "rent": None})
+    )
+    commit = json_reply(_housing_body({"decision": "pass", "hold_id": None}))
+
+    async def run(name: str, responder: TransportResponder):
+        from aeread.shared_runner.schemas import AgentProfile
+
+        original = AgentProfile.from_dict.__func__
+
+        def route_local(cls, value):
+            if value["model"]["provider"] == "openrouter":
+                value["model"]["base_url"] = responder.base_url  # sealed into the plan
+            return original(cls, value)
+
+        monkeypatch.setattr(AgentProfile, "from_dict", classmethod(route_local))
+        try:
+            setup = build_housing_smoke(
+                tenant_provider="openrouter",
+                tenant_model="deepseek/deepseek-v4-flash-0731",
+                tenant_revision="deepseek/deepseek-v4-flash-20260731",
+            )
+        finally:
+            monkeypatch.setattr(AgentProfile, "from_dict", classmethod(original))
+        client = OpenRouterChatClient(base_url=responder.base_url)
+        try:
+            cell = await execute_plan_cell(
+                plan=setup.plan,
+                cell_id=setup.plan.cells[0].cell_id,
+                registry=setup.registry,
+                evidence_root=tmp_path / name,
+                prompt_sources=setup.prompt_sources,
+                providers={
+                    "openrouter": client,
+                    "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+                },
+                pricing=setup.pricing,
+                episode_attempt_ordinal=0,
+            )
+        finally:
+            await client._client.close()
+        return setup, cell
+
+    async def both():
+        # One listener for both runs, as in the executor parity test.
+        async with TransportResponder([contact, contact, commit, commit] * 2) as responder:
+            off = await run("off", responder)
+            monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+            on = await run("on", responder)
+            return off, on, len(responder.requests)
+
+    (off_setup, off_cell), (on_setup, on_cell), request_count = asyncio.run(both())
+    assert request_count == 8
+    off_receipt = finalize_housing_execution(setup=off_setup, execution=off_cell)
+    on_receipt = finalize_housing_execution(setup=on_setup, execution=on_cell)
+
+    assert off_cell.evidence.events_path.stat().st_size > 0
+    assert off_cell.evidence.events_path.read_bytes() == on_cell.evidence.events_path.read_bytes()
+    assert off_cell.evidence.seal_path.read_bytes() == on_cell.evidence.seal_path.read_bytes()
+    off_bytes = (off_cell.evidence.root / "evaluation_receipt.json").read_bytes()
+    assert off_bytes
+    assert off_bytes == (on_cell.evidence.root / "evaluation_receipt.json").read_bytes()
+    assert off_receipt.receipt_sha256 == on_receipt.receipt_sha256
+    assert _records(tmp_path / "telemetry", wanted=4)
+
+
 # --- finding 14: warmed overhead smoke guard -----------------------------------
 
 
