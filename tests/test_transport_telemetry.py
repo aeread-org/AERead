@@ -1608,19 +1608,43 @@ def test_a_fifo_at_the_process_sidecar_blocks_neither_a_call_nor_interpreter_exi
 def test_building_the_runtime_touches_no_filesystem_on_the_calling_thread(
     monkeypatch, tmp_path
 ) -> None:
+    import builtins
+    import importlib.metadata
+    import io
+
+    import httpcore  # noqa: F401  (warm: the version gate reads imported modules)
+    import httpx  # noqa: F401
+    import openai  # noqa: F401
+
     caller = threading.get_ident()
     seen: list[int] = []
+    reads: list[str] = []
     real_mkdir = Path.mkdir
 
     def spy(self, *args, **kwargs):
         seen.append(threading.get_ident())
         return real_mkdir(self, *args, **kwargs)
 
+    def watch(label, real):
+        def inner(*args, **kwargs):
+            if threading.get_ident() == caller:
+                reads.append(label)
+            return real(*args, **kwargs)
+
+        return inner
+
     monkeypatch.setattr(Path, "mkdir", spy)
+    monkeypatch.setattr(importlib.metadata, "version", watch("metadata.version", importlib.metadata.version))
+    monkeypatch.setattr(builtins, "open", watch("builtins.open", builtins.open))
+    monkeypatch.setattr(io, "open", watch("io.open", io.open))
+    monkeypatch.setattr(Path, "read_bytes", watch("read_bytes", Path.read_bytes))
+    monkeypatch.setattr(Path, "read_text", watch("read_text", Path.read_text))
     monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "late"))
     runtime = tt.get_runtime()
+    monkeypatch.undo()
     runtime.shutdown()
     assert seen and caller not in seen
+    assert reads == []
     process = (runtime.session_dir / "process.jsonl").read_text().splitlines()
     assert [json.loads(line)["event"] for line in process] == ["session_start", "session_end"]
 
@@ -1785,6 +1809,9 @@ def test_stalled_phase_belongs_to_the_last_exchange() -> None:
         ({"openai": "2.54.0"}, 1),
         ({"httpx": "0.29.0"}, 1),
         ({"httpcore": "1.1.0"}, 1),
+        ({"openai": "2.53.9"}, 0),
+        ({"httpx": "0.28.9"}, 0),
+        ({"httpcore": "1.0.99"}, 0),
     ],
 )
 def test_an_unsupported_dependency_version_disables_telemetry_with_one_line(
@@ -1800,6 +1827,68 @@ def test_an_unsupported_dependency_version_disables_telemetry_with_one_line(
     assert len(lines) == stderr_lines
     if stderr_lines:
         assert "telemetry disabled" in lines[0] and next(iter(versions)) in lines[0]
+
+
+def test_a_non_string_version_disables_telemetry_with_one_line(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    monkeypatch.setattr(tt, "_installed_version", lambda name: None)
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    assert tt.get_runtime() is None
+    assert tt.get_runtime() is None
+    (line,) = capsys.readouterr().err.strip().splitlines()
+    assert "telemetry disabled" in line and "unavailable" in line
+
+
+def test_runtime_discovery_failing_never_reaches_the_cell_or_the_client(
+    monkeypatch, tmp_path
+) -> None:
+    def boom():
+        raise RuntimeError("discovery exploded")
+
+    monkeypatch.setattr(tt, "get_runtime", boom)
+    ran: list[Any] = []
+    with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+        ran.append(tt.current_scope())
+    assert ran == [None]
+    assert tt.build_http_client() is None
+    # The provider operation stays outside the catch.
+    with pytest.raises(ValueError, match="provider"):
+        with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+            raise ValueError("provider failed")
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs POSIX fork")
+def test_a_fork_whose_session_id_cannot_be_minted_leaves_a_disabled_unblocked_child(
+    monkeypatch, tmp_path
+) -> None:
+    import signal
+
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    assert tt.get_runtime() is not None
+
+    def boom(*args, **kwargs):
+        raise OSError("no entropy")
+
+    read_fd, write_fd = os.pipe()
+    monkeypatch.setattr(tt.uuid, "uuid4", boom)
+    with tt._RUNTIMES_LOCK:  # held across the fork
+        pid = os.fork()
+        if pid == 0:  # child: a block here is cut off by the alarm
+            code = 1
+            try:
+                signal.alarm(5)
+                os.close(read_fd)
+                os.write(write_fd, json.dumps({"runtime_is_none": tt.get_runtime() is None}).encode())
+                code = 0
+            finally:
+                os._exit(code)
+    os.close(write_fd)
+    data = os.read(read_fd, 4096)
+    os.close(read_fd)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    assert json.loads(data) == {"runtime_is_none": True}
 
 
 def test_a_complete_oversized_frame_is_refused_even_when_its_delimiter_arrives_last() -> None:

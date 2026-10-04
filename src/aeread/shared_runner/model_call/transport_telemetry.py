@@ -59,8 +59,9 @@ MAX_LINES_PER_CHUNK = 2_000
 MAX_FRAME_BUFFER = 262_144
 # Records the writer takes per pass before it writes them out and heartbeats.
 DRAIN_BATCH = 1_000
-# Versions the trace-extension names, the wrapper class and the tee were checked on.
-SUPPORTED_VERSIONS = (("openai", "2.53."), ("httpx", "0.28."), ("httpcore", "1.0."))
+# major.minor families the trace-extension names, the wrapper class and the tee were
+# checked on; a patch release inside a family keeps telemetry on.
+SUPPORTED_VERSIONS = (("openai", "2.53"), ("httpx", "0.28"), ("httpcore", "1.0"))
 
 # One random id per process: two processes running the same cell never share a file.
 SESSION_ID = uuid.uuid4().hex
@@ -96,16 +97,18 @@ def current_scope() -> CallScope | None:
 def bind_cell_scope(
     *, run_plan_id: str, cell_id: str, episode_attempt_id: str
 ) -> Iterator[None]:
-    if get_runtime() is None:
-        # Off path: touch nothing, so it stays identical to a build without telemetry.
-        yield
-        return
+    token = None
     try:  # fail open: a telemetry-only failure here must not touch the cell
-        token = _SCOPE.set(
-            CallScope(run_plan_id, cell_id, episode_attempt_id, uuid.uuid4().hex)
-        )
+        if get_runtime() is not None:
+            token = _SCOPE.set(
+                CallScope(run_plan_id, cell_id, episode_attempt_id, uuid.uuid4().hex)
+            )
     except Exception:
         _count_prep_failure()
+        yield
+        return
+    if token is None:
+        # Off path: touch nothing, so it stays identical to a build without telemetry.
         yield
         return
     try:
@@ -394,21 +397,25 @@ _RUNTIMES: dict[str, _Runtime | None] = {}
 _RUNTIMES_LOCK = threading.Lock()
 
 
-def _installed_version(name: str) -> str:
-    from importlib import metadata
+def _installed_version(name: str) -> Any:
+    """The version constant of the already-imported module: no filesystem read."""
 
-    return metadata.version(name)
+    import importlib
+
+    return importlib.import_module(name).__version__
 
 
 def _unsupported_versions() -> list[str]:
     found = []
-    for name, prefix in SUPPORTED_VERSIONS:
+    for name, family in SUPPORTED_VERSIONS:
         try:
             version = _installed_version(name)
         except Exception:
+            version = None
+        if not isinstance(version, str):
             version = "unavailable"
-        if not version.startswith(prefix):
-            found.append(f"{name} {version} (supported {prefix}x)")
+        if ".".join(version.split(".")[:2]) != family:
+            found.append(f"{name} {version} (supported {family}.x)")
     return found
 
 
@@ -436,7 +443,7 @@ def get_runtime() -> _Runtime | None:
     """
 
     value = os.environ.get(ENV_DIR)
-    if not value:
+    if not value or _CHILD_DISABLED:
         return None
     with _RUNTIMES_LOCK:
         if value not in _RUNTIMES:
@@ -445,14 +452,21 @@ def get_runtime() -> _Runtime | None:
     return None if runtime is None or runtime.disabled else runtime
 
 
+_CHILD_DISABLED = False
+
+
 def _reset_after_fork() -> None:
     """A forked child shares no session, runtime, writer thread or held lock."""
 
-    global SESSION_ID, _RUNTIMES_LOCK
-    SESSION_ID = uuid.uuid4().hex
+    global SESSION_ID, _RUNTIMES_LOCK, _CHILD_DISABLED
+    # Reset everything inherited first: minting the new id is the fallible step.
     _RUNTIMES_LOCK = threading.Lock()
     _RUNTIMES.clear()
     _SCOPE.set(None)
+    try:
+        SESSION_ID = uuid.uuid4().hex
+    except Exception:
+        _CHILD_DISABLED = True
 
 
 if hasattr(os, "register_at_fork"):
@@ -901,10 +915,10 @@ def build_http_client(**kwargs: Any) -> Any | None:
     the call.
     """
 
-    runtime = get_runtime()
-    if runtime is None:
-        return None
     try:
+        runtime = get_runtime()
+        if runtime is None:
+            return None
         return telemetry_client_class()(runtime, **kwargs)
     except Exception as error:
         _stderr(f"cannot build the telemetry client ({error}); telemetry disabled")
