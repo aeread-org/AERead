@@ -318,6 +318,7 @@ def test_the_sidecar_has_a_header_line_and_the_process_sidecar_a_session_start(
     assert len(execution_id) == 32
     header = json.loads(sidecar.read_text().splitlines()[0])
     assert header["schema"] == "aeread.transport_telemetry/0.2"
+    assert header["http_backend"] == tt.http_backend().label
     assert header["pid"] == os.getpid() and header["session_id"] == tt.SESSION_ID
     process = [json.loads(l) for l in (session_dir / "process.jsonl").read_text().splitlines()]
     assert process[0]["event"] == "session_start"
@@ -331,6 +332,8 @@ def test_a_call_with_no_cell_scope_is_untraced_and_counted(monkeypatch, tmp_path
         async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
             client = OpenRouterChatClient(base_url=responder.base_url)
             await client.complete(_request_for(responder.base_url))
+            # Python 3.12's Server.wait_closed waits for open keep-alive connections.
+            await client._client.close()
 
     asyncio.run(main())
     runtime = tt.get_runtime()
@@ -389,7 +392,6 @@ def test_the_telemetry_client_keeps_the_sdk_defaults(monkeypatch, tmp_path) -> N
     assert client.timeout == default.timeout
     assert client.follow_redirects is True
     assert client._transport._pool._max_connections == default._transport._pool._max_connections
-    assert openai.__version__ == "2.53.0"
 
 
 # --- test 11: placement and sessions -----------------------------------------
@@ -764,7 +766,7 @@ def test_a_subprocess_whose_writer_is_blocked_still_exits_promptly(tmp_path) -> 
 import gzip  # noqa: E402
 import zlib  # noqa: E402
 
-import httpx  # noqa: E402
+httpx = tt.http_backend().httpx
 import openai  # noqa: E402
 
 from tests.transport_responder import (  # noqa: E402
@@ -1612,9 +1614,9 @@ def test_building_the_runtime_touches_no_filesystem_on_the_calling_thread(
     import importlib.metadata
     import io
 
-    import httpcore  # noqa: F401  (warm: the version gate reads imported modules)
-    import httpx  # noqa: F401
-    import openai  # noqa: F401
+    import openai  # noqa: F401  (warm: backend resolution reads imported modules)
+
+    tt.http_backend()
 
     caller = threading.get_ident()
     seen: list[int] = []
@@ -1857,42 +1859,72 @@ def test_stalled_phase_belongs_to_the_last_exchange() -> None:
     assert tt.stalled_phase(first + first) is None
 
 
-@pytest.mark.parametrize(
-    "versions, stderr_lines",
-    [
-        ({}, 0),
-        ({"openai": "2.54.0"}, 1),
-        ({"httpx": "0.29.0"}, 1),
-        ({"httpcore": "1.1.0"}, 1),
-        ({"openai": "2.53.9"}, 0),
-        ({"httpx": "0.28.9"}, 0),
-        ({"httpcore": "1.0.99"}, 0),
-    ],
-)
-def test_an_unsupported_dependency_version_disables_telemetry_with_one_line(
-    monkeypatch, tmp_path, capsys, versions, stderr_lines
+def _capability_breakers():
+    backend = tt.http_backend()
+    return [
+        ("AsyncByteStream", backend.httpx, "AsyncByteStream"),
+        ("AsyncClient", backend.httpx, "AsyncClient"),
+        ("_trace", backend.core, "_trace"),
+    ]
+
+
+@pytest.mark.parametrize("index", [0, 1, 2])
+def test_a_missing_capability_disables_telemetry_with_one_line(
+    monkeypatch, tmp_path, capsys, index
 ) -> None:
-    real = tt._installed_version
-    monkeypatch.setattr(tt, "_installed_version", lambda name: versions.get(name) or real(name))
+    label, module, attr = _capability_breakers()[index]
+    monkeypatch.delattr(module, attr)
     monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
-    assert (tt.get_runtime() is None) == bool(stderr_lines)
-    assert tt.get_runtime() is None or not stderr_lines
-    tt.get_runtime()  # the verdict is cached: no second line
-    lines = capsys.readouterr().err.strip().splitlines()
-    assert len(lines) == stderr_lines
-    if stderr_lines:
-        assert "telemetry disabled" in lines[0] and next(iter(versions)) in lines[0]
+    assert tt.get_runtime() is None
+    assert tt.get_runtime() is None  # the verdict is cached: no second line
+    (line,) = capsys.readouterr().err.strip().splitlines()
+    assert "telemetry disabled" in line and "missing capability" in line
+    assert label.lstrip("_") in line or label in line
+    with pytest.raises(RuntimeError):
+        tt.http_backend()
 
 
-def test_a_non_string_version_disables_telemetry_with_one_line(
+def test_a_client_without_event_hooks_disables_telemetry_with_one_line(
     monkeypatch, tmp_path, capsys
 ) -> None:
-    monkeypatch.setattr(tt, "_installed_version", lambda name: None)
+    backend = tt.http_backend()
+
+    class NoHooks:
+        def __init__(self, timeout=None) -> None: ...
+
+    monkeypatch.setattr(backend.httpx, "AsyncClient", NoHooks)
     monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
     assert tt.get_runtime() is None
+    (line,) = capsys.readouterr().err.strip().splitlines()
+    assert "event_hooks" in line and "telemetry disabled" in line
+
+
+def test_a_missing_sdk_client_wrapper_disables_telemetry_with_one_line(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    import openai._base_client as base_client
+
+    monkeypatch.delattr(base_client, "AsyncHttpxClientWrapper", raising=False)
+    monkeypatch.delattr(base_client, "DefaultAsyncHttpxClient", raising=False)
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
     assert tt.get_runtime() is None
     (line,) = capsys.readouterr().err.strip().splitlines()
-    assert "telemetry disabled" in line and "unavailable" in line
+    assert "AsyncHttpxClientWrapper" in line and "telemetry disabled" in line
+
+
+def test_the_backend_is_the_pair_the_sdk_uses() -> None:
+    import openai._base_client as base_client
+
+    backend = tt.http_backend()
+    expected = "httpx2" if hasattr(base_client, "httpx2") else "httpx"
+    assert backend.name == expected
+    assert backend.httpx is getattr(base_client, expected)
+    assert backend.core_name == ("httpcore2" if expected == "httpx2" else "httpcore")
+    assert backend.core.__name__ == backend.core_name
+    assert backend.label == (
+        f"{expected} {backend.httpx.__version__} / "
+        f"{backend.core_name} {backend.core.__version__}"
+    )
 
 
 def test_runtime_discovery_failing_never_reaches_the_cell_or_the_client(

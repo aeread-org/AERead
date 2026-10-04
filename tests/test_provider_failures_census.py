@@ -20,7 +20,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-import httpx
+from aeread.shared_runner.model_call.transport_telemetry import http_backend
+
+httpx = http_backend().httpx
 import pytest
 
 from aeread import cli

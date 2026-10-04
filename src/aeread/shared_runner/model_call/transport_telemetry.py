@@ -35,7 +35,7 @@ import uuid
 import zlib
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterator, Mapping, Sequence
+from typing import Any, AsyncIterator, Callable, Iterator, Mapping, NamedTuple, Sequence
 
 ENV_DIR = "AEREAD_TRANSPORT_TELEMETRY_DIR"
 SCHEMA = "aeread.transport_telemetry/0.2"
@@ -61,9 +61,6 @@ MAX_FRAME_BUFFER = 262_144
 DRAIN_BATCH = 1_000
 # ... and the wall-clock share of one pass, so a slow disk cannot starve the loop.
 DRAIN_BATCH_SECONDS = 0.05
-# major.minor families the trace-extension names, the wrapper class and the tee were
-# checked on; a patch release inside a family keeps telemetry on.
-SUPPORTED_VERSIONS = (("openai", "2.53"), ("httpx", "0.28"), ("httpcore", "1.0"))
 
 # One random id per process: two processes running the same cell never share a file.
 SESSION_ID = uuid.uuid4().hex
@@ -199,7 +196,8 @@ def _kernel_source_digest() -> str:
 class _Runtime:
     """Per-directory queue, counters and daemon writer thread."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, http_backend_label: str = "") -> None:
+        self.http_backend_label = http_backend_label
         self.session_dir = root / HIDDEN_DIRNAME / SESSION_ID
         self.queue: collections.deque[dict[str, Any]] = collections.deque()
         self.counters = {
@@ -367,6 +365,7 @@ class _Runtime:
                                 "session_id": SESSION_ID,
                                 "started": self._started_at,
                                 "kernel_source_sha256": self._kernel_digest,
+                                "http_backend": self.http_backend_label,
                             },
                             sort_keys=True,
                         )
@@ -418,26 +417,80 @@ _RUNTIMES: dict[str, _Runtime | None] = {}
 _RUNTIMES_LOCK = threading.Lock()
 
 
-def _installed_version(name: str) -> Any:
-    """The version constant of the already-imported module: no filesystem read."""
+class HttpBackend(NamedTuple):
+    """The HTTP library pair the installed openai SDK actually uses."""
+
+    name: str  # "httpx" (openai 2.x) or "httpx2" (openai 3.x)
+    httpx: Any
+    core_name: str  # "httpcore" or "httpcore2"
+    core: Any
+    client_base: type  # the SDK's default async client class
+
+    @property
+    def label(self) -> str:
+        def version(module: Any) -> str:
+            value = getattr(module, "__version__", None)
+            return value if isinstance(value, str) else "unavailable"
+
+        return (
+            f"{self.name} {version(self.httpx)} / {self.core_name} {version(self.core)}"
+        )
+
+
+def _resolve_backend() -> tuple[HttpBackend | None, str]:
+    """Detect the SDK's HTTP pair and its capabilities: (backend, missing).
+
+    `missing` names the first absent capability. Nothing is read from the
+    filesystem beyond the imports of the SDK client module and the core library.
+    """
 
     import importlib
+    import inspect
 
-    return importlib.import_module(name).__version__
+    try:
+        base_client = importlib.import_module("openai._base_client")
+    except Exception as error:
+        return None, f"openai._base_client ({type(error).__name__})"
+    name = next((n for n in ("httpx2", "httpx") if hasattr(base_client, n)), None)
+    if name is None:
+        return None, "an httpx module in openai._base_client"
+    httpx_module = getattr(base_client, name)
+    core_name = "httpcore2" if name == "httpx2" else "httpcore"
+    try:
+        core = importlib.import_module(core_name)
+    except Exception as error:
+        return None, f"{core_name} ({type(error).__name__})"
+    client_base = getattr(base_client, "AsyncHttpxClientWrapper", None) or getattr(
+        base_client, "DefaultAsyncHttpxClient", None
+    )
+    if not isinstance(client_base, type):
+        return None, "openai AsyncHttpxClientWrapper"
+    if not isinstance(getattr(httpx_module, "AsyncByteStream", None), type):
+        return None, f"{name}.AsyncByteStream"
+    client_class = getattr(httpx_module, "AsyncClient", None)
+    try:
+        hooks = "event_hooks" in inspect.signature(client_class).parameters
+    except Exception:
+        hooks = False
+    if not hooks:
+        return None, f"{name}.AsyncClient event_hooks"
+    trace = getattr(getattr(core, "_trace", None), "Trace", None)
+    if not isinstance(trace, type) or not callable(getattr(trace, "atrace", None)):
+        return None, f"{core_name}._trace.Trace"
+    return HttpBackend(name, httpx_module, core_name, core, client_base), ""
 
 
-def _unsupported_versions() -> list[str]:
-    found = []
-    for name, family in SUPPORTED_VERSIONS:
-        try:
-            version = _installed_version(name)
-        except Exception:
-            version = None
-        if not isinstance(version, str):
-            version = "unavailable"
-        if ".".join(version.split(".")[:2]) != family:
-            found.append(f"{name} {version} (supported {family}.x)")
-    return found
+def http_backend() -> HttpBackend:
+    """The resolved HTTP modules (httpx/httpcore or httpx2/httpcore2).
+
+    Raises RuntimeError when a capability is missing; not cached, so it follows
+    the live modules.
+    """
+
+    backend, missing = _resolve_backend()
+    if backend is None:
+        raise RuntimeError(f"no usable HTTP backend: missing {missing}")
+    return backend
 
 
 def _open_runtime(value: str) -> _Runtime | None:
@@ -445,12 +498,12 @@ def _open_runtime(value: str) -> _Runtime | None:
     if not root.is_absolute():
         _stderr(f"{ENV_DIR}={value!r} is not absolute; telemetry disabled")
         return None
-    unsupported = _unsupported_versions()
-    if unsupported:
-        _stderr(f"unsupported versions: {', '.join(unsupported)}; telemetry disabled")
+    backend, missing = _resolve_backend()
+    if backend is None:
+        _stderr(f"missing capability: {missing}; telemetry disabled")
         return None
     try:
-        return _Runtime(root)
+        return _Runtime(root, backend.label)
     except Exception as error:
         _stderr(f"{ENV_DIR}={value!r} is not writable ({error}); telemetry disabled")
         return None
@@ -782,11 +835,9 @@ class _SseObserver:
 
 
 def _make_stream_class() -> type:
-    # httpx checks `isinstance(stream, AsyncByteStream)`; imported lazily so the
+    # httpx checks `isinstance(stream, AsyncByteStream)`; resolved lazily so the
     # telemetry-off path never pays for it.
-    import httpx
-
-    class ObservedStream(httpx.AsyncByteStream):
+    class ObservedStream(http_backend().httpx.AsyncByteStream):
         """Tee over the response's raw byte stream (an `httpx.AsyncByteStream`).
 
         Every chunk is yielded exactly once, unmodified.  Observation works on the
@@ -874,10 +925,10 @@ def _status_of(return_value: Any) -> int | None:
 
 
 def _make_client_class() -> type:
-    import httpx
-
-    # Activation is limited to the checked SDK version, which has this wrapper.
-    from openai._base_client import AsyncHttpxClientWrapper as base
+    # Activation requires the capabilities `_resolve_backend` checked.
+    backend = http_backend()
+    base = backend.client_base
+    httpx = backend.httpx
 
     class TelemetryHttpClient(base):  # type: ignore[valid-type, misc]
         """The SDK's default async client plus the trace hooks."""
@@ -977,6 +1028,7 @@ __all__ = [
     "credential_fp_if_enabled",
     "current_scope",
     "get_runtime",
+    "http_backend",
     "observed_stream_class",
     "ensure_lag_sampler",
     "sdk_client_kwargs",
