@@ -344,6 +344,11 @@ class _Runtime:
             batch.setdefault(self._call_path(record), []).append(
                 json.dumps(record, sort_keys=True, default=str)
             )
+            event = str(record.get("event", ""))
+            if ".send_request_" in event and event.endswith(".complete"):
+                # The send boundary reaches disk before the next record is handled.
+                self._write_calls(batch)
+                batch = {}
         self._write_calls(batch)
 
     def _write_calls(self, batch: Mapping[Path, list[str]]) -> None:
@@ -481,6 +486,7 @@ def _reset_after_fork() -> None:
     _SCOPE.set(None)
     try:
         SESSION_ID = uuid.uuid4().hex
+        _CHILD_DISABLED = False
     except Exception:
         _CHILD_DISABLED = True
 

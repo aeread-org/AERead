@@ -1770,6 +1770,27 @@ def test_a_consumed_call_record_is_on_disk_before_a_process_write_that_blocks(
     assert "http11.send_request_headers.complete" in path.read_text()
 
 
+def test_a_consumed_send_record_is_on_disk_before_the_next_call_record_serializes(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    runtime = tt.get_runtime()
+    runtime._stop.set()
+    runtime._thread.join(5)
+    scope = tt.CallScope("p", "c", "a", "e", provider_call_id="x")
+
+    class Stuck:
+        def __str__(self) -> str:
+            raise RuntimeError("serialization blocked")
+
+    runtime.emit(scope, "http11.send_request_headers.complete", {})
+    runtime.emit(scope, "http11.receive_response_headers.started", {"field": Stuck()})
+    with pytest.raises(RuntimeError, match="blocked"):
+        runtime._drain()
+    (path,) = runtime.session_dir.rglob("*.transport.jsonl")
+    assert "http11.send_request_headers.complete" in path.read_text()
+
+
 def test_a_drain_pass_is_bounded_by_elapsed_time_as_well_as_count(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
     runtime = tt.get_runtime()
@@ -1923,6 +1944,59 @@ def test_a_fork_whose_session_id_cannot_be_minted_leaves_a_disabled_unblocked_ch
     _, status = os.waitpid(pid, 0)
     assert os.waitstatus_to_exitcode(status) == 0
     assert json.loads(data) == {"runtime_is_none": True}
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs POSIX fork")
+def test_a_grandchild_recovers_telemetry_after_a_child_that_could_not_mint_an_id(
+    monkeypatch, tmp_path
+) -> None:
+    import signal
+
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    assert tt.get_runtime() is not None
+    real_uuid4 = tt.uuid.uuid4
+
+    def boom(*args, **kwargs):
+        raise OSError("no entropy")
+
+    read_fd, write_fd = os.pipe()
+    monkeypatch.setattr(tt.uuid, "uuid4", boom)
+    pid = os.fork()
+    if pid == 0:  # child: disabled, then restores uuid4 and forks a grandchild
+        code = 1
+        try:
+            signal.alarm(10)
+            os.close(read_fd)
+            child_disabled = tt.get_runtime() is None
+            tt.uuid.uuid4 = real_uuid4
+            grandchild = os.fork()
+            if grandchild == 0:
+                gcode = 1
+                try:
+                    signal.alarm(5)
+                    runtime = tt.get_runtime()
+                    os.write(
+                        write_fd,
+                        json.dumps(
+                            {
+                                "child_disabled": child_disabled,
+                                "grandchild_enabled": runtime is not None,
+                            }
+                        ).encode(),
+                    )
+                    gcode = 0
+                finally:
+                    os._exit(gcode)
+            _, gstatus = os.waitpid(grandchild, 0)
+            code = os.waitstatus_to_exitcode(gstatus)
+        finally:
+            os._exit(code)
+    os.close(write_fd)
+    data = os.read(read_fd, 4096)
+    os.close(read_fd)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    assert json.loads(data) == {"child_disabled": True, "grandchild_enabled": True}
 
 
 def test_a_complete_oversized_frame_is_refused_even_when_its_delimiter_arrives_last() -> None:
