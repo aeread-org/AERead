@@ -1269,3 +1269,189 @@ def test_an_empty_delta_marks_nothing_and_a_real_one_marks_once() -> None:
     assert marks == []
     observer.feed(_frame({"content": "a"}))
     assert marks == ["first_delta.content"]
+
+
+# --- M3: loop lag and hang snapshot (spec section 7; tests 3, 4 and 10) -------
+
+
+def _call_events(directory: Path) -> list[str]:
+    return [r["event"] for r in _records(directory, 1, event="http11.response_closed.complete")]
+
+
+def _hang_files(directory: Path) -> list[Path]:
+    return sorted(directory.rglob("hang_*.txt"))
+
+
+def test_stalled_phase_is_derived_from_open_phases_before_failure_or_cleanup() -> None:
+    started = "http11.receive_response_headers.started"
+    assert tt.stalled_phase(["connection.connect_tcp.started"]) == "connection.connect_tcp.started"
+    # Headers awaited, then a timeout: the failure and cleanup lines do not hide the phase.
+    assert tt.stalled_phase(
+        [
+            "http11.send_request_headers.started",
+            "http11.send_request_headers.complete",
+            started,
+            "http11.receive_response_headers.failed",
+            "http11.response_closed.started",
+            "http11.response_closed.complete",
+        ]
+    ) == started
+    assert tt.stalled_phase(
+        [
+            "http11.receive_response_headers.started",
+            "http11.receive_response_headers.complete",
+            "http11.receive_response_body.started",
+            "http11.response_closed.started",
+        ]
+    ) == "http11.receive_response_body.started"
+    # Only tee marks: a first chunk with no last chunk is a stalled body.
+    assert tt.stalled_phase(["first_body_chunk"]) == "first_body_chunk"
+    assert tt.stalled_phase(["first_body_chunk", "last_chunk"]) is None
+    assert tt.stalled_phase([]) is None
+    # A phase that completed is not stalled.
+    assert tt.stalled_phase(
+        ["connection.connect_tcp.started", "connection.connect_tcp.complete"]
+    ) is None
+
+
+def test_a_stall_before_headers_snapshots_once_and_leaves_the_outcome_unchanged(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_HANG_SECONDS, "0.2")
+
+    async def provider_call_under_test(base_url: str) -> BaseException:
+        client = openai.AsyncOpenAI(
+            api_key="k",
+            base_url=base_url,
+            max_retries=0,
+            timeout=0.8,
+            **tt.sdk_client_kwargs(),
+        )
+        with tt.bind_cell_scope(
+            run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+        ):
+            with pytest.raises(openai.APITimeoutError) as caught:
+                await client.chat.completions.create(
+                    model="m", messages=[{"role": "user", "content": "x"}]
+                )
+        await client.close()
+        return caught.value
+
+    async def once():
+        async with TransportResponder([json_reply({}, header_delay=3.0)]) as responder:
+            return await provider_call_under_test(responder.base_url)
+
+    _env(monkeypatch, None)
+    off = asyncio.run(once())
+    _env(monkeypatch, tmp_path)
+    on = asyncio.run(once())
+
+    assert type(on) is type(off) and str(on) == str(off)
+    assert type(on.__cause__) is type(off.__cause__) is httpx.ReadTimeout
+    assert tt.stalled_phase(_call_events(tmp_path)) == "http11.receive_response_headers.started"
+    dumps = _hang_files(tmp_path)
+    assert [d.name for d in dumps] == ["hang_1.txt"]
+    text = dumps[0].read_text()
+    assert "provider_call_under_test" in text
+    assert text.startswith("tasks: ")
+    # The snapshot is indexed in the call and process sidecars.
+    assert "hang_snapshot" in _call_events(tmp_path)
+    index = [
+        json.loads(line)
+        for line in next(tmp_path.rglob("process.jsonl")).read_text().splitlines()
+    ]
+    assert [r["file"] for r in index if r["event"] == "hang_dump"] == ["hang_1.txt"]
+
+
+def test_a_call_that_ends_before_the_threshold_never_snapshots(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv(tt.ENV_HANG_SECONDS, "0.5")
+    _env(monkeypatch, tmp_path)
+
+    async def main():
+        async with TransportResponder([json_reply({}, header_delay=1.0)]) as responder:
+            client = tt.build_http_client(timeout=httpx.Timeout(5.0, read=0.2))
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                with pytest.raises(httpx.ReadTimeout):
+                    await client.post(responder.base_url + "/chat/completions")
+            await asyncio.sleep(0.8)  # well past the threshold: the timer must be gone
+            await client.aclose()
+
+    asyncio.run(main())
+    assert _call_events(tmp_path)
+    assert _hang_files(tmp_path) == []
+
+
+def test_headers_then_a_stalled_body_is_a_body_stall_with_no_snapshot(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_HANG_SECONDS, "0.1")
+    reply = sse_reply([_BODY, _BODY], chunk_delays=(0, 2.0))
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(
+        reply, tmp_path, monkeypatch, timeout=httpx.Timeout(5.0, read=0.5)
+    )
+    assert off_chunks == on_chunks == [_BODY]
+    assert type(on_error) is type(off_error) is httpx.ReadTimeout
+    assert tt.stalled_phase(_call_events(tmp_path)) == "http11.receive_response_body.started"
+    assert _hang_files(tmp_path) == []
+
+
+def test_the_lag_sampler_records_loop_drift_over_the_threshold(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(tt, "LAG_INTERVAL_SECONDS", 0.05)
+    monkeypatch.setattr(tt, "LAG_THRESHOLD_SECONDS", 0.1)
+    _env(monkeypatch, tmp_path)
+
+    async def main():
+        async with TransportResponder([json_reply({})]) as responder:
+            client = tt.build_http_client()
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                await client.post(responder.base_url + "/chat/completions")
+            await asyncio.sleep(0.06)
+            time.sleep(0.4)  # block the loop: the sampler wakes late
+            await asyncio.sleep(0.1)
+            await client.aclose()
+
+    asyncio.run(main())
+    deadline = time.monotonic() + 5
+    lags: list[dict[str, Any]] = []
+    while not lags and time.monotonic() < deadline:
+        time.sleep(0.05)
+        lags = [
+            r
+            for line in next(tmp_path.rglob("process.jsonl")).read_text().splitlines()
+            if (r := json.loads(line))["event"] == "loop_lag"
+        ]
+    assert lags and lags[0]["drift_seconds"] > 0.1
+
+
+def test_two_consecutive_loops_each_start_and_cancel_their_own_sampler(
+    monkeypatch, tmp_path
+) -> None:
+    _env(monkeypatch, tmp_path)
+    runtime = tt.get_runtime()
+    seen: list[asyncio.Task] = []
+
+    async def one_loop():
+        client = tt.build_http_client()
+        async with TransportResponder([json_reply({})]) as responder:
+            with tt.bind_cell_scope(
+                run_plan_id="plan_x", cell_id="cell_x", episode_attempt_id="attempt_x"
+            ):
+                await client.post(responder.base_url + "/chat/completions")
+                await client.post(responder.base_url + "/chat/completions")
+        lag_tasks = [
+            t for t in asyncio.all_tasks() if t.get_name() == "aeread-transport-lag"
+        ]
+        assert len(lag_tasks) == 1  # one per loop, not one per call
+        assert len(runtime.samplers) == 1
+        seen.append(next(iter(runtime.samplers.values())))
+        await client.aclose()
+
+    asyncio.run(one_loop())
+    asyncio.run(one_loop())
+    assert len(seen) == 2 and seen[0] is not seen[1]
+    assert all(task.cancelled() for task in seen)
+    assert runtime.samplers == {}

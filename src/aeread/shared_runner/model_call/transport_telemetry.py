@@ -22,7 +22,9 @@ import collections
 import contextlib
 import contextvars
 import dataclasses
+import asyncio
 import hashlib
+import itertools
 import json
 import os
 import re
@@ -33,7 +35,7 @@ import uuid
 import zlib
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterator, Mapping
+from typing import Any, AsyncIterator, Callable, Iterator, Mapping, Sequence
 
 ENV_DIR = "AEREAD_TRANSPORT_TELEMETRY_DIR"
 SCHEMA = "aeread.transport_telemetry/0.2"
@@ -42,6 +44,13 @@ QUEUE_LIMIT = 10_000
 POLL_SECONDS = 0.05
 HEARTBEAT_SECONDS = 30.0
 DRAIN_SECONDS = 2.0
+ENV_HANG_SECONDS = "AEREAD_TRANSPORT_HANG_DUMP_SECONDS"
+DEFAULT_HANG_SECONDS = 60.0
+LAG_INTERVAL_SECONDS = 1.0
+LAG_THRESHOLD_SECONDS = 0.1
+# Hang snapshot bounds (spec section 7).
+SNAPSHOT_MAX_TASKS = 200
+SNAPSHOT_MAX_FRAMES = 30
 _ROUTE_FIELDS = ("route_provider", "quantization", "canonical_model")
 # Per-source-chunk observation budget (spec section 4): observing must not add
 # unbounded work or memory before the chunk is yielded.
@@ -152,6 +161,8 @@ class _Runtime:
             "writer_disabled": 0,
         }
         self.credential_fps: set[str] = set()
+        self.samplers: dict[Any, asyncio.Task[None]] = {}
+        self._hang_ids = itertools.count(1)
         self.disabled = False
         self._stop = threading.Event()
         self._started_at = _wall()
@@ -188,9 +199,38 @@ class _Runtime:
             }
         )
 
+    def emit_process(self, event: str, **fields: Any) -> None:
+        """Queue one process-sidecar record (loop lag, dump index) for the writer."""
+
+        if self.disabled:
+            return
+        if len(self.queue) >= QUEUE_LIMIT:
+            self.count("telemetry_dropped")
+            return
+        self.queue.append({"_kind": "process", "event": event, "fields": fields})
+
+    def emit_hang(self, scope: CallScope, text: str) -> None:
+        """Hand a hang snapshot to the writer as `hang_<n>.txt` in the session dir."""
+
+        if self.disabled:
+            return
+        if len(self.queue) >= QUEUE_LIMIT:
+            self.count("telemetry_dropped")
+            return
+        name = f"hang_{next(self._hang_ids)}.txt"
+        self.queue.append(
+            {
+                "_kind": "hang",
+                "file": name,
+                "text": text,
+                "scope": dataclasses.asdict(scope),
+            }
+        )
+        self.emit(scope, "hang_snapshot", {"file": name})
+
     # -- consumer side (daemon thread) ---------------------------------------
 
-    def _process_record(self, event: str) -> None:
+    def _process_record(self, event: str, **extra: Any) -> None:
         record = {
             "event": event,
             "pid": os.getpid(),
@@ -198,6 +238,7 @@ class _Runtime:
             "wall": _wall(),
             "credential_fps": sorted(self.credential_fps),
             "counters": dict(self.counters),
+            **extra,
         }
         with (self.session_dir / "process.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
@@ -214,6 +255,18 @@ class _Runtime:
         batch: dict[Path, list[str]] = {}
         while self.queue:
             record = self.queue.popleft()
+            kind = record.get("_kind")
+            if kind == "process":
+                self._process_record(record["event"], **record["fields"])
+                continue
+            if kind == "hang":
+                (self.session_dir / record["file"]).write_text(
+                    record["text"], encoding="utf-8"
+                )
+                self._process_record(
+                    "hang_dump", file=record["file"], scope=record["scope"]
+                )
+                continue
             batch.setdefault(self._call_path(record), []).append(
                 json.dumps(record, sort_keys=True, default=str)
             )
@@ -301,6 +354,102 @@ def telemetry_enabled() -> bool:
     return get_runtime() is not None
 
 
+def stalled_phase(events: Sequence[str]) -> str | None:
+    """The phase a call was stuck in, derived from its ordered event names.
+
+    The last `*.started` with no matching `.complete`, taken before any failure
+    or cleanup event (`*.failed`, `response_closed.*`): the trace ends with
+    cleanup lines after a timeout, so the last line is never the phase.  Waiting
+    for headers is `...receive_response_headers.started`; a stalled body is
+    `...receive_response_body.started`, or `first_body_chunk` when only the tee
+    marks show it (chunk seen, no `last_chunk`).  None when nothing was open.
+    """
+
+    open_phases: list[str] = []
+    chunk_seen = False
+    finished = False
+    for name in events:
+        stem, _, kind = name.rpartition(".")
+        if kind == "failed" or stem.endswith("response_closed"):
+            break
+        if kind == "started":
+            open_phases.append(stem)
+        elif kind == "complete":
+            if stem in open_phases:
+                del open_phases[len(open_phases) - 1 - open_phases[::-1].index(stem)]
+        elif name == "first_body_chunk":
+            chunk_seen = True
+        elif name == "last_chunk":
+            finished = True
+    if open_phases:
+        return f"{open_phases[-1]}.started"
+    return "first_body_chunk" if chunk_seen and not finished else None
+
+
+def _hang_seconds() -> float:
+    try:
+        value = float(os.environ.get(ENV_HANG_SECONDS, DEFAULT_HANG_SECONDS))
+    except ValueError:
+        return DEFAULT_HANG_SECONDS
+    return value if value > 0 else DEFAULT_HANG_SECONDS
+
+
+def _coroutine_frames(coro: Any) -> list[Any]:
+    """Frames of a suspended coroutine chain, outermost first (`get_stack` gives one)."""
+
+    frames: list[Any] = []
+    while coro is not None and len(frames) < SNAPSHOT_MAX_FRAMES:
+        frame = (
+            getattr(coro, "cr_frame", None)
+            or getattr(coro, "ag_frame", None)
+            or getattr(coro, "gi_frame", None)
+        )
+        if frame is not None:
+            frames.append(frame)
+        coro = (
+            getattr(coro, "cr_await", None)
+            or getattr(coro, "ag_await", None)
+            or getattr(coro, "gi_yieldfrom", None)
+        )
+    return frames
+
+
+def task_snapshot(loop: asyncio.AbstractEventLoop) -> str:
+    """Bounded text of `asyncio.all_tasks(loop)` stacks; must run on the loop."""
+
+    tasks = sorted(asyncio.all_tasks(loop), key=lambda task: task.get_name())
+    lines = [f"tasks: {len(tasks)} (showing {min(len(tasks), SNAPSHOT_MAX_TASKS)})"]
+    for task in tasks[:SNAPSHOT_MAX_TASKS]:
+        lines.append(f"task {task.get_name()} {task.get_coro()!r}")
+        for frame in _coroutine_frames(task.get_coro()):
+            code = frame.f_code
+            lines.append(f"  {code.co_filename}:{frame.f_lineno} in {code.co_name}")
+    return "\n".join(lines) + "\n"
+
+
+async def _lag_sampler(runtime: _Runtime) -> None:
+    """Record event-loop drift over the threshold; cancelled with the loop's tasks."""
+
+    while True:
+        before = time.monotonic()
+        await asyncio.sleep(LAG_INTERVAL_SECONDS)
+        drift = time.monotonic() - before - LAG_INTERVAL_SECONDS
+        if drift > LAG_THRESHOLD_SECONDS:
+            runtime.emit_process("loop_lag", drift_seconds=round(drift, 3))
+
+
+def ensure_lag_sampler(runtime: _Runtime) -> None:
+    """Start this loop's sampler on the first traced call; a new loop gets its own."""
+
+    loop = asyncio.get_running_loop()
+    if loop in runtime.samplers:
+        return
+    task = loop.create_task(_lag_sampler(runtime), name="aeread-transport-lag")
+    runtime.samplers[loop] = task
+    # Dropping the entry also drops the loop reference once asyncio.run cancels it.
+    task.add_done_callback(lambda _: runtime.samplers.pop(loop, None))
+
+
 class _CallTrace:
     """Per-request trace callback: httpcore awaits it inline, so it must not block."""
 
@@ -309,6 +458,34 @@ class _CallTrace:
         self.scope = scope
         self._connected = False
         self._reused: bool | str = "unknown"
+        self._hang_timer: asyncio.TimerHandle | None = None
+
+    def _cancel_hang_timer(self) -> None:
+        if self._hang_timer is not None:
+            self._hang_timer.cancel()
+            self._hang_timer = None
+
+    def _hang_fired(self) -> None:
+        """Loop timer: no headers by now (it is cancelled on headers), so snapshot."""
+
+        self._hang_timer = None  # one-shot: at most one snapshot per call
+        try:
+            self._runtime.emit_hang(
+                self.scope, task_snapshot(asyncio.get_running_loop())
+            )
+        except Exception:
+            self._runtime.count("telemetry_dropped")
+
+    def _watch(self, phase: str, kind: str) -> None:
+        if phase == "send_request_headers" and kind == "complete":
+            if self._hang_timer is None:
+                self._hang_timer = asyncio.get_running_loop().call_later(
+                    _hang_seconds(), self._hang_fired
+                )
+        elif phase == "receive_response_headers" and kind == "complete":
+            self._cancel_hang_timer()
+        elif kind == "failed" or phase == "response_closed":
+            self._cancel_hang_timer()
 
     async def __call__(self, name: str, info: Mapping[str, Any]) -> None:
         try:
@@ -332,6 +509,7 @@ class _CallTrace:
                     fields["status"] = status
             fields["connection_reused"] = self._reused
             self._runtime.emit(self.scope, name, fields)
+            self._watch(phase, kind)
         except Exception:
             self._runtime.count("telemetry_dropped")
 
@@ -561,6 +739,7 @@ def _make_client_class() -> type:
                         runtime.count("unscoped_calls")
                         return
                     request.extensions["trace"] = _CallTrace(runtime, scope)
+                    ensure_lag_sampler(runtime)
                 except Exception:
                     runtime.count("telemetry_dropped")
 
@@ -642,7 +821,10 @@ __all__ = [
     "current_scope",
     "get_runtime",
     "observed_stream_class",
+    "ensure_lag_sampler",
     "sdk_client_kwargs",
+    "stalled_phase",
+    "task_snapshot",
     "telemetry_client_class",
     "telemetry_enabled",
 ]
