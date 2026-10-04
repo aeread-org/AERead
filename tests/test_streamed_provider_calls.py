@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import json
 from types import SimpleNamespace
 
+import openai
+import openai._base_client as _openai_base
 import pytest
 
 from aeread.shared_runner.model_call.harness import CanonicalMessage, KernelModelPort
@@ -201,17 +204,6 @@ def test_a_stream_that_ends_before_any_chunk_is_transport() -> None:
     assert raised.value.condition == "transport" and raised.value.retryable
 
 
-def test_an_error_chunk_is_typed_by_its_status() -> None:
-    def with_error(chunks):
-        return chunks[:1] + [{"id": chunks[0]["id"], "model": chunks[0]["model"], "choices": [],
-                              "error": {"code": 502, "message": "upstream connection error"}}]
-
-    completions = _StreamingCompletions(FakeOpenRouterCompletions(), mutate=with_error)
-    with pytest.raises(ProviderFailure) as raised:
-        asyncio.run(_client(completions).complete(_streamed(_openrouter_request())))
-    assert raised.value.condition == "provider_5xx" and raised.value.status_code == 502
-
-
 def test_a_stream_without_its_final_usage_chunk_is_refused() -> None:
     """Cost that never arrived is not priced locally and called complete."""
 
@@ -289,3 +281,205 @@ def test_clients_that_cannot_stream_refuse_instead_of_ignoring_the_declaration()
     )
     with pytest.raises(ProviderFailure, match="does not support streamed"):
         asyncio.run(openai.complete(request))
+
+
+# ---------------------------------------------------------------------------
+# Streams read through the real openai SDK over a mock transport (#226 items
+# 3, 4 and 5). The SDK raises on an error frame and consumes [DONE] itself, so
+# a hand-made chunk iterator cannot show what a live stream does.
+# ---------------------------------------------------------------------------
+
+
+def _transport_module():
+    """The HTTP library the installed SDK actually uses (httpx2 under 3.x)."""
+
+    for name in ("httpx2", "httpx"):
+        module = getattr(_openai_base, name, None)
+        if module is not None:
+            return module
+    raise RuntimeError("openai._base_client exposes no known transport module")
+
+
+def _sse(frames) -> bytes:
+    return "".join(f"data: {json.dumps(frame)}\n\n" for frame in frames).encode()
+
+
+def _real_client(frames, *, then_raise=None) -> OpenRouterChatClient:
+    transport = _transport_module()
+
+    async def body():
+        for frame in frames:
+            yield _sse([frame])
+        if then_raise is not None:
+            raise then_raise
+        yield b"data: [DONE]\n\n"
+
+    def handler(request):
+        return transport.Response(200, headers={"content-type": "text/event-stream"}, content=body())
+
+    sdk = openai.AsyncOpenAI(
+        api_key="test-key",
+        base_url="https://openrouter.ai/api/v1",
+        max_retries=0,
+        http_client=transport.AsyncClient(transport=transport.MockTransport(handler)),
+    )
+    return OpenRouterChatClient(sdk_client=sdk)
+
+
+def _fixture_chunks() -> list[dict]:
+    whole = asyncio.run(FakeOpenRouterCompletions().create())
+    return _chunks_of(whole.model_dump(mode="json"))
+
+
+_BASE = {"id": "gen_stream", "model": "deepseek/deepseek-v4-flash-0731", "object": "chat.completion.chunk"}
+
+
+def _content(text: str = '{"off', finish=None) -> dict:
+    return {**_BASE, "choices": [{"index": 0, "finish_reason": finish, "delta": {"role": "assistant", "content": text}}]}
+
+
+def _usage_chunk(**overrides) -> dict:
+    usage = {
+        "prompt_tokens": 100,
+        "completion_tokens": 20,
+        "cost": 0.5,
+        "prompt_tokens_details": {"cached_tokens": 40},
+        **overrides,
+    }
+    return {**_BASE, "choices": [], "usage": usage}
+
+
+def _error_frame(code, **extra) -> dict:
+    return {"error": {"code": code, "message": "upstream failure", **extra}}
+
+
+def _outcome(frames, *, then_raise=None):
+    request = _streamed(_openrouter_request())
+    with pytest.raises(ProviderFailure) as raised:
+        asyncio.run(_real_client(frames, then_raise=then_raise).complete(request))
+    return raised.value
+
+
+@pytest.mark.parametrize(
+    ("code", "condition", "retryable"),
+    [(502, "provider_5xx", True), (429, "rate_limit", True), (402, "account_fault", False)],
+)
+def test_t1_an_error_frame_is_typed_by_its_code(code, condition, retryable) -> None:
+    failure = _outcome([_content(), _error_frame(code, metadata={"retry_after_seconds": 7})])
+    assert (failure.condition, failure.retryable, failure.status_code) == (condition, retryable, code)
+    if code == 429:
+        assert failure.retry_after_seconds == 7
+
+
+def test_t2_a_stream_with_usage_but_no_finish_is_a_retryable_transport_failure() -> None:
+    failure = _outcome([_content(), _usage_chunk()])
+    assert failure.condition == "transport" and failure.retryable
+    assert "terminal finish_reason" in str(failure)
+
+
+def test_t2_a_stream_that_ends_after_content_is_a_retryable_transport_failure() -> None:
+    failure = _outcome([_content()])
+    assert failure.condition == "transport" and failure.retryable
+
+
+def test_t3_reasoning_and_its_details_survive_assembly() -> None:
+    details = [
+        {"type": "reasoning.text", "text": "first", "index": 0},
+        {"type": "reasoning.encrypted", "data": "abc", "index": 1},
+    ]
+
+    def chunk(delta, finish=None):
+        return {**_BASE, "choices": [{"index": 0, "finish_reason": finish, "delta": {"role": "assistant", **delta}}]}
+
+    frames = [
+        chunk({"content": "", "reasoning": "think ", "reasoning_details": [details[0]]}),
+        chunk({"content": '{"a":1}', "reasoning": "hard", "reasoning_details": [details[1]]}),
+        chunk({"content": ""}, finish="stop"),
+    ]
+    assembled = _assemble_chat_stream(
+        [json.loads(json.dumps(f)) for f in frames]
+    )
+    message = assembled["choices"][0]["message"]
+    assert message["reasoning"] == "think hard"
+    assert message["reasoning_details"] == details
+    assert message["content"] == '{"a":1}' and assembled["choices"][0]["finish_reason"] == "stop"
+
+
+def _assert_reported(failure: ProviderFailure) -> None:
+    assert failure.billing == "reported"
+    assert (failure.input_tokens, failure.cached_input_tokens, failure.output_tokens) == (100, 40, 20)
+    assert failure.cost_usd == 0.5
+
+
+def test_t4_usage_before_an_error_frame_is_kept() -> None:
+    _assert_reported(_outcome([_content(), _usage_chunk(), _error_frame(502)]))
+
+
+def test_t4_usage_before_a_premature_end_is_kept() -> None:
+    failure = _outcome([_content(), _usage_chunk()])
+    assert failure.condition == "transport"
+    _assert_reported(failure)
+
+
+def test_t4_usage_before_a_transport_exception_is_kept() -> None:
+    failure = _outcome(
+        [_content(), _usage_chunk()],
+        then_raise=_transport_module().RemoteProtocolError("peer closed connection"),
+    )
+    assert failure.condition == "transport" and failure.retryable
+    _assert_reported(failure)
+
+
+# Compatibility controls: green before and after the fixes.
+
+
+def test_control_a_choice_error_with_a_status_still_wins_over_a_missing_finish() -> None:
+    frame = {**_BASE, "choices": [{"index": 0, "finish_reason": None, "delta": {}, "error": {"code": 402, "message": "no credit"}}]}
+    failure = _outcome([frame])
+    assert failure.condition == "account_fault" and not failure.retryable
+
+
+def test_control_a_choice_error_without_a_status_is_still_a_choice_error() -> None:
+    frame = {**_BASE, "choices": [{"index": 0, "finish_reason": None, "delta": {}, "error": {"message": "stopped"}}]}
+    failure = _outcome([frame])
+    assert failure.condition == "provider_choice_error" and failure.retryable
+
+
+def test_control_an_error_finish_is_still_a_choice_error() -> None:
+    failure = _outcome([_content(finish="error")])
+    assert failure.condition == "provider_choice_error" and failure.retryable
+
+
+def test_control_a_finished_stream_with_usage_succeeds() -> None:
+    request = _streamed(_openrouter_request())
+    expected = asyncio.run(_client(_StreamingCompletions(FakeOpenRouterCompletions())).complete(request))
+    result = asyncio.run(_real_client(_fixture_chunks()).complete(request))
+    assert result.finish_reason == expected.finish_reason == "stop"
+    assert result.output_text == expected.output_text
+    assert result.cost_usd == expected.cost_usd
+
+
+@pytest.mark.parametrize("code", ["server_error", None, True])
+def test_control_an_error_frame_without_a_numeric_code_keeps_todays_condition(code) -> None:
+    failure = _outcome([_content(), _error_frame(code)])
+    assert failure.condition == "provider_rejected" and not failure.retryable
+    assert failure.status_code is None
+
+
+def test_control_a_failure_with_no_usage_seen_stays_not_billed() -> None:
+    for failure in (
+        _outcome([_content(), _error_frame(502)]),
+        _outcome([_content()], then_raise=_transport_module().RemoteProtocolError("closed")),
+    ):
+        assert failure.billing == "not_billed" and failure.cost_usd is None
+
+
+def test_control_malformed_optional_usage_fields_follow_the_helper() -> None:
+    failure = _outcome(
+        [_content(), _usage_chunk(cost=-1, prompt_tokens_details={"cached_tokens": -3})]
+    )
+    assert failure.billing == "reported"
+    assert (failure.input_tokens, failure.cached_input_tokens, failure.output_tokens) == (100, 0, 20)
+    assert failure.cost_usd is None
+    unusable = _outcome([_content(), _usage_chunk(prompt_tokens=-1)])
+    assert unusable.billing == "unknown"
