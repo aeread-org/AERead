@@ -177,7 +177,12 @@ def test_a_seal_alone_does_not_make_a_damaged_log_audited(run_roots: list[Path])
 
 @pytest.mark.parametrize(
     "damage, issue",
-    [("missing", "payload_missing"), ("malformed", "payload_corrupt"), ("mismatch", "payload_digest_mismatch")],
+    [
+        ("missing", "payload_missing"),
+        ("symlink", "payload_missing"),
+        ("malformed", "payload_corrupt"),
+        ("mismatch", "payload_digest_mismatch"),
+    ],
 )
 def test_a_damaged_payload_is_reported_left_out_and_reading_continues(
     tmp_path: Path, damage: str, issue: str
@@ -190,6 +195,12 @@ def test_a_damaged_payload_is_reported_left_out_and_reading_continues(
     path = attempt / victim["payload_ref"]
     if damage == "missing":
         path.unlink()
+    elif damage == "symlink":
+        content = path.read_bytes()
+        path.unlink()
+        elsewhere = tmp_path / "elsewhere.json"
+        elsewhere.write_bytes(content)
+        path.symlink_to(elsewhere)  # right bytes, but the artifact is not a plain file
     elif damage == "mismatch":
         path.write_bytes(b'{"failure_condition": "tampered"}')
     else:
