@@ -57,6 +57,10 @@ _ROUTE_FIELDS = ("route_provider", "quantization", "canonical_model")
 DECOMPRESS_LIMIT = 262_144
 MAX_LINES_PER_CHUNK = 2_000
 MAX_FRAME_BUFFER = 262_144
+# Records the writer takes per pass before it writes them out and heartbeats.
+DRAIN_BATCH = 1_000
+# Versions the trace-extension names, the wrapper class and the tee were checked on.
+SUPPORTED_VERSIONS = (("openai", "2.53."), ("httpx", "0.28."), ("httpcore", "1.0."))
 
 # One random id per process: two processes running the same cell never share a file.
 SESSION_ID = uuid.uuid4().hex
@@ -96,9 +100,14 @@ def bind_cell_scope(
         # Off path: touch nothing, so it stays identical to a build without telemetry.
         yield
         return
-    token = _SCOPE.set(
-        CallScope(run_plan_id, cell_id, episode_attempt_id, uuid.uuid4().hex)
-    )
+    try:  # fail open: a telemetry-only failure here must not touch the cell
+        token = _SCOPE.set(
+            CallScope(run_plan_id, cell_id, episode_attempt_id, uuid.uuid4().hex)
+        )
+    except Exception:
+        _count_prep_failure()
+        yield
+        return
     try:
         yield
     finally:
@@ -122,24 +131,36 @@ def bind_call_scope(
     if parent is None:
         yield
         return
-    route = {
-        name: value
-        for name in _ROUTE_FIELDS
-        if isinstance(provider_metadata, Mapping)
-        and isinstance(value := provider_metadata.get(name), str)
-    }
-    token = _SCOPE.set(
-        dataclasses.replace(
-            parent,
-            provider_call_id=provider_call_id,
-            credential_fp=credential_fp,
-            **route,
+    try:  # fail open: the provider call itself stays outside this catch
+        route = {
+            name: value
+            for name in _ROUTE_FIELDS
+            if isinstance(provider_metadata, Mapping)
+            and isinstance(value := provider_metadata.get(name), str)
+        }
+        token = _SCOPE.set(
+            dataclasses.replace(
+                parent,
+                provider_call_id=provider_call_id,
+                credential_fp=credential_fp,
+                **route,
+            )
         )
-    )
+    except Exception:
+        _count_prep_failure()
+        yield
+        return
     try:
         yield
     finally:
         _SCOPE.reset(token)
+
+
+def _count_prep_failure() -> None:
+    with contextlib.suppress(Exception):
+        runtime = get_runtime()
+        if runtime is not None:
+            runtime.count("telemetry_dropped")
 
 
 def credential_fingerprint(api_key: str) -> str:
@@ -155,6 +176,19 @@ def _stderr(message: str) -> None:
 
 def _wall() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _kernel_source_digest() -> str:
+    """SHA-256 over this module's and `task/execution.py`'s bytes (writer thread only)."""
+
+    digest = hashlib.sha256()
+    try:
+        here = Path(__file__).resolve()
+        for path in (here, here.parents[1] / "task" / "execution.py"):
+            digest.update(path.read_bytes())
+    except OSError:
+        return "unavailable"
+    return digest.hexdigest()
 
 
 class _Runtime:
@@ -176,8 +210,10 @@ class _Runtime:
         self.disabled = False
         self._stop = threading.Event()
         self._started_at = _wall()
-        self.session_dir.mkdir(parents=True, exist_ok=True)
-        self._process_record("session_start")
+        self.pid = os.getpid()
+        self._kernel_digest = ""
+        # Every filesystem operation happens on the writer thread, never on the
+        # thread that builds the runtime or shuts it down.
         self._thread = threading.Thread(
             target=self._run, name="aeread-transport-writer", daemon=True
         )
@@ -205,7 +241,7 @@ class _Runtime:
             self._producer_lock.release()
 
     def emit(self, scope: CallScope, event: str, fields: Mapping[str, Any]) -> None:
-        if self.disabled:
+        if self.disabled or self.pid != os.getpid():
             return
         if scope.credential_fp:
             self.credential_fps.add(scope.credential_fp)
@@ -269,8 +305,14 @@ class _Runtime:
 
     def _drain(self) -> None:
         batch: dict[Path, list[str]] = {}
-        while self.queue:
-            record = self.queue.popleft()
+        taken = 0
+        # A bounded pass: sustained producers cannot keep it from writing.
+        while self.queue and taken < DRAIN_BATCH:
+            try:
+                record = self.queue.popleft()
+            except IndexError:  # shutdown cleared the queue under us
+                break
+            taken += 1
             kind = record.get("_kind")
             if kind == "process":
                 self._process_record(record["event"], **record["fields"])
@@ -300,6 +342,7 @@ class _Runtime:
                                 "pid": os.getpid(),
                                 "session_id": SESSION_ID,
                                 "started": self._started_at,
+                                "kernel_source_sha256": self._kernel_digest,
                             },
                             sort_keys=True,
                         )
@@ -310,37 +353,73 @@ class _Runtime:
     def _run(self) -> None:
         next_heartbeat = time.monotonic() + HEARTBEAT_SECONDS
         try:
+            self.session_dir.mkdir(parents=True, exist_ok=True)
+            self._kernel_digest = _kernel_source_digest()
+            self._process_record("session_start")
             while not self._stop.wait(POLL_SECONDS):
+                while True:
+                    self._drain()
+                    if time.monotonic() >= next_heartbeat:
+                        self._process_record("heartbeat")
+                        next_heartbeat = time.monotonic() + HEARTBEAT_SECONDS
+                    if not self.queue or self._stop.is_set():
+                        break
+            while self.queue:
                 self._drain()
-                if time.monotonic() >= next_heartbeat:
-                    self._process_record("heartbeat")
-                    next_heartbeat = time.monotonic() + HEARTBEAT_SECONDS
-            self._drain()
+            self._process_record("session_end")
         except Exception as error:  # a write error never reaches a provider call
             self.disabled = True
             self.counters["writer_disabled"] = 1
-            _stderr(f"writer disabled after {type(error).__name__}: {error}")
+            _stderr(
+                f"writer disabled after {type(error).__name__}: {error}; telemetry disabled"
+            )
 
     def shutdown(self) -> None:
-        """Best-effort drain with a 2 s bound; leftovers are dropped and counted."""
+        """Signal the writer and join it for at most 2 s; it writes `session_end`.
 
+        This thread never touches the filesystem: a stuck writer is abandoned,
+        and what it had not written is dropped and counted.
+        """
+
+        if self.pid != os.getpid():  # inherited across fork: not ours to stop
+            return
         self._stop.set()
         self._thread.join(DRAIN_SECONDS)
-        self.counters["telemetry_dropped"] += len(self.queue)
-        self.queue.clear()
-        if not self.disabled:
-            with contextlib.suppress(Exception):
-                self._process_record("session_end")
+        if self._thread.is_alive():
+            self.counters["telemetry_dropped"] += len(self.queue)
+            self.queue.clear()
 
 
 _RUNTIMES: dict[str, _Runtime | None] = {}
 _RUNTIMES_LOCK = threading.Lock()
 
 
+def _installed_version(name: str) -> str:
+    from importlib import metadata
+
+    return metadata.version(name)
+
+
+def _unsupported_versions() -> list[str]:
+    found = []
+    for name, prefix in SUPPORTED_VERSIONS:
+        try:
+            version = _installed_version(name)
+        except Exception:
+            version = "unavailable"
+        if not version.startswith(prefix):
+            found.append(f"{name} {version} (supported {prefix}x)")
+    return found
+
+
 def _open_runtime(value: str) -> _Runtime | None:
     root = Path(value)
     if not root.is_absolute():
         _stderr(f"{ENV_DIR}={value!r} is not absolute; telemetry disabled")
+        return None
+    unsupported = _unsupported_versions()
+    if unsupported:
+        _stderr(f"unsupported versions: {', '.join(unsupported)}; telemetry disabled")
         return None
     try:
         return _Runtime(root)
@@ -366,6 +445,20 @@ def get_runtime() -> _Runtime | None:
     return None if runtime is None or runtime.disabled else runtime
 
 
+def _reset_after_fork() -> None:
+    """A forked child shares no session, runtime, writer thread or held lock."""
+
+    global SESSION_ID, _RUNTIMES_LOCK
+    SESSION_ID = uuid.uuid4().hex
+    _RUNTIMES_LOCK = threading.Lock()
+    _RUNTIMES.clear()
+    _SCOPE.set(None)
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_after_fork)
+
+
 def telemetry_enabled() -> bool:
     return get_runtime() is not None
 
@@ -384,10 +477,23 @@ def stalled_phase(events: Sequence[str]) -> str | None:
     open_phases: list[str] = []
     chunk_seen = False
     finished = False
+    ended = sent = dead = False
     for name in events:
         stem, _, kind = name.rpartition(".")
+        # A redirect or retry is a new exchange: only the last one can be stalled.
+        if kind == "started" and not stem.endswith("response_closed") and (
+            ended or (stem.endswith("send_request_headers") and sent)
+        ):
+            open_phases, chunk_seen, finished = [], False, False
+            ended = sent = dead = False
+        if dead:
+            continue
+        if stem.endswith("send_request_headers") and kind == "started":
+            sent = True
         if kind == "failed" or stem.endswith("response_closed"):
-            break
+            dead = True
+            ended = ended or stem.endswith("response_closed")
+            continue
         if kind == "started":
             open_phases.append(stem)
         elif kind == "complete":
@@ -608,7 +714,7 @@ class _SseObserver:
             raise ObservationBudgetExceeded("lines")
         for line in lines:
             self._line(line)
-        if len(self._buffer) + self._data_size > MAX_FRAME_BUFFER:
+        if len(self._buffer.encode("utf-8")) + self._data_size > MAX_FRAME_BUFFER:
             raise ObservationBudgetExceeded("frame buffer")
 
     def _line(self, line: str) -> None:
@@ -620,7 +726,9 @@ class _SseObserver:
             value = line[5:]
             value = value[1:] if value.startswith(" ") else value
             self._data.append(value)
-            self._data_size += len(value)
+            self._data_size += len(value.encode("utf-8"))
+            if self._data_size > MAX_FRAME_BUFFER:
+                raise ObservationBudgetExceeded("frame buffer")
 
     def _dispatch(self) -> None:
         data, self._data, self._data_size = "\n".join(self._data), [], 0
@@ -695,6 +803,7 @@ def _make_stream_class() -> type:
             except Exception:
                 self._observer = None
                 self._runtime.count("observer_disabled")
+                self._emit("delta_marks", delta_marks="unobservable(observer_error)")
 
         async def __aiter__(self) -> AsyncIterator[bytes]:
             async for chunk in self._source:
@@ -728,21 +837,8 @@ def _status_of(return_value: Any) -> int | None:
 def _make_client_class() -> type:
     import httpx
 
-    try:
-        from openai._base_client import AsyncHttpxClientWrapper as base
-    except ImportError:  # pragma: no cover - SDK dropped the wrapper
-        import asyncio
-
-        from openai import DefaultAsyncHttpxClient
-
-        class base(DefaultAsyncHttpxClient):  # type: ignore[no-redef]
-            def __del__(self) -> None:
-                if self.is_closed:
-                    return
-                try:
-                    asyncio.get_running_loop().create_task(self.aclose())
-                except Exception:
-                    pass
+    # Activation is limited to the checked SDK version, which has this wrapper.
+    from openai._base_client import AsyncHttpxClientWrapper as base
 
     class TelemetryHttpClient(base):  # type: ignore[valid-type, misc]
         """The SDK's default async client plus the trace hooks."""
@@ -750,6 +846,8 @@ def _make_client_class() -> type:
         def __init__(self, runtime: _Runtime, **kwargs: Any) -> None:
             async def on_request(request: httpx.Request) -> None:
                 try:
+                    if runtime.pid != os.getpid():  # runtime inherited across fork
+                        return
                     scope = _SCOPE.get()
                     if scope is None:
                         runtime.count("unscoped_calls")
@@ -821,7 +919,11 @@ def sdk_client_kwargs() -> dict[str, Any]:
 
 
 def credential_fp_if_enabled(api_key: str) -> str | None:
-    return credential_fingerprint(api_key) if telemetry_enabled() else None
+    try:
+        return credential_fingerprint(api_key) if telemetry_enabled() else None
+    except Exception:
+        _count_prep_failure()
+        return None
 
 
 __all__ = [

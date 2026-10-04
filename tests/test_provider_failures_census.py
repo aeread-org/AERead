@@ -344,6 +344,30 @@ def test_a_budget_disabled_stream_then_a_stall_is_progress_unknown(telemetry_dir
     assert hang["phase"] == BODY_PHASE
 
 
+def test_an_observer_error_then_a_stall_is_progress_unknown(monkeypatch, tmp_path) -> None:
+    import zlib
+
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    # Raw deflate: the SDK's client decodes it, the observer's zlib wbits=15 cannot.
+    compressor = zlib.compressobj(wbits=-15)
+    delta = b'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'
+    first = compressor.compress(delta) + compressor.flush(zlib.Z_SYNC_FLUSH)
+
+    async def stalled() -> None:
+        reply = sse_reply(
+            [first, SSE_DONE], headers={"Content-Encoding": "deflate"}, chunk_delays=[0.0, 3.0]
+        )
+        async with TransportResponder([reply]) as r:
+            await _call(r.base_url, "call_raw", "fp_raw", timeout=0.4)
+
+    _execution(stalled)
+    tt.get_runtime().shutdown()
+    (hang,) = _census([], [tmp_path])["hang_candidates"]
+    assert hang["provider_call_id"] == "call_raw"
+    assert hang["status"] == "stalled_progress_unknown"
+    assert hang["phase"] == BODY_PHASE
+
+
 def test_two_executions_of_one_cell_are_separate_census_keys(telemetry_dir: Path) -> None:
     report = _census([], [telemetry_dir])
     call_1 = [h for h in report["hang_candidates"] if h["provider_call_id"] == "call_1"]

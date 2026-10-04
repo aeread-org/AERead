@@ -52,19 +52,19 @@ def sse_reply(frames: Sequence[bytes], **kwargs: Any) -> Reply:
 
 
 class TransportResponder:
-    def __init__(self, script: Sequence[Reply]) -> None:
+    def __init__(self, script: Sequence[Reply], *, port: int = 0) -> None:
         self._script = list(script)
         self.requests: list[dict[str, Any]] = []
         self.connections = 0
         self._server: asyncio.AbstractServer | None = None
-        self.port = 0
+        self.port = port  # 0: any free port; a fixed port keeps request bytes equal across runs
 
     @property
     def base_url(self) -> str:
         return f"http://127.0.0.1:{self.port}/v1"
 
     async def __aenter__(self) -> "TransportResponder":
-        self._server = await asyncio.start_server(self._serve, "127.0.0.1", 0)
+        self._server = await asyncio.start_server(self._serve, "127.0.0.1", self.port)
         self.port = self._server.sockets[0].getsockname()[1]
         return self
 

@@ -8,6 +8,7 @@ correlation (9) and isolation (8, minus the observation budget) tests.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import dataclasses
 import json
 import os
@@ -342,6 +343,9 @@ def test_a_bad_directory_disables_telemetry_with_one_stderr_line(
     monkeypatch, capsys, bad
 ) -> None:
     monkeypatch.setenv(tt.ENV_DIR, bad)
+    runtime = tt.get_runtime()
+    if runtime is not None:  # an unwritable path is found by the writer thread
+        runtime._thread.join(5)
     assert tt.get_runtime() is None
     assert tt.get_runtime() is None
     assert tt.build_http_client() is None
@@ -680,7 +684,13 @@ def test_an_unusable_directory_leaves_the_call_result_unchanged(
             return result
 
     assert asyncio.run(main()) == off[0]
-    lines = capsys.readouterr().err.strip().splitlines()
+    # An unwritable directory is found by the writer thread, so wait for its line.
+    deadline = time.monotonic() + 5
+    err = capsys.readouterr().err
+    while "telemetry disabled" not in err and time.monotonic() < deadline:
+        time.sleep(0.02)
+        err += capsys.readouterr().err
+    lines = err.strip().splitlines()
     assert len(lines) == 1 and "telemetry disabled" in lines[0]
 
 
@@ -1186,7 +1196,8 @@ def test_an_observer_failure_over_http_leaves_bytes_and_chunk_marks(
     assert on_error is None and on_chunks == off_chunks
     assert tt.get_runtime().counters["observer_disabled"] > 0
     names = _mark_names(tmp_path)
-    assert names == ["first_body_chunk", "last_chunk"]
+    # The failure is recorded as unknown first-delta progress (finding 5).
+    assert names == ["first_body_chunk", "delta_marks", "last_chunk"]
 
 
 # --- test 8 (budget): a bomb and many tiny frames stop observation, chunk unchanged ---
@@ -1547,3 +1558,445 @@ def test_a_producer_that_finds_the_lock_held_drops_and_counts_without_waiting(
     assert elapsed < 0.5
     assert runtime.counters["telemetry_dropped"] == dropped + 1
     assert len(runtime.queue) <= before
+
+
+# --- review fixes (#226 S1 findings 1-5, 8-10, 13-15) ---------------------------
+
+import hashlib  # noqa: E402
+import statistics  # noqa: E402
+
+_FIFO_CHILD = """
+import asyncio, os, time
+from aeread.shared_runner.model_call import transport_telemetry as tt
+from aeread.shared_runner.task.execution import OpenRouterChatClient
+from tests.test_transport_telemetry import OPENROUTER_BODY, _request_for
+from tests.transport_responder import TransportResponder, json_reply
+
+# A reader-less FIFO where this session's process sidecar will be opened.
+session_dir = os.path.join(os.environ[tt.ENV_DIR], tt.HIDDEN_DIRNAME, tt.SESSION_ID)
+os.makedirs(session_dir)
+os.mkfifo(os.path.join(session_dir, "process.jsonl"))
+
+async def main():
+    async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
+        client = OpenRouterChatClient(base_url=responder.base_url)
+        with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+            await client.complete(_request_for(responder.base_url))
+asyncio.run(main())
+print(time.time(), flush=True)
+"""
+
+
+def test_a_fifo_at_the_process_sidecar_blocks_neither_a_call_nor_interpreter_exit(
+    tmp_path,
+) -> None:
+    env = {
+        **os.environ,
+        "PYTHONPATH": f"{REPO_ROOT / 'src'}{os.pathsep}{REPO_ROOT}",
+        "OPENROUTER_API_KEY": "sk-test-key",
+        tt.ENV_DIR: str(tmp_path),
+    }
+    # The bounded parent timeout turns a blocked open() into a failure, not a hang.
+    completed = subprocess.run(
+        [sys.executable, "-c", _FIFO_CHILD],
+        cwd=REPO_ROOT, env=env, capture_output=True, text=True, timeout=30, check=True,
+    )
+    exit_lag = time.time() - float(completed.stdout.strip().splitlines()[-1])
+    assert exit_lag < 5.0, f"interpreter exit took {exit_lag:.1f}s with a FIFO sidecar"
+
+
+def test_building_the_runtime_touches_no_filesystem_on_the_calling_thread(
+    monkeypatch, tmp_path
+) -> None:
+    caller = threading.get_ident()
+    seen: list[int] = []
+    real_mkdir = Path.mkdir
+
+    def spy(self, *args, **kwargs):
+        seen.append(threading.get_ident())
+        return real_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", spy)
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "late"))
+    runtime = tt.get_runtime()
+    runtime.shutdown()
+    assert seen and caller not in seen
+    process = (runtime.session_dir / "process.jsonl").read_text().splitlines()
+    assert [json.loads(line)["event"] for line in process] == ["session_start", "session_end"]
+
+
+class _RaisingMetadata(dict):
+    def get(self, *args):
+        raise RuntimeError("metadata exploded")
+
+
+def test_a_raising_provider_metadata_leaves_the_call_untraced_and_counted(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    ran: list[Any] = []
+    with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+        parent = tt.current_scope()
+        before = tt.get_runtime().counters["telemetry_dropped"]
+        with tt.bind_call_scope(
+            provider_call_id="x", provider_metadata=_RaisingMetadata(), credential_fp=None
+        ):
+            ran.append(tt.current_scope())
+        assert tt.get_runtime().counters["telemetry_dropped"] == before + 1
+    assert ran == [parent]
+    # The provider operation stays outside the catch: its own errors propagate.
+    with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+        with pytest.raises(ValueError, match="provider"):
+            with tt.bind_call_scope(
+                provider_call_id="x", provider_metadata=_RaisingMetadata(), credential_fp=None
+            ):
+                raise ValueError("provider failed")
+
+
+def test_a_failing_uuid_or_fingerprint_does_not_abort_the_cell(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+
+    def boom(*args, **kwargs):
+        raise OSError("no entropy")
+
+    monkeypatch.setattr(tt.uuid, "uuid4", boom)
+    ran: list[Any] = []
+    with tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a"):
+        ran.append(tt.current_scope())
+    assert ran == [None]
+    monkeypatch.setattr(tt, "credential_fingerprint", boom)
+    assert tt.credential_fp_if_enabled("sk-test-key") is None
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs POSIX fork")
+def test_a_forked_child_gets_its_own_session_and_runtime_and_is_not_blocked(
+    monkeypatch, tmp_path
+) -> None:
+    import signal
+
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    parent_runtime = tt.get_runtime()
+    parent_session = tt.SESSION_ID
+    read_fd, write_fd = os.pipe()
+    with tt._RUNTIMES_LOCK:  # held across the fork: the child must not inherit it held
+        pid = os.fork()
+        if pid == 0:  # child
+            code = 1
+            try:
+                signal.alarm(20)
+                os.close(read_fd)
+                runtime = tt.get_runtime()
+                report = {
+                    "session": tt.SESSION_ID,
+                    "pid_ok": runtime is not None and runtime.pid == os.getpid(),
+                    "fresh": runtime is not parent_runtime,
+                    "alive": runtime is not None and runtime._thread.is_alive(),
+                    "parent_unusable": parent_runtime.pid != os.getpid(),
+                }
+                os.write(write_fd, json.dumps(report).encode())
+                code = 0
+            finally:
+                os._exit(code)
+    os.close(write_fd)
+    data = os.read(read_fd, 4096)
+    os.close(read_fd)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    report = json.loads(data)
+    assert report["session"] != parent_session
+    assert report["pid_ok"] and report["fresh"] and report["alive"] and report["parent_unusable"]
+    assert tt.SESSION_ID == parent_session
+
+
+def test_a_drain_pass_writes_a_bounded_batch_before_taking_more(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    runtime = tt.get_runtime()
+    runtime._stop.set()
+    runtime._thread.join(5)
+    monkeypatch.setattr(tt, "DRAIN_BATCH", 10)
+    scope = tt.CallScope("p", "c", "a", "e", provider_call_id="x")
+    for index in range(25):
+        runtime.emit(scope, f"probe_{index}", {})
+    runtime._drain()
+    assert len(runtime.queue) == 15
+    (path,) = runtime.session_dir.rglob("*.transport.jsonl")
+    assert len(path.read_text().splitlines()) == 1 + 10  # header + the batch
+
+
+def _raw_deflate_chunks() -> list[bytes]:
+    compressor = zlib.compressobj(wbits=-15)  # what httpx 0.28 accepts for "deflate"
+    return [
+        compressor.compress(_frame({"content": "hi"})) + compressor.flush(zlib.Z_SYNC_FLUSH),
+        compressor.compress(SSE_KEEPALIVE) + compressor.flush(zlib.Z_SYNC_FLUSH),
+    ]
+
+
+def test_an_observer_error_records_that_first_delta_progress_is_unknown(
+    monkeypatch, tmp_path
+) -> None:
+    reply = sse_reply(
+        _raw_deflate_chunks(),
+        headers={"Content-Encoding": "deflate"},
+        chunk_delays=(0, 0.05),
+    )
+    (off_chunks, off_error), (on_chunks, on_error) = _off_and_on(reply, tmp_path, monkeypatch)
+    assert off_error is None and on_error is None and on_chunks == off_chunks
+    notes = [r["delta_marks"] for r in _marks(tmp_path) if r["event"] == "delta_marks"]
+    assert notes == ["unobservable(observer_error)"]
+    assert tt.get_runtime().counters["observer_disabled"] == 1
+
+
+def test_stalled_phase_belongs_to_the_last_exchange() -> None:
+    first = [
+        "connection.connect_tcp.started",
+        "connection.connect_tcp.complete",
+        "http11.send_request_headers.started",
+        "http11.send_request_headers.complete",
+        "http11.receive_response_headers.started",
+        "http11.receive_response_headers.complete",
+        "http11.receive_response_body.started",
+        "http11.receive_response_body.complete",
+        "http11.response_closed.started",
+        "http11.response_closed.complete",
+    ]
+    # A 307 on a reused connection, then a header stall at the destination.
+    assert tt.stalled_phase(
+        first
+        + [
+            "http11.send_request_headers.started",
+            "http11.send_request_headers.complete",
+            "http11.receive_response_headers.started",
+        ]
+    ) == "http11.receive_response_headers.started"
+    # The destination on a new connection, stalled while connecting.
+    assert tt.stalled_phase(first + ["connection.connect_tcp.started"]) == (
+        "connection.connect_tcp.started"
+    )
+    # A redirect chain that finished cleanly is not stalled.
+    assert tt.stalled_phase(first + first) is None
+
+
+@pytest.mark.parametrize(
+    "versions, stderr_lines",
+    [
+        ({}, 0),
+        ({"openai": "2.54.0"}, 1),
+        ({"httpx": "0.29.0"}, 1),
+        ({"httpcore": "1.1.0"}, 1),
+    ],
+)
+def test_an_unsupported_dependency_version_disables_telemetry_with_one_line(
+    monkeypatch, tmp_path, capsys, versions, stderr_lines
+) -> None:
+    real = tt._installed_version
+    monkeypatch.setattr(tt, "_installed_version", lambda name: versions.get(name) or real(name))
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+    assert (tt.get_runtime() is None) == bool(stderr_lines)
+    assert tt.get_runtime() is None or not stderr_lines
+    tt.get_runtime()  # the verdict is cached: no second line
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == stderr_lines
+    if stderr_lines:
+        assert "telemetry disabled" in lines[0] and next(iter(versions)) in lines[0]
+
+
+def test_a_complete_oversized_frame_is_refused_even_when_its_delimiter_arrives_last() -> None:
+    marks: list[str] = []
+    observer = tt._SseObserver(None, marks.append)
+    head = b'data: {"choices":[{"delta":{"content":"' + b"x" * 100_000
+    observer.feed(head)
+    observer.feed(b"x" * 100_000)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        observer.feed(b"x" * 100_000 + b'"}}]}\n\n')
+    assert marks == []
+
+
+def test_the_frame_budget_counts_bytes_not_characters() -> None:
+    # 100k characters of 3 bytes each: under the limit as text, over it as bytes.
+    observer = tt._SseObserver(None, lambda name: None)
+    with pytest.raises(tt.ObservationBudgetExceeded):
+        observer.feed(("data: " + "€" * 100_000 + "\n\n").encode())
+
+
+def test_the_call_sidecar_header_carries_the_kernel_source_digest(
+    monkeypatch, tmp_path
+) -> None:
+    _scoped_calls(
+        [json_reply(OPENROUTER_BODY)], ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch
+    )
+    _records(tmp_path, wanted=1)
+    (sidecar,) = (tmp_path / tt.HIDDEN_DIRNAME / tt.SESSION_ID).rglob("*.transport.jsonl")
+    header = json.loads(sidecar.read_text().splitlines()[0])
+    source = REPO_ROOT / "src" / "aeread" / "shared_runner"
+    expected = hashlib.sha256(
+        (source / "model_call" / "transport_telemetry.py").read_bytes()
+        + (source / "task" / "execution.py").read_bytes()
+    ).hexdigest()
+    assert header["kernel_source_sha256"] == expected
+
+
+def test_the_kernel_source_digest_is_never_computed_on_the_calling_thread(
+    monkeypatch, tmp_path
+) -> None:
+    threads: list[int] = []
+    real = tt._kernel_source_digest
+    monkeypatch.setattr(
+        tt, "_kernel_source_digest", lambda: (threads.append(threading.get_ident()), real())[1]
+    )
+    _scoped_calls(
+        [json_reply(OPENROUTER_BODY)], ["c1"], env_dir=tmp_path, monkeypatch=monkeypatch
+    )
+    _records(tmp_path, wanted=1)
+    assert threads and threading.get_ident() not in threads
+
+
+# --- finding 13: parity through a real adapter and the executor ----------------
+
+
+def _adapter_run(tmp_path: Path, name: str, monkeypatch, port: int):
+    """One executor action through OpenRouterChatClient against the local responder."""
+
+    from aeread.shared_runner.schemas import AgentProfile
+    from aeread.shared_runner.task.execution import MinimalChatExecutor
+    from tests.test_shared_runner_execution import (
+        FAKE_PRICING,
+        SYSTEM_PROMPT,
+        _decision,
+        _evidence,
+        _profile,
+    )
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
+
+    async def main():
+        async with TransportResponder([json_reply(OPENROUTER_BODY)], port=port) as responder:
+            original = AgentProfile.from_dict.__func__
+
+            def route_pinned(cls, value):
+                value["sampling"]["seed"] = 71001
+                value["model"]["base_url"] = responder.base_url
+                value["model"]["revision"] = "deepseek/deepseek-v4-flash-20260731"
+                config = value["harness"]["config"]
+                config["output_schema"] = {
+                    "type": "object",
+                    "properties": {"offer": {"type": "integer", "minimum": 0}},
+                    "required": ["offer"],
+                    "additionalProperties": False,
+                }
+                config["provider_metadata"] = {
+                    "route_provider": "DeepInfra",
+                    "quantization": "fp8",
+                    "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+                    "max_prompt_price_per_million": "0.08",
+                    "max_completion_price_per_million": "0.18",
+                }
+                return original(cls, value)
+
+            monkeypatch.setattr(AgentProfile, "from_dict", classmethod(route_pinned))
+            profile = _profile(provider="openrouter", model="deepseek/deepseek-v4-flash-0731")
+            monkeypatch.setattr(AgentProfile, "from_dict", classmethod(original))
+            evidence = _evidence(tmp_path / name)
+            client = OpenRouterChatClient(base_url=responder.base_url)
+            executor = MinimalChatExecutor(
+                evidence=evidence,
+                profiles=(profile,),
+                prompt_sources={"fixture_action_prompt": SYSTEM_PROMPT},
+                providers={"openrouter": client},
+                pricing={"deepseek/deepseek-v4-flash-0731": FAKE_PRICING},
+            )
+            with tt.bind_cell_scope(
+                run_plan_id=evidence.run_plan_id,
+                cell_id=evidence.cell_id,
+                episode_attempt_id=evidence.episode_attempt_id,
+            ):
+                response = await executor(_decision())
+            executor.finalize_logical_action(
+                _decision().logical_action_id, valid=True, failure_code=None
+            )
+            await client._client.close()
+            return evidence, response
+
+    return asyncio.run(main())
+
+
+def test_an_executor_action_through_a_live_adapter_is_byte_identical_off_and_on(
+    monkeypatch, tmp_path
+) -> None:
+    """Events and seal bytes; no kernel-only receipt finalizer exists for this
+    path (receipts come from `execute_plan_cell`), so no receipt is compared."""
+
+    import socket
+
+    with socket.socket() as probe:  # one port for both runs: the base URL is in the events
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    _fixed_clock(monkeypatch)
+    monkeypatch.delenv(tt.ENV_DIR, raising=False)
+    off_evidence, off_response = _adapter_run(tmp_path, "off", monkeypatch, port)
+    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+    on_evidence, on_response = _adapter_run(tmp_path, "on", monkeypatch, port)
+    off_evidence.seal()
+    on_evidence.seal()
+    assert off_response == on_response
+    assert off_evidence.events_path.read_bytes() == on_evidence.events_path.read_bytes()
+    assert off_evidence.events_path.stat().st_size > 0
+    assert off_evidence.seal_path.read_bytes() == on_evidence.seal_path.read_bytes()
+    # Telemetry really observed the on run through the live client hooks.
+    assert _records(tmp_path / "telemetry", wanted=1)
+
+
+# --- finding 14: warmed overhead smoke guard -----------------------------------
+
+
+@pytest.mark.parametrize("kind", ["json", "sse"])
+def test_warmed_telemetry_overhead_smoke_guard(monkeypatch, tmp_path, kind) -> None:
+    """CI smoke guard only (median added latency < 5 ms over warmed, alternating
+    calls); not the release criterion, which uses p99 and deadline measurements."""
+
+    sse_body = [_frame({"content": "hi"}), SSE_DONE]
+    reply = (
+        json_reply(OPENROUTER_BODY) if kind == "json" else sse_reply(sse_body)
+    )
+
+    async def main():
+        async with TransportResponder([reply]) as responder:
+            monkeypatch.delenv(tt.ENV_DIR, raising=False)
+            off_client = openai.AsyncOpenAI(
+                api_key="k", base_url=responder.base_url, max_retries=0, **tt.sdk_client_kwargs()
+            )
+            monkeypatch.setenv(tt.ENV_DIR, str(tmp_path))
+            on_client = openai.AsyncOpenAI(
+                api_key="k", base_url=responder.base_url, max_retries=0, **tt.sdk_client_kwargs()
+            )
+
+            async def call(client, traced: bool) -> float:
+                started = time.perf_counter()
+                with (
+                    tt.bind_cell_scope(run_plan_id="p", cell_id="c", episode_attempt_id="a")
+                    if traced
+                    else contextlib.nullcontext()
+                ):
+                    result = await client.chat.completions.create(
+                        model="m",
+                        messages=[{"role": "user", "content": "x"}],
+                        stream=kind == "sse",
+                    )
+                    if kind == "sse":
+                        _ = [chunk async for chunk in result]
+                return time.perf_counter() - started
+
+            for _ in range(30):
+                await call(off_client, False)
+                await call(on_client, True)
+            off, on = [], []
+            for _ in range(50):
+                off.append(await call(off_client, False))
+                on.append(await call(on_client, True))
+            await off_client.close()
+            await on_client.close()
+            return statistics.median(on) - statistics.median(off)
+
+    added = asyncio.run(main())
+    assert added < 0.005, f"median added latency {added * 1000:.2f} ms"
