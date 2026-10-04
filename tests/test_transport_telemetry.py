@@ -1994,7 +1994,7 @@ def test_the_kernel_source_digest_is_never_computed_on_the_calling_thread(
 # --- finding 13: parity through a real adapter and the executor ----------------
 
 
-def _adapter_run(tmp_path: Path, name: str, monkeypatch, port: int):
+async def _adapter_run(tmp_path: Path, name: str, monkeypatch, responder: TransportResponder):
     """One executor action through OpenRouterChatClient against the local responder."""
 
     from aeread.shared_runner.schemas import AgentProfile
@@ -2009,55 +2009,51 @@ def _adapter_run(tmp_path: Path, name: str, monkeypatch, port: int):
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-key")
 
-    async def main():
-        async with TransportResponder([json_reply(OPENROUTER_BODY)], port=port) as responder:
-            original = AgentProfile.from_dict.__func__
+    original = AgentProfile.from_dict.__func__
 
-            def route_pinned(cls, value):
-                value["sampling"]["seed"] = 71001
-                value["model"]["base_url"] = responder.base_url
-                value["model"]["revision"] = "deepseek/deepseek-v4-flash-20260731"
-                config = value["harness"]["config"]
-                config["output_schema"] = {
-                    "type": "object",
-                    "properties": {"offer": {"type": "integer", "minimum": 0}},
-                    "required": ["offer"],
-                    "additionalProperties": False,
-                }
-                config["provider_metadata"] = {
-                    "route_provider": "DeepInfra",
-                    "quantization": "fp8",
-                    "canonical_model": "deepseek/deepseek-v4-flash-20260731",
-                    "max_prompt_price_per_million": "0.08",
-                    "max_completion_price_per_million": "0.18",
-                }
-                return original(cls, value)
+    def route_pinned(cls, value):
+        value["sampling"]["seed"] = 71001
+        value["model"]["base_url"] = responder.base_url
+        value["model"]["revision"] = "deepseek/deepseek-v4-flash-20260731"
+        config = value["harness"]["config"]
+        config["output_schema"] = {
+            "type": "object",
+            "properties": {"offer": {"type": "integer", "minimum": 0}},
+            "required": ["offer"],
+            "additionalProperties": False,
+        }
+        config["provider_metadata"] = {
+            "route_provider": "DeepInfra",
+            "quantization": "fp8",
+            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+            "max_prompt_price_per_million": "0.08",
+            "max_completion_price_per_million": "0.18",
+        }
+        return original(cls, value)
 
-            monkeypatch.setattr(AgentProfile, "from_dict", classmethod(route_pinned))
-            profile = _profile(provider="openrouter", model="deepseek/deepseek-v4-flash-0731")
-            monkeypatch.setattr(AgentProfile, "from_dict", classmethod(original))
-            evidence = _evidence(tmp_path / name)
-            client = OpenRouterChatClient(base_url=responder.base_url)
-            executor = MinimalChatExecutor(
-                evidence=evidence,
-                profiles=(profile,),
-                prompt_sources={"fixture_action_prompt": SYSTEM_PROMPT},
-                providers={"openrouter": client},
-                pricing={"deepseek/deepseek-v4-flash-0731": FAKE_PRICING},
-            )
-            with tt.bind_cell_scope(
-                run_plan_id=evidence.run_plan_id,
-                cell_id=evidence.cell_id,
-                episode_attempt_id=evidence.episode_attempt_id,
-            ):
-                response = await executor(_decision())
-            executor.finalize_logical_action(
-                _decision().logical_action_id, valid=True, failure_code=None
-            )
-            await client._client.close()
-            return evidence, response
-
-    return asyncio.run(main())
+    monkeypatch.setattr(AgentProfile, "from_dict", classmethod(route_pinned))
+    profile = _profile(provider="openrouter", model="deepseek/deepseek-v4-flash-0731")
+    monkeypatch.setattr(AgentProfile, "from_dict", classmethod(original))
+    evidence = _evidence(tmp_path / name)
+    client = OpenRouterChatClient(base_url=responder.base_url)
+    executor = MinimalChatExecutor(
+        evidence=evidence,
+        profiles=(profile,),
+        prompt_sources={"fixture_action_prompt": SYSTEM_PROMPT},
+        providers={"openrouter": client},
+        pricing={"deepseek/deepseek-v4-flash-0731": FAKE_PRICING},
+    )
+    with tt.bind_cell_scope(
+        run_plan_id=evidence.run_plan_id,
+        cell_id=evidence.cell_id,
+        episode_attempt_id=evidence.episode_attempt_id,
+    ):
+        response = await executor(_decision())
+    executor.finalize_logical_action(
+        _decision().logical_action_id, valid=True, failure_code=None
+    )
+    await client._client.close()
+    return evidence, response
 
 
 def test_an_executor_action_through_a_live_adapter_is_byte_identical_off_and_on(
@@ -2066,16 +2062,20 @@ def test_an_executor_action_through_a_live_adapter_is_byte_identical_off_and_on(
     """Events and seal bytes; no kernel-only receipt finalizer exists for this
     path (receipts come from `execute_plan_cell`), so no receipt is compared."""
 
-    import socket
-
-    with socket.socket() as probe:  # one port for both runs: the base URL is in the events
-        probe.bind(("127.0.0.1", 0))
-        port = probe.getsockname()[1]
     _fixed_clock(monkeypatch)
     monkeypatch.delenv(tt.ENV_DIR, raising=False)
-    off_evidence, off_response = _adapter_run(tmp_path, "off", monkeypatch, port)
-    monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
-    on_evidence, on_response = _adapter_run(tmp_path, "on", monkeypatch, port)
+
+    async def both():
+        # One listener for both runs: the base URL is in the events, and no
+        # port is released and re-bound between the runs.
+        async with TransportResponder([json_reply(OPENROUTER_BODY)]) as responder:
+            off = await _adapter_run(tmp_path, "off", monkeypatch, responder)
+            monkeypatch.setenv(tt.ENV_DIR, str(tmp_path / "telemetry"))
+            on = await _adapter_run(tmp_path, "on", monkeypatch, responder)
+            assert len(responder.requests) == 2
+            return off, on
+
+    (off_evidence, off_response), (on_evidence, on_response) = asyncio.run(both())
     off_evidence.seal()
     on_evidence.seal()
     assert off_response == on_response
@@ -2089,15 +2089,20 @@ def test_an_executor_action_through_a_live_adapter_is_byte_identical_off_and_on(
 # --- finding 14: warmed overhead smoke guard -----------------------------------
 
 
-@pytest.mark.parametrize("kind", ["json", "sse"])
+@pytest.mark.parametrize("kind", ["json", "sse", "sse_200_chunks", "sse_gzip"])
 def test_warmed_telemetry_overhead_smoke_guard(monkeypatch, tmp_path, kind) -> None:
     """CI smoke guard only (median added latency < 5 ms over warmed, alternating
     calls); not the release criterion, which uses p99 and deadline measurements."""
 
     sse_body = [_frame({"content": "hi"}), SSE_DONE]
-    reply = (
-        json_reply(OPENROUTER_BODY) if kind == "json" else sse_reply(sse_body)
-    )
+    replies = {
+        "json": json_reply(OPENROUTER_BODY),
+        "sse": sse_reply(sse_body),
+        "sse_200_chunks": sse_reply([_frame({"content": "hi"})] * 200 + [SSE_DONE]),
+        "sse_gzip": sse_reply(sse_body, gzip=True),
+    }
+    reply = replies[kind]
+    streamed = kind != "json"
 
     async def main():
         async with TransportResponder([reply]) as responder:
@@ -2120,9 +2125,9 @@ def test_warmed_telemetry_overhead_smoke_guard(monkeypatch, tmp_path, kind) -> N
                     result = await client.chat.completions.create(
                         model="m",
                         messages=[{"role": "user", "content": "x"}],
-                        stream=kind == "sse",
+                        stream=streamed,
                     )
-                    if kind == "sse":
+                    if streamed:
                         _ = [chunk async for chunk in result]
                 return time.perf_counter() - started
 
@@ -2138,6 +2143,11 @@ def test_warmed_telemetry_overhead_smoke_guard(monkeypatch, tmp_path, kind) -> N
             return statistics.median(on) - statistics.median(off)
 
     added = asyncio.run(main())
+    if streamed:
+        # The observer really ran on this workload: every traced call marked a first delta.
+        marks = _records(tmp_path, wanted=80, event="first_delta.content")
+        assert sum(r["event"] == "first_delta.content" for r in marks) >= 80
+        assert not any(str(r.get("delta_marks", "")).startswith("unobservable") for r in marks)
     assert added < 0.005, f"median added latency {added * 1000:.2f} ms"
 
 
