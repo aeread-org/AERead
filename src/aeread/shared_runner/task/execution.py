@@ -1926,36 +1926,36 @@ class OpenRouterChatClient:
                 chunks.append(dumped)
                 if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
                     usage = dumped["usage"]
+            if not chunks:
+                raise ProviderFailure(
+                    "transport", "OpenRouter stream ended before any chunk", retryable=True
+                )
+            assembled = _assemble_chat_stream(chunks)
+            choice = assembled["choices"][0]
+            # A stream that carries a recognized error is typed by it later;
+            # only one that simply stopped, with no finish and no such error,
+            # was cut short.
+            if (
+                choice["finish_reason"] is None
+                and not isinstance(assembled.get("error"), Mapping)
+                and not isinstance(choice.get("error"), Mapping)
+            ):
+                raise ProviderFailure(
+                    "transport",
+                    "stream ended before a terminal finish_reason",
+                    retryable=True,
+                )
+            return _AssembledResponse(assembled)
         except asyncio.CancelledError:
             raise
-        except ProviderFailure:
-            raise
+        except ProviderFailure as failure:
+            if not kwargs.get("stream"):
+                raise
+            raise _with_stream_usage(failure, usage) from failure
         except Exception as error:
             if not kwargs.get("stream"):
                 raise OpenAIResponsesClient._classify_error(error) from error
             raise _with_stream_usage(_classify_stream_error(error), usage) from error
-        if not chunks:
-            raise ProviderFailure(
-                "transport", "OpenRouter stream ended before any chunk", retryable=True
-            )
-        assembled = _assemble_chat_stream(chunks)
-        choice = assembled["choices"][0]
-        # A stream that carries an error is typed by it later; only one that
-        # simply stopped, with no finish and no error, was cut short.
-        if (
-            choice["finish_reason"] is None
-            and assembled.get("error") is None
-            and choice.get("error") is None
-        ):
-            raise _with_stream_usage(
-                ProviderFailure(
-                    "transport",
-                    "stream ended before a terminal finish_reason",
-                    retryable=True,
-                ),
-                usage,
-            )
-        return _AssembledResponse(assembled)
 
     @staticmethod
     def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:

@@ -304,7 +304,7 @@ def _sse(frames) -> bytes:
     return "".join(f"data: {json.dumps(frame)}\n\n" for frame in frames).encode()
 
 
-def _real_client(frames, *, then_raise=None) -> OpenRouterChatClient:
+def _real_client(frames, *, then_raise=None, done=True) -> OpenRouterChatClient:
     transport = _transport_module()
 
     async def body():
@@ -312,7 +312,8 @@ def _real_client(frames, *, then_raise=None) -> OpenRouterChatClient:
             yield _sse([frame])
         if then_raise is not None:
             raise then_raise
-        yield b"data: [DONE]\n\n"
+        if done:
+            yield b"data: [DONE]\n\n"
 
     def handler(request):
         return transport.Response(200, headers={"content-type": "text/event-stream"}, content=body())
@@ -353,10 +354,13 @@ def _error_frame(code, **extra) -> dict:
     return {"error": {"code": code, "message": "upstream failure", **extra}}
 
 
-def _outcome(frames, *, then_raise=None):
+_ENDINGS = pytest.mark.parametrize("done", [True, False], ids=["done_marker", "plain_eof"])
+
+
+def _outcome(frames, *, then_raise=None, done=True):
     request = _streamed(_openrouter_request())
     with pytest.raises(ProviderFailure) as raised:
-        asyncio.run(_real_client(frames, then_raise=then_raise).complete(request))
+        asyncio.run(_real_client(frames, then_raise=then_raise, done=done).complete(request))
     return raised.value
 
 
@@ -376,31 +380,54 @@ def test_t1_a_decimal_string_code_counts_as_numeric() -> None:
     assert (failure.condition, failure.retryable, failure.status_code) == ("provider_5xx", True, 502)
 
 
-def test_t2_a_stream_with_usage_but_no_finish_is_a_retryable_transport_failure() -> None:
-    failure = _outcome([_content(), _usage_chunk()])
+@_ENDINGS
+def test_t2_a_stream_with_usage_but_no_finish_is_a_retryable_transport_failure(done) -> None:
+    failure = _outcome([_content(), _usage_chunk()], done=done)
     assert failure.condition == "transport" and failure.retryable
     assert "terminal finish_reason" in str(failure)
 
 
-def test_t2_a_stream_that_ends_after_content_is_a_retryable_transport_failure() -> None:
-    failure = _outcome([_content()])
+@_ENDINGS
+def test_t2_a_stream_that_ends_after_content_is_a_retryable_transport_failure(done) -> None:
+    failure = _outcome([_content()], done=done)
     assert failure.condition == "transport" and failure.retryable
 
 
-def test_t3_reasoning_and_its_details_survive_assembly() -> None:
-    details = [
-        {"type": "reasoning.text", "text": "first", "index": 0},
-        {"type": "reasoning.encrypted", "data": "abc", "index": 1},
-    ]
+_DETAILS = [
+    {"type": "reasoning.text", "text": "first", "index": 0},
+    {"type": "reasoning.encrypted", "data": "abc", "index": 1},
+]
 
+
+def _reasoning_frames() -> list[dict]:
     def chunk(delta, finish=None):
         return {**_BASE, "choices": [{"index": 0, "finish_reason": finish, "delta": {"role": "assistant", **delta}}]}
 
-    frames = [
-        chunk({"content": "", "reasoning": "think ", "reasoning_details": [details[0]]}),
-        chunk({"content": '{"a":1}', "reasoning": "hard", "reasoning_details": [details[1]]}),
+    return [
+        chunk({"content": "", "reasoning": "think ", "reasoning_details": [_DETAILS[0]]}),
+        chunk({"content": '{"a":1}', "reasoning": "hard", "reasoning_details": [_DETAILS[1]]}),
         chunk({"content": ""}, finish="stop"),
     ]
+
+
+@_ENDINGS
+def test_t3_reasoning_and_its_details_survive_the_real_sdk(done) -> None:
+    final = _fixture_chunks()[-1]
+    frames = [
+        *_reasoning_frames(),
+        {**_BASE, "choices": [], "usage": final["usage"], "openrouter_metadata": final["openrouter_metadata"], "provider": "DeepInfra"},
+    ]
+    request = _streamed(_openrouter_request())
+    result = asyncio.run(_real_client(frames, done=done).complete(request))
+    message = result.raw_response["choices"][0]["message"]
+    assert message["reasoning"] == "think hard"
+    assert message["reasoning_details"] == _DETAILS
+    assert result.output_text == '{"a":1}' and result.finish_reason == "stop"
+
+
+def test_t3_reasoning_and_its_details_survive_assembly() -> None:
+    details = _DETAILS
+    frames = _reasoning_frames()
     assembled = _assemble_chat_stream(
         [json.loads(json.dumps(f)) for f in frames]
     )
@@ -420,8 +447,9 @@ def test_t4_usage_before_an_error_frame_is_kept() -> None:
     _assert_reported(_outcome([_content(), _usage_chunk(), _error_frame(502)]))
 
 
-def test_t4_usage_before_a_premature_end_is_kept() -> None:
-    failure = _outcome([_content(), _usage_chunk()])
+@_ENDINGS
+def test_t4_usage_before_a_premature_end_is_kept(done) -> None:
+    failure = _outcome([_content(), _usage_chunk()], done=done)
     assert failure.condition == "transport"
     _assert_reported(failure)
 
@@ -433,6 +461,36 @@ def test_t4_usage_before_a_transport_exception_is_kept() -> None:
     )
     assert failure.condition == "transport" and failure.retryable
     _assert_reported(failure)
+
+
+def test_t4_usage_is_kept_when_a_typed_failure_is_raised_during_iteration() -> None:
+    failure = _outcome(
+        [_content(), _usage_chunk()],
+        then_raise=ProviderFailure("transport", "typed mid-stream", retryable=True),
+    )
+    assert failure.condition == "transport" and str(failure) == "typed mid-stream"
+    _assert_reported(failure)
+
+
+def test_t4_usage_is_kept_when_assembly_fails() -> None:
+    two_choices = {**_BASE, "choices": [{"index": 0, "delta": {}}, {"index": 1, "delta": {}}]}
+    failure = _outcome([_content(), _usage_chunk(), two_choices])
+    assert failure.condition == "provider_contract"
+    _assert_reported(failure)
+
+
+@pytest.mark.parametrize("where", ["top", "choice"])
+def test_t2_a_non_mapping_error_field_does_not_bypass_the_missing_finish_rule(where) -> None:
+    frame = _content()
+    if where == "choice":
+        frame["choices"][0]["error"] = False
+    else:
+        frame["error"] = False
+    final = _fixture_chunks()[-1]
+    meta = {"openrouter_metadata": final["openrouter_metadata"], "provider": "DeepInfra"}
+    failure = _outcome([frame, {**_usage_chunk(), **meta}])
+    assert failure.condition == "transport" and failure.retryable
+    assert "terminal finish_reason" in str(failure)
 
 
 # Compatibility controls: green before and after the fixes.
@@ -455,10 +513,11 @@ def test_control_an_error_finish_is_still_a_choice_error() -> None:
     assert failure.condition == "provider_choice_error" and failure.retryable
 
 
-def test_control_a_finished_stream_with_usage_succeeds() -> None:
+@_ENDINGS
+def test_control_a_finished_stream_with_usage_succeeds(done) -> None:
     request = _streamed(_openrouter_request())
     expected = asyncio.run(_client(_StreamingCompletions(FakeOpenRouterCompletions())).complete(request))
-    result = asyncio.run(_real_client(_fixture_chunks()).complete(request))
+    result = asyncio.run(_real_client(_fixture_chunks(), done=done).complete(request))
     assert result.finish_reason == expected.finish_reason == "stop"
     assert result.output_text == expected.output_text
     assert result.cost_usd == expected.cost_usd
