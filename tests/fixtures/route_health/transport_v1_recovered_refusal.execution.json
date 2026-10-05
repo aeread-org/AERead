@@ -1,0 +1,68 @@
+{
+  "error": null,
+  "execution": {
+    "attempts": [
+      {
+        "action_attempt_id": "action_attempt_73da908c8db49f1430cf",
+        "canonical_response": {
+          "action": null,
+          "cached_input_tokens": 7,
+          "cost_usd": 1.726e-05,
+          "empty": false,
+          "finish_reason": "stop",
+          "input_tokens": 123,
+          "output_tokens": 45,
+          "provider_call_ids": [
+            "provider_call_f627a9d7ca755b49861f"
+          ],
+          "text": "{\"offer\":7}",
+          "tool_invocation_ids": [],
+          "truncated": false
+        },
+        "logical_action_id": "logical_action_fixture",
+        "ordinal": 0,
+        "provider_calls": [
+          {
+            "action_attempt_id": "action_attempt_73da908c8db49f1430cf",
+            "cached_input_tokens": 0,
+            "cost_usd": 0.0,
+            "failure_condition": "provider_5xx",
+            "finish_reason": null,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "provider_call_id": "provider_call_aa2fd23dc7fac9c4cffa",
+            "request_sha256": "7537a97d8f34c5b7b2ac4714d1804040a337eeaa3112886145d3e813244e9228",
+            "requested_model": "deepseek/deepseek-v4-flash-0731",
+            "resolved_model": null,
+            "response_id": null,
+            "status": "failed"
+          },
+          {
+            "action_attempt_id": "action_attempt_73da908c8db49f1430cf",
+            "cached_input_tokens": 7,
+            "cost_usd": 1.726e-05,
+            "failure_condition": null,
+            "finish_reason": "stop",
+            "input_tokens": 123,
+            "output_tokens": 45,
+            "provider_call_id": "provider_call_f627a9d7ca755b49861f",
+            "request_sha256": "7537a97d8f34c5b7b2ac4714d1804040a337eeaa3112886145d3e813244e9228",
+            "requested_model": "deepseek/deepseek-v4-flash-0731",
+            "resolved_model": "deepseek/deepseek-v4-flash-20260731",
+            "response_id": "gen_golden_fixture",
+            "status": "succeeded"
+          }
+        ],
+        "retry_reason": null,
+        "session_mode": "restart",
+        "status": "succeeded",
+        "tool_invocations": []
+      }
+    ],
+    "failure_code": null,
+    "logical_action_id": "logical_action_fixture",
+    "profile_id": "subject_model_v1",
+    "status": "awaiting_action_result"
+  },
+  "total_cost_usd": 1.726e-05
+}
