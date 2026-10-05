@@ -1048,6 +1048,8 @@ def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]
     model: Any = None
     finish_reason: Any = None
     content: list[str] = []
+    reasoning: list[str] = []
+    reasoning_details: list[Any] = []
     tool_calls: dict[int, dict[str, Any]] = {}
     choice_error: Any = None
     assembled: dict[str, Any] = {}
@@ -1080,6 +1082,10 @@ def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]
                 continue
             if isinstance(delta.get("content"), str):
                 content.append(delta["content"])
+            if isinstance(delta.get("reasoning"), str):
+                reasoning.append(delta["reasoning"])
+            if isinstance(delta.get("reasoning_details"), list):
+                reasoning_details.extend(delta["reasoning_details"])
             for fragment in delta.get("tool_calls") or ():
                 if not isinstance(fragment, Mapping):
                     continue
@@ -1104,6 +1110,10 @@ def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]
             "tool_calls": [tool_calls[index] for index in sorted(tool_calls)] or None,
         },
     }
+    if reasoning:
+        choice["message"]["reasoning"] = "".join(reasoning)
+    if reasoning_details:
+        choice["message"]["reasoning_details"] = reasoning_details
     if choice_error is not None:
         choice["error"] = choice_error
     assembled.update(
@@ -1115,6 +1125,65 @@ def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]
         }
     )
     return assembled
+
+
+def _stream_error_code(error: BaseException) -> int | None:
+    """The numeric code an SDK error raised on a stream error frame carries.
+
+    The SDK raises ``APIError`` on a frame with ``error`` and gives it no HTTP
+    status. The inner error object is its ``body``; ``code`` is the fallback
+    (an int under openai 2.x, a digit string under 3.x). Booleans and symbolic
+    codes are not numeric.
+    """
+
+    body = getattr(error, "body", None)
+    code = body.get("code") if isinstance(body, Mapping) else None
+    if code is None:
+        code = getattr(error, "code", None)
+    if isinstance(code, bool):
+        return None
+    if isinstance(code, int):
+        return code
+    if isinstance(code, str) and code.isascii() and code.isdigit():
+        return int(code)
+    return None
+
+
+def _classify_stream_error(error: Exception) -> ProviderFailure:
+    """Type an exception raised while a stream is read.
+
+    An error frame is typed by the code it carries; every other exception,
+    and a frame with no numeric code, is typed as before.
+    """
+
+    if (
+        getattr(error, "status_code", None) is None
+        and _named_in_mro(error, "APIError")
+        and (code := _stream_error_code(error)) is not None
+    ):
+        body = getattr(error, "body", None)
+        if code == 429:
+            return ProviderFailure(
+                "rate_limit",
+                str(error),
+                retryable=True,
+                status_code=code,
+                retry_after_seconds=_retry_after_from_mapping(body),
+            )
+        if code == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(ACCOUNT_FAULT, str(error), retryable=False, status_code=code)
+        if 500 <= code <= 599:
+            return ProviderFailure("provider_5xx", str(error), retryable=True, status_code=code)
+        return ProviderFailure("provider_rejected", str(error), retryable=False, status_code=code)
+    return OpenAIResponsesClient._classify_error(error)
+
+
+def _with_stream_usage(failure: ProviderFailure, usage: Any) -> ProviderFailure:
+    """Attach the latest usage a stream reported before it failed."""
+
+    if usage is None:
+        return failure
+    return failure.with_reported_usage({"choices": [{}], "usage": usage})
 
 
 def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
@@ -1843,6 +1912,7 @@ class OpenRouterChatClient:
         return provider_preferences, canonical_model, route_provider
 
     async def _create(self, **kwargs: Any) -> Any:
+        usage: Any = None
         try:
             if not kwargs.get("stream"):
                 return await self._client.chat.completions.create(**kwargs)
@@ -1850,18 +1920,42 @@ class OpenRouterChatClient:
             stream = await self._client.chat.completions.create(
                 **kwargs, stream_options={"include_usage": True}
             )
-            chunks = [chunk.model_dump(mode="json") async for chunk in stream]
+            chunks = []
+            async for chunk in stream:
+                dumped = chunk.model_dump(mode="json")
+                chunks.append(dumped)
+                if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                    usage = dumped["usage"]
+            if not chunks:
+                raise ProviderFailure(
+                    "transport", "OpenRouter stream ended before any chunk", retryable=True
+                )
+            assembled = _assemble_chat_stream(chunks)
+            choice = assembled["choices"][0]
+            # A stream that carries a recognized error is typed by it later;
+            # only one that simply stopped, with no finish and no such error,
+            # was cut short.
+            if (
+                choice["finish_reason"] is None
+                and not isinstance(assembled.get("error"), Mapping)
+                and not isinstance(choice.get("error"), Mapping)
+            ):
+                raise ProviderFailure(
+                    "transport",
+                    "stream ended before a terminal finish_reason",
+                    retryable=True,
+                )
+            return _AssembledResponse(assembled)
         except asyncio.CancelledError:
             raise
-        except ProviderFailure:
-            raise
+        except ProviderFailure as failure:
+            if not kwargs.get("stream"):
+                raise
+            raise _with_stream_usage(failure, usage) from failure
         except Exception as error:
-            raise OpenAIResponsesClient._classify_error(error) from error
-        if not chunks:
-            raise ProviderFailure(
-                "transport", "OpenRouter stream ended before any chunk", retryable=True
-            )
-        return _AssembledResponse(_assemble_chat_stream(chunks))
+            if not kwargs.get("stream"):
+                raise OpenAIResponsesClient._classify_error(error) from error
+            raise _with_stream_usage(_classify_stream_error(error), usage) from error
 
     @staticmethod
     def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
