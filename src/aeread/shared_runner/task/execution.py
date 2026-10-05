@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
     from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from ..model_call.route_health import RouteHealth, RouteHealthRegistry
     from .tools import ToolRuntime
 
 
@@ -2798,6 +2799,10 @@ class ClaudeCodePrintClient:
 class MinimalChatExecutor:
     """R3 response source for one-call, no-tools, no-memory agent profiles."""
 
+    # The process's route-health registry. Only a harness-driven executor that
+    # can enforce route_v1 sets it; here it is None, so route_v1 is refused.
+    _route_registry: "RouteHealthRegistry | None" = None
+
     def __init__(
         self,
         *,
@@ -2825,6 +2830,8 @@ class MinimalChatExecutor:
         # stands in for credential scope; ModelSpec carries nothing finer.
         # Scope is this executor, i.e. one cell, and no wider.
         self._routes_proven: set[tuple[str, str | None, str]] = set()
+        # The shared health of each route_v1 profile's route, by profile id.
+        self._route_health: dict[str, "RouteHealth"] = {}
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
         self._request_seed_by_profile = dict(request_seed_by_profile or {})
@@ -2881,6 +2888,20 @@ class MinimalChatExecutor:
                 "executor cannot run: only minimal_chat/1.0 through AttemptExecutor "
                 "enforces the per-attempt bound"
             )
+        if declared_route_policy(profile) is not None:
+            if not self._resends_inside_attempt(profile):
+                raise EvidenceIntegrityError(
+                    f"profile {profile.profile_id!r} declares route_v1, which this "
+                    "executor cannot run: only minimal_chat/1.0 through AttemptExecutor "
+                    "gates and reports a route"
+                )
+            if self._route_registry is None:
+                raise EvidenceIntegrityError(
+                    f"profile {profile.profile_id!r} declares route_v1 but no "
+                    "RouteHealthRegistry was provided"
+                )
+            # Raises when another profile on this route declares a different policy.
+            self._route_health[profile.profile_id] = self._route_registry.health_for(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         self._length_retry_ceiling(profile)
@@ -2983,6 +3004,15 @@ class MinimalChatExecutor:
 
         del action_attempt_id
         return False
+
+    def _attempt_resend_denial(
+        self, action_attempt_id: str
+    ) -> tuple[str, Mapping[str, Any] | None] | None:
+        """Which check denied the attempt's port a re-send, and the route snapshot
+        if it was the route; ``None`` on the direct path."""
+
+        del action_attempt_id
+        return None
 
     def _round_records(
         self, rounds: Sequence[ModelRound], action_attempt_id: str
@@ -3177,6 +3207,12 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 visibility=f"seat:{decision.seat_id}",
             )
+            if profile.profile_id in self._route_health:
+                # Before call 0's request exists, and with its own handlers, so
+                # request construction stays outside every handler as before.
+                await self._pass_route_gate(
+                    decision, profile, action_attempt_id, ordinal, retry_reason, attempts
+                )
             request = self._request_for(
                 decision,
                 profile,
@@ -3775,6 +3811,15 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
+            # Reported by the writer of the terminal, after it is written: the
+            # outer timeout and an invalid provider result reach here with the
+            # call still open. The port reports the terminals it writes itself.
+            self._report_route(
+                profile,
+                failed_request.provider_call_id,
+                condition=failure.condition,
+                retry_after_seconds=failure.retry_after_seconds,
+            )
         # Under v1, start order: every refusal precedes the one round that answered.
         provider_calls = refused_calls + prior_rounds if transport_v1 else prior_rounds
         if provider_record is not None:
@@ -3796,6 +3841,12 @@ class MinimalChatExecutor:
             failed_payload["transport_exhausted"] = True
         if self._attempt_in_backoff(action_attempt_id):
             failed_payload["during_transport_backoff"] = True
+        if transport_exhausted and profile.profile_id in self._route_health:
+            denial = self._attempt_resend_denial(action_attempt_id)
+            if denial is not None:
+                failed_payload["resend_denied_by"] = denial[0]
+                if denial[1] is not None:
+                    failed_payload["route"] = denial[1]
         self.evidence.append_event(
             "action_attempt_failed",
             failed_payload,
@@ -3829,6 +3880,130 @@ class MinimalChatExecutor:
                 failure_code=condition,
             )
         return should_retry, condition
+
+    def _report_route(
+        self,
+        profile: AgentProfile,
+        provider_call_id: str,
+        *,
+        condition: str,
+        retry_after_seconds: float | None,
+    ) -> None:
+        """Report a provider terminal this executor just wrote to its route.
+
+        Total: the route's report cannot raise on a declared policy, so it
+        cannot change the failure being recorded.
+        """
+
+        health = self._route_health.get(profile.profile_id)
+        if health is None:
+            return
+        from ..model_call.route_health import terminal_ref
+
+        health.report(
+            condition=condition,
+            retry_after_seconds=retry_after_seconds,
+            ref=terminal_ref(self.evidence.episode_attempt_id, provider_call_id, condition),
+        )
+
+    async def _pass_route_gate(
+        self,
+        decision: DecisionRequest,
+        profile: AgentProfile,
+        action_attempt_id: str,
+        ordinal: int,
+        retry_reason: str | None,
+        attempts: list[ActionAttemptRecord],
+    ) -> None:
+        """Hold call 0 until the shared route admits it (S5 spec §4).
+
+        Waits for the route's deadlines, bounded by its outage bound, so an
+        outage that ends in exhaustion wakes the waiter with no other event.
+        The wait precedes ``attempt_deadline``, which is set later, so it never
+        consumes the attempt's time. An exhausted route fails the attempt
+        before any provider call exists, and that is never retried.
+        """
+
+        from ..model_call import route_health as route_module
+
+        health = self._route_health[profile.profile_id]
+        labels: dict[str, Any] = {
+            "phase_instance_id": decision.phase_instance_id,
+            "logical_action_id": decision.logical_action_id,
+            "action_attempt_id": action_attempt_id,
+        }
+        wait_started: float | None = None
+
+        def write_wait_completed(outcome: str) -> None:
+            if wait_started is not None:
+                self.evidence.append_event(
+                    "route_wait_completed",
+                    {
+                        "outcome": outcome,
+                        "waited_seconds": route_module._route_monotonic() - wait_started,
+                        "route": health.snapshot(),
+                    },
+                    **labels,
+                )
+
+        try:
+            while not health.admits():
+                if health.exhausted is not None:
+                    break
+                if wait_started is None:
+                    started_at = route_module._route_monotonic()
+                    self.evidence.append_event(
+                        "route_wait_started", {"route": health.snapshot()}, **labels
+                    )
+                    wait_started = started_at
+                await route_module._route_sleep(health.wake_in())
+        except BaseException as interruption:
+            # Nothing was sent, so the attempt is unopened rather than failed.
+            write_wait_completed(
+                "cancelled" if isinstance(interruption, asyncio.CancelledError) else "interrupted"
+            )
+            self._record_unknown(
+                decision,
+                None,
+                action_attempt_id,
+                attempts,
+                profile=profile,
+                request=None,
+                ordinal=ordinal,
+                retry_reason=retry_reason,
+                prior_rounds=(),
+                failure_condition="interrupted_before_provider_call",
+            )
+            raise
+        if health.exhausted is None:
+            write_wait_completed("admitted")
+            return
+        write_wait_completed("route_unavailable")
+        failure = ProviderFailure(
+            "route_unavailable",
+            f"the route is unavailable: {health.exhausted}",
+            retryable=False,
+        )
+        attempts.append(
+            ActionAttemptRecord(
+                action_attempt_id=action_attempt_id,
+                logical_action_id=decision.logical_action_id,
+                ordinal=ordinal,
+                retry_reason=retry_reason,
+                session_mode=profile.retry_policy.session_mode,
+                status="failed",
+                provider_calls=(),
+                tool_invocations=(),
+                canonical_response=None,
+            )
+        )
+        self.evidence.append_event(
+            "action_attempt_failed",
+            {"failure_condition": "route_unavailable", "route": health.snapshot()},
+            **labels,
+        )
+        self._finish_logical_failure(decision, attempts, "route_unavailable")
+        raise failure
 
     def _settle_prior_rounds(
         self, profile: AgentProfile, action_attempt_id: str
@@ -3872,10 +4047,11 @@ class MinimalChatExecutor:
         attempts: list[ActionAttemptRecord],
         *,
         profile: AgentProfile,
-        request: ProviderRequest,
+        request: ProviderRequest | None,
         ordinal: int,
         retry_reason: str | None,
         prior_rounds: tuple[ProviderCallRecord, ...],
+        failure_condition: str | None = None,
     ) -> None:
         if provider_call_id is not None:
             self.evidence.append_event(
@@ -3895,6 +4071,7 @@ class MinimalChatExecutor:
             if provider_call_id is not None:
                 pending = self._attempt_pending_round(action_attempt_id)
                 interrupted = pending.request if pending is not None else request
+                assert interrupted is not None  # a call id implies a request
                 provider_calls += (
                     ProviderCallRecord(
                         provider_call_id=provider_call_id,
@@ -3928,7 +4105,8 @@ class MinimalChatExecutor:
         self.evidence.append_event(
             "action_attempt_outcome_unknown",
             {
-                "failure_condition": (
+                "failure_condition": failure_condition
+                or (
                     "interrupted_during_retry_backoff"
                     if self._attempt_in_backoff(action_attempt_id)
                     else "child_provider_outcome_unknown"
@@ -4605,8 +4783,14 @@ async def execute_plan_cell(
     tool_runtime_factories: Mapping[
         str, Callable[[EvidenceStore], "ToolRuntime"]
     ] | None = None,
+    route_health: "RouteHealthRegistry | None" = None,
 ) -> CellExecution:
-    """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
+    """Execute one sealed R2 cell through the R3 scheduler and R4 adapter.
+
+    ``route_health`` is the process's route-health registry, created once by
+    the caller and shared by every cell it runs; a profile declaring
+    ``route_v1`` needs it (S5).
+    """
     from ..run.layout import RunLayout
 
     verify_run_plan(plan)
@@ -4713,6 +4897,7 @@ async def execute_plan_cell(
             for profile_id, factory in (tool_runtime_factories or {}).items()
         },
         request_seed_by_profile=request_seed_by_profile,
+        route_health=route_health,
     )
     result = await run_episode(
         cell=cell,
@@ -4759,6 +4944,7 @@ __all__ = [
     "ProviderFailure",
     "ProviderRequest",
     "ProviderResult",
+    "RoutePolicy",
     "TokenPricing",
     "ToolExecutor",
     "ToolFailure",
@@ -4766,8 +4952,10 @@ __all__ = [
     "TransportPolicy",
     "TRUNCATED_FINISH_REASONS",
     "declared_provider_stream",
+    "declared_route_policy",
     "declared_transport_policy",
     "exponential_jitter_delay",
     "execute_plan_cell",
+    "route_health_key",
     "transport_resend_class",
 ]

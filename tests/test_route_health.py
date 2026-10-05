@@ -554,7 +554,9 @@ def run_route_cell(
         outcome.attempt_dir = outcome.execution.evidence.root
     except BaseException as error:  # noqa: BLE001
         outcome.error = error
-        outcome.attempt_dir = sorted(root.rglob("events.jsonl"))[0].parent if root.exists() else None
+        # A refusal at construction leaves no event log behind.
+        logs = sorted(root.rglob("events.jsonl")) if root.exists() else []
+        outcome.attempt_dir = logs[0].parent if logs else None
     outcome.log = read_log(outcome.attempt_dir) if outcome.attempt_dir is not None else []
     outcome.failure = _provider_failure_in(outcome.error)
     outcome.health = None if registry is None else registry.health_for(profile)
@@ -1451,6 +1453,24 @@ def test_g2_route_unavailable_is_never_retried(tmp_path) -> None:
     assert rig.wire.requests == 0
 
 
+def test_g2_route_unavailable_is_never_retried_even_when_a_profile_lists_it_as_retryable(tmp_path) -> None:
+    config = _r1(route_max_outage_seconds=100.0)
+    rig = make_rig(
+        tmp_path,
+        [ok(), ok()],
+        config,
+        seed=_exhaust_by_long_retry_after,
+        max_action_attempts=3,
+        retryable=(*DECLARED, "route_unavailable"),
+    ).run()
+
+    error = assert_failed_with(rig, "route_unavailable")
+    assert error.retryable is False
+    assert len(of(rig.log, "action_attempt_started")) == 1
+    assert rig.wire.requests == 0
+    assert rig.execution.failure_code == "route_unavailable"
+
+
 async def _cancel_hook(fake, seconds):
     raise asyncio.CancelledError()
 
@@ -1543,10 +1563,11 @@ def test_g4_consecutive_cells_wait_at_the_gate_for_the_cooldown_cell_a_opened(
 
     assert cell_b.error is None, repr(cell_b.error)
     assert cell_b.wire.requests == 1
-    assert clock.sleeps[sleeps_before:] == [30.0]
+    # The wait is the deadline minus a clock reading near 1002, so it is 30 up to float rounding.
+    assert clock.sleeps[sleeps_before:] == pytest.approx([30.0], abs=1e-9)
     (wait_completed,) = exactly(of(cell_b.log, "route_wait_completed"), 1)
     assert wait_completed["payload"]["outcome"] == "admitted"
-    assert wait_completed["payload"]["waited_seconds"] == 30.0
+    assert wait_completed["payload"]["waited_seconds"] == pytest.approx(30.0, abs=1e-9)
     assert kinds(cell_b.log, "route_wait_started", "route_wait_completed", "provider_call_started") == [
         "route_wait_started",
         "route_wait_completed",

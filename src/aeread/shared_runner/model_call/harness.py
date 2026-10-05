@@ -52,6 +52,7 @@ from ..registry import HarnessRequirements, ProviderCapabilities
 from ..run.resolver import canonical_json_bytes
 from ..schemas import AgentProfile
 from ..task.tools import ToolContractError, ToolRuntime
+from .route_health import RouteHealth, RouteHealthRegistry, terminal_ref
 
 
 # --- The native model protocol's data shapes (§6; wire fields land in stage 2) ---
@@ -255,6 +256,7 @@ class KernelModelPort:
         logical_action_id: str | None = None,
         visibility: str = "evaluator_only",
         charged_spend: Callable[[], float] | None = None,
+        route_health: RouteHealth | None = None,
     ) -> None:
         self._evidence = evidence
         self._provider = provider
@@ -268,6 +270,7 @@ class KernelModelPort:
         self._emit_events = emit_events
         self._sealed_request = sealed_request
         self._charged_spend = charged_spend
+        self._route_health = route_health
         self._round = 0
         self.tool_calls_dispatched = 0
         """How many tool calls this port actually returned to the harness.
@@ -289,6 +292,10 @@ class KernelModelPort:
         self.attempt_deadline: float | None = None
         """The monotonic instant the executor's outer timeout will fire, set
         before the attempt starts. No re-send is admitted past it."""
+        self.resend_denial: tuple[str, dict[str, Any] | None] | None = None
+        """Which check refused a re-send (``count``, ``cost``, ``time`` or
+        ``route``) and, for ``route``, the route's snapshot at that moment.
+        Read by the executor to label the attempt's failure under route_v1."""
 
     @property
     def cost_usd_total(self) -> float:
@@ -312,6 +319,31 @@ class KernelModelPort:
             output_tokens=0,
             cost_usd=0.0,
             failure_condition=failure.condition,
+        )
+
+    def _deny(self, cause: str) -> None:
+        self.resend_denial = (
+            cause,
+            self._route_health.snapshot() if cause == "route" and self._route_health else None,
+        )
+
+    def _report(
+        self,
+        provider_call_id: str,
+        *,
+        success: bool = False,
+        failure: ProviderFailure | None = None,
+    ) -> None:
+        """Report a terminal this port just wrote to the shared route, if any."""
+
+        if self._route_health is None:
+            return
+        condition = "success" if failure is None else failure.condition
+        self._route_health.report(
+            condition=None if failure is None else failure.condition,
+            success=success,
+            retry_after_seconds=None if failure is None else failure.retry_after_seconds,
+            ref=terminal_ref(self._evidence.episode_attempt_id, provider_call_id, condition),
         )
 
     def _within_bounds(self, window_end: float) -> bool:
@@ -340,6 +372,7 @@ class KernelModelPort:
         """
 
         if transport_ordinal + 1 >= policy.max_calls:
+            self._deny("count")
             return None
         # Strict, unlike the executor's post-success check, which rejects only
         # spend above the budget: a re-send is a new commitment, so none at
@@ -350,6 +383,7 @@ class KernelModelPort:
             and self._charged_spend is not None
             and not self._charged_spend() < budget
         ):
+            self._deny("cost")
             return None
         delay, fields = exponential_jitter_delay(
             self._profile,
@@ -357,12 +391,31 @@ class KernelModelPort:
             exponent=transport_ordinal,
             retry_after_seconds=failure.retry_after_seconds,
         )
+        # S4's own time checks run on the backoff alone, so a denial they make
+        # is named for them whatever the route says.
         ready_at = _transport_monotonic() + delay
         if not ready_at < window_end:
+            self._deny("time")
             return None
         if self.attempt_deadline is not None and not ready_at < self.attempt_deadline:
+            self._deny("time")
             return None
-        return delay, fields
+        if self._route_health is None:
+            return delay, fields
+        # Only then does the route decide: it denies when exhausted, or when
+        # the effective delay (the longer of the backoff and the route's wait)
+        # no longer fits the window or the attempt deadline.
+        route_wait = self._route_health.route_wait()
+        effective = max(delay, route_wait)
+        ready_at = _transport_monotonic() + effective
+        if (
+            self._route_health.exhausted is not None
+            or not ready_at < window_end
+            or (self.attempt_deadline is not None and not ready_at < self.attempt_deadline)
+        ):
+            self._deny("route")
+            return None
+        return effective, {**fields, "delay_seconds": effective, "route_delay_seconds": route_wait}
 
     async def _back_off(
         self,
@@ -536,15 +589,21 @@ class KernelModelPort:
                     request=request,
                     terminalized=True,
                 )
-                if (
-                    policy is None
-                    or window_end is None
-                    or not transport_resend_class(failure, self._profile)
-                ):
+                resendable = (
+                    policy is not None
+                    and window_end is not None
+                    and transport_resend_class(failure, self._profile)
+                )
+                if resendable:
+                    # Recorded before any admission check, so every ending lists
+                    # this call once and the failure that propagates is its own.
+                    self.refused_calls.append(self._refused_call_record(request, failure))
+                # After pending_round and the ledger are updated and before
+                # admission, so the route's wait includes this very failure.
+                self._report(provider_call_id, failure=failure)
+                if not resendable:
                     raise
-                # Recorded before any admission check, so every ending lists
-                # this call once and the failure that propagates is its own.
-                self.refused_calls.append(self._refused_call_record(request, failure))
+                assert policy is not None and window_end is not None
                 admitted = self._admit_resend(
                     policy, failure, provider_call_id, transport_ordinal, window_end
                 )
@@ -554,6 +613,12 @@ class KernelModelPort:
                 # The sleep and the completed-event write can both run past a
                 # bound; the last check precedes the opening event.
                 if not self._within_bounds(window_end):
+                    self._deny("time")
+                    raise
+                if self._route_health is not None and not self._route_health.admits():
+                    # Time may have reopened the route or ended its outage
+                    # during the sleep; S4's checks above name their cause first.
+                    self._deny("route")
                     raise
                 transport_ordinal += 1
                 provider_call_id = _stable_id(
@@ -609,6 +674,7 @@ class KernelModelPort:
             )
         )
         self.last_result = result
+        self._report(provider_call_id, success=True)
         tool_calls = result.tool_calls or ()
         text = result.output_text.strip()
         if not text and not tool_calls:
@@ -1247,7 +1313,13 @@ class AttemptExecutor(MinimalChatExecutor):
         harnesses: Mapping[str, Any],
         tool_runtimes: Mapping[str, ToolRuntime] | None = None,
         request_seed_by_profile: Mapping[str, int] | None = None,
+        route_health: RouteHealthRegistry | None = None,
     ) -> None:
+        if route_health is not None and not isinstance(route_health, RouteHealthRegistry):
+            raise EvidenceIntegrityError("route_health must be a RouteHealthRegistry")
+        # Set before the base class validates profiles: a route_v1 profile is
+        # accepted only against a registry.
+        self._route_registry = route_health
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
         self._ports: dict[str, KernelModelPort] = {}
@@ -1313,6 +1385,12 @@ class AttemptExecutor(MinimalChatExecutor):
         port = self._ports.get(action_attempt_id)
         return port.in_transport_backoff if port is not None else False
 
+    def _attempt_resend_denial(
+        self, action_attempt_id: str
+    ) -> tuple[str, Mapping[str, Any] | None] | None:
+        port = self._ports.get(action_attempt_id)
+        return port.resend_denial if port is not None else None
+
     def _resends_inside_attempt(self, profile: AgentProfile) -> bool:
         return self._harness_key(profile) == "minimal_chat/1.0"
 
@@ -1349,6 +1427,7 @@ class AttemptExecutor(MinimalChatExecutor):
             logical_action_id=decision.logical_action_id,
             visibility=f"seat:{decision.seat_id}",
             charged_spend=lambda: self._cost_by_profile.get(profile.profile_id, 0.0),
+            route_health=self._route_health.get(profile.profile_id),
         )
         self._ports[action_attempt_id] = port
         tools_port: Any = None
