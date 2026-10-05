@@ -1087,6 +1087,94 @@ def transport_resend_class(failure: "ProviderFailure", profile: AgentProfile) ->
     )
 
 
+# The longest any route duration may be: seven days. It keeps every sum with
+# the monotonic clock finite, so no route operation can overflow (S5 spec §1).
+_ROUTE_MAX_SECONDS = 604800
+
+
+@dataclass(frozen=True, slots=True)
+class RoutePolicy:
+    """A profile's declared route breaker and outage bound (route_v1)."""
+
+    open_after_failures: int
+    cooldown_seconds: float
+    cooldown_cap_seconds: float
+    max_outage_seconds: float
+
+
+def declared_route_policy(profile: AgentProfile) -> RoutePolicy | None:
+    """The route policy a profile declares, or ``None``.
+
+    ``harness.config["route_policy"] == "route_v1"`` opts a profile in to the
+    process-wide route breaker and provider-requested pause (#226 items 1, 3,
+    4). It rides on transport_v1, whose re-sends it gates. Absent means
+    today's behaviour: no sealed profile changes what it does. Like the
+    transport budget it has no defaults, since a limit that can end a run
+    belongs in the contract.
+    """
+
+    config = profile.harness.config
+    if "route_policy" not in config:
+        return None
+    if config["route_policy"] != "route_v1":
+        raise EvidenceIntegrityError(
+            f"route_policy must be 'route_v1' for profile {profile.profile_id!r}"
+        )
+    if declared_transport_policy(profile) is None:
+        raise EvidenceIntegrityError(
+            f"route_v1 requires transport_policy 'transport_v1' for profile {profile.profile_id!r}"
+        )
+    open_after = config.get("route_open_after_failures")
+    if isinstance(open_after, bool) or not isinstance(open_after, int) or not 1 <= open_after <= 50:
+        raise EvidenceIntegrityError(
+            "route_open_after_failures must be an integer in [1, 50] for profile "
+            f"{profile.profile_id!r}"
+        )
+
+    def seconds(key: str, floor: float, *, inclusive: bool) -> float:
+        value = config.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            # Compared as declared: float() overflows on a huge integer.
+            or (isinstance(value, float) and not math.isfinite(value))
+            or not (value >= floor if inclusive else value > floor)
+            or value > _ROUTE_MAX_SECONDS
+        ):
+            raise EvidenceIntegrityError(
+                f"{key} must be a finite number {'>=' if inclusive else '>'} {floor} and "
+                f"<= {_ROUTE_MAX_SECONDS} for profile {profile.profile_id!r}"
+            )
+        return float(value)
+
+    cooldown = seconds("route_cooldown_seconds", 0, inclusive=False)
+    return RoutePolicy(
+        open_after_failures=open_after,
+        cooldown_seconds=cooldown,
+        cooldown_cap_seconds=seconds("route_cooldown_cap_seconds", cooldown, inclusive=True),
+        max_outage_seconds=seconds("route_max_outage_seconds", 0, inclusive=False),
+    )
+
+
+def route_health_key(profile: AgentProfile) -> tuple[str, str | None, str, str]:
+    """The route a profile's calls share: provider, base URL, model and metadata.
+
+    The metadata is the effective one, as call 0's request builds it, so two
+    profiles pinned to different upstream providers through
+    ``provider_runtime`` are separate routes. ``_route_key`` (the route-proof
+    key) is unchanged.
+    """
+
+    config = profile.harness.config
+    metadata = config.get("provider_metadata") or config.get("provider_runtime")
+    return (
+        profile.model.provider,
+        profile.model.base_url,
+        profile.model.model,
+        canonical_json_bytes(metadata).decode("utf-8"),
+    )
+
+
 def _retry_backoff_parameters(profile: AgentProfile) -> tuple[float, float]:
     """The declared backoff base and Retry-After cap, validated."""
 
