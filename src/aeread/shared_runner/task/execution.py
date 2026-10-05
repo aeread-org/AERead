@@ -92,6 +92,10 @@ class ProviderFailure(RuntimeError):
             )
         self.retry_after_seconds = retry_after_seconds
         self.billing = "not_billed"
+        # The server refused the request with an HTTP status and reported no
+        # usage. Only OpenAIResponsesClient._classify_error sets it; whether a
+        # refusal is re-sent is a profile's declaration, not this fact (#226).
+        self.http_refusal = False
         self.cost_usd: float | None = None
         self.input_tokens = 0
         self.cached_input_tokens = 0
@@ -1019,8 +1023,163 @@ def declared_provider_stream(profile: AgentProfile) -> bool:
     return declared
 
 
+@dataclass(frozen=True, slots=True)
+class TransportPolicy:
+    """A profile's declared in-attempt re-send budget (transport_v1)."""
+
+    max_calls: int
+    max_retry_seconds: float
+
+
+def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
+    """The in-attempt re-send policy a profile declares, or ``None``.
+
+    ``harness.config["transport_policy"] == "transport_v1"`` opts a profile in
+    to re-sending a declared HTTP refusal inside one action attempt, under its
+    own call and time budget (#226 item 1). Absent means today's behaviour:
+    no sealed profile changes what it does. The budget has no defaults, since
+    a limit that can end a run belongs in the contract.
+    """
+
+    config = profile.harness.config
+    if "transport_policy" not in config:
+        return None
+    if config["transport_policy"] != "transport_v1":
+        raise EvidenceIntegrityError(
+            f"transport_policy must be 'transport_v1' for profile {profile.profile_id!r}"
+        )
+    max_calls = config.get("transport_max_calls")
+    if isinstance(max_calls, bool) or not isinstance(max_calls, int) or not 2 <= max_calls <= 20:
+        raise EvidenceIntegrityError(
+            "transport_max_calls must be an integer in [2, 20] for profile "
+            f"{profile.profile_id!r}"
+        )
+    window = config.get("transport_max_retry_seconds")
+    if (
+        isinstance(window, bool)
+        or not isinstance(window, (int, float))
+        or not math.isfinite(float(window))
+        or not 0 < float(window) <= profile.budgets.timeout_seconds
+    ):
+        raise EvidenceIntegrityError(
+            "transport_max_retry_seconds must be finite and in (0, budgets.timeout_seconds] "
+            f"for profile {profile.profile_id!r}"
+        )
+    if config.get("retry_backoff") != "exponential_jitter_v1":
+        raise EvidenceIntegrityError(
+            "transport_v1 requires retry_backoff 'exponential_jitter_v1' for profile "
+            f"{profile.profile_id!r}"
+        )
+    # Validated here so a bad base or cap fails at construction, not inside a
+    # live attempt where the first refusal would raise it.
+    _retry_backoff_parameters(profile)
+    return TransportPolicy(max_calls=max_calls, max_retry_seconds=float(window))
+
+
+def transport_resend_class(failure: "ProviderFailure", profile: AgentProfile) -> bool:
+    """Whether a failure is a refusal this profile declared it will re-send."""
+
+    return bool(
+        failure.http_refusal
+        and failure.condition in {"rate_limit", "provider_5xx"}
+        and failure.condition in profile.retry_policy.retryable_conditions
+    )
+
+
+def _retry_backoff_parameters(profile: AgentProfile) -> tuple[float, float]:
+    """The declared backoff base and Retry-After cap, validated."""
+
+    retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
+    if (
+        isinstance(retry_base_seconds, bool)
+        or not isinstance(retry_base_seconds, (int, float))
+        or not math.isfinite(float(retry_base_seconds))
+        or not 0 < float(retry_base_seconds) <= 30.0
+    ):
+        raise EvidenceIntegrityError("retry_base_seconds must be finite and in (0, 30]")
+    max_retry_after_seconds = profile.harness.config.get("retry_after_max_seconds", 30.0)
+    if (
+        isinstance(max_retry_after_seconds, bool)
+        or not isinstance(max_retry_after_seconds, (int, float))
+        or not math.isfinite(float(max_retry_after_seconds))
+        or float(max_retry_after_seconds) <= 0
+    ):
+        raise EvidenceIntegrityError("retry_after_max_seconds must be finite and positive")
+    return float(retry_base_seconds), float(max_retry_after_seconds)
+
+
+def exponential_jitter_delay(
+    profile: AgentProfile,
+    *,
+    call_id: str,
+    exponent: int,
+    retry_after_seconds: float | None,
+) -> tuple[float, dict[str, Any]]:
+    """``exponential_jitter_v1``: the delay and the fields that explain it.
+
+    Base times two to the ``exponent``, capped at 30 s, plus a jitter taken
+    from the failed call's id so a replay recomputes it. A Retry-After the
+    provider sent raises the delay, up to ``retry_after_max_seconds``. Shared
+    by the between-attempt backoff and the in-attempt re-send, so the two
+    cannot disagree about the schedule.
+    """
+
+    base, max_retry_after_seconds = _retry_backoff_parameters(profile)
+    base_seconds = min(30.0, base * (2**exponent))
+    jitter_seconds = int(call_id[-4:], 16) % 1000 / 1000.0
+    declared_delay_seconds = base_seconds + jitter_seconds
+    bounded_retry_after = (
+        min(retry_after_seconds, max_retry_after_seconds)
+        if retry_after_seconds is not None
+        else None
+    )
+    delay_seconds = max(
+        declared_delay_seconds,
+        bounded_retry_after if bounded_retry_after is not None else 0.0,
+    )
+    return delay_seconds, {
+        "delay_seconds": delay_seconds,
+        "exponential_jitter_seconds": declared_delay_seconds,
+        "provider_retry_after_seconds": retry_after_seconds,
+        "retry_after_capped": (
+            retry_after_seconds is not None and retry_after_seconds > max_retry_after_seconds
+        ),
+        "retry_after_max_seconds": max_retry_after_seconds,
+        "retry_base_seconds": base,
+    }
+
+
 def _named_in_mro(error: BaseException, *names: str) -> bool:
     return any(base.__name__ in names for base in type(error).__mro__)
+
+
+def _is_unbilled_status_refusal(error: BaseException) -> bool:
+    """Whether the server refused with 429 or 5xx and reported no usage.
+
+    Read from ``error.response``, not ``error.body``: both SDKs set ``body``
+    to the inner ``error`` object, which drops a top-level ``usage``. A body
+    that is not JSON, such as a proxy's HTML 502 page, cannot report usage. A
+    body that cannot be read at all says nothing, so it is not marked.
+    """
+
+    if not _named_in_mro(error, "APIStatusError"):
+        return False
+    status_code = getattr(error, "status_code", None)
+    if isinstance(status_code, bool) or not isinstance(status_code, int):
+        return False
+    if status_code != 429 and not 500 <= status_code <= 599:
+        return False
+    try:
+        body = error.response.json()  # type: ignore[attr-defined]
+    except ValueError:
+        return True
+    except Exception:
+        return False
+    if isinstance(body, Mapping):
+        inner = body.get("error")
+        if "usage" in body or (isinstance(inner, Mapping) and "usage" in inner):
+            return False
+    return True
 
 
 class _AssembledResponse:
@@ -1391,6 +1550,12 @@ class OpenAIResponsesClient:
 
     @staticmethod
     def _classify_error(error: Exception) -> ProviderFailure:
+        failure = OpenAIResponsesClient._classify_condition(error)
+        failure.http_refusal = _is_unbilled_status_refusal(error)
+        return failure
+
+    @staticmethod
+    def _classify_condition(error: Exception) -> ProviderFailure:
         name = type(error).__name__
         status_code = getattr(error, "status_code", None)
         # A stream is read after the SDK has returned, so a connection that
@@ -2619,6 +2784,14 @@ class MinimalChatExecutor:
         self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
     ) -> None:
         self._validate_harness_profile(profile)
+        if declared_transport_policy(profile) is not None and not self._resends_inside_attempt(
+            profile
+        ):
+            raise EvidenceIntegrityError(
+                f"profile {profile.profile_id!r} declares transport_v1, which this "
+                "executor cannot run: only minimal_chat/1.0 through AttemptExecutor "
+                "enforces the per-attempt bound"
+            )
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         self._length_retry_ceiling(profile)
@@ -2660,6 +2833,16 @@ class MinimalChatExecutor:
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
 
+    def _resends_inside_attempt(self, profile: AgentProfile) -> bool:
+        """Whether this executor can run a profile's transport_v1 declaration.
+
+        The direct executor has no port to re-send from. A multi-round harness
+        would need round-ceiling enforcement and per-round spend admission
+        before a call budget means anything, so v1 is refused there.
+        """
+
+        return False
+
     async def _obtain_result(
         self,
         *,
@@ -2697,6 +2880,20 @@ class MinimalChatExecutor:
 
         del action_attempt_id
         return None
+
+    def _attempt_refused_calls(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        """Refused calls a harness-driven attempt re-sent; none on the direct path."""
+
+        del action_attempt_id
+        return ()
+
+    def _attempt_in_backoff(self, action_attempt_id: str) -> bool:
+        """Whether the attempt's port was sleeping between a refusal and a re-send."""
+
+        del action_attempt_id
+        return False
 
     def _round_records(
         self, rounds: Sequence[ModelRound], action_attempt_id: str
@@ -2928,6 +3125,7 @@ class MinimalChatExecutor:
                     failure,
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
+                    refused_calls=self._attempt_refused_calls(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2954,6 +3152,7 @@ class MinimalChatExecutor:
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
                     max_output_tokens=max_output_tokens,
+                    refused_calls=self._attempt_refused_calls(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2975,21 +3174,31 @@ class MinimalChatExecutor:
                     continue
                 raise
             except asyncio.CancelledError:
-                self._settle_prior_rounds(profile, action_attempt_id)
+                prior_rounds = self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
                     decision,
                     self._interrupted_provider_call_id(request, action_attempt_id),
                     action_attempt_id,
                     attempts,
+                    profile=profile,
+                    request=request,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    prior_rounds=prior_rounds,
                 )
                 raise
             except BaseException:
-                self._settle_prior_rounds(profile, action_attempt_id)
+                prior_rounds = self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
                     decision,
                     self._interrupted_provider_call_id(request, action_attempt_id),
                     action_attempt_id,
                     attempts,
+                    profile=profile,
+                    request=request,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    prior_rounds=prior_rounds,
                 )
                 raise
 
@@ -3017,7 +3226,11 @@ class MinimalChatExecutor:
                 # every round in evidence as it happened. Settle all of them
                 # here so the attempt's cost, tokens, and provider-call records
                 # cover what was actually spent, not only the final reply.
-                provider_records = self._round_records(rounds, action_attempt_id)
+                # Calls the port re-sent and the provider refused come first, in
+                # start order; the list is empty unless the profile is transport_v1.
+                provider_records = self._attempt_refused_calls(
+                    action_attempt_id
+                ) + self._round_records(rounds, action_attempt_id)
                 cost = sum(entry.cost_usd for entry in rounds)
                 input_tokens = sum(entry.result.input_tokens for entry in rounds)
                 cached_input_tokens = sum(
@@ -3194,13 +3407,20 @@ class MinimalChatExecutor:
                     action_attempt_id=action_attempt_id,
                 )
                 self._finish_logical_failure(decision, attempts, retry_condition)
+                # Under transport_v1 the call that produced the result may be a
+                # re-send, not the attempt's first request (#226 item 1).
+                producing_call_id = (
+                    canonical.provider_call_ids[-1]
+                    if declared_transport_policy(profile) is not None
+                    else request.provider_call_id
+                )
                 raise ProviderFailure(
                     retry_condition,
                     (
-                        f"provider call {request.provider_call_id} returned an empty "
+                        f"provider call {producing_call_id} returned an empty "
                         "completion"
                         if retry_condition == "empty_response"
-                        else f"provider call {request.provider_call_id} was cut off "
+                        else f"provider call {producing_call_id} was cut off "
                         "at the output-token limit before a complete answer"
                     ),
                     retryable=True,
@@ -3252,53 +3472,17 @@ class MinimalChatExecutor:
             return
         if policy != "exponential_jitter_v1":
             raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
-        retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
-        if (
-            isinstance(retry_base_seconds, bool)
-            or not isinstance(retry_base_seconds, (int, float))
-            or not math.isfinite(float(retry_base_seconds))
-            or not 0 < float(retry_base_seconds) <= 30.0
-        ):
-            raise EvidenceIntegrityError(
-                "retry_base_seconds must be finite and in (0, 30]"
-            )
-        base_seconds = min(30.0, float(retry_base_seconds) * (2**ordinal))
-        jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
-        declared_delay_seconds = base_seconds + jitter_seconds
-        max_retry_after_seconds = profile.harness.config.get(
-            "retry_after_max_seconds", 30.0
-        )
-        if (
-            isinstance(max_retry_after_seconds, bool)
-            or not isinstance(max_retry_after_seconds, (int, float))
-            or not math.isfinite(float(max_retry_after_seconds))
-            or float(max_retry_after_seconds) <= 0
-        ):
-            raise EvidenceIntegrityError(
-                "retry_after_max_seconds must be finite and positive"
-            )
-        bounded_retry_after = (
-            min(retry_after_seconds, float(max_retry_after_seconds))
-            if retry_after_seconds is not None
-            else None
-        )
-        delay_seconds = max(
-            declared_delay_seconds,
-            bounded_retry_after if bounded_retry_after is not None else 0.0,
+        delay_seconds, delay_fields = exponential_jitter_delay(
+            profile,
+            call_id=request.provider_call_id,
+            exponent=ordinal,
+            retry_after_seconds=retry_after_seconds,
         )
         self.evidence.append_event(
             "retry_backoff_started",
             {
                 "failure_condition": condition,
-                "delay_seconds": delay_seconds,
-                "exponential_jitter_seconds": declared_delay_seconds,
-                "provider_retry_after_seconds": retry_after_seconds,
-                "retry_after_capped": (
-                    retry_after_seconds is not None
-                    and retry_after_seconds > float(max_retry_after_seconds)
-                ),
-                "retry_after_max_seconds": float(max_retry_after_seconds),
-                "retry_base_seconds": float(retry_base_seconds),
+                **delay_fields,
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,
@@ -3418,7 +3602,13 @@ class MinimalChatExecutor:
         prior_rounds: tuple[ProviderCallRecord, ...] = (),
         pending: PendingRound | None = None,
         max_output_tokens: int | None = None,
+        refused_calls: tuple[ProviderCallRecord, ...] = (),
     ) -> tuple[bool, str]:
+        transport_v1 = declared_transport_policy(profile) is not None
+        # A refusal the profile declared it re-sends is final once it reaches
+        # this point: the port refused to send again (call cap, spend, or a
+        # time bound), and a new attempt would only restart that budget.
+        transport_exhausted = transport_v1 and transport_resend_class(failure, profile)
         # A round that already answered inside this attempt proves the route
         # as surely as a completed attempt does. Without this, round 1
         # succeeding and round 2 returning 404 escaped before any proof was
@@ -3483,6 +3673,17 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
+        if transport_v1:
+            # Each call id is listed exactly once. The call that failed last may
+            # already be in refused_calls: the port records a refusal before it
+            # decides whether to re-send, and the outer timeout can land while
+            # it sleeps, when no call is open and no record may be fabricated.
+            listed = {record.provider_call_id for record in prior_rounds + refused_calls}
+            provider_calls = prior_rounds + refused_calls
+            if provider_record.provider_call_id not in listed:
+                provider_calls += (provider_record,)
+        else:
+            provider_calls = prior_rounds + (provider_record,)
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -3490,14 +3691,19 @@ class MinimalChatExecutor:
             retry_reason=retry_reason,
             session_mode=profile.retry_policy.session_mode,
             status="failed",
-            provider_calls=prior_rounds + (provider_record,),
+            provider_calls=provider_calls,
             tool_invocations=(),
             canonical_response=None,
         )
         attempts.append(attempt)
+        failed_payload: dict[str, Any] = {"failure_condition": condition}
+        if transport_exhausted:
+            failed_payload["transport_exhausted"] = True
+        if self._attempt_in_backoff(action_attempt_id):
+            failed_payload["during_transport_backoff"] = True
         self.evidence.append_event(
             "action_attempt_failed",
-            {"failure_condition": condition},
+            failed_payload,
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
@@ -3506,6 +3712,7 @@ class MinimalChatExecutor:
             retryable
             and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
+            and not transport_exhausted
         )
         if (
             should_retry
@@ -3553,6 +3760,8 @@ class MinimalChatExecutor:
         terminalized is not given a second, contradictory terminal event.
         """
 
+        if self._attempt_in_backoff(action_attempt_id):
+            return None
         pending = self._attempt_pending_round(action_attempt_id)
         if pending is not None:
             return None if pending.terminalized else pending.provider_call_id
@@ -3566,6 +3775,12 @@ class MinimalChatExecutor:
         provider_call_id: str | None,
         action_attempt_id: str,
         attempts: list[ActionAttemptRecord],
+        *,
+        profile: AgentProfile,
+        request: ProviderRequest,
+        ordinal: int,
+        retry_reason: str | None,
+        prior_rounds: tuple[ProviderCallRecord, ...],
     ) -> None:
         if provider_call_id is not None:
             self.evidence.append_event(
@@ -3576,9 +3791,54 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=provider_call_id,
             )
+        # The interrupted attempt is left out of the execution record under v0,
+        # a gap that predates transport_v1 and is kept so v0 records do not
+        # change. Under v1 the attempt and its calls are recorded, since a
+        # refused call that was billed nothing is still evidence of what was sent.
+        if declared_transport_policy(profile) is not None:
+            provider_calls = prior_rounds + self._attempt_refused_calls(action_attempt_id)
+            if provider_call_id is not None:
+                pending = self._attempt_pending_round(action_attempt_id)
+                interrupted = pending.request if pending is not None else request
+                provider_calls += (
+                    ProviderCallRecord(
+                        provider_call_id=provider_call_id,
+                        action_attempt_id=action_attempt_id,
+                        status="outcome_unknown",
+                        request_sha256=interrupted.request_sha256,
+                        requested_model=interrupted.model,
+                        resolved_model=None,
+                        response_id=None,
+                        finish_reason=None,
+                        input_tokens=0,
+                        cached_input_tokens=0,
+                        output_tokens=0,
+                        cost_usd=0.0,
+                        failure_condition="interrupted_during_provider_call",
+                    ),
+                )
+            attempts.append(
+                ActionAttemptRecord(
+                    action_attempt_id=action_attempt_id,
+                    logical_action_id=decision.logical_action_id,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    session_mode=profile.retry_policy.session_mode,
+                    status="outcome_unknown",
+                    provider_calls=provider_calls,
+                    tool_invocations=(),
+                    canonical_response=None,
+                )
+            )
         self.evidence.append_event(
             "action_attempt_outcome_unknown",
-            {"failure_condition": "child_provider_outcome_unknown"},
+            {
+                "failure_condition": (
+                    "interrupted_during_retry_backoff"
+                    if self._attempt_in_backoff(action_attempt_id)
+                    else "child_provider_outcome_unknown"
+                )
+            },
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
@@ -4408,7 +4668,11 @@ __all__ = [
     "ToolExecutor",
     "ToolFailure",
     "ToolInvocationRecord",
+    "TransportPolicy",
     "TRUNCATED_FINISH_REASONS",
     "declared_provider_stream",
+    "declared_transport_policy",
+    "exponential_jitter_delay",
     "execute_plan_cell",
+    "transport_resend_class",
 ]
