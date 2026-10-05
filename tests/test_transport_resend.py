@@ -1235,7 +1235,13 @@ def test_exhaustion_builds_no_record_beyond_the_ledger(tmp_path, monkeypatch) ->
 
     assert_failed_with(rig, "provider_5xx")
     (attempt,) = exactly(rig.execution.attempts, 1)
-    assert built == [(call.provider_call_id, call.status) for call in attempt.provider_calls]
+    c0, c1 = exactly(started_ids(rig.log), 2)
+    assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [
+        (c0, "failed"),
+        (c1, "failed"),
+    ]
+    # One record per call: the port's, with no second one for the last call.
+    assert built == [(c0, "failed"), (c1, "failed")]
 
 
 def test_the_outer_timeout_in_a_backoff_builds_no_record_for_the_pending_call(
