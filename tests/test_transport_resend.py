@@ -53,6 +53,7 @@ import aeread.shared_runner.model_call.harness as harness_module
 from aeread.shared_runner.model_call.harness import (
     AttemptExecutor,
     JsonDialectHarness,
+    NativeToolCall,
     default_harnesses,
 )
 from aeread.shared_runner.schemas import AgentProfile
@@ -66,6 +67,7 @@ from aeread.shared_runner.task.execution import (
     ProviderFailure,
     ProviderResult,
     TokenPricing,
+    _stable_id,
     execute_plan_cell,
 )
 from tests.test_shared_runner_execution import _decision, _openrouter_request
@@ -545,6 +547,27 @@ def started_ids(log):
     return [entry["provider_call_id"] for entry in of(log, "provider_call_started")]
 
 
+def resend_id(attempt_id: str, ordinal: int) -> str:
+    """The id the spec gives call ``ordinal`` of an attempt (ordinal >= 1)."""
+
+    return _stable_id(
+        "provider_call",
+        {"action_attempt_id": attempt_id, "round": 0, "transport_ordinal": ordinal},
+    )
+
+
+def assert_resend_ids(log) -> None:
+    """Every re-sent call of every attempt carries the specified id."""
+
+    by_attempt: dict[str, list[str]] = {}
+    for entry in of(log, "provider_call_started"):
+        by_attempt.setdefault(entry["action_attempt_id"], []).append(entry["provider_call_id"])
+    for attempt_id, ids in by_attempt.items():
+        for ordinal, call_id in enumerate(ids):
+            if ordinal:
+                assert call_id == resend_id(attempt_id, ordinal)
+
+
 def exactly(items, count):
     """``items`` as a list, asserting its length first so a mismatch reads as one."""
 
@@ -623,6 +646,15 @@ class Rig:
 
 def run_rig(tmp_path, steps, profile=None, **kwargs) -> Rig:
     return Rig(tmp_path, steps, profile, **kwargs).run()
+
+
+def assert_failed_with_one_of(rig: Rig, conditions) -> ProviderFailure:
+    assert isinstance(rig.error, ProviderFailure), (
+        f"expected the logical action to fail with one of {sorted(conditions)}; "
+        f"it ended with {rig.error!r}"
+    )
+    assert rig.error.condition in conditions
+    return rig.error
 
 
 def assert_failed_with(rig: Rig, condition: str) -> ProviderFailure:
@@ -734,6 +766,7 @@ def test_a_503_then_200_is_resent_inside_one_attempt(tmp_path, monkeypatch, stre
     assert attempt.ordinal == 0 and attempt.retry_reason is None
     c0, c1 = exactly(started_ids(log), 2)
     assert c0 != c1
+    assert c1 == resend_id(attempt.action_attempt_id, 1)
     assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [
         (c0, "failed"),
         (c1, "succeeded"),
@@ -775,6 +808,7 @@ def test_each_resend_waits_base_times_two_to_the_k_plus_the_jitter_of_that_call(
     assert rig.wire.requests == 3
     log = rig.log
     c0, c1, c2 = exactly(started_ids(log), 3)
+    assert_resend_ids(log)
     backoffs = of(log, "retry_backoff_started")
     assert [entry["payload"].get("transport_ordinal") for entry in backoffs] == [0, 1]
     delays = [entry["payload"]["delay_seconds"] for entry in backoffs]
@@ -1132,6 +1166,100 @@ def test_a_refusal_followed_by_a_first_ever_404_is_a_plain_rejection(tmp_path) -
 
 
 # =====================================================================================
+# A failure after a re-send already answered; no redundant records
+# =====================================================================================
+
+
+def _text_and_a_tool_call(request):
+    return dataclasses.replace(
+        _scripted_ok(request),
+        tool_calls=(NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),),
+    )
+
+
+def test_a_failure_after_a_resend_answered_writes_no_second_terminal_and_keeps_start_order(
+    tmp_path,
+) -> None:
+    """The port rejects text plus a tool call after recording the round.
+
+    The call already terminalized as succeeded, so the executor must not fall
+    back to the attempt's first request and write c0 a second terminal.
+    """
+
+    rig = run_rig(
+        tmp_path,
+        [],
+        make_profile(_v1()),
+        wrap=lambda client: Scripted([_scripted_503(), _text_and_a_tool_call]),
+    )
+
+    assert_failed_with(rig, "provider_contract")
+    log = rig.log
+    c0, c1 = exactly(started_ids(log), 2)
+    assert [(e["provider_call_id"], e["event_type"]) for e in _terminals(log, "provider_call")] == [
+        (c0, "provider_call_failed"),
+        (c1, "provider_call_succeeded"),
+    ]
+    (attempt,) = exactly(rig.execution.attempts, 1)
+    assert attempt.status == "failed"
+    assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [
+        (c0, "failed"),
+        (c1, "succeeded"),
+    ]
+    assert rig.execution.status == "failed"
+    assert rig.execution.failure_code == "provider_contract"
+    _assert_evidence_survives_audit_and_resume(rig)
+
+
+def _recording_records(monkeypatch):
+    """Every ProviderCallRecord either module constructs, as (id, status)."""
+
+    from aeread.shared_runner.task import execution as execution_module
+
+    built: list[tuple[str, str]] = []
+    real = execution_module.ProviderCallRecord
+
+    def record(**fields):
+        built.append((fields["provider_call_id"], fields["status"]))
+        return real(**fields)
+
+    monkeypatch.setattr(execution_module, "ProviderCallRecord", record)
+    monkeypatch.setattr(harness_module, "ProviderCallRecord", record)
+    return built
+
+
+def test_exhaustion_builds_no_record_beyond_the_ledger(tmp_path, monkeypatch) -> None:
+    built = _recording_records(monkeypatch)
+    profile = make_profile(_v1(transport_max_calls=2), max_action_attempts=3)
+    rig = run_rig(tmp_path, [refuse(503)] * 3, profile)
+
+    assert_failed_with(rig, "provider_5xx")
+    (attempt,) = exactly(rig.execution.attempts, 1)
+    assert built == [(call.provider_call_id, call.status) for call in attempt.provider_calls]
+
+
+def test_the_outer_timeout_in_a_backoff_builds_no_record_for_the_pending_call(
+    tmp_path, clock, monkeypatch
+) -> None:
+    built = _recording_records(monkeypatch)
+    profile = make_profile(
+        _v1(transport_max_retry_seconds=1.5, retry_base_seconds=0.05),
+        timeout_seconds=1.5,
+        retryable=("rate_limit", "provider_5xx"),
+    )
+
+    async def block(fake, seconds):
+        await asyncio.Event().wait()
+
+    clock.on_sleep = block
+    rig = run_rig(tmp_path, [refuse(503), ok()], profile)
+
+    assert_failed_with(rig, "timeout")
+    (c0,) = exactly(started_ids(rig.log), 1)
+    assert built == [(c0, "failed")]
+
+
+# =====================================================================================
 # R10  http_refusal
 # =====================================================================================
 
@@ -1241,6 +1369,9 @@ _MALFORMED = {
     "window_above_timeout": {"transport_max_retry_seconds": 60.5},
     "window_bool": {"transport_max_retry_seconds": True},
     "window_string": {"transport_max_retry_seconds": "10"},
+    # float() overflows on these; the refusal must still be EvidenceIntegrityError.
+    "window_huge_int": {"transport_max_retry_seconds": 10**400},
+    "window_huge_negative_int": {"transport_max_retry_seconds": -(10**400)},
     "backoff_missing": {"retry_backoff": None},
     "backoff_other": {"retry_backoff": "fixed_delay"},
 }
@@ -1480,6 +1611,7 @@ def test_the_call_cap_is_exactly_the_declared_transport_max_calls(tmp_path, limi
     log = rig.log
     ids = started_ids(log)
     assert len(ids) == len(set(ids)) == limit
+    assert_resend_ids(log)
     assert len(of(log, "action_attempt_started")) == 1
     (failed,) = exactly(of(log, "action_attempt_failed"), 1)
     assert failed["payload"]["transport_exhausted"] is True
@@ -1502,6 +1634,7 @@ def test_a_semantic_retry_gets_a_fresh_resend_budget_and_ordinals_restart(tmp_pa
     log = rig.log
     ids = started_ids(log)
     assert len(ids) == len(set(ids)) == 5
+    assert_resend_ids(log)
     first, second = exactly([e["action_attempt_id"] for e in of(log, "action_attempt_started")], 2)
 
     def ordinals(kind, attempt):
@@ -1586,7 +1719,6 @@ UNKNOWN_PROGRESS = {
     "stalled_503_body_streamed": (stalled_status, True, "timeout", True),
     "dropped_stream": (dropped_stream, True, "transport", True),
     "connect_refused": (connect_refused, False, "transport", True),
-    "error_frame": (error_frame, True, "provider_rejected", False),
 }
 
 
@@ -1617,6 +1749,30 @@ def test_v1_leaves_failures_of_unknown_progress_on_todays_path(tmp_path, case) -
         assert_failed_with(rig, condition)
         assert rig.wire.requests == 1
         assert len(of(log, "action_attempt_started")) == 1
+
+
+def test_v1_leaves_an_error_frame_outside_transport_resend(tmp_path) -> None:
+    """The frame carries no HTTP status of its own, so it is never a refusal.
+
+    Its condition is whatever the stream classifier says (``provider_rejected``
+    today, ``provider_5xx`` once S2's classifier is in the tree); only
+    ``rate_limit`` is declared here, so neither is retried and the result does
+    not depend on which one it is.
+    """
+
+    profile = make_profile(_v1(), stream=True, max_action_attempts=2, retryable=("rate_limit",))
+    rig = run_rig(tmp_path, [error_frame(), ok()], profile)
+
+    failure = assert_failed_with_one_of(rig, {"provider_rejected", "provider_5xx"})
+    assert failure.http_refusal is False
+    assert rig.wire.requests == 1
+    log = rig.log
+    assert len(of(log, "provider_call_started")) == 1
+    assert len(of(log, "action_attempt_started")) == 1
+    for entry in log:
+        assert "transport_ordinal" not in entry["payload"]
+        assert "http_refusal" not in entry["payload"]
+        assert "transport_exhausted" not in entry["payload"]
 
 
 @pytest.mark.parametrize(
