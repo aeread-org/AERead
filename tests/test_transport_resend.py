@@ -43,7 +43,6 @@ import dataclasses
 import gc
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -517,6 +516,13 @@ def of(log, *types):
     return [entry for entry in log if entry["event_type"] in types]
 
 
+def port_backoffs(log, kind="retry_backoff_started"):
+    """Backoff events the port wrote (they carry a transport ordinal); the
+    executor's own backoff between two attempts does not."""
+
+    return [e for e in of(log, kind) if "transport_ordinal" in e["payload"]]
+
+
 def kinds(log, *types):
     return [entry["event_type"] for entry in log if entry["event_type"] in types]
 
@@ -603,6 +609,13 @@ class Rig:
     @property
     def execution(self):
         return self.executor.execution_for(self.decision.logical_action_id)
+
+    def finalize_valid(self) -> None:
+        """Close a succeeded logical action, as the scheduler does after parsing."""
+
+        self.executor.finalize_logical_action(
+            self.decision.logical_action_id, valid=True, failure_code=None
+        )
 
     def close(self) -> None:
         self.evidence.close()
@@ -776,6 +789,7 @@ def test_each_resend_waits_base_times_two_to_the_k_plus_the_jitter_of_that_call(
         (c1, "failed"),
         (c2, "succeeded"),
     ]
+    rig.finalize_valid()
     rig.evidence.audit_reconciliation()
 
 
@@ -1396,7 +1410,7 @@ def test_no_resend_when_a_prior_billed_attempt_exceeded_the_cost_budget(tmp_path
     assert_failed_with(rig, "provider_5xx")
     assert rig.executor.total_cost_usd == pytest.approx(0.00002)
     log = rig.log
-    assert of(log, "retry_backoff_started") == []
+    assert port_backoffs(log) == []
     (second_failed,) = exactly([e for e in of(log, "action_attempt_failed") if e["payload"]["failure_condition"] == "provider_5xx"], 1)
     assert second_failed["payload"]["transport_exhausted"] is True
 
@@ -1406,7 +1420,7 @@ def test_no_resend_when_spent_equals_the_cost_budget_exactly(tmp_path) -> None:
 
     assert rig.wire.requests == 2
     assert_failed_with(rig, "provider_5xx")
-    assert of(rig.log, "retry_backoff_started") == []
+    assert port_backoffs(rig.log) == []
 
 
 def test_a_resend_is_admitted_while_spent_is_strictly_below_the_cost_budget(tmp_path) -> None:
@@ -1456,7 +1470,9 @@ def test_a_truncated_completion_after_a_resend_names_the_resent_call(tmp_path) -
 
 @pytest.mark.parametrize("limit", [2, 3, 5])
 def test_the_call_cap_is_exactly_the_declared_transport_max_calls(tmp_path, limit) -> None:
-    profile = make_profile(_v1(transport_max_calls=limit), max_action_attempts=3)
+    profile = make_profile(
+        _v1(transport_max_calls=limit, transport_max_retry_seconds=60.0), max_action_attempts=3
+    )
     rig = run_rig(tmp_path, [refuse(503)] * (limit + 2), profile)
 
     assert_failed_with(rig, "provider_5xx")
@@ -1504,6 +1520,7 @@ def test_a_semantic_retry_gets_a_fresh_resend_budget_and_ordinals_restart(tmp_pa
     assert second_record.retry_reason == "length"
     assert [call.status for call in first_record.provider_calls] == ["failed", "succeeded"]
     assert [call.status for call in second_record.provider_calls] == ["failed", "failed", "succeeded"]
+    rig.finalize_valid()
     rig.evidence.audit_reconciliation()
 
 
@@ -1653,9 +1670,7 @@ def test_v1_semantic_retries_are_still_attempts_under_max_action_attempts(tmp_pa
     assert len(of(log, "action_attempt_started")) == 2
     assert rig.execution.attempts[1].retry_reason == case
     assert [len(a.provider_calls) for a in rig.execution.attempts] == [1, 1]
-    assert of(log, "retry_backoff_started") == [] or all(
-        "transport_ordinal" not in e["payload"] for e in of(log, "retry_backoff_started")
-    )
+    assert port_backoffs(log) == []
 
 
 def test_v1_semantic_retries_stop_at_max_action_attempts(tmp_path) -> None:
