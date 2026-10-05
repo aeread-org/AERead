@@ -1,7 +1,7 @@
 """S4 (#226 items 1, 3, 4): in-attempt re-send of declared HTTP refusals.
 
-Red-first tests for the slice specified in
-``docs/architecture/provider_reliability.md`` (S4, spec v0.5). Under a profile
+Red-first tests for slice S4 of the provider-reliability plan (decisions on
+#226; the decision record arrives with #246). Under a profile
 that declares ``harness.config["transport_policy"] = "transport_v1"``, a 429 or
 5xx that the server answered with no usage is re-sent inside one
 ``ActionAttempt`` by ``KernelModelPort.complete``, as a new ``ProviderCall``
