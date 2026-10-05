@@ -2103,13 +2103,22 @@ def test_non_route_profiles_never_enter_the_route_helpers(tmp_path, monkeypatch,
     ):
         monkeypatch.setattr(owner, name, lambda *a, _n=name, **k: entered.append(_n))
 
-    if kind == "v0":
-        profile = route_profile(
-            V0_BACKOFF, retryable=("rate_limit", "provider_5xx", POST_ADMISSION_REJECTION)
+    def build(**kwargs):
+        if kind == "v0":
+            return route_profile(
+                V0_BACKOFF,
+                retryable=("rate_limit", "provider_5xx", POST_ADMISSION_REJECTION),
+                **kwargs,
+            )
+        window = 0.04 if "timeout_seconds" in kwargs else 30.0  # the window fits the timeout
+        return route_profile(
+            {**V1, "transport_max_calls": 2, "transport_max_retry_seconds": window}, **kwargs
         )
+
+    profile = build()
+    if kind == "v0":
         scripts = [[refuse(503), ok()], [refuse(503), refuse(503), refuse(503), ok()]]
     else:
-        profile = route_profile({**V1, "transport_max_calls": 2})
         scripts = [[refuse(503), ok()], [refuse(503), refuse(503), ok()]]
     for number, steps in enumerate(scripts):
         rig = RouteRig(
@@ -2121,6 +2130,20 @@ def test_non_route_profiles_never_enter_the_route_helpers(tmp_path, monkeypatch,
         ).run()
         rig.close()
         assert rig.wire.requests >= 2  # both the failing and the answered path ran
+
+    # The executor writes a terminal itself on an outer timeout and on an invalid result.
+    for number, wrap in enumerate((lambda client: Hanging(), lambda client: Returning())):
+        rig = RouteRig(
+            tmp_path,
+            [ok()],
+            build(timeout_seconds=0.05, max_action_attempts=1),
+            registry=_new_registry() if with_registry else None,
+            wrap=wrap,
+            name=f"executor_terminal_{number}",
+        ).run()
+        rig.close()
+        assert isinstance(rig.error, ProviderFailure), repr(rig.error)
+        assert len(of(rig.log, "provider_call_failed", "provider_call_outcome_unknown")) == 1
 
     assert entered == []
 
