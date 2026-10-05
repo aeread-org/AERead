@@ -1781,6 +1781,38 @@ def test_v1_leaves_an_error_frame_outside_transport_resend(tmp_path) -> None:
         assert "transport_exhausted" not in entry["payload"]
 
 
+def test_v1_retries_a_declared_error_frame_as_an_attempt_not_a_resend(tmp_path) -> None:
+    """With the frame's condition declared, recovery is a second attempt.
+
+    Once S2's classifier types the frame ``provider_5xx``, declaring that
+    condition retries it on the attempt path, as before S4; it is still never
+    re-sent inside the attempt. Without S2 the frame is ``provider_rejected``,
+    which is not retryable, so the action fails after one call.
+    """
+
+    profile = make_profile(
+        _v1(), stream=True, max_action_attempts=2, retryable=("rate_limit", "provider_5xx")
+    )
+    rig = run_rig(tmp_path, [error_frame(), ok()], profile)
+
+    log = rig.log
+    first = of(log, "provider_call_failed", "provider_call_outcome_unknown")[0]
+    condition = first["payload"]["failure_condition"]
+    assert condition in {"provider_rejected", "provider_5xx"}
+    assert not first["payload"].get("http_refusal")
+    for entry in log:
+        assert "transport_ordinal" not in entry["payload"]
+    if condition == "provider_5xx":
+        assert rig.error is None, repr(rig.error)
+        assert rig.wire.requests == 2
+        assert len(of(log, "action_attempt_started")) == 2
+        assert rig.execution.attempts[1].retry_reason == "provider_5xx"
+        assert all(len(attempt.provider_calls) == 1 for attempt in rig.execution.attempts)
+    else:
+        assert_failed_with(rig, "provider_rejected")
+        assert rig.wire.requests == 1
+
+
 @pytest.mark.parametrize(
     ("declared", "step", "condition"),
     [(("rate_limit",), refuse(503), "provider_5xx"), (("provider_5xx",), refuse(429), "rate_limit")],
