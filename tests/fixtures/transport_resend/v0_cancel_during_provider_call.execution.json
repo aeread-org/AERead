@@ -1,0 +1,14 @@
+{
+  "error": [
+    "CancelledError",
+    ""
+  ],
+  "execution": {
+    "attempts": [],
+    "failure_code": "outcome_unknown",
+    "logical_action_id": "logical_action_fixture",
+    "profile_id": "subject_model_v1",
+    "status": "outcome_unknown"
+  },
+  "total_cost_usd": 0.0
+}
