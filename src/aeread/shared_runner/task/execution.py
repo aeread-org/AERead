@@ -1058,8 +1058,9 @@ def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
     if (
         isinstance(window, bool)
         or not isinstance(window, (int, float))
-        or not math.isfinite(float(window))
-        or not 0 < float(window) <= profile.budgets.timeout_seconds
+        # Compared as declared: float() overflows on a huge integer.
+        or (isinstance(window, float) and not math.isfinite(window))
+        or not 0 < window <= profile.budgets.timeout_seconds
     ):
         raise EvidenceIntegrityError(
             "transport_max_retry_seconds must be finite and in (0, budgets.timeout_seconds] "
@@ -3637,22 +3638,35 @@ class MinimalChatExecutor:
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
         failed_request = pending.request if pending is not None else request
-        provider_record = ProviderCallRecord(
-            provider_call_id=failed_request.provider_call_id,
-            action_attempt_id=action_attempt_id,
-            status="outcome_unknown" if outcome_unknown else "failed",
-            request_sha256=failed_request.request_sha256,
-            requested_model=failed_request.model,
-            resolved_model=None,
-            response_id=None,
-            finish_reason=None,
-            input_tokens=failure.input_tokens,
-            cached_input_tokens=failure.cached_input_tokens,
-            output_tokens=failure.output_tokens,
-            cost_usd=failed_cost or 0.0,
-            failure_condition=condition,
-        )
-        if pending is None or not pending.terminalized:
+        # Under transport_v1 each call id is listed exactly once, so a record
+        # is built only for a call that is not already in the ledger. The last
+        # call may be listed already: the port records a refusal before it
+        # decides whether to re-send, and the outer timeout can land while it
+        # sleeps, when no call is open and none may be fabricated.
+        post_success = transport_v1 and pending is None and bool(prior_rounds)
+        provider_record: ProviderCallRecord | None = None
+        if not transport_v1 or failed_request.provider_call_id not in {
+            record.provider_call_id for record in refused_calls + prior_rounds
+        }:
+            provider_record = ProviderCallRecord(
+                provider_call_id=failed_request.provider_call_id,
+                action_attempt_id=action_attempt_id,
+                status="outcome_unknown" if outcome_unknown else "failed",
+                request_sha256=failed_request.request_sha256,
+                requested_model=failed_request.model,
+                resolved_model=None,
+                response_id=None,
+                finish_reason=None,
+                input_tokens=failure.input_tokens,
+                cached_input_tokens=failure.cached_input_tokens,
+                output_tokens=failure.output_tokens,
+                cost_usd=failed_cost or 0.0,
+                failure_condition=condition,
+            )
+        # A round that answered and then failed in post-processing already has
+        # its terminal (succeeded); a second one for the attempt's first call
+        # would be a contradictory duplicate (v0 keeps that defect unchanged).
+        if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
                 (
                     "provider_call_outcome_unknown"
@@ -3673,17 +3687,10 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
-        if transport_v1:
-            # Each call id is listed exactly once. The call that failed last may
-            # already be in refused_calls: the port records a refusal before it
-            # decides whether to re-send, and the outer timeout can land while
-            # it sleeps, when no call is open and no record may be fabricated.
-            listed = {record.provider_call_id for record in prior_rounds + refused_calls}
-            provider_calls = prior_rounds + refused_calls
-            if provider_record.provider_call_id not in listed:
-                provider_calls += (provider_record,)
-        else:
-            provider_calls = prior_rounds + (provider_record,)
+        # Under v1, start order: every refusal precedes the one round that answered.
+        provider_calls = refused_calls + prior_rounds if transport_v1 else prior_rounds
+        if provider_record is not None:
+            provider_calls += (provider_record,)
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -3796,7 +3803,7 @@ class MinimalChatExecutor:
         # change. Under v1 the attempt and its calls are recorded, since a
         # refused call that was billed nothing is still evidence of what was sent.
         if declared_transport_policy(profile) is not None:
-            provider_calls = prior_rounds + self._attempt_refused_calls(action_attempt_id)
+            provider_calls = self._attempt_refused_calls(action_attempt_id) + prior_rounds
             if provider_call_id is not None:
                 pending = self._attempt_pending_round(action_attempt_id)
                 interrupted = pending.request if pending is not None else request
