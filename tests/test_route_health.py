@@ -2055,40 +2055,39 @@ def test_t1_the_executor_reports_only_after_its_attempt_record_is_written(tmp_pa
 def test_g1_a_real_gate_wait_longer_than_the_attempt_timeout_does_not_consume_it(
     tmp_path, monkeypatch
 ) -> None:
-    """Real timers: a gate wrapped in the attempt's wait_for would time out here."""
+    """Real time: a gate wrapped in the attempt's wait_for would time out here.
+
+    The route is held closed until the gate's own sleep releases it, so the
+    wait is 0.5 s of real time whatever the setup costs, twice the attempt's
+    0.25 s timeout. Only the gate's position decides the outcome, not load.
+    """
 
     route = _route_module()
+    held = {}
 
-    async def real_sleep(seconds):
-        await _REAL_SLEEP(seconds)
+    def hold_closed(health):
+        held["health"] = health
+        health.pause_until = time.monotonic() + 3600.0
+
+    async def release_after_real_wait(seconds):
+        del seconds
+        await _REAL_SLEEP(0.5)
+        held["health"].pause_until = None
 
     monkeypatch.setattr(route, "_route_monotonic", time.monotonic)
-    monkeypatch.setattr(route, "_route_sleep", real_sleep)
-    registry = _new_registry()
-    config = _r1(
-        route_open_after_failures=1,
-        route_cooldown_seconds=0.6,
-        route_cooldown_cap_seconds=0.6,
-        transport_max_retry_seconds=0.2,
+    monkeypatch.setattr(route, "_route_sleep", release_after_real_wait)
+    config = _r1(transport_max_retry_seconds=0.2)
+
+    cell = run_route_cell(
+        tmp_path, monkeypatch, [ok()], registry=_new_registry(), name="b", config=config,
+        timeout_seconds=0.25, seed=hold_closed,
     )
 
-    cell_a = run_route_cell(
-        tmp_path, monkeypatch, [refuse(503)], registry=registry, name="a", config=config,
-        timeout_seconds=0.25,
-    )
-    assert cell_a.failure is not None and cell_a.failure.condition == "provider_5xx", repr(cell_a.error)
-    _release_evidence_lock(cell_a.error)
-
-    cell_b = run_route_cell(
-        tmp_path, monkeypatch, [ok()], registry=registry, name="b", config=config,
-        timeout_seconds=0.25,
-    )
-
-    assert cell_b.error is None, repr(cell_b.error)
-    assert cell_b.wire.requests == 1
-    (wait_completed,) = exactly(of(cell_b.log, "route_wait_completed"), 1)
+    assert cell.error is None, repr(cell.error)
+    assert cell.wire.requests == 1
+    (wait_completed,) = exactly(of(cell.log, "route_wait_completed"), 1)
     assert wait_completed["payload"]["outcome"] == "admitted"
-    assert wait_completed["payload"]["waited_seconds"] > 0.25  # longer than the attempt timeout
+    assert wait_completed["payload"]["waited_seconds"] >= 0.5  # twice the attempt timeout
 
 
 @pytest.mark.parametrize("kind", ["v0", "transport_v1"])
