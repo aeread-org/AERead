@@ -61,6 +61,7 @@ import dataclasses
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1453,22 +1454,13 @@ def test_g2_route_unavailable_is_never_retried(tmp_path) -> None:
     assert rig.wire.requests == 0
 
 
-def test_g2_route_unavailable_is_never_retried_even_when_a_profile_lists_it_as_retryable(tmp_path) -> None:
-    config = _r1(route_max_outage_seconds=100.0)
-    rig = make_rig(
-        tmp_path,
-        [ok(), ok()],
-        config,
-        seed=_exhaust_by_long_retry_after,
-        max_action_attempts=3,
-        retryable=(*DECLARED, "route_unavailable"),
-    ).run()
+def test_v1_route_unavailable_cannot_be_declared_retryable(tmp_path) -> None:
+    profile = route_profile(_r1(), retryable=(*DECLARED, "route_unavailable"))
 
-    error = assert_failed_with(rig, "route_unavailable")
-    assert error.retryable is False
-    assert len(of(rig.log, "action_attempt_started")) == 1
-    assert rig.wire.requests == 0
-    assert rig.execution.failure_code == "route_unavailable"
+    with pytest.raises(EvidenceIntegrityError):
+        _declared(profile)
+    with pytest.raises(EvidenceIntegrityError):
+        RouteRig(tmp_path, [], profile, registry=_new_registry())
 
 
 async def _cancel_hook(fake, seconds):
@@ -1601,7 +1593,9 @@ def test_g6_a_real_429_retry_after_pauses_the_route_for_the_next_cell(
     a_attempt = of(cell_a.log, "provider_call_started")[0]["episode_attempt_id"]
     health = cell_a.health
     assert health.pause_until == START + 120.0
-    assert health.pause_ref == {
+    # Saved before cell B runs: B's success clears the shared pause reference.
+    a_ref = dict(health.pause_ref)
+    assert a_ref == {
         "episode_attempt_id": a_attempt,
         "provider_call_id": a_call,
         "condition": "rate_limit",
@@ -1618,9 +1612,7 @@ def test_g6_a_real_429_retry_after_pauses_the_route_for_the_next_cell(
     (wait_started,) = exactly(of(cell_b.log, "route_wait_started"), 1)
     assert wait_started["payload"]["route"]["state"] == "paused"
     assert wait_started["payload"]["route"]["pause_until_in"] == 120.0
-    assert wait_started["payload"]["route"]["cause_ref"] == health.pause_ref or (
-        wait_started["payload"]["route"]["cause_ref"]["provider_call_id"] == a_call
-    )
+    assert wait_started["payload"]["route"]["cause_ref"] == a_ref
     (wait_completed,) = exactly(of(cell_b.log, "route_wait_completed"), 1)
     assert wait_completed["payload"]["outcome"] == "admitted"
     assert wait_completed["payload"]["waited_seconds"] == 120.0
@@ -1988,6 +1980,149 @@ def test_t1_every_provider_terminal_the_port_writes_is_reported_once(tmp_path, r
     assert rig.error is None, repr(rig.error)
     assert [report.label for report in reports] == ["provider_5xx", "provider_5xx", "success"]
     assert [report.ref["provider_call_id"] for report in reports] == started_ids(rig.log)
+
+
+class Returning:
+    """A provider client that returns something that is not a ProviderResult."""
+
+    async def complete(self, request):
+        return None
+
+
+def test_t1_an_invalid_provider_result_is_one_terminal_and_one_report(tmp_path, reports) -> None:
+    rig = make_rig(tmp_path, [], wrap=lambda client: Returning()).run()
+
+    assert_failed_with(rig, "provider_contract")
+    log = rig.log
+    (c0,) = exactly(started_ids(log), 1)
+    (terminal,) = exactly(of(log, "provider_call_failed", "provider_call_outcome_unknown"), 1)
+    assert terminal["provider_call_id"] == c0
+    assert terminal["payload"]["failure_condition"] == "provider_contract"
+    (report,) = exactly(reports, 1)
+    assert report.label == "provider_contract"
+    assert report.ref == {
+        "episode_attempt_id": "episode_attempt_fixture_0",
+        "provider_call_id": c0,
+        "condition": "provider_contract",
+    }
+    assert rig.health.failures == 0  # ignored by the breaker
+    execution = rig.execution
+    assert (execution.status, execution.failure_code) == ("failed", "provider_contract")
+    (attempt,) = exactly(execution.attempts, 1)
+    assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [(c0, "failed")]
+
+
+@pytest.mark.parametrize("scenario", ["invalid_result", "outer_timeout"])
+def test_t1_the_executor_reports_only_after_its_attempt_record_is_written(tmp_path, monkeypatch, scenario) -> None:
+    route = _route_module()
+    real = route.RouteHealth.report
+    seen = []
+    holder = {}
+
+    def spy(self, **kwargs):
+        rig = holder["rig"]
+        execution = rig.execution
+        seen.append(
+            (
+                len(execution.attempts),
+                execution.status,
+                len(of(rig.log, "action_attempt_failed")),
+                len(of(rig.log, "provider_call_failed", "provider_call_outcome_unknown")),
+            )
+        )
+        return real(self, **kwargs)
+
+    monkeypatch.setattr(route.RouteHealth, "report", spy)
+    if scenario == "invalid_result":
+        rig = make_rig(tmp_path, [], wrap=lambda client: Returning())
+    else:
+        rig = make_rig(
+            tmp_path,
+            [ok()],
+            _r1(transport_max_retry_seconds=0.2),
+            wrap=lambda client: Hanging(),
+            timeout_seconds=0.3,
+            max_action_attempts=1,
+        )
+    holder["rig"] = rig
+    rig.run()
+
+    assert isinstance(rig.error, ProviderFailure), repr(rig.error)
+    # The terminal, the failed attempt event and the record all precede the report.
+    assert seen == [(1, "failed", 1, 1)]
+
+
+def test_g1_a_real_gate_wait_longer_than_the_attempt_timeout_does_not_consume_it(
+    tmp_path, monkeypatch
+) -> None:
+    """Real timers: a gate wrapped in the attempt's wait_for would time out here."""
+
+    route = _route_module()
+
+    async def real_sleep(seconds):
+        await _REAL_SLEEP(seconds)
+
+    monkeypatch.setattr(route, "_route_monotonic", time.monotonic)
+    monkeypatch.setattr(route, "_route_sleep", real_sleep)
+    registry = _new_registry()
+    config = _r1(
+        route_open_after_failures=1,
+        route_cooldown_seconds=0.6,
+        route_cooldown_cap_seconds=0.6,
+        transport_max_retry_seconds=0.2,
+    )
+
+    cell_a = run_route_cell(
+        tmp_path, monkeypatch, [refuse(503)], registry=registry, name="a", config=config,
+        timeout_seconds=0.25,
+    )
+    assert cell_a.failure is not None and cell_a.failure.condition == "provider_5xx", repr(cell_a.error)
+    _release_evidence_lock(cell_a.error)
+
+    cell_b = run_route_cell(
+        tmp_path, monkeypatch, [ok()], registry=registry, name="b", config=config,
+        timeout_seconds=0.25,
+    )
+
+    assert cell_b.error is None, repr(cell_b.error)
+    assert cell_b.wire.requests == 1
+    (wait_completed,) = exactly(of(cell_b.log, "route_wait_completed"), 1)
+    assert wait_completed["payload"]["outcome"] == "admitted"
+    assert wait_completed["payload"]["waited_seconds"] > 0.25  # longer than the attempt timeout
+
+
+@pytest.mark.parametrize("kind", ["v0", "transport_v1"])
+@pytest.mark.parametrize("with_registry", [False, True], ids=["without_registry", "with_registry"])
+def test_non_route_profiles_never_enter_the_route_helpers(tmp_path, monkeypatch, kind, with_registry) -> None:
+    entered = []
+    for owner, name in (
+        (harness_module.KernelModelPort, "_report"),
+        (harness_module.KernelModelPort, "_deny"),
+        (MinimalChatExecutor, "_report_route"),
+        (MinimalChatExecutor, "_pass_route_gate"),
+    ):
+        monkeypatch.setattr(owner, name, lambda *a, _n=name, **k: entered.append(_n))
+
+    if kind == "v0":
+        profile = route_profile(
+            V0_BACKOFF, retryable=("rate_limit", "provider_5xx", POST_ADMISSION_REJECTION)
+        )
+        scripts = [[refuse(503), ok()], [refuse(503), refuse(503), refuse(503), ok()]]
+    else:
+        profile = route_profile({**V1, "transport_max_calls": 2})
+        scripts = [[refuse(503), ok()], [refuse(503), refuse(503), ok()]]
+    for number, steps in enumerate(scripts):
+        rig = RouteRig(
+            tmp_path,
+            steps,
+            profile,
+            registry=_new_registry() if with_registry else None,
+            name=f"trace_{number}",
+        ).run()
+        rig.close()
+        assert rig.wire.requests >= 2  # both the failing and the answered path ran
+
+    assert entered == []
 
 
 # =====================================================================================

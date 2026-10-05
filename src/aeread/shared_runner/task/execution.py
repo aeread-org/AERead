@@ -1125,6 +1125,12 @@ def declared_route_policy(profile: AgentProfile) -> RoutePolicy | None:
         raise EvidenceIntegrityError(
             f"route_v1 requires transport_policy 'transport_v1' for profile {profile.profile_id!r}"
         )
+    if "route_unavailable" in profile.retry_policy.retryable_conditions:
+        # The gate's failure ends the action: the route, not the call, is down.
+        raise EvidenceIntegrityError(
+            "route_unavailable cannot be declared retryable for profile "
+            f"{profile.profile_id!r}"
+        )
     open_after = config.get("route_open_after_failures")
     if isinstance(open_after, bool) or not isinstance(open_after, int) or not 1 <= open_after <= 50:
         raise EvidenceIntegrityError(
@@ -3790,6 +3796,7 @@ class MinimalChatExecutor:
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call
         # would be a contradictory duplicate (v0 keeps that defect unchanged).
+        wrote_terminal = False
         if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
                 (
@@ -3811,15 +3818,7 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
-            # Reported by the writer of the terminal, after it is written: the
-            # outer timeout and an invalid provider result reach here with the
-            # call still open. The port reports the terminals it writes itself.
-            self._report_route(
-                profile,
-                failed_request.provider_call_id,
-                condition=failure.condition,
-                retry_after_seconds=failure.retry_after_seconds,
-            )
+            wrote_terminal = True
         # Under v1, start order: every refusal precedes the one round that answered.
         provider_calls = refused_calls + prior_rounds if transport_v1 else prior_rounds
         if provider_record is not None:
@@ -3878,6 +3877,17 @@ class MinimalChatExecutor:
                 status="retrying",
                 attempts=tuple(attempts),
                 failure_code=condition,
+            )
+        # Reported by the writer of the terminal, after its attempt record and
+        # the logical execution are updated: the outer timeout and an invalid
+        # provider result reach here with the call still open. The port reports
+        # the terminals it writes itself.
+        if wrote_terminal and profile.profile_id in self._route_health:
+            self._report_route(
+                profile,
+                failed_request.provider_call_id,
+                condition=failure.condition,
+                retry_after_seconds=failure.retry_after_seconds,
             )
         return should_retry, condition
 

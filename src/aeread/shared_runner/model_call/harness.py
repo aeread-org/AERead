@@ -372,7 +372,8 @@ class KernelModelPort:
         """
 
         if transport_ordinal + 1 >= policy.max_calls:
-            self._deny("count")
+            if self._route_health is not None:
+                self._deny("count")
             return None
         # Strict, unlike the executor's post-success check, which rejects only
         # spend above the budget: a re-send is a new commitment, so none at
@@ -383,7 +384,8 @@ class KernelModelPort:
             and self._charged_spend is not None
             and not self._charged_spend() < budget
         ):
-            self._deny("cost")
+            if self._route_health is not None:
+                self._deny("cost")
             return None
         delay, fields = exponential_jitter_delay(
             self._profile,
@@ -395,10 +397,12 @@ class KernelModelPort:
         # is named for them whatever the route says.
         ready_at = _transport_monotonic() + delay
         if not ready_at < window_end:
-            self._deny("time")
+            if self._route_health is not None:
+                self._deny("time")
             return None
         if self.attempt_deadline is not None and not ready_at < self.attempt_deadline:
-            self._deny("time")
+            if self._route_health is not None:
+                self._deny("time")
             return None
         if self._route_health is None:
             return delay, fields
@@ -600,7 +604,8 @@ class KernelModelPort:
                     self.refused_calls.append(self._refused_call_record(request, failure))
                 # After pending_round and the ledger are updated and before
                 # admission, so the route's wait includes this very failure.
-                self._report(provider_call_id, failure=failure)
+                if self._route_health is not None:
+                    self._report(provider_call_id, failure=failure)
                 if not resendable:
                     raise
                 assert policy is not None and window_end is not None
@@ -613,7 +618,8 @@ class KernelModelPort:
                 # The sleep and the completed-event write can both run past a
                 # bound; the last check precedes the opening event.
                 if not self._within_bounds(window_end):
-                    self._deny("time")
+                    if self._route_health is not None:
+                        self._deny("time")
                     raise
                 if self._route_health is not None and not self._route_health.admits():
                     # Time may have reopened the route or ended its outage
@@ -674,7 +680,8 @@ class KernelModelPort:
             )
         )
         self.last_result = result
-        self._report(provider_call_id, success=True)
+        if self._route_health is not None:
+            self._report(provider_call_id, success=True)
         tool_calls = result.tool_calls or ()
         text = result.output_text.strip()
         if not text and not tool_calls:
