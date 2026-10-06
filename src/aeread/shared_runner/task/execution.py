@@ -2149,7 +2149,10 @@ class OpenRouterChatClient:
         except ProviderFailure as failure:
             if not kwargs.get("stream"):
                 raise
-            raise _with_stream_usage(failure, usage) from failure
+            # with_reported_usage returns the same object; `from failure` made
+            # it its own cause (#247 review).
+            _with_stream_usage(failure, usage)
+            raise
         except Exception as error:
             if not kwargs.get("stream"):
                 raise OpenAIResponsesClient._classify_error(error) from error

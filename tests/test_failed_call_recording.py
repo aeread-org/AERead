@@ -117,6 +117,8 @@ def test_a_failure_before_any_round_answered_still_gets_its_executor_terminal(
         (call_id, "failed")
     ]
     _assert_evidence_survives_audit_and_resume(rig)
+
+
 # =====================================================================================
 # #250  usage reported in an HTTP error body is recorded
 # =====================================================================================
@@ -257,3 +259,24 @@ def test_a_body_with_malformed_usage_is_recorded_as_before(stream) -> None:
     assert failure.cost_usd is None
 
 
+# =====================================================================================
+# #247 review: a streamed failure is not its own cause
+# =====================================================================================
+
+
+def _usage_then_no_finish(streamed):
+    lib = _http_lib()
+    first = _stream_frames(_raw_completion("partial"))[0]
+    first["usage"] = dict(_USAGE)
+    return lib.Response(
+        200, content=_sse([first]), headers={"content-type": "text/event-stream"}
+    )
+
+
+def test_a_streamed_failure_after_usage_was_seen_is_not_its_own_cause() -> None:
+    failure = _failure_of(True, _usage_then_no_finish)
+
+    assert failure.condition == "transport"
+    assert failure.billing == "reported"
+    assert (failure.input_tokens, failure.output_tokens) == (10, 5)
+    assert failure.__cause__ is not failure
