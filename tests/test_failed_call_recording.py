@@ -117,3 +117,143 @@ def test_a_failure_before_any_round_answered_still_gets_its_executor_terminal(
         (call_id, "failed")
     ]
     _assert_evidence_survives_audit_and_resume(rig)
+# =====================================================================================
+# #250  usage reported in an HTTP error body is recorded
+# =====================================================================================
+
+STREAMS = pytest.mark.parametrize("stream", [False, True], ids=["non_streamed", "streamed"])
+STATUSES = pytest.mark.parametrize("status", [429, 503])
+PLACES = pytest.mark.parametrize(
+    "where", ["usage_at_top", "usage_under_error"], ids=["usage_at_top_level", "usage_under_error"]
+)
+
+
+def _reported(status, where):
+    return refuse(status, **{where: True})
+
+
+def _expected_cost() -> float:
+    return PRICING.cost(
+        input_tokens=_USAGE["prompt_tokens"],
+        cached_input_tokens=0,
+        output_tokens=_USAGE["completion_tokens"],
+    )
+
+
+@STREAMS
+@STATUSES
+@PLACES
+def test_a_status_error_whose_body_reports_usage_is_recorded_as_billed(
+    tmp_path, stream, status, where
+) -> None:
+    rig = run_rig(
+        tmp_path,
+        [_reported(status, where)],
+        make_profile(V0_BACKOFF, stream=stream, max_action_attempts=1),
+    )
+
+    failure = rig.error
+    assert isinstance(failure, ProviderFailure)
+    assert failure.billing == "reported"
+    assert failure.http_refusal is False
+    assert (failure.input_tokens, failure.output_tokens) == (10, 5)
+    (event,) = [e for e in rig.log if e["event_type"] == "provider_call_failed"]
+    payload = event["payload"]
+    cost = _expected_cost()
+    assert cost > 0
+    assert payload["cost_usd"] == pytest.approx(cost)
+    assert (payload["input_tokens"], payload["cached_input_tokens"], payload["output_tokens"]) == (
+        10,
+        0,
+        5,
+    )
+    (attempt,) = exactly(rig.execution.attempts, 1)
+    (call,) = exactly(attempt.provider_calls, 1)
+    assert call.cost_usd == pytest.approx(cost)
+    assert (call.input_tokens, call.output_tokens) == (10, 5)
+    # Charged exactly once: the executor charges it, the port only writes the event.
+    assert rig.executor.total_cost_usd == pytest.approx(cost)
+    _assert_evidence_survives_audit_and_resume(rig)
+
+
+@STREAMS
+def test_a_reported_cost_in_the_error_body_is_the_recorded_cost(tmp_path, stream) -> None:
+    lib = _http_lib()
+
+    def step(streamed):
+        usage = {**_USAGE, "cost": 0.25}
+        return lib.Response(503, json={"error": {"message": "x", "code": 503}, "usage": usage})
+
+    rig = run_rig(
+        tmp_path, [step], make_profile(V0_BACKOFF, stream=stream, max_action_attempts=1)
+    )
+
+    assert rig.error.billing == "reported"
+    assert rig.executor.total_cost_usd == pytest.approx(0.25)
+    (event,) = [e for e in rig.log if e["event_type"] == "provider_call_failed"]
+    assert event["payload"]["cost_usd"] == pytest.approx(0.25)
+
+
+@STREAMS
+def test_a_refusal_whose_body_reports_usage_is_billed_and_not_resent_under_v1(
+    tmp_path, stream
+) -> None:
+    rig = run_rig(
+        tmp_path,
+        [refuse(503, usage_at_top=True)],
+        make_profile(V1, stream=stream, max_action_attempts=1),
+    )
+
+    assert rig.error.billing == "reported"
+    assert rig.wire.requests == 1
+    assert rig.executor.total_cost_usd == pytest.approx(_expected_cost())
+    _assert_evidence_survives_audit_and_resume(rig)
+
+
+UNBILLED = pytest.mark.parametrize(
+    "step",
+    [
+        refuse(503),
+        refuse(429),
+        refuse(502, raw_body=b"<html><body>502 Bad Gateway</body></html>"),
+        stalled_status(503),
+    ],
+    ids=["no_usage_503", "no_usage_429", "non_json_body", "stalled_body"],
+)
+
+
+@STREAMS
+@UNBILLED
+def test_a_status_error_with_no_usable_usage_is_recorded_as_before(
+    tmp_path, stream, step
+) -> None:
+    rig = run_rig(
+        tmp_path, [step], make_profile(V0_BACKOFF, stream=stream, max_action_attempts=1)
+    )
+
+    assert isinstance(rig.error, ProviderFailure)
+    assert rig.error.billing == "not_billed"
+    (event,) = [
+        e
+        for e in rig.log
+        if e["event_type"] in {"provider_call_failed", "provider_call_outcome_unknown"}
+    ]
+    assert "input_tokens" not in event["payload"]
+    assert event["payload"]["cost_usd"] in (0.0, "unknown")
+    assert rig.executor.total_cost_usd == 0.0
+
+
+@STREAMS
+def test_a_body_with_malformed_usage_is_recorded_as_before(stream) -> None:
+    lib = _http_lib()
+
+    def step(streamed):
+        return lib.Response(
+            503, json={"error": {"message": "x", "code": 503}, "usage": {"prompt_tokens": "ten"}}
+        )
+
+    failure = _failure_of(stream, step)
+    assert failure.billing == "not_billed"
+    assert failure.cost_usd is None
+
+

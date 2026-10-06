@@ -1309,6 +1309,30 @@ def _stream_error_code(error: BaseException) -> int | None:
     return None
 
 
+def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
+    """The usage an HTTP status error's body reports, from the top level or under ``error``.
+
+    Read from ``error.response`` for the reason ``_is_unbilled_status_refusal``
+    gives: ``error.body`` is only the inner ``error`` object (#250). A body that
+    is not JSON, cannot be read, or carries no usage mapping reports none.
+    """
+
+    if not _named_in_mro(error, "APIStatusError"):
+        return None
+    try:
+        body = error.response.json()  # type: ignore[attr-defined]
+    except Exception:
+        return None
+    if not isinstance(body, Mapping):
+        return None
+    inner = body.get("error")
+    for holder in (body, inner if isinstance(inner, Mapping) else {}):
+        usage = holder.get("usage")
+        if isinstance(usage, Mapping):
+            return usage
+    return None
+
+
 def _classify_stream_error(error: Exception) -> ProviderFailure:
     """Type an exception raised while a stream is read.
 
@@ -1622,6 +1646,14 @@ class OpenAIResponsesClient:
     def _classify_error(error: Exception) -> ProviderFailure:
         failure = OpenAIResponsesClient._classify_condition(error)
         failure.http_refusal = _is_unbilled_status_refusal(error)
+        usage = _status_error_usage(error)
+        if usage is not None:
+            # An error body that reports usage billed the call (#250).
+            failure.with_reported_usage({"choices": [{}], "usage": usage})
+            if failure.billing != "reported":
+                # Unusable usage says nothing about the bill: keep the result
+                # a body without usage always had.
+                failure.billing = "not_billed"
         return failure
 
     @staticmethod
