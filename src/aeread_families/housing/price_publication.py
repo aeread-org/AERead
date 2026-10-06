@@ -240,6 +240,10 @@ def _fmt(interval: Mapping[str, Any]) -> str:
     return f"{interval['mean']:+.0f} [{interval['lo']:+.0f}, {interval['hi']:+.0f}]"
 
 
+def _pct(share: float | None) -> str:
+    return "n/a" if share is None else f"{100 * share:.0f}%"
+
+
 def _readme(report: Mapping[str, Any]) -> str:
     lines = [
         f"# {PUBLICATION_ID}",
@@ -259,7 +263,7 @@ def _readme(report: Mapping[str, Any]) -> str:
         main, holdout = entry["by_scope"]["main"], entry["by_scope"]["holdout"]
         lines.append(
             f"| `{model}` | {entry['completed_cells']} of {entry['planned_cells']} | {_fmt(main['primary'])} | "
-            f"{_fmt(main['minus_reference'])} | {main['realized_share_of_reference']} | {_fmt(holdout['primary'])} | "
+            f"{_fmt(main['minus_reference'])} | {_pct(main['realized_share_of_reference'])} | {_fmt(holdout['primary'])} | "
             f"${entry['cost_usd']:.2f} |")
     lines += ["", "| Pair | Main pack | Holm p | Holdout |", "|---|---|---|---|"]
     for pair, value in report["pairs"].items():
