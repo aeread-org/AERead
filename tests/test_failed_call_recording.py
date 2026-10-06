@@ -25,10 +25,21 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import json
+import traceback
+from types import SimpleNamespace
 
+import openai
 import pytest
 
-from aeread.shared_runner.task.execution import ProviderFailure
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.model_call.harness import CanonicalMessage, default_harnesses
+from aeread.shared_runner.task.execution import (
+    EvidenceStore,
+    MinimalChatExecutor,
+    OpenAIResponsesClient,
+    ProviderFailure,
+    failed_call_cost,
+)
 from tests.test_transport_resend import (  # noqa: F401 - the two fixtures are autouse there
     MODEL,
     PRICING,
@@ -41,6 +52,7 @@ from tests.test_transport_resend import (  # noqa: F401 - the two fixtures are a
     _http_lib,
     _instant_asyncio_sleep,
     _raw_completion,
+    _scripted_ok,
     _sse,
     _stream_frames,
     _terminals,
@@ -116,6 +128,74 @@ def test_a_failure_before_any_round_answered_still_gets_its_executor_terminal(
     assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [
         (call_id, "failed")
     ]
+    _assert_evidence_survives_audit_and_resume(rig)
+
+
+class _FailsAfterOneRound:
+    """A tool-owning-style harness: one successful round, then its own typed failure.
+
+    The shape of govsim's ``malformed_structured_output`` and tau3's exhausted
+    rounds: the failure is raised by the harness after a round answered.
+    """
+
+    id = "fails_after_round"
+    version = "1.0"
+    requires = default_harnesses()["minimal_chat/1.0"].requires
+
+    async def open_episode(self, episode):
+        return None
+
+    async def close_episode(self, episode):
+        return None
+
+    def state_reader(self):
+        return None
+
+    def classify_failure(self, exc):
+        from aeread.shared_runner.model_call.harness import FailureCondition
+
+        return FailureCondition(exc.condition, retryable=exc.retryable)
+
+    async def act(self, request, ctx):
+        await ctx.model.complete(
+            messages=(CanonicalMessage(role="user", content="go"),), response_mode="text"
+        )
+        raise ProviderFailure(
+            "malformed_structured_output", "answer is not the schema", retryable=False
+        )
+
+
+@pytest.mark.parametrize("profile_name", ["v0"])
+def test_a_harness_failure_after_a_succeeded_round_writes_one_terminal_per_call(
+    tmp_path, monkeypatch, profile_name
+) -> None:
+    import tests.test_transport_resend as transport_tests
+
+    monkeypatch.setattr(
+        transport_tests,
+        "default_harnesses",
+        lambda: {**default_harnesses(), "fails_after_round/1.0": _FailsAfterOneRound()},
+    )
+    rig = run_rig(
+        tmp_path,
+        [],
+        make_profile(PROFILES[profile_name], harness_id="fails_after_round"),
+        wrap=lambda client: Scripted([_scripted_ok]),
+    )
+
+    assert_failed_with(rig, "malformed_structured_output")
+    log = rig.log
+    (call_id,) = exactly(started_ids(log), 1)
+    assert [(e["provider_call_id"], e["event_type"]) for e in _terminals(log, "provider_call")] == [
+        (call_id, "provider_call_succeeded")
+    ]
+    (attempt,) = exactly(rig.execution.attempts, 1)
+    assert attempt.status == "failed"
+    assert [(call.provider_call_id, call.status) for call in attempt.provider_calls] == [
+        (call_id, "succeeded")
+    ]
+    assert rig.execution.status == "failed"
+    assert rig.execution.failure_code == "malformed_structured_output"
     _assert_evidence_survives_audit_and_resume(rig)
 
 
@@ -259,6 +339,112 @@ def test_a_body_with_malformed_usage_is_recorded_as_before(stream) -> None:
     assert failure.cost_usd is None
 
 
+def _status_error(body, status=503):
+    lib = _http_lib()
+    response = lib.Response(
+        status, request=lib.Request("POST", "https://offline.invalid/v1/x"), json=body
+    )
+    return openai.APIStatusError("billed failure", response=response, body=body.get("error"))
+
+
+RESPONSES_USAGE = {
+    "input_tokens": 10,
+    "output_tokens": 5,
+    "input_tokens_details": {"cached_tokens": 3},
+}
+
+
+@pytest.mark.parametrize("where", ["top", "under_error"])
+def test_responses_style_usage_in_an_error_body_is_normalized(where) -> None:
+    error = {"message": "billed failure", "code": 503}
+    body = {"error": error}
+    if where == "top":
+        body["usage"] = dict(RESPONSES_USAGE)
+    else:
+        error["usage"] = dict(RESPONSES_USAGE)
+    failure = OpenAIResponsesClient._classify_error(_status_error(body))
+
+    assert failure.billing == "reported"
+    assert (failure.input_tokens, failure.cached_input_tokens, failure.output_tokens) == (10, 3, 5)
+    expected = PRICING.cost(input_tokens=10, cached_input_tokens=3, output_tokens=5)
+    assert expected > 0
+    assert failed_call_cost(failure, PRICING) == pytest.approx(expected)
+    assert failure.http_refusal is False
+
+
+def test_a_responses_error_body_with_usage_is_billed_through_the_client_and_executor(
+    tmp_path,
+) -> None:
+    from tests.test_shared_runner_execution import FAKE_PRICING, _decision, _profile
+
+    lib = _http_lib()
+    body = {"error": {"message": "billed failure", "code": 503}, "usage": dict(RESPONSES_USAGE)}
+    sdk = openai.AsyncOpenAI(
+        api_key="k",
+        max_retries=0,
+        http_client=lib.AsyncClient(
+            transport=lib.MockTransport(lambda request: lib.Response(503, json=body))
+        ),
+    )
+    evidence = EvidenceStore(
+        tmp_path / "responses",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT
+
+    executor = MinimalChatExecutor(
+        evidence=evidence,
+        profiles=(_profile(provider="openai"),),
+        prompt_sources={"fixture_action_prompt": SYSTEM_PROMPT},
+        providers={"openai": OpenAIResponsesClient(sdk_client=sdk)},
+        pricing={"fake-model": FAKE_PRICING},
+    )
+
+    with pytest.raises(ProviderFailure) as raised:
+        asyncio.run(executor(_decision()))
+
+    expected = FAKE_PRICING.cost(input_tokens=10, cached_input_tokens=3, output_tokens=5)
+    assert expected > 0
+    assert raised.value.billing == "reported"
+    assert executor.total_cost_usd == pytest.approx(expected)
+    (event,) = [
+        json.loads((evidence.root / entry["payload_ref"]).read_bytes())
+        for entry in map(json.loads, (evidence.root / "events.jsonl").read_text().splitlines())
+        if entry["event_type"] == "provider_call_failed"
+    ]
+    assert (event["input_tokens"], event["cached_input_tokens"], event["output_tokens"]) == (10, 3, 5)
+    assert event["cost_usd"] == pytest.approx(expected)
+    evidence.audit_reconciliation()
+
+
+@pytest.mark.parametrize(
+    "usage",
+    [{}, {"foo": 1, "total_tokens": 15}, {"cost": 0.5}],
+    ids=["empty", "unknown_keys", "cost_only"],
+)
+def test_a_mapping_that_is_not_usage_never_certifies_zero(usage) -> None:
+    body = {"error": {"message": "x", "code": 503}, "usage": usage}
+    failure = OpenAIResponsesClient._classify_error(_status_error(body))
+
+    assert failure.billing == "not_billed"
+    assert failed_call_cost(failure, PRICING) == 0.0
+
+
+@pytest.mark.parametrize("bad_cost", [10**400, "1.5", [1], True])
+def test_an_unusable_optional_cost_keeps_the_tokens_and_falls_back_to_pricing(bad_cost) -> None:
+    usage = {**_USAGE, "cost": bad_cost}
+    body = {"error": {"message": "x", "code": 503}, "usage": usage}
+    failure = OpenAIResponsesClient._classify_error(_status_error(body))
+
+    assert failure.billing == "reported"
+    assert failure.cost_usd is None
+    assert (failure.input_tokens, failure.output_tokens) == (10, 5)
+    assert failed_call_cost(failure, PRICING) == pytest.approx(_expected_cost())
+
+
 # =====================================================================================
 # #247 review: a streamed failure is not its own cause
 # =====================================================================================
@@ -280,3 +466,30 @@ def test_a_streamed_failure_after_usage_was_seen_is_not_its_own_cause() -> None:
     assert failure.billing == "reported"
     assert (failure.input_tokens, failure.output_tokens) == (10, 5)
     assert failure.__cause__ is not failure
+
+
+def test_a_streamed_failure_keeps_its_identity_cause_context_and_traceback(monkeypatch) -> None:
+    """The usage is attached to the very exception the stream raised, untouched."""
+
+    raised: list[BaseException] = []
+    roots: list[BaseException] = []
+
+    def failing_assemble(chunks):
+        try:
+            raise ValueError("root cause")
+        except ValueError as root:
+            roots.append(root)
+            failure = ProviderFailure("transport", "assembly failed", retryable=True)
+            raised.append(failure)
+            raise failure from root
+
+    monkeypatch.setattr(execution_module, "_assemble_chat_stream", failing_assemble)
+    failure = _failure_of(True, _usage_then_no_finish)
+
+    assert failure is raised[0]
+    assert failure.billing == "reported"
+    assert failure.__cause__ is roots[0]
+    assert failure.__context__ is roots[0]
+    assert any(
+        frame.name == "failing_assemble" for frame in traceback.extract_tb(failure.__traceback__)
+    )

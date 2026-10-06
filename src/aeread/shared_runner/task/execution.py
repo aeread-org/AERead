@@ -131,14 +131,18 @@ class ProviderFailure(RuntimeError):
         self.input_tokens = input_tokens
         self.cached_input_tokens = cached or 0
         self.output_tokens = output_tokens
-        self.cost_usd = (
-            float(cost)
-            if isinstance(cost, (int, float))
-            and not isinstance(cost, bool)
-            and math.isfinite(cost)
-            and cost >= 0
-            else None
-        )
+        # An optional cost that float() cannot represent (10**400) is absent,
+        # not a crash: the tokens are kept and pricing fills the cost in.
+        try:
+            usable_cost = (
+                isinstance(cost, (int, float))
+                and not isinstance(cost, bool)
+                and math.isfinite(cost)
+                and cost >= 0
+            )
+            self.cost_usd = float(cost) if usable_cost else None
+        except OverflowError:
+            self.cost_usd = None
         return self
 
 
@@ -1310,11 +1314,15 @@ def _stream_error_code(error: BaseException) -> int | None:
 
 
 def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
-    """The usage an HTTP status error's body reports, from the top level or under ``error``.
+    """The usage an HTTP status error's body reports, in the Chat shape.
 
     Read from ``error.response`` for the reason ``_is_unbilled_status_refusal``
-    gives: ``error.body`` is only the inner ``error`` object (#250). A body that
-    is not JSON, cannot be read, or carries no usage mapping reports none.
+    gives: ``error.body`` is only the inner ``error`` object (#250). The usage
+    sits at the top level or under ``error`` and is Chat-style
+    (``prompt_tokens``) or Responses-style (``input_tokens``); the latter is
+    normalized, as the Responses adapter reads it. A mapping with neither
+    primary pair is not usage and certifies nothing. A body that is not JSON,
+    cannot be read, or carries no such mapping reports none.
     """
 
     if not _named_in_mro(error, "APIStatusError"):
@@ -1328,8 +1336,20 @@ def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
     inner = body.get("error")
     for holder in (body, inner if isinstance(inner, Mapping) else {}):
         usage = holder.get("usage")
-        if isinstance(usage, Mapping):
+        if not isinstance(usage, Mapping):
+            continue
+        if "prompt_tokens" in usage or "completion_tokens" in usage:
             return usage
+        if "input_tokens" in usage or "output_tokens" in usage:
+            normalized: dict[str, Any] = {
+                "prompt_tokens": usage.get("input_tokens", 0),
+                "completion_tokens": usage.get("output_tokens", 0),
+            }
+            if "input_tokens_details" in usage:
+                normalized["prompt_tokens_details"] = usage["input_tokens_details"]
+            if "cost" in usage:
+                normalized["cost"] = usage["cost"]
+            return normalized
     return None
 
 
