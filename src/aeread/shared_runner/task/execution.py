@@ -132,14 +132,18 @@ class ProviderFailure(RuntimeError):
         self.input_tokens = input_tokens
         self.cached_input_tokens = cached or 0
         self.output_tokens = output_tokens
-        self.cost_usd = (
-            float(cost)
-            if isinstance(cost, (int, float))
-            and not isinstance(cost, bool)
-            and math.isfinite(cost)
-            and cost >= 0
-            else None
-        )
+        # An optional cost that float() cannot represent (10**400) is absent,
+        # not a crash: the tokens are kept and pricing fills the cost in.
+        try:
+            usable_cost = (
+                isinstance(cost, (int, float))
+                and not isinstance(cost, bool)
+                and math.isfinite(cost)
+                and cost >= 0
+            )
+            self.cost_usd = float(cost) if usable_cost else None
+        except OverflowError:
+            self.cost_usd = None
         return self
 
 
@@ -1404,6 +1408,57 @@ def _stream_error_code(error: BaseException) -> int | None:
     return None
 
 
+def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
+    """The usage an HTTP status error's body reports, in the Chat shape.
+
+    Read from ``error.response`` for the reason ``_is_unbilled_status_refusal``
+    gives: ``error.body`` is only the inner ``error`` object (#250). The usage
+    sits at the top level or under ``error`` and is Chat-style
+    (``prompt_tokens``) or Responses-style (``input_tokens``); the latter is
+    normalized, as the Responses adapter reads it. A mapping with neither
+    token pair is usage only when it reports a numeric ``cost``; otherwise it
+    certifies nothing. A body that is not JSON,
+    cannot be read, or carries no such mapping reports none.
+    """
+
+    if not _named_in_mro(error, "APIStatusError"):
+        return None
+    try:
+        body = error.response.json()  # type: ignore[attr-defined]
+    except Exception:
+        return None
+    if not isinstance(body, Mapping):
+        return None
+    inner = body.get("error")
+    for holder in (body, inner if isinstance(inner, Mapping) else {}):
+        usage = holder.get("usage")
+        if not isinstance(usage, Mapping):
+            continue
+        if "prompt_tokens" in usage or "completion_tokens" in usage:
+            return usage
+        if "input_tokens" in usage or "output_tokens" in usage:
+            normalized: dict[str, Any] = {
+                "prompt_tokens": usage.get("input_tokens", 0),
+                "completion_tokens": usage.get("output_tokens", 0),
+            }
+            if "input_tokens_details" in usage:
+                normalized["prompt_tokens_details"] = usage["input_tokens_details"]
+            if "cost" in usage:
+                normalized["cost"] = usage["cost"]
+            return normalized
+        cost = usage.get("cost")
+        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+            # A provider that reports only its charge still charged it; a
+            # charge no float can hold, or a negative one, certifies nothing.
+            try:
+                usable = math.isfinite(cost) and cost >= 0
+            except OverflowError:
+                usable = False
+            if usable:
+                return {"cost": cost}
+    return None
+
+
 def _classify_stream_error(error: Exception) -> ProviderFailure:
     """Type an exception raised while a stream is read.
 
@@ -1717,6 +1772,14 @@ class OpenAIResponsesClient:
     def _classify_error(error: Exception) -> ProviderFailure:
         failure = OpenAIResponsesClient._classify_condition(error)
         failure.http_refusal = _is_unbilled_status_refusal(error)
+        usage = _status_error_usage(error)
+        if usage is not None:
+            # An error body that reports usage billed the call (#250).
+            failure.with_reported_usage({"choices": [{}], "usage": usage})
+            if failure.billing != "reported":
+                # Unusable usage says nothing about the bill: keep the result
+                # a body without usage always had.
+                failure.billing = "not_billed"
         return failure
 
     @staticmethod
@@ -2212,7 +2275,10 @@ class OpenRouterChatClient:
         except ProviderFailure as failure:
             if not kwargs.get("stream"):
                 raise
-            raise _with_stream_usage(failure, usage) from failure
+            # with_reported_usage returns the same object; `from failure` made
+            # it its own cause (#247 review).
+            _with_stream_usage(failure, usage)
+            raise
         except Exception as error:
             if not kwargs.get("stream"):
                 raise OpenAIResponsesClient._classify_error(error) from error
@@ -3864,16 +3930,22 @@ class MinimalChatExecutor:
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
         failed_request = pending.request if pending is not None else request
+        # A failure raised after a round already terminalized as succeeded (a
+        # reply with text and tool calls, typed provider_contract) belongs to
+        # the attempt alone, under every profile: the call has its terminal
+        # and no record may be built for the attempt's first request (#249).
+        post_success = pending is None and bool(prior_rounds)
         # Under transport_v1 each call id is listed exactly once, so a record
         # is built only for a call that is not already in the ledger. The last
         # call may be listed already: the port records a refusal before it
         # decides whether to re-send, and the outer timeout can land while it
         # sleeps, when no call is open and none may be fabricated.
-        post_success = transport_v1 and pending is None and bool(prior_rounds)
         provider_record: ProviderCallRecord | None = None
-        if not transport_v1 or failed_request.provider_call_id not in {
-            record.provider_call_id for record in refused_calls + prior_rounds
-        }:
+        if not post_success and (
+            not transport_v1
+            or failed_request.provider_call_id
+            not in {record.provider_call_id for record in refused_calls + prior_rounds}
+        ):
             provider_record = ProviderCallRecord(
                 provider_call_id=failed_request.provider_call_id,
                 action_attempt_id=action_attempt_id,

@@ -1844,11 +1844,13 @@ def test_v1_does_not_resend_a_refusal_whose_body_reports_usage(tmp_path) -> None
     assert len(of(log, "action_attempt_started")) == 2
     (failed,) = exactly(of(log, "provider_call_failed"), 1)
     assert not failed["payload"].get("http_refusal")
-    assert failed["payload"]["cost_usd"] == 0.0
-    assert "input_tokens" not in failed["payload"]
-    assert rig.executor.total_cost_usd == pytest.approx(OK_COST)
+    # The body's usage is recorded and charged once (#250); it used to be $0.
+    billed = PRICING.cost(input_tokens=10, cached_input_tokens=0, output_tokens=5)
+    assert failed["payload"]["cost_usd"] == pytest.approx(billed)
+    assert failed["payload"]["input_tokens"] == 10
+    assert rig.executor.total_cost_usd == pytest.approx(OK_COST + billed)
     first, second = exactly(rig.execution.attempts, 2)
-    assert first.provider_calls[0].cost_usd == 0.0
+    assert first.provider_calls[0].cost_usd == pytest.approx(billed)
     assert first.provider_calls[0].status == "failed"
     assert second.retry_reason == "provider_5xx"
 
