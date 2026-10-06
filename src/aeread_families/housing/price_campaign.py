@@ -1,7 +1,9 @@
 """Bounded paired Housing price pilot; preflight is provider-free.
 
 Live mode is explicit and writes one immutable result per planned cell. A failed
-cell remains missing, and any operational failure stops this small pilot.
+cell remains missing. Under retry policy v1 any operational failure stops the run;
+an identity that declares retry policy v2 continues past a failed cell and stops
+after a declared number of consecutive failures (``RETRY_POLICY_V2``).
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task import execution as kernel_execution
 from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderFailure, execute_plan_cell
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 
@@ -493,6 +496,69 @@ def has_rivals(spec: Mapping[str, Any]) -> bool:
     )
 
 
+RETRY_CONDITIONS_V1 = ["length", "rate_limit", "provider_5xx", "empty_response"]
+
+#: Retry policy v2, opt-in per identity (``"retry_policy_version": 2``), so every limit that can
+#: end a cell or a run is in the contract (HL-O-19, HL-O-20). A timeout and a transport error are
+#: retried like the other transient conditions; the kernel cannot know whether such a call was
+#: billed, so it records its cost as unknown and a cell that had one reports a lower-bound cost.
+#: A truncated answer is retried with its output cap doubled, up to eight times the declared cap:
+#: that rule is the kernel's, so it is declared here and ``kernel_length_growth`` refuses a kernel
+#: that grows differently. A failed cell is typed missingness and the run goes on to the next
+#: cell; three consecutive failed cells in execution order stop it, which is a route outage, not a
+#: hard world. Under v1 the first failure stopped a worker's range and left the rest of it never
+#: started (ten worlds in HL-O-20). The wait between retries was the kernel's default for a seeded
+#: profile; v2 states it and passes it explicitly, so the sealed profile carries it by choice.
+RETRY_POLICY_V2: dict[str, Any] = {
+    "retry_policy_version": 2,
+    "retryable_conditions": [*RETRY_CONDITIONS_V1, "timeout", "transport"],
+    "length_retry_growth": {"factor": 2, "max_multiple_of_declared": 8},
+    "retry_backoff": {"policy": "exponential_jitter_v1", "retry_base_seconds": 2.0, "doubling_cap_seconds": 30.0,
+                      "jitter": "0 to 1 s from the call id", "retry_after_max_seconds": 30.0},
+    "timed_out_call_cost": "unknown to the kernel and not counted; a cell with a timeout or transport "
+                           "failure reports a lower-bound cost",
+    "halt_rule": "a failed cell is typed missingness and the run continues; the run stops after "
+                 "max_consecutive_operational_failures consecutive failed cells in execution order",
+    "max_consecutive_operational_failures": 3,
+}
+
+
+def kernel_length_growth(declared: int = 100) -> dict[str, int]:
+    """The kernel's length-retry rule, read off its own helper: one step, and the ceiling."""
+    sampling = dataclasses.make_dataclass("Sampling", ["max_output_tokens"])(declared)
+    profile = dataclasses.make_dataclass("Profile", ["sampling"])(sampling)
+    grow = kernel_execution.MinimalChatExecutor._grow_length_budget
+    ceiling = declared
+    while grow(None, profile, ceiling) != ceiling:
+        ceiling = grow(None, profile, ceiling)
+    return {"factor": grow(None, profile, declared) // declared, "max_multiple_of_declared": ceiling // declared}
+
+
+def retry_controls(spec: Mapping[str, Any]) -> dict[str, Any]:
+    """The contract's retry controls for an identity: v1 unless it declares v2."""
+    version = spec.get("retry_policy_version", 1)
+    if version == 1:
+        return {"retryable_conditions": list(RETRY_CONDITIONS_V1)}
+    if version != 2:
+        raise ValueError("unknown retry policy version")
+    if kernel_length_growth() != RETRY_POLICY_V2["length_retry_growth"]:
+        raise ValueError("the kernel's length-retry growth differs from retry policy v2")
+    return {key: value for key, value in RETRY_POLICY_V2.items() if key != "max_consecutive_operational_failures"}
+
+
+def backoff_harness_config(spec: Mapping[str, Any]) -> dict[str, Any]:
+    """What retry policy v2 seals into the tenant profile's harness config; nothing under v1."""
+    if spec.get("retry_policy_version", 1) != 2:
+        return {}
+    backoff = RETRY_POLICY_V2["retry_backoff"]
+    return {"retry_backoff": backoff["policy"], "retry_base_seconds": backoff["retry_base_seconds"],
+            "retry_after_max_seconds": backoff["retry_after_max_seconds"]}
+
+
+def halt_after(spec: Mapping[str, Any]) -> int:
+    return RETRY_POLICY_V2["max_consecutive_operational_failures"] if spec.get("retry_policy_version", 1) == 2 else 1
+
+
 def identity(contract: Mapping[str, Any]) -> dict[str, Any]:
     spec = IDENTITIES.get(contract.get("campaign_id"))
     if spec is None:
@@ -531,7 +597,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         or value["total_cost_ceiling_usd"] != spec["total_cost_ceiling_usd"]
     ):
         raise ValueError("price pilot cost cap drifted")
-    if value["max_consecutive_operational_failures"] != 1:
+    if value["max_consecutive_operational_failures"] != halt_after(spec):
         raise ValueError("price pilot halt rule drifted")
     if value["controls"] != {
         "harness": "minimal_chat/1.0", "tools": "disabled", "memory": "disabled",
@@ -539,7 +605,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         "top_p": spec["top_p"],
         "max_output_tokens": 4096, "timeout_seconds": spec.get("timeout_seconds", 120.0),
         "sdk_retries": 0, "max_action_attempts": spec.get("max_action_attempts", 4),
-        "retryable_conditions": ["length", "rate_limit", "provider_5xx", "empty_response"],
+        **retry_controls(spec),
         "tenant_inference_seed_base": 87001,
         "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
         "execution_order": "world_seed_ascending_then_arm_order",
@@ -708,7 +774,9 @@ def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool):
         # the profile's own value is then a placeholder the request never sends.
         tenant_temperature=0.0 if (unavailable or not live) else controls["temperature"],
         tenant_harness_config=(
-            {"sampling_controls": {"temperature": "unavailable"}} if unavailable and live else None
+            {**({"sampling_controls": {"temperature": "unavailable"}} if unavailable and live else {}),
+             **(backoff_harness_config(spec) if live else {})}
+            or None
         ),
         tenant_top_p=controls["top_p"],
         max_output_tokens_override=controls["max_output_tokens"],
@@ -794,6 +862,9 @@ async def run(
     results_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
     halted = False
+    # Consecutive failed cells in execution order; one stops the run under retry policy v1.
+    stop_after = int(contract["max_consecutive_operational_failures"])
+    consecutive = 0
     replicates = int(contract["replicates"])
     seeds = [
         seed for seed in contract["world_seeds"]
@@ -812,7 +883,8 @@ async def run(
                 result_path = results_root / f"world_{seed}__{arm}{tag}.json"
                 if result_path.exists():
                     row = json.loads(result_path.read_text())
-                    if row["status"] != "completed":
+                    consecutive = 0 if row["status"] == "completed" else consecutive + 1
+                    if consecutive >= stop_after:
                         halted = True
                     rows.append(row)
                     continue
@@ -847,6 +919,7 @@ async def run(
                            "outcome_facts": {
                                key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
                            }}
+                    consecutive = 0
                 except Exception as error:
                     failure_receipt = None
                     try:
@@ -860,7 +933,9 @@ async def run(
                            "failure_condition": getattr(error, "condition", type(error).__name__),
                            "cost_usd": usage["cost_usd"],
                            "receipt_sha256": failure_receipt.receipt_sha256 if failure_receipt else None}
-                    halted = True
+                    consecutive += 1
+                    if consecutive >= stop_after:
+                        halted = True
                 if live and (not math.isfinite(float(row["cost_usd"])) or float(row["cost_usd"]) > contract["tenant_cost_ceiling_usd_per_cell"]):
                     halted = True
                 result_path.write_bytes(canonical_json_bytes(row) + b"\n")

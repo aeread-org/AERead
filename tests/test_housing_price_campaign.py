@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from aeread.shared_runner.task.execution import ProviderFailure
 from aeread_families.housing import price_campaign
 from aeread_families.housing.runner import build_housing_smoke
 
@@ -370,3 +371,98 @@ def test_scripted_rivals_play_seats_one_to_five_and_the_plan_stays_one_profile(t
         ("focal", "openrouter", "z-ai/glm-5.3-flash"),
         ("rival", "housing_scripted_tenant", "housing_scripted_tenant_inspect_then_sign_v1"),
     ]
+
+
+# --- retry policy v2 (HL-O-19, HL-O-20) ------------------------------------------------------
+
+_V12 = "housing_lemons_price_pilot_v12_glm53_flash_nextbit_outside_w60"
+_RETRY_TEST_ID = "housing_lemons_price_pilot_test_retry_v2"
+
+
+def _retry_v2_contract(monkeypatch, tmp_path, seeds):
+    spec = dict(price_campaign.IDENTITIES[_V12], retry_policy_version=2)
+    monkeypatch.setitem(price_campaign.IDENTITIES, _RETRY_TEST_ID, spec)
+    base = json.loads(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json").read_text())
+    controls = {key: value for key, value in base["controls"].items() if key != "retryable_conditions"}
+    contract = dict(base, campaign_id=_RETRY_TEST_ID, max_consecutive_operational_failures=3,
+                    controls={**controls, **price_campaign.retry_controls(spec)})
+    path = tmp_path / "retry_v2.json"
+    path.write_text(json.dumps(contract))
+    return dict(price_campaign.load_contract(path), world_seeds=seeds)
+
+
+class _TimeoutsThenScripted(_RecordingProvider):
+    """Times out on the first ``fail`` calls it receives, then answers like the scripted tenant."""
+
+    def __init__(self, fail):
+        super().__init__()
+        self.fail = fail
+
+    async def complete(self, request):
+        if self.fail > 0:
+            self.fail -= 1
+            raise ProviderFailure("timeout", "stub timeout", retryable=True)
+        return await super().complete(request)
+
+
+def test_kernel_length_growth_is_what_retry_policy_v2_declares():
+    assert price_campaign.kernel_length_growth() == price_campaign.RETRY_POLICY_V2["length_retry_growth"]
+    assert price_campaign.kernel_length_growth(4096) == {"factor": 2, "max_multiple_of_declared": 8}
+
+
+def test_retry_policy_v2_is_opt_in_and_refuses_v1_controls(monkeypatch, tmp_path):
+    v12 = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json"))
+    assert v12["max_consecutive_operational_failures"] == 1
+    assert v12["controls"]["retryable_conditions"] == price_campaign.RETRY_CONDITIONS_V1
+    contract = _retry_v2_contract(monkeypatch, tmp_path, [100000])
+    assert {"timeout", "transport"} <= set(contract["controls"]["retryable_conditions"])
+    assert contract["controls"]["length_retry_growth"] == {"factor": 2, "max_multiple_of_declared": 8}
+    stale = dict(contract, world_seeds=json.loads(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json").read_text())["world_seeds"],
+                 max_consecutive_operational_failures=1)
+    bad = tmp_path / "stale.json"
+    bad.write_text(json.dumps(stale))
+    with pytest.raises(ValueError, match="halt rule drifted"):
+        price_campaign.load_contract(bad)
+
+
+async def _no_wait(_seconds):
+    return None
+
+
+def _timeout_attempts(evidence_root):
+    events = [json.loads(line) for path in evidence_root.rglob("events.jsonl") for line in path.read_text().splitlines()]
+    return sum(e["event_type"] == "provider_call_outcome_unknown" for e in events)
+
+
+def test_retry_policy_v2_seals_its_backoff_in_the_tenant_profile(monkeypatch, tmp_path):
+    contract = _retry_v2_contract(monkeypatch, tmp_path, [100000])
+    setup = price_campaign.build_setup(contract, "true_cost", live=True)
+    tenant = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+    assert tenant.harness.config["retry_backoff"] == "exponential_jitter_v1"
+    assert tenant.harness.config["retry_base_seconds"] == 2.0 and tenant.harness.config["retry_after_max_seconds"] == 30.0
+    v12 = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json"))
+    old = next(p for p in price_campaign.build_setup(v12, "true_cost", live=True).plan.agent_profiles if p.model.provider == "openrouter")
+    assert "retry_base_seconds" not in old.harness.config
+
+
+def test_retry_policy_v2_runs_past_a_failed_cell(monkeypatch, tmp_path):
+    monkeypatch.setattr(asyncio, "sleep", _no_wait)
+    contract = _retry_v2_contract(monkeypatch, tmp_path, [100000, 100001])
+    attempts = contract["controls"]["max_action_attempts"]
+    # Every attempt of the first action times out, so exactly the first cell fails.
+    provider = _TimeoutsThenScripted(fail=attempts)
+    summary = asyncio.run(price_campaign.run(contract, tmp_path / "run", live=True, provider=provider))
+    rows = {path.name: json.loads(path.read_text()) for path in (tmp_path / "run/live").glob("world_*.json")}
+    assert rows["world_100000__true_cost.json"]["status"] == "operational_failure"
+    # The kernel types an action that ran out of attempts as a scheduler failure; every attempt timed out.
+    assert _timeout_attempts(tmp_path / "run/live/world_100000__true_cost_evidence") == attempts
+    assert summary["operational_failures"] == 1 and summary["completed_cells"] == 3
+
+
+def test_retry_policy_v2_stops_after_three_consecutive_failures(monkeypatch, tmp_path):
+    monkeypatch.setattr(asyncio, "sleep", _no_wait)
+    contract = _retry_v2_contract(monkeypatch, tmp_path, [100000, 100001, 100002])
+    provider = _TimeoutsThenScripted(fail=10**6)
+    summary = asyncio.run(price_campaign.run(contract, tmp_path / "run", live=True, provider=provider))
+    assert summary["operational_failures"] == 3 and summary["completed_cells"] == 0
+    assert len(list((tmp_path / "run/live").glob("world_*.json"))) == 3
