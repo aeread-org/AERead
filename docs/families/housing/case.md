@@ -744,6 +744,20 @@ arm would double every model's cost, so v14 has neither. The cheap pair runs fir
 shakedown of the 600-cell path, and Gemini only if they complete cleanly. Serial wall time from the
 retry runs' sealed events: about 10 s a cell, 1.5 to 2 hours a model, run in parallel ranges.
 
+**v14 result (2026-10-06; bundle `evidence/housing/housing_lemons_price_confirmatory_v14`).** GLM and GPT-6
+Luna completed 600 of 600 cells, Gemini 564 (36 cells refused for lack of account credits, typed missingness,
+HL-O-21). Every published receipt replays from its sealed events (`aeread verify-replay`, 1,800 of 1,800).
+Primary measure on the 260-world main pack, per world: Gemini +211 [+188, +233] (240 worlds with both arms), GLM
++137 [+111, +162], Luna +130 [+104, +156]. Pairs, Holm over three: Gemini minus GLM +70 [+48, +92] (p 2e-9),
+Gemini minus Luna +80 [+62, +99] (p 2e-15), both past the $50 minimum; GLM minus Luna +7 [-16, +29] (p 0.56), an
+interval inside the $50 band, so the two are not meaningfully different. The holdout (40 worlds) points the same
+way: Gemini minus GLM +106 [+44, +168], Gemini minus Luna +55 [+12, +98], GLM minus Luna -40 [-106, +26].
+Against the reachable reference all three fall short: Gemini -81 [-97, -65], GLM -155, Luna -162. The shortfall
+is the favourite-lemon worlds: there the models reach 60% (Gemini), 27% (GLM) and 22% (Luna) of the reference,
+against 97%, 83% and 98% where the favourite is sound. With the rules and the reply history in the sealed prompt,
+GLM and Luna still sign holds that only a lemon's landlord would offer (54 of 73 and 80 of 88 such holds signed;
+Gemini 7 of 38). Cost $7.44 for the three panels.
+
 ## 6. Metrics
 
 | metric | definition |

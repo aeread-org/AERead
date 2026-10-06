@@ -211,9 +211,9 @@ def publish(contract_paths: Sequence[Path], run_roots: Sequence[Path], publicati
         campaign_id=PUBLICATION_ID,
         privacy_boundary={
             "included": "contracts, the pack, per-cell numeric outcomes with typed failure conditions, "
-                        "receipt digests, the declared analysis computed, sanitized trajectory rows",
+                        "receipt digests, the declared analysis computed",
             "excluded": "raw provider responses, model reasoning, complete receipts, failure messages, "
-                        "provider identifiers",
+                        "provider identifiers, and the kernel trajectory grain (see README)",
         },
         source_bindings={
             "contract_paths": [f"configs/{Path(path).name}" for path in contract_paths],
@@ -271,9 +271,34 @@ def _readme(report: Mapping[str, Any]) -> str:
         lines.append(f"| `{pair}` | {_fmt(value['main'])} | {p:.3g} | {_fmt(value['holdout'])} |" if p is not None
                      else f"| `{pair}` | {_fmt(value['main'])} | n/a | {_fmt(value['holdout'])} |")
     lines += ["", "Files: `tables/cells.jsonl` (every planned cell, with typed missingness), `reports/analysis.json`, "
-              "`reports/contracts.json`, `reports/pack.json`, `trajectories/sanitized.jsonl` (kernel trajectory grain). "
-              "`publication_manifest.json` digests every file and binds the bundle to its source receipts.", ""]
+              "`reports/contracts.json`, `reports/pack.json`. `publication_manifest.json` digests every file and binds "
+              "the bundle to its source receipts.", "",
+              "No kernel trajectory grain: for 1,800 cells it is 145 MB, 22 times the largest grain in `evidence/`, "
+              "because every outside-demand seat and landlord action is a row (85% of rows; seat 0 is 12%). The "
+              "sealed attempt directories it would be built from stay in the run roots, bound here by receipt digest; "
+              "`aeread publish-trajectories` adds it to a copy of this bundle when they are at hand.", ""]
     return "\n".join(lines)
+
+
+_SETUPS: dict[str, Any] = {}
+
+
+def replay_setup(receipt: Mapping[str, Any]) -> Any:
+    """``aeread verify-replay --setup aeread_families.housing.price_publication:replay_setup``.
+
+    Returns the sealed setup whose plan the durable receipt names: one of the six v14 plans
+    (three identities, two landlord arms), each built once from its committed contract.
+    """
+    if not _SETUPS:
+        for campaign_id in (k for k in price_campaign.IDENTITIES if "confirmatory_v14" in k):
+            contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json"))
+            for arm in contract["arms"]:
+                setup = price_campaign.build_setup(contract, arm, live=True)
+                _SETUPS[setup.plan.run_plan_id] = setup
+    setup = _SETUPS.get(receipt.get("run_plan_id"))
+    if setup is None:
+        raise ValueError(f"no v14 plan has run_plan_id {receipt.get('run_plan_id')!r}")
+    return setup
 
 
 def main(argv: Sequence[str] | None = None) -> int:
