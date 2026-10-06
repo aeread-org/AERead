@@ -3732,16 +3732,22 @@ class MinimalChatExecutor:
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
         failed_request = pending.request if pending is not None else request
+        # A failure raised after a round already terminalized as succeeded (a
+        # reply with text and tool calls, typed provider_contract) belongs to
+        # the attempt alone, under every profile: the call has its terminal
+        # and no record may be built for the attempt's first request (#249).
+        post_success = pending is None and bool(prior_rounds)
         # Under transport_v1 each call id is listed exactly once, so a record
         # is built only for a call that is not already in the ledger. The last
         # call may be listed already: the port records a refusal before it
         # decides whether to re-send, and the outer timeout can land while it
         # sleeps, when no call is open and none may be fabricated.
-        post_success = transport_v1 and pending is None and bool(prior_rounds)
         provider_record: ProviderCallRecord | None = None
-        if not transport_v1 or failed_request.provider_call_id not in {
-            record.provider_call_id for record in refused_calls + prior_rounds
-        }:
+        if not post_success and (
+            not transport_v1
+            or failed_request.provider_call_id
+            not in {record.provider_call_id for record in refused_calls + prior_rounds}
+        ):
             provider_record = ProviderCallRecord(
                 provider_call_id=failed_request.provider_call_id,
                 action_attempt_id=action_attempt_id,
@@ -3759,7 +3765,7 @@ class MinimalChatExecutor:
             )
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call
-        # would be a contradictory duplicate (v0 keeps that defect unchanged).
+        # would be a contradictory duplicate that fails reconciliation (#249).
         if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
                 (
