@@ -708,6 +708,42 @@ favourite-sound worlds from seeds 300000-300441, holdout 30 and 10 from 400000-4
 each other and from the development worlds (pack digest `39ddf59f…`). On the main pack the reference
 reaches 73% of the ceiling in favourite-lemon worlds (94% leaky, 35% pooled) and 94% in favourite-sound ones.
 
+#### v14, the confirmatory panel (declared 2026-10-06, before any v14 cell)
+
+Three identities, `housing_lemons_price_confirmatory_v14_{glm53_flash_nextbit,gpt6_luna,gemini38_flash}`,
+identical except for the model and its route: one deciding tenant, outside demand at 0.5 a round,
+both landlord arms, one replicate, on the seat-0 pack (260 worlds) and its holdout (40), so 600
+cells each. What changed from the pilots:
+
+- **The rules are in the sealed prompt (HL-D-05).** Notice v4 is notice v2 (departure rule,
+  horizon, walking does not close a listing) plus the round-order paragraph the GLM probe tested,
+  as a declared tenant prompt (`housing_tenant_lemons_price_outside_v1`) that the plan seals. The
+  reply history is no longer appended by the seat router: the episode state keeps each tenant's own
+  offers, the landlord's binding rent (accepted or countered) and its sign-or-walk decision, and the
+  observation shows them as `your_history` (`runner.TENANT_HISTORY_V1`), so the kernel's
+  `provider_call_started` event holds exactly what the model read. Both are opt-in; earlier
+  identities send the same bytes as before (tested).
+- **Retry policy v2**: timeouts and transport errors retried, the length-retry ceiling (32,768
+  tokens) and the backoff declared and sealed in the profile, three consecutive failed cells stop a
+  run and a single one does not.
+- **The pack**: seeds admitted on seat 0's structure only, stratified on seat 0's favourite.
+
+Analysis, fixed now (`price_campaign.CONFIRMATORY_ANALYSIS`). Primary measure: seat 0's net at the
+reply-conditioned odds per world, the mean of the two arms. Contrasts: the three model pairs (Holm
+over the three) and each model minus the reachable reference (`price_reference.inspect_lowball`),
+paired by world, 95% Student-t intervals. Population: the 260-world main pack; the holdout is
+reported separately and never pooled; the two strata are reported beside the pooled estimate. A
+difference under $50 a world is not treated as meaningful. A failed cell is typed missingness and
+is not rerun. Secondary: realized net, signings of holds below every sound floor, and the share of
+cells ending on an inspected listing.
+
+Budget: the owner set $10 for all remaining work. From the retry runs' measured cost per cell, 600
+cells cost about $0.40 (GLM), $0.50 (GPT-6 Luna, probed at $0.00017 a call) and $5 (Gemini).
+DeepSeek with reasoning ($13) and GPT-6.1 Sol ($6) do not fit beside Gemini, and the pricing-rule
+arm would double every model's cost, so v14 has neither. The cheap pair runs first, as the
+shakedown of the 600-cell path, and Gemini only if they complete cleanly. Serial wall time from the
+retry runs' sealed events: about 10 s a cell, 1.5 to 2 hours a model, run in parallel ranges.
+
 ## 6. Metrics
 
 | metric | definition |

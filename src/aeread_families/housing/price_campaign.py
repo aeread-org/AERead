@@ -36,6 +36,7 @@ from .runner import (
     OpenRouterRoutePin,
     SCRIPTED_TENANT_REVISION,
     HousingScriptedTenantProvider,
+    HOUSING_TENANT_LEMONS_PRICE_PROMPT,
     build_housing_smoke,
     finalize_housing_execution,
     finalize_housing_failure,
@@ -179,6 +180,21 @@ NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
 
 #: Sealed routes this driver knows. A contract names one; the driver refuses a
 #: route whose identity drifts from the pin the runner carries.
+# GPT-6 Luna on OpenAI, read from the catalog on 2026-10-06 ($0.10/$0.50, cached $0.01). The
+# catalog also lists a cheaper flex tier on the same provider, which the price ceiling admits, so
+# a priced cost is an upper bound. The model accepts no temperature or top_p. Probed through the
+# strict client on six v12 commit states: 6/6 answered, all resolved to the dated model.
+GPT_6_LUNA_MODEL = "openai/gpt-6-luna"
+OPENAI_GPT_6_LUNA_ROUTE = OpenRouterRoutePin(
+    provider="OpenAI",
+    quantization="unknown",
+    canonical_model="openai/gpt-6-luna-20260922",
+    input_per_million=0.1,
+    cached_input_per_million=0.01,
+    output_per_million=0.5,
+    pricing_id="openrouter_openai_2026-10-06_gpt-6-luna",
+)
+
 ROUTES: dict[str, tuple[str, Any]] = {
     "google_gemini_38_flash": (GEMINI_38_FLASH_MODEL, GOOGLE_AI_STUDIO_GEMINI_38_FLASH_ROUTE),
     "deepinfra_glm_53_flash_fp4": (GLM_53_FLASH_MODEL, DEEPINFRA_GLM_53_FLASH_FP4_ROUTE),
@@ -192,6 +208,7 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "streamlake_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE),
     "nextbit_glm_53_flash": (GLM_53_FLASH_MODEL, NEXTBIT_GLM_53_FLASH_ROUTE),
     "nextbit_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE),
+    "openai_gpt_6_luna": (GPT_6_LUNA_MODEL, OPENAI_GPT_6_LUNA_ROUTE),
 }
 
 #: Seats the rival model plays in a focal-seat identity. Seat 0 is the focal model.
@@ -457,6 +474,74 @@ IDENTITIES: dict[str, dict[str, Any]] = {
     },
 }
 
+#: The implementation digests every identity above was sealed under: the branch head before
+#: main's kernel was merged in (8737c125, 2026-10-06). The merge changed execution.py,
+#: evaluation.py and harness.py, which every Housing plan hashes, so without these each sealed
+#: plan would rebuild under a new run-plan id and none of its cells could be replayed (HL-T-04).
+#: They identify a sealed plan; they cannot run one: a cell executed under these pins fails the
+#: measurement contract, which checks them against the code it runs. So ``build_setup`` applies
+#: them only when asked for the sealed plan (``sealed_digests=True``), and a provider-free or live
+#: run of an old identity builds its plan from the current bytes under a new id.
+SEALED_BEFORE_MAIN_MERGE = frozenset(IDENTITIES)
+SEALED_DIGESTS_BEFORE_MAIN_MERGE: dict[str, str] = {
+    "housing": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+    "bridge": "956ebfc5e8de8907837489cf70c4bb960173112d6829ed3f427e36cf7f83fcc6",
+    "combined": "a6c701f7094cf1f8ceb2f9486043616fa7084c2aa8f7ff9ececf8a18ad614d6f",
+    "execution": "3cd3278cc489c7d7008531075fc7d714d2a3aaeeecfa2647af7a6a9a17e4dbd6",
+    "harness": "9c2093b00d5e3992df7a55f37a98d53c636ee860573c859abef2a92953e7831b",
+    "lemons": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+    "combined_lemons": "549f8154b08af5e2fa92b6f39594f8dc6815a147b6aa27ca7c96392df974b94f",
+}
+
+#: The one-tenant confirmatory pack (lemons_design.confirmatory_pack): 200 favourite-lemon and 60
+#: favourite-sound worlds, and a 30/10 holdout reported separately. Committed so a contract can be
+#: checked without regenerating it; a test checks the file against the generator.
+PACK_PATH = Path(__file__).resolve().parents[3] / "configs/housing_lemons_outside_demand_pack_v1.json"
+PACK = json.loads(PACK_PATH.read_text())
+PACK_WORLD_SEEDS = sorted(PACK["main"]["world_seeds"] + PACK["holdout"]["world_seeds"])
+
+#: v14, the confirmatory panel (2026-10-06). One tenant, outside demand, the rules in the sealed
+#: prompt (notice v4: departure rule, horizon, round order, reply history in the observation),
+#: retry policy v2, both landlord arms, one replicate, on the pack and its holdout. Three models
+#: fit the $10 budget the owner set: GLM 5.3 Flash and GPT-6 Luna (the cheap pair, run first)
+#: and Gemini 3.8 Flash. DeepSeek with reasoning ($13 measured for 600 cells) does not fit.
+CONFIRMATORY_ANALYSIS: dict[str, Any] = {
+    "independent_unit": "world_seed",
+    "primary_measure": "seat0 net at the reply-conditioned odds, mean of the two landlord arms, per world",
+    "secondary_measures": ["seat0 realized net", "signings of a hold below every sound floor",
+                           "share of cells ending on an inspected listing"],
+    "references": ["price_reference.inspect_lowball (reachable, offline, same market)",
+                   "full-information ceiling (price_reference.ceiling)"],
+    "contrasts": "every pair of models and each model minus the reachable reference, paired by world",
+    "interval": "95% Student-t over worlds",
+    "multiplicity": "Holm over the three pairwise model contrasts on the primary measure",
+    "population": "main pack (260 worlds); the 40 holdout worlds are reported separately and never pooled",
+    "strata": "favourite_is_lemon and favourite_is_sound reported separately beside the pooled main pack",
+    "minimum_meaningful_difference_usd_per_world": 50.0,
+    "missingness": "a failed cell is typed missingness and never rerun; a world missing an arm is "
+                   "dropped from that model's paired contrasts and counted",
+    "model_ranking_allowed": True,
+}
+_V14 = {
+    "outside_demand": True, "notice_version": 4, "retry_policy_version": 2,
+    "world_seeds": PACK_WORLD_SEEDS, "max_action_attempts": 8, "timeout_seconds": 300.0,
+    "claim_status": "confirmatory", "analysis": CONFIRMATORY_ANALYSIS,
+}
+IDENTITIES.update({
+    "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit": {
+        **_V14, "route_id": "nextbit_glm_53_flash", "profile": "housing_price_glm53_nextbit_tenant_v14",
+        "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 1.5,
+    },
+    "housing_lemons_price_confirmatory_v14_gpt6_luna": {
+        **_V14, "route_id": "openai_gpt_6_luna", "profile": "housing_price_gpt6_luna_tenant_v14",
+        "reasoning_effort": "low", "temperature": "unavailable", "top_p": None, "total_cost_ceiling_usd": 1.5,
+    },
+    "housing_lemons_price_confirmatory_v14_gemini38_flash": {
+        **_V14, "route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v14",
+        "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 7.0,
+    },
+})
+
 
 def _route_block(route_id: str) -> dict[str, Any]:
     model, pin = ROUTES[route_id]
@@ -476,6 +561,8 @@ def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     """What the contract must declare about the rival seats of a focal-seat identity."""
     if spec.get("outside_demand"):
         version = spec.get("notice_version")
+        if version == 4:
+            return price_outside_demand.block_v4()
         if version == 3:
             return price_outside_demand.block_v3()
         return price_outside_demand.block_v2() if version == 2 else price_outside_demand.block()
@@ -502,9 +589,9 @@ RETRY_CONDITIONS_V1 = ["length", "rate_limit", "provider_5xx", "empty_response"]
 #: end a cell or a run is in the contract (HL-O-19, HL-O-20). A timeout and a transport error are
 #: retried like the other transient conditions; the kernel cannot know whether such a call was
 #: billed, so it records its cost as unknown and a cell that had one reports a lower-bound cost.
-#: A truncated answer is retried with its output cap doubled, up to eight times the declared cap:
-#: that rule is the kernel's, so it is declared here and ``kernel_length_growth`` refuses a kernel
-#: that grows differently. A failed cell is typed missingness and the run goes on to the next
+#: A truncated answer is retried with its output cap doubled, up to a ceiling the contract declares
+#: and the profile seals (``max_output_tokens_ceiling``, eight times the 4,096-token cap, which was
+#: the kernel's undeclared default); ``kernel_length_growth`` refuses a kernel that grows otherwise. A failed cell is typed missingness and the run goes on to the next
 #: cell; three consecutive failed cells in execution order stop it, which is a route outage, not a
 #: hard world. Under v1 the first failure stopped a worker's range and left the rest of it never
 #: started (ten worlds in HL-O-20). The wait between retries was the kernel's default for a seeded
@@ -512,7 +599,7 @@ RETRY_CONDITIONS_V1 = ["length", "rate_limit", "provider_5xx", "empty_response"]
 RETRY_POLICY_V2: dict[str, Any] = {
     "retry_policy_version": 2,
     "retryable_conditions": [*RETRY_CONDITIONS_V1, "timeout", "transport"],
-    "length_retry_growth": {"factor": 2, "max_multiple_of_declared": 8},
+    "length_retry_growth": {"factor": 2, "max_output_tokens_ceiling": 32768},
     "retry_backoff": {"policy": "exponential_jitter_v1", "retry_base_seconds": 2.0, "doubling_cap_seconds": 30.0,
                       "jitter": "0 to 1 s from the call id", "retry_after_max_seconds": 30.0},
     "timed_out_call_cost": "unknown to the kernel and not counted; a cell with a timeout or transport "
@@ -523,15 +610,19 @@ RETRY_POLICY_V2: dict[str, Any] = {
 }
 
 
-def kernel_length_growth(declared: int = 100) -> dict[str, int]:
-    """The kernel's length-retry rule, read off its own helper: one step, and the ceiling."""
-    sampling = dataclasses.make_dataclass("Sampling", ["max_output_tokens"])(declared)
-    profile = dataclasses.make_dataclass("Profile", ["sampling"])(sampling)
-    grow = kernel_execution.MinimalChatExecutor._grow_length_budget
-    ceiling = declared
-    while grow(None, profile, ceiling) != ceiling:
-        ceiling = grow(None, profile, ceiling)
-    return {"factor": grow(None, profile, declared) // declared, "max_multiple_of_declared": ceiling // declared}
+def kernel_length_growth(declared: int = 4096, ceiling: int = 32768) -> dict[str, int]:
+    """The kernel's length-retry rule for a profile that declares ``ceiling``: one step, and where it stops."""
+    from types import SimpleNamespace
+
+    profile = SimpleNamespace(profile_id="probe", sampling=SimpleNamespace(max_output_tokens=declared),
+                              harness=SimpleNamespace(config={"max_output_tokens_ceiling": ceiling}))
+    executor = kernel_execution.MinimalChatExecutor
+    grow = lambda budget: executor._grow_length_budget(
+        SimpleNamespace(_length_retry_ceiling=executor._length_retry_ceiling), profile, budget)
+    reached = declared
+    while grow(reached) != reached:
+        reached = grow(reached)
+    return {"factor": grow(declared) // declared, "max_output_tokens_ceiling": reached}
 
 
 def retry_controls(spec: Mapping[str, Any]) -> dict[str, Any]:
@@ -552,7 +643,8 @@ def backoff_harness_config(spec: Mapping[str, Any]) -> dict[str, Any]:
         return {}
     backoff = RETRY_POLICY_V2["retry_backoff"]
     return {"retry_backoff": backoff["policy"], "retry_base_seconds": backoff["retry_base_seconds"],
-            "retry_after_max_seconds": backoff["retry_after_max_seconds"]}
+            "retry_after_max_seconds": backoff["retry_after_max_seconds"],
+            "max_output_tokens_ceiling": RETRY_POLICY_V2["length_retry_growth"]["max_output_tokens_ceiling"]}
 
 
 def halt_after(spec: Mapping[str, Any]) -> int:
@@ -582,7 +674,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         raise ValueError("price pilot contract fields drifted")
     if value["schema_version"] != "aeread.housing_price_pilot/1":
         raise ValueError("price pilot identity drifted")
-    if value["claim_status"] != "development_pilot" or value["route"] != _route_block(spec["route_id"]):
+    if value["claim_status"] != spec.get("claim_status", "development_pilot") or value["route"] != _route_block(spec["route_id"]):
         raise ValueError("price pilot claim or route drifted")
     if value["world_seeds"] != spec.get("world_seeds", [100000, 100001, 100002, 100003]):
         raise ValueError("price pilot world panel drifted")
@@ -611,13 +703,13 @@ def load_contract(path: Path) -> dict[str, Any]:
         "execution_order": "world_seed_ascending_then_arm_order",
     }:
         raise ValueError("price pilot execution controls drifted")
-    if value["analysis"] != {
+    if value["analysis"] != spec.get("analysis", {
         "independent_unit": "world_seed",
         "price_endpoint": "signed_rent_minus_ask_conditional_on_signing",
         "selection_endpoint": "signed_listings_divided_by_eligible_listings_by_quality",
         "missingness": "report_separately",
         "model_ranking_allowed": False,
-    }:
+    }):
         raise ValueError("price pilot analysis contract drifted")
     return value
 
@@ -711,6 +803,12 @@ def scripted_rival_rewrite(block: Mapping[str, Any]) -> Any:
 
 def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path) -> SeatRouterClient:
     block = contract["rivals"]
+    if block.get("kind") == "outside_demand" and block.get("notice_version") == 4:
+        # The rules are in the sealed prompt and the history in the observation: nothing to append.
+        return SeatRouterClient(
+            focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,
+            rewrite=price_outside_demand.rival_rewrite, log_path=log_path,
+        )
     if block.get("kind") == "outside_demand" and block.get("notice_version") in (2, 3):
         notice = (price_outside_demand.FocalNoticeV3() if block["notice_version"] == 3
                   else price_outside_demand.FocalNoticeV2())
@@ -736,7 +834,7 @@ def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal
     )
 
 
-def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool):
+def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool, sealed_digests: bool = False):
     if arm not in contract["arms"]:
         raise ValueError("undeclared price arm")
     spec = identity(contract)
@@ -783,6 +881,16 @@ def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool):
         timeout_seconds_override=controls["timeout_seconds"],
         max_action_attempts_override=controls["max_action_attempts"],
         retryable_conditions_override=controls["retryable_conditions"],
+        **(
+            {"tenant_prompt": (price_outside_demand.DISCLOSURE_PROMPT_ID,
+                               HOUSING_TENANT_LEMONS_PRICE_PROMPT + price_outside_demand.DISCLOSURE_V4),
+             "tenant_history": True}
+            if spec.get("notice_version") == 4 else {}
+        ),
+        **(
+            {"implementation_digest_overrides": SEALED_DIGESTS_BEFORE_MAIN_MERGE}
+            if sealed_digests and contract["campaign_id"] in SEALED_BEFORE_MAIN_MERGE else {}
+        ),
     )
 
 

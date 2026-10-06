@@ -91,7 +91,7 @@ V2_CONTRACTS = {
 def test_sealed_v1_plan_identity_survives_edits_to_this_module():
     contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT)
     for arm, sealed in SEALED_V1_PLAN_IDS.items():
-        assert price_campaign.build_setup(contract, arm, live=True).plan.run_plan_id == sealed
+        assert price_campaign.build_setup(contract, arm, live=True, sealed_digests=True).plan.run_plan_id == sealed
 
 
 class _RecordingProvider:
@@ -407,7 +407,7 @@ class _TimeoutsThenScripted(_RecordingProvider):
 
 def test_kernel_length_growth_is_what_retry_policy_v2_declares():
     assert price_campaign.kernel_length_growth() == price_campaign.RETRY_POLICY_V2["length_retry_growth"]
-    assert price_campaign.kernel_length_growth(4096) == {"factor": 2, "max_multiple_of_declared": 8}
+    assert price_campaign.kernel_length_growth(4096, 32768) == {"factor": 2, "max_output_tokens_ceiling": 32768}
 
 
 def test_retry_policy_v2_is_opt_in_and_refuses_v1_controls(monkeypatch, tmp_path):
@@ -416,7 +416,7 @@ def test_retry_policy_v2_is_opt_in_and_refuses_v1_controls(monkeypatch, tmp_path
     assert v12["controls"]["retryable_conditions"] == price_campaign.RETRY_CONDITIONS_V1
     contract = _retry_v2_contract(monkeypatch, tmp_path, [100000])
     assert {"timeout", "transport"} <= set(contract["controls"]["retryable_conditions"])
-    assert contract["controls"]["length_retry_growth"] == {"factor": 2, "max_multiple_of_declared": 8}
+    assert contract["controls"]["length_retry_growth"] == {"factor": 2, "max_output_tokens_ceiling": 32768}
     stale = dict(contract, world_seeds=json.loads(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json").read_text())["world_seeds"],
                  max_consecutive_operational_failures=1)
     bad = tmp_path / "stale.json"
@@ -440,6 +440,7 @@ def test_retry_policy_v2_seals_its_backoff_in_the_tenant_profile(monkeypatch, tm
     tenant = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
     assert tenant.harness.config["retry_backoff"] == "exponential_jitter_v1"
     assert tenant.harness.config["retry_base_seconds"] == 2.0 and tenant.harness.config["retry_after_max_seconds"] == 30.0
+    assert tenant.harness.config["max_output_tokens_ceiling"] == 32768
     v12 = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{_V12}.json"))
     old = next(p for p in price_campaign.build_setup(v12, "true_cost", live=True).plan.agent_profiles if p.model.provider == "openrouter")
     assert "retry_base_seconds" not in old.harness.config

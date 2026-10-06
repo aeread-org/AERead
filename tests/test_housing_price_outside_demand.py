@@ -389,3 +389,99 @@ def test_v13_provider_free_cells_send_the_pricing_rule_before_the_history(tmp_pa
     opening = _Request("PLAN PROMPT", json.dumps({"phase_id": "inspect", "observation": {"round_index": 0}}))
     assert od.FocalNoticeV3().rewrite(opening).instructions == "PLAN PROMPT" + od.FOCAL_NOTICE_V3
     assert od.FocalNoticeV2().rewrite(opening).instructions == "PLAN PROMPT" + od.FOCAL_NOTICE_V2
+
+
+# --- notice v4: the rules in the sealed prompt, the history in the observation (HL-D-05) -----
+
+V14 = (
+    "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit",
+    "housing_lemons_price_confirmatory_v14_gpt6_luna",
+    "housing_lemons_price_confirmatory_v14_gemini38_flash",
+)
+
+
+class _ScriptedFocal:
+    """Stands in for the paid client on the focal seat: records requests, answers like the scripted tenant."""
+
+    def __init__(self):
+        self.requests = []
+
+    async def complete(self, request):
+        from aeread_families.housing.runner import HousingScriptedTenantProvider
+
+        self.requests.append(request)
+        return await HousingScriptedTenantProvider().complete(dataclasses.replace(
+            request, provider="housing_scripted_tenant",
+            model="housing_scripted_tenant_inspect_then_sign_v1", revision="1.0.0"))
+
+
+def _sealed_requests(evidence_root):
+    rows = []
+    for events in evidence_root.rglob("events.jsonl"):
+        for line in events.read_text().splitlines():
+            event = json.loads(line)
+            if event["event_type"] == "provider_call_started":
+                rows.append(json.loads((events.parent / event["payload_ref"]).read_text())["request"])
+    return rows
+
+
+@pytest.mark.parametrize("campaign_id", V14)
+def test_v14_contracts_load_on_the_pack_with_notice_v4_and_retry_v2(campaign_id):
+    contract = price_campaign.load_contract(CONFIGS / f"{campaign_id}.json")
+    assert contract["claim_status"] == "confirmatory"
+    assert contract["world_seeds"] == price_campaign.PACK_WORLD_SEEDS and len(contract["world_seeds"]) == 300
+    assert contract["rivals"]["notice_version"] == 4 and contract["rivals"]["focal_notice"] == od.DISCLOSURE_V4
+    assert contract["max_consecutive_operational_failures"] == 3
+    assert "timeout" in contract["controls"]["retryable_conditions"]
+
+
+def test_committed_pack_is_the_generators():
+    from aeread_families.housing import lemons_design
+
+    pack = lemons_design.confirmatory_pack()
+    assert price_campaign.PACK["sha256"] == pack["sha256"]
+    assert price_campaign.PACK["main"]["world_seeds"] == pack["main"]["world_seeds"]
+    assert price_campaign.PACK["holdout"]["world_seeds"] == pack["holdout"]["world_seeds"]
+
+
+def test_v14_sealed_request_carries_the_rules_and_the_reply_history(tmp_path):
+    from aeread_families.housing.runner import HOUSING_TENANT_LEMONS_PRICE_PROMPT
+
+    contract = price_campaign.load_contract(CONFIGS / f"{V14[0]}.json")
+    contract = dict(contract, world_seeds=[300000])
+    focal = _ScriptedFocal()
+    summary = asyncio.run(price_campaign.run(contract, tmp_path, live=True, provider=focal))
+    assert summary["completed_cells"] == 2
+    expected = HOUSING_TENANT_LEMONS_PRICE_PROMPT + od.DISCLOSURE_V4
+    # What the model received is what the kernel sealed: the router appends nothing under v4.
+    assert focal.requests and all(r.instructions == expected for r in focal.requests)
+    sealed = [r for r in _sealed_requests(tmp_path / "live") if json.loads(r["input_text"])["observation"].get("tenant_id") == 0]
+    assert sealed and all(r["instructions"] == expected for r in sealed)
+    histories = [json.loads(r["input_text"])["observation"]["your_history"] for r in sealed]
+    assert histories[0] == []
+    later = [h for h in histories if h]
+    assert later, "seat 0 never acted, so no history to check"
+    for history in later:
+        assert {e["event"] for e in history} <= {"offer", "hold", "no_hold", "sign", "walk"}
+        assert all("tenant_id" not in e and "quality" not in e for e in history)
+        holds = [e for e in history if e["event"] == "hold"]
+        assert all(e["landlord"] in {"accepted your offer", "countered"} for e in holds)
+    # seat_calls.jsonl records no appended history under v4.
+    focal_logs = [json.loads(line) for line in (tmp_path / "seat_calls.jsonl").read_text().splitlines()
+                  if json.loads(line)["seat"] == 0]
+    assert focal_logs and all("history" not in row for row in focal_logs)
+
+
+def test_earlier_identities_send_the_same_request_bytes(tmp_path):
+    # v12 (notice v2) still sends the price prompt with the router's notice, and no history field.
+    from aeread_families.housing.runner import HOUSING_TENANT_LEMONS_PRICE_PROMPT
+
+    contract = dict(price_campaign.load_contract(
+        CONFIGS / "housing_lemons_price_pilot_v12_glm53_flash_nextbit_outside_w60.json"), world_seeds=[100000])
+    focal = _ScriptedFocal()
+    asyncio.run(price_campaign.run(contract, tmp_path, live=True, provider=focal))
+    assert all(r.instructions.startswith(HOUSING_TENANT_LEMONS_PRICE_PROMPT + od.FOCAL_NOTICE_V2) for r in focal.requests)
+    assert all("your_history" not in json.loads(r.input_text)["observation"] for r in focal.requests)
+    sealed = _sealed_requests(tmp_path / "live")
+    assert all(r["instructions"] == HOUSING_TENANT_LEMONS_PRICE_PROMPT for r in sealed
+               if json.loads(r["input_text"])["observation"].get("tenant_id") == 0)

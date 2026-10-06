@@ -327,3 +327,43 @@ def instructions_sha256(request: Any) -> str:
 
 
 Rewrite = Callable[[Any], Any]
+
+
+# --- notice v4: the same rules in the sealed tenant prompt (HL-D-05) -------------------------
+#
+# Notices v1 to v3 reach the focal seat through the seat router, after the kernel has recorded the
+# request, so the sealed ``provider_call_started`` event does not hold what the model read. v4 puts
+# the rules into a declared tenant prompt (``runner.build_housing_smoke(tenant_prompt=...)``),
+# whose bytes the plan seals, and the reply history into the observation (``your_history``, the
+# runner's ``TENANT_HISTORY_V1``), which the event records. The router then rewrites only the
+# outside seats. v4 also states the order of a round, which neither earlier notice did: replayed
+# on GLM's 65 blind holds from v12 (case.md, "Round order"), the paragraph below left its signing
+# of revealed lemons unchanged and lowered its blind signing in rounds 0 and 1 by 14 points.
+
+ROUND_ORDER = (
+    "\nEach round has three steps, always in this order: first you may inspect one listing, then you "
+    "may make one offer, then you sign or walk away from any hold you received. An inspection made at "
+    "the start of a round is known before you offer in that same round. A listing you made an offer on "
+    "is not taken by another tenant in that round, even if you walk away, so if a later round remains "
+    "you can inspect it at the start of that round and offer on it again."
+)
+HISTORY_NOTE = (
+    "\nYour observation's your_history lists, in order, your own earlier offers in this market, the "
+    "binding rent each landlord answered with and whether it accepted your offer or countered, and "
+    "whether you signed or walked away."
+)
+DISCLOSURE_V4 = FOCAL_NOTICE_V2 + ROUND_ORDER + HISTORY_NOTE
+DISCLOSURE_V4_SHA256 = hashlib.sha256(DISCLOSURE_V4.encode("utf-8")).hexdigest()
+DISCLOSURE_PROMPT_ID = "housing_tenant_lemons_price_outside_v1"
+
+
+def block_v4() -> dict[str, Any]:
+    """The outside-demand block of a contract whose rules are in the sealed tenant prompt."""
+    return {
+        **block(), "notice_version": 4, "rounds_stated": ROUNDS,
+        "focal_notice": DISCLOSURE_V4, "focal_notice_sha256": DISCLOSURE_V4_SHA256,
+        "focal_notice_delivery": f"in the sealed tenant prompt (prompt id {DISCLOSURE_PROMPT_ID}), "
+                                 "after the price prompt; nothing is appended by the seat router",
+        "focal_history": "the observation's your_history (runner.TENANT_HISTORY_V1): own offers, "
+                         "landlords' binding rents and own decisions, recorded in the sealed events",
+    }

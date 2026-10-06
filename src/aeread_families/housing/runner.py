@@ -266,6 +266,17 @@ may accept or make one binding counteroffer. At commit, compare that rent with
 your value given your inspections, then sign or walk. A counteroffer can itself
 convey information about listing quality. Your payoff includes inspection fees."""
 
+#: An opt-in case field (outside-demand identities from v14, HL-D-05). With it the episode state
+#: keeps each tenant's own offers, the binding rent each landlord answered with and the tenant's
+#: sign-or-walk decision, and the tenant's observation shows its own as ``your_history``, so the
+#: sealed request carries what notice v2 used to append outside it. Without it nothing changes.
+TENANT_HISTORY_V1 = "own_offers_holds_decisions_v1"
+
+
+def _history_after(case: Mapping[str, Any], state: Mapping[str, Any], events: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [*state.get("history", ()), *events] if case.get("tenant_history") == TENANT_HISTORY_V1 else []
+
+
 HOUSING_TENANT_PROMPT = """You are one tenant in a scarce housing market.
 Use only your private observation and the public board. Other tenants' values and
 landlords' reservation costs are private. Return exactly one JSON object for the
@@ -980,6 +991,10 @@ class HousingV1Plugin:
                 expected |= {"lemon_landlord"}
             if "landlord_policy" in payload:
                 expected |= {"landlord_policy"}
+            if "tenant_history" in payload:
+                expected |= {"tenant_history"}
+                if payload["tenant_history"] != TENANT_HISTORY_V1 or "landlord_policy" not in payload:
+                    raise ValueError("tenant history is the declared v1 and needs the price landlord")
         if set(payload) != expected:
             raise ValueError("housing payload fields are incomplete or unexpected")
         if world_kind not in {"bid", "lemons"}:
@@ -1026,6 +1041,7 @@ class HousingV1Plugin:
                 "inspection_cost": float(payload["inspection_cost"]),
                 **({"lemon_landlord": payload["lemon_landlord"]} if "lemon_landlord" in payload else {}),
                 **({"landlord_policy": payload["landlord_policy"]} if "landlord_policy" in payload else {}),
+                **({"tenant_history": payload["tenant_history"]} if "tenant_history" in payload else {}),
                 "world": world,
             }
         world = hz.make_bid_world(
@@ -1037,7 +1053,10 @@ class HousingV1Plugin:
         return {**integers, "common_weight": float(common_weight), "world": world}
 
     def initial_state(self, case: Mapping[str, Any], run: Any) -> dict[str, Any]:
-        return _snapshot_market(hz.HousingMarket(case["world"], rounds=case["rounds"]))
+        state = _snapshot_market(hz.HousingMarket(case["world"], rounds=case["rounds"]))
+        if case.get("tenant_history") == TENANT_HISTORY_V1:
+            state["history"] = []
+        return state
 
     def phases(self, case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
         tenant_budget = case["num_tenants"] * case["rounds"]
@@ -1112,7 +1131,14 @@ class HousingV1Plugin:
     def observe(self, case, state, seat, phase) -> dict[str, Any]:
         market = _restore_market(case, state)
         if phase.phase_id in {"inspect", "contact", "commit"}:
-            return market.tenant_observation(_seat_index(seat, "tenant"))
+            tenant_id = _seat_index(seat, "tenant")
+            observation = market.tenant_observation(tenant_id)
+            if case.get("tenant_history") == TENANT_HISTORY_V1:
+                observation["your_history"] = [
+                    {key: value for key, value in event.items() if key != "tenant_id"}
+                    for event in state.get("history", ()) if event["tenant_id"] == tenant_id
+                ]
+            return observation
         if phase.phase_id == "respond":
             return market.landlord_observation(_seat_index(seat, "landlord"))
         raise ValueError(f"unknown housing phase: {phase.phase_id!r}")
@@ -1254,6 +1280,8 @@ class HousingV1Plugin:
 
     def step(self, case, state, phase, actions) -> TransitionResult:
         market = _restore_market(case, state)
+        round_index = market.round_index
+        events: list[dict[str, Any]] = []
         if phase.phase_id == "inspect":
             requests: dict[int, int] = {}
             for seat_id, envelope in actions.items():
@@ -1270,6 +1298,11 @@ class HousingV1Plugin:
                         envelope.action["rent"],
                     )
             result = market.submit_offers(offers)
+            events = [
+                {"round_index": round_index, "tenant_id": tenant_id, "event": "offer",
+                 "listing_id": listing_id, "rent": round(float(rent), 2)}
+                for tenant_id, (listing_id, rent) in sorted(offers.items())
+            ]
             next_phase = "respond"
         elif phase.phase_id == "respond":
             responses: dict[int, dict[int, tuple[str, float | None]]] = {}
@@ -1297,6 +1330,20 @@ class HousingV1Plugin:
                     )
                 responses[listing_id] = per_listing
             result = market.submit_responses(responses)
+            offered = {
+                (event["tenant_id"], event["listing_id"]): event["rent"]
+                for event in state.get("history", ())
+                if event["event"] == "offer" and event["round_index"] == round_index
+            }
+            for tenant_id, hold in sorted(market._holds.items()):
+                accepted = abs(offered.get((tenant_id, hold.listing_id), float("nan")) - float(hold.rent)) < 0.005
+                events.append({"round_index": round_index, "tenant_id": tenant_id, "event": "hold",
+                               "listing_id": hold.listing_id, "binding_rent": round(float(hold.rent), 2),
+                               "landlord": "accepted your offer" if accepted else "countered"})
+            for (tenant_id, listing_id) in sorted(offered):
+                if tenant_id not in market._holds:
+                    events.append({"round_index": round_index, "tenant_id": tenant_id, "event": "no_hold",
+                                   "listing_id": listing_id})
             next_phase = "commit"
         elif phase.phase_id == "commit":
             commits: dict[int, tuple[str, str]] = {}
@@ -1307,11 +1354,18 @@ class HousingV1Plugin:
                         envelope.action["hold_id"],
                     )
             result = market.submit_commits(commits)
+            events = [
+                {"round_index": round_index, "tenant_id": tenant_id, "event": decision}
+                for tenant_id, (decision, _hold_id) in sorted(commits.items())
+            ]
             next_phase = market.round_start_phase
         else:
             raise ValueError(f"unknown housing phase: {phase.phase_id!r}")
+        next_state = _snapshot_market(market)
+        if case.get("tenant_history") == TENANT_HISTORY_V1:
+            next_state["history"] = _history_after(case, state, events)
         return TransitionResult(
-            state=_snapshot_market(market),
+            state=next_state,
             next_phase_id=next_phase,
             consequences=_phase_consequences(result),
         )
@@ -1938,6 +1992,8 @@ def build_housing_smoke(
     common_weight: float = 0.6,
     world_seeds: Sequence[int] | None = None,
     replicates: int = 1,
+    tenant_prompt: tuple[str, str] | None = None,
+    tenant_history: bool = False,
     reasoning_condition_id: str = "reasoning_low_v1",
     reasoning_effort: str | None = "low",
     inference_seed_base: int | None = None,
@@ -1991,6 +2047,15 @@ def build_housing_smoke(
             raise ValueError("unknown scripted landlord model")
     if price_condition and (not lemons or lemon_landlord is None):
         raise ValueError("price landlord requires a lemons world and explicit reservation arm")
+    # A declared tenant prompt and the history field are for price identities only, and the
+    # prompt may not reuse a sealed prompt id (HL-D-05).
+    if (tenant_prompt is not None or tenant_history) and not price_condition:
+        raise ValueError("a declared tenant prompt or tenant history needs the price landlord")
+    if tenant_prompt is not None and (
+        len(tenant_prompt) != 2 or tenant_prompt[0] in {
+            "housing_tenant_v1", "housing_tenant_lemons_v1", "housing_tenant_lemons_price_v1", "housing_landlord_v1"}
+    ):
+        raise ValueError("a declared tenant prompt needs its own prompt id and text")
     if tenant_provider == "housing_scripted_tenant":
         if tenant_model not in SCRIPTED_TENANT_MODELS:
             raise ValueError("unknown scripted tenant model")
@@ -2214,6 +2279,7 @@ def build_housing_smoke(
                         # Declared only when not the v1 default, so v1 cases keep their bytes.
                         **({"lemon_landlord": lemon_landlord} if lemon_landlord else {}),
                         **({"landlord_policy": landlord_model} if price_condition else {}),
+                        **({"tenant_history": TENANT_HISTORY_V1} if tenant_history else {}),
                     }
                     if lemons
                     else {}
@@ -2290,8 +2356,8 @@ def build_housing_smoke(
         provider=tenant_provider,
         model=tenant_model,
         revision=tenant_revision,
-        prompt_id=("housing_tenant_lemons_price_v1" if price_condition else "housing_tenant_lemons_v1" if lemons else "housing_tenant_v1"),
-        prompt=(HOUSING_TENANT_LEMONS_PRICE_PROMPT if price_condition else HOUSING_TENANT_LEMONS_PROMPT if lemons else HOUSING_TENANT_PROMPT),
+        prompt_id=(tenant_prompt[0] if tenant_prompt is not None else "housing_tenant_lemons_price_v1" if price_condition else "housing_tenant_lemons_v1" if lemons else "housing_tenant_v1"),
+        prompt=(tenant_prompt[1] if tenant_prompt is not None else HOUSING_TENANT_LEMONS_PRICE_PROMPT if price_condition else HOUSING_TENANT_LEMONS_PROMPT if lemons else HOUSING_TENANT_PROMPT),
         output_schemas=(
             {
                 "housing_inspect_v1": HOUSING_INSPECT_OUTPUT_SCHEMA,
@@ -2659,6 +2725,7 @@ def build_housing_smoke(
             "housing_tenant_v1": HOUSING_TENANT_PROMPT,
             "housing_tenant_lemons_v1": HOUSING_TENANT_LEMONS_PROMPT,
             **({"housing_tenant_lemons_price_v1": HOUSING_TENANT_LEMONS_PRICE_PROMPT} if price_condition else {}),
+            **({tenant_prompt[0]: tenant_prompt[1]} if tenant_prompt is not None else {}),
             "housing_landlord_v1": HOUSING_LANDLORD_PROMPT,
         },
         pricing={
