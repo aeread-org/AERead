@@ -758,6 +758,15 @@ against 97%, 83% and 98% where the favourite is sound. With the rules and the re
 GLM and Luna still sign holds that only a lemon's landlord would offer (54 of 73 and 80 of 88 such holds signed;
 Gemini 7 of 38). Cost $7.44 for the three panels.
 
+**The refused Gemini cells, filled (2026-10-06).** By the owner's decision the 36 Gemini cells the account refused
+(HL-O-21) ran under their own identity, `housing_lemons_price_confirmatory_v14_gemini38_flash_fill`, whose contract
+lists them; an exception to the no-rerun rule, published beside v14 as
+`evidence/housing/housing_lemons_price_confirmatory_v14_gemini_fill`, with the v14 bundle unchanged. The driver
+runs both arms of a world, so 12 cells v14 had completed ran again: all 12 gave the same seat-0 outcome, so Gemini on
+this route is deterministic per cell and the fill continues v14 rather than redrawing it. With the fill Gemini has
+260 of 260 main-pack worlds and nothing moves: Gemini +211 [+189, +233]; Gemini minus GLM +74 [+53, +95], minus Luna
++81 [+63, +98] (Holm p < 1e-10); holdout +105 [+46, +164] and +65 [+23, +106]. Cost $0.61; replay 48 of 48.
+
 ## 6. Metrics
 
 | metric | definition |

@@ -527,6 +527,32 @@ _V14 = {
     "world_seeds": PACK_WORLD_SEEDS, "max_action_attempts": 8, "timeout_seconds": 300.0,
     "claim_status": "confirmatory", "analysis": CONFIRMATORY_ANALYSIS,
 }
+#: The 36 Gemini v14 cells the OpenRouter account refused for lack of credits (HL-O-21), as
+#: (world seed, landlord arm). The owner decided on 2026-10-06 to fill them: a declared exception
+#: to "a failed cell is never selectively rerun". They run under their own identity, so the v14
+#: bundle and its failure records stay as published, and the result is reported beside v14.
+V14_GEMINI_REFUSED_CELLS: tuple[tuple[int, str], ...] = (
+    (300019, "pooled"), (300019, "true_cost"), (300020, "true_cost"), (300049, "pooled"),
+    (300049, "true_cost"), (300050, "true_cost"), (300072, "pooled"), (300073, "pooled"),
+    (300073, "true_cost"), (300097, "pooled"), (300097, "true_cost"), (300098, "true_cost"),
+    (300137, "pooled"), (300138, "pooled"), (300138, "true_cost"), (300190, "pooled"), (300190, "true_cost"),
+    (300195, "true_cost"), (300231, "pooled"), (300233, "pooled"), (300233, "true_cost"), (300295, "pooled"),
+    (300296, "pooled"), (300296, "true_cost"), (300350, "pooled"), (300350, "true_cost"),
+    (300351, "true_cost"), (300398, "pooled"), (300400, "pooled"), (300400, "true_cost"), (400005, "pooled"),
+    (400006, "pooled"), (400006, "true_cost"), (400042, "pooled"), (400043, "pooled"), (400043, "true_cost"),
+)
+FILL_ANALYSIS: dict[str, Any] = {
+    "fills": "housing_lemons_price_confirmatory_v14_gemini38_flash",
+    "filled_cells": [list(cell) for cell in V14_GEMINI_REFUSED_CELLS],
+    "decision": "owner, 2026-10-06: fill the cells refused for account credits (HL-O-21) as a declared exception to "
+                "'a failed cell is never selectively rerun'",
+    "reporting": "beside the published v14 result and never merged into its bundle; the v14 analysis recomputed with "
+                 "the filled cells is a labelled sensitivity check",
+    "reproducibility_check": "both arms of each affected world run; the 12 cells v14 already completed are compared "
+                             "with v14's, cell by cell",
+    "model_ranking_allowed": False,
+}
+
 IDENTITIES.update({
     "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit": {
         **_V14, "route_id": "nextbit_glm_53_flash", "profile": "housing_price_glm53_nextbit_tenant_v14",
@@ -541,6 +567,11 @@ IDENTITIES.update({
         "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0, "total_cost_ceiling_usd": 7.0,
     },
 })
+IDENTITIES["housing_lemons_price_confirmatory_v14_gemini38_flash_fill"] = {
+    **IDENTITIES["housing_lemons_price_confirmatory_v14_gemini38_flash"],
+    "world_seeds": sorted({seed for seed, _arm in V14_GEMINI_REFUSED_CELLS}),
+    "claim_status": "confirmatory_fill_exception", "analysis": FILL_ANALYSIS, "total_cost_ceiling_usd": 1.5,
+}
 
 
 def _route_block(route_id: str) -> dict[str, Any]:

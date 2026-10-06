@@ -35,6 +35,9 @@ from aeread.shared_runner.run.resolver import canonical_json_bytes
 from . import price_campaign, price_endpoint, price_reference
 
 PUBLICATION_ID = "housing_lemons_price_confirmatory_v14"
+#: The three panel identities; the declared fill of Gemini's refused cells is published apart.
+V14_PANEL = ("housing_lemons_price_confirmatory_v14_glm53_flash_nextbit", "housing_lemons_price_confirmatory_v14_gpt6_luna",
+             "housing_lemons_price_confirmatory_v14_gemini38_flash")
 ARMS = ("true_cost", "pooled")
 SEAT = 0
 SEAT_FIELDS = ("net_realized", "net_expected_stated_odds", "net_expected_response_odds",
@@ -183,7 +186,7 @@ def analysis(rows_by_model: Mapping[str, Sequence[Mapping[str, Any]]]) -> dict[s
 
 def publish(contract_paths: Sequence[Path], run_roots: Sequence[Path], publication_root: Path) -> dict[str, Any]:
     contracts = [price_campaign.load_contract(path) for path in contract_paths]
-    if {c["campaign_id"] for c in contracts} != {k for k in price_campaign.IDENTITIES if "confirmatory_v14" in k}:
+    if {c["campaign_id"] for c in contracts} != set(V14_PANEL):
         raise ValueError("the v14 bundle publishes exactly the three v14 identities")
     bundle = Path(publication_root)
     if bundle.exists() and any(bundle.iterdir()):
@@ -280,6 +283,88 @@ def _readme(report: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+FILL_ID = "housing_lemons_price_confirmatory_v14_gemini38_flash_fill"
+FILL_PUBLICATION_ID = "housing_lemons_price_confirmatory_v14_gemini_fill"
+
+
+def publish_fill(v14_bundle: Path, fill_contract_path: Path, fill_run_root: Path, publication_root: Path) -> dict[str, Any]:
+    """The declared fill of Gemini's refused v14 cells, published beside the v14 bundle, never into it.
+
+    Every fill cell is published; each is marked ``filled`` (a cell the account refused in v14) or
+    ``repeat`` (a cell v14 completed, run again because the driver runs both arms of a world). The
+    report holds the cell-by-cell reproducibility check of the repeats against v14's published rows and
+    the v14 declared analysis recomputed with the filled cells, as a labelled sensitivity check.
+    """
+    contract = price_campaign.load_contract(fill_contract_path)
+    if contract["campaign_id"] != FILL_ID:
+        raise ValueError("publish_fill takes the v14 Gemini fill identity")
+    bundle = Path(publication_root)
+    if bundle.exists() and any(bundle.iterdir()):
+        raise ValueError(f"publication root is not empty: {bundle}")
+    refused = {tuple(cell) for cell in contract["analysis"]["filled_cells"]}
+    v14_rows = [json.loads(line) for line in (Path(v14_bundle) / "tables/cells.jsonl").read_text().splitlines()]
+    gemini = "housing_lemons_price_confirmatory_v14_gemini38_flash"
+    v14_gemini = {(r["world_seed"], r["arm"]): r for r in v14_rows if r["campaign_id"] == gemini}
+    if {k for k, r in v14_gemini.items() if r["status"] != "completed"} != refused:
+        raise ValueError("the declared cells are not exactly v14 Gemini's failed cells")
+    fill = cell_rows(contract, Path(fill_run_root))
+    for row in fill:
+        row["role"] = "filled" if (row["world_seed"], row["arm"]) in refused else "repeat"
+    by_cell = {(r["world_seed"], r["arm"]): r for r in fill}
+    repeats = [r for r in fill if r["role"] == "repeat"]
+    identical = [r for r in repeats if r["status"] == "completed" and all(
+        r[k] == v14_gemini[(r["world_seed"], r["arm"])][k] for k in SEAT_FIELDS)]
+    merged = [dict(by_cell[(r["world_seed"], r["arm"])], campaign_id=gemini, role="filled") if (r["world_seed"], r["arm"]) in refused
+              else r for r in v14_rows if r["campaign_id"] == gemini]
+    rows_by_model = {cid: [r for r in v14_rows if r["campaign_id"] == cid]
+                     for cid in sorted({r["campaign_id"] for r in v14_rows}) if cid != gemini}
+    rows_by_model[gemini] = merged
+    report = {
+        "declared": contract["analysis"],
+        "reproducibility": {"repeated_cells": len(repeats), "identical_seat0_outcome": len(identical),
+                            "fields_compared": list(SEAT_FIELDS)},
+        "filled_cells_completed": sum(r["role"] == "filled" and r["status"] == "completed" for r in fill),
+        "v14_analysis_with_fill": analysis(rows_by_model),
+        "v14_published_manifest_sha256": json.loads((Path(v14_bundle) / "publication_manifest.json").read_text())["manifest_sha256"],
+    }
+    pairs = report["v14_analysis_with_fill"]["pairs"]
+    lines = [f"# {FILL_PUBLICATION_ID}", "",
+             "The declared fill of the 36 Gemini cells the OpenRouter account refused in "
+             "`housing_lemons_price_confirmatory_v14` (HL-O-21), run under its own identity by the owner's decision of "
+             "2026-10-06, an exception to 'a failed cell is never selectively rerun'. The v14 bundle is unchanged; this is "
+             "a labelled sensitivity check beside it.", "",
+             f"Fill cells completed: {report['filled_cells_completed']} of {len(refused)}. Reproducibility: "
+             f"{len(identical)} of {len(repeats)} cells v14 had completed, run again, give the same seat-0 outcome.", "",
+             "| Pair (v14 analysis with the fill) | Main pack | Holm p | Holdout |", "|---|---|---|---|"]
+    for key, value in pairs.items():
+        lines.append(f"| `{key}` | {_fmt(value['main'])} | {value['main']['p_holm']:.3g} | {_fmt(value['holdout'])} |")
+    lines += ["", "Files: `tables/cells.jsonl` (all 48 fill cells, `role` filled or repeat), `reports/sensitivity.json`, "
+              "`reports/contract.json`. `publication_manifest.json` digests every file and binds the bundle to its source receipts.", ""]
+    files = {"tables/cells.jsonl": jsonl(fill), "reports/sensitivity.json": canonical_json_bytes(report) + b"\n",
+             "reports/contract.json": canonical_json_bytes(contract) + b"\n", "README.md": "\n".join(lines).encode("utf-8")}
+    bundle.mkdir(parents=True, exist_ok=True)
+    for relative, payload in files.items():
+        assert_public_payload(relative, payload)
+        path = bundle / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_publish(path, payload)
+    return seal_publication_manifest(
+        bundle, publication_id=FILL_PUBLICATION_ID, campaign_id=FILL_ID,
+        privacy_boundary={"included": "the fill contract, per-cell numeric outcomes, receipt digests, the reproducibility "
+                                      "check and the recomputed analysis",
+                          "excluded": "raw provider responses, model reasoning, complete receipts, failure messages, "
+                                      "provider identifiers, the kernel trajectory grain"},
+        source_bindings={"contract_path": f"configs/{Path(fill_contract_path).name}",
+                         "contract_sha256": hashlib.sha256(canonical_json_bytes(contract)).hexdigest(),
+                         "fills_publication": "evidence/housing/housing_lemons_price_confirmatory_v14",
+                         "source_receipt_sha256s": sorted({r["receipt_sha256"] for r in fill if r.get("receipt_sha256")}),
+                         "run_root_layout": "runs/<campaign_id>/live/world_<seed>__<arm>[_evidence]"},
+        claim_status="confirmatory_fill_exception", winner_claim_allowed=False, inferential_model_ranking_allowed=False,
+        cost_qualifier="lower_bound", total_cost_usd=round(sum(r["cost_usd"] for r in fill), 6),
+        cost_basis="the 48 fill cells (36 filled, 12 repeats)",
+    )
+
+
 _SETUPS: dict[str, Any] = {}
 
 
@@ -290,6 +375,7 @@ def replay_setup(receipt: Mapping[str, Any]) -> Any:
     (three identities, two landlord arms), each built once from its committed contract.
     """
     if not _SETUPS:
+        # the three v14 identities and the declared fill of Gemini's refused cells (HL-O-21)
         for campaign_id in (k for k in price_campaign.IDENTITIES if "confirmatory_v14" in k):
             contract = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json"))
             for arm in contract["arms"]:
@@ -297,7 +383,7 @@ def replay_setup(receipt: Mapping[str, Any]) -> Any:
                 _SETUPS[setup.plan.run_plan_id] = setup
     setup = _SETUPS.get(receipt.get("run_plan_id"))
     if setup is None:
-        raise ValueError(f"no v14 plan has run_plan_id {receipt.get('run_plan_id')!r}")
+        raise ValueError(f"no v14 or v14 fill plan has run_plan_id {receipt.get('run_plan_id')!r}")
     return setup
 
 

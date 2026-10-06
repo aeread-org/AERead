@@ -9,7 +9,7 @@ import json
 from aeread.shared_runner.run.publication import PROHIBITED_PUBLIC_TEXT
 from aeread_families.housing import price_campaign, price_publication
 
-V14 = sorted(k for k in price_campaign.IDENTITIES if "confirmatory_v14" in k)
+V14 = sorted(price_publication.V14_PANEL)
 
 
 class _ScriptedFocal:
@@ -53,3 +53,20 @@ def test_holm_is_monotone_and_capped():
     adjusted = price_publication._holm({"a": 0.01, "b": 0.04, "c": 0.03})
     assert adjusted == {"a": 0.03, "c": 0.06, "b": 0.06}
     assert price_publication._holm({"a": 0.6, "b": 0.7}) == {"a": 1.0, "b": 1.0}
+
+
+def test_declared_fill_cells_are_exactly_v14_geminis_published_failures():
+    from pathlib import Path
+
+    rows = [json.loads(line) for line in Path("evidence/housing/housing_lemons_price_confirmatory_v14/tables/cells.jsonl").read_text().splitlines()]
+    failed = {(r["world_seed"], r["arm"]) for r in rows
+              if r["campaign_id"] == "housing_lemons_price_confirmatory_v14_gemini38_flash" and r["status"] != "completed"}
+    assert failed == set(price_campaign.V14_GEMINI_REFUSED_CELLS) and len(failed) == 36
+
+
+def test_fill_contract_differs_from_v14_gemini_only_where_declared():
+    base = json.loads(price_campaign.DEFAULT_CONTRACT.with_name("housing_lemons_price_confirmatory_v14_gemini38_flash.json").read_text())
+    fill = price_campaign.load_contract(price_campaign.DEFAULT_CONTRACT.with_name(f"{price_publication.FILL_ID}.json"))
+    assert sorted(k for k in base if base[k] != fill[k]) == [
+        "analysis", "campaign_id", "claim_status", "total_cost_ceiling_usd", "world_seeds"]
+    assert fill["world_seeds"] == sorted({w for w, _ in price_campaign.V14_GEMINI_REFUSED_CELLS})
