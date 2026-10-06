@@ -540,6 +540,97 @@ def test_a_family_manifest_without_a_receipt_list_does_not_read_unsealed_project
     assert report["coverage"] == "receipts_found_under_run_root"
 
 
+def _files_map(bundle, **overrides):
+    """The family ``files`` layout: path -> {sha256, bytes} for every bundle file."""
+
+    files = {}
+    for path in sorted(bundle.rglob("*")):
+        relative = path.relative_to(bundle).as_posix()
+        if path.is_file() and relative != MANIFEST_FILENAME:
+            data = path.read_bytes()
+            files[relative] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    files.update(overrides)
+    return files
+
+
+def test_a_family_files_map_is_checked_file_by_file(published) -> None:
+    """A family manifest that lists per-file digests under ``files`` is sealed, not seal_only.
+
+    Before, only ``artifacts`` was read, so a sealed file deleted from such a
+    bundle went unnoticed (EVID-O-03, #252).
+    """
+
+    bundle, run_root, receipts, _ = published
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=_files_map(bundle))
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "sealed"
+    assert report["manifest"]["seal_field"] == "artifact_sha256"
+    assert report["manifest"]["altered_or_missing_artifacts"] == []
+    assert report["verified"] is True
+
+
+@pytest.mark.parametrize("change", ["deleted", "altered"])
+def test_a_family_files_map_catches_a_deleted_or_altered_file(published, change) -> None:
+    bundle, run_root, receipts, _ = published
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=_files_map(bundle))
+    victim = sorted(path for path in _files_map(bundle))[0]
+    if change == "deleted":
+        (bundle / victim).unlink()
+    else:
+        (bundle / victim).write_bytes((bundle / victim).read_bytes() + b"x")
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["manifest"]["altered_or_missing_artifacts"] == [victim]
+    assert report["verified"] is False
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [{"bytes": 1}, {"bytes": 1, "sha256": "not-a-digest"}, "d" * 64, None],
+    ids=["no_digest", "bad_digest", "bare_string", "null"],
+)
+def test_a_malformed_files_entry_is_tampered(published, entry) -> None:
+    bundle, run_root, receipts, _ = published
+    files = _files_map(bundle)
+    files[sorted(files)[0]] = entry
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=files)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "files holds a malformed or duplicate entry" in report["manifest"]["reason"]
+
+
+def test_a_files_map_that_is_not_an_object_is_tampered(published) -> None:
+    bundle, run_root, receipts, _ = published
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=["README.md"])
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "files is a list" in report["manifest"]["reason"]
+
+
+def test_artifacts_and_files_together_must_agree(published) -> None:
+    """No bundle on main carries both; if one does, both lists are read and must agree."""
+
+    bundle, run_root, receipts, _ = published
+    files = _files_map(bundle)
+    first, last = sorted(files)[0], sorted(files)[-1]
+    digests = {path: entry["sha256"] for path, entry in files.items()}
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=files, artifacts=digests)
+    assert verify_bundle_replay(bundle, run_root, setup_for=setup_for)["manifest"]["status"] == "sealed"
+    # The two lists disagree about a file that is intact on disk.
+    conflicting = {**files, first: {"bytes": 1, "sha256": "e" * 64}}
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=conflicting, artifacts=digests)
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert "malformed or duplicate entry" in report["manifest"]["reason"]
+    # A file sealed only under ``files`` is still checked when ``artifacts`` exists.
+    only_artifacts = {path: digest for path, digest in digests.items() if path != last}
+    _family_manifest(bundle, [r.receipt_sha256 for r in receipts], files=files, artifacts=only_artifacts)
+    (bundle / last).unlink()
+    report = verify_bundle_replay(bundle, run_root, setup_for=setup_for)
+    assert report["manifest"]["status"] == "tampered"
+    assert report["manifest"]["altered_or_missing_artifacts"] == [last]
+
+
 def _early_manifest(bundle, **changes):
     """The early kernel layout: artifacts as a list of objects, a publication_sha256 self-seal."""
 

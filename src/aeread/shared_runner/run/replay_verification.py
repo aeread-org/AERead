@@ -325,41 +325,62 @@ def _trajectory_difference(
 def _artifact_list(manifest: Mapping[str, Any]) -> tuple[dict[str, str] | None, str | None]:
     """The manifest's per-file digests as path -> sha256, or why they are malformed.
 
-    Two layouts: a dict path -> digest (kernel) and a list of
-    ``{path, sha256, size_bytes}`` objects (early kernel). ``None`` with no
+    Three layouts: ``artifacts`` as a dict path -> digest (kernel) or as a list
+    of ``{path, sha256, size_bytes}`` objects (early kernel), and ``files`` as a
+    dict path -> ``{sha256, bytes, ...}`` (family publications; 29 bundles on
+    ``main``). Reading only ``artifacts`` left those bundles ``seal_only``, so a
+    sealed file deleted from one went unnoticed (EVID-O-03, #252). A manifest
+    carrying both lists has both read, and they must agree. ``None`` with no
     problem means the manifest carries no list.
     """
 
-    if "artifacts" not in manifest:
+    sources: list[tuple[str, list[tuple[Any, Any]]]] = []
+    if "artifacts" in manifest:
+        listed = manifest["artifacts"]
+        if isinstance(listed, Mapping):
+            sources.append(("artifacts", list(listed.items())))
+        elif isinstance(listed, list):
+            sources.append((
+                "artifacts",
+                [
+                    (item.get("path"), item.get("sha256")) if isinstance(item, Mapping) else (None, None)
+                    for item in listed
+                ],
+            ))
+        else:
+            return None, f"artifacts is a {type(listed).__name__}, not a digest map or list"
+    if "files" in manifest:
+        listed = manifest["files"]
+        if not isinstance(listed, Mapping):
+            return None, f"files is a {type(listed).__name__}, not a map of path to digest entry"
+        sources.append((
+            "files",
+            [
+                (path, entry.get("sha256") if isinstance(entry, Mapping) else None)
+                for path, entry in listed.items()
+            ],
+        ))
+    if not sources:
         return None, None
-    listed = manifest["artifacts"]
-    if isinstance(listed, Mapping):
-        pairs = list(listed.items())
-    elif isinstance(listed, list):
-        pairs = [
-            (item.get("path"), item.get("sha256")) if isinstance(item, Mapping) else (None, None)
-            for item in listed
-        ]
-    else:
-        return None, f"artifacts is a {type(listed).__name__}, not a digest map or list"
     sealed: dict[str, str] = {}
-    for path, digest in pairs:
-        if (
-            not isinstance(path, str)
-            or not path
-            or "\\" in path
-            or "\x00" in path
-            # One spelling per file: './a', 'a//b' and 'a/./b' would be hashed
-            # under one name and compared under another.
-            or PurePosixPath(path).as_posix() != path
-            or PurePosixPath(path).is_absolute()
-            or PureWindowsPath(path).drive
-            or ".." in PurePosixPath(path).parts
-            or not _is_digest(digest)
-            or sealed.get(path, digest) != digest
-        ):
-            return None, f"artifacts holds a malformed or duplicate entry: {path!r}"
-        sealed[path] = digest
+    for field, pairs in sources:
+        for path, digest in pairs:
+            if (
+                not isinstance(path, str)
+                or not path
+                or "\\" in path
+                or "\x00" in path
+                # One spelling per file: './a', 'a//b' and 'a/./b' would be hashed
+                # under one name and compared under another.
+                or PurePosixPath(path).as_posix() != path
+                or PurePosixPath(path).is_absolute()
+                or PureWindowsPath(path).drive
+                or ".." in PurePosixPath(path).parts
+                or not _is_digest(digest)
+                or sealed.get(path, digest) != digest
+            ):
+                return None, f"{field} holds a malformed or duplicate entry: {path!r}"
+            sealed[path] = digest
     return sealed, None
 
 
@@ -425,8 +446,8 @@ def _manifest_check(bundle: Path, manifest: Any) -> tuple[dict[str, Any], dict[s
     """Is the bundle still what its manifest sealed? Also the digest-checked file set.
 
     Statuses: ``sealed`` (the seal recomputes and every sealed file matches),
-    ``seal_only`` (a family layout that self-seals but lists no per-file
-    digests, so the files themselves are not sealed), ``tampered`` and
+    ``seal_only`` (a layout that self-seals but lists no per-file digests
+    under ``artifacts`` or ``files``, so the files themselves are not sealed), ``tampered`` and
     ``unchecked`` (no recognised seal). Files added after sealing are listed
     as unsealed and are not a failure; a sealed file that changed or
     vanished, a seal that does not recompute, or any symlink is. The second
@@ -517,8 +538,8 @@ def verify_bundle_replay(
     identities than the recomputed receipt. ``verified`` at the top level is
     true only when at least one row verified, none differs or is missing, and
     the bundle declares what it published and its manifest is not ``tampered``
-    (seal not recomputing, a sealed artifact altered or missing, a symlink; family
-    layouts without an artifact list are ``seal_only``; a manifest with no
+    (seal not recomputing, a sealed artifact altered or missing, a symlink; layouts
+    listing no per-file digests (neither ``artifacts`` nor ``files``) are ``seal_only``; a manifest with no
     recognised seal is ``unchecked`` and not verified), and nothing declared
     was malformed; otherwise ``verdict_reasons`` says why. The declared
     inventory reads manifest lists, plus grain and projection rows only from
