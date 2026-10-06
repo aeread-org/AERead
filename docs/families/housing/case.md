@@ -667,6 +667,47 @@ ground to revealed lemons, catches Gemini. GLM does not: most of its deficit is 
 (26% of retry cells against Gemini's 11%), which a statement about landlords' prices does not reach. Missing cells:
 HL-O-19 (Gemini, one) and HL-O-20 (DeepSeek, five); the snapshot and claim E4 are in the Examiner repository.
 
+#### A reachable reference, and how close the models are to it (2026-10-06)
+
+The full-information ceiling ($408 a world on the 60 development worlds: seat 0's best listing at
+its landlord's lowest acceptable rent, no inspection) is not reachable, so a model's share of it mixes
+what the model missed with what nobody could have had. `price_reference.py` drives the same market
+offline (the environment, the price landlord, the outside-demand seats) and first replays the sealed
+scripted reference, matching all 120 cells to the cent. Its strong tenant, `inspect_lowball`, uses only
+what notice v2 gives: each round it inspects its favourite unverified listing, offers $0 on the best
+listing it has verified, and signs any counter its known value covers. A $0 offer is always countered
+at the landlord's own target, so a verified listing is signed at the lowest rent its landlord accepts;
+under the leaky landlord that includes a verified lemon, which at its own floor leaves the tenant the
+same surplus as a sound listing at its floor. It earns $337 a world, 83% of the ceiling: 94% against the
+leaky landlord, where the only shortfall is the $25 fee, and 69% against the pooled one, mostly the 18 of
+60 worlds where the listings it reached were lemons or had been taken. It is a lower bound on what is
+reachable, not an upper one.
+
+Per world against it, realized, 60 worlds: Gemini -35 [-67, -4] (89% of it), DeepSeek with reasoning -64
+[-110, -18], the inspect-then-sign rule -96 [-122, -70], GLM -151 [-214, -87], DeepSeek without reasoning
+-232 [-281, -184]. With the pricing rule stated (v13), Gemini -3 [-24, +17] (n=59) and DeepSeek with
+reasoning +0 [-20, +21] (n=55) reach it and GLM stays at -91 [-152, -30]. Under notice v3 the top of the
+panel is saturated against this reference; under notice v2 it keeps $35 a world of headroom.
+
+**Round order, a diagnostic (not evidence).** Neither notice says that a round runs inspect, then offer,
+then sign. The 65 commit states in which GLM (v12) held a listing it had not inspected were rebuilt exactly
+as sent (kernel request, notice v2 and the logged history, each matching the logged instructions hash) and
+replayed three times unchanged and three times with one paragraph stating the order and that a listing
+offered on is not taken in that round. GLM signed every one of the 35 holds below a sound floor either way,
+so round order does not explain the revealed-lemon signings. On the 52 other holds in rounds 0 and 1 it
+signed 14 points less often (sign-flip permutation p 0.009), mostly sound listings it would otherwise have
+signed blind. Cost $0.08; script and replies in the worktree's `runs/diagnostics/`.
+
+**The confirmatory pack.** One deciding tenant makes seat 0's favourite the one whose quality matters;
+it differs from the market favourite the sealed stratum uses in 18 of the 60 development worlds.
+`lemons_design.confirmatory_pack()` admits a seed on seat 0's structure alone (its favourite has a
+positive gain if sound, and so does a second listing), keeps the seed's own lemon draw, which the runner
+already builds, and reads the stratum after admission; among 3,906 admitted seeds the favourite is a
+lemon in 49.8%. Seeds are taken in order until each quota is full: main pack 200 favourite-lemon and 60
+favourite-sound worlds from seeds 300000-300441, holdout 30 and 10 from 400000-400063, disjoint from
+each other and from the development worlds (pack digest `39ddf59f…`). On the main pack the reference
+reaches 73% of the ceiling in favourite-lemon worlds (94% leaky, 35% pooled) and 94% in favourite-sound ones.
+
 ## 6. Metrics
 
 | metric | definition |

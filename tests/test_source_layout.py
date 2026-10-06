@@ -77,6 +77,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "price_disclosure_probe.py",
         "price_endpoint.py",
         "price_outside_demand.py",
+        "price_reference.py",
         "provider_pacing.py",
         "qc.py",
         "qc_bundle.py",

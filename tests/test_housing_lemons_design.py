@@ -76,3 +76,37 @@ def test_the_sweep_reports_the_legacy_bias_the_blind_gate_removes():
     crowded = bands["5-6"]
     assert crowded["legacy_favourite_lemon_after_admission"] < crowded["legacy_favourite_lemon_before_admission"]
     assert report["blind_admitted"] > 0
+
+
+def test_seat_favourite_is_seat_zeros_own_best_gain():
+    world = lemons_design._seed_world(100000)
+    gains = lemons_design.seat_gains(world)
+    assert gains[lemons_design.seat_favourite(world)] == max(gains)
+    disagree = sum(
+        lemons_design.seat_favourite(lemons_design._seed_world(s)) != lemons_design.favourite_listing(lemons_design._seed_world(s))
+        for s in range(100000, 100060)
+    )
+    assert disagree == 18
+
+
+def test_seat_admission_reads_no_quality():
+    # Same structure, either lemon draw: the verdict cannot change.
+    for seed in range(300000, 300040):
+        row = lemons_design.seat_admission(seed)
+        world = lemons_design._seed_world(seed)
+        for quality in ((0, 0, 1, 1), (1, 1, 0, 0), (0, 1, 0, 1)):
+            relabelled = lemons_design.with_quality(world, quality)
+            gains = lemons_design.seat_gains(relabelled)
+            assert (gains[lemons_design.seat_favourite(relabelled)] > 0 and sum(g > 0 for g in gains) >= 2) == row["admitted"]
+
+
+def test_confirmatory_pack_fills_quotas_from_disjoint_streams():
+    pack = lemons_design.confirmatory_pack()
+    main, holdout = pack["main"], pack["holdout"]
+    assert {s: len(v) for s, v in main["by_stratum"].items()} == lemons_design.PACK_QUOTAS
+    assert {s: len(v) for s, v in holdout["by_stratum"].items()} == lemons_design.HOLDOUT_QUOTAS
+    assert not set(main["world_seeds"]) & set(holdout["world_seeds"])
+    assert not set(main["world_seeds"]) & set(range(100000, 100060))
+    for stratum, seeds in main["by_stratum"].items():
+        assert all(lemons_design.seat_stratum_of(lemons_design._seed_world(s)) == stratum for s in seeds)
+    assert pack["sha256"] == "39ddf59f93940a22a414729eb6878b45f422592a6312b17a75ee2157a0e8a888"

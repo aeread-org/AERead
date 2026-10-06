@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
 import json
 import random
 from typing import Any, Mapping, Sequence
@@ -211,12 +212,109 @@ def bias_sweep(seeds: Sequence[int], *, rounds: int = DEFAULT_ROUNDS) -> dict[st
     }
 
 
+# --- one deciding tenant: the outside-demand price case ---------------------------------------
+#
+# The outside-demand case has one deciding tenant, seat 0, so the favourite whose quality
+# matters is seat 0's, not the one most of six tenants rank first; the two differ in 18 of
+# the 60 development worlds (100000-100059). The runner builds a world from its seed alone,
+# so a pack cannot declare a world's lemons the way ``make_stratified_world`` does without
+# editing the runner and moving every sealed Housing plan id (HL-T-04). This pack keeps each
+# seed's own lemon draw instead and makes admission blind to it: the rule reads only seat 0's
+# values-if-sound and the asks. The draw is a separate stream from the structure, so among
+# admitted seeds the favourite is a lemon with probability one half whatever the structure,
+# and the stratum is a covariate fixed before anyone plays. Seeds are taken in order until
+# each stratum's quota is full.
+
+DECIDING_SEAT = 0
+#: Structure-only admission. The favourite must be worth wanting if sound, and a second
+#: listing must be, so inspecting and moving on is a real option when the favourite is a lemon.
+SEAT_ADMISSION_RULE: dict[str, float] = {"favourite_gain_min": 0.0, "positive_gain_listings_min": 2}
+PACK_SEED_START = 300_000
+HOLDOUT_SEED_START = 400_000
+PACK_QUOTAS: dict[str, int] = {STRATA[0]: 200, STRATA[1]: 60}
+HOLDOUT_QUOTAS: dict[str, int] = {STRATA[0]: 30, STRATA[1]: 10}
+
+
+def _seed_world(seed: int) -> lemons.LemonsWorld:
+    """The world the runner builds from ``seed``: structure and the seed's own lemon draw."""
+    return lemons.make_lemons_world(6, 4, seed, 0.6, lemon_share=0.5, lemon_loss=1000.0, inspection_cost=25.0)
+
+
+def seat_gains(world: lemons.LemonsWorld, seat: int = DECIDING_SEAT) -> list[float]:
+    return [round(world.values_if_sound[seat][l] - world.ask[l], 2) for l in range(world.num_listings)]
+
+
+def seat_favourite(world: lemons.LemonsWorld, seat: int = DECIDING_SEAT) -> int:
+    """The listing ``seat`` gains most from if it is sound; ties go to the lowest listing id."""
+    gains = seat_gains(world, seat)
+    return max(range(world.num_listings), key=lambda l: (gains[l], -l))
+
+
+def seat_stratum_of(world: lemons.LemonsWorld, seat: int = DECIDING_SEAT) -> str:
+    return STRATA[0] if world.quality[seat_favourite(world, seat)] == lemons.LEMON else STRATA[1]
+
+
+def seat_admission(seed: int, rule: Mapping[str, float] = SEAT_ADMISSION_RULE) -> dict[str, Any]:
+    """Admit on seat 0's structure only; the stratum is read after, from the seed's own draw."""
+    if set(rule) != set(SEAT_ADMISSION_RULE):
+        raise ValueError("seat admission rule fields are incomplete or unexpected")
+    world = _seed_world(seed)
+    gains = seat_gains(world)
+    favourite = seat_favourite(world)
+    failures = []
+    if gains[favourite] <= rule["favourite_gain_min"]:
+        failures.append("favourite_gain_min")
+    if sum(g > 0 for g in gains) < rule["positive_gain_listings_min"]:
+        failures.append("positive_gain_listings_min")
+    return {"world_seed": seed, "admitted": not failures, "failed": failures,
+            "favourite_listing_id": favourite, "favourite_gain": gains[favourite],
+            "stratum": seat_stratum_of(world)}
+
+
+def select_seat_pack(seed_start: int, quotas: Mapping[str, int], *, max_scan: int = 20_000,
+                     rule: Mapping[str, float] = SEAT_ADMISSION_RULE) -> dict[str, Any]:
+    """Walk seeds from ``seed_start``; keep each admitted seed until its stratum's quota is full."""
+    if set(quotas) != set(STRATA):
+        raise ValueError(f"quotas must name every stratum: {STRATA}")
+    chosen: dict[str, list[int]] = {stratum: [] for stratum in STRATA}
+    scanned = admitted = 0
+    seed = seed_start
+    while any(len(chosen[s]) < quotas[s] for s in STRATA):
+        if scanned >= max_scan:
+            raise ValueError(f"the seed stream did not fill the quotas within {max_scan} seeds")
+        row = seat_admission(seed, rule)
+        scanned += 1
+        if row["admitted"]:
+            admitted += 1
+            if len(chosen[row["stratum"]]) < quotas[row["stratum"]]:
+                chosen[row["stratum"]].append(seed)
+        seed += 1
+    return {"seed_start": seed_start, "seed_end": seed - 1, "scanned": scanned, "admitted": admitted,
+            "quotas": dict(quotas), "rule": dict(rule), "by_stratum": chosen,
+            "world_seeds": sorted(s for seeds in chosen.values() for s in seeds)}
+
+
+def confirmatory_pack() -> dict[str, Any]:
+    """The pack and its holdout, from disjoint seed streams, with a digest to freeze."""
+    pack = {"deciding_seat": DECIDING_SEAT, "stratum": "is seat 0's favourite (max value-if-sound minus ask) a lemon",
+            "main": select_seat_pack(PACK_SEED_START, PACK_QUOTAS),
+            "holdout": select_seat_pack(HOLDOUT_SEED_START, HOLDOUT_QUOTAS)}
+    if pack["main"]["seed_end"] >= HOLDOUT_SEED_START:
+        raise ValueError("the main pack ran into the holdout's seed stream")
+    pack["sha256"] = hashlib.sha256(json.dumps(pack, sort_keys=True).encode("utf-8")).hexdigest()
+    return pack
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed-start", type=int, default=200000)
     parser.add_argument("--seeds", type=int, default=300)
     parser.add_argument("--rounds", type=int, default=DEFAULT_ROUNDS)
+    parser.add_argument("--seat-pack", action="store_true", help="print the one-tenant confirmatory pack and holdout")
     args = parser.parse_args(argv)
+    if args.seat_pack:
+        print(json.dumps(confirmatory_pack(), indent=1, sort_keys=True))
+        return 0
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     print(json.dumps(bias_sweep(list(seeds), rounds=args.rounds), indent=1, sort_keys=True))
     return 0
