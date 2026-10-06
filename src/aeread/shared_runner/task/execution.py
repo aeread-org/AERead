@@ -3830,6 +3830,8 @@ class MinimalChatExecutor:
         refused_calls: tuple[ProviderCallRecord, ...] = (),
     ) -> tuple[bool, str]:
         transport_v1 = declared_transport_policy(profile) is not None
+        # Whether this call wrote the provider terminal itself (S5 reports only then).
+        wrote_terminal = False
         # A refusal the profile declared it re-sends is final once it reaches
         # this point: the port refused to send again (call cap, spend, or a
         # time bound), and a new attempt would only restart that budget.
@@ -3890,7 +3892,6 @@ class MinimalChatExecutor:
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call
         # would be a contradictory duplicate that fails reconciliation (#249).
-        wrote_terminal = False
         if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
                 (
