@@ -3889,7 +3889,7 @@ class MinimalChatExecutor:
             )
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call
-        # would be a contradictory duplicate (v0 keeps that defect unchanged).
+        # would be a contradictory duplicate that fails reconciliation (#249).
         wrote_terminal = False
         if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
