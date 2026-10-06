@@ -422,8 +422,8 @@ def test_a_responses_error_body_with_usage_is_billed_through_the_client_and_exec
 
 @pytest.mark.parametrize(
     "usage",
-    [{}, {"foo": 1, "total_tokens": 15}, {"cost": 0.5}],
-    ids=["empty", "unknown_keys", "cost_only"],
+    [{}, {"foo": 1, "total_tokens": 15}, {"cost": "0.5"}, {"cost": True}, {"cost": 10**400}, {"cost": -1}],
+    ids=["empty", "unknown_keys", "cost_as_string", "cost_as_bool", "cost_unrepresentable", "cost_negative"],
 )
 def test_a_mapping_that_is_not_usage_never_certifies_zero(usage) -> None:
     body = {"error": {"message": "x", "code": 503}, "usage": usage}
@@ -431,6 +431,22 @@ def test_a_mapping_that_is_not_usage_never_certifies_zero(usage) -> None:
 
     assert failure.billing == "not_billed"
     assert failed_call_cost(failure, PRICING) == 0.0
+
+
+@pytest.mark.parametrize("where", ["top", "under_error"])
+def test_a_cost_only_usage_is_a_reported_charge(where) -> None:
+    """A provider that reports only what it charged still charged it: keep the cost."""
+
+    usage = {"cost": 0.5}
+    body = {"error": {"message": "x", "code": 503}}
+    if where == "top":
+        body["usage"] = usage
+    else:
+        body["error"]["usage"] = usage
+    failure = OpenAIResponsesClient._classify_error(_status_error(body))
+
+    assert failure.billing == "reported"
+    assert failed_call_cost(failure, PRICING) == pytest.approx(0.5)
 
 
 @pytest.mark.parametrize("bad_cost", [10**400, "1.5", [1], True])
@@ -456,6 +472,32 @@ def _usage_then_no_finish(streamed):
     first["usage"] = dict(_USAGE)
     return lib.Response(
         200, content=_sse([first]), headers={"content-type": "text/event-stream"}
+    )
+
+
+def _usage_with_unrepresentable_cost_then_no_finish(streamed):
+    lib = _http_lib()
+    first = _stream_frames(_raw_completion("partial"))[0]
+    # Built as text: json.dumps writes the integer, which no float can hold.
+    first["usage"] = {**_USAGE, "cost": 0}
+    frame = json.dumps(first).replace('"cost": 0', '"cost": 1' + "0" * 400)
+    return lib.Response(
+        200,
+        content=f"data: {frame}\n\n".encode(),
+        headers={"content-type": "text/event-stream"},
+    )
+
+
+def test_a_truncated_200_stream_with_an_unrepresentable_cost_is_a_priced_failure() -> None:
+    """Before, OverflowError escaped and the attempt ended outcome_unknown with no spend."""
+
+    failure = _failure_of(True, _usage_with_unrepresentable_cost_then_no_finish)
+
+    assert failure.condition == "transport"
+    assert failure.billing == "reported"
+    assert (failure.input_tokens, failure.output_tokens) == (10, 5)
+    assert failed_call_cost(failure, PRICING) == pytest.approx(
+        PRICING.cost(input_tokens=10, cached_input_tokens=0, output_tokens=5)
     )
 
 
@@ -490,6 +532,7 @@ def test_a_streamed_failure_keeps_its_identity_cause_context_and_traceback(monke
     assert failure.billing == "reported"
     assert failure.__cause__ is roots[0]
     assert failure.__context__ is roots[0]
-    assert any(
-        frame.name == "failing_assemble" for frame in traceback.extract_tb(failure.__traceback__)
-    )
+    frames = traceback.extract_tb(failure.__traceback__)
+    assert any(frame.name == "failing_assemble" for frame in frames)
+    # A bare re-raise adds no frame; `raise failure` would add a second _create frame.
+    assert sum(frame.name == "_create" for frame in frames) == 1

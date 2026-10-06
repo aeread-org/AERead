@@ -1321,7 +1321,8 @@ def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
     sits at the top level or under ``error`` and is Chat-style
     (``prompt_tokens``) or Responses-style (``input_tokens``); the latter is
     normalized, as the Responses adapter reads it. A mapping with neither
-    primary pair is not usage and certifies nothing. A body that is not JSON,
+    token pair is usage only when it reports a numeric ``cost``; otherwise it
+    certifies nothing. A body that is not JSON,
     cannot be read, or carries no such mapping reports none.
     """
 
@@ -1350,6 +1351,16 @@ def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
             if "cost" in usage:
                 normalized["cost"] = usage["cost"]
             return normalized
+        cost = usage.get("cost")
+        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+            # A provider that reports only its charge still charged it; a
+            # charge no float can hold, or a negative one, certifies nothing.
+            try:
+                usable = math.isfinite(cost) and cost >= 0
+            except OverflowError:
+                usable = False
+            if usable:
+                return {"cost": cost}
     return None
 
 
