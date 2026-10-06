@@ -127,7 +127,7 @@ def test_family_manifest_declares_the_one_leaf_with_answer_key_primary() -> None
     """kernel_scoring_contract_spec.md section 3 (migration milestone 2 of
     3): the manifest, not the scorer or a test fixture, is the one source of
     the leaf set, the primary, and admission membership. See
-    docs/steer_adapter_status.md's "Leaf policy" section for why
+    docs/families/steer/adapter_status.md's "Leaf policy" section for why
     ``steer_answer_key`` is primary and why it alone gates admission."""
     manifest = family_manifest()
     declared = manifest.measurement.finalize_time_leaf_policy()

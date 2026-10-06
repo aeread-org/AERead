@@ -154,7 +154,7 @@ def test_strong_fixture_runs_end_to_end_and_scores_one(tmp_path) -> None:
 
 
 def test_finalize_wires_commercial_state_to_the_shared_family_finalizer(tmp_path) -> None:
-    """kernel_contract_impl_review.md finding 8 / spec section 5, item 4.
+    """docs/architecture/reviews/kernel_contract_impl_review.md finding 8 / spec section 5, item 4.
 
     Every other one of the five families already migrated to
     FamilyScoringInput has at least one test driving a real episode through

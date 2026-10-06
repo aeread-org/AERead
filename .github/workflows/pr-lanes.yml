@@ -72,8 +72,11 @@ jobs:
           # Latest formal review per reviewer, on the current head, excluding
           # the author. Flatten all pages before counting; comments do not
           # revoke an approval, but changes-requested and dismissals do.
+          # gh rejects --slurp together with --jq ("the `--slurp` option is not
+          # supported with `--jq` or `--template`"), which failed this gate on
+          # every kernel PR from 5252fff8 on: slurp the pages, filter with jq.
           approvals=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --slurp \
-            --jq "[ .[][] | select(.user.login != \"$AUTHOR\")
+            | jq "[ .[][] | select(.user.login != \"$AUTHOR\")
                            | select(.state == \"APPROVED\" or .state == \"CHANGES_REQUESTED\" or .state == \"DISMISSED\") ]
                   | sort_by(.id)
                   | group_by(.user.login) | map(.[-1])

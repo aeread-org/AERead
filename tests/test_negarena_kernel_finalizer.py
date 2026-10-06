@@ -7,7 +7,7 @@ scores it by calling ``NegarenaScorer.score_seat_outcome``/
 ``negarena_decision_served`` events -- a hand-wired shortcut around the
 generic kernel path every other production family (Housing) actually uses
 (``aeread.shared_runner.task.evaluation.finalize_family_execution``,
-reached via ``execute_plan_cell``). ``docs/negarena_codex_triage.md``
+reached via ``execute_plan_cell``). ``docs/families/negarena/reviews/negarena_codex_triage.md``
 Findings 1 and 3 are both about that shortcut: the production scorer
 (``plugin.build_scorer(family_case)``, called as ``scorer(outcome,
 evidence_refs=...)``) was not callable at all, and the harness-produced
@@ -287,7 +287,7 @@ def _build_negarena_run_plan(
     # this can never drift from ``family_manifest``'s own
     # ``_measurement_reference_provider_ids()``. Required for
     # ``EvaluationReceipt``'s own pin/implementation cross-check to pass at
-    # all (docs/negarena_codex_triage.md Finding 1).
+    # all (docs/families/negarena/reviews/negarena_codex_triage.md Finding 1).
     seat_leaf = measurement.build_seat_outcome_leaf()
     agreement_leaf = measurement.build_agreement_reached_leaf()
     reference_refs = {
@@ -381,7 +381,7 @@ def _run_negarena_episode_through_finalizer(
     ``run_episode``/``record_full_evidence_lifecycle`` here: that function
     seals the complete evidence lifecycle internally, so this helper (the
     only place in the repository that reaches ``finalize_family_execution``)
-    can no longer forget the step (docs/negarena_codex_triage.md Finding 3).
+    can no longer forget the step (docs/families/negarena/reviews/negarena_codex_triage.md Finding 3).
 
     ``subject_seats`` defaults to naming BOTH seats, matching every
     pre-existing caller below; kernel_scoring_contract_spec.md migration
@@ -450,7 +450,7 @@ def test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt(
     seats as subjects; under ruling R12 rule 2 that is
     ``invalid_measurement("ambiguous_subject_seat")`` for
     ``negarena_seat_outcome`` (no ``subject_reduction`` is declared -- see
-    ``docs/negarena_migration_plan.md``'s seat-scope classification), not
+    ``docs/families/negarena/migration_plan.md``'s seat-scope classification), not
     the pre-migration shim's ``"...seat_pairing_context"`` reason this
     assertion originally named. ``negarena_agreement_reached`` is unaffected
     by seat context and scores ``"ok"`` here (the golden-1 transcript ends
@@ -528,7 +528,7 @@ def test_finalize_family_execution_seals_the_complete_evidence_lifecycle(
 def test_run_scripted_negarena_episode_seals_the_complete_lifecycle_automatically(
     tmp_path: Path, bridge
 ) -> None:
-    """Finding 3, closed for real (docs/negarena_fix_verification.md):
+    """Finding 3, closed for real (docs/families/negarena/reviews/negarena_fix_verification.md):
     ``record_full_evidence_lifecycle`` used to be invoked only by hand, by
     this very test module's own helper -- nothing in production code called
     it, so a real caller could forget the extra step and reach
@@ -597,7 +597,7 @@ def test_finalize_wires_negarena_to_the_shared_family_finalizer(
     BLUE is the fixed scripted opponent (``negarena_scripted_v1`` ->
     ``"scripted"``, ``measurement.OPPONENT_PROFILE_TO_POLICY_ID``) -- the
     ordinary case this corpus's every real evaluation cell is shaped like
-    (docs/negarena_adapter_status.md's seat-scope classification). The
+    (docs/families/negarena/adapter_status.md's seat-scope classification). The
     golden-1 buy_sell transcript ends in ``"accepted"``, so both declared
     leaves must come back ``status="ok"`` and the receipt must be
     ``included`` -- this family's whole migration exists to make this

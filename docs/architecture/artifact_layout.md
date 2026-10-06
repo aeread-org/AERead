@@ -121,6 +121,42 @@ results join through `(run_id, task_id, episode_attempt_id)`. A campaign may
 contain multiple runs, but no table silently promotes campaign, run, task,
 attempt, or call rows to interchangeable statistical units.
 
+### Identities across run plans
+
+`task_id` (`cell_id`), `episode_id` and `episode_attempt_id` are derived from
+the plan cell, and the cell does not carry the inference seed. They are unique
+within one run plan. A campaign that gives each inference seed its own run
+plan repeats all three across the seeds of one world, so a join on
+`episode_id` alone merges those seeds (DC-T-04, EX-T-02).
+
+The key that is unique across a whole campaign is
+`(run_plan_id, cell_id, episode_attempt_id)`.
+`aeread.shared_runner.episode_key(record)` turns it into one join column for
+a receipt, a receipt projection or a trajectory row, and
+`assert_unique_episode_keys(rows)` refuses a per-episode table that repeats
+it. The seed is not folded into the identities themselves: `cell_id` is a
+digest of the cell that `verify_run_plan` recomputes, so that would change
+the identity of every sealed plan.
+
+### Source commit
+
+A plan pins its family sources by digest, so a bundle replays from the commit
+whose source it pinned and from no later one once the family has changed. A
+publisher records that commit as the manifest's `source_commit`:
+
+```python
+from aeread.shared_runner import source_commit_for_pins
+
+commit = source_commit_for_pins(repository_root, {"src/aeread_families/<family>/runner.py": sha256, ...})
+seal_publication_manifest(bundle, ..., source_commit=commit)
+```
+
+The commit is the one that produced the pinned state, not `HEAD`, so
+publishing the same bundle again from a later checkout writes the same bytes.
+Uncommitted content is never matched. For a bundle published before this
+field existed, `aeread source-commit --pin PATH=SHA256 ...` finds the commit
+from the bundle's recorded digests.
+
 ## Compatibility boundary
 
 The reader accepts the earlier

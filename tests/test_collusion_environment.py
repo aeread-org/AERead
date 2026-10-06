@@ -105,7 +105,7 @@ def test_family_manifest_declares_the_finalize_time_leaf_policy() -> None:
     The manifest -- not ``measurement.py``'s ``CollusionScorer`` and not a
     test fixture -- is the one source of truth for the declared leaf set,
     the primary, and admission membership (see
-    ``docs/collusion_adapter_status.md``'s "Leaf policy" section for why
+    ``docs/families/collusion/adapter_status.md``'s "Leaf policy" section for why
     ``collusion_long_run_profit`` is primary and why it alone gates
     admission). Dropping a leaf from the manifest's own ``"leaves"``
     declaration would shrink ``policy.leaf_ids`` below the four asserted
@@ -148,7 +148,7 @@ def test_registering_the_same_family_version_twice_is_refused() -> None:
 
 
 def test_build_scorer_returns_the_four_declared_leaves() -> None:
-    # Milestone 2 (docs/collusion_adapter_spec.md section 2): build_scorer no
+    # Milestone 2 (docs/families/collusion/adapter_spec.md section 2): build_scorer no
     # longer raises NotImplementedError -- see tests/test_collusion_measurement.py
     # for the scorer's own coverage; this only confirms the environment's hook
     # wires through to it.

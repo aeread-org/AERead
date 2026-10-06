@@ -14,7 +14,7 @@ every agenticpay upstream-fidelity test (``test_agenticpay_bilateral_cases.py``,
 measurement.py``, ``test_agenticpay_bilateral_replay.py``) silently skipped for want
 of a provisioned bridge.
 
-Migration review finding 2 (docs/agenticpay_migration_review.md) extends this list:
+Migration review finding 2 (docs/families/agenticpay-bilateral/migration_review.md) extends this list:
 ``tests/test_shared_runner_scoring_contract.py::test_agenticpay_obeys_the_scoring_contract``
 is also a genuine AgenticPay upstream-fidelity test -- it drives the real bridge to
 prove the family's leaf set, its ruling-R13 case-conditional leaf, and its

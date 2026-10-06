@@ -1,5 +1,5 @@
 """Tests for the root ``conftest.py``'s ``AEREAD_ECONAGENT_BRIDGE_REQUIRED``
-enforcement (docs/econagent_codex_triage.md finding 5).
+enforcement (docs/families/econagent/reviews/econagent_codex_triage.md finding 5).
 
 ``discover_bridge_python``/``_require_bridge()`` convert a missing upstream
 bridge into a plain ``pytest.skip`` regardless of any requirement flag; the
@@ -65,7 +65,7 @@ def test_a_missing_upstream_checkout_still_skips_cleanly_when_not_required() -> 
 
 
 def test_a_missing_upstream_checkout_fails_the_run_when_econagent_bridge_is_required() -> None:
-    """Finding 5 (docs/econagent_codex_triage.md): before the fix, the root
+    """Finding 5 (docs/families/econagent/reviews/econagent_codex_triage.md): before the fix, the root
     conftest.py's ``pytest_terminal_summary`` hook recognized only
     ``AEREAD_TAU2_BRIDGE_REQUIRED`` and tau2-specific skip markers, so
     setting ``AEREAD_ECONAGENT_BRIDGE_REQUIRED=1`` with no usable upstream

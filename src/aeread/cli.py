@@ -27,7 +27,14 @@ VERBS: dict[str, tuple[str, str]] = {
                              "add the kernel trajectory grain to a published bundle and re-seal it"),
     "seal-manifest": ("aeread.shared_runner.run.seal_manifest",
                       "write or rebuild a bundle's kernel-standard publication manifest"),
+    "source-commit": ("aeread.shared_runner.run.provenance",
+                      "find the commit a bundle's pinned source digests came from"),
+    "verify-replay": ("aeread.shared_runner.run.replay_verification",
+                      "recompute a published bundle's scores from its sealed run evidence"),
 }
+
+
+_DIRECT_VERBS = frozenset({"source-commit", "verify-replay"})
 
 
 def main() -> int:
@@ -45,6 +52,12 @@ def main() -> int:
         from aeread.shared_runner.analysis.research import main as export_tables_main
 
         return export_tables_main(argv[1:])
+    if verb in _DIRECT_VERBS:
+        # Called directly so the verdict is the exit status, and so a module
+        # the shared_runner package already imports is not executed twice.
+        from importlib import import_module
+
+        return import_module(VERBS[verb][0]).main(argv[1:])
     module = VERBS[verb][0]
     sys.argv = [f"aeread {verb}"] + argv[1:]
     runpy.run_module(module, run_name="__main__")

@@ -1,7 +1,7 @@
 """Provider-free scheduler coverage for the amazonbarg environment plugin.
 
 Runs the five QC Gate-2 goldens from
-``docs/amazonbarg_adapter_spec.md`` section 4 through the real kernel
+``docs/families/amazonbarg/adapter_spec.md`` section 4 through the real kernel
 scheduler (``run_episode``), scripted end to end -- no model, no network,
 no tool calls (this benchmark has no tool-calling surface at all).
 """
@@ -148,7 +148,7 @@ def test_family_manifest_declares_all_five_leaves_with_bargained_ratio_primary()
     """kernel_scoring_contract_spec.md section 3: the manifest, not the
     scorer or a test fixture, is the one source of the leaf set, the
     primary, and admission membership. See
-    docs/amazonbarg_adapter_status.md's "Leaf policy" section for why
+    docs/families/amazonbarg/adapter_status.md's "Leaf policy" section for why
     ``amazonbarg_bargained_ratio`` is primary and why it alone gates
     admission."""
     manifest = family_manifest()

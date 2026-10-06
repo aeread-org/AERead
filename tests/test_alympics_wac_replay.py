@@ -356,7 +356,7 @@ def kernel_contract_fixture_case(
     Unlike govsim's analogous fixture case, this family's seat roster is
     upstream-fixed (``cases.SEAT_ORDER``/``cases.PERSONAS`` -- no
     constructor parameter varies the 5-persona roster;
-    ``docs/alympics_adapter_spec.md`` section 1), so this cannot shrink the
+    ``docs/families/alympics-wac/adapter_spec.md`` section 1), so this cannot shrink the
     seat count the way ``test_govsim_replay._two_agent_two_round_case``
     does -- only ``rounds`` varies. ``policy_assignment`` is a required
     field of every alympics.wac case (``cases.build_case``), but the actual
@@ -820,7 +820,7 @@ def test_replay_raises_when_recorded_decisions_run_out_early(tmp_path: Path) -> 
 def test_replay_detects_a_tampered_bid_only_via_comparison_against_the_original(
     tmp_path: Path,
 ) -> None:
-    """Known, honest limit (see docs/alympics_adapter_status.md): unlike
+    """Known, honest limit (see docs/families/alympics-wac/adapter_status.md): unlike
     tau3_retail's tool-level re-execution, replay_episode itself has no
     independent oracle to catch a tampered recorded bid -- it faithfully
     replays whatever the record says and settles it exactly like a live

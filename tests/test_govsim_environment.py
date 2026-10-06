@@ -1,6 +1,6 @@
 """Structural tests for the govsim kernel family plugin.
 
-No bridge needed (mirrors ``docs/govsim_adapter_spec.md`` section 5's test
+No bridge needed (mirrors ``docs/families/govsim/adapter_spec.md`` section 5's test
 classification): every test here drives ``GovsimPlugin`` against an
 in-process fake bridge, never the real subprocess bridge. This exercises the
 phase graph, seat eligibility, and the kernel-facing mechanics of QC Gate
@@ -161,7 +161,7 @@ def test_family_manifest_round_trips_through_the_strict_grammar() -> None:
         "greedy_v1",
         "mixed_v1",
     )
-    # Per docs/problem_bound_case_audit.md row P06: comparative-only, no
+    # Per docs/research/problem_bound_case_audit.md row P06: comparative-only, no
     # certified upper bound declared.
     assert manifest.measurement.measurement_kind == "comparative_or_human_judged"
     assert manifest.measurement.bound_status == "baseline_only"
@@ -390,7 +390,7 @@ def test_verify_source_and_dependency_pins_rejects_a_runtime_dependency_mismatch
 
 def test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_production_call_site() -> None:
     """Closes the coverage gap the independent verification pass flagged
-    against triage Finding 4 (``docs/govsim_fix_verification.md``): the two
+    against triage Finding 4 (``docs/families/govsim/reviews/govsim_fix_verification.md``): the two
     tests directly above drive ``_verify_source_and_dependency_pins``
     directly, and the sole ``validate_payload`` acceptance test
     (``test_validate_payload_accepts_a_generated_case_at_the_pinned_
@@ -407,7 +407,7 @@ def test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_produ
     a caller would configure it -- never the private helper called by
     hand. It would fail to raise if the production call were ever removed
     (see this file's mutation-verification note in
-    ``docs/govsim_review_disposition.md``)."""
+    ``docs/families/govsim/reviews/govsim_review_disposition.md``)."""
     if not _REAL_UPSTREAM_ROOT.is_dir():
         pytest.skip(f"pinned upstream govsim checkout not found at {_REAL_UPSTREAM_ROOT}")
     plugin = GovsimPlugin(upstream_root=_REAL_UPSTREAM_ROOT, bridge=_WrongVersionBridge())

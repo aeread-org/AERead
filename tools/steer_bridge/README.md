@@ -3,7 +3,7 @@
 The `steer` adapter wraps STEER (`narunraman/STEER`, pinned at
 `d66673c8277b9112fc5e39751524ccda6d852446`) without a repo license: real
 question/option text can never enter the AERead git repository (see
-`docs/steer_adapter_spec.md`). It is fetched once, hash-verified against the
+`docs/families/steer/adapter_spec.md`). It is fetched once, hash-verified against the
 pinned checkout's own git-LFS pointers, and cached outside version control at
 `bridges/steer-data/` (a sibling of the AERead repo).
 

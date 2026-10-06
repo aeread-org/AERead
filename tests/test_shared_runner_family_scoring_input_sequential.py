@@ -1,4 +1,4 @@
-"""Replay fidelity for a ``mode="sequential"`` phase (kernel_contract_impl_review.md
+"""Replay fidelity for a ``mode="sequential"`` phase (docs/architecture/reviews/kernel_contract_impl_review.md
 findings 2 and 3).
 
 No family registered on ``main`` uses ``mode="sequential"`` today, so these two
@@ -154,7 +154,7 @@ class _SequentialPlugin:
 
         del family_case, phase
         # Exactly one actor's envelope per call: production applies one
-        # transition per sequential actor (kernel_contract_impl_review.md
+        # transition per sequential actor (docs/architecture/reviews/kernel_contract_impl_review.md
         # finding 2), never the whole phase's actions at once.
         assert len(actions) == 1, "sequential step must receive exactly one actor"
         (seat_id, envelope), = actions.items()
@@ -479,7 +479,7 @@ def test_sequential_phase_produces_two_transitions_in_one_instance(tmp_path) -> 
 
 
 def test_replay_reproduces_a_sequential_phase_instance_exactly(tmp_path) -> None:
-    """kernel_contract_impl_review.md finding 2.
+    """docs/architecture/reviews/kernel_contract_impl_review.md finding 2.
 
     Before the mode-aware replay fix, ``_replay_family_trajectory`` required
     exactly one ``transition_applied`` event per phase instance and stepped
@@ -508,7 +508,7 @@ def test_replay_reproduces_a_sequential_phase_instance_exactly(tmp_path) -> None
 def test_replay_rejects_a_phase_completion_boundary_that_understates_the_actors(
     tmp_path,
 ) -> None:
-    """kernel_contract_impl_review.md finding 3.
+    """docs/architecture/reviews/kernel_contract_impl_review.md finding 3.
 
     A ``phase_instance_succeeded`` event whose ``logical_action_ids`` omits an
     actor who actually acted must fail replay, not be silently ignored.

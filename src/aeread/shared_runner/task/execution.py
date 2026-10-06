@@ -52,8 +52,22 @@ class EvidenceIntegrityError(RuntimeError):
     """Evidence, pins, or budgets cannot support a valid execution."""
 
 
+#: Whether a failed provider call was paid for.
+#: ``not_billed``: no response carrying a completion came back.
+#: ``reported``: the response reported token usage, so the call has a cost.
+#: ``unknown``: a completion came back without usable usage.
+FAILURE_BILLING_STATES = ("not_billed", "reported", "unknown")
+
+
 class ProviderFailure(RuntimeError):
-    """Typed provider failure visible to the action-attempt retry policy."""
+    """Typed provider failure visible to the action-attempt retry policy.
+
+    A call can fail after the provider answered and billed it: a truncated
+    reply, a route that does not match the pin, an upstream error halfway
+    through a generation. ``billing`` and the usage fields carry what the
+    provider reported for such a call, so the spend of a failed cell is
+    recorded instead of written as zero (#226 item 7).
+    """
 
     def __init__(
         self,
@@ -77,6 +91,102 @@ class ProviderFailure(RuntimeError):
                 "ProviderFailure.retry_after_seconds must be finite and non-negative"
             )
         self.retry_after_seconds = retry_after_seconds
+        self.billing = "not_billed"
+        self.cost_usd: float | None = None
+        self.input_tokens = 0
+        self.cached_input_tokens = 0
+        self.output_tokens = 0
+
+    def with_reported_usage(self, raw_response: Any) -> "ProviderFailure":
+        """Record what a chat-completions response reported for this call.
+
+        A response with no choices is an error body, not a completion, and is
+        not billed. One with choices is billed: its usage is taken when it is
+        well formed, and the cost is unknown when it is not.
+        """
+
+        if not isinstance(raw_response, Mapping) or not raw_response.get("choices"):
+            return self
+        usage = raw_response.get("usage")
+
+        def count(source: Any, field: str) -> int | None:
+            value = source.get(field, 0) if isinstance(source, Mapping) else None
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                return None
+            return value
+
+        input_tokens = count(usage, "prompt_tokens")
+        output_tokens = count(usage, "completion_tokens")
+        if not isinstance(usage, Mapping) or input_tokens is None or output_tokens is None:
+            self.billing = "unknown"
+            return self
+        details = usage.get("prompt_tokens_details")
+        cached = count(details, "cached_tokens") if isinstance(details, Mapping) else 0
+        cost = usage.get("cost")
+        self.billing = "reported"
+        self.input_tokens = input_tokens
+        self.cached_input_tokens = cached or 0
+        self.output_tokens = output_tokens
+        self.cost_usd = (
+            float(cost)
+            if isinstance(cost, (int, float))
+            and not isinstance(cost, bool)
+            and math.isfinite(cost)
+            and cost >= 0
+            else None
+        )
+        return self
+
+
+def failed_call_cost(failure: ProviderFailure, pricing: "TokenPricing") -> float | None:
+    """The cost of a failed provider call, or ``None`` when it is unknown.
+
+    The provider's own figure when it reported one, else the profile's
+    pricing applied to the reported tokens -- the same rule a completed call
+    is costed by.
+    """
+
+    if failure.billing == "not_billed":
+        return 0.0
+    if failure.billing != "reported":
+        return None
+    if failure.cost_usd is not None:
+        return failure.cost_usd
+    return pricing.cost(
+        input_tokens=failure.input_tokens,
+        cached_input_tokens=failure.cached_input_tokens,
+        output_tokens=failure.output_tokens,
+    )
+
+
+def failed_call_event_fields(
+    failure: ProviderFailure, cost: float | None, *, outcome_unknown: bool
+) -> dict[str, Any]:
+    """The cost fields of a failed call's terminal event.
+
+    ``cost_usd`` is a number when the cost is known and the string
+    ``"unknown"`` when it is not. The token counts appear only for a call
+    the provider reported usage for, so the event of a call that was never
+    billed is byte for byte what it always was.
+    """
+
+    fields: dict[str, Any] = {
+        "cost_usd": "unknown" if outcome_unknown or cost is None else cost
+    }
+    if failure.billing == "reported":
+        fields.update(
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+        )
+    return fields
+
+
+def _dumped(response: Any) -> Any:
+    try:
+        return response.model_dump(mode="json")
+    except Exception:
+        return None
 
 
 def _retry_after_value(value: Any) -> float | None:
@@ -792,6 +902,13 @@ class ProviderRequest:
     messages: tuple["CanonicalMessage", ...] | None = None
     tools: tuple["ToolSchema", ...] | None = None
     reasoning_token_budget: int | None = None
+    # Ask the provider to stream the reply. A long reasoning call sent with
+    # ``stream: false`` holds a connection that carries no bytes until the
+    # answer, and such connections were cut mid-call (DC-T-14: 76 calls lost
+    # 76 s after starting). Declared per profile as
+    # ``harness.config["provider_stream"]``; like the fields above it joins
+    # the hash only when set, so every earlier request hashes as it did.
+    stream: bool = False
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -823,6 +940,8 @@ class ProviderRequest:
         ):
             if value is not None:
                 payload[field] = value
+        if self.stream:
+            payload["stream"] = True
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -853,11 +972,239 @@ class ProviderResult:
 # route-identity error retryable.
 POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
 
+# HTTP 402: the account cannot pay for the call. Typed separately from
+# "provider_rejected" because it is a fault of the account, not of the request
+# or the cell: the next cell fails the same way, so a run that declares a halt
+# rule stops on it instead of sealing every remaining cell as a failure
+# (DC-O-15: 214 of 348 cells sealed against an exhausted balance). Never
+# retryable -- no wait inside one run refills a balance.
+ACCOUNT_FAULT = "account_fault"
+_ACCOUNT_FAULT_STATUS = 402
+
+# A 200 response whose single choice finished with ``error`` and carries no
+# HTTP status of its own: the upstream failed mid-generation. The request was
+# accepted, so this is not a rejection, and the same request succeeds on the
+# same route minutes later (#223, DC-T-15: 9 cells in three campaigns, all on
+# one model, each removing a world from a paired contrast). It has its own
+# condition rather than borrowing ``provider_5xx`` so that a profile retries
+# it only by naming it: a partial generation may have been billed, and
+# re-issuing it is a choice the experiment definition should show.
+PROVIDER_CHOICE_ERROR = "provider_choice_error"
+
 # How far a length retry may grow the output budget, as a multiple of what
 # the profile declared. Doubling is the right tactic and unbounded doubling
 # is not: see the 2,400 -> 1,228,800 escalation that a ten-attempt policy
-# produced before this cap existed.
+# produced before this cap existed. A profile that wants a different bound
+# declares it as harness.config["max_output_tokens_ceiling"].
 _LENGTH_RETRY_MAX_GROWTH = 8
+
+# Finish reasons that mean the provider stopped at the output-token limit.
+# A reply that ends this way was interrupted, not finished (#152).
+TRUNCATED_FINISH_REASONS = frozenset({"length", "max_output_tokens"})
+
+
+def declared_provider_stream(profile: AgentProfile) -> bool:
+    """Whether a profile declares streamed provider calls.
+
+    ``harness.config["provider_stream"]`` must be a literal boolean when
+    present. Absent means not streamed: no sealed profile changes what it
+    sends.
+    """
+
+    declared = profile.harness.config.get("provider_stream", False)
+    if not isinstance(declared, bool):
+        raise EvidenceIntegrityError(
+            f"provider_stream must be true or false for profile {profile.profile_id!r}"
+        )
+    return declared
+
+
+def _named_in_mro(error: BaseException, *names: str) -> bool:
+    return any(base.__name__ in names for base in type(error).__mro__)
+
+
+class _AssembledResponse:
+    """A streamed reply reassembled into the non-streamed response shape."""
+
+    def __init__(self, raw: Mapping[str, Any]) -> None:
+        self._raw = raw
+
+    def model_dump(self, mode: str = "json") -> Mapping[str, Any]:
+        del mode
+        return self._raw
+
+
+def _assemble_chat_stream(chunks: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Rebuild one chat completion from its stream chunks.
+
+    The result has the shape a non-streamed call returns, so everything
+    downstream -- route verification, usage, cost, finish reason, parsing --
+    reads it unchanged. Content and tool-call argument fragments are joined
+    in arrival order; ``usage`` and ``openrouter_metadata`` arrive on the
+    final chunk; an ``error`` on any chunk is carried through.
+    """
+
+    response_id: Any = None
+    model: Any = None
+    finish_reason: Any = None
+    content: list[str] = []
+    reasoning: list[str] = []
+    reasoning_details: list[Any] = []
+    tool_calls: dict[int, dict[str, Any]] = {}
+    choice_error: Any = None
+    assembled: dict[str, Any] = {}
+    for chunk in chunks:
+        if not isinstance(chunk, Mapping):
+            raise ProviderFailure(
+                "provider_contract", "stream chunk must be an object", retryable=False
+            )
+        response_id = response_id or chunk.get("id")
+        model = model or chunk.get("model")
+        for key in ("usage", "openrouter_metadata", "provider", "error"):
+            if chunk.get(key) is not None:
+                assembled[key] = chunk[key]
+        choices = chunk.get("choices") or []
+        if not isinstance(choices, list) or len(choices) > 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "stream chunk must contain at most one choice",
+                retryable=False,
+            )
+        for choice in choices:
+            if not isinstance(choice, Mapping):
+                continue
+            if choice.get("finish_reason") is not None:
+                finish_reason = choice["finish_reason"]
+            if choice.get("error") is not None:
+                choice_error = choice["error"]
+            delta = choice.get("delta")
+            if not isinstance(delta, Mapping):
+                continue
+            if isinstance(delta.get("content"), str):
+                content.append(delta["content"])
+            if isinstance(delta.get("reasoning"), str):
+                reasoning.append(delta["reasoning"])
+            if isinstance(delta.get("reasoning_details"), list):
+                reasoning_details.extend(delta["reasoning_details"])
+            for fragment in delta.get("tool_calls") or ():
+                if not isinstance(fragment, Mapping):
+                    continue
+                index = fragment.get("index")
+                slot = tool_calls.setdefault(
+                    index if isinstance(index, int) else len(tool_calls),
+                    {"id": None, "type": "function", "function": {"name": None, "arguments": ""}},
+                )
+                slot["id"] = slot["id"] or fragment.get("id")
+                function = fragment.get("function")
+                if isinstance(function, Mapping):
+                    slot["function"]["name"] = slot["function"]["name"] or function.get("name")
+                    if isinstance(function.get("arguments"), str):
+                        slot["function"]["arguments"] += function["arguments"]
+    text = "".join(content)
+    choice: dict[str, Any] = {
+        "index": 0,
+        "finish_reason": finish_reason,
+        "message": {
+            "role": "assistant",
+            "content": text if text or not tool_calls else None,
+            "tool_calls": [tool_calls[index] for index in sorted(tool_calls)] or None,
+        },
+    }
+    if reasoning:
+        choice["message"]["reasoning"] = "".join(reasoning)
+    if reasoning_details:
+        choice["message"]["reasoning_details"] = reasoning_details
+    if choice_error is not None:
+        choice["error"] = choice_error
+    assembled.update(
+        {
+            "id": response_id,
+            "model": model,
+            "choices": [choice],
+            "stream": {"chunk_count": len(chunks)},
+        }
+    )
+    return assembled
+
+
+def _stream_error_code(error: BaseException) -> int | None:
+    """The numeric code an SDK error raised on a stream error frame carries.
+
+    The SDK raises ``APIError`` on a frame with ``error`` and gives it no HTTP
+    status. The inner error object is its ``body``; ``code`` is the fallback
+    (an int under openai 2.x, a digit string under 3.x). Booleans and symbolic
+    codes are not numeric.
+    """
+
+    body = getattr(error, "body", None)
+    code = body.get("code") if isinstance(body, Mapping) else None
+    if code is None:
+        code = getattr(error, "code", None)
+    if isinstance(code, bool):
+        return None
+    if isinstance(code, int):
+        return code
+    if isinstance(code, str) and code.isascii() and code.isdigit():
+        return int(code)
+    return None
+
+
+def _classify_stream_error(error: Exception) -> ProviderFailure:
+    """Type an exception raised while a stream is read.
+
+    An error frame is typed by the code it carries; every other exception,
+    and a frame with no numeric code, is typed as before.
+    """
+
+    if (
+        getattr(error, "status_code", None) is None
+        and _named_in_mro(error, "APIError")
+        and (code := _stream_error_code(error)) is not None
+    ):
+        body = getattr(error, "body", None)
+        if code == 429:
+            return ProviderFailure(
+                "rate_limit",
+                str(error),
+                retryable=True,
+                status_code=code,
+                retry_after_seconds=_retry_after_from_mapping(body),
+            )
+        if code == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(ACCOUNT_FAULT, str(error), retryable=False, status_code=code)
+        if 500 <= code <= 599:
+            return ProviderFailure("provider_5xx", str(error), retryable=True, status_code=code)
+        return ProviderFailure("provider_rejected", str(error), retryable=False, status_code=code)
+    return OpenAIResponsesClient._classify_error(error)
+
+
+def _with_stream_usage(failure: ProviderFailure, usage: Any) -> ProviderFailure:
+    """Attach the latest usage a stream reported before it failed."""
+
+    if usage is None:
+        return failure
+    return failure.with_reported_usage({"choices": [{}], "usage": usage})
+
+
+def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
+    """Whether a reply cut off at the output-token limit still holds an answer.
+
+    It does when a harness already built an action from it, or when the text
+    is a complete JSON value: the limit fell after the answer closed. Anything
+    else -- nothing at all, or JSON cut mid-object -- is a typed ``length``
+    failure and never reaches a family parser, on every client (#152, ruled
+    2026-09-10). Before this, an OpenRouter reply cut mid-object was scored
+    as the model's own malformed action, while the same reply on Arena was a
+    retryable ``length``.
+    """
+
+    if response.action is not None:
+        return True
+    try:
+        json.loads(response.text)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -991,7 +1338,9 @@ class ProviderClient(Protocol):
 def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
     """The reasoning controls to send, carrying exactly what the profile declared.
 
-    A profile may declare an effort, a token budget, or both.  Substituting a
+    A profile may declare an effort, a token budget, or -- for a provider that
+    accepts the pair -- both.  OpenRouter does not, and plan resolution refuses
+    such a profile before a plan is frozen (#133).  Substituting a
     default for an absent control -- the previous `or "low"` -- meant a run
     labelled with one reasoning condition executed another, which is how a
     treatment silently fails to be delivered.  Absent controls are simply not
@@ -1053,6 +1402,12 @@ class OpenAIResponsesClient:
                 f"OpenAI adapter received provider {request.provider!r}",
                 retryable=False,
             )
+        if request.stream:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenAI Responses adapter does not support streamed requests",
+                retryable=False,
+            )
         requested_base_url = (request.base_url or "https://api.openai.com/v1").rstrip("/")
         if requested_base_url != self._base_url:
             raise ProviderFailure(
@@ -1107,8 +1462,16 @@ class OpenAIResponsesClient:
     def _classify_error(error: Exception) -> ProviderFailure:
         name = type(error).__name__
         status_code = getattr(error, "status_code", None)
-        if name in {"APITimeoutError", "TimeoutError"}:
+        # A stream is read after the SDK has returned, so a connection that
+        # dies mid-reply surfaces as the transport library's own exception
+        # rather than the SDK's wrapper. It is the same fault and gets the
+        # same type; untyped it fell through to a non-retryable rejection.
+        if name in {"APITimeoutError", "TimeoutError"} or _named_in_mro(
+            error, "TimeoutException"
+        ):
             return ProviderFailure("timeout", str(error), retryable=True)
+        if _named_in_mro(error, "TransportError"):
+            return ProviderFailure("transport", str(error), retryable=True)
         if name == "RateLimitError" or status_code == 429:
             retry_after_seconds = None
             response = getattr(error, "response", None)
@@ -1130,6 +1493,10 @@ class OpenAIResponsesClient:
             )
         if name == "APIConnectionError":
             return ProviderFailure("transport", str(error), retryable=True)
+        if status_code == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(
+                ACCOUNT_FAULT, str(error), retryable=False, status_code=status_code
+            )
         if name == "InternalServerError" or (
             isinstance(status_code, int) and status_code >= 500
         ):
@@ -1227,7 +1594,7 @@ class OpenRouterChatClient:
                 },
             },
             "tools": [],
-            "stream": False,
+            "stream": request.stream,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": extra_body,
         }
@@ -1236,6 +1603,21 @@ class OpenRouterChatClient:
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
+        try:
+            return self._structured_result(
+                request, response, canonical_model=canonical_model, route_provider=route_provider
+            )
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _structured_result(
+        self,
+        request: ProviderRequest,
+        response: Any,
+        *,
+        canonical_model: str,
+        route_provider: str,
+    ) -> ProviderResult:
         raw_response, choice, message = self._parsed_choice(response)
         content = message.get("content") if isinstance(message, Mapping) else None
         input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
@@ -1274,11 +1656,12 @@ class OpenRouterChatClient:
         try:
             structured_output = json.loads(content)
         except json.JSONDecodeError:
-            # The provider returned a completed, billable model response.  Keep
-            # it on the normal response path so the family parser can classify
-            # malformed model output as agent behavior instead of converting an
-            # observed response into operational missingness (and losing its
-            # usage/cost metadata).
+            # The provider returned a billable model response.  Keep it on
+            # the normal response path with its usage and cost. A finished
+            # reply that is malformed is the model's own behaviour and goes
+            # to the family parser; one cut off at the output-token limit
+            # (finish_reason "length") is typed ``length`` by the executor
+            # before any parser sees it (#152).
             output_text = content
         else:
             output_text = canonical_json_bytes(structured_output).decode("utf-8")
@@ -1330,7 +1713,7 @@ class OpenRouterChatClient:
             "seed": request.seed,
             "max_tokens": request.max_output_tokens,
             "tools": wire_tools,
-            "stream": False,
+            "stream": request.stream,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": extra_body,
         }
@@ -1339,6 +1722,21 @@ class OpenRouterChatClient:
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
+        try:
+            return self._native_result(
+                request, response, canonical_model=canonical_model, route_provider=route_provider
+            )
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _native_result(
+        self,
+        request: ProviderRequest,
+        response: Any,
+        *,
+        canonical_model: str,
+        route_provider: str,
+    ) -> ProviderResult:
         raw_response, choice, message = self._parsed_choice(response)
         if not isinstance(message, Mapping):
             raise ProviderFailure(
@@ -1346,7 +1744,16 @@ class OpenRouterChatClient:
                 "OpenRouter response choice has no message",
                 retryable=False,
             )
-        tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        try:
+            tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        except ProviderFailure as error:
+            if choice.get("finish_reason") == "length":
+                raise ProviderFailure(
+                    "length",
+                    "OpenRouter truncated the tool call at the output-token limit",
+                    retryable=True,
+                ) from error
+            raise
         content = message.get("content")
         if tool_calls is None and not isinstance(content, str):
             raise ProviderFailure(
@@ -1505,12 +1912,50 @@ class OpenRouterChatClient:
         return provider_preferences, canonical_model, route_provider
 
     async def _create(self, **kwargs: Any) -> Any:
+        usage: Any = None
         try:
-            return await self._client.chat.completions.create(**kwargs)
+            if not kwargs.get("stream"):
+                return await self._client.chat.completions.create(**kwargs)
+            # Usage, cost and the routing metadata arrive on the final chunk.
+            stream = await self._client.chat.completions.create(
+                **kwargs, stream_options={"include_usage": True}
+            )
+            chunks = []
+            async for chunk in stream:
+                dumped = chunk.model_dump(mode="json")
+                chunks.append(dumped)
+                if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                    usage = dumped["usage"]
+            if not chunks:
+                raise ProviderFailure(
+                    "transport", "OpenRouter stream ended before any chunk", retryable=True
+                )
+            assembled = _assemble_chat_stream(chunks)
+            choice = assembled["choices"][0]
+            # A stream that carries a recognized error is typed by it later;
+            # only one that simply stopped, with no finish and no such error,
+            # was cut short.
+            if (
+                choice["finish_reason"] is None
+                and not isinstance(assembled.get("error"), Mapping)
+                and not isinstance(choice.get("error"), Mapping)
+            ):
+                raise ProviderFailure(
+                    "transport",
+                    "stream ended before a terminal finish_reason",
+                    retryable=True,
+                )
+            return _AssembledResponse(assembled)
         except asyncio.CancelledError:
             raise
+        except ProviderFailure as failure:
+            if not kwargs.get("stream"):
+                raise
+            raise _with_stream_usage(failure, usage) from failure
         except Exception as error:
-            raise OpenAIResponsesClient._classify_error(error) from error
+            if not kwargs.get("stream"):
+                raise OpenAIResponsesClient._classify_error(error) from error
+            raise _with_stream_usage(_classify_stream_error(error), usage) from error
 
     @staticmethod
     def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
@@ -1547,14 +1992,18 @@ class OpenRouterChatClient:
         if isinstance(choice_error, Mapping):
             status_code = choice_error.get("code")
             message = str(choice_error.get("message") or "OpenRouter choice failed")
-            raise OpenRouterChatClient._provider_error(
-                status_code, message, choice_error
-            )
+            if isinstance(status_code, int) and not isinstance(status_code, bool):
+                raise OpenRouterChatClient._provider_error(
+                    status_code, message, choice_error
+                )
+            # An error with no status to type it by is the same mid-generation
+            # fault as a bare ``finish_reason: error``.
+            raise ProviderFailure(PROVIDER_CHOICE_ERROR, message, retryable=True)
         if isinstance(choice, Mapping) and choice.get("finish_reason") == "error":
             raise ProviderFailure(
-                "provider_rejected",
+                PROVIDER_CHOICE_ERROR,
                 "OpenRouter choice finished with an error",
-                retryable=False,
+                retryable=True,
             )
         message = choice.get("message") if isinstance(choice, Mapping) else None
         return raw_response, choice, message
@@ -1571,6 +2020,10 @@ class OpenRouterChatClient:
                 retryable=True,
                 status_code=resolved_status,
                 retry_after_seconds=_retry_after_from_mapping(payload),
+            )
+        if resolved_status == _ACCOUNT_FAULT_STATUS:
+            return ProviderFailure(
+                ACCOUNT_FAULT, message, retryable=False, status_code=resolved_status
             )
         retryable = resolved_status is not None and resolved_status >= 500
         return ProviderFailure(
@@ -1738,6 +2191,12 @@ class ArenaChatClient:
                 f"Arena adapter received provider {request.provider!r}",
                 retryable=False,
             )
+        if request.stream:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter does not support streamed requests",
+                retryable=False,
+            )
         requested_base_url = (request.base_url or "").rstrip("/")
         if requested_base_url != self._base_url:
             raise ProviderFailure(
@@ -1779,6 +2238,12 @@ class ArenaChatClient:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+        try:
+            return self._result(request, response)
+        except ProviderFailure as failure:
+            raise failure.with_reported_usage(_dumped(response))
+
+    def _result(self, request: ProviderRequest, response: Any) -> ProviderResult:
         try:
             raw_response = response.model_dump(mode="json")
         except Exception as error:
@@ -2250,6 +2715,8 @@ class MinimalChatExecutor:
         self._validate_harness_profile(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
+        self._length_retry_ceiling(profile)
+        declared_provider_stream(profile)
         if profile.model.provider not in self._providers:
             raise EvidenceIntegrityError(
                 f"no provider client registered for {profile.model.provider!r}"
@@ -2448,6 +2915,7 @@ class MinimalChatExecutor:
             seed=self._request_seed_by_profile.get(
                 profile.profile_id, profile.sampling.seed
             ),
+            stream=declared_provider_stream(profile),
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -2579,6 +3047,7 @@ class MinimalChatExecutor:
                     failure,
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
+                    max_output_tokens=max_output_tokens,
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2733,7 +3202,7 @@ class MinimalChatExecutor:
                 text=result.output_text,
                 finish_reason=result.finish_reason,
                 empty=not bool(result.output_text.strip()),
-                truncated=result.finish_reason in {"length", "max_output_tokens"},
+                truncated=result.finish_reason in TRUNCATED_FINISH_REASONS,
                 provider_call_ids=provider_call_ids,
                 tool_invocation_ids=self._harness_tool_invocation_ids(
                     action_attempt_id
@@ -2749,10 +3218,23 @@ class MinimalChatExecutor:
                 if canonical.truncated
                 else ("empty_response" if canonical.empty else None)
             )
+            # Bounded doubling. A truncated answer probably needs more room,
+            # but unbounded growth walks past the model's own context window:
+            # a 2,400-token budget over ten attempts became 1,228,800 and the
+            # provider refused the request outright, turning a recoverable
+            # truncation into a dead case. Once the limit has reached its
+            # ceiling a further retry would send the same request again and
+            # be billed for the same truncation, so it is not issued.
+            next_limit = (
+                self._grow_length_budget(profile, max_output_tokens)
+                if retry_condition == "length"
+                else max_output_tokens
+            )
             can_retry_response = (
                 retry_condition is not None
                 and retry_condition in profile.retry_policy.retryable_conditions
                 and ordinal + 1 < profile.retry_policy.max_action_attempts
+                and not (retry_condition == "length" and next_limit == max_output_tokens)
             )
             if can_retry_response:
                 attempt = ActionAttemptRecord(
@@ -2767,20 +3249,6 @@ class MinimalChatExecutor:
                     canonical_response=canonical,
                 )
                 attempts.append(attempt)
-                # Bounded doubling. A truncated answer probably needs more
-                # room, but unbounded growth walks past the model's own
-                # context window: a 2,400-token budget over ten attempts
-                # became 1,228,800 and the provider refused the request
-                # outright, turning a recoverable truncation into a dead
-                # case. The ceiling is the provider's advertised context
-                # window when it declares one, else a fixed multiple of what
-                # the profile asked for -- either way the growth stops
-                # somewhere the request can still be sent.
-                next_limit = (
-                    self._grow_length_budget(profile, max_output_tokens)
-                    if retry_condition == "length"
-                    else max_output_tokens
-                )
                 self.evidence.append_event(
                     "action_attempt_failed",
                     {
@@ -2796,7 +3264,10 @@ class MinimalChatExecutor:
                 max_output_tokens = next_limit
                 continue
 
-            if retry_condition == "empty_response":
+            if retry_condition == "length" and _is_usable_truncated_reply(canonical):
+                # The limit fell after the answer closed; it is an answer.
+                retry_condition = None
+            if retry_condition is not None:
                 attempt = ActionAttemptRecord(
                     action_attempt_id=action_attempt_id,
                     logical_action_id=decision.logical_action_id,
@@ -2819,8 +3290,13 @@ class MinimalChatExecutor:
                 self._finish_logical_failure(decision, attempts, retry_condition)
                 raise ProviderFailure(
                     retry_condition,
-                    f"provider call {request.provider_call_id} returned an empty "
-                    "completion",
+                    (
+                        f"provider call {request.provider_call_id} returned an empty "
+                        "completion"
+                        if retry_condition == "empty_response"
+                        else f"provider call {request.provider_call_id} was cut off "
+                        "at the output-token limit before a complete answer"
+                    ),
                     retryable=True,
                 )
 
@@ -2995,8 +3471,32 @@ class MinimalChatExecutor:
         One helper, so the ProviderResult path and the Arena exception path
         cannot disagree about how a length retry grows (review finding 4).
         """
-        ceiling = profile.sampling.max_output_tokens * _LENGTH_RETRY_MAX_GROWTH
-        return min(max_output_tokens * 2, ceiling)
+        return min(max_output_tokens * 2, self._length_retry_ceiling(profile))
+
+    @staticmethod
+    def _length_retry_ceiling(profile: AgentProfile) -> int:
+        """The largest output budget a length retry may reach for a profile.
+
+        ``harness.config["max_output_tokens_ceiling"]`` when the profile
+        declares it, else the declared budget times a fixed multiple. A limit
+        that decides whether a truncated cell recovers belongs where the
+        experiment is defined, so the declared form is the one to prefer.
+        """
+
+        declared_budget = profile.sampling.max_output_tokens
+        ceiling = profile.harness.config.get("max_output_tokens_ceiling")
+        if ceiling is None:
+            return declared_budget * _LENGTH_RETRY_MAX_GROWTH
+        if (
+            isinstance(ceiling, bool)
+            or not isinstance(ceiling, int)
+            or ceiling < declared_budget
+        ):
+            raise EvidenceIntegrityError(
+                "max_output_tokens_ceiling must be an integer no smaller than "
+                f"sampling.max_output_tokens for profile {profile.profile_id!r}"
+            )
+        return ceiling
 
     def _record_provider_failure(
         self,
@@ -3011,6 +3511,7 @@ class MinimalChatExecutor:
         *,
         prior_rounds: tuple[ProviderCallRecord, ...] = (),
         pending: PendingRound | None = None,
+        max_output_tokens: int | None = None,
     ) -> tuple[bool, str]:
         # A round that already answered inside this attempt proves the route
         # as surely as a completed attempt does. Without this, round 1
@@ -3029,6 +3530,13 @@ class MinimalChatExecutor:
             condition = POST_ADMISSION_REJECTION
             retryable = True
         outcome_unknown = failure.condition in {"timeout", "transport"}
+        # A call that failed after the provider answered was still billed.
+        # Its cost is charged against the profile's budget and recorded on
+        # the call; before this it was written as zero and never charged, so
+        # the totals of a run that was going wrong were the least accurate.
+        failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+        if failed_cost:
+            self._charge(profile, failed_cost)
         # A harness-driven attempt fails inside whichever round it reached;
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
@@ -3042,10 +3550,10 @@ class MinimalChatExecutor:
             resolved_model=None,
             response_id=None,
             finish_reason=None,
-            input_tokens=0,
-            cached_input_tokens=0,
-            output_tokens=0,
-            cost_usd=0.0,
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+            cost_usd=failed_cost or 0.0,
             failure_condition=condition,
         )
         if pending is None or not pending.terminalized:
@@ -3060,7 +3568,9 @@ class MinimalChatExecutor:
                     "message": str(failure),
                     "retryable": failure.retryable,
                     "status_code": failure.status_code,
-                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                    **failed_call_event_fields(
+                        failure, failed_cost, outcome_unknown=outcome_unknown
+                    ),
                 },
                 phase_instance_id=decision.phase_instance_id,
                 logical_action_id=decision.logical_action_id,
@@ -3091,6 +3601,15 @@ class MinimalChatExecutor:
             and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
         )
+        if (
+            should_retry
+            and condition == "length"
+            and max_output_tokens is not None
+            and self._grow_length_budget(profile, max_output_tokens) == max_output_tokens
+        ):
+            # The limit is already at its ceiling: a retry would resend the
+            # same request and be cut off, and billed, the same way.
+            should_retry = False
         if not should_retry:
             self._finish_logical_failure(decision, attempts, condition)
         else:
@@ -3953,6 +4472,11 @@ async def execute_plan_cell(
 
 
 __all__ = [
+    "ACCOUNT_FAULT",
+    "FAILURE_BILLING_STATES",
+    "failed_call_cost",
+    "failed_call_event_fields",
+    "PROVIDER_CHOICE_ERROR",
     "ActionAttemptRecord",
     "ArtifactRef",
     "CanonicalResponse",
@@ -3978,5 +4502,7 @@ __all__ = [
     "ToolExecutor",
     "ToolFailure",
     "ToolInvocationRecord",
+    "TRUNCATED_FINISH_REASONS",
+    "declared_provider_stream",
     "execute_plan_cell",
 ]

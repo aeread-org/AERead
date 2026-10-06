@@ -1,6 +1,6 @@
 """Tests for the amazonbarg.bilateral offline replayer (replay.py, milestone 3).
 
-All five QC Gate-2 goldens (docs/amazonbarg_adapter_spec.md section 4) are
+All five QC Gate-2 goldens (docs/families/amazonbarg/adapter_spec.md section 4) are
 each run once, live, through
 ``aeread_families.amazonbarg.harness.ScriptedAmazonbargHarness`` and the
 real scheduler, recorded, JSON round-tripped, and replayed through a
@@ -9,7 +9,7 @@ model/network calls -- and asserted to reproduce state and score
 byte-identically (spec section 3, milestone 3's own acceptance bar).
 Originally only goldens 1 and 5 were replayed this way (the milestone's own
 "at least 2 full episodes" acceptance bar); goldens 2, 3, and 4 were added
-per docs/amazonbarg_review_claude.md finding W1, since golden 4 in
+per docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W1, since golden 4 in
 particular is the golden whose whole point is "no protected state changed
 on invalid input" and had never been proven at the replay level before.
 """
@@ -172,7 +172,7 @@ GOLDEN_3_SCRIPT = [
     (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: yes\nAction: [DEAL] $480 (1x home-kitchen_5)"}),
 ]
 # The malformed-action golden -- previously never replayed at all (see
-# docs/amazonbarg_review_claude.md finding W1): a single decision, no
+# docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W1): a single decision, no
 # seller-phase turn ever served, no phantom deal ever recorded.
 GOLDEN_4_SCRIPT = [
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: no action line here"}),
@@ -205,7 +205,7 @@ GOLDEN_1_PAIRED_HISTORY_SCRIPT = [
     (SELLER_PHASE, "seller", {"content": "Thought: t2\nTalk: fine\nAction: [DEAL] $135 (1x home-kitchen_2)"}),
 ]
 
-# kernel_r9r10_review.md rule R9(b) sensitivity witness (surfaced only once
+# docs/architecture/reviews/kernel_r9r10_review.md rule R9(b) sensitivity witness (surfaced only once
 # amazonbarg was stacked onto the kernel branch carrying that rule --
 # amazonbarg's own pre-stacking protocol check never exercised it): each
 # trajectory-scoped leaf must be shown capable of CHANGING on some
@@ -360,7 +360,7 @@ def test_record_episode_from_evidence_reads_the_sealed_disk_store_not_memory(
     read the durable, hash-chained ``EvidenceStore`` -- not only the live
     process's own in-memory ``EpisodeResult``.
 
-    ``docs/amazonbarg_adapter_spec.md:22`` claims ``replay.py`` "reproduces a
+    ``docs/families/amazonbarg/adapter_spec.md:22`` claims ``replay.py`` "reproduces a
     sealed episode's state and score with zero further model/network
     calls" -- before this fix, nothing in ``replay.py`` ever imported,
     opened, or read an ``EvidenceStore`` at all, so that claim was not
@@ -483,7 +483,7 @@ def test_golden_3_replay_reproduces_state_byte_identically(tmp_path: Path) -> No
 
 def test_golden_4_replay_reproduces_state_byte_identically(tmp_path: Path) -> None:
     """The malformed-action golden, now proven at the replay level too (see
-    docs/amazonbarg_review_claude.md finding W1): a second, independent
+    docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W1): a second, independent
     ``AmazonbargPlugin`` re-parses the same malformed reply, halts after the
     same single decision, and reproduces byte-identical state -- no
     seller-phase turn, no phantom deal, on either the original or the
@@ -553,7 +553,7 @@ def test_golden_4_replay_recomputes_an_invalid_measurement_score_identically(
     history -- never read back from a stored number -- reproduces the same
     ``invalid_measurement`` seal on every leaf gated by
     ``amazonbarg_deal_authenticity``'s own ``wrongAction=1`` verdict (see
-    docs/amazonbarg_review_claude.md finding W1: this is the golden whose
+    docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W1: this is the golden whose
     whole point is "no protected state changed on invalid input", now
     proven at the replay/score level too, not merely the plain
     ``run_episode`` level)."""
@@ -1201,7 +1201,7 @@ def test_finalize_wires_amazonbarg_to_the_shared_family_finalizer(tmp_path: Path
     and the declared primary and sole admission leaf now comes back
     ``status="ok"``/``inclusion_status="included"`` for the first time
     through this seam: this is the very gap
-    docs/amazonbarg_adapter_status.md's "Leaf policy" section previously
+    docs/families/amazonbarg/adapter_status.md's "Leaf policy" section previously
     disclosed as "every receipt scored through this exact seam is
     non-admitted today", now resolved. See
     ``test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise``

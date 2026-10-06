@@ -8,7 +8,7 @@ subprocess, never the network).
 
 No bridge-gated upstream-scoring parity test exists in this module, unlike
 ``tests/test_tau3_retail_measurement.py``'s: STEER's pinned commit deleted
-its own evaluation submodule (docs/steer_adapter_spec.md's Governing facts
+its own evaluation submodule (docs/families/steer/adapter_spec.md's Governing facts
 -- "Remove STEER evaluation submodule"), so there is no upstream scorer to
 call through a bridge and cross-check against (spec section 5, "Parity --
 none against upstream scoring exists"). The corpus's own parity claims --

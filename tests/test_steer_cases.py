@@ -4,7 +4,7 @@ These tests exercise the real pinned upstream checkout (read-only, git-lfs
 pointer files only) and the real cached corpus bytes at
 ``bridges/steer-data/`` through a fresh bridge subprocess per test -- never
 against a value this test suite invents. The expected counts below are
-copied verbatim from ``docs/steer_adapter_spec.md``'s Governing Facts table,
+copied verbatim from ``docs/families/steer/adapter_spec.md``'s Governing Facts table,
 which this session verified against the pinned upstream checkout directly.
 
 No network call happens anywhere in this module: ``flatten_element`` reads
@@ -89,7 +89,7 @@ def _bridge() -> SteerBridge:
     # regression coverage for the positive case: every one of these tests
     # only passes today because the real, pinned upstream checkout's actual
     # `git rev-parse HEAD` genuinely matches `UPSTREAM_COMMIT` (finding 2,
-    # docs/steer_codex_triage.md).
+    # docs/families/steer/reviews/steer_codex_triage.md).
     return SteerBridge(
         python_executable=BRIDGE_PYTHON,
         upstream_root=UPSTREAM_ROOT,
@@ -99,7 +99,7 @@ def _bridge() -> SteerBridge:
 
 
 # ---------------------------------------------------------------------------
-# Governing facts about the upstream corpus (docs/steer_adapter_spec.md).
+# Governing facts about the upstream corpus (docs/families/steer/adapter_spec.md).
 # ---------------------------------------------------------------------------
 
 EXPECTED_COUNTS = {
@@ -202,7 +202,7 @@ def test_pure_nash_nan_correct_values_are_not_counted_as_truthy() -> None:
     misclassifies 12,000 already-excluded question_ids as multi-correct
     instead of zero-correct without ever admitting a wrong one -- still a
     corrupted count, not a cosmetic one, since the table in
-    ``docs/steer_adapter_spec.md`` reports it as fact. This pins the
+    ``docs/families/steer/adapter_spec.md`` reports it as fact. This pins the
     NaN-safe reading directly, not just through the full
     ``EXPECTED_COUNTS`` table above."""
     response = _bridge().flatten_element("pure_nash", head_n=steer_cases.HEAD_N)
@@ -270,7 +270,7 @@ def test_flatten_is_deterministic_across_two_independent_subprocesses() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Finding 2 (docs/steer_codex_triage.md): false upstream pinning. Nowhere in
+# Finding 2 (docs/families/steer/reviews/steer_codex_triage.md): false upstream pinning. Nowhere in
 # cases.py/steer_bridge.py/steer_bridge_driver.py ever read the real upstream
 # checkout's own git state -- `pins.json`'s `upstream_commit` was only ever
 # compared against the same hardcoded constant that wrote it. A bridge
@@ -305,7 +305,7 @@ def test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout(tmp_path: Pa
 
 
 # ---------------------------------------------------------------------------
-# Finding 4 (docs/steer_codex_triage.md): circular golden oracles. Goldens
+# Finding 4 (docs/families/steer/reviews/steer_codex_triage.md): circular golden oracles. Goldens
 # 1/2 in test_steer_goldens.py only ever check that the scorer agrees with
 # whatever correct_option_id the flatten classification already wrote into
 # the cache -- an internal-consistency check, never a check against
@@ -315,7 +315,7 @@ def test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout(tmp_path: Pa
 # bridge's "raw_answer_rows" op -- a genuinely different code path from
 # _op_flatten's own fillna(False).astype(bool) classification -- and
 # cross-checks it against the cached correct_option_id that golden relies
-# on. (docs/steer_fix_verification.md's independent re-check of this fix
+# on. (docs/families/steer/reviews/steer_fix_verification.md's independent re-check of this fix
 # pass found golden 1 covered but golden 2 -- a different element,
 # `plurality_voting`, on the `correct_answer` int64 schema variant rather
 # than transitivity's -- still uncovered; this closes that gap too.)
@@ -332,7 +332,7 @@ def _independently_truthy(correct_repr: str) -> bool:
     """A from-scratch reinterpretation of one raw cell's ``repr()``,
     deliberately NOT reusing ``_correct_column``'s own
     ``.fillna(False).astype(bool)`` idiom -- upstream's own per-element
-    schema drift (docs/steer_adapter_spec.md's Governing facts) means this
+    schema drift (docs/families/steer/adapter_spec.md's Governing facts) means this
     column is sometimes ``bool`` (``"True"``/``"False"``) and sometimes an
     integer ``correct_answer`` (``"1"``/``"0"``); either way, a missing
     value (``"nan"``/``"None"``) must never read as truthy.
@@ -347,7 +347,7 @@ def _independently_truthy(correct_repr: str) -> bool:
 def test_independently_truthy_treats_a_missing_value_as_not_correct() -> None:
     """Demonstrates the exact bug class this check exists to catch (the
     pure_nash ``.astype(bool)`` finding referenced by
-    docs/steer_review_disposition.md's M1): a NaN placeholder must never
+    docs/families/steer/reviews/steer_review_disposition.md's M1): a NaN placeholder must never
     read as truthy, in either the bool-column or the integer-column schema
     variant. Needs no upstream checkout -- pure unit coverage of the helper
     itself."""
@@ -368,7 +368,7 @@ def test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstrea
     # Independent ground truth: a genuinely different code path from
     # _op_flatten's own classification (see `_independently_truthy`'s
     # docstring) -- exactly the check goldens 1/2 never performed
-    # (docs/steer_codex_triage.md finding 4).
+    # (docs/families/steer/reviews/steer_codex_triage.md finding 4).
     independently_correct_option_ids = [
         entry["option_id"]
         for entry in raw_rows
@@ -400,7 +400,7 @@ def test_golden_2s_gold_option_is_independently_verified_against_the_raw_upstrea
 
 
 # ---------------------------------------------------------------------------
-# Finding 7 (docs/steer_codex_triage.md): a vacuous Golden 5.
+# Finding 7 (docs/families/steer/reviews/steer_codex_triage.md): a vacuous Golden 5.
 # ``test_steer_goldens.py``'s Golden 5 only ever checked that the recorded
 # sample is a non-empty string (``isinstance(sample, str) and sample``) --
 # it trusted the driver's own ``zero_correct`` label rather than
@@ -436,7 +436,7 @@ def test_golden_5s_sample_is_independently_verified_to_have_zero_correct_options
 
 
 # ---------------------------------------------------------------------------
-# Finding 6 (docs/steer_codex_triage.md): missing exclusion records. Before
+# Finding 6 (docs/families/steer/reviews/steer_codex_triage.md): missing exclusion records. Before
 # this fix, the flatten response (and pins.json) only ever carried
 # aggregate zero_correct/multi_correct COUNTS plus one arbitrary
 # zero-correct sample question_id -- which exact upstream question survived
@@ -664,8 +664,8 @@ def test_pins_json_matches_the_bridges_own_flatten_output() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Finding 6 (docs/steer_codex_triage.md), reopened by
-# docs/steer_fix_verification.md: the importer can generate and hash a
+# Finding 6 (docs/families/steer/reviews/steer_codex_triage.md), reopened by
+# docs/families/steer/reviews/steer_fix_verification.md: the importer can generate and hash a
 # per-question-id exclusion ledger (build_pins/write_excluded, exercised
 # above by test_flatten_response_includes_a_per_question_exclusion_ledger_
 # not_just_counts and test_write_excluded_writes_the_full_ledger_matching_

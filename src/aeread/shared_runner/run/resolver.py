@@ -442,6 +442,13 @@ def _capability_vector(
     )
 
 
+#: Providers that reject a request carrying both a reasoning effort and a
+#: reasoning token budget. Only OpenRouter is verified ("Only one of
+#: reasoning.effort and reasoning.max_tokens can be specified"); a provider
+#: that accepts both is simply not listed.
+_SINGLE_REASONING_CONTROL_PROVIDERS = frozenset({"openrouter"})
+
+
 def _admit_profile(
     profile: AgentProfile,
     *,
@@ -506,6 +513,20 @@ def _admit_profile(
                 f"{profile.harness.id}/{profile.harness.version} "
                 f"(allowed: {sorted(requires.memory)})"
             )
+
+    if (
+        profile.model.provider in _SINGLE_REASONING_CONTROL_PROVIDERS
+        and profile.reasoning.effort is not None
+        and profile.reasoning.token_budget is not None
+    ):
+        # Refused here, before a plan is frozen. Sent, the pair is a 400 on
+        # the first provider call, after the campaign identity is sealed and
+        # the run admitted (#133).
+        reasons.append(
+            f"profile {profile.profile_id!r} declares both reasoning.effort and "
+            f"reasoning.token_budget; provider {profile.model.provider!r} accepts "
+            "only one of them"
+        )
 
     admitted = not reasons
     capability_vector = _capability_vector(

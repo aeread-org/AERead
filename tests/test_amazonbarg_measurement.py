@@ -377,7 +377,7 @@ def _score_and_check_parity(codename: str, script: list[tuple[str, str, str]]) -
     # (`primary=None`) even when `D`/`buyer_bargained_ratio` are present,
     # e.g. a conflicting-interest session whose scripted trajectory
     # nonetheless closes a deal (see
-    # docs/amazonbarg_review_claude.md finding W2 and this file's own
+    # docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W2 and this file's own
     # `test_conflicting_interest_session_whose_scripted_trajectory_still_closes_a_deal`).
     if "D" in metrics_output:
         if envelopes["zopa"].status == "ok":
@@ -453,7 +453,7 @@ def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_prima
     -seat ``SeatContext`` below is what makes ``amazonbarg_bargained_ratio``
     come back ``status="ok"`` through THIS seam -- before R12 no seat
     signal was reachable here at all and this leaf was always
-    ``invalid_measurement`` (see docs/amazonbarg_adapter_status.md's "Leaf
+    ``invalid_measurement`` (see docs/families/amazonbarg/adapter_status.md's "Leaf
     policy" section for the resolution)."""
     script = [
         (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $120 (1x home-kitchen_2)"),
@@ -668,7 +668,7 @@ def test_golden_5_degenerate_reference_dji_drone_quits() -> None:
 
 
 def test_conflicting_interest_session_whose_scripted_trajectory_still_closes_a_deal() -> None:
-    """Regression for docs/amazonbarg_review_claude.md finding W2.
+    """Regression for docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W2.
 
     Upstream's own ``eval.py:Metrics.evaluate`` sets ``D``/
     ``buyer_bargained_ratio`` whenever a ``DEAL`` closes, with no check

@@ -3,11 +3,11 @@
 There is no upstream code to exercise here (verified: no repository is cited
 for arXiv 2404.00806v6, none exists at the listing) -- "parity" instead means
 hand-verified closed-form arithmetic against the paper's own quoted Appendix
-A.5 figures, per ``docs/collusion_adapter_spec.md`` sections 1 and 5. The
+A.5 figures, per ``docs/families/collusion/adapter_spec.md`` sections 1 and 5. The
 arithmetic-parity regression below must never silently skip: a skip here
 means the adapter's whole economic-mechanism claim went unchecked, the same
 failure mode already logged for this codebase's tau3 fidelity suite
-(``docs/collusion_adapter_spec.md`` section 5).
+(``docs/families/collusion/adapter_spec.md`` section 5).
 """
 from __future__ import annotations
 

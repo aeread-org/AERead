@@ -167,6 +167,49 @@ fields, and raw-response retention. The service must execute the same AERead
 cases and produce AERead-verifiable receipts; an external arena score is not a
 substitute for the Housing scorer or canonical fact tables.
 
+### Spend of a failed cell
+
+A cell that fails after paid calls still spent money, and a total that omits
+it understates what the failures consumed. Read every cell's spend, completed
+or failed, from its event log with the kernel reader instead of from a
+checkpoint or a receipt:
+
+```python
+from aeread.shared_runner import attempt_spend, total_spend
+
+spend = attempt_spend(attempt_dir)          # works on a failed or interrupted attempt
+run_total = total_spend(attempt_spend(path) for path in attempt_dirs)
+```
+
+`cost_accounting` is `exact` or `lower_bound`. It is a lower bound whenever a
+call has no known cost: its outcome is unknown (timeout, dropped connection),
+the attempt was interrupted before the call closed, or the provider answered
+without usable usage. Report the qualifier with the figure. A call that failed
+after the provider answered is charged against the profile's cost budget and
+carries its usage on the `provider_call_failed` event.
+
+### Long calls
+
+A reasoning-heavy profile can spend minutes on one call. Two controls keep
+that call alive, and both are declared in the profile so a reader of the
+experiment definition sees them:
+
+- `harness.config.provider_stream: true` asks the provider to stream the
+  reply. A call sent whole holds a connection that carries no bytes until the
+  answer, and 76 such calls lost their connection 76 s after starting
+  (DC-T-14). The streamed reply is reassembled to the same result, with the
+  same usage, cost and route verification. Only the OpenRouter client streams;
+  the Arena and OpenAI Responses clients refuse a streamed request instead of
+  ignoring the declaration. Absent means not streamed.
+- `budgets.timeout_seconds` is sized from the sealed full-trajectory gate, not
+  from a smoke: take the longest completed call the gate recorded for that
+  profile and leave room above it. Limits sized from a six-prompt smoke cost
+  one model 25 cells (DC-O-09).
+
+A connection that dies mid-reply is `transport` and a stalled one is
+`timeout`. Both are retried only when the profile lists them in
+`retry_policy.retryable_conditions`.
+
 ## 4. Publish canonical fact-table projections
 
 The benchmark export writes four reportable artifacts in addition to the
@@ -236,6 +279,46 @@ incomplete, a score is invalid, paired worlds are selectively missing, or a
 control differs across treatment cells. Preserve the failure as evidence, and
 record it in the [incident log](incident_log.md) with its detection, its cost,
 and its disposition.
+
+### Halt rule
+
+A run also stops itself when the next cell cannot succeed. Declare the limit in
+the contract's execution block and let the kernel enforce it:
+
+```python
+from aeread.shared_runner import (
+    CellOutcome,
+    OperationalHaltGuard,
+    require_halt_rule,
+    run_cells_under_halt_rule,
+)
+
+limit = require_halt_rule(contract["execution"])  # max_consecutive_operational_failures
+run = await run_cells_under_halt_rule(
+    cell_keys,
+    execute_cell,
+    guard=OperationalHaltGuard(limit),
+    outcome=lambda result: CellOutcome(
+        operational_failure=result["status"] != "completed",
+        failure_condition=(result.get("failure") or {}).get("failure_condition"),
+        attempted_now=result["status"] != "resumed",
+    ),
+)
+raise SystemExit(run.exit_code)  # 2 when the run halted
+```
+
+- The run halts after `max_consecutive_operational_failures` cells in a row
+  fail operationally, and at once on `account_fault` (HTTP 402): an exhausted
+  balance fails every remaining cell the same way.
+- A cell the run never reached is `not_attempted`. It has no receipt and is not
+  a failure of the cell; write `run.not_attempted` as typed missingness and
+  report `run.halt` in the summary.
+- Only cells executed now count. A resumed result describes an earlier run.
+- A contract schema that predates the control passes `required=False` and keeps
+  running to the end; a sealed contract never acquires a stop rule.
+- A driver that interleaves cells across routes holds the
+  `OperationalHaltGuard` itself: check `guard.halted` before each cell and call
+  `guard.observe(...)` after it.
 
 Before `confirmatory_freeze`, a design change starts a new gate attempt and must
 be documented. After the freeze, any change to treatment, controls, cases,
