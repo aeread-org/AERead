@@ -147,6 +147,7 @@ identities, so their citations are redirected, not rewritten.
 - [Verifier-to-case mapping](research/verifier_case_mapping.md)
 - [Problem-to-bound case audit](research/problem_bound_case_audit.md)
 - [Benchmark saturation](research/benchmark_saturation.md)
+- [Economic primitives the map lacks: three extensions and two shared mechanics](research/economic_primitives_extension_design.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
