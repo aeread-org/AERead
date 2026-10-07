@@ -43,6 +43,9 @@ transferable-utility surplus matrix. Non-positive matches are dropped. The alway
 feasible no-trade outcome is the floor `L = 0`. For worlds with `U > 0`, normalized
 efficiency is therefore `(R - L) / (U - L) = R / U`; worlds with `U = 0` must be
 reported separately rather than divided by zero.
+The two-sided assignment setting follows
+[Shapley and Shubik (1971)](https://doi.org/10.1007/BF01753437); AERead uses the
+optimal assignment as a welfare bound, not their core price characterization.
 
 The comparison baseline `B` is a declared executable policy, not another bound. For
 the current multi-round direct-value world, `B` is the deterministic naive scripted
