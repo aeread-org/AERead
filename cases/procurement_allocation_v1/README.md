@@ -530,3 +530,37 @@ python -m aeread_families.procurement_allocation.information_case_matrix --surfa
 `confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
 generated after that prompt was frozen and its development result read.
 
+## The inference panel and its unread holdout
+
+`inference_v1/` is the eighteen-world panel on which choosing whom to verify
+is an inference rather than a rule: one visible attribute tracks quality, and
+which attribute and which direction differ by world, while the binding risk
+varies unlabelled (`inference_case_matrix`, design review 26 to 29). Its seeds
+are fixed and every world has been played by the pilots, so it is a
+development panel, not a holdout.
+
+`inference_holdout_v1/` is the same construct drawn by rule from a seed domain
+of its own (8820000 and up), two worlds per signal-by-risk cell, thirty-six in
+all, that no live cell has read. Each world's numbers come from
+`inference_case_matrix.RANGES`; `inference_pack.screen_world` admits a world
+only when six listing-only rules separate in expectation, the rule aligned
+with the declared signal solves it, the rule reading the signal backwards
+loses by at least 5% of the bound, and the full-information optimum sources
+at least 60% of its good units from good suppliers (capacity worlds, where a
+wrong direction costs actions rather than money, are exempt from the last two
+and recorded). `pack.json` lists every world's rule regrets, the optimum's
+awards and every refused seed with its verdict. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.inference_pack inference_holdout_v1 --write
+```
+
+Two choices depart from v1 and are recorded in the incident log: the listing
+states each supplier's minimum-order level as a claim (v1 listings never stated
+one, which left `moq_low_is_good__capacity` without its signal, P-D-12), and
+the target is nineteen kits with a price spread of at most 30% and a poor yield
+of 0.45 to 0.62, so that the signal's direction is also the profitable one (on
+v1 the optimum of `price_high_is_good__yield` buys only the poor suppliers,
+P-D-13). A campaign takes one surface's worlds as its `--case` list, from
+`inference_pack.pack_case_paths("inference_holdout_v1", surface="opaque")`.
+
