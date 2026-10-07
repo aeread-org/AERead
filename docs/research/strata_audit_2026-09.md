@@ -87,8 +87,8 @@ value, at 1x instead of kx.
 **Procurement, part by part.** The six repeated-sourcing world types are the
 relationship extension itself: each is one tension built from the loyalty
 discount, the retaliation markup and the incumbent's capacity
-(`docs/families/procurement-allocation/relationship_design.md` §3 on
-`codex/procurement-repeated-relationship`). Split into the gap report's parts,
+(`relationship_design.md` §3 under the procurement family's documents on the
+`codex/procurement-repeated-relationship` branch, not yet on `main`). Split into the gap report's parts,
 Gemini minus GLM per world:
 
 | Part | loyalty investment | retaliation trap | demand ramp | incumbent capacity | unreliable incumbent | qualification investment | noise p (dev2, holdout) |
@@ -110,8 +110,8 @@ working, not the models reacting differently to different mechanisms. Six
 strata carry one two-way distinction here.
 
 **Housing, the opponent.** The opponent reads within noise on the confirmatory,
-yet the estimand review (`docs/families/housing/estimand_review.md` on
-`codex/housing-v13-cooldown-full-trajectory`, row D-27) finds
+yet the estimand review (`estimand_review.md` under the housing family's documents
+on the `codex/housing-v13-cooldown-full-trajectory` branch, row D-27) finds
 it explains 56.4% of within-case variance (p = 0.003). Both hold: per case the
 opponent moves the within-case score by 0.08 on average, with the sign split 51
 to 39 over the 90 cases, so the average shift is +0.034. The opponent matters to
