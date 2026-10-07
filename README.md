@@ -286,7 +286,7 @@ evidence. It is generated from the tree and the plugin registry
 | GovSim | external adapter | [`govsim`](src/aeread_families/govsim/) | `govsim@0.1.0` | [`govsim/`](cases/govsim/) | [`govsim/`](docs/families/govsim/) | [3](evidence/govsim/) |
 | Housing | native | [`housing`](src/aeread_families/housing/) | `housing_v1@1.0.0` | [`housing_v1/`](cases/housing_v1/) | [`housing/`](docs/families/housing/) | [16](evidence/housing/) |
 | NegotiationArena | external adapter | [`negarena`](src/aeread_families/negarena/) | `negarena@0.1.0` | [`negarena/`](cases/negarena/) | [`negarena/`](docs/families/negarena/) | 0 |
-| Procurement allocation | native | [`procurement_allocation`](src/aeread_families/procurement_allocation/) | `procurement_allocation_v1@1.0.0` | [`procurement_allocation_v1/`](cases/procurement_allocation_v1/) | [`procurement-allocation/`](docs/families/procurement-allocation/) | [22](evidence/procurement_allocation/) |
+| Procurement allocation | native | [`procurement_allocation`](src/aeread_families/procurement_allocation/) | `procurement_allocation_v1@1.0.0` | [`procurement_allocation_v1/`](cases/procurement_allocation_v1/) | [`procurement-allocation/`](docs/families/procurement-allocation/) | [26](evidence/procurement_allocation/) |
 | Procurement grounding | native | [`procurement_grounding`](src/aeread_families/procurement_grounding/) | `procurement_grounding_v1@1.0.0` | [`procurement_grounding_v1/`](cases/procurement_grounding_v1/) | none | [3](evidence/procurement_grounding/) |
 | Refund | native | [`refund`](src/aeread_families/refund/) | none | [`refund_v1/`](cases/refund_v1/), [`refund_v2/`](cases/refund_v2/) | [`refund/`](docs/families/refund/) | [8](evidence/refund/) |
 | Single offer | kernel smoke test | [`single_offer`](src/aeread_families/single_offer/) | `single_offer_v1@1.0.0` | none | none | 0 |
@@ -294,7 +294,7 @@ evidence. It is generated from the tree and the plugin registry
 | Tau3 retail | external adapter | [`tau3_retail`](src/aeread_families/tau3_retail/) | `tau3.retail@0.1.0` | [`tau3_retail/`](cases/tau3_retail/) | [`tau3-retail/`](docs/families/tau3-retail/) | 0 |
 | TERMS-Bench | external adapter | [`termsbench`](src/aeread_families/termsbench/) | `termsbench@0.1.0` | [`termsbench/`](cases/termsbench/) | [`termsbench/`](docs/families/termsbench/) | 0 |
 
-22 families, 26 case directories, 92 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
+22 families, 26 case directories, 96 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
 
 Registered with no family package on this tree: `datacenter_risk_allocation_v1@0.1.0`, `kernel_contract_reference_v1@1.0.0`, `kernel_contract_sequential_v1@1.0.0`.
 
