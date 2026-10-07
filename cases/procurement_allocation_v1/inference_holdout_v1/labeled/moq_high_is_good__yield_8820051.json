@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__capacity_8820023",
-  "content_sha256": "60b50cd778319963ca9dfd020967e9dc7d7d94ca8287774282b3d829eb94e27c",
+  "case_id": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__yield_8820051",
+  "content_sha256": "cc8dafcadd73898c09a16edcd03550f5e18d670f9363cb181a6eb204d3a17db2",
   "episode": {
     "max_logical_actions": 9,
     "termination": [
@@ -23,7 +23,7 @@
       "quote_days": 1,
       "sample_noise": {
         "model": "binomial",
-        "seed": 9320023
+        "seed": 9320051
       }
     },
     "objective": {
@@ -32,14 +32,14 @@
         "bh1750_gy302": 1,
         "sht30_i2c": 1
       },
-      "cash_budget_usd": 86.25,
-      "deadline_days": 22,
+      "cash_budget_usd": 71.35,
+      "deadline_days": 25,
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "inference_kit_8820023",
-      "revenue_per_completed_kit_usd": 15.97,
-      "shortfall_penalty_per_kit_usd": 3.84,
+      "product_id": "inference_kit_8820051",
+      "revenue_per_completed_kit_usd": 14.09,
+      "shortfall_penalty_per_kit_usd": 2.26,
       "target_kits": 19,
       "working_capital_horizon_days": 45
     },
@@ -64,172 +64,22 @@
     },
     "suppliers": [
       {
-        "component": "bh1750_gy302",
-        "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 0.5658,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier BDE3B42C0423"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.69,
-          "capacity": 10,
-          "duty_rate": 0.05,
-          "lead_time_days": 5,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.69,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
-            "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module",
-          "verbal_bias": {
-            "moq": 10,
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_bde3b42c0423"
-      },
-      {
-        "component": "bh1750_gy302",
-        "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 0.672728,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 0137329D065E"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.8204,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 5,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.8204,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
-            "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module",
-          "verbal_bias": {
-            "moq": 10,
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_0137329d065e"
-      },
-      {
-        "component": "bh1750_gy302",
-        "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 0.637058,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 0117DD9F044E"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.7769,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 5,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.7769,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
-            "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module",
-          "verbal_bias": {
-            "moq": 10,
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_0117dd9f044e"
-      },
-      {
         "component": "sht30_i2c",
         "listing": {
-          "claimed_lead_time_days": 3,
+          "claimed_lead_time_days": 4,
           "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 0.672728,
+          "displayed_unit_price_usd": 0.443866,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 132779C5D851"
+          "supplier_name": "Synthetic S0 supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.8204,
+          "base_unit_price_usd": 0.5413,
           "capacity": 20,
           "duty_rate": 0.05,
-          "lead_time_days": 5,
+          "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.8204,
+            "floor_unit_price_usd": 0.5413,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -240,11 +90,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
+            "observed_defects": 4,
+            "sample_cost_usd": 0.34,
             "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
+            "sample_size": 9,
+            "verified_yield_rate": 0.51
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -261,25 +111,125 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_132779c5d851"
+        "supplier_id": "sht30_i2c_s0"
       },
       {
-        "component": "bh1750_gy302",
+        "component": "sht30_i2c",
         "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 0.60147,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.477814,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 082FCCB558B8"
+          "supplier_name": "Synthetic S1 supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.7335,
-          "capacity": 10,
+          "base_unit_price_usd": 0.5827,
+          "capacity": 20,
           "duty_rate": 0.05,
-          "lead_time_days": 5,
+          "lead_time_days": 6,
+          "moq": 20,
+          "negotiation": {
+            "floor_unit_price_usd": 0.5827,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 20,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.34,
+            "sample_lead_time_days": 1,
+            "sample_size": 9,
+            "verified_yield_rate": 0.984
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "moq": 20,
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "sht30_i2c_s1"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.41,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic S2 supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.5,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 20,
+          "negotiation": {
+            "floor_unit_price_usd": 0.5,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 20,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.34,
+            "sample_lead_time_days": 1,
+            "sample_size": 9,
+            "verified_yield_rate": 0.984
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "moq": 20,
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "sht30_i2c_s2"
+      },
+      {
+        "component": "sht30_i2c",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "sht30 i2c module 3v3",
+          "displayed_unit_price_usd": 0.51168,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic S3 supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.624,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.7335,
+            "floor_unit_price_usd": 0.624,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -290,11 +240,161 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
+            "observed_defects": 4,
+            "sample_cost_usd": 0.34,
             "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
+            "sample_size": 9,
+            "verified_yield_rate": 0.51
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "sht30_i2c_module_3v3",
+          "verbal_bias": {
+            "moq": 10,
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "sht30_i2c_s3"
+      },
+      {
+        "component": "bh1750_gy302",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 0.41,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic S0 supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.5,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 20,
+          "negotiation": {
+            "floor_unit_price_usd": 0.5,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 20,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.34,
+            "sample_lead_time_days": 1,
+            "sample_size": 9,
+            "verified_yield_rate": 0.984
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "bh1750_gy302_i2c_module",
+          "verbal_bias": {
+            "moq": 20,
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "bh1750_gy302_s0"
+      },
+      {
+        "component": "bh1750_gy302",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 0.477814,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic S1 supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.5827,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 20,
+          "negotiation": {
+            "floor_unit_price_usd": 0.5827,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 20,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.34,
+            "sample_lead_time_days": 1,
+            "sample_size": 9,
+            "verified_yield_rate": 0.984
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "bh1750_gy302_i2c_module",
+          "verbal_bias": {
+            "moq": 20,
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "bh1750_gy302_s1"
+      },
+      {
+        "component": "bh1750_gy302",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 0.443866,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic S2 supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.5413,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.5413,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 4,
+            "sample_cost_usd": 0.34,
+            "sample_lead_time_days": 1,
+            "sample_size": 9,
+            "verified_yield_rate": 0.51
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -311,125 +411,25 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_082fccb558b8"
+        "supplier_id": "bh1750_gy302_s2"
       },
       {
-        "component": "sht30_i2c",
+        "component": "bh1750_gy302",
         "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 0.60147,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 0.51168,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 7C7FD3B71F50"
+          "supplier_name": "Synthetic S3 supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.7335,
-          "capacity": 10,
-          "duty_rate": 0.05,
-          "lead_time_days": 5,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.7335,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
-            "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3",
-          "verbal_bias": {
-            "moq": 10,
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_7c7fd3b71f50"
-      },
-      {
-        "component": "sht30_i2c",
-        "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 0.5658,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 13B3AC06E88E"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.69,
-          "capacity": 10,
-          "duty_rate": 0.05,
-          "lead_time_days": 5,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.69,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
-            "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3",
-          "verbal_bias": {
-            "moq": 10,
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_13b3ac06e88e"
-      },
-      {
-        "component": "sht30_i2c",
-        "listing": {
-          "claimed_lead_time_days": 3,
-          "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 0.637058,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 34016BAFEE6B"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.7769,
+          "base_unit_price_usd": 0.624,
           "capacity": 20,
           "duty_rate": 0.05,
-          "lead_time_days": 5,
+          "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.7769,
+            "floor_unit_price_usd": 0.624,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -440,11 +440,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 0,
-            "sample_cost_usd": 0.39,
+            "observed_defects": 4,
+            "sample_cost_usd": 0.34,
             "sample_lead_time_days": 1,
-            "sample_size": 7,
-            "verified_yield_rate": 0.983
+            "sample_size": 9,
+            "verified_yield_rate": 0.51
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -455,13 +455,13 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3",
+          "variant_id": "bh1750_gy302_i2c_module",
           "verbal_bias": {
             "moq": 10,
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_34016bafee6b"
+        "supplier_id": "bh1750_gy302_s3"
       }
     ]
   },
@@ -477,7 +477,7 @@
     }
   ],
   "spec_version": "aeread.case/0.1",
-  "split": "inference_holdout_v1_opaque",
+  "split": "inference_holdout_v1_labeled",
   "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
-  "world_seed": 8820023
+  "world_seed": 8820051
 }

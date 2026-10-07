@@ -152,12 +152,19 @@ def test_every_world_was_admitted_by_the_screen_and_says_why(manifest: dict) -> 
         assert row["opposite_rule"] == OPPOSITE_RULE[row["aligned_rule"]]
         assert row["aligned_rule"] in row["solved_by"]
         assert set(row["rule_regret_usd"]) == set(RULES)
+        assert row["opposite_rule"] not in row["solved_by"]
         assert row["opposite_margin_usd"] == pytest.approx(
             row["rule_regret_usd"][row["opposite_rule"]] - row["rule_regret_usd"][row["aligned_rule"]], abs=1e-5
         )
+        assert set(row["careful_rule_regret_usd"]) == set(RULES)
+        assert row["recoverable_by_second_verification"] == (
+            row["careful_rule_regret_usd"][row["opposite_rule"]] < pack_module.SOLVED_REGRET_USD
+        )
         if row["risk"] != "capacity":
-            assert row["opposite_margin_usd"] >= 0.05 * row["upper_bound_usd"]
             assert row["oracle_good_share"] >= pack_module.ORACLE_GOOD_SHARE_FLOOR
+    ceiling = manifest["rule_ceiling"]["committed"]
+    assert ceiling == {rule: sum(1 for row in manifest["worlds"] if rule in row["solved_by"]) for rule in RULES}
+    assert max(ceiling.values()) < len(manifest["worlds"]), "a committed rule must not sweep the pack"
     assert all(row["verdict"] != ADMIT for row in manifest["excluded"])
 
 
@@ -253,6 +260,7 @@ def test_two_committed_worlds_rebuild_from_their_seeds(manifest: dict, committed
         screen = screen_world(world["cases"]["labeled"]["payload"], signal=row["signal"], risk=row["risk"])
         assert screen["verdict"] == ADMIT
         assert screen["rule_regret_usd"] == row["rule_regret_usd"]
+        assert screen["careful_rule_regret_usd"] == row["careful_rule_regret_usd"]
 
 
 def test_sampling_is_deterministic_and_seeds_differ_in_their_economics() -> None:
@@ -279,6 +287,8 @@ def test_the_six_rules_rank_in_opposite_directions() -> None:
         assert direction(signal) in ("low_is_good", "high_is_good")
     with pytest.raises(ValueError):
         choose_rule_action({}, rule="no_such_rule")
+    with pytest.raises(ValueError):
+        choose_rule_action({}, rule="cheapest_first", depth=0)
 
 
 @pytest.mark.skipif(not os.environ.get("AEREAD_SLOW_TESTS"), reason="rebuilds and screens the whole pack; set AEREAD_SLOW_TESTS=1")

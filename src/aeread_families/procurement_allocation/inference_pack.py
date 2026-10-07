@@ -9,42 +9,44 @@ recording every refusal with its verdict, the relationship-pack shape.
 
 **What admits a world.** Six listing-only rules play it, one per direction of
 each signal: verify the cheapest first and the dearest first, the fastest and
-the slowest, the smallest minimum order and the largest. Each follows the
-public-policy procedure (quote, sample, award once the qualified capacity
-covers the target) and reads nothing but the listing. A world is admitted when
+the slowest, the smallest minimum order and the largest. A rule is a
+*committed* buyer: it verifies the first supplier its ranking names in each
+component (quote, then sample), awards what that supplier can deliver, and
+defers if that is below the minimum service. This is the buyer the design
+review's fixed-rule ceiling describes and the buyer the pilots' subjects were
+(median two suppliers verified per row, one per component). A world is
+admitted when
 
 - the rules separate in expectation (`classify_world_by_policy_separation`
   over at least three sample-noise seeds), the rule the other screens lacked;
 - the rule aligned with the world's declared signal solves the world (mean
-  regret below `trajectory_analysis.SOLVED_REGRET_USD`); and
-- in a yield or timing world, the rule committed to the opposite direction
-  loses to it by at least `MINIMUM_RELATIVE_SPREAD` of the full-information
-  bound. A capacity world is exempt: its poor suppliers supply one lot each,
-  two of them cover the target, and reading the direction wrong costs actions
-  rather than money. Capacity is the risk a formal offer states, the control
-  that needs no inference, exactly as v1 reads it; and
+  regret below `trajectory_analysis.SOLVED_REGRET_USD`);
+- the rule committed to the opposite direction does not; and
 - in a yield or timing world, the full-information optimum sources at least
   `ORACLE_GOOD_SHARE_FLOOR` of its expected good units from good suppliers,
   so the signal predicts the better decision and not merely quality. On v1 it
   does not always: `price_high_is_good__yield`'s optimum buys only the poor
   suppliers (P-D-13), so a buyer that ignored the signal there was right. A
-  capacity world is exempt here too: a cheap small supplier is a legitimate
-  buy, so the optimum may source from the "poor" side; the share is recorded.
-
-Other rules may also solve a world by the luck of the decoy price order; that
-is expected, every fixed rule wins some worlds. What a world must guarantee is
-that reading its signal wins and reading it backwards costs. How much it costs
-differs by risk and is recorded per world: a yield world punishes the wrong
-direction with the whole bound, while a timing or capacity world can be
-recovered by over-ordering from the suppliers the formal offer exposes, at a
-price. `opposite_rule_solves` says which kind a world is.
+  capacity world is exempt: a cheap small supplier is a legitimate buy, so
+  the optimum may source from the "poor" side; the share is recorded.
 
 So "a better decision exists, and it is the one the signal implies" is a
-property each world is tested for, not a construction argument. A pack fills
-every signal-by-risk cell to its declared count; a stratum reported from it
-needs at least five worlds (strata audit, 2026-09).
+property each world is tested for, not a construction argument. The other
+four rules solve a world by the luck of the decoy order, about half the time;
+that is expected, and each pack's manifest records how many worlds every
+rule solves, which is the fixed-rule ceiling a subject must clear.
 
-The rules follow the public-policy procedure with one sanity rule added: a
+The same six rules are also played *carefully*: verify a second supplier in
+rank order when the first does not cover the target. At nineteen kits one
+good lot suffices, so a careful buyer that reads one bad sample and moves on
+recovers most worlds within the nine-action budget, a committed one cannot.
+Those outcomes are recorded per world (`careful_rule_regret_usd`,
+`recoverable_by_second_verification`) and do not decide admission: they say
+what reading the world is worth. A pack fills every signal-by-risk cell to
+its declared count; a stratum reported from it needs at least five worlds
+(strata audit, 2026-09).
+
+The award step follows the public-policy procedure with one sanity rule: a
 top-up lot is ordered only when the kits it adds are worth more than it costs.
 Without it a 20-unit minimum order made every rule buy a second 20-unit lot
 to cover half an expected unit, and the cash budget, not the signal, decided
@@ -117,10 +119,13 @@ OPPOSITE_RULE: dict[str, str] = {
     "largest_moq_first": "smallest_moq_first",
 }
 ALIGNED_RULE_FAILS = "reject: the aligned rule does not solve the world"
-OPPOSITE_RULE_AS_GOOD = "reject: the opposite rule loses less than the margin"
+OPPOSITE_RULE_SOLVES = "reject: the opposite rule also solves the world"
 ORACLE_BUYS_POOR = "reject: the full-information optimum sources mostly from poor suppliers"
 ORACLE_GOOD_SHARE_FLOOR = 0.6
-MARGIN_EXEMPT_RISKS = frozenset({"capacity"})
+ORACLE_SHARE_EXEMPT_RISKS = frozenset({"capacity"})
+#: Suppliers a rule verifies per component before it awards: one for the
+#: committed buyer the screen admits on, two for the careful buyer it records.
+COMMITTED, CAREFUL = 1, 2
 
 #: A supplier is good when none of the three risks touches it; the thresholds
 #: sit between every good and poor level the ranges allow. Read from private
@@ -165,15 +170,18 @@ def _ranked(observation: Mapping[str, Any], *, component: str, rule: str) -> lis
     return sorted(candidates, key=key)
 
 
-def choose_rule_action(observation: Mapping[str, Any], *, rule: str) -> dict[str, Any]:
+def choose_rule_action(observation: Mapping[str, Any], *, rule: str, depth: int = COMMITTED) -> dict[str, Any]:
     """The public-policy procedure with the rule's ranking: quote, sample, award.
 
     A copy of ``policy_baselines.choose_public_policy_action``'s procedure with
-    the ranking swapped and one sanity rule added (a lot must pay for itself),
-    kept here so the pinned module's bytes do not move.
+    the ranking swapped, a verification depth (how many suppliers per component
+    the rule will qualify before it awards) and one sanity rule added (a lot
+    must pay for itself), kept here so the pinned module's bytes do not move.
     """
     if rule not in RULES:
         raise ValueError(f"unknown rule {rule!r}; known: {sorted(RULES)}")
+    if int(depth) < 1:
+        raise ValueError("depth must be at least one supplier per component")
     objective = observation["objective"]
     required_variants = observation["policy"]["required_variant_by_component"]
     qualified: dict[str, list[tuple[Mapping[str, Any], Mapping[str, Any]]]] = {}
@@ -206,7 +214,7 @@ def choose_rule_action(observation: Mapping[str, Any], *, rule: str) -> dict[str
                 }
             qualified[component].append((offer, sample))
             expected_capacity += _expected_capacity(observation=observation, offer=offer, sample=sample)
-            if expected_capacity + 1e-12 >= target_units:
+            if expected_capacity + 1e-12 >= target_units or len(qualified[component]) >= int(depth):
                 break
 
     expected_units: dict[str, float] = {}
@@ -252,7 +260,7 @@ def choose_rule_action(observation: Mapping[str, Any], *, rule: str) -> dict[str
     return {"action": "submit_award", "award_lines": award_lines}
 
 
-def replay_rule(payload: Mapping[str, Any], rule: str) -> dict[str, Any] | None:
+def replay_rule(payload: Mapping[str, Any], rule: str, *, depth: int = COMMITTED) -> dict[str, Any] | None:
     """Play one rule offline through the environment; ``None`` if no terminal."""
     plugin = ProcurementAllocationPlugin()
     family_case = plugin.validate_payload(payload)
@@ -262,7 +270,7 @@ def replay_rule(payload: Mapping[str, Any], rule: str) -> dict[str, Any] | None:
         if state["done"]:
             break
         observation = plugin.observe(family_case, state, "buyer", phase)
-        action = choose_rule_action(observation, rule=rule)
+        action = choose_rule_action(observation, rule=rule, depth=depth)
         parsed = plugin.parse_action(family_case, state, "buyer", phase, action)
         if not parsed.ok:
             return None
@@ -308,45 +316,49 @@ def _good_unit_share(payload: Mapping[str, Any], plan: Sequence[Mapping[str, Any
 def screen_world(
     payload: Mapping[str, Any], *, signal: str, risk: str, seeds: int = MINIMUM_SCREEN_SEEDS
 ) -> dict[str, Any]:
-    """Play the six rules at ``seeds`` sample-noise seeds and judge the world."""
+    """Play the six rules, committed and careful, at ``seeds`` noise seeds and judge the world."""
     optimum = solve_full_information_upper_bound(payload)
     bound = float(optimum.contribution_margin_usd)
     good = good_supplier_ids(payload)
     oracle_awards = sorted({str(line["supplier_id"]) for line in optimum.award_plan})
     oracle_good_share = _good_unit_share(payload, optimum.award_plan, good)
     base_seed = int(payload["interaction"]["sample_noise"]["seed"])
-    scores: dict[str, list[float]] = {rule: [] for rule in RULES}
+    scores: dict[int, dict[str, list[float]]] = {depth: {rule: [] for rule in RULES} for depth in (COMMITTED, CAREFUL)}
     for offset in range(int(seeds)):
         variant = copy.deepcopy(dict(payload))
         variant["interaction"]["sample_noise"]["seed"] = base_seed + offset
-        for rule in RULES:
-            outcome = replay_rule(variant, rule)
-            # A rule that reaches no terminal has forfeited the award; it
-            # scores as a deferral at the full bound.
-            scores[rule].append(
-                float(outcome["regret_to_upper_bound_usd"]) if outcome is not None else bound
-            )
-    means = {rule: round(sum(values) / len(values), 6) for rule, values in scores.items()}
+        for depth in (COMMITTED, CAREFUL):
+            for rule in RULES:
+                outcome = replay_rule(variant, rule, depth=depth)
+                # A rule that reaches no terminal has forfeited the award; it
+                # scores as a deferral at the full bound.
+                scores[depth][rule].append(
+                    float(outcome["regret_to_upper_bound_usd"]) if outcome is not None else bound
+                )
+    means = {rule: round(sum(values) / len(values), 6) for rule, values in scores[COMMITTED].items()}
+    careful = {rule: round(sum(values) / len(values), 6) for rule, values in scores[CAREFUL].items()}
     aligned = ALIGNED_RULE[signal]
     opposite = OPPOSITE_RULE[aligned]
-    verdict = classify_world_by_policy_separation(scores)
+    verdict = classify_world_by_policy_separation(scores[COMMITTED])
     margin = round(means[opposite] - means[aligned], 6)
     if verdict == ADMIT:
         if means[aligned] >= SOLVED_REGRET_USD:
             verdict = ALIGNED_RULE_FAILS
-        elif risk not in MARGIN_EXEMPT_RISKS and margin < MINIMUM_RELATIVE_SPREAD * bound:
-            verdict = OPPOSITE_RULE_AS_GOOD
-        elif risk not in MARGIN_EXEMPT_RISKS and oracle_good_share < ORACLE_GOOD_SHARE_FLOOR:
+        elif means[opposite] < SOLVED_REGRET_USD:
+            verdict = OPPOSITE_RULE_SOLVES
+        elif risk not in ORACLE_SHARE_EXEMPT_RISKS and oracle_good_share < ORACLE_GOOD_SHARE_FLOOR:
             verdict = ORACLE_BUYS_POOR
     return {
         "verdict": verdict,
         "upper_bound_usd": round(bound, 6),
         "rule_regret_usd": means,
         "solved_by": sorted(rule for rule, mean in means.items() if mean < SOLVED_REGRET_USD),
+        "careful_rule_regret_usd": careful,
+        "careful_solved_by": sorted(rule for rule, mean in careful.items() if mean < SOLVED_REGRET_USD),
         "aligned_rule": aligned,
         "opposite_rule": opposite,
         "opposite_margin_usd": margin,
-        "opposite_rule_solves": bool(means[opposite] < SOLVED_REGRET_USD),
+        "recoverable_by_second_verification": bool(careful[opposite] < SOLVED_REGRET_USD),
         "oracle_awards": oracle_awards,
         "oracle_good_share": oracle_good_share,
         "screen_seeds": int(seeds),
@@ -436,10 +448,12 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
                         "upper_bound_usd",
                         "rule_regret_usd",
                         "solved_by",
+                        "careful_rule_regret_usd",
+                        "careful_solved_by",
                         "aligned_rule",
                         "opposite_rule",
                         "opposite_margin_usd",
-                        "opposite_rule_solves",
+                        "recoverable_by_second_verification",
                         "oracle_awards",
                         "oracle_good_share",
                         "screen_seeds",
@@ -459,17 +473,23 @@ def build_pack(name: str, *, spec: Mapping[str, Any] | None = None) -> dict[str,
         "selection_rule": (
             "seed s is offered to cell (s - start) mod 18, signals crossed with risks in v1's order; "
             "its numbers are drawn from inference_case_matrix.RANGES by a generator seeded with s; "
-            "the world is admitted when the six listing-only rules separate in expectation "
+            "the world is admitted when the six listing-only committed rules (verify the first supplier "
+            "the ranking names in each component, then award) separate in expectation "
             f"(classify_world_by_policy_separation at {MINIMUM_RELATIVE_SPREAD} over "
             f"{MINIMUM_SCREEN_SEEDS} sample-noise seeds), the rule aligned with the declared signal "
             f"solves the world (mean regret below {SOLVED_REGRET_USD} USD), the rule committed to the "
-            f"opposite direction loses to it by at least {MINIMUM_RELATIVE_SPREAD} of the bound "
-            f"and the full-information optimum sources at least {ORACLE_GOOD_SHARE_FLOOR} of its "
-            f"expected good units from good suppliers (capacity worlds exempt from both), and the cell "
-            f"is not yet full at {per_cell}; every world declares binomial sample noise and states "
-            "its minimum-order level in the listing"
+            f"opposite direction does not, the full-information optimum sources at least "
+            f"{ORACLE_GOOD_SHARE_FLOOR} of its expected good units from good suppliers (capacity worlds "
+            f"exempt and recorded), and the cell is not yet full at {per_cell}; every world declares "
+            "binomial sample noise and states its minimum-order level in the listing; the careful "
+            "variant of each rule (a second supplier when the first does not cover) is recorded, not "
+            "admitted on"
         ),
         "rules": list(RULES),
+        "rule_ceiling": {
+            "committed": {rule: sum(1 for row in worlds if rule in row["solved_by"]) for rule in RULES},
+            "careful": {rule: sum(1 for row in worlds if rule in row["careful_solved_by"]) for rule in RULES},
+        },
         "per_cell": per_cell,
         "seeds_scanned": scanned,
         "admitted": len(worlds),
@@ -576,6 +596,8 @@ __all__ = [
     "build_pack",
     "build_world",
     "cells",
+    "CAREFUL",
+    "COMMITTED",
     "choose_rule_action",
     "good_supplier_ids",
     "pack_case_paths",

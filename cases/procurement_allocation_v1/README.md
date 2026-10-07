@@ -543,12 +543,17 @@ development panel, not a holdout.
 of its own (8820000 and up), two worlds per signal-by-risk cell, thirty-six in
 all, that no live cell has read. Each world's numbers come from
 `inference_case_matrix.RANGES`; `inference_pack.screen_world` admits a world
-only when six listing-only rules separate in expectation, the rule aligned
-with the declared signal solves it, the rule reading the signal backwards
-loses by at least 5% of the bound, and the full-information optimum sources
-at least 60% of its good units from good suppliers (capacity worlds, where a
-wrong direction costs actions rather than money, are exempt from the last two
-and recorded). `pack.json` lists every world's rule regrets, the optimum's
+only when six listing-only committed rules (verify the first supplier the
+ranking names in each component, then award) separate in expectation, the
+rule aligned with the declared signal solves it, the rule reading the signal
+backwards does not, and the full-information optimum sources at least 60% of
+its good units from good suppliers (capacity worlds, where a cheap small
+supplier is a legitimate buy, are exempt and recorded). The same rules played
+carefully, a second supplier when the first does not cover, are recorded and
+not admitted on: the best committed rule solves 17 of 36 worlds and the
+best careful rule 33, which is the pack's way of separating the
+direction a buyer verifies first from whether it verifies a second one.
+`pack.json` lists every world's rule regrets at both depths, the optimum's
 awards and every refused seed with its verdict. Regenerate with:
 
 ```bash
