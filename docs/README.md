@@ -48,6 +48,7 @@ not intended as a second reading order.
 - [Source package layout](architecture/source_layout.md)
 - [Run and publication artifact layout](architecture/artifact_layout.md)
 - [Receipt-derived research harness](architecture/research_runner_harness.md)
+- [Provider-call reliability: decision record](architecture/provider_reliability.md)
 - [Architecture walkthroughs](walkthroughs/README.md)
 
 ## Operations

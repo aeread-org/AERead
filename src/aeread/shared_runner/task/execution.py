@@ -26,6 +26,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
 
+from ..model_call import transport_telemetry
 from ..registry import PluginRegistry, PluginRegistryError
 from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
 from .scheduler import (
@@ -1366,6 +1367,7 @@ class OpenAIResponsesClient:
         base_url: str = "https://api.openai.com/v1",
     ) -> None:
         self._base_url = base_url.rstrip("/")
+        self._credential_fp: str | None = None
         if sdk_client is None:
             try:
                 from openai import AsyncOpenAI
@@ -1382,7 +1384,9 @@ class OpenAIResponsesClient:
                 api_key=api_key,
                 base_url=self._base_url,
                 max_retries=0,
+                **transport_telemetry.sdk_client_kwargs(),
             )
+            self._credential_fp = transport_telemetry.credential_fp_if_enabled(api_key)
         if not hasattr(sdk_client, "responses"):
             raise EvidenceIntegrityError(
                 "installed OpenAI SDK does not expose the Responses API"
@@ -1390,6 +1394,14 @@ class OpenAIResponsesClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        with transport_telemetry.bind_call_scope(
+            provider_call_id=request.provider_call_id,
+            provider_metadata=request.provider_metadata,
+            credential_fp=self._credential_fp,
+        ):
+            return await self._complete_traced(request)
+
+    async def _complete_traced(self, request: ProviderRequest) -> ProviderResult:
         if request.messages is not None:
             raise ProviderFailure(
                 "provider_contract",
@@ -1521,6 +1533,7 @@ class OpenRouterChatClient:
         base_url: str = "https://openrouter.ai/api/v1",
     ) -> None:
         self._base_url = base_url.rstrip("/")
+        self._credential_fp: str | None = None
         if sdk_client is None:
             try:
                 from openai import AsyncOpenAI
@@ -1538,7 +1551,9 @@ class OpenRouterChatClient:
                 api_key=api_key,
                 base_url=self._base_url,
                 max_retries=0,
+                **transport_telemetry.sdk_client_kwargs(),
             )
+            self._credential_fp = transport_telemetry.credential_fp_if_enabled(api_key)
         chat = getattr(sdk_client, "chat", None)
         if chat is None or not hasattr(chat, "completions"):
             raise EvidenceIntegrityError(
@@ -1547,6 +1562,14 @@ class OpenRouterChatClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        with transport_telemetry.bind_call_scope(
+            provider_call_id=request.provider_call_id,
+            provider_metadata=request.provider_metadata,
+            credential_fp=self._credential_fp,
+        ):
+            return await self._complete_traced(request)
+
+    async def _complete_traced(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "openrouter":
             raise ProviderFailure(
                 "provider_contract",
@@ -2154,6 +2177,7 @@ class ArenaChatClient:
         base_url: str = "https://api.preview.arena.ai/v1",
     ) -> None:
         self._base_url = base_url.rstrip("/")
+        self._credential_fp: str | None = None
         if sdk_client is None:
             try:
                 from openai import AsyncOpenAI
@@ -2170,7 +2194,9 @@ class ArenaChatClient:
                 api_key=api_key,
                 base_url=self._base_url,
                 max_retries=0,
+                **transport_telemetry.sdk_client_kwargs(),
             )
+            self._credential_fp = transport_telemetry.credential_fp_if_enabled(api_key)
         chat = getattr(sdk_client, "chat", None)
         if chat is None or not hasattr(chat, "completions"):
             raise EvidenceIntegrityError(
@@ -2179,6 +2205,14 @@ class ArenaChatClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        with transport_telemetry.bind_call_scope(
+            provider_call_id=request.provider_call_id,
+            provider_metadata=request.provider_metadata,
+            credential_fp=self._credential_fp,
+        ):
+            return await self._complete_traced(request)
+
+    async def _complete_traced(self, request: ProviderRequest) -> ProviderResult:
         if request.messages is not None:
             raise ProviderFailure(
                 "provider_contract",
@@ -4453,12 +4487,17 @@ async def execute_plan_cell(
         },
         request_seed_by_profile=request_seed_by_profile,
     )
-    result = await run_episode(
-        cell=cell,
-        case=case,
-        plugin=plugin,
-        response_source=executor,
-    )
+    with transport_telemetry.bind_cell_scope(
+        run_plan_id=plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id=episode_attempt_id,
+    ):
+        result = await run_episode(
+            cell=cell,
+            case=case,
+            plugin=plugin,
+            response_source=executor,
+        )
     evidence.audit_reconciliation()
     return CellExecution(
         run_plan_id=plan.run_plan_id,
