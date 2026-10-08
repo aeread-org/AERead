@@ -151,6 +151,7 @@ identities, so their citations are redirected, not rewritten.
 - [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
 - [Representative trajectory analysis, 2026-09-05](research/representative_trajectory_analysis_2026-09-05.md)
+- [Where the value is: GDP by economic activity, the categories, and the capability axes](research/value_composition_by_activity.md)
 - [Full bibliography (BibTeX)](../references.bib)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
