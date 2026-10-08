@@ -16,7 +16,9 @@ losing the effect's own exception.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
+import time
 
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
@@ -24,11 +26,15 @@ from typing import Any, Callable, Literal, Mapping, Protocol
 from ..task.execution import (
     TRUNCATED_FINISH_REASONS,
     declared_provider_stream,
+    declared_transport_policy,
+    exponential_jitter_delay,
     failed_call_cost,
     failed_call_event_fields,
+    transport_resend_class,
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
+    ProviderCallRecord,
     ProviderClient,
     ProviderFailure,
     ProviderRequest,
@@ -39,12 +45,18 @@ from ..task.execution import (
     TokenPricing,
     ToolFailure,
     ToolInvocationRecord,
+    TransportPolicy,
+    _StepExpired,
+    _await_stream_step,
+    _declares_stream_deadlines,
     _stable_id,
+    _stream_deadline_after,
 )
 from ..registry import HarnessRequirements, ProviderCapabilities
 from ..run.resolver import canonical_json_bytes
 from ..schemas import AgentProfile
 from ..task.tools import ToolContractError, ToolRuntime
+from .route_health import RouteHealth, RouteHealthRegistry, terminal_ref
 
 
 # --- The native model protocol's data shapes (§6; wire fields land in stage 2) ---
@@ -211,6 +223,16 @@ class Harness(Protocol):
 # --- The kernel-side ModelPort (§5.2, §3 invariant 1) ---
 
 
+# The clock and the sleep behind a transport_v1 re-send, as module functions
+# looked up at call time so a test can replace both without waiting.
+def _transport_monotonic() -> float:
+    return time.monotonic()
+
+
+async def _transport_sleep(seconds: float) -> None:
+    await asyncio.sleep(seconds)
+
+
 class KernelModelPort:
     """Builds each `ProviderRequest` from the profile, mints and seals the
     provider call, and rejects an empty completion as a typed failure before
@@ -237,6 +259,8 @@ class KernelModelPort:
         phase_instance_id: str | None = None,
         logical_action_id: str | None = None,
         visibility: str = "evaluator_only",
+        charged_spend: Callable[[], float] | None = None,
+        route_health: RouteHealth | None = None,
     ) -> None:
         self._evidence = evidence
         self._provider = provider
@@ -249,6 +273,8 @@ class KernelModelPort:
         self._visibility = visibility
         self._emit_events = emit_events
         self._sealed_request = sealed_request
+        self._charged_spend = charged_spend
+        self._route_health = route_health
         self._round = 0
         self.tool_calls_dispatched = 0
         """How many tool calls this port actually returned to the harness.
@@ -261,10 +287,184 @@ class KernelModelPort:
         """Every completed provider call, in order. All of them were billed."""
         self.pending_round: PendingRound | None = None
         """The call in flight, or the one that just failed, until the next round."""
+        self.refused_calls: list[ProviderCallRecord] = []
+        """Calls the provider refused and this port re-sent (transport_v1), in
+        order. ``rounds`` keeps meaning "calls that answered" and alone proves
+        the route, so a refusal never lands there."""
+        self.in_transport_backoff = False
+        """True while the port sleeps between a refusal and its re-send."""
+        self.attempt_deadline: float | None = None
+        """The monotonic instant the executor's outer timeout will fire, set
+        before the attempt starts. No re-send is admitted past it."""
+        self.resend_denial: tuple[str, dict[str, Any] | None] | None = None
+        """Which check refused a re-send (``count``, ``cost``, ``time`` or
+        ``route``) and, for ``route``, the route's snapshot at that moment.
+        Read by the executor to label the attempt's failure under route_v1."""
+        self.terminal_failure: tuple[ProviderRequest, ProviderFailure] | None = None
+        """The latest failed call this port wrote a terminal for, with its
+        failure. Read by the executor under transport_v1 when an interruption
+        lands after the terminal and before the executor records the failure."""
 
     @property
     def cost_usd_total(self) -> float:
         return sum(entry.cost_usd for entry in self.rounds)
+
+    def _refused_call_record(
+        self, request: ProviderRequest, failure: ProviderFailure
+    ) -> ProviderCallRecord:
+        # A marked refusal reported no usage, so it cost nothing.
+        return ProviderCallRecord(
+            provider_call_id=request.provider_call_id,
+            action_attempt_id=self._action_attempt_id,
+            status="failed",
+            request_sha256=request.request_sha256,
+            requested_model=request.model,
+            resolved_model=None,
+            response_id=None,
+            finish_reason=None,
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            failure_condition=failure.condition,
+        )
+
+    def _deny(self, cause: str) -> None:
+        self.resend_denial = (
+            cause,
+            self._route_health.snapshot() if cause == "route" and self._route_health else None,
+        )
+
+    def _report(
+        self,
+        provider_call_id: str,
+        *,
+        success: bool = False,
+        failure: ProviderFailure | None = None,
+    ) -> None:
+        """Report a terminal this port just wrote to the shared route, if any."""
+
+        if self._route_health is None:
+            return
+        condition = "success" if failure is None else failure.condition
+        self._route_health.report(
+            condition=None if failure is None else failure.condition,
+            success=success,
+            retry_after_seconds=None if failure is None else failure.retry_after_seconds,
+            ref=terminal_ref(self._evidence.episode_attempt_id, provider_call_id, condition),
+        )
+
+    def _within_bounds(self, window_end: float) -> bool:
+        """Whether a re-send may still start: inside the retry window and before
+        the executor's outer deadline, both strictly."""
+
+        now = _transport_monotonic()
+        return now < window_end and (
+            self.attempt_deadline is None or now < self.attempt_deadline
+        )
+
+    def _admit_resend(
+        self,
+        policy: TransportPolicy,
+        failure: ProviderFailure,
+        call_id: str,
+        transport_ordinal: int,
+        window_end: float,
+    ) -> tuple[float, dict[str, Any]] | None:
+        """The delay and its event fields if call ``transport_ordinal + 1`` is
+        admitted, else ``None``.
+
+        Admission is decided before anything is written for the new call; it
+        bounds when a re-send may start, not how long it runs (the executor's
+        outer timeout keeps that).
+        """
+
+        if transport_ordinal + 1 >= policy.max_calls:
+            if self._route_health is not None:
+                self._deny("count")
+            return None
+        # Strict, unlike the executor's post-success check, which rejects only
+        # spend above the budget: a re-send is a new commitment, so none at
+        # equality.
+        budget = self._profile.budgets.max_cost_usd
+        if (
+            budget is not None
+            and self._charged_spend is not None
+            and not self._charged_spend() < budget
+        ):
+            if self._route_health is not None:
+                self._deny("cost")
+            return None
+        delay, fields = exponential_jitter_delay(
+            self._profile,
+            call_id=call_id,
+            exponent=transport_ordinal,
+            retry_after_seconds=failure.retry_after_seconds,
+        )
+        # S4's own time checks run on the backoff alone, so a denial they make
+        # is named for them whatever the route says.
+        ready_at = _transport_monotonic() + delay
+        if not ready_at < window_end:
+            if self._route_health is not None:
+                self._deny("time")
+            return None
+        if self.attempt_deadline is not None and not ready_at < self.attempt_deadline:
+            if self._route_health is not None:
+                self._deny("time")
+            return None
+        if self._route_health is None:
+            return delay, fields
+        # Only then does the route decide: it denies when exhausted, or when
+        # the effective delay (the longer of the backoff and the route's wait)
+        # no longer fits the window or the attempt deadline.
+        route_wait = self._route_health.route_wait()
+        effective = max(delay, route_wait)
+        ready_at = _transport_monotonic() + effective
+        if (
+            self._route_health.exhausted is not None
+            or not ready_at < window_end
+            or (self.attempt_deadline is not None and not ready_at < self.attempt_deadline)
+        ):
+            self._deny("route")
+            return None
+        return effective, {**fields, "delay_seconds": effective, "route_delay_seconds": route_wait}
+
+    async def _back_off(
+        self,
+        failure: ProviderFailure,
+        delay: float,
+        fields: Mapping[str, Any],
+        transport_ordinal: int,
+    ) -> None:
+        # The executor owns the attempt's terminals; an interruption here writes
+        # nothing and propagates, and it reads in_transport_backoff to say so.
+        labels = {
+            "phase_instance_id": self._phase_instance_id,
+            "logical_action_id": self._logical_action_id,
+            "action_attempt_id": self._action_attempt_id,
+        }
+        self._evidence.append_event(
+            "retry_backoff_started",
+            {
+                "failure_condition": failure.condition,
+                **fields,
+                "transport_ordinal": transport_ordinal,
+            },
+            **labels,
+        )
+        self.in_transport_backoff = True
+        await _transport_sleep(delay)
+        self.in_transport_backoff = False
+        self._evidence.append_event(
+            "retry_backoff_completed",
+            {
+                "failure_condition": failure.condition,
+                "delay_seconds": delay,
+                "provider_retry_after_seconds": failure.retry_after_seconds,
+                "transport_ordinal": transport_ordinal,
+            },
+            **labels,
+        )
 
     async def complete(
         self,
@@ -287,6 +487,7 @@ class KernelModelPort:
 
         round_ordinal = self._round
         self._round += 1
+        policy = declared_transport_policy(self._profile)
 
         if self._sealed_request is not None and round_ordinal == 0:
             # The executor already sealed this request and emitted
@@ -325,36 +526,54 @@ class KernelModelPort:
                 messages=messages if response_mode == "native_tools" else None,
                 tools=tools if response_mode == "native_tools" and tools else None,
                 stream=declared_provider_stream(self._profile),
+                first_progress_seconds=(
+                    None if policy is None else policy.first_progress_seconds
+                ),
+                idle_seconds=None if policy is None else policy.idle_seconds,
             ).with_computed_hash()
 
         # With emit_events=False the executor sealed round 0 and already wrote
         # its provider_call_started; the port owns every later round's opening
         # event and every round's terminal event, so no billed call is missing
         # from evidence.
-        owns_opening = self._emit_events or round_ordinal > 0
-        if owns_opening:
-            self._evidence.append_event(
-                "provider_call_started",
-                {"request": request, "round": round_ordinal},
-                phase_instance_id=self._phase_instance_id,
-                logical_action_id=self._logical_action_id,
-                action_attempt_id=self._action_attempt_id,
+        #
+        # Under transport_v1 the loop below re-sends the identical request when
+        # the provider refused it with a declared HTTP status (#226 item 1).
+        # Each send is its own provider call with its own opening and terminal
+        # event; a profile without the declaration runs the loop once.
+        first_request = request
+        transport_ordinal = 0
+        window_end: float | None = None
+        while True:
+            owns_opening = self._emit_events or round_ordinal > 0 or transport_ordinal > 0
+            if owns_opening:
+                opening: dict[str, Any] = {"request": request, "round": round_ordinal}
+                if transport_ordinal > 0:
+                    opening["transport_ordinal"] = transport_ordinal
+                self._evidence.append_event(
+                    "provider_call_started",
+                    opening,
+                    phase_instance_id=self._phase_instance_id,
+                    logical_action_id=self._logical_action_id,
+                    action_attempt_id=self._action_attempt_id,
+                    provider_call_id=provider_call_id,
+                    visibility=self._visibility,
+                )
+            self.pending_round = PendingRound(
+                round=round_ordinal,
                 provider_call_id=provider_call_id,
-                visibility=self._visibility,
+                request=request,
+                terminalized=False,
             )
-        self.pending_round = PendingRound(
-            round=round_ordinal,
-            provider_call_id=provider_call_id,
-            request=request,
-            terminalized=False,
-        )
-        try:
-            result = await self._provider.complete(request)
-        except ProviderFailure as failure:
-            outcome_unknown = failure.condition in {"timeout", "transport"}
-            self._evidence.append_event(
-                "provider_call_outcome_unknown" if outcome_unknown else "provider_call_failed",
-                {
+            if policy is not None and window_end is None:
+                # The window runs from the start of call 0 and is never restarted.
+                window_end = _transport_monotonic() + policy.max_retry_seconds
+            try:
+                result = await self._provider.complete(request)
+                break
+            except ProviderFailure as failure:
+                outcome_unknown = failure.condition in {"timeout", "transport"}
+                failed_payload: dict[str, Any] = {
                     "failure_condition": failure.condition,
                     "message": str(failure),
                     "retryable": failure.retryable,
@@ -367,20 +586,73 @@ class KernelModelPort:
                         outcome_unknown=outcome_unknown,
                     ),
                     "round": round_ordinal,
-                },
-                phase_instance_id=self._phase_instance_id,
-                logical_action_id=self._logical_action_id,
-                action_attempt_id=self._action_attempt_id,
-                provider_call_id=provider_call_id,
-                visibility=self._visibility,
-            )
-            self.pending_round = PendingRound(
-                round=round_ordinal,
-                provider_call_id=provider_call_id,
-                request=request,
-                terminalized=True,
-            )
-            raise
+                }
+                if policy is not None and failure.http_refusal:
+                    failed_payload["http_refusal"] = True
+                    failed_payload["transport_ordinal"] = transport_ordinal
+                if policy is not None and failure.stream_deadline is not None:
+                    failed_payload["stream_deadline"] = failure.stream_deadline
+                self._evidence.append_event(
+                    "provider_call_outcome_unknown" if outcome_unknown else "provider_call_failed",
+                    failed_payload,
+                    phase_instance_id=self._phase_instance_id,
+                    logical_action_id=self._logical_action_id,
+                    action_attempt_id=self._action_attempt_id,
+                    provider_call_id=provider_call_id,
+                    visibility=self._visibility,
+                )
+                self.pending_round = PendingRound(
+                    round=round_ordinal,
+                    provider_call_id=provider_call_id,
+                    request=request,
+                    terminalized=True,
+                )
+                self.terminal_failure = (request, failure)
+                resendable = (
+                    policy is not None
+                    and window_end is not None
+                    and transport_resend_class(failure, self._profile)
+                )
+                if resendable:
+                    # Recorded before any admission check, so every ending lists
+                    # this call once and the failure that propagates is its own.
+                    self.refused_calls.append(self._refused_call_record(request, failure))
+                # After pending_round and the ledger are updated and before
+                # admission, so the route's wait includes this very failure.
+                if self._route_health is not None:
+                    self._report(provider_call_id, failure=failure)
+                if not resendable:
+                    raise
+                assert policy is not None and window_end is not None
+                admitted = self._admit_resend(
+                    policy, failure, provider_call_id, transport_ordinal, window_end
+                )
+                if admitted is None:
+                    raise
+                await self._back_off(failure, *admitted, transport_ordinal)
+                # The sleep and the completed-event write can both run past a
+                # bound; the last check precedes the opening event.
+                if not self._within_bounds(window_end):
+                    if self._route_health is not None:
+                        self._deny("time")
+                    raise
+                if self._route_health is not None and not self._route_health.admits():
+                    # Time may have reopened the route or ended its outage
+                    # during the sleep; S4's checks above name their cause first.
+                    self._deny("route")
+                    raise
+                transport_ordinal += 1
+                provider_call_id = _stable_id(
+                    "provider_call",
+                    {
+                        "action_attempt_id": self._action_attempt_id,
+                        "round": round_ordinal,
+                        "transport_ordinal": transport_ordinal,
+                    },
+                )
+                # The id is not part of the hashed request, so the bytes sent
+                # and request_sha256 stay identical across calls.
+                request = dataclasses.replace(first_request, provider_call_id=provider_call_id)
         if not isinstance(result, ProviderResult):
             raise ProviderFailure(
                 "provider_contract",
@@ -423,6 +695,8 @@ class KernelModelPort:
             )
         )
         self.last_result = result
+        if self._route_health is not None:
+            self._report(provider_call_id, success=True)
         tool_calls = result.tool_calls or ()
         text = result.output_text.strip()
         if not text and not tool_calls:
@@ -1061,7 +1335,13 @@ class AttemptExecutor(MinimalChatExecutor):
         harnesses: Mapping[str, Any],
         tool_runtimes: Mapping[str, ToolRuntime] | None = None,
         request_seed_by_profile: Mapping[str, int] | None = None,
+        route_health: RouteHealthRegistry | None = None,
     ) -> None:
+        if route_health is not None and not isinstance(route_health, RouteHealthRegistry):
+            raise EvidenceIntegrityError("route_health must be a RouteHealthRegistry")
+        # Set before the base class validates profiles: a route_v1 profile is
+        # accepted only against a registry.
+        self._route_registry = route_health
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
         self._ports: dict[str, KernelModelPort] = {}
@@ -1117,6 +1397,31 @@ class AttemptExecutor(MinimalChatExecutor):
         port = self._ports.get(action_attempt_id)
         return port.pending_round if port is not None else None
 
+    def _attempt_refused_calls(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        port = self._ports.get(action_attempt_id)
+        return tuple(port.refused_calls) if port is not None else ()
+
+    def _attempt_terminal_failure(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderRequest, ProviderFailure] | None:
+        port = self._ports.get(action_attempt_id)
+        return port.terminal_failure if port is not None else None
+
+    def _attempt_in_backoff(self, action_attempt_id: str) -> bool:
+        port = self._ports.get(action_attempt_id)
+        return port.in_transport_backoff if port is not None else False
+
+    def _attempt_resend_denial(
+        self, action_attempt_id: str
+    ) -> tuple[str, Mapping[str, Any] | None] | None:
+        port = self._ports.get(action_attempt_id)
+        return port.resend_denial if port is not None else None
+
+    def _resends_inside_attempt(self, profile: AgentProfile) -> bool:
+        return self._harness_key(profile) == "minimal_chat/1.0"
+
     async def _obtain_result(
         self,
         *,
@@ -1149,6 +1454,8 @@ class AttemptExecutor(MinimalChatExecutor):
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             visibility=f"seat:{decision.seat_id}",
+            charged_spend=lambda: self._cost_by_profile.get(profile.profile_id, 0.0),
+            route_health=self._route_health.get(profile.profile_id),
         )
         self._ports[action_attempt_id] = port
         tools_port: Any = None
@@ -1181,11 +1488,26 @@ class AttemptExecutor(MinimalChatExecutor):
             tools=tools_port,
             evidence=self.evidence,
         )
+        if declared_transport_policy(profile) is not None:
+            # Read as late as possible: the port refuses a re-send that would
+            # cross the instant the wait_for below cancels the attempt.
+            port.attempt_deadline = _transport_monotonic() + profile.budgets.timeout_seconds
         try:
-            output = await asyncio.wait_for(
-                harness.act(decision, context),
-                timeout=profile.budgets.timeout_seconds,
-            )
+            if _declares_stream_deadlines(declared_transport_policy(profile)):
+                # wait_for can drop a cancellation that lands as the act ends,
+                # on Python 3.10 and 3.11; the stream helper cannot.
+                try:
+                    output = await _await_stream_step(
+                        harness.act(decision, context),
+                        _stream_deadline_after(profile.budgets.timeout_seconds),
+                    )
+                except _StepExpired as expired:
+                    raise asyncio.TimeoutError from expired
+            else:
+                output = await asyncio.wait_for(
+                    harness.act(decision, context),
+                    timeout=profile.budgets.timeout_seconds,
+                )
         except ProviderFailure as failure:
             # KernelModelPort rejects an empty completion before it reaches the
             # harness, but the provider call itself succeeded and may have been

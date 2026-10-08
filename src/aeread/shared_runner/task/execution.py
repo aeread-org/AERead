@@ -19,12 +19,13 @@ import math
 import os
 import shutil
 import stat
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, ClassVar, Mapping, Protocol, Sequence
 
 from ..registry import PluginRegistry, PluginRegistryError
 from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
@@ -45,6 +46,7 @@ if TYPE_CHECKING:
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
     from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from ..model_call.route_health import RouteHealth, RouteHealthRegistry
     from .tools import ToolRuntime
 
 
@@ -92,6 +94,13 @@ class ProviderFailure(RuntimeError):
             )
         self.retry_after_seconds = retry_after_seconds
         self.billing = "not_billed"
+        # The server refused the request with an HTTP status and reported no
+        # usage. Only OpenAIResponsesClient._classify_error sets it; whether a
+        # refusal is re-sent is a profile's declaration, not this fact (#226).
+        self.http_refusal = False
+        # ``first_progress`` or ``idle`` when a streamed call outlived the
+        # deadline its profile declared; set by OpenRouterChatClient._create.
+        self.stream_deadline: str | None = None
         self.cost_usd: float | None = None
         self.input_tokens = 0
         self.cached_input_tokens = 0
@@ -127,14 +136,18 @@ class ProviderFailure(RuntimeError):
         self.input_tokens = input_tokens
         self.cached_input_tokens = cached or 0
         self.output_tokens = output_tokens
-        self.cost_usd = (
-            float(cost)
-            if isinstance(cost, (int, float))
-            and not isinstance(cost, bool)
-            and math.isfinite(cost)
-            and cost >= 0
-            else None
-        )
+        # An optional cost that float() cannot represent (10**400) is absent,
+        # not a crash: the tokens are kept and pricing fills the cost in.
+        try:
+            usable_cost = (
+                isinstance(cost, (int, float))
+                and not isinstance(cost, bool)
+                and math.isfinite(cost)
+                and cost >= 0
+            )
+            self.cost_usd = float(cost) if usable_cost else None
+        except OverflowError:
+            self.cost_usd = None
         return self
 
 
@@ -877,6 +890,13 @@ class TokenPricing:
 
 @dataclass(frozen=True, slots=True)
 class ProviderRequest:
+    # Read by ``run.resolver._canonical_value``: the stream deadlines are left
+    # out of the canonical form while unset, so every request and opening event
+    # that does not declare them serializes as it did before they existed.
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"first_progress_seconds", "idle_seconds"}
+    )
+
     provider_call_id: str
     provider: str
     base_url: str | None
@@ -909,6 +929,12 @@ class ProviderRequest:
     # ``harness.config["provider_stream"]``; like the fields above it joins
     # the hash only when set, so every earlier request hashes as it did.
     stream: bool = False
+    # The stream deadlines of ``transport_v1`` (S4b): seconds from the start of
+    # the call to the first chunk that carries output, and the longest gap
+    # between such chunks after it. Enforced by the streamed client, never sent
+    # on the wire; like ``stream`` they join the hash only when set.
+    first_progress_seconds: int | float | None = None
+    idle_seconds: int | float | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -942,6 +968,12 @@ class ProviderRequest:
                 payload[field] = value
         if self.stream:
             payload["stream"] = True
+        for field, value in (
+            ("first_progress_seconds", self.first_progress_seconds),
+            ("idle_seconds", self.idle_seconds),
+        ):
+            if value is not None:
+                payload[field] = value
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -1019,8 +1051,305 @@ def declared_provider_stream(profile: AgentProfile) -> bool:
     return declared
 
 
+@dataclass(frozen=True, slots=True)
+class TransportPolicy:
+    """A profile's declared in-attempt re-send budget (transport_v1)."""
+
+    max_calls: int
+    max_retry_seconds: float
+    # The stream deadlines (S4b), as declared; ``None`` when absent.
+    first_progress_seconds: int | float | None = None
+    idle_seconds: int | float | None = None
+
+
+def _declares_stream_deadlines(policy: TransportPolicy | None) -> bool:
+    """Whether a profile's transport policy declares either stream deadline."""
+
+    return policy is not None and (
+        policy.first_progress_seconds is not None or policy.idle_seconds is not None
+    )
+
+
+_STREAM_DEADLINE_KEYS = (
+    ("transport_first_progress_seconds", "first_progress_seconds"),
+    ("transport_idle_seconds", "idle_seconds"),
+)
+
+
+def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
+    """The in-attempt re-send policy a profile declares, or ``None``.
+
+    ``harness.config["transport_policy"] == "transport_v1"`` opts a profile in
+    to re-sending a declared HTTP refusal inside one action attempt, under its
+    own call and time budget (#226 item 1). Absent means today's behaviour:
+    no sealed profile changes what it does. The budget has no defaults, since
+    a limit that can end a run belongs in the contract.
+    """
+
+    config = profile.harness.config
+    if "transport_policy" not in config:
+        for key, _ in _STREAM_DEADLINE_KEYS:
+            if key in config:
+                raise EvidenceIntegrityError(
+                    f"{key} requires transport_policy 'transport_v1' for profile "
+                    f"{profile.profile_id!r}"
+                )
+        return None
+    if config["transport_policy"] != "transport_v1":
+        raise EvidenceIntegrityError(
+            f"transport_policy must be 'transport_v1' for profile {profile.profile_id!r}"
+        )
+    max_calls = config.get("transport_max_calls")
+    if isinstance(max_calls, bool) or not isinstance(max_calls, int) or not 2 <= max_calls <= 20:
+        raise EvidenceIntegrityError(
+            "transport_max_calls must be an integer in [2, 20] for profile "
+            f"{profile.profile_id!r}"
+        )
+    window = config.get("transport_max_retry_seconds")
+    if (
+        isinstance(window, bool)
+        or not isinstance(window, (int, float))
+        # Compared as declared: float() overflows on a huge integer.
+        or (isinstance(window, float) and not math.isfinite(window))
+        or not 0 < window <= profile.budgets.timeout_seconds
+    ):
+        raise EvidenceIntegrityError(
+            "transport_max_retry_seconds must be finite and in (0, budgets.timeout_seconds] "
+            f"for profile {profile.profile_id!r}"
+        )
+    if config.get("retry_backoff") != "exponential_jitter_v1":
+        raise EvidenceIntegrityError(
+            "transport_v1 requires retry_backoff 'exponential_jitter_v1' for profile "
+            f"{profile.profile_id!r}"
+        )
+    # Validated here so a bad base or cap fails at construction, not inside a
+    # live attempt where the first refusal would raise it.
+    _retry_backoff_parameters(profile)
+    deadlines: dict[str, int | float | None] = {}
+    for key, field in _STREAM_DEADLINE_KEYS:
+        deadlines[field] = None
+        if key not in config:
+            continue
+        if not declared_provider_stream(profile):
+            raise EvidenceIntegrityError(
+                f"{key} requires provider_stream true for profile {profile.profile_id!r}"
+            )
+        value = config[key]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            # Compared as declared: float() overflows on a huge integer.
+            or (isinstance(value, float) and not math.isfinite(value))
+            or not 0 < value <= profile.budgets.timeout_seconds
+        ):
+            raise EvidenceIntegrityError(
+                f"{key} must be finite and in (0, budgets.timeout_seconds] for profile "
+                f"{profile.profile_id!r}"
+            )
+        deadlines[field] = value
+    return TransportPolicy(
+        max_calls=max_calls, max_retry_seconds=float(window), **deadlines
+    )
+
+
+def transport_resend_class(failure: "ProviderFailure", profile: AgentProfile) -> bool:
+    """Whether a failure is a refusal this profile declared it will re-send."""
+
+    return bool(
+        failure.http_refusal
+        and failure.condition in {"rate_limit", "provider_5xx"}
+        and failure.condition in profile.retry_policy.retryable_conditions
+    )
+
+
+# The longest any route duration may be: seven days. It keeps every sum with
+# the monotonic clock finite, so no route operation can overflow (S5 spec §1).
+_ROUTE_MAX_SECONDS = 604800
+
+
+@dataclass(frozen=True, slots=True)
+class RoutePolicy:
+    """A profile's declared route breaker and outage bound (route_v1)."""
+
+    open_after_failures: int
+    cooldown_seconds: float
+    cooldown_cap_seconds: float
+    max_outage_seconds: float
+
+
+def declared_route_policy(profile: AgentProfile) -> RoutePolicy | None:
+    """The route policy a profile declares, or ``None``.
+
+    ``harness.config["route_policy"] == "route_v1"`` opts a profile in to the
+    process-wide route breaker and provider-requested pause (#226 items 1, 3,
+    4). It rides on transport_v1, whose re-sends it gates. Absent means
+    today's behaviour: no sealed profile changes what it does. Like the
+    transport budget it has no defaults, since a limit that can end a run
+    belongs in the contract.
+    """
+
+    config = profile.harness.config
+    if "route_policy" not in config:
+        return None
+    if config["route_policy"] != "route_v1":
+        raise EvidenceIntegrityError(
+            f"route_policy must be 'route_v1' for profile {profile.profile_id!r}"
+        )
+    if declared_transport_policy(profile) is None:
+        raise EvidenceIntegrityError(
+            f"route_v1 requires transport_policy 'transport_v1' for profile {profile.profile_id!r}"
+        )
+    if "route_unavailable" in profile.retry_policy.retryable_conditions:
+        # The gate's failure ends the action: the route, not the call, is down.
+        raise EvidenceIntegrityError(
+            "route_unavailable cannot be declared retryable for profile "
+            f"{profile.profile_id!r}"
+        )
+    open_after = config.get("route_open_after_failures")
+    if isinstance(open_after, bool) or not isinstance(open_after, int) or not 1 <= open_after <= 50:
+        raise EvidenceIntegrityError(
+            "route_open_after_failures must be an integer in [1, 50] for profile "
+            f"{profile.profile_id!r}"
+        )
+
+    def seconds(key: str, floor: float, *, inclusive: bool) -> float:
+        value = config.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            # Compared as declared: float() overflows on a huge integer.
+            or (isinstance(value, float) and not math.isfinite(value))
+            or not (value >= floor if inclusive else value > floor)
+            or value > _ROUTE_MAX_SECONDS
+        ):
+            raise EvidenceIntegrityError(
+                f"{key} must be a finite number {'>=' if inclusive else '>'} {floor} and "
+                f"<= {_ROUTE_MAX_SECONDS} for profile {profile.profile_id!r}"
+            )
+        return float(value)
+
+    cooldown = seconds("route_cooldown_seconds", 0, inclusive=False)
+    return RoutePolicy(
+        open_after_failures=open_after,
+        cooldown_seconds=cooldown,
+        cooldown_cap_seconds=seconds("route_cooldown_cap_seconds", cooldown, inclusive=True),
+        max_outage_seconds=seconds("route_max_outage_seconds", 0, inclusive=False),
+    )
+
+
+def route_health_key(profile: AgentProfile) -> tuple[str, str | None, str, str]:
+    """The route a profile's calls share: provider, base URL, model and metadata.
+
+    The metadata is the effective one, as call 0's request builds it, so two
+    profiles pinned to different upstream providers through
+    ``provider_runtime`` are separate routes. ``_route_key`` (the route-proof
+    key) is unchanged.
+    """
+
+    config = profile.harness.config
+    metadata = config.get("provider_metadata") or config.get("provider_runtime")
+    return (
+        profile.model.provider,
+        profile.model.base_url,
+        profile.model.model,
+        canonical_json_bytes(metadata).decode("utf-8"),
+    )
+
+
+def _retry_backoff_parameters(profile: AgentProfile) -> tuple[float, float]:
+    """The declared backoff base and Retry-After cap, validated."""
+
+    retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
+    if (
+        isinstance(retry_base_seconds, bool)
+        or not isinstance(retry_base_seconds, (int, float))
+        or not math.isfinite(float(retry_base_seconds))
+        or not 0 < float(retry_base_seconds) <= 30.0
+    ):
+        raise EvidenceIntegrityError("retry_base_seconds must be finite and in (0, 30]")
+    max_retry_after_seconds = profile.harness.config.get("retry_after_max_seconds", 30.0)
+    if (
+        isinstance(max_retry_after_seconds, bool)
+        or not isinstance(max_retry_after_seconds, (int, float))
+        or not math.isfinite(float(max_retry_after_seconds))
+        or float(max_retry_after_seconds) <= 0
+    ):
+        raise EvidenceIntegrityError("retry_after_max_seconds must be finite and positive")
+    return float(retry_base_seconds), float(max_retry_after_seconds)
+
+
+def exponential_jitter_delay(
+    profile: AgentProfile,
+    *,
+    call_id: str,
+    exponent: int,
+    retry_after_seconds: float | None,
+) -> tuple[float, dict[str, Any]]:
+    """``exponential_jitter_v1``: the delay and the fields that explain it.
+
+    Base times two to the ``exponent``, capped at 30 s, plus a jitter taken
+    from the failed call's id so a replay recomputes it. A Retry-After the
+    provider sent raises the delay, up to ``retry_after_max_seconds``. Shared
+    by the between-attempt backoff and the in-attempt re-send, so the two
+    cannot disagree about the schedule.
+    """
+
+    base, max_retry_after_seconds = _retry_backoff_parameters(profile)
+    base_seconds = min(30.0, base * (2**exponent))
+    jitter_seconds = int(call_id[-4:], 16) % 1000 / 1000.0
+    declared_delay_seconds = base_seconds + jitter_seconds
+    bounded_retry_after = (
+        min(retry_after_seconds, max_retry_after_seconds)
+        if retry_after_seconds is not None
+        else None
+    )
+    delay_seconds = max(
+        declared_delay_seconds,
+        bounded_retry_after if bounded_retry_after is not None else 0.0,
+    )
+    return delay_seconds, {
+        "delay_seconds": delay_seconds,
+        "exponential_jitter_seconds": declared_delay_seconds,
+        "provider_retry_after_seconds": retry_after_seconds,
+        "retry_after_capped": (
+            retry_after_seconds is not None and retry_after_seconds > max_retry_after_seconds
+        ),
+        "retry_after_max_seconds": max_retry_after_seconds,
+        "retry_base_seconds": base,
+    }
+
+
 def _named_in_mro(error: BaseException, *names: str) -> bool:
     return any(base.__name__ in names for base in type(error).__mro__)
+
+
+def _is_unbilled_status_refusal(error: BaseException) -> bool:
+    """Whether the server refused with 429 or 5xx and reported no usage.
+
+    Read from ``error.response``, not ``error.body``: both SDKs set ``body``
+    to the inner ``error`` object, which drops a top-level ``usage``. A body
+    that is not JSON, such as a proxy's HTML 502 page, cannot report usage. A
+    body that cannot be read at all says nothing, so it is not marked.
+    """
+
+    if not _named_in_mro(error, "APIStatusError"):
+        return False
+    status_code = getattr(error, "status_code", None)
+    if isinstance(status_code, bool) or not isinstance(status_code, int):
+        return False
+    if status_code != 429 and not 500 <= status_code <= 599:
+        return False
+    try:
+        body = error.response.json()  # type: ignore[attr-defined]
+    except ValueError:
+        return True
+    except Exception:
+        return False
+    if isinstance(body, Mapping):
+        inner = body.get("error")
+        if "usage" in body or (isinstance(inner, Mapping) and "usage" in inner):
+            return False
+    return True
 
 
 class _AssembledResponse:
@@ -1149,6 +1478,57 @@ def _stream_error_code(error: BaseException) -> int | None:
     return None
 
 
+def _status_error_usage(error: BaseException) -> Mapping[str, Any] | None:
+    """The usage an HTTP status error's body reports, in the Chat shape.
+
+    Read from ``error.response`` for the reason ``_is_unbilled_status_refusal``
+    gives: ``error.body`` is only the inner ``error`` object (#250). The usage
+    sits at the top level or under ``error`` and is Chat-style
+    (``prompt_tokens``) or Responses-style (``input_tokens``); the latter is
+    normalized, as the Responses adapter reads it. A mapping with neither
+    token pair is usage only when it reports a numeric ``cost``; otherwise it
+    certifies nothing. A body that is not JSON,
+    cannot be read, or carries no such mapping reports none.
+    """
+
+    if not _named_in_mro(error, "APIStatusError"):
+        return None
+    try:
+        body = error.response.json()  # type: ignore[attr-defined]
+    except Exception:
+        return None
+    if not isinstance(body, Mapping):
+        return None
+    inner = body.get("error")
+    for holder in (body, inner if isinstance(inner, Mapping) else {}):
+        usage = holder.get("usage")
+        if not isinstance(usage, Mapping):
+            continue
+        if "prompt_tokens" in usage or "completion_tokens" in usage:
+            return usage
+        if "input_tokens" in usage or "output_tokens" in usage:
+            normalized: dict[str, Any] = {
+                "prompt_tokens": usage.get("input_tokens", 0),
+                "completion_tokens": usage.get("output_tokens", 0),
+            }
+            if "input_tokens_details" in usage:
+                normalized["prompt_tokens_details"] = usage["input_tokens_details"]
+            if "cost" in usage:
+                normalized["cost"] = usage["cost"]
+            return normalized
+        cost = usage.get("cost")
+        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+            # A provider that reports only its charge still charged it; a
+            # charge no float can hold, or a negative one, certifies nothing.
+            try:
+                usable = math.isfinite(cost) and cost >= 0
+            except OverflowError:
+                usable = False
+            if usable:
+                return {"cost": cost}
+    return None
+
+
 def _classify_stream_error(error: Exception) -> ProviderFailure:
     """Type an exception raised while a stream is read.
 
@@ -1184,6 +1564,124 @@ def _with_stream_usage(failure: ProviderFailure, usage: Any) -> ProviderFailure:
     if usage is None:
         return failure
     return failure.with_reported_usage({"choices": [{}], "usage": usage})
+
+
+# The clock the stream deadlines read; tests replace it.
+_stream_monotonic = time.monotonic
+
+
+def _stream_deadline_after(seconds: float) -> float:
+    """The instant ``seconds`` from now on the stream clock."""
+
+    return _stream_monotonic() + seconds
+
+
+class _StepExpired(Exception):
+    """A bounded step outlived its deadline (internal)."""
+
+
+async def _drain(
+    task: "asyncio.Future[Any]",
+    dispose: Callable[[Any], Awaitable[None]] | None = None,
+) -> None:
+    """Wait for a cancelled step to unwind; whatever it raises is suppressed.
+
+    An outer cancellation arriving meanwhile propagates (gather raises it). A
+    result the step produced anyway, because it finished first or swallowed
+    the cancellation (``create()`` handing back a stream), is handed to
+    ``dispose`` on every path, since the caller will never receive it.
+    """
+
+    try:
+        await asyncio.gather(task, return_exceptions=True)
+    finally:
+        if (
+            dispose is not None
+            and task.done()
+            and not task.cancelled()
+            and task.exception() is None
+        ):
+            await dispose(task.result())
+
+
+async def _await_stream_step(
+    step: Awaitable[Any],
+    deadline: float | None,
+    *,
+    dispose: Callable[[Any], Awaitable[None]] | None = None,
+) -> Any:
+    """Await one step of a streamed call, bounded by ``deadline``.
+
+    Not ``asyncio.wait_for``: on Python 3.10 and 3.11 it can return a step that
+    finished in the same loop iteration as an outer cancellation and drop the
+    cancellation. The step runs as a task instead, so both outcomes stay
+    visible here. An outer cancellation cancels and drains the step and is
+    re-raised, never turned into an expiry. An expired step is cancelled and
+    drained, its own cleanup errors suppressed, and ``_StepExpired`` raised.
+    Either way a result the caller will never receive goes to ``dispose``.
+    """
+
+    task = asyncio.ensure_future(step)
+    try:
+        timeout = None if deadline is None else max(0.0, deadline - _stream_monotonic())
+        await asyncio.wait({task}, timeout=timeout)
+    except asyncio.CancelledError:
+        task.cancel()
+        await _drain(task, dispose)
+        raise
+    if task.done():
+        return task.result()  # re-raises the step's own exception unchanged
+    task.cancel()
+    await _drain(task, dispose)
+    raise _StepExpired
+
+
+async def _close_stream(stream: Any) -> None:
+    """Close a stream best-effort, as an owned task.
+
+    Its errors are suppressed; an outer cancellation cancels the close, drains
+    it and propagates.
+    """
+
+    close = getattr(stream, "close", None)
+    if close is None:
+        return
+    try:
+        await _await_stream_step(close(), None)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        pass
+
+
+def _is_stream_progress(dumped: Any) -> bool:
+    """Whether a dumped stream chunk carries output.
+
+    Progress is a non-empty ``content`` or ``reasoning`` string, a non-empty
+    ``reasoning_details`` or ``tool_calls`` list in the first choice's delta,
+    or a finish reason. A role-only chunk, a usage-only chunk (no choices), an
+    empty delta and a field of any other shape are not: a stream can send
+    those forever while the model produces nothing.
+    """
+
+    if not isinstance(dumped, Mapping):
+        return False
+    choices = dumped.get("choices")
+    choice = choices[0] if isinstance(choices, Sequence) and choices else None
+    if not isinstance(choice, Mapping):
+        return False
+    if choice.get("finish_reason") is not None:
+        return True
+    delta = choice.get("delta")
+    if not isinstance(delta, Mapping):
+        return False
+    return any(
+        isinstance(delta.get(field), str) and delta[field] != ""
+        for field in ("content", "reasoning")
+    ) or any(
+        isinstance(delta.get(field), list) and len(delta[field]) > 0
+        for field in ("reasoning_details", "tool_calls")
+    )
 
 
 def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
@@ -1460,6 +1958,20 @@ class OpenAIResponsesClient:
 
     @staticmethod
     def _classify_error(error: Exception) -> ProviderFailure:
+        failure = OpenAIResponsesClient._classify_condition(error)
+        failure.http_refusal = _is_unbilled_status_refusal(error)
+        usage = _status_error_usage(error)
+        if usage is not None:
+            # An error body that reports usage billed the call (#250).
+            failure.with_reported_usage({"choices": [{}], "usage": usage})
+            if failure.billing != "reported":
+                # Unusable usage says nothing about the bill: keep the result
+                # a body without usage always had.
+                failure.billing = "not_billed"
+        return failure
+
+    @staticmethod
+    def _classify_condition(error: Exception) -> ProviderFailure:
         name = type(error).__name__
         status_code = getattr(error, "status_code", None)
         # A stream is read after the SDK has returned, so a connection that
@@ -1602,7 +2114,11 @@ class OpenRouterChatClient:
             kwargs["temperature"] = request.temperature
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
-        response = await self._create(**kwargs)
+        response = await self._create(
+            first_progress_seconds=request.first_progress_seconds,
+            idle_seconds=request.idle_seconds,
+            **kwargs,
+        )
         try:
             return self._structured_result(
                 request, response, canonical_model=canonical_model, route_provider=route_provider
@@ -1721,7 +2237,11 @@ class OpenRouterChatClient:
             kwargs["temperature"] = request.temperature
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
-        response = await self._create(**kwargs)
+        response = await self._create(
+            first_progress_seconds=request.first_progress_seconds,
+            idle_seconds=request.idle_seconds,
+            **kwargs,
+        )
         try:
             return self._native_result(
                 request, response, canonical_model=canonical_model, route_provider=route_provider
@@ -1911,21 +2431,78 @@ class OpenRouterChatClient:
         }
         return provider_preferences, canonical_model, route_provider
 
-    async def _create(self, **kwargs: Any) -> Any:
+    async def _create(
+        self,
+        *,
+        first_progress_seconds: int | float | None = None,
+        idle_seconds: int | float | None = None,
+        **kwargs: Any,
+    ) -> Any:
         usage: Any = None
+        stream: Any = None
+        # The deadlines bound a streamed call only; they never reach the SDK.
+        bounded = bool(kwargs.get("stream")) and (
+            first_progress_seconds is not None or idle_seconds is not None
+        )
         try:
             if not kwargs.get("stream"):
                 return await self._client.chat.completions.create(**kwargs)
-            # Usage, cost and the routing metadata arrive on the final chunk.
-            stream = await self._client.chat.completions.create(
-                **kwargs, stream_options={"include_usage": True}
-            )
             chunks = []
-            async for chunk in stream:
-                dumped = chunk.model_dump(mode="json")
-                chunks.append(dumped)
-                if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
-                    usage = dumped["usage"]
+            if not bounded:
+                # Usage, cost and the routing metadata arrive on the final chunk.
+                stream = await self._client.chat.completions.create(
+                    **kwargs, stream_options={"include_usage": True}
+                )
+                async for chunk in stream:
+                    dumped = chunk.model_dump(mode="json")
+                    chunks.append(dumped)
+                    if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                        usage = dumped["usage"]
+            else:
+                # The first-progress deadline runs from the start of create()
+                # and is never restarted; after each progress chunk the idle
+                # deadline runs from the read time of that chunk. A phase whose
+                # knob is not declared has no deadline.
+                kind, seconds = "first_progress", first_progress_seconds
+                t_start = _stream_monotonic()
+                deadline = None if seconds is None else t_start + seconds
+                try:
+                    stream = await _await_stream_step(
+                        self._client.chat.completions.create(
+                            **kwargs, stream_options={"include_usage": True}
+                        ),
+                        deadline,
+                        dispose=_close_stream,
+                    )
+                    expired = deadline is not None and _stream_monotonic() >= deadline
+                    iterator = stream.__aiter__()
+                    while not expired:
+                        try:
+                            chunk = await _await_stream_step(iterator.__anext__(), deadline)
+                        except StopAsyncIteration:
+                            expired = deadline is not None and _stream_monotonic() >= deadline
+                            break
+                        now = _stream_monotonic()
+                        dumped = chunk.model_dump(mode="json")
+                        if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                            usage = dumped["usage"]
+                        if deadline is not None and now >= deadline:
+                            expired = True
+                            break
+                        chunks.append(dumped)
+                        if _is_stream_progress(dumped):
+                            kind, seconds = "idle", idle_seconds
+                            deadline = None if seconds is None else now + seconds
+                except _StepExpired:
+                    expired = True
+                if expired:
+                    if stream is not None:
+                        await _close_stream(stream)
+                    failure = ProviderFailure(
+                        "timeout", f"{kind} deadline of {seconds} s passed", retryable=True
+                    )
+                    failure.stream_deadline = kind
+                    raise failure
             if not chunks:
                 raise ProviderFailure(
                     "transport", "OpenRouter stream ended before any chunk", retryable=True
@@ -1947,11 +2524,18 @@ class OpenRouterChatClient:
                 )
             return _AssembledResponse(assembled)
         except asyncio.CancelledError:
+            if bounded and stream is not None:
+                # A chunk the step handed over when the cancellation landed
+                # leaves the SDK generator suspended at its yield, response open.
+                await _close_stream(stream)
             raise
         except ProviderFailure as failure:
             if not kwargs.get("stream"):
                 raise
-            raise _with_stream_usage(failure, usage) from failure
+            # with_reported_usage returns the same object; `from failure` made
+            # it its own cause (#247 review).
+            _with_stream_usage(failure, usage)
+            raise
         except Exception as error:
             if not kwargs.get("stream"):
                 raise OpenAIResponsesClient._classify_error(error) from error
@@ -2638,6 +3222,10 @@ class ClaudeCodePrintClient:
 class MinimalChatExecutor:
     """R3 response source for one-call, no-tools, no-memory agent profiles."""
 
+    # The process's route-health registry. Only a harness-driven executor that
+    # can enforce route_v1 sets it; here it is None, so route_v1 is refused.
+    _route_registry: "RouteHealthRegistry | None" = None
+
     def __init__(
         self,
         *,
@@ -2665,6 +3253,8 @@ class MinimalChatExecutor:
         # stands in for credential scope; ModelSpec carries nothing finer.
         # Scope is this executor, i.e. one cell, and no wider.
         self._routes_proven: set[tuple[str, str | None, str]] = set()
+        # The shared health of each route_v1 profile's route, by profile id.
+        self._route_health: dict[str, "RouteHealth"] = {}
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
         self._request_seed_by_profile = dict(request_seed_by_profile or {})
@@ -2713,6 +3303,28 @@ class MinimalChatExecutor:
         self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
     ) -> None:
         self._validate_harness_profile(profile)
+        if declared_transport_policy(profile) is not None and not self._resends_inside_attempt(
+            profile
+        ):
+            raise EvidenceIntegrityError(
+                f"profile {profile.profile_id!r} declares transport_v1, which this "
+                "executor cannot run: only minimal_chat/1.0 through AttemptExecutor "
+                "enforces the per-attempt bound"
+            )
+        if declared_route_policy(profile) is not None:
+            if not self._resends_inside_attempt(profile):
+                raise EvidenceIntegrityError(
+                    f"profile {profile.profile_id!r} declares route_v1, which this "
+                    "executor cannot run: only minimal_chat/1.0 through AttemptExecutor "
+                    "gates and reports a route"
+                )
+            if self._route_registry is None:
+                raise EvidenceIntegrityError(
+                    f"profile {profile.profile_id!r} declares route_v1 but no "
+                    "RouteHealthRegistry was provided"
+                )
+            # Raises when another profile on this route declares a different policy.
+            self._route_health[profile.profile_id] = self._route_registry.health_for(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         self._length_retry_ceiling(profile)
@@ -2754,6 +3366,16 @@ class MinimalChatExecutor:
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
 
+    def _resends_inside_attempt(self, profile: AgentProfile) -> bool:
+        """Whether this executor can run a profile's transport_v1 declaration.
+
+        The direct executor has no port to re-send from. A multi-round harness
+        would need round-ceiling enforcement and per-round spend admission
+        before a call budget means anything, so v1 is refused there.
+        """
+
+        return False
+
     async def _obtain_result(
         self,
         *,
@@ -2788,6 +3410,38 @@ class MinimalChatExecutor:
 
     def _attempt_pending_round(self, action_attempt_id: str) -> PendingRound | None:
         """The provider call in flight when a harness-driven attempt failed."""
+
+        del action_attempt_id
+        return None
+
+    def _attempt_refused_calls(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        """Refused calls a harness-driven attempt re-sent; none on the direct path."""
+
+        del action_attempt_id
+        return ()
+
+    def _attempt_terminal_failure(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderRequest, ProviderFailure] | None:
+        """The latest failed call a harness-driven attempt's port terminalized;
+        ``None`` on the direct path."""
+
+        del action_attempt_id
+        return None
+
+    def _attempt_in_backoff(self, action_attempt_id: str) -> bool:
+        """Whether the attempt's port was sleeping between a refusal and a re-send."""
+
+        del action_attempt_id
+        return False
+
+    def _attempt_resend_denial(
+        self, action_attempt_id: str
+    ) -> tuple[str, Mapping[str, Any] | None] | None:
+        """Which check denied the attempt's port a re-send, and the route snapshot
+        if it was the route; ``None`` on the direct path."""
 
         del action_attempt_id
         return None
@@ -2891,6 +3545,7 @@ class MinimalChatExecutor:
                     "no structured output schema declared for action schema "
                     f"{decision.action_schema!r}"
                 )
+        transport = declared_transport_policy(profile)
         return ProviderRequest(
             provider_call_id=provider_call_id,
             provider=profile.model.provider,
@@ -2916,6 +3571,8 @@ class MinimalChatExecutor:
                 profile.profile_id, profile.sampling.seed
             ),
             stream=declared_provider_stream(profile),
+            first_progress_seconds=None if transport is None else transport.first_progress_seconds,
+            idle_seconds=None if transport is None else transport.idle_seconds,
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -2985,6 +3642,12 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 visibility=f"seat:{decision.seat_id}",
             )
+            if profile.profile_id in self._route_health:
+                # Before call 0's request exists, and with its own handlers, so
+                # request construction stays outside every handler as before.
+                await self._pass_route_gate(
+                    decision, profile, action_attempt_id, ordinal, retry_reason, attempts
+                )
             request = self._request_for(
                 decision,
                 profile,
@@ -3022,6 +3685,7 @@ class MinimalChatExecutor:
                     failure,
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
+                    refused_calls=self._attempt_refused_calls(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -3048,6 +3712,7 @@ class MinimalChatExecutor:
                     prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
                     pending=self._attempt_pending_round(action_attempt_id),
                     max_output_tokens=max_output_tokens,
+                    refused_calls=self._attempt_refused_calls(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -3069,21 +3734,31 @@ class MinimalChatExecutor:
                     continue
                 raise
             except asyncio.CancelledError:
-                self._settle_prior_rounds(profile, action_attempt_id)
+                prior_rounds = self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
                     decision,
                     self._interrupted_provider_call_id(request, action_attempt_id),
                     action_attempt_id,
                     attempts,
+                    profile=profile,
+                    request=request,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    prior_rounds=prior_rounds,
                 )
                 raise
             except BaseException:
-                self._settle_prior_rounds(profile, action_attempt_id)
+                prior_rounds = self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
                     decision,
                     self._interrupted_provider_call_id(request, action_attempt_id),
                     action_attempt_id,
                     attempts,
+                    profile=profile,
+                    request=request,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    prior_rounds=prior_rounds,
                 )
                 raise
 
@@ -3111,7 +3786,11 @@ class MinimalChatExecutor:
                 # every round in evidence as it happened. Settle all of them
                 # here so the attempt's cost, tokens, and provider-call records
                 # cover what was actually spent, not only the final reply.
-                provider_records = self._round_records(rounds, action_attempt_id)
+                # Calls the port re-sent and the provider refused come first, in
+                # start order; the list is empty unless the profile is transport_v1.
+                provider_records = self._attempt_refused_calls(
+                    action_attempt_id
+                ) + self._round_records(rounds, action_attempt_id)
                 cost = sum(entry.cost_usd for entry in rounds)
                 input_tokens = sum(entry.result.input_tokens for entry in rounds)
                 cached_input_tokens = sum(
@@ -3288,13 +3967,20 @@ class MinimalChatExecutor:
                     action_attempt_id=action_attempt_id,
                 )
                 self._finish_logical_failure(decision, attempts, retry_condition)
+                # Under transport_v1 the call that produced the result may be a
+                # re-send, not the attempt's first request (#226 item 1).
+                producing_call_id = (
+                    canonical.provider_call_ids[-1]
+                    if declared_transport_policy(profile) is not None
+                    else request.provider_call_id
+                )
                 raise ProviderFailure(
                     retry_condition,
                     (
-                        f"provider call {request.provider_call_id} returned an empty "
+                        f"provider call {producing_call_id} returned an empty "
                         "completion"
                         if retry_condition == "empty_response"
-                        else f"provider call {request.provider_call_id} was cut off "
+                        else f"provider call {producing_call_id} was cut off "
                         "at the output-token limit before a complete answer"
                     ),
                     retryable=True,
@@ -3346,53 +4032,17 @@ class MinimalChatExecutor:
             return
         if policy != "exponential_jitter_v1":
             raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
-        retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
-        if (
-            isinstance(retry_base_seconds, bool)
-            or not isinstance(retry_base_seconds, (int, float))
-            or not math.isfinite(float(retry_base_seconds))
-            or not 0 < float(retry_base_seconds) <= 30.0
-        ):
-            raise EvidenceIntegrityError(
-                "retry_base_seconds must be finite and in (0, 30]"
-            )
-        base_seconds = min(30.0, float(retry_base_seconds) * (2**ordinal))
-        jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
-        declared_delay_seconds = base_seconds + jitter_seconds
-        max_retry_after_seconds = profile.harness.config.get(
-            "retry_after_max_seconds", 30.0
-        )
-        if (
-            isinstance(max_retry_after_seconds, bool)
-            or not isinstance(max_retry_after_seconds, (int, float))
-            or not math.isfinite(float(max_retry_after_seconds))
-            or float(max_retry_after_seconds) <= 0
-        ):
-            raise EvidenceIntegrityError(
-                "retry_after_max_seconds must be finite and positive"
-            )
-        bounded_retry_after = (
-            min(retry_after_seconds, float(max_retry_after_seconds))
-            if retry_after_seconds is not None
-            else None
-        )
-        delay_seconds = max(
-            declared_delay_seconds,
-            bounded_retry_after if bounded_retry_after is not None else 0.0,
+        delay_seconds, delay_fields = exponential_jitter_delay(
+            profile,
+            call_id=request.provider_call_id,
+            exponent=ordinal,
+            retry_after_seconds=retry_after_seconds,
         )
         self.evidence.append_event(
             "retry_backoff_started",
             {
                 "failure_condition": condition,
-                "delay_seconds": delay_seconds,
-                "exponential_jitter_seconds": declared_delay_seconds,
-                "provider_retry_after_seconds": retry_after_seconds,
-                "retry_after_capped": (
-                    retry_after_seconds is not None
-                    and retry_after_seconds > float(max_retry_after_seconds)
-                ),
-                "retry_after_max_seconds": float(max_retry_after_seconds),
-                "retry_base_seconds": float(retry_base_seconds),
+                **delay_fields,
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,
@@ -3498,6 +4148,40 @@ class MinimalChatExecutor:
             )
         return ceiling
 
+    def _failed_call_record(
+        self,
+        profile: AgentProfile,
+        failed_request: ProviderRequest,
+        action_attempt_id: str,
+        failure: ProviderFailure,
+        failed_cost: float | None,
+    ) -> ProviderCallRecord:
+        """The ledger record of a failed call, for the failure path and for an
+        interruption that finds the call already terminalized."""
+
+        condition = failure.condition
+        if self._is_post_admission_rejection(profile, failure):
+            condition = POST_ADMISSION_REJECTION
+        return ProviderCallRecord(
+            provider_call_id=failed_request.provider_call_id,
+            action_attempt_id=action_attempt_id,
+            status=(
+                "outcome_unknown"
+                if failure.condition in {"timeout", "transport"}
+                else "failed"
+            ),
+            request_sha256=failed_request.request_sha256,
+            requested_model=failed_request.model,
+            resolved_model=None,
+            response_id=None,
+            finish_reason=None,
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+            cost_usd=failed_cost or 0.0,
+            failure_condition=condition,
+        )
+
     def _record_provider_failure(
         self,
         decision: DecisionRequest,
@@ -3512,7 +4196,15 @@ class MinimalChatExecutor:
         prior_rounds: tuple[ProviderCallRecord, ...] = (),
         pending: PendingRound | None = None,
         max_output_tokens: int | None = None,
+        refused_calls: tuple[ProviderCallRecord, ...] = (),
     ) -> tuple[bool, str]:
+        transport_v1 = declared_transport_policy(profile) is not None
+        # Whether this call wrote the provider terminal itself (S5 reports only then).
+        wrote_terminal = False
+        # A refusal the profile declared it re-sends is final once it reaches
+        # this point: the port refused to send again (call cap, spend, or a
+        # time bound), and a new attempt would only restart that budget.
+        transport_exhausted = transport_v1 and transport_resend_class(failure, profile)
         # A round that already answered inside this attempt proves the route
         # as surely as a completed attempt does. Without this, round 1
         # succeeding and round 2 returning 404 escaped before any proof was
@@ -3534,29 +4226,48 @@ class MinimalChatExecutor:
         # Its cost is charged against the profile's budget and recorded on
         # the call; before this it was written as zero and never charged, so
         # the totals of a run that was going wrong were the least accurate.
-        failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+        # Under transport_v1 the port may already have terminalized the open
+        # call with its own failure before a later one reached here: the
+        # attempt's timeout while the harness was still running. The call keeps
+        # the failure its terminal names, with that failure's usage and cost;
+        # the attempt takes the later one.
+        call_failure = failure
+        if transport_v1 and pending is not None and pending.terminalized:
+            terminalized = self._attempt_terminal_failure(action_attempt_id)
+            if terminalized is not None and (
+                terminalized[0].provider_call_id == pending.provider_call_id
+            ):
+                call_failure = terminalized[1]
+        failed_cost = failed_call_cost(call_failure, self._pricing[profile.model.model])
         if failed_cost:
             self._charge(profile, failed_cost)
         # A harness-driven attempt fails inside whichever round it reached;
         # attribute the failure to that call, not to the sealed round-0 request
         # that may already have succeeded.
         failed_request = pending.request if pending is not None else request
-        provider_record = ProviderCallRecord(
-            provider_call_id=failed_request.provider_call_id,
-            action_attempt_id=action_attempt_id,
-            status="outcome_unknown" if outcome_unknown else "failed",
-            request_sha256=failed_request.request_sha256,
-            requested_model=failed_request.model,
-            resolved_model=None,
-            response_id=None,
-            finish_reason=None,
-            input_tokens=failure.input_tokens,
-            cached_input_tokens=failure.cached_input_tokens,
-            output_tokens=failure.output_tokens,
-            cost_usd=failed_cost or 0.0,
-            failure_condition=condition,
-        )
-        if pending is None or not pending.terminalized:
+        # A failure raised after a round already terminalized as succeeded (a
+        # reply with text and tool calls, typed provider_contract) belongs to
+        # the attempt alone, under every profile: the call has its terminal
+        # and no record may be built for the attempt's first request (#249).
+        post_success = pending is None and bool(prior_rounds)
+        # Under transport_v1 each call id is listed exactly once, so a record
+        # is built only for a call that is not already in the ledger. The last
+        # call may be listed already: the port records a refusal before it
+        # decides whether to re-send, and the outer timeout can land while it
+        # sleeps, when no call is open and none may be fabricated.
+        provider_record: ProviderCallRecord | None = None
+        if not post_success and (
+            not transport_v1
+            or failed_request.provider_call_id
+            not in {record.provider_call_id for record in refused_calls + prior_rounds}
+        ):
+            provider_record = self._failed_call_record(
+                profile, failed_request, action_attempt_id, call_failure, failed_cost
+            )
+        # A round that answered and then failed in post-processing already has
+        # its terminal (succeeded); a second one for the attempt's first call
+        # would be a contradictory duplicate that fails reconciliation (#249).
+        if not post_success and (pending is None or not pending.terminalized):
             self.evidence.append_event(
                 (
                     "provider_call_outcome_unknown"
@@ -3577,6 +4288,11 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
+            wrote_terminal = True
+        # Under v1, start order: every refusal precedes the one round that answered.
+        provider_calls = refused_calls + prior_rounds if transport_v1 else prior_rounds
+        if provider_record is not None:
+            provider_calls += (provider_record,)
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -3584,14 +4300,25 @@ class MinimalChatExecutor:
             retry_reason=retry_reason,
             session_mode=profile.retry_policy.session_mode,
             status="failed",
-            provider_calls=prior_rounds + (provider_record,),
+            provider_calls=provider_calls,
             tool_invocations=(),
             canonical_response=None,
         )
         attempts.append(attempt)
+        failed_payload: dict[str, Any] = {"failure_condition": condition}
+        if transport_exhausted:
+            failed_payload["transport_exhausted"] = True
+        if self._attempt_in_backoff(action_attempt_id):
+            failed_payload["during_transport_backoff"] = True
+        if transport_exhausted and profile.profile_id in self._route_health:
+            denial = self._attempt_resend_denial(action_attempt_id)
+            if denial is not None:
+                failed_payload["resend_denied_by"] = denial[0]
+                if denial[1] is not None:
+                    failed_payload["route"] = denial[1]
         self.evidence.append_event(
             "action_attempt_failed",
-            {"failure_condition": condition},
+            failed_payload,
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
@@ -3600,6 +4327,7 @@ class MinimalChatExecutor:
             retryable
             and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
+            and not transport_exhausted
         )
         if (
             should_retry
@@ -3620,7 +4348,142 @@ class MinimalChatExecutor:
                 attempts=tuple(attempts),
                 failure_code=condition,
             )
+        # Reported by the writer of the terminal, after its attempt record and
+        # the logical execution are updated: the outer timeout and an invalid
+        # provider result reach here with the call still open. The port reports
+        # the terminals it writes itself.
+        if wrote_terminal and profile.profile_id in self._route_health:
+            self._report_route(
+                profile,
+                failed_request.provider_call_id,
+                condition=failure.condition,
+                retry_after_seconds=failure.retry_after_seconds,
+            )
         return should_retry, condition
+
+    def _report_route(
+        self,
+        profile: AgentProfile,
+        provider_call_id: str,
+        *,
+        condition: str,
+        retry_after_seconds: float | None,
+    ) -> None:
+        """Report a provider terminal this executor just wrote to its route.
+
+        Total: the route's report cannot raise on a declared policy, so it
+        cannot change the failure being recorded.
+        """
+
+        health = self._route_health.get(profile.profile_id)
+        if health is None:
+            return
+        from ..model_call.route_health import terminal_ref
+
+        health.report(
+            condition=condition,
+            retry_after_seconds=retry_after_seconds,
+            ref=terminal_ref(self.evidence.episode_attempt_id, provider_call_id, condition),
+        )
+
+    async def _pass_route_gate(
+        self,
+        decision: DecisionRequest,
+        profile: AgentProfile,
+        action_attempt_id: str,
+        ordinal: int,
+        retry_reason: str | None,
+        attempts: list[ActionAttemptRecord],
+    ) -> None:
+        """Hold call 0 until the shared route admits it (S5 spec §4).
+
+        Waits for the route's deadlines, bounded by its outage bound, so an
+        outage that ends in exhaustion wakes the waiter with no other event.
+        The wait precedes ``attempt_deadline``, which is set later, so it never
+        consumes the attempt's time. An exhausted route fails the attempt
+        before any provider call exists, and that is never retried.
+        """
+
+        from ..model_call import route_health as route_module
+
+        health = self._route_health[profile.profile_id]
+        labels: dict[str, Any] = {
+            "phase_instance_id": decision.phase_instance_id,
+            "logical_action_id": decision.logical_action_id,
+            "action_attempt_id": action_attempt_id,
+        }
+        wait_started: float | None = None
+
+        def write_wait_completed(outcome: str) -> None:
+            if wait_started is not None:
+                self.evidence.append_event(
+                    "route_wait_completed",
+                    {
+                        "outcome": outcome,
+                        "waited_seconds": route_module._route_monotonic() - wait_started,
+                        "route": health.snapshot(),
+                    },
+                    **labels,
+                )
+
+        try:
+            while not health.admits():
+                if health.exhausted is not None:
+                    break
+                if wait_started is None:
+                    started_at = route_module._route_monotonic()
+                    self.evidence.append_event(
+                        "route_wait_started", {"route": health.snapshot()}, **labels
+                    )
+                    wait_started = started_at
+                await route_module._route_sleep(health.wake_in())
+        except BaseException as interruption:
+            # Nothing was sent, so the attempt is unopened rather than failed.
+            write_wait_completed(
+                "cancelled" if isinstance(interruption, asyncio.CancelledError) else "interrupted"
+            )
+            self._record_unknown(
+                decision,
+                None,
+                action_attempt_id,
+                attempts,
+                profile=profile,
+                request=None,
+                ordinal=ordinal,
+                retry_reason=retry_reason,
+                prior_rounds=(),
+                failure_condition="interrupted_before_provider_call",
+            )
+            raise
+        if health.exhausted is None:
+            write_wait_completed("admitted")
+            return
+        write_wait_completed("route_unavailable")
+        failure = ProviderFailure(
+            "route_unavailable",
+            f"the route is unavailable: {health.exhausted}",
+            retryable=False,
+        )
+        attempts.append(
+            ActionAttemptRecord(
+                action_attempt_id=action_attempt_id,
+                logical_action_id=decision.logical_action_id,
+                ordinal=ordinal,
+                retry_reason=retry_reason,
+                session_mode=profile.retry_policy.session_mode,
+                status="failed",
+                provider_calls=(),
+                tool_invocations=(),
+                canonical_response=None,
+            )
+        )
+        self.evidence.append_event(
+            "action_attempt_failed",
+            {"failure_condition": "route_unavailable", "route": health.snapshot()},
+            **labels,
+        )
+        self._finish_logical_failure(decision, attempts, "route_unavailable")
+        raise failure
 
     def _settle_prior_rounds(
         self, profile: AgentProfile, action_attempt_id: str
@@ -3647,6 +4510,8 @@ class MinimalChatExecutor:
         terminalized is not given a second, contradictory terminal event.
         """
 
+        if self._attempt_in_backoff(action_attempt_id):
+            return None
         pending = self._attempt_pending_round(action_attempt_id)
         if pending is not None:
             return None if pending.terminalized else pending.provider_call_id
@@ -3660,6 +4525,13 @@ class MinimalChatExecutor:
         provider_call_id: str | None,
         action_attempt_id: str,
         attempts: list[ActionAttemptRecord],
+        *,
+        profile: AgentProfile,
+        request: ProviderRequest | None,
+        ordinal: int,
+        retry_reason: str | None,
+        prior_rounds: tuple[ProviderCallRecord, ...],
+        failure_condition: str | None = None,
     ) -> None:
         if provider_call_id is not None:
             self.evidence.append_event(
@@ -3670,9 +4542,73 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=provider_call_id,
             )
+        # The interrupted attempt is left out of the execution record under v0,
+        # a gap that predates transport_v1 and is kept so v0 records do not
+        # change. Under v1 the attempt and its calls are recorded, since a
+        # refused call that was billed nothing is still evidence of what was sent.
+        if declared_transport_policy(profile) is not None:
+            provider_calls = self._attempt_refused_calls(action_attempt_id) + prior_rounds
+            # A failed call whose terminal the port already wrote and reported,
+            # when the interruption landed before the failure was recorded
+            # here: its record and any known cost would otherwise be lost.
+            terminalized = self._attempt_terminal_failure(action_attempt_id)
+            if terminalized is not None:
+                failed_request, failure = terminalized
+                if failed_request.provider_call_id not in {
+                    record.provider_call_id for record in provider_calls
+                }:
+                    failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+                    if failed_cost:
+                        self._charge(profile, failed_cost)
+                    provider_calls += (
+                        self._failed_call_record(
+                            profile, failed_request, action_attempt_id, failure, failed_cost
+                        ),
+                    )
+            if provider_call_id is not None:
+                pending = self._attempt_pending_round(action_attempt_id)
+                interrupted = pending.request if pending is not None else request
+                assert interrupted is not None  # a call id implies a request
+                provider_calls += (
+                    ProviderCallRecord(
+                        provider_call_id=provider_call_id,
+                        action_attempt_id=action_attempt_id,
+                        status="outcome_unknown",
+                        request_sha256=interrupted.request_sha256,
+                        requested_model=interrupted.model,
+                        resolved_model=None,
+                        response_id=None,
+                        finish_reason=None,
+                        input_tokens=0,
+                        cached_input_tokens=0,
+                        output_tokens=0,
+                        cost_usd=0.0,
+                        failure_condition="interrupted_during_provider_call",
+                    ),
+                )
+            attempts.append(
+                ActionAttemptRecord(
+                    action_attempt_id=action_attempt_id,
+                    logical_action_id=decision.logical_action_id,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    session_mode=profile.retry_policy.session_mode,
+                    status="outcome_unknown",
+                    provider_calls=provider_calls,
+                    tool_invocations=(),
+                    canonical_response=None,
+                )
+            )
         self.evidence.append_event(
             "action_attempt_outcome_unknown",
-            {"failure_condition": "child_provider_outcome_unknown"},
+            {
+                "failure_condition": failure_condition
+                or (
+                    "interrupted_during_retry_backoff"
+                    if self._attempt_in_backoff(action_attempt_id)
+                    else "child_provider_outcome_unknown"
+                )
+            },
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
@@ -4344,8 +5280,14 @@ async def execute_plan_cell(
     tool_runtime_factories: Mapping[
         str, Callable[[EvidenceStore], "ToolRuntime"]
     ] | None = None,
+    route_health: "RouteHealthRegistry | None" = None,
 ) -> CellExecution:
-    """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
+    """Execute one sealed R2 cell through the R3 scheduler and R4 adapter.
+
+    ``route_health`` is the process's route-health registry, created once by
+    the caller and shared by every cell it runs; a profile declaring
+    ``route_v1`` needs it (S5).
+    """
     from ..run.layout import RunLayout
 
     verify_run_plan(plan)
@@ -4452,6 +5394,7 @@ async def execute_plan_cell(
             for profile_id, factory in (tool_runtime_factories or {}).items()
         },
         request_seed_by_profile=request_seed_by_profile,
+        route_health=route_health,
     )
     result = await run_episode(
         cell=cell,
@@ -4498,11 +5441,18 @@ __all__ = [
     "ProviderFailure",
     "ProviderRequest",
     "ProviderResult",
+    "RoutePolicy",
     "TokenPricing",
     "ToolExecutor",
     "ToolFailure",
     "ToolInvocationRecord",
+    "TransportPolicy",
     "TRUNCATED_FINISH_REASONS",
     "declared_provider_stream",
+    "declared_route_policy",
+    "declared_transport_policy",
+    "exponential_jitter_delay",
     "execute_plan_cell",
+    "route_health_key",
+    "transport_resend_class",
 ]

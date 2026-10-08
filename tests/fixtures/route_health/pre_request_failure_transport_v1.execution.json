@@ -1,0 +1,14 @@
+{
+  "error": [
+    "EvidenceIntegrityError",
+    "no structured output schema declared for action schema 'offer_v1'"
+  ],
+  "execution": {
+    "attempts": [],
+    "failure_code": null,
+    "logical_action_id": "logical_action_fixture",
+    "profile_id": "subject_model_v1",
+    "status": "started"
+  },
+  "total_cost_usd": 0.0
+}
