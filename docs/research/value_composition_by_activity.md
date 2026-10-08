@@ -197,6 +197,13 @@ and report both, as the framing note requires.
 - **Deployment weights, from operating models.** Frequencies and value at stake per decision
   come from sources like §5.2, not from industry shares. Selling, financing, hiring and
   allocating inside organisations each need a §5 of their own; that is the next research step.
+- **A labor-side decomposition exists and sums to 100%.** Allocating every occupation in the
+  May 2023 BLS wage bill ($9.94T) to one activity or an "others" bucket puts the ten
+  activities at 37.2% of the wage bill, 18.9% of GDP through labor's 50.9% share, with
+  allocating and delegating (10.3%), selling (9.8%) and operations coordination (5.9%) the
+  largest and procurement 0.5%; the allocation rules, exhaustive subcategories and the
+  defects found in the map are kept in the working document
+  https://claude.ai/code/artifact/72ac1725-e557-4ae7-82bf-a6b61d47c7ef (2026-10-08).
 - **No share of GDP.** The flows in §2 and §3 overlap by construction: intermediate inputs
   are not GDP, compensation is both income and the product of hiring, procurement recurs in
   every industry. Adding them, or attributing an activity's whole flow to the decisions in
