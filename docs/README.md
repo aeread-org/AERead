@@ -69,7 +69,7 @@ Browse the [evidence index by benchmark](../evidence/README.md#benchmark-index)
 for published campaigns and registers, including the 17 preserved legacy paths.
 
 - Housing: [case contract](families/housing/case.md) and [QC profile](families/housing/qc.md)
-- Procurement allocation: [case and campaign design](families/procurement-allocation/campaign.md)
+- Procurement allocation: [case and campaign design](families/procurement-allocation/campaign.md) and the [repeated-sourcing extension](families/procurement-allocation/relationship_design.md)
 - Tau3 retail: [adapter specification](families/tau3-retail/adapter_spec.md), [implementation status](families/tau3-retail/adapter_status.md), and [refund integration plan](families/tau3-retail/refund_external_benchmark_integration.md)
 - Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md) and [QC profile](families/datacenter/qc.md), and the [V2 walk-away analysis](families/datacenter/v2_walk_away_analysis.md) (decision tree, outcome ladders, the repair), and the [design findings](families/datacenter/design_findings_2026-09.md) recorded with the world pack
 
@@ -147,6 +147,7 @@ identities, so their citations are redirected, not rewritten.
 - [Verifier-to-case mapping](research/verifier_case_mapping.md)
 - [Problem-to-bound case audit](research/problem_bound_case_audit.md)
 - [Benchmark saturation](research/benchmark_saturation.md)
+- [Economic primitives the map lacks: three extensions and two shared mechanics](research/economic_primitives_extension_design.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
 - [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)

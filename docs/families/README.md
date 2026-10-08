@@ -133,6 +133,9 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Approved recovery: complete 36-row confirmation](procurement-allocation/unified_recovery_results.md)
 - [Unified continuous procurement execution plan](procurement-allocation/unified_run_plan.md)
 - [Unified regret campaign: observed execution](procurement-allocation/unified_run_results.md)
+- [Procurement over periods: the award as a relationship](procurement-allocation/relationship_design.md)
+- [Hidden-information case: judging a supplier from its record](procurement-allocation/hidden_information_case.md)
+- [Procurement case cards](procurement-allocation/case_cards.md)
 
 ## Refund
 

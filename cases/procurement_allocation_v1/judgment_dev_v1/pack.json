@@ -1,0 +1,696 @@
+{
+  "schema_version": "aeread.procurement_judgment_pack/0.1",
+  "pack": "judgment_dev_v1",
+  "generator_id": "procurement_allocation_judgment_pack_v1",
+  "generator_version": "1.0.0",
+  "split": "dev",
+  "seed_start": 2450000,
+  "per_cell": 2,
+  "market": {
+    "prior_bad": {
+      "established": 0.05,
+      "new": 0.3
+    },
+    "years": {
+      "established": [
+        5,
+        12
+      ],
+      "new": [
+        0,
+        2
+      ]
+    },
+    "orders_per_year": {
+      "established": 18.0,
+      "new": 6.0
+    },
+    "type": {
+      "good": {
+        "defect_rate": 0.01,
+        "on_time": 0.97,
+        "problem_order": 0.05
+      },
+      "bad": {
+        "defect_rate": 0.3,
+        "on_time": 0.85,
+        "problem_order": 0.45
+      }
+    },
+    "review_rate": 0.35,
+    "stars_ok": [
+      0.86,
+      0.12,
+      0.015,
+      0.005,
+      0.0
+    ],
+    "stars_problem": [
+      0.3,
+      0.25,
+      0.2,
+      0.15,
+      0.1
+    ],
+    "brushing": {
+      "probability": 0.25,
+      "mean_fake": 6.0
+    },
+    "protected_share": 0.6,
+    "badges": {
+      "gold": {
+        "good": 0.6,
+        "bad": 0.6
+      },
+      "verified": {
+        "good": 0.5,
+        "bad": 0.35
+      }
+    },
+    "response_hours": [
+      1,
+      2,
+      4,
+      8,
+      24
+    ]
+  },
+  "market_facts": "About 5% of suppliers with 5+ years on the platform, and 30% of those with 0-2 years, ship bad lots: a bad supplier's units are defective 30% of the time (a good one's 1%), it is on time 85% of the time (good 97%), and 45% of its orders have a problem (good 5%). About 35% of genuine orders get a review. Genuine orders average 18 a year for established suppliers and 6 a year for newer ones (a supplier under a year old counts as half a year). Ratings run high: a review of an order without a problem gives 5/4/3/2/1 stars with probability 86%/12%/1.5%/0.5%/0%, and of an order with a problem 30%/25%/20%/15%/10%. 25% of bad suppliers buy fake orders, on average 6, each with a five-star review; fake orders count in the order total but are never protected. The on-time record counts only protected orders (about 60% of orders). Gold is a paid membership held by 60% of suppliers of either kind; Verified checks the company, not the product (50% of good and 35% of bad suppliers hold it). Reply speed says nothing about quality. A sample inspects a batch of units and reports how many were defective; batches can be repeated and their counts accumulate. After each period the history shows, for every lot delivered, whether it arrived on time and, if it did, how many of its units were defective; a late lot shows no defect count.",
+  "cells": {
+    "switch_on_record": {
+      "segment": "established",
+      "band": [
+        0.0,
+        0.03
+      ],
+      "discount": [
+        0.25,
+        0.34
+      ],
+      "intended": "buy_C"
+    },
+    "test_thin_record": {
+      "segment": "new",
+      "band": [
+        0.1,
+        0.5
+      ],
+      "discount": [
+        0.25,
+        0.34
+      ],
+      "intended": "sample_C"
+    },
+    "not_worth_testing": {
+      "segment": "new",
+      "band": [
+        0.1,
+        0.5
+      ],
+      "discount": [
+        0.04,
+        0.08
+      ],
+      "intended": "buy_I"
+    },
+    "stars_mislead": {
+      "segment": "new",
+      "band": [
+        0.6,
+        1.0
+      ],
+      "discount": [
+        0.25,
+        0.34
+      ],
+      "intended": "buy_I",
+      "outrates": true
+    }
+  },
+  "min_margin_usd": 1.0,
+  "twin_band": [
+    0.1,
+    0.9
+  ],
+  "selection_rule": "for each cell, seeds from seed_start + 1000*cell_index are tried in order; a seed's first draw whose challenger posterior falls in the cell's band, whose incumbent posterior is at most 0.05 and whose intended first move beats every other by min_margin_usd under the buyer-information reference is admitted; a twin with the other hidden challenger kind is added when the posterior is inside twin_band",
+  "worlds": [
+    {
+      "slug": "switch_on_record_2450000",
+      "cell": "switch_on_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.switch_on_record_2450000",
+      "content_sha256": "b6a39af9a05196aac01eefff37f339126b8950c912d54a28b23767d3812fe355",
+      "world_seed": 2450000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_gee4",
+        "incumbent": "ssd1306_oled_096_q7ht",
+        "challenger": "ssd1306_oled_096_ub88"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 5.8e-05
+      },
+      "period_values_usd": {
+        "C_bad": 0.508248,
+        "C_good": 99.301606,
+        "I_bad": -6.069427,
+        "I_good": 90.375579
+      },
+      "sample_cost_usd": 9.91,
+      "reference": {
+        "first_action": "buy_C",
+        "first_action_values_usd": {
+          "buy_I": 388.271499,
+          "buy_C": 397.196901,
+          "sample_I": 387.286901,
+          "sample_C": 387.290039
+        },
+        "value_usd": 397.196901,
+        "realised_under_truth_usd": 397.205939
+      },
+      "oracle_usd": 397.206425,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 35.6946,
+        "cheapest_blind": 0.0115,
+        "sample_cheapest": 36.7179,
+        "higher_stars": 35.6946
+      },
+      "relationship_bound_usd": 397.206425
+    },
+    {
+      "slug": "switch_on_record_2450001",
+      "cell": "switch_on_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.switch_on_record_2450001",
+      "content_sha256": "e24ff2bbf461a167586461c2b3abe2c356f5069c3291089920e2739519010841",
+      "world_seed": 2450001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_3bnt",
+        "incumbent": "ssd1306_oled_096_63we",
+        "challenger": "ssd1306_oled_096_hxka"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.0
+      },
+      "period_values_usd": {
+        "C_bad": 5.29168,
+        "C_good": 104.148299,
+        "I_bad": -1.7205,
+        "I_good": 94.632639
+      },
+      "sample_cost_usd": 8.36,
+      "reference": {
+        "first_action": "buy_C",
+        "first_action_values_usd": {
+          "buy_I": 407.077537,
+          "buy_C": 416.593197,
+          "sample_I": 408.233197,
+          "sample_C": 408.233197
+        },
+        "value_usd": 416.593197,
+        "realised_under_truth_usd": 416.593197
+      },
+      "oracle_usd": 416.593197,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 38.0626,
+        "cheapest_blind": 0.0,
+        "sample_cheapest": 36.9476,
+        "higher_stars": 0.0
+      },
+      "relationship_bound_usd": 416.593197
+    },
+    {
+      "slug": "test_thin_record_2451000",
+      "cell": "test_thin_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.test_thin_record_2451000",
+      "content_sha256": "7b36423e0ef0a94ba2a5ba5cc2270c18ad57c399035b43496b3ac76d9086d7fc",
+      "world_seed": 2451000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_2pfd",
+        "incumbent": "ssd1306_oled_096_3jf4",
+        "challenger": "ssd1306_oled_096_57hj"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 1.3e-05,
+        "challenger": 0.317553
+      },
+      "period_values_usd": {
+        "C_bad": 3.4505,
+        "C_good": 102.37313,
+        "I_bad": -2.429193,
+        "I_good": 94.394277
+      },
+      "sample_cost_usd": 9.15,
+      "reference": {
+        "first_action": "sample_C",
+        "first_action_values_usd": {
+          "buy_I": 382.213989,
+          "buy_C": 369.53141,
+          "sample_I": 373.064349,
+          "sample_C": 387.127699
+        },
+        "value_usd": 387.127699,
+        "realised_under_truth_usd": 397.255541
+      },
+      "oracle_usd": 409.49252,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 9.5555,
+        "cheapest_blind": 80.7095,
+        "sample_cheapest": 17.5947,
+        "higher_stars": 9.5552
+      },
+      "relationship_bound_usd": 409.49252
+    },
+    {
+      "slug": "test_thin_record_2451000_twin",
+      "cell": "test_thin_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.test_thin_record_2451000_twin",
+      "content_sha256": "fbab7412e8ee063842ef45493e5b483a3af1a2881812a1e4306eed63ad2a57fd",
+      "world_seed": 2451000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_2pfd",
+        "incumbent": "ssd1306_oled_096_3jf4",
+        "challenger": "ssd1306_oled_096_57hj"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 1.3e-05,
+        "challenger": 0.317553
+      },
+      "period_values_usd": {
+        "C_bad": 3.4505,
+        "C_good": 102.37313,
+        "I_bad": -2.429193,
+        "I_good": 94.394277
+      },
+      "sample_cost_usd": 9.15,
+      "reference": {
+        "first_action": "sample_C",
+        "first_action_values_usd": {
+          "buy_I": 382.213989,
+          "buy_C": 369.53141,
+          "sample_I": 373.064349,
+          "sample_C": 387.127699
+        },
+        "value_usd": 387.127699,
+        "realised_under_truth_usd": 365.36714
+      },
+      "oracle_usd": 377.57711,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 9.5555,
+        "cheapest_blind": 80.7095,
+        "sample_cheapest": 17.5947,
+        "higher_stars": 9.5552
+      },
+      "relationship_bound_usd": 377.57711,
+      "twin_of": "test_thin_record_2451000"
+    },
+    {
+      "slug": "test_thin_record_2451001",
+      "cell": "test_thin_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.test_thin_record_2451001",
+      "content_sha256": "f88b5ebeb3970f9711bd112b76d28036c041b6316480ef7e7473098fe6b798a9",
+      "world_seed": 2451001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_4tpf",
+        "incumbent": "ssd1306_oled_096_cmq7",
+        "challenger": "ssd1306_oled_096_jd53"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.237536
+      },
+      "period_values_usd": {
+        "C_bad": 0.380552,
+        "C_good": 99.439605,
+        "I_bad": -6.579242,
+        "I_good": 89.995036
+      },
+      "sample_cost_usd": 9.55,
+      "reference": {
+        "first_action": "sample_C",
+        "first_action_values_usd": {
+          "buy_I": 369.233151,
+          "buy_C": 366.444382,
+          "sample_I": 359.683151,
+          "sample_C": 375.732438
+        },
+        "value_usd": 375.732438,
+        "realised_under_truth_usd": 384.55436
+      },
+      "oracle_usd": 397.758421,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 15.7523,
+        "cheapest_blind": 56.1804,
+        "sample_cheapest": 21.3102,
+        "higher_stars": 56.1804
+      },
+      "relationship_bound_usd": 397.758421
+    },
+    {
+      "slug": "test_thin_record_2451001_twin",
+      "cell": "test_thin_record",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.test_thin_record_2451001_twin",
+      "content_sha256": "9fdb029daa2175d938f017b010439b658f011fdb07faa0d9a9d408b18c6c3802",
+      "world_seed": 2451001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_4tpf",
+        "incumbent": "ssd1306_oled_096_cmq7",
+        "challenger": "ssd1306_oled_096_jd53"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.237536
+      },
+      "period_values_usd": {
+        "C_bad": 0.380552,
+        "C_good": 99.439605,
+        "I_bad": -6.579242,
+        "I_good": 89.995036
+      },
+      "sample_cost_usd": 9.55,
+      "reference": {
+        "first_action": "sample_C",
+        "first_action_values_usd": {
+          "buy_I": 369.233151,
+          "buy_C": 366.444382,
+          "sample_I": 359.683151,
+          "sample_C": 375.732438
+        },
+        "value_usd": 375.732438,
+        "realised_under_truth_usd": 347.414928
+      },
+      "oracle_usd": 359.980144,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 15.7523,
+        "cheapest_blind": 56.1804,
+        "sample_cheapest": 21.3102,
+        "higher_stars": 56.1804
+      },
+      "relationship_bound_usd": 359.980144,
+      "twin_of": "test_thin_record_2451001"
+    },
+    {
+      "slug": "not_worth_testing_2452000",
+      "cell": "not_worth_testing",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.not_worth_testing_2452000",
+      "content_sha256": "2586dea7786b318c362b77622e7c75cdcb8954a88a8f9dff7216689f4b6d106e",
+      "world_seed": 2452000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_5qdc",
+        "incumbent": "ssd1306_oled_096_8q9k",
+        "challenger": "ssd1306_oled_096_azgj"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.112829
+      },
+      "period_values_usd": {
+        "C_bad": -5.272654,
+        "C_good": 91.726296,
+        "I_bad": -6.278796,
+        "I_good": 90.360942
+      },
+      "sample_cost_usd": 8.54,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 361.44377,
+          "buy_C": 355.245801,
+          "sample_I": 352.90377,
+          "sample_C": 356.91752
+        },
+        "value_usd": 361.44377,
+        "realised_under_truth_usd": 361.44377
+      },
+      "oracle_usd": 361.44377,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0,
+        "cheapest_blind": 31.3739,
+        "sample_cheapest": 8.9449,
+        "higher_stars": 31.3739
+      },
+      "relationship_bound_usd": 361.44377
+    },
+    {
+      "slug": "not_worth_testing_2452000_twin",
+      "cell": "not_worth_testing",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.not_worth_testing_2452000_twin",
+      "content_sha256": "fb6e97de9ad6dc4a56c8e0215d44212983aaf1107a4038ccf545c521f7240f08",
+      "world_seed": 2452000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_5qdc",
+        "incumbent": "ssd1306_oled_096_8q9k",
+        "challenger": "ssd1306_oled_096_azgj"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.112829
+      },
+      "period_values_usd": {
+        "C_bad": -5.272654,
+        "C_good": 91.726296,
+        "I_bad": -6.278796,
+        "I_good": 90.360942
+      },
+      "sample_cost_usd": 8.54,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 361.44377,
+          "buy_C": 355.245801,
+          "sample_I": 352.90377,
+          "sample_C": 356.91752
+        },
+        "value_usd": 361.44377,
+        "realised_under_truth_usd": 361.44377
+      },
+      "oracle_usd": 366.905186,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0,
+        "cheapest_blind": 31.3739,
+        "sample_cheapest": 8.9449,
+        "higher_stars": 31.3739
+      },
+      "relationship_bound_usd": 366.905186,
+      "twin_of": "not_worth_testing_2452000"
+    },
+    {
+      "slug": "not_worth_testing_2452001",
+      "cell": "not_worth_testing",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.not_worth_testing_2452001",
+      "content_sha256": "fe3b7e594fb2bc5570a80966eecbe4ac5632f9513fdc2078b14ccbda2befb04c",
+      "world_seed": 2452001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_44bm",
+        "incumbent": "ssd1306_oled_096_apxa",
+        "challenger": "ssd1306_oled_096_h5xh"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "good"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.191559
+      },
+      "period_values_usd": {
+        "C_bad": -5.392059,
+        "C_good": 91.590388,
+        "I_bad": -6.849656,
+        "I_good": 89.612402
+      },
+      "sample_cost_usd": 10.43,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 358.449609,
+          "buy_C": 346.283414,
+          "sample_I": 348.019609,
+          "sample_C": 353.186049
+        },
+        "value_usd": 358.449609,
+        "realised_under_truth_usd": 358.449609
+      },
+      "oracle_usd": 366.361553,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0,
+        "cheapest_blind": 53.3645,
+        "sample_cheapest": 11.555,
+        "higher_stars": 53.3645
+      },
+      "relationship_bound_usd": 366.361553
+    },
+    {
+      "slug": "not_worth_testing_2452001_twin",
+      "cell": "not_worth_testing",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.not_worth_testing_2452001_twin",
+      "content_sha256": "2a4b388fe3c288d9d23806913c101b8b65fb4c1dc143df4eccce55b6505d0eb7",
+      "world_seed": 2452001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_44bm",
+        "incumbent": "ssd1306_oled_096_apxa",
+        "challenger": "ssd1306_oled_096_h5xh"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.191559
+      },
+      "period_values_usd": {
+        "C_bad": -5.392059,
+        "C_good": 91.590388,
+        "I_bad": -6.849656,
+        "I_good": 89.612402
+      },
+      "sample_cost_usd": 10.43,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 358.449609,
+          "buy_C": 346.283414,
+          "sample_I": 348.019609,
+          "sample_C": 353.186049
+        },
+        "value_usd": 358.449609,
+        "realised_under_truth_usd": 358.449608
+      },
+      "oracle_usd": 358.449609,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0,
+        "cheapest_blind": 53.3645,
+        "sample_cheapest": 11.555,
+        "higher_stars": 53.3645
+      },
+      "relationship_bound_usd": 358.449609,
+      "twin_of": "not_worth_testing_2452001"
+    },
+    {
+      "slug": "stars_mislead_2453000",
+      "cell": "stars_mislead",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.stars_mislead_2453000",
+      "content_sha256": "0a0064f0ed27c2051f220fcccb6d3ef9e9425272aea9363e48ecba06a4352233",
+      "world_seed": 2453000,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_am2n",
+        "incumbent": "ssd1306_oled_096_axgn",
+        "challenger": "ssd1306_oled_096_fs62"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.999995
+      },
+      "period_values_usd": {
+        "C_bad": -0.714952,
+        "C_good": 97.973888,
+        "I_bad": -6.443646,
+        "I_good": 90.199944
+      },
+      "sample_cost_usd": 10.64,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 360.799775,
+          "buy_C": 269.885373,
+          "sample_I": 350.159775,
+          "sample_C": 350.159775
+        },
+        "value_usd": 360.799775,
+        "realised_under_truth_usd": 360.799774
+      },
+      "oracle_usd": 360.799775,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0001,
+        "cheapest_blind": 229.9138,
+        "sample_cheapest": 24.2144,
+        "higher_stars": 229.9138
+      },
+      "relationship_bound_usd": 360.799775
+    },
+    {
+      "slug": "stars_mislead_2453001",
+      "cell": "stars_mislead",
+      "case_id": "procurement_allocation_v1.judgment_dev_v1.stars_mislead_2453001",
+      "content_sha256": "76f3d9ff767afd444147335a787eeb1793a09e8adcd354b51634a69e6eaf8321",
+      "world_seed": 2453001,
+      "supplier_roles": {
+        "controller": "esp32_s3_n8r8_3sn3",
+        "incumbent": "ssd1306_oled_096_56ns",
+        "challenger": "ssd1306_oled_096_bcpt"
+      },
+      "hidden_kind": {
+        "incumbent": "good",
+        "challenger": "bad"
+      },
+      "posterior_bad": {
+        "incumbent": 0.0,
+        "challenger": 0.999999
+      },
+      "period_values_usd": {
+        "C_bad": 2.699012,
+        "C_good": 101.712407,
+        "I_bad": -3.552014,
+        "I_good": 93.229649
+      },
+      "sample_cost_usd": 8.73,
+      "reference": {
+        "first_action": "buy_I",
+        "first_action_values_usd": {
+          "buy_I": 372.918598,
+          "buy_C": 282.388059,
+          "sample_I": 364.188598,
+          "sample_C": 364.188598
+        },
+        "value_usd": 372.918598,
+        "realised_under_truth_usd": 372.918598
+      },
+      "oracle_usd": 372.918598,
+      "rule_ex_ante_regret_usd": {
+        "stay_with_incumbent": 0.0,
+        "cheapest_blind": 216.6669,
+        "sample_cheapest": 22.247,
+        "higher_stars": 216.6669
+      },
+      "relationship_bound_usd": 372.918598
+    }
+  ],
+  "claim_scope": "synthetic worlds selected by rule; the reference is the best policy on the buyer's information under the declared market, with one sample per supplier; not a statement about real suppliers",
+  "manifest_sha256": "2ab37317ad005f1204835dd9ad7be4ee2eae71fdd656a06551274ec470900993"
+}

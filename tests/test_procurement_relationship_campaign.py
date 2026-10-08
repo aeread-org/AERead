@@ -1,0 +1,512 @@
+"""The repeated-sourcing campaign: frozen plans, typed cells, pairing, publication.
+
+Offline throughout. The publish test drives one cell through the kernel with
+the fixture provider so the bundle it seals carries a real receipt, a real
+evidence store and a real trajectory grain.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from pathlib import Path
+
+import pytest
+
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread_families.procurement_allocation import (
+    build_offline_setup,
+    finalize_procurement_allocation_execution,
+    run_fixture_script,
+    solve_full_information_upper_bound,
+)
+from aeread_families.procurement_allocation import relationship_campaign as campaign
+from aeread_families.procurement_allocation.relationship_case_matrix import CASE_PATHS
+
+WORLD = CASE_PATHS[0]
+
+
+def _plan(tmp_path: Path, *, seeds=(11, 12), case_paths=(WORLD,), route_id="gemini38_flash_aistudio"):
+    return campaign.prepare(
+        tmp_path / "run", campaign_id="test_campaign", seeds=seeds, route_id=route_id, case_paths=case_paths
+    )
+
+
+def _completed_row(cell: dict, *, regret: float, counters: int = 0, quoted=("a", "b")) -> dict:
+    bound = 400.0
+    return {
+        "slug": cell["slug"],
+        "seed": cell["seed"],
+        "world_case_id": cell["world_case_id"],
+        "case_id": cell["case_id"],
+        "case_content_sha256": cell["content_sha256"],
+        "status": "completed",
+        "decision": "award",
+        "termination_reason": "submitted",
+        "feasible": True,
+        "feasible_award": True,
+        "periods": 4,
+        "periods_awarded": 4,
+        "period_decisions": ["award"] * 4,
+        "period_margins": [100.0 - regret / 4] * 4,
+        "switches": 0,
+        "realized_on_time_rate": 1.0,
+        "contribution_margin_usd": bound - regret,
+        "upper_bound_usd": bound,
+        "myopic_reference_usd": 380.0,
+        "loyal_reference_usd": 380.0,
+        "shopping_reference_usd": 378.0,
+        "regret_to_upper_bound_usd": regret,
+        "advantage_over_myopic_usd": bound - regret - 380.0,
+        "violations": [],
+        "information_cost_usd": 1.0,
+        "action_count": 14,
+        "action_counts": {"request_quote": 8, "submit_award": 4, "request_sample": 2},
+        "counters": counters,
+        "inquiries": 0,
+        "suppliers_quoted": list(quoted),
+        "suppliers_quoted_count": len(quoted),
+        "provider_call_count": 14,
+        "finish_reasons": {"stop": 14},
+        "input_tokens": 1000,
+        "cached_input_tokens": 0,
+        "output_tokens": 100,
+        "cost_usd": 0.01,
+        "resolved_models": ["fake"],
+        "receipt_sha256": "0" * 64,
+        "receipt_status": "ok",
+        "inclusion_status": "included",
+        "elapsed_seconds": 1.0,
+        "period_results": [],
+        "action_trace": [{"ordinal": 1, "status": "completed", "failure_code": None, "action": "request_quote", "supplier_id": "a"}],
+    }
+
+
+# --------------------------------------------------------------------------
+# episode cases and plans
+# --------------------------------------------------------------------------
+
+
+def test_episode_case_reseeds_delivery_and_keeps_the_economics() -> None:
+    world = json.loads(WORLD.read_text(encoding="utf-8"))
+    first = campaign.episode_case(world, 11)
+    second = campaign.episode_case(world, 12)
+    assert first["case_id"] != second["case_id"] != world["case_id"]
+    assert first["content_sha256"] != second["content_sha256"]
+    assert first["payload"]["interaction"]["periods"]["delivery_seed"] == 11
+    assert (
+        solve_full_information_upper_bound(first["payload"]).contribution_margin_usd
+        == solve_full_information_upper_bound(second["payload"]).contribution_margin_usd
+    )
+    with pytest.raises(ValueError, match="positive integer"):
+        campaign.episode_case(world, 0)
+
+
+def test_episode_case_reseeds_sample_noise_when_the_world_declares_it() -> None:
+    world = json.loads(WORLD.read_text(encoding="utf-8"))
+    world["payload"]["interaction"]["sample_noise"] = {"model": "binomial", "seed": 1}
+    derived = campaign.episode_case(world, 77)
+    assert derived["payload"]["interaction"]["sample_noise"]["seed"] == 77
+
+
+def test_prepare_freezes_a_plan_that_read_plan_verifies(tmp_path: Path) -> None:
+    plan = _plan(tmp_path)
+    assert len(plan["cells"]) == 2 and plan["route_id"] == "gemini38_flash_aistudio"
+    assert set(campaign.FAMILY_SOURCES) <= set(plan["sources"])
+    reread = campaign.read_plan(tmp_path / "run")
+    assert reread["plan_sha256"] == plan["plan_sha256"]
+    for cell in plan["cells"]:
+        assert (tmp_path / "run" / cell["path"]).is_file()
+    with pytest.raises(ValueError, match="never rewritten"):
+        _plan(tmp_path)
+    with pytest.raises(ValueError, match="unknown route"):
+        campaign.prepare(tmp_path / "other", campaign_id="x", seeds=(1,), route_id="jev")
+    with pytest.raises(ValueError, match="distinct"):
+        campaign.prepare(tmp_path / "dup", campaign_id="x", seeds=(1, 1))
+
+
+def test_read_plan_refuses_changed_family_sources_and_tolerates_tool_drift(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _plan(tmp_path)
+    original = campaign.source_hashes()
+    drifted_tool = {**original, campaign.TOOL_SOURCES[0]: "f" * 64}
+    monkeypatch.setattr(campaign, "source_hashes", lambda: drifted_tool)
+    campaign.read_plan(tmp_path / "run")  # noted, not refused
+    drifted_family = {**original, campaign.FAMILY_SOURCES[0]: "f" * 64}
+    monkeypatch.setattr(campaign, "source_hashes", lambda: drifted_family)
+    with pytest.raises(ValueError, match="family sources changed"):
+        campaign.read_plan(tmp_path / "run")
+
+
+def test_route_record_round_trips() -> None:
+    for route in campaign.ROUTES.values():
+        rebuilt = campaign.route_from_record(campaign.route_record(route))
+        assert rebuilt == route
+
+
+# --------------------------------------------------------------------------
+# execution: typed cells, no reruns, the stop rule
+# --------------------------------------------------------------------------
+
+
+def test_execute_records_every_cell_once_and_never_reruns(tmp_path: Path) -> None:
+    plan = _plan(tmp_path, seeds=(1, 2, 3))
+    calls: list[str] = []
+
+    def runner(plan_, cell, root):
+        calls.append(cell["case_id"])
+        return _completed_row(cell, regret=10.0 + cell["seed"])
+
+    summary = campaign.execute(tmp_path / "run", runner=runner, log=lambda _: None)
+    assert summary["completed"] == 3 and summary["halted"] is None
+    assert summary["mean_regret_usd"] == pytest.approx(12.0)
+    assert summary["worlds_measured"] == 1
+    assert summary["mean_regret_usd_95_world_bootstrap"] is None  # one world, no interval
+    assert summary["worlds"][0]["within_world_regret_variance"] == pytest.approx(1.0)
+    assert (tmp_path / "run" / "results.json").is_file()
+    again = campaign.execute(tmp_path / "run", runner=runner, log=lambda _: None)
+    assert len(calls) == 3  # recorded cells are read back, never rerun
+    assert again["completed"] == 3
+    assert "error" not in json.dumps(again["rows"])
+
+
+def test_execute_halts_after_consecutive_failures_and_types_the_rest(tmp_path: Path) -> None:
+    plan = _plan(tmp_path, seeds=(1, 2, 3, 4, 5))
+    seen: list[int] = []
+
+    def runner(plan_, cell, root):
+        seen.append(cell["seed"])
+        return {
+            "slug": cell["slug"],
+            "seed": cell["seed"],
+            "case_id": cell["case_id"],
+            "status": "failed",
+            "error_type": "ProviderFailure",
+            "error": "429 from the provider, user_id: secret",
+            "failure_receipt_sha256": None,
+            "elapsed_seconds": 0.1,
+        }
+
+    summary = campaign.execute(tmp_path / "run", runner=runner, log=lambda _: None)
+    assert seen == [1, 2, 3]
+    assert summary["failed"] == 3 and summary["not_attempted"] == 2
+    assert "consecutive operational failures" in summary["halted"]
+    assert all(row["status"] == "not_attempted" for row in summary["rows"][3:])
+    assert "user_id" not in json.dumps(summary["rows"])  # error text never leaves the cell file
+
+
+# --------------------------------------------------------------------------
+# summary and pairing
+# --------------------------------------------------------------------------
+
+
+def test_bootstrap_interval_is_deterministic_and_brackets_the_mean() -> None:
+    values = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+    first = campaign.bootstrap_interval(values)
+    second = campaign.bootstrap_interval(values)
+    assert first == second
+    assert first[0] < sum(values) / len(values) < first[1]
+    assert campaign.bootstrap_interval([1.0]) is None
+
+
+def test_compare_pairs_by_world_and_seed(tmp_path: Path) -> None:
+    left_plan = _plan(tmp_path / "left", seeds=(1, 2))
+    right_plan = campaign.prepare(
+        tmp_path / "right" / "run", campaign_id="other", seeds=(1, 2), route_id="glm53_flash_parasail", case_paths=(WORLD,)
+    )
+    campaign.execute(
+        tmp_path / "left" / "run",
+        runner=lambda p, c, r: _completed_row(c, regret=20.0, counters=1),
+        log=lambda _: None,
+    )
+    campaign.execute(
+        tmp_path / "right" / "run",
+        runner=lambda p, c, r: _completed_row(c, regret=30.0, quoted=("a", "b", "c")),
+        log=lambda _: None,
+    )
+    report = campaign.compare(tmp_path / "left" / "run", tmp_path / "right" / "run")
+    assert report["paired_cells"] == 2 and report["worlds"] == 1
+    assert report["mean_regret_delta_usd"] == pytest.approx(-10.0)
+    assert report["per_world"][WORLD.stem]["counters"] == pytest.approx(1.0)
+    assert report["per_world"][WORLD.stem]["quoted"] == pytest.approx(-1.0)
+    assert (tmp_path / "left" / "run" / "comparison_vs_other.json").is_file()
+
+    mismatched = campaign.prepare(
+        tmp_path / "third" / "run", campaign_id="third", seeds=(1, 3), case_paths=(WORLD,)
+    )
+    campaign.execute(
+        tmp_path / "third" / "run", runner=lambda p, c, r: _completed_row(c, regret=1.0), log=lambda _: None
+    )
+    with pytest.raises(ValueError, match="different seeds"):
+        campaign.compare(tmp_path / "left" / "run", tmp_path / "third" / "run")
+
+
+# --------------------------------------------------------------------------
+# publication, from a real kernel cell
+# --------------------------------------------------------------------------
+
+
+def _script() -> list[str]:
+    actions: list[dict] = []
+    versions = {"esp32_s3_n8r8_partner": 0, "ssd1306_oled_096_steady": 0}
+    for period in range(1, 5):
+        lines = []
+        for supplier_id in versions:
+            versions[supplier_id] += 1
+            actions.append({"action": "request_quote", "supplier_id": supplier_id, "message": "quote"})
+            if period == 1:
+                actions.append({"action": "request_sample", "supplier_id": supplier_id, "message": "sample"})
+            lines.append({"offer_id": f"offer_{supplier_id}_v{versions[supplier_id]}", "quantity": 20})
+        actions.append({"action": "submit_award", "award_lines": lines})
+    return [json.dumps(action, sort_keys=True) for action in actions]
+
+
+def test_publish_seals_a_verifiable_bundle_from_a_kernel_cell(tmp_path: Path) -> None:
+    plan = _plan(tmp_path, seeds=(5,))
+    run_root = tmp_path / "run"
+    cell = plan["cells"][0]
+    evidence_root = campaign.cell_root(run_root, cell) / "evidence"
+
+    def offline_builder(plan_, cell_, root_):
+        return build_offline_setup(case_path=root_ / cell_["path"])
+
+    setup, execution, provider = asyncio.run(
+        run_fixture_script(_script(), evidence_root=evidence_root, case_path=run_root / cell["path"])
+    )
+    assert provider.exhausted
+    receipt = finalize_procurement_allocation_execution(setup=setup, execution=execution)
+    outcome = json.loads(canonical_json_bytes(execution.episode_result.outcome))
+    row = _completed_row(cell, regret=outcome["regret_to_upper_bound_usd"])
+    row.update(
+        contribution_margin_usd=outcome["contribution_margin_usd"],
+        upper_bound_usd=outcome["upper_bound_usd"],
+        myopic_reference_usd=outcome["myopic_reference_usd"],
+        loyal_reference_usd=outcome["loyal_reference_usd"],
+        receipt_sha256=receipt.receipt_sha256,
+        period_results=outcome["period_results"],
+        action_trace=campaign.public_trace(execution),
+    )
+    campaign.execute(run_root, runner=lambda p, c, r: row, log=lambda _: None)
+
+    bundle = tmp_path / "bundle"
+    manifest = campaign.publish(run_root, publication_root=bundle, setup_builder=offline_builder)
+    assert manifest["publication_id"] == "test_campaign"
+    assert manifest["claim_status"] == "development_qualification"
+    assert manifest["winner_claim_allowed"] is False
+    assert manifest["source_bindings"]["source_receipt_sha256s"] == [receipt.receipt_sha256]
+    for name in (
+        "README.md",
+        "reports/plan.json",
+        "reports/summary.json",
+        "reports/replay.json",
+        "tables/cells.jsonl",
+        "tables/periods.jsonl",
+        "receipts/receipts.jsonl",
+        "trajectories/sanitized.jsonl",
+    ):
+        assert name in manifest["artifacts"], name
+    grain = (bundle / "trajectories" / "sanitized.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(grain) == 14
+    periods = (bundle / "tables" / "periods.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(periods) == 4
+    verdict = campaign.verify_bundle(bundle)
+    assert verdict["problems"] == [] and verdict["receipts"] == 1
+    with pytest.raises(ValueError, match="already sealed"):
+        campaign.publish(run_root, publication_root=bundle, setup_builder=offline_builder)
+    text = (bundle / "README.md").read_text(encoding="utf-8")
+    assert "No winner" in text and "development_qualification" in text
+
+
+def test_prepare_on_a_generated_pack_reseeds_the_sample_noise(tmp_path: Path) -> None:
+    paths = campaign.pack_paths("relationship_holdout_v1")
+    assert len(paths) == 12
+    plan = campaign.prepare(tmp_path / "run", campaign_id="holdout_probe", seeds=(3, 4), case_paths=paths[:2])
+    assert len(plan["cells"]) == 4
+    for cell in plan["cells"]:
+        case = json.loads((tmp_path / "run" / cell["path"]).read_text(encoding="utf-8"))
+        assert case["payload"]["interaction"]["sample_noise"]["seed"] == cell["seed"]
+        assert case["payload"]["interaction"]["periods"]["delivery_seed"] == cell["seed"]
+    assert campaign.pack_paths("relationship_v1") == tuple(CASE_PATHS)
+
+
+# --------------------------------------------------------------------------
+# Observation layout and temperature (P-D-05, P-D-06)
+# --------------------------------------------------------------------------
+
+
+def _drive_offline(tmp_path: Path, *, observation_layout: str):
+    """One scripted episode through the kernel; returns the requests it sent."""
+
+    from aeread.shared_runner.task.execution import execute_plan_cell
+    from aeread_families.procurement_allocation.runner import SequenceResponseProvider
+
+    plan = _plan(tmp_path / observation_layout, seeds=(5,))
+    run_root = tmp_path / observation_layout / "run"
+    cell = plan["cells"][0]
+    setup = build_offline_setup(case_path=run_root / cell["path"], observation_layout=observation_layout)
+    provider = SequenceResponseProvider(_script())
+    asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / observation_layout / "evidence",
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": provider},
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+            harnesses=setup.harnesses,
+        )
+    )
+    assert provider.exhausted
+    return provider.requests
+
+
+def _common_prefix(left: str, right: str) -> int:
+    size = 0
+    for a, b in zip(left, right):
+        if a != b:
+            break
+        size += 1
+    return size
+
+
+def test_stable_prefix_layout_keeps_every_field_exactly_once() -> None:
+    from aeread_families.procurement_allocation import environment
+    from aeread_families.procurement_allocation.runner import CASE_PATH
+
+    periodic_plugin = environment.ProcurementAllocationPlugin()
+    for path, periodic in ((WORLD, True), (CASE_PATH, False)):
+        family_case = periodic_plugin.validate_payload(json.loads(Path(path).read_text(encoding="utf-8"))["payload"])
+        state = periodic_plugin.initial_state(family_case, None)
+        phase = periodic_plugin.phases(family_case)[0]
+        flat = periodic_plugin.observe(family_case, state, "buyer", phase)
+        arranged = environment.arrange_observation(flat, periodic=periodic)
+        regrouped = {**arranged["context"], **arranged["negotiation"], **arranged["state"]}
+        if "history" in arranged:
+            regrouped["history"] = arranged["history"]
+        assert regrouped == flat
+        seen = [*arranged["context"], *arranged["negotiation"], *arranged["state"], *(["history"] if "history" in arranged else [])]
+        assert len(seen) == len(set(seen)) == len(flat)
+        assert ("objective" in arranged["context"]) is (not periodic)
+
+
+def test_stable_prefix_requests_reuse_the_previous_call_and_flat_ones_do_not(tmp_path: Path) -> None:
+    stable = _drive_offline(tmp_path, observation_layout="stable_prefix_v1")
+    flat = _drive_offline(tmp_path, observation_layout="flat_v1")
+    assert len(stable) == len(flat) == 14
+    # Same prompt, same decisions: only the grouping of the observation differs.
+    assert {r.instructions for r in stable} == {r.instructions for r in flat}
+    assert json.loads(stable[0].input_text)["observation_schema"] == "procurement_allocation_observation_stable_prefix_v1"
+    assert json.loads(flat[0].input_text)["observation_schema"] == "procurement_allocation_observation_v1"
+    for previous, current in zip(stable, stable[1:]):
+        rendered = current.input_text
+        # Everything up to the start of the changing groups is reusable: the
+        # context block always, and history whenever no period closed.
+        context_end = rendered.index('"history"') if '"history"' in rendered else rendered.index('"negotiation"')
+        assert _common_prefix(previous.input_text, rendered) >= context_end
+    # The flat layout diverges at actions_left, inside the first hundred bytes.
+    assert max(_common_prefix(a.input_text, b.input_text) for a, b in zip(flat, flat[1:])) < 100
+    reuse_stable = sum(_common_prefix(a.input_text, b.input_text) for a, b in zip(stable, stable[1:]))
+    total = sum(len(b.input_text) for b in stable[1:])
+    assert reuse_stable / total > 0.5
+
+
+def test_new_plans_default_to_temperature_one_and_the_stable_layout(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.environment import family_manifest
+
+    plan = _plan(tmp_path, seeds=(5,))
+    assert plan["temperature"] == 1.0
+    assert plan["observation_layout"] == "stable_prefix_v1"
+    setup = campaign.setup_for(plan, plan["cells"][0], tmp_path / "run")
+    assert setup.plan.agent_profiles[0].sampling.temperature == 1.0
+    family = family_manifest().family
+    plugin = setup.registry.resolve(family.id, family.version, family.plugin_id)
+    assert plugin.observation_layout == "stable_prefix_v1"
+
+
+def test_plans_frozen_before_the_fields_existed_rebuild_as_they_ran(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.environment import family_manifest
+
+    plan = dict(_plan(tmp_path, seeds=(5,)))
+    plan.pop("observation_layout")
+    plan["temperature"] = 0.0
+    setup = campaign.setup_for(plan, plan["cells"][0], tmp_path / "run")
+    assert setup.plan.agent_profiles[0].sampling.temperature == 0.0
+    family = family_manifest().family
+    plugin = setup.registry.resolve(family.id, family.version, family.plugin_id)
+    assert plugin.observation_layout == "flat_v1"
+
+
+def test_setup_refuses_an_unknown_layout_or_an_out_of_range_temperature(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.runner import build_openrouter_setup
+
+    plan = _plan(tmp_path, seeds=(5,))
+    route = campaign.route_from_record(plan["route"])
+    case_path = tmp_path / "run" / plan["cells"][0]["path"]
+    with pytest.raises(ValueError, match="observation layout"):
+        build_openrouter_setup(route, seed=5, case_path=case_path, observation_layout="sideways")
+    with pytest.raises(ValueError, match="temperature"):
+        build_openrouter_setup(route, seed=5, case_path=case_path, temperature=2.5)
+
+
+# --------------------------------------------------------------------------
+# The pre-registered confirmatory analysis
+# --------------------------------------------------------------------------
+
+
+def _confirmatory_pair(tmp_path: Path, rows_left, rows_right, *, preregistered=True):
+    from aeread_families.procurement_allocation.relationship_confirmatory import PREREGISTRATION
+
+    roots = []
+    for name, rows in (("left", rows_left), ("right", rows_right)):
+        plan = campaign.prepare(
+            tmp_path / name,
+            campaign_id=f"conf_{name}",
+            seeds=(11, 12),
+            route_id="gemini38_flash_aistudio" if name == "left" else "glm53_flash_parasail",
+            case_paths=(WORLD,),
+            preregistration=PREREGISTRATION if preregistered else None,
+        )
+        built = [dict(_completed_row(cell, regret=regret), violations=violations) for cell, (regret, violations) in zip(plan["cells"], rows)]
+        (tmp_path / name / "results.json").write_text(json.dumps({"campaign_id": plan["campaign_id"], "rows": built}), encoding="utf-8")
+        roots.append(tmp_path / name)
+    return roots
+
+
+def test_prepare_seals_the_preregistration_and_marks_the_plan_confirmatory(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import PREREGISTRATION
+
+    left, _ = _confirmatory_pair(tmp_path, [(20.0, []), (20.0, [])], [(50.0, []), (50.0, [])])
+    plan = campaign.read_plan(left)  # verifies plan_sha256 over the pre-registration too
+    assert plan["preregistration"] == PREREGISTRATION and plan["claim_status"] == "confirmatory"
+    assert "src/aeread_families/procurement_allocation/relationship_confirmatory.py" in plan["sources"]
+
+
+def test_confirmatory_analysis_computes_the_three_outcomes(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import analyse
+
+    left, right = _confirmatory_pair(
+        tmp_path,
+        [(20.0, []), (30.0, [])],
+        [(40.0, []), (200.0, ["period_1:minimum_service_not_met"])],
+    )
+    report = analyse(left, right, baseline=lambda payload: {"regret_to_upper_bound_usd": 100.0})
+    assert report["O1_breach_rate"]["left"] == 0.0 and report["O1_breach_rate"]["right"] == 0.5
+    assert report["O1_breach_rate"]["paired_difference"]["mean"] == pytest.approx(-0.5)
+    # O2 uses valid cells only: left mean 25, right's only valid cell 40.
+    assert report["O2_regret_on_valid_orders"]["paired_difference"]["mean"] == pytest.approx(-15.0)
+    # O3: baseline 100 minus model regret, per model.
+    assert report["O3_vs_deadline_aware"]["left"]["mean"] == pytest.approx(75.0)
+    assert report["O3_vs_deadline_aware"]["right"]["mean"] == pytest.approx(-20.0)
+    # One world cannot separate anything under a world bootstrap: the interval is a point.
+    assert report["O1_breach_rate"]["verdict"] == "left breaches less"
+
+
+def test_confirmatory_analysis_refuses_a_plan_frozen_without_the_preregistration(tmp_path: Path) -> None:
+    from aeread_families.procurement_allocation.relationship_confirmatory import analyse
+
+    left, right = _confirmatory_pair(tmp_path, [(20.0, []), (20.0, [])], [(50.0, []), (50.0, [])], preregistered=False)
+    with pytest.raises(ValueError, match="pre-registration"):
+        analyse(left, right, baseline=lambda payload: {"regret_to_upper_bound_usd": 100.0})

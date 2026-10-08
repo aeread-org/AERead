@@ -94,6 +94,63 @@ return recovery, financing, information cost, and shortfall penalties. Do not tr
 displayed listing price or verbal statement as a binding offer.
 """
 
+RELATIONSHIP_PROMPT = PROMPT + """
+This episode runs over several sourcing periods. Each period you source the same
+bill of materials again under that period's objective (the observation lists the
+whole demand plan as period_schedule). A period ends when you submit an award,
+defer, or run out of actions; the next period then begins with the action budget,
+elapsed days, and information cost reset, and every formal offer lapsed. Verified
+samples persist: a supplier qualified once stays qualified.
+
+What you did last period changes what suppliers offer this period. A formal offer
+states the relationship terms it was priced under (loyalty discount per
+consecutive award and its cap, incumbent capacity bonus, retaliation markup for a
+supplier quoted and then dropped). The history in the observation records what
+actually arrived from each earlier award: on-time or not, and defective units.
+Nothing else reports supplier reliability; form your own view from it. Optimize
+the total contribution margin over all periods, not the current period alone.
+"""
+
+#: The supplier-judgment worlds (judgment_pack): no award needs a sample, each
+#: listing carries a marketplace record, and the policy states the market.
+JUDGMENT_PROMPT = """You are the EasyCircuit procurement buyer. Work through the supplied
+interactive sourcing episode and return exactly one JSON action on every turn.
+
+Marketplace listings and verbal supplier claims are provisional: every supplier
+claims the same quality and on-time figures, and a formal offer states a standard
+on-time commitment, not the supplier's record. Each listing carries the supplier's
+public marketplace record in listing.profile (years on the platform, orders, star
+ratings with their breakdown, on-time delivery over protected orders, badges, reply
+time). policy.market_facts states what is known about this marketplace: how common
+bad suppliers are, how they differ, and how far each part of a record can be
+trusted.
+
+A final award is eligible when each referenced supplier has an unexpired formal
+offer and the exact required variant (policy.award_requires). You may buy from a
+supplier without sampling it. A sample inspects a batch of units and reports how
+many were defective; it costs money and days. Information requests, quotes,
+counters, samples and pre-award checks consume action, time, and monetary budgets.
+
+Allowed actions:
+- inquire: supplier_id, fields, message
+- request_quote: supplier_id, message
+- counter_offer: supplier_id, offer_id, proposal, message
+- request_sample: supplier_id, message
+- check_award: award_lines containing offer_id and quantity (reports terms only)
+- submit_award: award_lines containing offer_id and quantity
+- defer: reason
+
+This episode runs over several sourcing periods. Each period you source the same
+bill of materials again under that period's objective (period_schedule). A period
+ends when you submit an award, defer, or run out of actions; the next period then
+begins with the action budget, elapsed days, and information cost reset, and every
+formal offer lapsed. Sample results persist. The history in the observation records
+what actually arrived from each earlier award: on time or not, and defective units.
+Optimize buyer contribution margin from completed on-time kits after landed cost,
+quality loss, return recovery, financing, information cost, and shortfall
+penalties, summed over all periods.
+"""
+
 RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS = frozenset(
     {"rate_limit", "provider_5xx"}
 )
@@ -359,6 +416,7 @@ def build_offline_setup(
     case_path: Path | str = CASE_PATH,
     prompt: str = PROMPT,
     prompt_id: str = "procurement_allocation_prompt_v1",
+    observation_layout: str = "flat_v1",
 ) -> ProcurementAllocationSetup:
     if not prompt.strip():
         raise ValueError("prompt cannot be empty")
@@ -463,7 +521,7 @@ def build_offline_setup(
                 "top_p": None,
             },
             "budgets": {
-                "max_logical_actions": 10,
+                "max_logical_actions": int(case.episode.max_logical_actions),
                 "timeout_seconds": 60.0,
                 "max_cost_usd": 0.0,
             },
@@ -489,7 +547,7 @@ def build_offline_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register_trusted(family, ProcurementAllocationPlugin())
+    registry.register_trusted(family, ProcurementAllocationPlugin(observation_layout=observation_layout))
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)
@@ -559,6 +617,8 @@ def build_openrouter_setup(
     retry_backoff: str | None = None,
     retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
+    temperature: float | None = 0.0,
+    observation_layout: str = "flat_v1",
 ) -> ProcurementAllocationSetup:
     if seed < 0:
         raise ValueError("seed must be non-negative")
@@ -606,10 +666,18 @@ def build_openrouter_setup(
         or retry_after_max_seconds <= 0
     ):
         raise ValueError("retry_after_max_seconds must be finite and positive")
+    if temperature is not None and (
+        isinstance(temperature, bool)
+        or not isinstance(temperature, (int, float))
+        or not math.isfinite(float(temperature))
+        or not 0.0 <= float(temperature) <= 2.0
+    ):
+        raise ValueError("temperature must be None or finite in [0, 2]")
     template = build_offline_setup(
         case_path=case_path,
         prompt=prompt,
         prompt_id=prompt_id,
+        observation_layout=observation_layout,
     )
     resolved_harness = harness or MinimalChatHarness()
     runtime = (
@@ -673,13 +741,20 @@ def build_openrouter_setup(
                 "rationale_visibility": "hidden",
             },
             "sampling": {
-                "temperature": 0.0 if route.temperature_supported else None,
+                # The caller's declared temperature, not a constant here: a
+                # sampling control that lives only in code is invisible to the
+                # plan that claims to freeze it (P-D-05).
+                "temperature": (
+                    None
+                    if not route.temperature_supported or temperature is None
+                    else float(temperature)
+                ),
                 "max_output_tokens": max_output_tokens,
                 "seed": seed,
                 "top_p": None,
             },
             "budgets": {
-                "max_logical_actions": 10,
+                "max_logical_actions": int(template.case.episode.max_logical_actions),
                 "timeout_seconds": timeout_seconds,
                 "max_cost_usd": max_cost_usd,
             },
