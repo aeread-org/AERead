@@ -4531,10 +4531,6 @@ class MinimalChatExecutor:
                 if failed_request.provider_call_id not in {
                     record.provider_call_id for record in provider_calls
                 }:
-                    # As in _record_provider_failure, so the record is typed
-                    # alike: a round that answered proves the route.
-                    if prior_rounds:
-                        self._routes_proven.add(self._route_key(profile))
                     failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
                     if failed_cost:
                         self._charge(profile, failed_cost)

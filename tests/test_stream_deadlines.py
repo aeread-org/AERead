@@ -714,6 +714,16 @@ def test_u5_first_progress_boundary(tmp_path, sclock, at, expires) -> None:
         expect_success(ran)
 
 
+def test_u5_a_create_that_returns_at_the_deadline_expires_without_reading(tmp_path, sclock) -> None:
+    """Headers that arrive exactly at the first-progress deadline: the stream is
+    closed at once and no chunk read is started."""
+
+    ran = run_port(tmp_path, sclock, stream_profile(first=10), rest(10.0), create=("return", 10.0))
+    expect_deadline(ran, "first_progress")
+    assert ran.stream.closes == 1
+    assert ran.stream.delivered == 0 and ran.stream.unwound == 0
+
+
 @pytest.mark.parametrize(
     ("at", "expires"), [(9.999, False), (10.0, True)], ids=["just_before", "equal"]
 )
