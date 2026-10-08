@@ -41,7 +41,7 @@ appropriate section below when they land.
 | [EconEvals](#econevals) | 3 | 0 |
 | [GovSim](#govsim) | 3 | 0 |
 | [Housing](#housing) | 16 | 1 |
-| [Procurement allocation](#procurement-allocation) | 19 | 16 |
+| [Procurement allocation](#procurement-allocation) | 23 | 16 |
 | [Procurement grounding](#procurement-grounding) | 3 | 0 |
 | [Shared runner diagnostics](#shared-runner-diagnostics) | 1 | 0 |
 
@@ -297,6 +297,10 @@ Includes all 16 procurement bundles at preserved top-level paths.
 - [procurement_allocation_qwen3_235b_google_holdout_v1](procurement_allocation_qwen3_235b_google_holdout_v1/) **(preserved path)**
 - [procurement_allocation_qwen3_30b_coreweave_case_variance_v2](procurement_allocation_qwen3_30b_coreweave_case_variance_v2/) **(preserved path)**
 - [procurement_allocation_trajectory_grains_v1](procurement_allocation/procurement_allocation_trajectory_grains_v1/)
+- [procurement_allocation_inference_v1_gemini](procurement_allocation/procurement_allocation_inference_v1_gemini/): development qualification on the 18-world inference panel, Gemini 3.8 Flash; 36 trajectories planned, 35 completed, 5 of them ended on an unparseable action
+- [procurement_allocation_inference_v1_screen](procurement_allocation/procurement_allocation_inference_v1_screen/): development qualification on the 18-world inference panel, GLM 5.3 Flash; 72 trajectories planned, 60 completed, 12 never ran (route timeouts, typed operational missingness)
+- [procurement_allocation_inference_v1_qwen_instruct](procurement_allocation/procurement_allocation_inference_v1_qwen_instruct/): development qualification on the 18-world inference panel, Qwen3-Next 80B A3B instruct; 36 trajectories planned, 36 completed, 4 of them ended on an unparseable action
+- [procurement_allocation_inference_v1_qwen_thinking](procurement_allocation/procurement_allocation_inference_v1_qwen_thinking/): development qualification on the 18-world inference panel, Qwen3-Next 80B A3B thinking; 36 trajectories planned, 35 completed, 35 of them ended on an unparseable action because the model spent the 1,800-token cap on reasoning and returned no content (design review defect 29)
 
 ### Procurement grounding
 
