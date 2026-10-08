@@ -1580,10 +1580,28 @@ class _StepExpired(Exception):
     """A bounded step outlived its deadline (internal)."""
 
 
-async def _drain(task: "asyncio.Future[Any]") -> None:
-    # Wait for a cancelled task to unwind; whatever it raises is suppressed. An
-    # outer cancellation arriving meanwhile propagates (gather raises it).
-    await asyncio.gather(task, return_exceptions=True)
+async def _drain(
+    task: "asyncio.Future[Any]",
+    dispose: Callable[[Any], Awaitable[None]] | None = None,
+) -> None:
+    """Wait for a cancelled step to unwind; whatever it raises is suppressed.
+
+    An outer cancellation arriving meanwhile propagates (gather raises it). A
+    result the step produced anyway, because it finished first or swallowed
+    the cancellation (``create()`` handing back a stream), is handed to
+    ``dispose`` on every path, since the caller will never receive it.
+    """
+
+    try:
+        await asyncio.gather(task, return_exceptions=True)
+    finally:
+        if (
+            dispose is not None
+            and task.done()
+            and not task.cancelled()
+            and task.exception() is None
+        ):
+            await dispose(task.result())
 
 
 async def _await_stream_step(
@@ -1598,9 +1616,9 @@ async def _await_stream_step(
     finished in the same loop iteration as an outer cancellation and drop the
     cancellation. The step runs as a task instead, so both outcomes stay
     visible here. An outer cancellation cancels and drains the step and is
-    re-raised, never turned into an expiry; a result the caller will never
-    receive is handed to ``dispose``. An expired step is cancelled and drained,
-    its own cleanup errors suppressed, and ``_StepExpired`` raised.
+    re-raised, never turned into an expiry. An expired step is cancelled and
+    drained, its own cleanup errors suppressed, and ``_StepExpired`` raised.
+    Either way a result the caller will never receive goes to ``dispose``.
     """
 
     task = asyncio.ensure_future(step)
@@ -1608,22 +1626,13 @@ async def _await_stream_step(
         timeout = None if deadline is None else max(0.0, deadline - _stream_monotonic())
         await asyncio.wait({task}, timeout=timeout)
     except asyncio.CancelledError:
-        finished_with_result = (
-            task.done() and not task.cancelled() and task.exception() is None
-        )
         task.cancel()
-        await _drain(task)
-        if finished_with_result and dispose is not None:
-            await dispose(task.result())
+        await _drain(task, dispose)
         raise
     if task.done():
         return task.result()  # re-raises the step's own exception unchanged
     task.cancel()
-    await _drain(task)
-    # A step can swallow the cancellation and still return (create() handing
-    # back a stream): dispose of that result too.
-    if dispose is not None and not task.cancelled() and task.exception() is None:
-        await dispose(task.result())
+    await _drain(task, dispose)
     raise _StepExpired
 
 
@@ -1648,10 +1657,11 @@ async def _close_stream(stream: Any) -> None:
 def _is_stream_progress(dumped: Any) -> bool:
     """Whether a dumped stream chunk carries output.
 
-    Progress is any content, reasoning, reasoning details or tool call in the
-    first choice's delta, or a finish reason. A role-only chunk, a usage-only
-    chunk (no choices) and an empty delta are not: a stream can send those
-    forever while the model produces nothing.
+    Progress is a non-empty ``content`` or ``reasoning`` string, a non-empty
+    ``reasoning_details`` or ``tool_calls`` list in the first choice's delta,
+    or a finish reason. A role-only chunk, a usage-only chunk (no choices), an
+    empty delta and a field of any other shape are not: a stream can send
+    those forever while the model produces nothing.
     """
 
     if not isinstance(dumped, Mapping):
@@ -1666,7 +1676,11 @@ def _is_stream_progress(dumped: Any) -> bool:
     if not isinstance(delta, Mapping):
         return False
     return any(
-        delta.get(field) for field in ("content", "reasoning", "reasoning_details", "tool_calls")
+        isinstance(delta.get(field), str) and delta[field] != ""
+        for field in ("content", "reasoning")
+    ) or any(
+        isinstance(delta.get(field), list) and len(delta[field]) > 0
+        for field in ("reasoning_details", "tool_calls")
     )
 
 
@@ -4212,7 +4226,19 @@ class MinimalChatExecutor:
         # Its cost is charged against the profile's budget and recorded on
         # the call; before this it was written as zero and never charged, so
         # the totals of a run that was going wrong were the least accurate.
-        failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+        # Under transport_v1 the port may already have terminalized the open
+        # call with its own failure before a later one reached here: the
+        # attempt's timeout while the harness was still running. The call keeps
+        # the failure its terminal names, with that failure's usage and cost;
+        # the attempt takes the later one.
+        call_failure = failure
+        if transport_v1 and pending is not None and pending.terminalized:
+            terminalized = self._attempt_terminal_failure(action_attempt_id)
+            if terminalized is not None and (
+                terminalized[0].provider_call_id == pending.provider_call_id
+            ):
+                call_failure = terminalized[1]
+        failed_cost = failed_call_cost(call_failure, self._pricing[profile.model.model])
         if failed_cost:
             self._charge(profile, failed_cost)
         # A harness-driven attempt fails inside whichever round it reached;
@@ -4236,7 +4262,7 @@ class MinimalChatExecutor:
             not in {record.provider_call_id for record in refused_calls + prior_rounds}
         ):
             provider_record = self._failed_call_record(
-                profile, failed_request, action_attempt_id, failure, failed_cost
+                profile, failed_request, action_attempt_id, call_failure, failed_cost
             )
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call

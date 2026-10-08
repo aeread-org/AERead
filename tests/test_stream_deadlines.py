@@ -154,6 +154,8 @@ from aeread.shared_runner.task.execution import (  # noqa: E402
     declared_transport_policy,
 )
 from aeread.shared_runner.task.spend import attempt_spend  # noqa: E402
+from tests.test_shared_runner_execution import SYSTEM_PROMPT  # noqa: E402
+from tests.test_shared_runner_harness import FAKE_PRICING, ScriptedProvider, _result  # noqa: E402
 from tests.test_route_health import (  # noqa: E402
     ROUTE_MODULE,
     _new_registry,
@@ -250,6 +252,9 @@ NON_PROGRESS = {
     "empty_reasoning": delta_frame({"reasoning": ""}),
     "empty_reasoning_details": delta_frame({"reasoning_details": []}),
     "empty_tool_calls": delta_frame({"tool_calls": []}),
+    "reasoning_details_string": delta_frame({"reasoning_details": "heartbeat"}),
+    "tool_calls_mapping": delta_frame({"tool_calls": {"index": 0}}),
+    "reasoning_mapping": delta_frame({"reasoning": {"text": "x"}}),
 }
 
 
@@ -404,6 +409,7 @@ class FakeCompletions:
         self.then = then
         self.calls: list[dict] = []
         self.create_cancelled = 0
+        self.hanging = asyncio.Event()
 
     async def create(self, **kwargs):
         self.calls.append(kwargs)
@@ -424,9 +430,14 @@ class FakeCompletions:
                 if self.then is not None:
                     self.then()
                 await future
-            await asyncio.get_running_loop().create_future()  # "hang"
+            self.hanging.set()
+            await asyncio.get_running_loop().create_future()  # "hang" and "swallow"
         except asyncio.CancelledError:
             self.create_cancelled += 1
+            if step[0] == "swallow":
+                # Some transports finish the response they were reading and
+                # hand it back instead of propagating the cancellation.
+                return self.stream
             raise
 
 
@@ -690,6 +701,16 @@ def test_u4_first_only_a_stalled_first_progress_wait_expires(tmp_path, sclock) -
     assert ran.stream.unwound == 1
 
 
+def test_u4_a_create_that_swallows_the_expiry_has_its_stream_closed(tmp_path, sclock) -> None:
+    """The expired create() returns its stream while unwinding: nobody will read
+    it, so it is closed before the expiry is raised."""
+
+    ran = run_port(tmp_path, sclock, stream_profile(first=0.05), [], create=("swallow",))
+    expect_deadline(ran, "first_progress")
+    assert ran.completions.create_cancelled == 1
+    assert ran.stream.closes == 1 and ran.stream.delivered == 0
+
+
 def test_u4_first_only_a_stalled_create_expires(tmp_path, sclock) -> None:
     """A create() that never returns: nothing to close, and the call still ends."""
 
@@ -804,6 +825,27 @@ def test_u7b_the_discarded_or_yielded_stream_is_closed_at_once(tmp_path, sclock,
     ran = _race(tmp_path, sclock, race)
     expect_cancelled(ran)
     assert ran.stream.closes == 1
+
+
+def test_u7b_a_create_that_swallows_the_outer_cancellation_has_its_stream_closed(
+    tmp_path, sclock
+) -> None:
+    """An outer cancellation while create() is pending; create() returns its
+    stream while unwinding. The cancellation propagates and the stream is closed."""
+
+    stream = FakeStream(sclock, [])
+    completions = FakeCompletions(sclock, stream, create=("swallow",))
+    evidence = new_store(tmp_path)
+    port = new_port(evidence, sdk_provider(completions), stream_profile(first=100))
+    try:
+        _, error = drive(
+            lambda: port.complete(messages=(), response_mode="text"), trigger=completions.hanging
+        )
+    finally:
+        evidence.close()
+    assert isinstance(error, asyncio.CancelledError), repr(error)
+    assert completions.create_cancelled == 1
+    assert stream.closes == 1 and stream.delivered == 0
 
 
 # =====================================================================================
@@ -1032,8 +1074,10 @@ class SuspendingHarness(MinimalChatHarness):
 class ExecRig:
     """One logical action through ``AttemptExecutor`` under route_v1, one attempt."""
 
-    def __init__(self, tmp_path, config, *, steps=(), completions=None, harness=None) -> None:
-        self.profile = route_profile(config, max_action_attempts=1)
+    def __init__(
+        self, tmp_path, config, *, steps=(), completions=None, harness=None, **profile_kwargs
+    ) -> None:
+        self.profile = route_profile(config, max_action_attempts=1, **profile_kwargs)
         self.wire = Wire(list(steps))
         provider = build_client(self.wire) if completions is None else sdk_provider(completions)
         self.root = tmp_path / "evidence"
@@ -1195,6 +1239,41 @@ def test_u14c_a_cancellation_after_the_port_terminalized_a_billed_failure_keeps_
     _assert_one_billed_call(rig, status="failed", condition="provider_5xx", call_id=call_id)
 
 
+@pytest.mark.parametrize("declared", ["knobs", "no_knobs"])
+def test_u14d_an_attempt_timeout_after_the_port_terminalized_a_billed_failure_keeps_its_record(
+    tmp_path, monkeypatch, declared
+) -> None:
+    """The harness suspends after the port terminalized a billed failure, and the
+    attempt's own deadline expires there. The call keeps the failure its terminal
+    names, with its usage and cost, charged once; the attempt fails as a timeout."""
+
+    seen = spy_reports(monkeypatch)
+    config = _r1(
+        provider_stream=True,
+        transport_max_retry_seconds=0.5,
+        **(knobs(first=0.5) if declared == "knobs" else {}),
+    )
+    rig = ExecRig(
+        tmp_path,
+        config,
+        steps=[_billed_503()],
+        harness=SuspendingHarness(),
+        timeout_seconds=0.5,
+    )
+    _, error = drive(
+        lambda: rig.executor(rig.decision), what="the attempt deadline did not end the act"
+    )
+    assert isinstance(error, ProviderFailure) and error.condition == "timeout", repr(error)
+
+    log = rig.log
+    (call_id,) = exactly(started_ids(log), 1)
+    (terminal,) = exactly(of(log, *TERMINALS), 1)
+    assert terminal["event_type"] == "provider_call_failed"
+    assert terminal["payload"]["cost_usd"] == pytest.approx(0.7)
+    assert seen == ["provider_5xx"]
+    _assert_one_billed_call(rig, status="failed", condition="provider_5xx", call_id=call_id)
+
+
 def test_3b_the_attempt_deadline_still_ends_a_stall_no_stream_deadline_bounds(
     tmp_path, sclock
 ) -> None:
@@ -1258,6 +1337,33 @@ def test_a_declared_knob_is_bound_into_the_sealed_request(tmp_path) -> None:
     assert both.get("first_progress_seconds") == 10 and both.get("idle_seconds") == 20
     hashes = [r["request_sha256"] for r in (plain, first, idle, both)]
     assert len(set(hashes)) == 4, hashes
+
+
+def test_a_resent_call_carries_the_knobs_and_the_same_hash(tmp_path) -> None:
+    rig = Rig(tmp_path, [refuse(503), ok()], stream_profile(first=10, idle=20)).run()
+    assert rig.error is None, repr(rig.error)
+    first, second = (
+        entry["payload"]["request"] for entry in exactly(of(rig.log, "provider_call_started"), 2)
+    )
+    for sent in (first, second):
+        assert (sent.get("first_progress_seconds"), sent.get("idle_seconds")) == (10, 20)
+    assert first["request_sha256"] == second["request_sha256"]
+
+
+def test_every_round_a_port_builds_carries_the_knobs(tmp_path) -> None:
+    port = KernelModelPort(
+        evidence=new_store(tmp_path),
+        provider=ScriptedProvider([_result(text="a"), _result(text="b")]),
+        pricing=FAKE_PRICING,
+        profile=stream_profile(first=10, idle=20),
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+    )
+    asyncio.run(port.complete(messages=(), response_mode="text"))
+    asyncio.run(port.complete(messages=(), response_mode="text"))
+    assert [
+        (entry.request.first_progress_seconds, entry.request.idle_seconds) for entry in port.rounds
+    ] == [(10, 20), (10, 20)]
 
 
 def test_the_knobs_are_not_sent_on_the_wire(tmp_path) -> None:
