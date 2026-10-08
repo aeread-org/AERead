@@ -20,8 +20,8 @@ question the accounts do not ask directly: when value changes hands in the econo
 what are the parties doing, and which capability decides the outcome? Industry shares
 answer where value is booked. This note assembles what the official accounts do say,
 adds three lenses that are organised by activity, proposes categories of activity with
-their capability axes, and works one category, procurement, down to the level at which a
-case can be written.
+their capability axes, and works one category, the buyer's seat in the product market,
+down to the level at which a case can be written.
 
 ## 2. What the accounts measure (United States, 2025)
 
@@ -88,29 +88,35 @@ GDP, the clearest case of why §6 refuses to add shares.
 
 ## 4. Categories of economic activity and their capability axes
 
-The categories below are activities in which value changes hands through interaction with
-other actors; asset classes are examples inside them, not rows of their own (a real estate
-transaction is a sale under adverse selection plus a lease or deed, and BEA's 13.8% for the
-sector is mostly housing services, not transacting). The capability axes use the five mechanisms in the owner's framing note:
-search and matching, complementarity and structuring, bargaining under private
-information, commitment and coordination, and principal protection and refusal. The last
-column is where AERead already has cases; it is a coverage map, not a weight.
+The categories are organised by what is being allocated and between whom: the product
+market, the three factor markets (people, capital, assets and rights), the market for risk,
+the intermediation that lowers transaction costs, allocation inside organisations, the
+governance of contracts, and the public sector's own economic activity. They are the
+markets and governance forms economics recognises, not a list of the repository's cases;
+asset classes and industries are examples inside a category, never rows. Each activity has
+two seats, a principal who gives the mandate and an agent who acts, and most have two
+sides, so the same category tests a buyer and a seller differently. The capability axes use
+the five mechanisms in the owner's framing note: search and matching, complementarity and
+structuring, bargaining under private information, commitment and coordination, and
+principal protection and refusal. The last column is a coverage map, not a weight.
 
-| Activity | Scale proxy (source) | Counterparties | Where value is won or lost | Capability axes | AERead coverage |
-|---|---|---|---|---|---|
-| Procurement and sourcing | $21.9T intermediate inputs; public procurement 10.1% of GDP; 30-60%+ of revenue [1,6,10,11] | suppliers, requesters, approvers, risk functions | supplier choice, price and terms, award allocation, compliance, risk status | search and matching; bargaining under private information; structuring; commitment; protection and refusal | procurement grounding, allocation, information-decision pilot, repeated sourcing |
-| Sales of goods and assets, including under adverse selection (real estate, used goods) | wholesale 5.8% + retail 6.3% of value added [7]; real estate brokerage is about $18B of compensation in GDPval's table, the sector's 13.8% being mostly housing services | buyers and sellers, channels, brokers | pricing, discounts, terms, returns, who gets what under private preferences, quality the seller knows and the buyer does not | bargaining under private information; matching; commitment; margin protection | exchange cases (bilateral, clearing), bundle-purchase worlds, refund and return tasks; housing cases (search and signing, lemons, price bargaining, outside demand) |
-| Financing and capital allocation | finance and insurance 7.4% of value added; investment 18.0% of GDP [3,7] | lenders, investors, partners | valuation, structure, risk allocation, covenants, when to decline | structuring; bargaining; contingent commitment; refusal | data-center risk allocation, joint venture and tender cases; TERMS-Bench |
-| Hiring and labor contracting | compensation 50.9% of GDP [5] | candidates, employers, intermediaries | matching, pay and terms, retention | matching; bargaining under private information; commitment | none |
-| Contracting, compliance and dispute | lawyers are a $137B occupation in GDPval's own table [7]; contracts underlie every row, leases included | counterparties, regulators, courts | terms, enforcement, remedies, refunds, consent | commitment and coordination; protection and refusal | refund and return tasks; consent cases; TERMS-Bench critical-violation scoring |
-| Coordination and logistics | manufacturing 10.0%, wholesale 5.8% of value added [7] | many parties at once | joint feasibility, timing, deferred settlement | complementarity and structuring; commitment and coordination | clearing and deferred-settlement cases; bundle worlds |
-| Public allocation and regulation | government 11.3% of value added; procurement 10.1% of GDP [7,10] | agencies, bidders, the public | tenders, compliance, commons | bargaining under rules; refusal | tender cases; GovSim (commons governance) |
+| Category (what is allocated) | Typical transactions | Scale in the accounts (2025 unless noted) | Capability axes | AERead coverage |
+|---|---|---|---|---|
+| 1. Goods and services (the product market) | procurement and sourcing on the buyer side; sales, pricing and distribution on the seller side; consumer purchases, subscriptions and returns | intermediate inputs $21.9T; household consumption $20.9T; wholesale and retail 12.1% of value added [1,4,6,7] | search and matching; bargaining under private information; structuring of bundles and terms; protection of budget, quality and margin | procurement cases; exchange cases; bundle-purchase worlds; refund and return tasks |
+| 2. People (the labor market) | hiring, pay and terms, incentive contracts, performance management, engaging professional services and contractors | compensation of employees $15.7T, 50.9% of GDP [5] | matching under private information about ability and fit; bargaining; commitment through incentives; protection against bad hires and bad terms | none |
+| 3. Capital (the financial market) | credit, equity, investment, valuation, mergers and acquisitions, capital budgeting | gross private domestic investment $5.6T, 18.0% of GDP; finance and insurance 7.4% of value added [3,7] | valuation and structuring; bargaining; contingent commitment (covenants, earn-outs); refusal of bad deals | none beyond the risk-allocation terms in the data-center cases |
+| 4. Durable assets and rights (land, property, equipment, intellectual property, licences, permits) | purchase, lease and licence of long-lived or exclusive resources | the accounts record the services of these assets, not the transactions: real estate is 13.8% of value added, mostly housing services [7] | adverse selection (quality private to one side); long commitments; option-like structuring; consent | housing cases (search and signing, lemons, price bargaining, outside demand) |
+| 5. Risk (insurance, hedging, warranties, indemnities, risk-sharing clauses) | pricing and transferring uncertainty between parties | insurance sits inside the 7.4% finance and insurance sector [7] | structuring who bears what; pricing under private information; credible commitment to pay | data-center risk allocation, joint venture and tender cases |
+| 6. Information and intermediation (brokers, platforms, advisers, auditors, ratings) | matching many to many, verification, advice, market-making | BEA measures trade as margins, so the 12.1% of value added in wholesale and retail is intermediation [6,7]; brokerage and advisory occupations [7] | search; verification and truthful reporting; matching at scale; protection of the party being advised | discovery and consent cases, partially |
+| 7. Allocation inside organisations (hierarchy and hybrids) | delegation with authority limits, budgeting, capacity and project allocation, make-or-buy, alliances and joint ventures, supply-chain coordination | not priced as a flow; general and operations managers are the largest compensation line in GDPval's table, $477B [7] | complementarity and structuring; commitment and coordination; acting within delegated authority | clearing and deferred-settlement cases; joint venture cases; the mandate in every case |
+| 8. Governance of contracts (terms, compliance, monitoring, renegotiation, remedies, dispute) | drafting and enforcing the agreements every other category produces | lawyers $137B and compliance officers $34B of compensation in GDPval's table [7] | commitment and coordination; principal protection and refusal; renegotiation | refund and return tasks; consent cases; TERMS-Bench critical-violation scoring |
+| 9. Public economic activity (taxation and transfers, public procurement, regulation and permitting, auctions of public resources, commons) | the state as buyer, allocator, regulator and rule-maker | government consumption and investment $5.4T, 17.4% of GDP; public procurement 10.1% of GDP; government 11.3% of value added [4,7,10] | bargaining under rules; compliance; coordination over commons; refusal | tender cases; GovSim (commons governance) |
 
-Two readings. Coverage is deepest where the repository started, in procurement, exchange and
-sales (housing included) and contract terms; hiring and most of financing are open. And the
-axes recur: bargaining under private information appears in six of seven rows, protection
-and refusal in five. A benchmark organised by mechanism covers more of the table than one
-organised by industry.
+Two readings. Bargaining under private information and protection-and-refusal recur in
+most rows, which is why a benchmark organised by mechanism covers more of this table than
+one organised by industry. And the coverage column is uneven: deep in the product market,
+assets and contract governance, partial in risk and intermediation, absent in people and
+capital, which are together the two largest flows in the accounts.
 
 ## 5. Procurement, worked through
 
@@ -186,8 +192,8 @@ and report both, as the framing note requires.
 - **Coverage claims, by mechanism.** "Performance across a stated set of interaction
   mechanisms", with the table in §4 as the map, is supportable now.
 - **Deployment weights, from operating models.** Frequencies and value at stake per decision
-  come from sources like §5.2, not from industry shares. Sales, financing and hiring each
-  need a §5 of their own; that is the next research step.
+  come from sources like §5.2, not from industry shares. The people, capital and risk
+  categories each need a §5 of their own; that is the next research step.
 - **No share of GDP.** The flows in §2 and §3 overlap by construction: intermediate inputs
   are not GDP, compensation is both income and the product of hiring, procurement recurs in
   every industry. Adding them, or attributing an activity's whole flow to the decisions in
