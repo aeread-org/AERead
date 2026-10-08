@@ -19,12 +19,13 @@ import math
 import os
 import shutil
 import stat
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, ClassVar, Mapping, Protocol, Sequence
 
 from ..registry import PluginRegistry, PluginRegistryError
 from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
@@ -97,6 +98,9 @@ class ProviderFailure(RuntimeError):
         # usage. Only OpenAIResponsesClient._classify_error sets it; whether a
         # refusal is re-sent is a profile's declaration, not this fact (#226).
         self.http_refusal = False
+        # ``first_progress`` or ``idle`` when a streamed call outlived the
+        # deadline its profile declared; set by OpenRouterChatClient._create.
+        self.stream_deadline: str | None = None
         self.cost_usd: float | None = None
         self.input_tokens = 0
         self.cached_input_tokens = 0
@@ -886,6 +890,13 @@ class TokenPricing:
 
 @dataclass(frozen=True, slots=True)
 class ProviderRequest:
+    # Read by ``run.resolver._canonical_value``: the stream deadlines are left
+    # out of the canonical form while unset, so every request and opening event
+    # that does not declare them serializes as it did before they existed.
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"first_progress_seconds", "idle_seconds"}
+    )
+
     provider_call_id: str
     provider: str
     base_url: str | None
@@ -918,6 +929,12 @@ class ProviderRequest:
     # ``harness.config["provider_stream"]``; like the fields above it joins
     # the hash only when set, so every earlier request hashes as it did.
     stream: bool = False
+    # The stream deadlines of ``transport_v1`` (S4b): seconds from the start of
+    # the call to the first chunk that carries output, and the longest gap
+    # between such chunks after it. Enforced by the streamed client, never sent
+    # on the wire; like ``stream`` they join the hash only when set.
+    first_progress_seconds: int | float | None = None
+    idle_seconds: int | float | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -951,6 +968,12 @@ class ProviderRequest:
                 payload[field] = value
         if self.stream:
             payload["stream"] = True
+        for field, value in (
+            ("first_progress_seconds", self.first_progress_seconds),
+            ("idle_seconds", self.idle_seconds),
+        ):
+            if value is not None:
+                payload[field] = value
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -1034,6 +1057,23 @@ class TransportPolicy:
 
     max_calls: int
     max_retry_seconds: float
+    # The stream deadlines (S4b), as declared; ``None`` when absent.
+    first_progress_seconds: int | float | None = None
+    idle_seconds: int | float | None = None
+
+
+def _declares_stream_deadlines(policy: TransportPolicy | None) -> bool:
+    """Whether a profile's transport policy declares either stream deadline."""
+
+    return policy is not None and (
+        policy.first_progress_seconds is not None or policy.idle_seconds is not None
+    )
+
+
+_STREAM_DEADLINE_KEYS = (
+    ("transport_first_progress_seconds", "first_progress_seconds"),
+    ("transport_idle_seconds", "idle_seconds"),
+)
 
 
 def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
@@ -1048,6 +1088,12 @@ def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
 
     config = profile.harness.config
     if "transport_policy" not in config:
+        for key, _ in _STREAM_DEADLINE_KEYS:
+            if key in config:
+                raise EvidenceIntegrityError(
+                    f"{key} requires transport_policy 'transport_v1' for profile "
+                    f"{profile.profile_id!r}"
+                )
         return None
     if config["transport_policy"] != "transport_v1":
         raise EvidenceIntegrityError(
@@ -1079,7 +1125,31 @@ def declared_transport_policy(profile: AgentProfile) -> TransportPolicy | None:
     # Validated here so a bad base or cap fails at construction, not inside a
     # live attempt where the first refusal would raise it.
     _retry_backoff_parameters(profile)
-    return TransportPolicy(max_calls=max_calls, max_retry_seconds=float(window))
+    deadlines: dict[str, int | float | None] = {}
+    for key, field in _STREAM_DEADLINE_KEYS:
+        deadlines[field] = None
+        if key not in config:
+            continue
+        if not declared_provider_stream(profile):
+            raise EvidenceIntegrityError(
+                f"{key} requires provider_stream true for profile {profile.profile_id!r}"
+            )
+        value = config[key]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            # Compared as declared: float() overflows on a huge integer.
+            or (isinstance(value, float) and not math.isfinite(value))
+            or not 0 < value <= profile.budgets.timeout_seconds
+        ):
+            raise EvidenceIntegrityError(
+                f"{key} must be finite and in (0, budgets.timeout_seconds] for profile "
+                f"{profile.profile_id!r}"
+            )
+        deadlines[field] = value
+    return TransportPolicy(
+        max_calls=max_calls, max_retry_seconds=float(window), **deadlines
+    )
 
 
 def transport_resend_class(failure: "ProviderFailure", profile: AgentProfile) -> bool:
@@ -1494,6 +1564,110 @@ def _with_stream_usage(failure: ProviderFailure, usage: Any) -> ProviderFailure:
     if usage is None:
         return failure
     return failure.with_reported_usage({"choices": [{}], "usage": usage})
+
+
+# The clock the stream deadlines read; tests replace it.
+_stream_monotonic = time.monotonic
+
+
+def _stream_deadline_after(seconds: float) -> float:
+    """The instant ``seconds`` from now on the stream clock."""
+
+    return _stream_monotonic() + seconds
+
+
+class _StepExpired(Exception):
+    """A bounded step outlived its deadline (internal)."""
+
+
+async def _drain(task: "asyncio.Future[Any]") -> None:
+    # Wait for a cancelled task to unwind; whatever it raises is suppressed. An
+    # outer cancellation arriving meanwhile propagates (gather raises it).
+    await asyncio.gather(task, return_exceptions=True)
+
+
+async def _await_stream_step(
+    step: Awaitable[Any],
+    deadline: float | None,
+    *,
+    dispose: Callable[[Any], Awaitable[None]] | None = None,
+) -> Any:
+    """Await one step of a streamed call, bounded by ``deadline``.
+
+    Not ``asyncio.wait_for``: on Python 3.10 and 3.11 it can return a step that
+    finished in the same loop iteration as an outer cancellation and drop the
+    cancellation. The step runs as a task instead, so both outcomes stay
+    visible here. An outer cancellation cancels and drains the step and is
+    re-raised, never turned into an expiry; a result the caller will never
+    receive is handed to ``dispose``. An expired step is cancelled and drained,
+    its own cleanup errors suppressed, and ``_StepExpired`` raised.
+    """
+
+    task = asyncio.ensure_future(step)
+    try:
+        timeout = None if deadline is None else max(0.0, deadline - _stream_monotonic())
+        await asyncio.wait({task}, timeout=timeout)
+    except asyncio.CancelledError:
+        finished_with_result = (
+            task.done() and not task.cancelled() and task.exception() is None
+        )
+        task.cancel()
+        await _drain(task)
+        if finished_with_result and dispose is not None:
+            await dispose(task.result())
+        raise
+    if task.done():
+        return task.result()  # re-raises the step's own exception unchanged
+    task.cancel()
+    await _drain(task)
+    # A step can swallow the cancellation and still return (create() handing
+    # back a stream): dispose of that result too.
+    if dispose is not None and not task.cancelled() and task.exception() is None:
+        await dispose(task.result())
+    raise _StepExpired
+
+
+async def _close_stream(stream: Any) -> None:
+    """Close a stream best-effort, as an owned task.
+
+    Its errors are suppressed; an outer cancellation cancels the close, drains
+    it and propagates.
+    """
+
+    close = getattr(stream, "close", None)
+    if close is None:
+        return
+    try:
+        await _await_stream_step(close(), None)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        pass
+
+
+def _is_stream_progress(dumped: Any) -> bool:
+    """Whether a dumped stream chunk carries output.
+
+    Progress is any content, reasoning, reasoning details or tool call in the
+    first choice's delta, or a finish reason. A role-only chunk, a usage-only
+    chunk (no choices) and an empty delta are not: a stream can send those
+    forever while the model produces nothing.
+    """
+
+    if not isinstance(dumped, Mapping):
+        return False
+    choices = dumped.get("choices")
+    choice = choices[0] if isinstance(choices, Sequence) and choices else None
+    if not isinstance(choice, Mapping):
+        return False
+    if choice.get("finish_reason") is not None:
+        return True
+    delta = choice.get("delta")
+    if not isinstance(delta, Mapping):
+        return False
+    return any(
+        delta.get(field) for field in ("content", "reasoning", "reasoning_details", "tool_calls")
+    )
 
 
 def _is_usable_truncated_reply(response: "CanonicalResponse") -> bool:
@@ -1926,7 +2100,11 @@ class OpenRouterChatClient:
             kwargs["temperature"] = request.temperature
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
-        response = await self._create(**kwargs)
+        response = await self._create(
+            first_progress_seconds=request.first_progress_seconds,
+            idle_seconds=request.idle_seconds,
+            **kwargs,
+        )
         try:
             return self._structured_result(
                 request, response, canonical_model=canonical_model, route_provider=route_provider
@@ -2045,7 +2223,11 @@ class OpenRouterChatClient:
             kwargs["temperature"] = request.temperature
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
-        response = await self._create(**kwargs)
+        response = await self._create(
+            first_progress_seconds=request.first_progress_seconds,
+            idle_seconds=request.idle_seconds,
+            **kwargs,
+        )
         try:
             return self._native_result(
                 request, response, canonical_model=canonical_model, route_provider=route_provider
@@ -2235,21 +2417,78 @@ class OpenRouterChatClient:
         }
         return provider_preferences, canonical_model, route_provider
 
-    async def _create(self, **kwargs: Any) -> Any:
+    async def _create(
+        self,
+        *,
+        first_progress_seconds: int | float | None = None,
+        idle_seconds: int | float | None = None,
+        **kwargs: Any,
+    ) -> Any:
         usage: Any = None
+        stream: Any = None
+        # The deadlines bound a streamed call only; they never reach the SDK.
+        bounded = bool(kwargs.get("stream")) and (
+            first_progress_seconds is not None or idle_seconds is not None
+        )
         try:
             if not kwargs.get("stream"):
                 return await self._client.chat.completions.create(**kwargs)
-            # Usage, cost and the routing metadata arrive on the final chunk.
-            stream = await self._client.chat.completions.create(
-                **kwargs, stream_options={"include_usage": True}
-            )
             chunks = []
-            async for chunk in stream:
-                dumped = chunk.model_dump(mode="json")
-                chunks.append(dumped)
-                if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
-                    usage = dumped["usage"]
+            if not bounded:
+                # Usage, cost and the routing metadata arrive on the final chunk.
+                stream = await self._client.chat.completions.create(
+                    **kwargs, stream_options={"include_usage": True}
+                )
+                async for chunk in stream:
+                    dumped = chunk.model_dump(mode="json")
+                    chunks.append(dumped)
+                    if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                        usage = dumped["usage"]
+            else:
+                # The first-progress deadline runs from the start of create()
+                # and is never restarted; after each progress chunk the idle
+                # deadline runs from the read time of that chunk. A phase whose
+                # knob is not declared has no deadline.
+                kind, seconds = "first_progress", first_progress_seconds
+                t_start = _stream_monotonic()
+                deadline = None if seconds is None else t_start + seconds
+                try:
+                    stream = await _await_stream_step(
+                        self._client.chat.completions.create(
+                            **kwargs, stream_options={"include_usage": True}
+                        ),
+                        deadline,
+                        dispose=_close_stream,
+                    )
+                    expired = deadline is not None and _stream_monotonic() >= deadline
+                    iterator = stream.__aiter__()
+                    while not expired:
+                        try:
+                            chunk = await _await_stream_step(iterator.__anext__(), deadline)
+                        except StopAsyncIteration:
+                            expired = deadline is not None and _stream_monotonic() >= deadline
+                            break
+                        now = _stream_monotonic()
+                        dumped = chunk.model_dump(mode="json")
+                        if isinstance(dumped, Mapping) and dumped.get("usage") is not None:
+                            usage = dumped["usage"]
+                        if deadline is not None and now >= deadline:
+                            expired = True
+                            break
+                        chunks.append(dumped)
+                        if _is_stream_progress(dumped):
+                            kind, seconds = "idle", idle_seconds
+                            deadline = None if seconds is None else now + seconds
+                except _StepExpired:
+                    expired = True
+                if expired:
+                    if stream is not None:
+                        await _close_stream(stream)
+                    failure = ProviderFailure(
+                        "timeout", f"{kind} deadline of {seconds} s passed", retryable=True
+                    )
+                    failure.stream_deadline = kind
+                    raise failure
             if not chunks:
                 raise ProviderFailure(
                     "transport", "OpenRouter stream ended before any chunk", retryable=True
@@ -2271,6 +2510,10 @@ class OpenRouterChatClient:
                 )
             return _AssembledResponse(assembled)
         except asyncio.CancelledError:
+            if bounded and stream is not None:
+                # A chunk the step handed over when the cancellation landed
+                # leaves the SDK generator suspended at its yield, response open.
+                await _close_stream(stream)
             raise
         except ProviderFailure as failure:
             if not kwargs.get("stream"):
@@ -3165,6 +3408,15 @@ class MinimalChatExecutor:
         del action_attempt_id
         return ()
 
+    def _attempt_terminal_failure(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderRequest, ProviderFailure] | None:
+        """The latest failed call a harness-driven attempt's port terminalized;
+        ``None`` on the direct path."""
+
+        del action_attempt_id
+        return None
+
     def _attempt_in_backoff(self, action_attempt_id: str) -> bool:
         """Whether the attempt's port was sleeping between a refusal and a re-send."""
 
@@ -3279,6 +3531,7 @@ class MinimalChatExecutor:
                     "no structured output schema declared for action schema "
                     f"{decision.action_schema!r}"
                 )
+        transport = declared_transport_policy(profile)
         return ProviderRequest(
             provider_call_id=provider_call_id,
             provider=profile.model.provider,
@@ -3304,6 +3557,8 @@ class MinimalChatExecutor:
                 profile.profile_id, profile.sampling.seed
             ),
             stream=declared_provider_stream(profile),
+            first_progress_seconds=None if transport is None else transport.first_progress_seconds,
+            idle_seconds=None if transport is None else transport.idle_seconds,
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -3879,6 +4134,40 @@ class MinimalChatExecutor:
             )
         return ceiling
 
+    def _failed_call_record(
+        self,
+        profile: AgentProfile,
+        failed_request: ProviderRequest,
+        action_attempt_id: str,
+        failure: ProviderFailure,
+        failed_cost: float | None,
+    ) -> ProviderCallRecord:
+        """The ledger record of a failed call, for the failure path and for an
+        interruption that finds the call already terminalized."""
+
+        condition = failure.condition
+        if self._is_post_admission_rejection(profile, failure):
+            condition = POST_ADMISSION_REJECTION
+        return ProviderCallRecord(
+            provider_call_id=failed_request.provider_call_id,
+            action_attempt_id=action_attempt_id,
+            status=(
+                "outcome_unknown"
+                if failure.condition in {"timeout", "transport"}
+                else "failed"
+            ),
+            request_sha256=failed_request.request_sha256,
+            requested_model=failed_request.model,
+            resolved_model=None,
+            response_id=None,
+            finish_reason=None,
+            input_tokens=failure.input_tokens,
+            cached_input_tokens=failure.cached_input_tokens,
+            output_tokens=failure.output_tokens,
+            cost_usd=failed_cost or 0.0,
+            failure_condition=condition,
+        )
+
     def _record_provider_failure(
         self,
         decision: DecisionRequest,
@@ -3946,20 +4235,8 @@ class MinimalChatExecutor:
             or failed_request.provider_call_id
             not in {record.provider_call_id for record in refused_calls + prior_rounds}
         ):
-            provider_record = ProviderCallRecord(
-                provider_call_id=failed_request.provider_call_id,
-                action_attempt_id=action_attempt_id,
-                status="outcome_unknown" if outcome_unknown else "failed",
-                request_sha256=failed_request.request_sha256,
-                requested_model=failed_request.model,
-                resolved_model=None,
-                response_id=None,
-                finish_reason=None,
-                input_tokens=failure.input_tokens,
-                cached_input_tokens=failure.cached_input_tokens,
-                output_tokens=failure.output_tokens,
-                cost_usd=failed_cost or 0.0,
-                failure_condition=condition,
+            provider_record = self._failed_call_record(
+                profile, failed_request, action_attempt_id, failure, failed_cost
             )
         # A round that answered and then failed in post-processing already has
         # its terminal (succeeded); a second one for the attempt's first call
@@ -4245,6 +4522,27 @@ class MinimalChatExecutor:
         # refused call that was billed nothing is still evidence of what was sent.
         if declared_transport_policy(profile) is not None:
             provider_calls = self._attempt_refused_calls(action_attempt_id) + prior_rounds
+            # A failed call whose terminal the port already wrote and reported,
+            # when the interruption landed before the failure was recorded
+            # here: its record and any known cost would otherwise be lost.
+            terminalized = self._attempt_terminal_failure(action_attempt_id)
+            if terminalized is not None:
+                failed_request, failure = terminalized
+                if failed_request.provider_call_id not in {
+                    record.provider_call_id for record in provider_calls
+                }:
+                    # As in _record_provider_failure, so the record is typed
+                    # alike: a round that answered proves the route.
+                    if prior_rounds:
+                        self._routes_proven.add(self._route_key(profile))
+                    failed_cost = failed_call_cost(failure, self._pricing[profile.model.model])
+                    if failed_cost:
+                        self._charge(profile, failed_cost)
+                    provider_calls += (
+                        self._failed_call_record(
+                            profile, failed_request, action_attempt_id, failure, failed_cost
+                        ),
+                    )
             if provider_call_id is not None:
                 pending = self._attempt_pending_round(action_attempt_id)
                 interrupted = pending.request if pending is not None else request

@@ -46,7 +46,11 @@ from ..task.execution import (
     ToolFailure,
     ToolInvocationRecord,
     TransportPolicy,
+    _StepExpired,
+    _await_stream_step,
+    _declares_stream_deadlines,
     _stable_id,
+    _stream_deadline_after,
 )
 from ..registry import HarnessRequirements, ProviderCapabilities
 from ..run.resolver import canonical_json_bytes
@@ -296,6 +300,10 @@ class KernelModelPort:
         """Which check refused a re-send (``count``, ``cost``, ``time`` or
         ``route``) and, for ``route``, the route's snapshot at that moment.
         Read by the executor to label the attempt's failure under route_v1."""
+        self.terminal_failure: tuple[ProviderRequest, ProviderFailure] | None = None
+        """The latest failed call this port wrote a terminal for, with its
+        failure. Read by the executor under transport_v1 when an interruption
+        lands after the terminal and before the executor records the failure."""
 
     @property
     def cost_usd_total(self) -> float:
@@ -479,6 +487,7 @@ class KernelModelPort:
 
         round_ordinal = self._round
         self._round += 1
+        policy = declared_transport_policy(self._profile)
 
         if self._sealed_request is not None and round_ordinal == 0:
             # The executor already sealed this request and emitted
@@ -517,6 +526,10 @@ class KernelModelPort:
                 messages=messages if response_mode == "native_tools" else None,
                 tools=tools if response_mode == "native_tools" and tools else None,
                 stream=declared_provider_stream(self._profile),
+                first_progress_seconds=(
+                    None if policy is None else policy.first_progress_seconds
+                ),
+                idle_seconds=None if policy is None else policy.idle_seconds,
             ).with_computed_hash()
 
         # With emit_events=False the executor sealed round 0 and already wrote
@@ -528,7 +541,6 @@ class KernelModelPort:
         # the provider refused it with a declared HTTP status (#226 item 1).
         # Each send is its own provider call with its own opening and terminal
         # event; a profile without the declaration runs the loop once.
-        policy = declared_transport_policy(self._profile)
         first_request = request
         transport_ordinal = 0
         window_end: float | None = None
@@ -578,6 +590,8 @@ class KernelModelPort:
                 if policy is not None and failure.http_refusal:
                     failed_payload["http_refusal"] = True
                     failed_payload["transport_ordinal"] = transport_ordinal
+                if policy is not None and failure.stream_deadline is not None:
+                    failed_payload["stream_deadline"] = failure.stream_deadline
                 self._evidence.append_event(
                     "provider_call_outcome_unknown" if outcome_unknown else "provider_call_failed",
                     failed_payload,
@@ -593,6 +607,7 @@ class KernelModelPort:
                     request=request,
                     terminalized=True,
                 )
+                self.terminal_failure = (request, failure)
                 resendable = (
                     policy is not None
                     and window_end is not None
@@ -1388,6 +1403,12 @@ class AttemptExecutor(MinimalChatExecutor):
         port = self._ports.get(action_attempt_id)
         return tuple(port.refused_calls) if port is not None else ()
 
+    def _attempt_terminal_failure(
+        self, action_attempt_id: str
+    ) -> tuple[ProviderRequest, ProviderFailure] | None:
+        port = self._ports.get(action_attempt_id)
+        return port.terminal_failure if port is not None else None
+
     def _attempt_in_backoff(self, action_attempt_id: str) -> bool:
         port = self._ports.get(action_attempt_id)
         return port.in_transport_backoff if port is not None else False
@@ -1472,10 +1493,21 @@ class AttemptExecutor(MinimalChatExecutor):
             # cross the instant the wait_for below cancels the attempt.
             port.attempt_deadline = _transport_monotonic() + profile.budgets.timeout_seconds
         try:
-            output = await asyncio.wait_for(
-                harness.act(decision, context),
-                timeout=profile.budgets.timeout_seconds,
-            )
+            if _declares_stream_deadlines(declared_transport_policy(profile)):
+                # wait_for can drop a cancellation that lands as the act ends,
+                # on Python 3.10 and 3.11; the stream helper cannot.
+                try:
+                    output = await _await_stream_step(
+                        harness.act(decision, context),
+                        _stream_deadline_after(profile.budgets.timeout_seconds),
+                    )
+                except _StepExpired as expired:
+                    raise asyncio.TimeoutError from expired
+            else:
+                output = await asyncio.wait_for(
+                    harness.act(decision, context),
+                    timeout=profile.budgets.timeout_seconds,
+                )
         except ProviderFailure as failure:
             # KernelModelPort rejects an empty completion before it reaches the
             # harness, but the provider call itself succeeded and may have been
