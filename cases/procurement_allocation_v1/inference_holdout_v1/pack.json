@@ -1,0 +1,2677 @@
+{
+  "admission_rate": 0.7059,
+  "admitted": 36,
+  "claim_scope": "synthetic worlds selected by rule; the references are listing-only rules and the full-information bound, not a model; no live cell has read this pack",
+  "complete": true,
+  "excluded": [
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 163.936026,
+        "dearest_first": 245.904039,
+        "fastest_first": 245.904039,
+        "largest_moq_first": 245.904039,
+        "slowest_first": 245.904039,
+        "smallest_moq_first": 245.904039
+      },
+      "signal": "price_low_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820001
+    },
+    {
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 102.152458,
+        "dearest_first": 306.457374,
+        "fastest_first": 1.076944,
+        "largest_moq_first": 1.076944,
+        "slowest_first": 1.076944,
+        "smallest_moq_first": 1.076944
+      },
+      "signal": "price_low_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820002
+    },
+    {
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 303.819665,
+        "dearest_first": 102.14343,
+        "fastest_first": 303.819665,
+        "largest_moq_first": 303.819665,
+        "slowest_first": 303.819665,
+        "smallest_moq_first": 303.819665
+      },
+      "signal": "price_high_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820003
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 285.686762,
+        "dearest_first": 285.686762,
+        "fastest_first": 285.686762,
+        "largest_moq_first": 285.686762,
+        "slowest_first": 191.234694,
+        "smallest_moq_first": 285.686762
+      },
+      "signal": "lead_time_long_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820010
+    },
+    {
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 204.278749,
+        "dearest_first": 306.418124,
+        "fastest_first": 306.418124,
+        "largest_moq_first": 204.855435,
+        "slowest_first": 306.418124,
+        "smallest_moq_first": 306.418124
+      },
+      "signal": "moq_high_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820015
+    },
+    {
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 190.632546,
+        "dearest_first": 285.94882,
+        "fastest_first": 285.94882,
+        "largest_moq_first": 285.94882,
+        "slowest_first": 285.94882,
+        "smallest_moq_first": 285.94882
+      },
+      "signal": "price_low_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820018
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 88.81022,
+        "dearest_first": 266.430661,
+        "fastest_first": 266.430661,
+        "largest_moq_first": 266.430661,
+        "slowest_first": 266.430661,
+        "smallest_moq_first": 266.430661
+      },
+      "signal": "price_low_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820019
+    },
+    {
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 83.841903,
+        "dearest_first": 251.525708,
+        "fastest_first": 83.841903,
+        "largest_moq_first": 83.841903,
+        "slowest_first": 83.841903,
+        "smallest_moq_first": 83.841903
+      },
+      "signal": "price_low_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820020
+    },
+    {
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 270.775135,
+        "dearest_first": 181.694976,
+        "fastest_first": 270.775135,
+        "largest_moq_first": 270.775135,
+        "slowest_first": 270.775135,
+        "smallest_moq_first": 270.775135
+      },
+      "signal": "price_high_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820023
+    },
+    {
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 83.330477,
+        "dearest_first": 249.99143,
+        "fastest_first": 167.951468,
+        "largest_moq_first": 249.99143,
+        "slowest_first": 249.99143,
+        "smallest_moq_first": 249.99143
+      },
+      "signal": "lead_time_short_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820024
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 256.535075,
+        "fastest_first": 87.446262,
+        "largest_moq_first": 256.535075,
+        "slowest_first": 256.535075,
+        "smallest_moq_first": 256.535075
+      },
+      "signal": "lead_time_short_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820025
+    },
+    {
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 79.745898,
+        "dearest_first": 83.833832,
+        "fastest_first": 239.237694,
+        "largest_moq_first": 239.237694,
+        "slowest_first": 83.833832,
+        "smallest_moq_first": 239.237694
+      },
+      "signal": "lead_time_long_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820027
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 176.157091,
+        "dearest_first": 90.336231,
+        "fastest_first": 264.235636,
+        "largest_moq_first": 90.336231,
+        "slowest_first": 264.235636,
+        "smallest_moq_first": 264.235636
+      },
+      "signal": "moq_high_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820034
+    },
+    {
+      "risk": "timing",
+      "signal": "price_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820040
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 293.633871,
+        "dearest_first": 3.673766,
+        "fastest_first": 97.877957,
+        "largest_moq_first": 293.633871,
+        "slowest_first": 293.633871,
+        "smallest_moq_first": 293.633871
+      },
+      "signal": "lead_time_short_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820043
+    },
+    {
+      "risk": "capacity",
+      "signal": "lead_time_short_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820044
+    },
+    {
+      "risk": "capacity",
+      "signal": "lead_time_long_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820047
+    },
+    {
+      "risk": "yield",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820048
+    },
+    {
+      "risk": "timing",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820049
+    },
+    {
+      "risk": "capacity",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820050
+    },
+    {
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 95.269363,
+        "fastest_first": 273.156331,
+        "largest_moq_first": 95.269363,
+        "slowest_first": 273.156331,
+        "smallest_moq_first": 273.156331
+      },
+      "signal": "moq_high_is_good",
+      "verdict": "reject: the aligned rule does not solve the world",
+      "world_seed": 8820052
+    },
+    {
+      "risk": "capacity",
+      "signal": "moq_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820053
+    },
+    {
+      "risk": "yield",
+      "signal": "price_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820054
+    },
+    {
+      "risk": "yield",
+      "signal": "price_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820057
+    },
+    {
+      "risk": "timing",
+      "signal": "price_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820058
+    },
+    {
+      "risk": "capacity",
+      "signal": "price_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820059
+    },
+    {
+      "risk": "yield",
+      "signal": "lead_time_short_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820060
+    },
+    {
+      "risk": "capacity",
+      "signal": "lead_time_short_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820062
+    },
+    {
+      "risk": "yield",
+      "signal": "lead_time_long_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820063
+    },
+    {
+      "risk": "timing",
+      "signal": "lead_time_long_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820064
+    },
+    {
+      "risk": "capacity",
+      "signal": "lead_time_long_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820065
+    },
+    {
+      "risk": "yield",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820066
+    },
+    {
+      "risk": "timing",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820067
+    },
+    {
+      "risk": "capacity",
+      "signal": "moq_low_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820068
+    },
+    {
+      "risk": "yield",
+      "signal": "moq_high_is_good",
+      "verdict": "cell full",
+      "world_seed": 8820069
+    }
+  ],
+  "generator_id": "procurement_allocation_inference_pack_v1",
+  "generator_version": "1.0.0",
+  "manifest_sha256": "7757aef255d3e937dca917639411194f299c0fe3d0555af4f2e5d833bd8f5379",
+  "pack": "inference_holdout_v1",
+  "per_cell": 2,
+  "rule_ceiling": {
+    "careful": {
+      "cheapest_first": 33,
+      "dearest_first": 33,
+      "fastest_first": 29,
+      "largest_moq_first": 31,
+      "slowest_first": 31,
+      "smallest_moq_first": 30
+    },
+    "committed": {
+      "cheapest_first": 17,
+      "dearest_first": 16,
+      "fastest_first": 10,
+      "largest_moq_first": 9,
+      "slowest_first": 10,
+      "smallest_moq_first": 9
+    }
+  },
+  "rules": [
+    "cheapest_first",
+    "dearest_first",
+    "fastest_first",
+    "slowest_first",
+    "smallest_moq_first",
+    "largest_moq_first"
+  ],
+  "schema_version": "aeread.procurement_inference_pack/0.1",
+  "seed_domain": {
+    "scan_limit": 720,
+    "start": 8820000
+  },
+  "seeds_scanned": 71,
+  "selection_rule": "seed s is offered to cell (s - start) mod 18, signals crossed with risks in v1's order; its numbers are drawn from inference_case_matrix.RANGES by a generator seeded with s; the world is admitted when the six listing-only committed rules (verify the first supplier the ranking names in each component, then award) separate in expectation (classify_world_by_policy_separation at 0.05 over 3 sample-noise seeds), the rule aligned with the declared signal solves the world (mean regret below 50.0 USD), the rule committed to the opposite direction does not, the full-information optimum sources at least 0.6 of its expected good units from good suppliers (capacity worlds exempt and recorded), and the cell is not yet full at 2; every world declares binomial sample noise and states its minimum-order level in the listing; the careful variant of each rule (a second supplier when the first does not cover) is recorded, not admitted on",
+  "split": "holdout",
+  "strata": {
+    "attribute": {
+      "lead_time": 12,
+      "moq": 12,
+      "price": 12
+    },
+    "direction": {
+      "high_is_good": 18,
+      "low_is_good": 18
+    },
+    "risk": {
+      "capacity": 12,
+      "timing": 12,
+      "yield": 12
+    }
+  },
+  "worlds": [
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.506295,
+        "dearest_first": 25.851952,
+        "fastest_first": 8.075038,
+        "largest_moq_first": 8.075038,
+        "slowest_first": 8.075038,
+        "smallest_moq_first": 8.075038
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__yield_8820000",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__yield_8820000"
+      },
+      "content_sha256": {
+        "labeled": "037029fc60ac2672903156587745d3d69df8a59b1d4d2e0f399f4a8a808f0413",
+        "opaque": "a23504d12db4ecfb76c1c1abd24dec0c1e2d230315079191a8aadb062faa2332"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "28b907575d5ce934b856c1c994c18942ed1a5d1942d974cca7f958c5c86f3e47",
+      "levels": {
+        "good_yield": 0.978,
+        "poor_capacity": 10,
+        "poor_on_time": 0.32,
+        "poor_yield": 0.604
+      },
+      "opposite_margin_usd": 262.452419,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 262.452419,
+        "fastest_first": 262.452419,
+        "largest_moq_first": 262.452419,
+        "slowest_first": 262.452419,
+        "smallest_moq_first": 262.452419
+      },
+      "sample_batch": 10,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__yield_8820000",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 261.692419,
+      "world_seed": 8820000
+    },
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 208.312278,
+        "fastest_first": 9.241302,
+        "largest_moq_first": 9.241302,
+        "slowest_first": 9.241302,
+        "smallest_moq_first": 9.241302
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__yield_8820036",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__yield_8820036"
+      },
+      "content_sha256": {
+        "labeled": "ff73e342d5cf5e2a580e601526859cf2cf277d5afb0344a24b67ebf915a728f6",
+        "opaque": "7c31be13740cc492e3b1496cc23ef3f500350ba47284e8c5a17844e33778d48c"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "667ee1c4ebe4b12570f0cba99630940fc9f82e22b7fbaee93891cbdf1a08c5c1",
+      "levels": {
+        "good_yield": 0.98,
+        "poor_capacity": 10,
+        "poor_on_time": 0.46,
+        "poor_yield": 0.519
+      },
+      "opposite_margin_usd": 305.003043,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 305.003043,
+        "fastest_first": 305.003043,
+        "largest_moq_first": 305.003043,
+        "slowest_first": 305.003043,
+        "smallest_moq_first": 305.003043
+      },
+      "sample_batch": 7,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__yield_8820036",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 304.143043,
+      "world_seed": 8820036
+    },
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.50958,
+        "dearest_first": 73.921198,
+        "fastest_first": 16.694041,
+        "largest_moq_first": 16.694041,
+        "slowest_first": 16.694041,
+        "smallest_moq_first": 16.694041
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__timing_8820037",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__timing_8820037"
+      },
+      "content_sha256": {
+        "labeled": "c9c65c090810598962ab1c5a239244135360274e9b77834c6a5861ded5a36460",
+        "opaque": "e56a40ef9090e0ef0e670997cfb97717f5b829af9f0c26dbed35b0a93e903dd2"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "b47082270be223129414cd9fbc07ceefe9c6fd155aa8b426f7a1f68bf6824e05",
+      "levels": {
+        "good_yield": 0.979,
+        "poor_capacity": 10,
+        "poor_on_time": 0.44,
+        "poor_yield": 0.583
+      },
+      "opposite_margin_usd": 255.053662,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 255.053662,
+        "fastest_first": 255.053662,
+        "largest_moq_first": 255.053662,
+        "slowest_first": 255.053662,
+        "smallest_moq_first": 255.053662
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__timing_8820037",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 254.273662,
+      "world_seed": 8820037
+    },
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 311.054435,
+        "fastest_first": 16.504251,
+        "largest_moq_first": 16.504251,
+        "slowest_first": 16.504251,
+        "smallest_moq_first": 16.504251
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__timing_8820055",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__timing_8820055"
+      },
+      "content_sha256": {
+        "labeled": "f45216d102656b123d1931739e45862ce2fa5102c7f3efd8bfb9521071979d5a",
+        "opaque": "e2aa45624de0740ca351899eae5acbfbf82e15c636ca68740913178fbbdf0113"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "6c1dd5a8233eeeabfa2a7787e103ef811e048f80aca4cfe7e30c1466f7cb7da7",
+      "levels": {
+        "good_yield": 0.98,
+        "poor_capacity": 10,
+        "poor_on_time": 0.31,
+        "poor_yield": 0.519
+      },
+      "opposite_margin_usd": 310.234435,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 310.234435,
+        "fastest_first": 310.234435,
+        "largest_moq_first": 310.234435,
+        "slowest_first": 310.234435,
+        "smallest_moq_first": 310.234435
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__timing_8820055",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 309.414435,
+      "world_seed": 8820055
+    },
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 4.469119,
+        "fastest_first": 2.980383,
+        "largest_moq_first": 2.980383,
+        "slowest_first": 2.980383,
+        "smallest_moq_first": 2.980383
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__capacity_8820038",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__capacity_8820038"
+      },
+      "content_sha256": {
+        "labeled": "861a7b67853ff3e421b2617c23cadde58aac921278a41b064a9023294fdf12ef",
+        "opaque": "6fb703215a45353f7ec51ccc2201a95a0918f9678a5932dce9738dda91929f51"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "aca8289a02be2d1c5286bca965b3e14efd0c894d5408936674f1cb774164a7ba",
+      "levels": {
+        "good_yield": 0.986,
+        "poor_capacity": 10,
+        "poor_on_time": 0.34,
+        "poor_yield": 0.607
+      },
+      "opposite_margin_usd": 295.74698,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 295.74698,
+        "fastest_first": 295.74698,
+        "largest_moq_first": 295.74698,
+        "slowest_first": 295.74698,
+        "smallest_moq_first": 295.74698
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__capacity_8820038",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 295.00698,
+      "world_seed": 8820038
+    },
+    {
+      "aligned_rule": "cheapest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 4.48401,
+        "fastest_first": 6.77231,
+        "largest_moq_first": 6.77231,
+        "slowest_first": 6.77231,
+        "smallest_moq_first": 6.77231
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_low_is_good__capacity_8820056",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_low_is_good__capacity_8820056"
+      },
+      "content_sha256": {
+        "labeled": "31c3f1c1dd317feb35a2f814a0cc2c17fab24ca1c8d67c6d6e304acaf692e80d",
+        "opaque": "e3ec425882c57ea4d2047759cbe5c086411e86734a389172bf30b6f8467b1a45"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "65921f6612a04f3e37381331a57e40b0aee33708c1323f2e95759ca9ae2f00c7",
+      "levels": {
+        "good_yield": 0.982,
+        "poor_capacity": 10,
+        "poor_on_time": 0.42,
+        "poor_yield": 0.605
+      },
+      "opposite_margin_usd": 261.171945,
+      "opposite_rule": "dearest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 261.171945,
+        "fastest_first": 261.171945,
+        "largest_moq_first": 261.171945,
+        "slowest_first": 261.171945,
+        "smallest_moq_first": 261.171945
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "price_low_is_good",
+      "slug": "price_low_is_good__capacity_8820056",
+      "solved_by": [
+        "cheapest_first"
+      ],
+      "upper_bound_usd": 260.251945,
+      "world_seed": 8820056
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 25.844735,
+        "dearest_first": 1.470952,
+        "fastest_first": 45.387484,
+        "largest_moq_first": 45.387484,
+        "slowest_first": 45.387484,
+        "smallest_moq_first": 45.387484
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__yield_8820021",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__yield_8820021"
+      },
+      "content_sha256": {
+        "labeled": "fb4cde97f5ee437ee0ed7e6be97c2b6c95b654cdc63a5387a823c44f3f58637b",
+        "opaque": "ff2b766cebde2ad6b212702b540bece6558f02517d233cea64092af223031fd9"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "2d070bee7fb596c338cdae43dde79014ce5c27d6b053620f946b15d77c9fb33d",
+      "levels": {
+        "good_yield": 0.983,
+        "poor_capacity": 10,
+        "poor_on_time": 0.43,
+        "poor_yield": 0.562
+      },
+      "opposite_margin_usd": 306.031274,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 307.502226,
+        "dearest_first": 1.470952,
+        "fastest_first": 307.502226,
+        "largest_moq_first": 307.502226,
+        "slowest_first": 307.502226,
+        "smallest_moq_first": 307.502226
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__yield_8820021",
+      "solved_by": [
+        "dearest_first"
+      ],
+      "upper_bound_usd": 306.782225,
+      "world_seed": 8820021
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 193.848568,
+        "dearest_first": 2.373101,
+        "fastest_first": 98.207185,
+        "largest_moq_first": 98.207185,
+        "slowest_first": 98.207185,
+        "smallest_moq_first": 98.207185
+      },
+      "careful_solved_by": [
+        "dearest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__yield_8820039",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__yield_8820039"
+      },
+      "content_sha256": {
+        "labeled": "acdf50af813aeb2007d0ecbbe0104a59ef61f05973c05d4be904a96832042c14",
+        "opaque": "0dfd971d27418d4c9560f7780f5bfcc1f59b7f39ede1a869e3053d791b30e29f"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "99cdc43af1e3769f544ab53ac0af3b3c222ca6b85d4066c7caa588c0ce155c40",
+      "levels": {
+        "good_yield": 0.989,
+        "poor_capacity": 10,
+        "poor_on_time": 0.34,
+        "poor_yield": 0.534
+      },
+      "opposite_margin_usd": 285.934149,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 288.30725,
+        "dearest_first": 2.373101,
+        "fastest_first": 288.30725,
+        "largest_moq_first": 288.30725,
+        "slowest_first": 288.30725,
+        "smallest_moq_first": 288.30725
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__yield_8820039",
+      "solved_by": [
+        "dearest_first"
+      ],
+      "upper_bound_usd": 287.64725,
+      "world_seed": 8820039
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 315.609485,
+        "dearest_first": 1.788182,
+        "fastest_first": 12.859078,
+        "largest_moq_first": 12.859078,
+        "slowest_first": 12.859078,
+        "smallest_moq_first": 12.859078
+      },
+      "careful_solved_by": [
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__timing_8820004",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__timing_8820004"
+      },
+      "content_sha256": {
+        "labeled": "017dc194034fef2ef4a9bc83fc476043c6ce812618a16bb35f54110f13c5b5ca",
+        "opaque": "852e163e0ae5ef9b20e3d3ce5827a108a38490cd27bf04430c666d46b58b2994"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "c4914204249cf692f0c55aef72c290c27e8e4458edd3bfa7862afd43fa3d993d",
+      "levels": {
+        "good_yield": 0.989,
+        "poor_capacity": 10,
+        "poor_on_time": 0.38,
+        "poor_yield": 0.57
+      },
+      "opposite_margin_usd": 312.881303,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 314.669485,
+        "dearest_first": 1.788182,
+        "fastest_first": 314.669485,
+        "largest_moq_first": 314.669485,
+        "slowest_first": 314.669485,
+        "smallest_moq_first": 314.669485
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__timing_8820004",
+      "solved_by": [
+        "dearest_first"
+      ],
+      "upper_bound_usd": 313.729485,
+      "world_seed": 8820004
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 246.645659,
+        "dearest_first": 4.402741,
+        "fastest_first": 4.733103,
+        "largest_moq_first": 4.733103,
+        "slowest_first": 4.733103,
+        "smallest_moq_first": 4.733103
+      },
+      "careful_solved_by": [
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__timing_8820022",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__timing_8820022"
+      },
+      "content_sha256": {
+        "labeled": "2fda2257762ee685975e0474c56359bb699b0531aa25cd94c1c873aa1d7604c9",
+        "opaque": "b6eef0fe9170cd4606f6d63a33656d93326b2f4a28736bf5297f41087769088d"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "0b97b1217f3ae33e09d39da5bde198ea595debe3e43631b1b0c9ca88d2191f0a",
+      "levels": {
+        "good_yield": 0.984,
+        "poor_capacity": 10,
+        "poor_on_time": 0.35,
+        "poor_yield": 0.513
+      },
+      "opposite_margin_usd": 243.785779,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 245.665659,
+        "dearest_first": 1.87988,
+        "fastest_first": 0.0,
+        "largest_moq_first": 0.0,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 0.0
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__timing_8820022",
+      "solved_by": [
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 244.685659,
+      "world_seed": 8820022
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 3.597326,
+        "fastest_first": 0.904028,
+        "largest_moq_first": 0.904028,
+        "slowest_first": 0.904028,
+        "smallest_moq_first": 0.904028
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__capacity_8820005",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__capacity_8820005"
+      },
+      "content_sha256": {
+        "labeled": "6cfc45d1a316d28d31ab0c861fdd64d729629cfc5f03ce09fbb229cc3084b3a8",
+        "opaque": "cc868065682daa307967b248445036d9a3f04179ab726132c00aab33a0849a3c"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "50dc7bf095a7951f63e1b98c28bcfc0f535dc3518c6f673b84c491b8ade59553",
+      "levels": {
+        "good_yield": 0.982,
+        "poor_capacity": 10,
+        "poor_on_time": 0.31,
+        "poor_yield": 0.532
+      },
+      "opposite_margin_usd": 303.328545,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "bh1750_gy302_s3",
+        "sht30_i2c_s0",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 0.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 306.925871,
+        "dearest_first": 3.597326,
+        "fastest_first": 306.925871,
+        "largest_moq_first": 306.925871,
+        "slowest_first": 306.925871,
+        "smallest_moq_first": 306.925871
+      },
+      "sample_batch": 10,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__capacity_8820005",
+      "solved_by": [
+        "dearest_first"
+      ],
+      "upper_bound_usd": 306.045871,
+      "world_seed": 8820005
+    },
+    {
+      "aligned_rule": "dearest_first",
+      "attribute": "price",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 4.105874,
+        "fastest_first": 2.549524,
+        "largest_moq_first": 2.549524,
+        "slowest_first": 2.549524,
+        "smallest_moq_first": 2.549524
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.price_high_is_good__capacity_8820041",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.price_high_is_good__capacity_8820041"
+      },
+      "content_sha256": {
+        "labeled": "803ab892f9737d60bacc075da652f02d124d008fae8c6fdcc136039874aa01a0",
+        "opaque": "a5b333a8b7cc992e55cf26a21cd5a473131b72995afb8401189e28f91be2ae02"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "94a50693567bdab97b2b496d2077c00e32ceedf77f9b2c2fc17ba1c0e12138e0",
+      "levels": {
+        "good_yield": 0.99,
+        "poor_capacity": 10,
+        "poor_on_time": 0.36,
+        "poor_yield": 0.599
+      },
+      "opposite_margin_usd": 241.402009,
+      "opposite_rule": "cheapest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "bh1750_gy302_s2",
+        "sht30_i2c_s1",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 0.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 245.507883,
+        "dearest_first": 4.105874,
+        "fastest_first": 245.507883,
+        "largest_moq_first": 245.507883,
+        "slowest_first": 245.507883,
+        "smallest_moq_first": 245.507883
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "price_high_is_good",
+      "slug": "price_high_is_good__capacity_8820041",
+      "solved_by": [
+        "dearest_first"
+      ],
+      "upper_bound_usd": 244.647883,
+      "world_seed": 8820041
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 7.527999,
+        "fastest_first": 0.0,
+        "largest_moq_first": 8.184691,
+        "slowest_first": 98.458288,
+        "smallest_moq_first": 8.184691
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__yield_8820006",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__yield_8820006"
+      },
+      "content_sha256": {
+        "labeled": "cbe5fc17537ffc244a3134ddcc42fa59aec8d270040d20242db9d914264801db",
+        "opaque": "c50dc1a9b9073de05e50c9f46c95b2fff08f458f7e56be62024ab3ec17265e6b"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "8d4481703f48deb2b9ab1d87358df9c239a138516148f0cd7f65d7f13669bee8",
+      "levels": {
+        "good_yield": 0.978,
+        "poor_capacity": 10,
+        "poor_on_time": 0.46,
+        "poor_yield": 0.542
+      },
+      "opposite_margin_usd": 268.386156,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 7.527999,
+        "fastest_first": 0.0,
+        "largest_moq_first": 268.386156,
+        "slowest_first": 268.386156,
+        "smallest_moq_first": 268.386156
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__yield_8820006",
+      "solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first"
+      ],
+      "upper_bound_usd": 267.666156,
+      "world_seed": 8820006
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 5.184649,
+        "dearest_first": 2.561438,
+        "fastest_first": 2.561438,
+        "largest_moq_first": 3.597984,
+        "slowest_first": 209.767697,
+        "smallest_moq_first": 3.597984
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__yield_8820042",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__yield_8820042"
+      },
+      "content_sha256": {
+        "labeled": "aeb9ad40ddc7f673568f167be3f8cf45b5229aaf287b1890f0caf7916e2b069f",
+        "opaque": "b16ce6cc497352cce6b19cac90769fc5d7a3f568ea8e14b13be428a80d4a60e4"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "94d1ffe72fe337e4d12c768088262191af29e4fd8d5a28a82bc8734382dde2f4",
+      "levels": {
+        "good_yield": 0.982,
+        "poor_capacity": 10,
+        "poor_on_time": 0.34,
+        "poor_yield": 0.532
+      },
+      "opposite_margin_usd": 307.702727,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 310.264165,
+        "dearest_first": 2.561438,
+        "fastest_first": 2.561438,
+        "largest_moq_first": 310.264165,
+        "slowest_first": 310.264165,
+        "smallest_moq_first": 310.264165
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__yield_8820042",
+      "solved_by": [
+        "dearest_first",
+        "fastest_first"
+      ],
+      "upper_bound_usd": 309.344165,
+      "world_seed": 8820042
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 15.68812,
+        "dearest_first": 22.286432,
+        "fastest_first": 1.841389,
+        "largest_moq_first": 34.668112,
+        "slowest_first": 49.414835,
+        "smallest_moq_first": 34.668112
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__timing_8820007",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__timing_8820007"
+      },
+      "content_sha256": {
+        "labeled": "0b088ad3d388cea9cfee293dee968aff0eba3665d97c05c12a914bca4550b64f",
+        "opaque": "2b7d40d6e1bf659d459a0a9ad3329db68fbb747edcc6f35c59f2792c98fe9fa3"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "a4ac91bf62a24e4f4e3f252b1e5ff6f259605ed5b78f48ab9320d8d2921e36c6",
+      "levels": {
+        "good_yield": 0.976,
+        "poor_capacity": 10,
+        "poor_on_time": 0.48,
+        "poor_yield": 0.572
+      },
+      "opposite_margin_usd": 238.485166,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 240.326555,
+        "dearest_first": 240.326555,
+        "fastest_first": 1.841389,
+        "largest_moq_first": 240.326555,
+        "slowest_first": 240.326555,
+        "smallest_moq_first": 240.326555
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__timing_8820007",
+      "solved_by": [
+        "fastest_first"
+      ],
+      "upper_bound_usd": 239.546555,
+      "world_seed": 8820007
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.333409,
+        "dearest_first": 21.699592,
+        "fastest_first": 2.51692,
+        "largest_moq_first": 33.778983,
+        "slowest_first": 33.778983,
+        "smallest_moq_first": 33.778983
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__timing_8820061",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__timing_8820061"
+      },
+      "content_sha256": {
+        "labeled": "9aacc8ecfa1d56ad4f9af55cdec9d96bcc7dce447de241fbeb8caa76e5c6b75f",
+        "opaque": "addf82431f6ce5fdb08c9872d7da1875aa6f4cdf8be3f44352642a231f213c1d"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "4fb1cce52ccb3f0be0b1f9c422ac648583f686589d723bb0f58dd873e5700e7f",
+      "levels": {
+        "good_yield": 0.985,
+        "poor_capacity": 10,
+        "poor_on_time": 0.5,
+        "poor_yield": 0.494
+      },
+      "opposite_margin_usd": 302.447055,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 302.447055,
+        "fastest_first": 0.0,
+        "largest_moq_first": 302.447055,
+        "slowest_first": 302.447055,
+        "smallest_moq_first": 302.447055
+      },
+      "sample_batch": 7,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__timing_8820061",
+      "solved_by": [
+        "cheapest_first",
+        "fastest_first"
+      ],
+      "upper_bound_usd": 301.627055,
+      "world_seed": 8820061
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 9.941,
+        "fastest_first": 0.0,
+        "largest_moq_first": 7.976995,
+        "slowest_first": 4.236207,
+        "smallest_moq_first": 7.976995
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__capacity_8820008",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__capacity_8820008"
+      },
+      "content_sha256": {
+        "labeled": "83ecc6ff9f027f80bda656ac4f0bc0cce5c030bd2225494e03cafac4dc5541bd",
+        "opaque": "6c1a9f0881766212cfa6731ebf64f241dfb1673c255a635ed43719c648dac553"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "bea1989077c9345f748beb95908e24415fda3b320d3b77e157208d25d08d7928",
+      "levels": {
+        "good_yield": 0.986,
+        "poor_capacity": 10,
+        "poor_on_time": 0.44,
+        "poor_yield": 0.606
+      },
+      "opposite_margin_usd": 272.640303,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 272.640303,
+        "fastest_first": 0.0,
+        "largest_moq_first": 272.640303,
+        "slowest_first": 272.640303,
+        "smallest_moq_first": 272.640303
+      },
+      "sample_batch": 7,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__capacity_8820008",
+      "solved_by": [
+        "cheapest_first",
+        "fastest_first"
+      ],
+      "upper_bound_usd": 271.760303,
+      "world_seed": 8820008
+    },
+    {
+      "aligned_rule": "fastest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 6.650851,
+        "dearest_first": 4.126146,
+        "fastest_first": 2.23357,
+        "largest_moq_first": 4.681394,
+        "slowest_first": 2.063073,
+        "smallest_moq_first": 4.681394
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_short_is_good__capacity_8820026",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_short_is_good__capacity_8820026"
+      },
+      "content_sha256": {
+        "labeled": "5a944262440ee8a7bbae685f09df9a7c8222df084a66259c10ac55ad82705ed3",
+        "opaque": "1015eeb0f57afa4cc2b7138b18776237211d78c7c9b93de3ec17fcf67a4b4722"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "9d9805aaba4beb821c99ecc1d51e37cd1e3720d9c25a37a3c4226dd38b09d919",
+      "levels": {
+        "good_yield": 0.983,
+        "poor_capacity": 10,
+        "poor_on_time": 0.36,
+        "poor_yield": 0.546
+      },
+      "opposite_margin_usd": 296.425601,
+      "opposite_rule": "slowest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "bh1750_gy302_s2",
+        "sht30_i2c_s2",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 0.5,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 298.659171,
+        "dearest_first": 298.659171,
+        "fastest_first": 2.23357,
+        "largest_moq_first": 298.659171,
+        "slowest_first": 298.659171,
+        "smallest_moq_first": 298.659171
+      },
+      "sample_batch": 7,
+      "screen_seeds": 3,
+      "signal": "lead_time_short_is_good",
+      "slug": "lead_time_short_is_good__capacity_8820026",
+      "solved_by": [
+        "fastest_first"
+      ],
+      "upper_bound_usd": 297.799171,
+      "world_seed": 8820026
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 11.661505,
+        "fastest_first": 122.844012,
+        "largest_moq_first": 3.817775,
+        "slowest_first": 3.509257,
+        "smallest_moq_first": 3.817775
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__yield_8820009",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__yield_8820009"
+      },
+      "content_sha256": {
+        "labeled": "7a5966a95abf5a351345b3d1b4d375d9d61ab79900a29dd60db169bb113b1579",
+        "opaque": "219a3d066ccf292889495c0bd06e5cb0e32b46a0dfe73bf3e07aac5bff41aae1"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "a71a0872a869adf3e8d3c0f42e887ae7cd1f14e451da1ecbcfc64fa757f525a9",
+      "levels": {
+        "good_yield": 0.985,
+        "poor_capacity": 10,
+        "poor_on_time": 0.41,
+        "poor_yield": 0.565
+      },
+      "opposite_margin_usd": 291.18408,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 294.693337,
+        "fastest_first": 294.693337,
+        "largest_moq_first": 294.693337,
+        "slowest_first": 3.509257,
+        "smallest_moq_first": 294.693337
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__yield_8820009",
+      "solved_by": [
+        "cheapest_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 293.893337,
+      "world_seed": 8820009
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 5.218429,
+        "fastest_first": 32.995713,
+        "largest_moq_first": 5.870208,
+        "slowest_first": 5.78999,
+        "smallest_moq_first": 5.870208
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__yield_8820045",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__yield_8820045"
+      },
+      "content_sha256": {
+        "labeled": "ce7bfc2e0a5161c47b7300153e756f727f3205011dfba1375694189245930524",
+        "opaque": "55928fb0f6b4ec0d057250ecec4fe3c09e255b151203d3d744456ec52cd195e7"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "74b0481268cee0c19e8ef82b14fcb9067e05c669536e7737ad65fddb97d3ac9f",
+      "levels": {
+        "good_yield": 0.982,
+        "poor_capacity": 10,
+        "poor_on_time": 0.3,
+        "poor_yield": 0.574
+      },
+      "opposite_margin_usd": 299.645389,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 3.586843,
+        "fastest_first": 303.232232,
+        "largest_moq_first": 303.232232,
+        "slowest_first": 3.586843,
+        "smallest_moq_first": 303.232232
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__yield_8820045",
+      "solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 302.272232,
+      "world_seed": 8820045
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 29.069665,
+        "dearest_first": 4.72494,
+        "fastest_first": 294.147865,
+        "largest_moq_first": 2.36247,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 2.36247
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__timing_8820028",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__timing_8820028"
+      },
+      "content_sha256": {
+        "labeled": "c0e197913fe50ecd795c103665d6469ccb06d15dfdbdb481c84ebf54f9c92350",
+        "opaque": "06d767ad3be82f9f206044e631c4b802a9e29da4c6923a274adf0b0325607018"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "6727860dee60bcab4f92e7b2df1be0f408b72cca73efdd3c56de087b900e6c6c",
+      "levels": {
+        "good_yield": 0.986,
+        "poor_capacity": 10,
+        "poor_on_time": 0.36,
+        "poor_yield": 0.495
+      },
+      "opposite_margin_usd": 293.427865,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 293.427865,
+        "dearest_first": 4.72494,
+        "fastest_first": 293.427865,
+        "largest_moq_first": 2.36247,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 2.36247
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__timing_8820028",
+      "solved_by": [
+        "dearest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 292.707865,
+      "world_seed": 8820028
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 30.539649,
+        "dearest_first": 3.737452,
+        "fastest_first": 273.089542,
+        "largest_moq_first": 19.761855,
+        "slowest_first": 3.090659,
+        "smallest_moq_first": 19.761855
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__timing_8820046",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__timing_8820046"
+      },
+      "content_sha256": {
+        "labeled": "39df5e3a64f30913148afa43f491fc42b85750c3566c0b940d3d80e704601247",
+        "opaque": "2c3c48623a3c0d08e4040f9dc8a639ad6570219d033dd89125aee4fc77aaf903"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "148da122cb1d92b31fe8a4ebd2b56647572faabfc3e5e0003fc240489152c3a4",
+      "levels": {
+        "good_yield": 0.986,
+        "poor_capacity": 10,
+        "poor_on_time": 0.35,
+        "poor_yield": 0.564
+      },
+      "opposite_margin_usd": 272.149542,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 272.149542,
+        "dearest_first": 3.737452,
+        "fastest_first": 272.149542,
+        "largest_moq_first": 272.149542,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 272.149542
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__timing_8820046",
+      "solved_by": [
+        "dearest_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 271.209542,
+      "world_seed": 8820046
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 8.090584,
+        "fastest_first": 102.30678,
+        "largest_moq_first": 1.944649,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 1.944649
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__capacity_8820011",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__capacity_8820011"
+      },
+      "content_sha256": {
+        "labeled": "11652d7ff4316a733b774c8024c07044a71581e413f00062417661f33f172ddd",
+        "opaque": "abb8c1d4608fa323cd5c785662bb0af905147b0d691c4c07f49f17a65ac82dd4"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "8a4979c1cd26212a5e9a9e95f73b673179b4cbeb67d8cd7baf06c65bbdbb5f91",
+      "levels": {
+        "good_yield": 0.983,
+        "poor_capacity": 10,
+        "poor_on_time": 0.31,
+        "poor_yield": 0.488
+      },
+      "opposite_margin_usd": 296.561746,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 296.561746,
+        "fastest_first": 296.561746,
+        "largest_moq_first": 1.944649,
+        "slowest_first": 0.0,
+        "smallest_moq_first": 1.944649
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__capacity_8820011",
+      "solved_by": [
+        "cheapest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 295.701746,
+      "world_seed": 8820011
+    },
+    {
+      "aligned_rule": "slowest_first",
+      "attribute": "lead_time",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.45136,
+        "dearest_first": 7.686006,
+        "fastest_first": 1.158319,
+        "largest_moq_first": 5.176315,
+        "slowest_first": 0.258319,
+        "smallest_moq_first": 5.176315
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.lead_time_long_is_good__capacity_8820029",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.lead_time_long_is_good__capacity_8820029"
+      },
+      "content_sha256": {
+        "labeled": "578416ddd65f25e1c87c8541c147bc20783d9c0da267f378156a4ee7ddc3084a",
+        "opaque": "2cd54956a61612b5c8875a638f08d8acf5fd39d5a42db9b4c58f9c91503357f1"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "56d277f76556f24a0ab0e9923fd52a5d86c05cb853d585ef5b591bda6f3287c6",
+      "levels": {
+        "good_yield": 0.986,
+        "poor_capacity": 10,
+        "poor_on_time": 0.4,
+        "poor_yield": 0.498
+      },
+      "opposite_margin_usd": 263.373682,
+      "opposite_rule": "fastest_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "bh1750_gy302_s3",
+        "sht30_i2c_s0",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 0.5,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 263.632001,
+        "dearest_first": 91.138395,
+        "fastest_first": 263.632001,
+        "largest_moq_first": 89.593971,
+        "slowest_first": 0.258319,
+        "smallest_moq_first": 89.593971
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "lead_time_long_is_good",
+      "slug": "lead_time_long_is_good__capacity_8820029",
+      "solved_by": [
+        "slowest_first"
+      ],
+      "upper_bound_usd": 262.732001,
+      "world_seed": 8820029
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 9.404333,
+        "dearest_first": 17.93797,
+        "fastest_first": 118.742903,
+        "largest_moq_first": 213.374004,
+        "slowest_first": 118.742903,
+        "smallest_moq_first": 2.416862
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__yield_8820012",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__yield_8820012"
+      },
+      "content_sha256": {
+        "labeled": "de8795d1ae14b8a4fc2151ce3789a0c803183e6a70fb54991656ea19745eeaf5",
+        "opaque": "6e6d5cf4d0c10c4fa620bbc890ae7cf54a2fbe0e538887c153887c949ec80863"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "683a0843493094786ce0c3295937a373952374f4d76bd413eba859255a50d827",
+      "levels": {
+        "good_yield": 0.988,
+        "poor_capacity": 10,
+        "poor_on_time": 0.45,
+        "poor_yield": 0.467
+      },
+      "opposite_margin_usd": 303.683303,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 306.100165,
+        "dearest_first": 306.100165,
+        "fastest_first": 306.100165,
+        "largest_moq_first": 306.100165,
+        "slowest_first": 306.100165,
+        "smallest_moq_first": 2.416862
+      },
+      "sample_batch": 10,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__yield_8820012",
+      "solved_by": [
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 305.400165,
+      "world_seed": 8820012
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 9.548985,
+        "dearest_first": 3.913643,
+        "fastest_first": 9.199137,
+        "largest_moq_first": 97.657054,
+        "slowest_first": 9.199137,
+        "smallest_moq_first": 4.668399
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__yield_8820030",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__yield_8820030"
+      },
+      "content_sha256": {
+        "labeled": "3cf2909d019babd0b17cd88d60ad6012fa0d19d4a06c43edb9cf9a7b1c068b35",
+        "opaque": "8556082408a50782d75a003b6f7ff34b4af6d01c73e3395fec33a8895cd1657f"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "caceb5a5f2013993478e44c9136f7c2d205bb324c3bb3e17175dc829a135d78b",
+      "levels": {
+        "good_yield": 0.984,
+        "poor_capacity": 10,
+        "poor_on_time": 0.5,
+        "poor_yield": 0.53
+      },
+      "opposite_margin_usd": 276.21789,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 278.174712,
+        "dearest_first": 3.913643,
+        "fastest_first": 278.174712,
+        "largest_moq_first": 278.174712,
+        "slowest_first": 278.174712,
+        "smallest_moq_first": 1.956822
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__yield_8820030",
+      "solved_by": [
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 277.534712,
+      "world_seed": 8820030
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 11.357913,
+        "dearest_first": 13.638604,
+        "fastest_first": 281.088313,
+        "largest_moq_first": 281.088313,
+        "slowest_first": 281.088313,
+        "smallest_moq_first": 10.253759
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__timing_8820013",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__timing_8820013"
+      },
+      "content_sha256": {
+        "labeled": "85a07e7502c273de38a1b59516b83a72f88714b2997fb0773151698314c18bc8",
+        "opaque": "4477d3b317c53cdcd47dc9ee57ad4aebb1cbffd12414da5f6f97b49fd2862ad3"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "0f10a74f877cee138d7e832b00301bbdf288fe41f092c021d22025a82a283267",
+      "levels": {
+        "good_yield": 0.975,
+        "poor_capacity": 10,
+        "poor_on_time": 0.33,
+        "poor_yield": 0.524
+      },
+      "opposite_margin_usd": 272.548028,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s3"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 7.540285,
+        "fastest_first": 280.088313,
+        "largest_moq_first": 280.088313,
+        "slowest_first": 280.088313,
+        "smallest_moq_first": 7.540285
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__timing_8820013",
+      "solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 279.088313,
+      "world_seed": 8820013
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 29.281367,
+        "dearest_first": 4.633396,
+        "fastest_first": 31.598065,
+        "largest_moq_first": 274.884024,
+        "slowest_first": 31.598065,
+        "smallest_moq_first": 0.0
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__timing_8820031",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__timing_8820031"
+      },
+      "content_sha256": {
+        "labeled": "966b6e3fb4a9064a7c31e788b28cf57729eeee62b8a906a6534cb17b2ec18db0",
+        "opaque": "29669e23b473b7dc010a3713fb4197d48605123e1edcbc4ef06c5c0eb16a7a34"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "a7e9f3122a93966cd898f315beea069c42712e88293bfb8bf0d211f1f609caa5",
+      "levels": {
+        "good_yield": 0.989,
+        "poor_capacity": 10,
+        "poor_on_time": 0.36,
+        "poor_yield": 0.587
+      },
+      "opposite_margin_usd": 274.024024,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 274.024024,
+        "dearest_first": 4.633396,
+        "fastest_first": 274.024024,
+        "largest_moq_first": 274.024024,
+        "slowest_first": 274.024024,
+        "smallest_moq_first": 0.0
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__timing_8820031",
+      "solved_by": [
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 273.164024,
+      "world_seed": 8820031
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 8.264925,
+        "fastest_first": 2.151272,
+        "largest_moq_first": 3.542544,
+        "slowest_first": 2.151272,
+        "smallest_moq_first": 0.0
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__capacity_8820014",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__capacity_8820014"
+      },
+      "content_sha256": {
+        "labeled": "7426460ac4df502e9ab2106a284a2c61c63a1f7a14a637ed504f92596bb7c670",
+        "opaque": "3d1ba38300051996ea51e1c379f56b40cd2e5836800bdd664214be4b08a33e85"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "9677587eeb4b0c7b00a97d58215625d54b21e2461861757f6234f389630fefdc",
+      "levels": {
+        "good_yield": 0.989,
+        "poor_capacity": 10,
+        "poor_on_time": 0.35,
+        "poor_yield": 0.563
+      },
+      "opposite_margin_usd": 264.292032,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 5.565089,
+        "fastest_first": 264.292032,
+        "largest_moq_first": 264.292032,
+        "slowest_first": 264.292032,
+        "smallest_moq_first": 0.0
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__capacity_8820014",
+      "solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 263.532032,
+      "world_seed": 8820014
+    },
+    {
+      "aligned_rule": "smallest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 7.960889,
+        "fastest_first": 3.895502,
+        "largest_moq_first": 4.596055,
+        "slowest_first": 3.895502,
+        "smallest_moq_first": 0.0
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_low_is_good__capacity_8820032",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_low_is_good__capacity_8820032"
+      },
+      "content_sha256": {
+        "labeled": "830d84a9eed16b8ef222e8d78f4e98a72783f454ccee258724e3eae7e5be526c",
+        "opaque": "1c099db6b9127939cdc2e6f6bddab543823b0b0e6ee55380cdc01f3fc0505e38"
+      },
+      "direction": "low_is_good",
+      "economic_world_sha256": "213694122ac7bd77540fc015474aef8e8c962ddae2a04f5fde03a7d5690b938f",
+      "levels": {
+        "good_yield": 0.983,
+        "poor_capacity": 10,
+        "poor_on_time": 0.48,
+        "poor_yield": 0.453
+      },
+      "opposite_margin_usd": 297.286223,
+      "opposite_rule": "largest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 297.286223,
+        "fastest_first": 297.286223,
+        "largest_moq_first": 297.286223,
+        "slowest_first": 297.286223,
+        "smallest_moq_first": 0.0
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "moq_low_is_good",
+      "slug": "moq_low_is_good__capacity_8820032",
+      "solved_by": [
+        "cheapest_first",
+        "smallest_moq_first"
+      ],
+      "upper_bound_usd": 296.546223,
+      "world_seed": 8820032
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 1.356022,
+        "dearest_first": 18.876553,
+        "fastest_first": 2.456314,
+        "largest_moq_first": 5.597387,
+        "slowest_first": 2.456314,
+        "smallest_moq_first": 92.563507
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__yield_8820033",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__yield_8820033"
+      },
+      "content_sha256": {
+        "labeled": "19b4c2f680d661ecf0c2b486a5a1ed7416e4c4dacbeea3c5b13b1b061bbdd0ca",
+        "opaque": "cb0879cfba97cf485217aedd5e4b20a5aec6f7afadd78dbc84845b92c37c8b35"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "42a947cebd114e11e7dce3af96ae3c541b4d89ff192a12e40f4c9c9826c85952",
+      "levels": {
+        "good_yield": 0.976,
+        "poor_capacity": 10,
+        "poor_on_time": 0.45,
+        "poor_yield": 0.483
+      },
+      "opposite_margin_usd": 261.057725,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 262.158017,
+        "fastest_first": 1.100292,
+        "largest_moq_first": 1.100292,
+        "slowest_first": 1.100292,
+        "smallest_moq_first": 262.158017
+      },
+      "sample_batch": 8,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__yield_8820033",
+      "solved_by": [
+        "cheapest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 261.358017,
+      "world_seed": 8820033
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 21.150824,
+        "fastest_first": 9.599227,
+        "largest_moq_first": 1.719757,
+        "slowest_first": 9.599227,
+        "smallest_moq_first": 167.028287
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__yield_8820051",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__yield_8820051"
+      },
+      "content_sha256": {
+        "labeled": "cc8dafcadd73898c09a16edcd03550f5e18d670f9363cb181a6eb204d3a17db2",
+        "opaque": "ca471479f0d3bdff3b70592ddecfe4a649adf4859bd20ab337d9ec85cd96c56b"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "13f0dfdc20d0c3fdf918d85bf664ca10e3b7fcf731c6d2733ebf82cc73d25e9d",
+      "levels": {
+        "good_yield": 0.984,
+        "poor_capacity": 10,
+        "poor_on_time": 0.46,
+        "poor_yield": 0.51
+      },
+      "opposite_margin_usd": 243.095113,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s0",
+        "sht30_i2c_s2"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "yield",
+      "rule_regret_usd": {
+        "cheapest_first": 0.0,
+        "dearest_first": 244.81487,
+        "fastest_first": 244.81487,
+        "largest_moq_first": 1.719757,
+        "slowest_first": 244.81487,
+        "smallest_moq_first": 244.81487
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__yield_8820051",
+      "solved_by": [
+        "cheapest_first",
+        "largest_moq_first"
+      ],
+      "upper_bound_usd": 243.93487,
+      "world_seed": 8820051
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 31.801987,
+        "dearest_first": 37.679262,
+        "fastest_first": 6.279877,
+        "largest_moq_first": 6.279877,
+        "slowest_first": 6.279877,
+        "smallest_moq_first": 307.678694
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__timing_8820016",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__timing_8820016"
+      },
+      "content_sha256": {
+        "labeled": "53e26cecace0c84ca4e94fdeda4c487ddff87485f22d0eb0f183c22ebc14efd1",
+        "opaque": "7ffc9dec36b9511edb1784cb2666bd113efb1632aa82fa3e8833f2a594a394fa"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "4e1ae9dfc42d376bb0c8476d4a01911b6a1d1a1a1f5c5c04b9e6711c96ede799",
+      "levels": {
+        "good_yield": 0.988,
+        "poor_capacity": 10,
+        "poor_on_time": 0.3,
+        "poor_yield": 0.599
+      },
+      "opposite_margin_usd": 306.044035,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 306.778694,
+        "dearest_first": 306.778694,
+        "fastest_first": 0.734659,
+        "largest_moq_first": 0.734659,
+        "slowest_first": 0.734659,
+        "smallest_moq_first": 306.778694
+      },
+      "sample_batch": 10,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__timing_8820016",
+      "solved_by": [
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 305.878694,
+      "world_seed": 8820016
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 24.466935,
+        "dearest_first": 2.624345,
+        "fastest_first": 13.54564,
+        "largest_moq_first": 1.312173,
+        "slowest_first": 13.54564,
+        "smallest_moq_first": 274.002972
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__timing_8820070",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__timing_8820070"
+      },
+      "content_sha256": {
+        "labeled": "da1681d52842e3704d05a14cc81ae57e4548d95d718af7b61e121553802f7d21",
+        "opaque": "4272cc17ad95e1e0848ca5d82e8907640530d078463285b7ff7aa5207549859b"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "488a876980281ad9a8255ef701400b3990489920af4b72435e5678d61a610ed1",
+      "levels": {
+        "good_yield": 0.984,
+        "poor_capacity": 10,
+        "poor_on_time": 0.39,
+        "poor_yield": 0.498
+      },
+      "opposite_margin_usd": 271.950799,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s3",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "timing",
+      "rule_regret_usd": {
+        "cheapest_first": 273.262972,
+        "dearest_first": 2.624345,
+        "fastest_first": 273.262972,
+        "largest_moq_first": 1.312173,
+        "slowest_first": 273.262972,
+        "smallest_moq_first": 273.262972
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__timing_8820070",
+      "solved_by": [
+        "dearest_first",
+        "largest_moq_first"
+      ],
+      "upper_bound_usd": 272.522972,
+      "world_seed": 8820070
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.910389,
+        "dearest_first": 25.0463,
+        "fastest_first": 5.438378,
+        "largest_moq_first": 7.787781,
+        "slowest_first": 5.438378,
+        "smallest_moq_first": 5.893905
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first",
+        "smallest_moq_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__capacity_8820017",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__capacity_8820017"
+      },
+      "content_sha256": {
+        "labeled": "aad5b8315238eb402ebb987f08f819ea99e966d631fb53acda6415d0f9ff1106",
+        "opaque": "4767f2e665e229aa5b778abb5bf29b0905656d6ac4588ee79720d3340da1e7f9"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "519efa81c0ee4a6d8dd9b00eb63ec30c45d181ed167b286fb297e355a4df4ba2",
+      "levels": {
+        "good_yield": 0.981,
+        "poor_capacity": 10,
+        "poor_on_time": 0.44,
+        "poor_yield": 0.585
+      },
+      "opposite_margin_usd": 256.313262,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s2",
+        "sht30_i2c_s0"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": true,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 86.280417,
+        "dearest_first": 258.841251,
+        "fastest_first": 2.527989,
+        "largest_moq_first": 2.527989,
+        "slowest_first": 2.527989,
+        "smallest_moq_first": 258.841251
+      },
+      "sample_batch": 6,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__capacity_8820017",
+      "solved_by": [
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "upper_bound_usd": 258.001251,
+      "world_seed": 8820017
+    },
+    {
+      "aligned_rule": "largest_moq_first",
+      "attribute": "moq",
+      "budget_actions": 9,
+      "careful_rule_regret_usd": {
+        "cheapest_first": 2.913861,
+        "dearest_first": 23.268198,
+        "fastest_first": 10.669927,
+        "largest_moq_first": 1.928343,
+        "slowest_first": 10.669927,
+        "smallest_moq_first": 103.449717
+      },
+      "careful_solved_by": [
+        "cheapest_first",
+        "dearest_first",
+        "fastest_first",
+        "largest_moq_first",
+        "slowest_first"
+      ],
+      "case_ids": {
+        "labeled": "procurement_allocation_v1.inference_holdout_v1_labeled.moq_high_is_good__capacity_8820035",
+        "opaque": "procurement_allocation_v1.inference_holdout_v1_opaque.moq_high_is_good__capacity_8820035"
+      },
+      "content_sha256": {
+        "labeled": "43b542fb94704671c473c9a5ffb3d581ac2288cc11d9de7282d6407bcbd36d08",
+        "opaque": "f63a854dfc925f27876774f6a3d19fdf09c0182195f0fa59e57edd799e1e797b"
+      },
+      "direction": "high_is_good",
+      "economic_world_sha256": "4d2d7e76b5799e6cb1c15c6662e5443e14930ca7992f2552af974e481a5474f7",
+      "levels": {
+        "good_yield": 0.982,
+        "poor_capacity": 10,
+        "poor_on_time": 0.44,
+        "poor_yield": 0.53
+      },
+      "opposite_margin_usd": 297.891588,
+      "opposite_rule": "smallest_moq_first",
+      "oracle_awards": [
+        "bh1750_gy302_s1",
+        "sht30_i2c_s1"
+      ],
+      "oracle_good_share": 1.0,
+      "recoverable_by_second_verification": false,
+      "risk": "capacity",
+      "rule_regret_usd": {
+        "cheapest_first": 99.939977,
+        "dearest_first": 299.819931,
+        "fastest_first": 299.819931,
+        "largest_moq_first": 1.928343,
+        "slowest_first": 299.819931,
+        "smallest_moq_first": 299.819931
+      },
+      "sample_batch": 9,
+      "screen_seeds": 3,
+      "signal": "moq_high_is_good",
+      "slug": "moq_high_is_good__capacity_8820035",
+      "solved_by": [
+        "largest_moq_first"
+      ],
+      "upper_bound_usd": 298.879931,
+      "world_seed": 8820035
+    }
+  ]
+}
