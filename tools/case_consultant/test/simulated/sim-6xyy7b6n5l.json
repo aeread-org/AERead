@@ -1,0 +1,1852 @@
+{
+  "v": 1,
+  "protocol": "case-consultant/1",
+  "id": "6xyy7b6n5l",
+  "startedAt": "2026-10-09T23:24:36.897Z",
+  "updatedAt": "2026-10-09T23:37:23.174Z",
+  "stage": 13,
+  "followups": 6,
+  "transcript": [
+    {
+      "role": "consultant",
+      "text": "I will ask about one decision from your work, in thirteen short parts. Answer from memory, and say when you are guessing: a guess marked as a guess is useful. Nothing is filed that you did not say, and you check a summary at the end.",
+      "at": "2026-10-09T23:24:36.898Z",
+      "kind": "note",
+      "stage": 0
+    },
+    {
+      "role": "consultant",
+      "text": "To start: what is your line of work, what is your role in it, and how long have you done it?",
+      "at": "2026-10-09T23:24:36.898Z",
+      "kind": "open",
+      "stage": 0
+    },
+    {
+      "role": "expert",
+      "text": "I'm a senior buyer at a regional dealer of used construction equipment. I buy machines at online auctions, and then we resell them to contractors. Excavators, loaders, that sort of thing. I've been doing it fourteen years now, so I've seen most of what can go wrong.",
+      "at": "2026-10-09T23:24:41.856Z",
+      "stage": 0,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Pick one decision from your buying work that is hard to get right, one where a capable newcomer would often choose worse than you do. Tell me about the last time you made it: what was the situation, what could you have done, and what did you choose?",
+      "at": "2026-10-09T23:24:45.449Z",
+      "kind": "open",
+      "stage": 1
+    },
+    {
+      "role": "expert",
+      "text": "Two come to mind. One is which machines to bid on at auction, and whether to check them out first. The other is how to price them for resale once they're in the yard. Both matter, but the auction one is where the money usually gets made or lost, since a winning bid is binding. It comes up a few times a month. The last big one was a 20-ton excavator, high hours, no service records, and a contractor selling it. Which of the two do you want me to dig into?",
+      "at": "2026-10-09T23:24:51.471Z",
+      "stage": 1,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Let's take the auction one, since that is where the money is made or lost. For that 20-ton excavator, what did you do in the end: did you check it first, bid, or walk away?",
+      "at": "2026-10-09T23:24:55.300Z",
+      "kind": "clarify",
+      "reason": "scope",
+      "stage": 1
+    },
+    {
+      "role": "expert",
+      "text": "I checked it first. No records and a contractor selling, so I wasn't going to bid blind on something that size. I paid for an independent inspection, and it came back clean. The inspection catches pretty much everything, so I felt good about it. I bid, and won it at $60,500, a little under what I'd expected. After cleanup it should resell for around $78,000.",
+      "at": "2026-10-09T23:25:01.288Z",
+      "stage": 1,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Winning under what you expected is a good start. On that excavator, who made the final call on whether to inspect and how high to bid?",
+      "at": "2026-10-09T23:25:10.739Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 1
+    },
+    {
+      "role": "expert",
+      "text": "Me, mostly. I'm the senior buyer, so the inspect-or-bid call and the max bid are mine. The owner doesn't weigh in on individual machines. He just looks at quarterly gross margin. The one limit I do work under is the inventory cap, about $400,000 across the yard. And the inspector's shared, so I can't always get him when I want him. But on that excavator it was my call.",
+      "at": "2026-10-09T23:25:14.823Z",
+      "stage": 1,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "The owner looks at quarterly gross margin. When you look back at a buying decision like this one, what would tell you it went well?",
+      "at": "2026-10-09T23:25:24.366Z",
+      "kind": "clarify",
+      "reason": "aim",
+      "stage": 1
+    },
+    {
+      "role": "expert",
+      "text": "Mostly it's margin per machine after everything comes out: the hammer price, the premium, transport, repairs, the inspection. And I want that cash back within about 90 days, so the machine can't sit. A sound one that sells in a few weeks with a decent margin, that's a good buy. A bad one sitting in the yard for months is the opposite, even if the repair bill looks survivable. On that excavator, clean inspection, won under my number, I'd call it a good decision. But I'd really only know once my mechanic's been through it in the first couple of weeks.",
+      "at": "2026-10-09T23:25:28.704Z",
+      "stage": 1,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Besides the owner and the inspector, who else takes part in a buy like that excavator, across the table or alongside you? For each one, what are they after?",
+      "at": "2026-10-09T23:25:38.010Z",
+      "kind": "open",
+      "stage": 2
+    },
+    {
+      "role": "expert",
+      "text": "Mainly three groups. The auction house wants a high hammer price and volume. They write the listing, they know the seller's history, and they won't volunteer problems. The seller wants it gone. They know the maintenance history, and a lot of them are fleets clearing out or contractors in some kind of trouble. Then the other bidders, dealers and contractors. Contractors tend to bid higher because they'll actually run the machine. The mechanic in my yard comes in later, but he's the one who finds out what I really bought.",
+      "at": "2026-10-09T23:25:41.932Z",
+      "stage": 2,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "The mechanic is the one who finds out what you really bought. Going back to the independent inspector: when he does a job for you, what is he after?",
+      "at": "2026-10-09T23:25:48.796Z",
+      "kind": "clarify",
+      "reason": "aim",
+      "stage": 2
+    },
+    {
+      "role": "expert",
+      "text": "Mostly he wants to get paid and not get blamed. He's independent, so he charges per job, usually around $550, and he doesn't care whether I win the machine. What he cares about is his name. If he signs off on something that turns out to be junk, I stop calling him. So he leans cautious, especially on undercarriages. He'll flag a machine that's probably fine rather than risk missing something. I'd rather have that than the opposite, but it does cost me a deal now and then.",
+      "at": "2026-10-09T23:25:54.580Z",
+      "stage": 2,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Cautious on undercarriages, even if it costs you a deal now and then. When you bid against other dealers at an auction, what are they after?",
+      "at": "2026-10-09T23:26:06.527Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 2
+    },
+    {
+      "role": "expert",
+      "text": "Same as me, mostly: they want a good machine cheap, so they can resell it at a margin. The other dealers are in the same boat, and they're also watching inventory and cash. Contractors are different. They want a machine they'll actually use, so they'll often go higher than I can. Either way, I usually see somewhere around five or six active bidders on a machine, but that's a guess. The last few minutes are where people get carried away, me included on a bad day.",
+      "at": "2026-10-09T23:26:10.766Z",
+      "stage": 2,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "The last few minutes are where people get carried away. Back to your mechanic: when he goes through a machine in those first couple of weeks, what is he after?",
+      "at": "2026-10-09T23:26:19.704Z",
+      "kind": "clarify",
+      "reason": "aim",
+      "stage": 2
+    },
+    {
+      "role": "expert",
+      "text": "Mostly he wants to know what's wrong with it before it goes on the lot. He goes through the whole machine: hydraulics, final drives, undercarriage, and he checks whether the hour meter makes sense. Then he gives me a repair list and a rough cost, so I know what to price it at. He's on salary, so he's not defending a name like the inspector is. He just wants the list to be right, because if something gets missed and a customer finds it, that lands on him too.",
+      "at": "2026-10-09T23:26:24.188Z",
+      "stage": 2,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Thinking about that excavator at the moment you had to choose: what did you have in front of you, and what would you most have liked to know that you could not see?",
+      "at": "2026-10-09T23:26:30.829Z",
+      "kind": "open",
+      "stage": 3
+    },
+    {
+      "role": "expert",
+      "text": "Photos, the hour meter, the year, and a condition note from the seller. There was an auction condition score too, but I barely trust those. No service records on that one, which is part of why I inspected. What I'd most want to know is the state of the hydraulic pump and the final drives. I can't see those from a listing, and even the inspector can't open the hydraulics. I'd also like to know the hour meter's honest. Most of the time that stuff only comes out once my mechanic has it in the yard.",
+      "at": "2026-10-09T23:26:35.133Z",
+      "stage": 3,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Of ten machines like that one, with high hours and no service records, how many turn out to have a bad hydraulic pump or bad final drives once your mechanic has gone through them?",
+      "at": "2026-10-09T23:26:43.312Z",
+      "kind": "clarify",
+      "reason": "vague",
+      "stage": 3
+    },
+    {
+      "role": "expert",
+      "text": "About four in ten. That's from my own purchase log, roughly 400 machines, for the ones with no records or an unknown seller. A fleet seller with records is more like one in ten. I'd call it a major hidden fault, not just those two parts, but the pump and final drives are the usual culprits. High hours push it up a bit, though I haven't split the log out that finely. That's why I won't bid blind on those, and it's also why the inspection matters. It's not perfect, but it moves the odds a lot.",
+      "at": "2026-10-09T23:26:48.244Z",
+      "stage": 3,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "On that excavator, apart from paying for the independent inspection, what else could you have done before bidding? For each step, what would it have cost you in money and in time?",
+      "at": "2026-10-09T23:26:59.613Z",
+      "kind": "open",
+      "stage": 4
+    },
+    {
+      "role": "expert",
+      "text": "A couple of free ones. I could call the auction rep, which takes maybe twenty minutes, but they rarely tell you much. I could also ask the seller for service records through the auction house. That costs nothing and takes about a day, though you only get them roughly half the time. Beyond that, there's an oil sample on top of the inspection, about $90 extra, and the lab adds a few days. And of course I could have just bid blind or passed, but I wasn't doing either on that one.",
+      "at": "2026-10-09T23:27:03.642Z",
+      "stage": 4,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Once the hammer falls on a machine, what happens if the mechanic then finds a major fault, and what does it cost you to get out of it?",
+      "at": "2026-10-09T23:27:11.866Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 4
+    },
+    {
+      "role": "expert",
+      "text": "You don't get out of it. A winning bid is binding. If I back out, I forfeit the 10% deposit and I get banned from the auction, and that's a bigger problem than the money. So whatever the mechanic finds, I own it. Then it's repairs, usually around $20,000 on a major fault, and the machine sits in the yard for a couple of months. That's the reason I inspect before the hammer falls, not after.",
+      "at": "2026-10-09T23:27:15.723Z",
+      "stage": 4,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "So after the hammer you own it, whatever the mechanic finds. Going back to the inspection: how long does it take from calling the inspector to having his report in your hands?",
+      "at": "2026-10-09T23:27:26.027Z",
+      "kind": "clarify",
+      "reason": "cost",
+      "stage": 4
+    },
+    {
+      "role": "expert",
+      "text": "Two working days, usually. He's shared, so I can only get him twice a week at most, and it has to happen before the auction closes. That's the catch. I often only notice a listing with three days left, so the timing gets tight. With two days left or less, I can't get him out there at all. And if I want the oil sample, the lab adds another three days, so that one only works if I spot the listing early.",
+      "at": "2026-10-09T23:27:29.854Z",
+      "stage": 4,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Take the checks you just listed, one at a time. What comes back, and how far can you trust it? Out of ten machines with a real problem, how many would the inspection miss, and out of ten good ones, how many would it wrongly flag?",
+      "at": "2026-10-09T23:27:37.862Z",
+      "kind": "open",
+      "stage": 5
+    },
+    {
+      "role": "expert",
+      "text": "The inspection catches about seven in ten of the real problems, so it misses about three. The misses are mostly intermittent hydraulic faults, and a seller can top up with heavy oil to hide something during a short test. On good machines it wrongly flags about one in ten, because he's cautious on undercarriages. Those numbers are from experience, not my log. The oil sample catches maybe one more in ten. The auction rep rarely tells me anything useful. Service records are worth having when they come, but I only get them about half the time.",
+      "at": "2026-10-09T23:27:43.513Z",
+      "stage": 5,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Out of ten good machines, how many would the oil sample wrongly flag as a problem?",
+      "at": "2026-10-09T23:27:54.641Z",
+      "kind": "clarify",
+      "reason": "error_rate",
+      "stage": 5
+    },
+    {
+      "role": "expert",
+      "text": "Honestly, I don't know. I've never tracked it. The oil sample is an add-on I use now and then, and all I have is a feel for it: it catches maybe one more bad machine in ten on top of the inspection. A good machine coming back with a bad sample just hasn't stuck in my memory, so I won't put a number on it.",
+      "at": "2026-10-09T23:27:59.412Z",
+      "stage": 5,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "When it is all over, how do you tell, in money, whether you chose well? Walk me through what you add up and what you take away.",
+      "at": "2026-10-09T23:28:03.992Z",
+      "kind": "open",
+      "stage": 6
+    },
+    {
+      "role": "expert",
+      "text": "Resale price after cleanup, minus what I paid. That's the hammer price, plus the 10% premium on top, plus transport, plus repairs, plus the inspection if I paid for one. What's left is the margin on that machine. A sound one usually nets me around ten grand. A bad one loses money, maybe nine thousand or so. And I look at how fast it sold, because cash sitting in the yard past 90 days counts against me. One machine doesn't tell me much, though. I judge it over a bunch of them, since some bad ones will slip through no matter what.",
+      "at": "2026-10-09T23:28:10.868Z",
+      "stage": 6,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "A sound one nets about ten grand and a bad one loses about nine. To compare the checks with the stakes, what does a typical machine cost you at the hammer: the lowest, the usual and the highest you have bought?",
+      "at": "2026-10-09T23:28:21.621Z",
+      "kind": "clarify",
+      "reason": "range",
+      "stage": 6
+    },
+    {
+      "role": "expert",
+      "text": "Lowest I've bought is around $25,000, the highest around $140,000. Most of them land somewhere between $40,000 and $80,000, so call the usual one about $60,000. That last excavator was right in that range at $60,500. The cheap ones tend to have the high hours, too.",
+      "at": "2026-10-09T23:28:27.751Z",
+      "stage": 6,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Cheap machines with the high hours, got it. Think of the last machine that sat in your yard past 90 days: what did that cost you, in dollars or in anything you can count?",
+      "at": "2026-10-09T23:28:35.967Z",
+      "kind": "clarify",
+      "reason": "money",
+      "stage": 6
+    },
+    {
+      "role": "expert",
+      "text": "Can't give you one exact machine off the top of my head, but they all look alike. It's usually one with a major hidden fault. The repair bill is the big part, around $20,000, and the machine ends up losing money. The slow sale makes it worse. We pay about 9% a year on the money tied up in inventory, so a $60,000 machine sitting a couple of months costs roughly another thousand in interest. It also uses up room under the $400,000 cap, so I can't buy something better. That part never shows up on the repair list.",
+      "at": "2026-10-09T23:28:43.606Z",
+      "stage": 6,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Go back to the case you described. What would have had to be different for you to choose the other option?",
+      "at": "2026-10-09T23:28:48.815Z",
+      "kind": "open",
+      "stage": 7
+    },
+    {
+      "role": "expert",
+      "text": "If it had come from a fleet seller with full service records and been under about $45,000, I'd have bid without inspecting. At that price and with records, a major hidden fault is about one in ten, and $550 plus two days isn't worth it. I'd also lose quick deals by inspecting everything. Timing could have forced it too: with two days left I couldn't have booked the inspector at all, so I'd have had to pass or bid blind. This one was a contractor, no records, and over $50,000, so inspecting was the only sensible call. About three cases in ten sit near that line.",
+      "at": "2026-10-09T23:28:54.071Z",
+      "stage": 7,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Across all the times you have faced this decision, what changes from one case to the next, besides the seller, the records and the price? For each thing that changes, give me its range and how common each end is.",
+      "at": "2026-10-09T23:29:02.034Z",
+      "kind": "open",
+      "stage": 8
+    },
+    {
+      "role": "expert",
+      "text": "Mainly hours and how many days are left. Hours run from about 3,000 to 12,000, and the cheaper machines tend to be the high-hours ones. I don't have an exact split of how common each end is. Days left when I notice a listing run from one to seven. Listings open about a week out, but I often only spot one with three days to go. With two or fewer, I can't get the inspector. Transport is the other one. It runs $1,800 to $3,500, usually around $2,400, depending on how far away the machine is. It's easy to forget on a distant one.",
+      "at": "2026-10-09T23:29:08.965Z",
+      "stage": 8,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Days left clearly changes your choice. When a machine is up near 12,000 hours, does that change whether you inspect it?",
+      "at": "2026-10-09T23:29:21.461Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 8
+    },
+    {
+      "role": "expert",
+      "text": "Not really on its own. High hours make me more suspicious, sure, but my rule runs on the seller, the records and the price. A fleet machine with records under about $45,000 I'd still bid on without inspecting, even at high hours. Where hours matter is the no-records cases, because that's where I'd already inspect or pass. Then it just makes me warier, and I look harder at the paint and whether the hour meter makes sense. I haven't split my log out by hours, so I can't give you a number on it.",
+      "at": "2026-10-09T23:29:26.654Z",
+      "stage": 8,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "High hours make you warier but don't flip the call, understood. On a machine that is far away and has a big transport bill, has that ever made you inspect, bid blind or pass when you otherwise wouldn't have?",
+      "at": "2026-10-09T23:29:36.432Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 8
+    },
+    {
+      "role": "expert",
+      "text": "Not the inspect call, no. That runs on seller, records and price. Where transport bites is the max bid. It comes straight off the margin, so on a distant machine my number drops by the freight, and it's the one cost people forget. If that leaves the numbers too thin, I'll pass, even on something that looks cheap. A far-away machine over $50,000 with no records, I'd already be inspecting or passing anyway, and the freight just tips me toward passing. I can't give you a count of how often that's happened. It's not common.",
+      "at": "2026-10-09T23:29:42.301Z",
+      "stage": 8,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Three short ones. If you made no effort and took the default, what would happen? What does a capable newcomer usually do, and where does it go wrong? And what do you do differently, put as a rule you could hand to someone?",
+      "at": "2026-10-09T23:29:47.862Z",
+      "kind": "open",
+      "stage": 9
+    },
+    {
+      "role": "expert",
+      "text": "No effort, you just bid on whatever looks cheap against book value, and you lose money on about a third of them. A capable newcomer trusts the condition score and the photos, and bids up to book less 10%. That works about six times in ten. It goes wrong on machines without records, because that's where the hidden faults are. My rule: fleet seller with records and under $45,000, bid up to 75% of resale without inspecting. Over $50,000, or no records, inspect or pass. Never bid blind. And my max bid is resale, minus $12,000, minus expected repairs. Then stick to it in the last minutes.",
+      "at": "2026-10-09T23:29:52.788Z",
+      "stage": 9,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Suppose you could see everything hidden in a machine, the pump, the final drives and the hour meter, before you bid. What would you do differently, and how much more would you make per machine?",
+      "at": "2026-10-09T23:30:05.381Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 9
+    },
+    {
+      "role": "expert",
+      "text": "I'd only buy the sound ones and walk away from the rest. I'd also bid harder on the good ones, because I wouldn't need a cushion for the machine that turns out to be bad. No inspections either, so I'd save the $550 and the two days, and I'd lose fewer quick deals. I'd say maybe $6,000 more per machine, but that's a guess. I haven't worked it out properly. Most of it comes from not eating those $20,000 repair jobs.",
+      "at": "2026-10-09T23:30:10.643Z",
+      "stage": 9,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Thinking of the last time a buy went wrong, what was the mistake, what did it cost you, and what was the first sign you could have caught?",
+      "at": "2026-10-09T23:30:20.182Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 9
+    },
+    {
+      "role": "expert",
+      "text": "Usually it's me getting carried away in the last minutes. I'd set my number, the bidding went past it, and I kept going because I'd already put the time in. That cost me a few thousand on the machine, and I've done it more than once. The first sign was easy to see: the price crossed my max with a couple of minutes left, and that was my cue to stop. The other one that bites is trusting the auction's condition score on a machine with no records. That's where the real surprises come from.",
+      "at": "2026-10-09T23:30:26.245Z",
+      "stage": 9,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Last part. Give me three specific situations with their numbers: one where the obvious choice is right, one where it is wrong, and one that is close. For each, what would you do, and why?",
+      "at": "2026-10-09T23:30:35.466Z",
+      "kind": "open",
+      "stage": 10
+    },
+    {
+      "role": "expert",
+      "text": "Okay, three. First, the easy one: fleet seller, full records, $38,000, 5,000 hours, four days left. I bid without inspecting. Fleet with records, under $45,000, so the odds of a major fault are low and $550 plus two days isn't worth it. Second, the trap: unknown seller, no records, $70,000 against $95,000 book, fresh paint, 9,000 hours, five days left. Looks like a bargain, but I inspect. Fresh paint on a high-hour machine is a warning. The real one had a pump whine, so I passed. Third, the close one: contractor, partial records, $48,000, two days left. No inspection possible, so I passed. With complete records, I'd have bid.",
+      "at": "2026-10-09T23:30:40.799Z",
+      "stage": 10,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "You said the no-inspection line is a fleet seller with full records under about $45,000, but on the third one you said you'd have bid at $48,000 from a contractor with complete records. Which holds: would you bid without inspecting at $48,000 on a contractor's machine with complete records?",
+      "at": "2026-10-09T23:30:50.134Z",
+      "kind": "clarify",
+      "reason": "contradiction",
+      "stage": 10
+    },
+    {
+      "role": "expert",
+      "text": "The line is fuzzier than I made it sound. My rule says fleet seller, full records, under $45,000. A contractor at $48,000 sits in the gap between that and the $50,000 point where I always inspect or pass, and that gap is why I called it close. With complete records I'd have bid, and I'd have done it without inspecting, since two days left means I couldn't book the inspector anyway. But it's a judgment call, not a clean rule. With only partial records I passed.",
+      "at": "2026-10-09T23:30:56.999Z",
+      "stage": 10,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Now the figures you gave me along the way. First, where they come from: which of them could you look up in records, and which are guesses? I will take the rest as your experience.",
+      "at": "2026-10-09T23:31:06.416Z",
+      "kind": "open",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "The ones I can look up are the fault rates, four in ten and one in ten. Those come from my purchase log of about 400 machines. The inspector's $450 to $700 comes from his invoices, and the hammer prices, premium and resale numbers are in our auction and sales records. The rest is experience, not a log: how much the inspection catches, the one-in-ten false flags, the oil sample, and the repair costs and margins. Those are what I remember from years of repair bills. Two are pure guesses. One is the five or six bidders. The other is the $6,000 extra if I could see everything.",
+      "at": "2026-10-09T23:31:13.446Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Thanks, that settles where they come from. For these, what are the lowest, the usual and the highest you have seen: the repair bill on a major fault (you said usually around $20,000), the net on a sound machine (around ten grand), the loss on a bad one (around nine thousand), the days to get cash back (about 90), and the oil sample cost (about $90)?",
+      "at": "2026-10-09T23:31:26.687Z",
+      "kind": "clarify",
+      "reason": "range",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "Repairs on a major fault run $15,000 to $30,000, usually about $20,000. A sound machine nets $8,000 to $12,000, usually around ten. A bad one loses $8,000 to $10,000. The 90 days isn't how long cash usually takes. That's my limit. A sound machine sells in three to six weeks, so call it a month and a half at the outside. A bad one sits two to three months, which is where I hit the limit. The oil sample is $90, flat. There's no range on that.",
+      "at": "2026-10-09T23:31:32.185Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Now the lowest and the highest you have seen for these: the inventory cap (about $400,000), the call to the auction rep (about twenty minutes), the inspector from call to report (two working days), the extra days the oil lab adds (three), and the interest on money tied up (about 9% a year)?",
+      "at": "2026-10-09T23:31:45.772Z",
+      "kind": "clarify",
+      "reason": "range",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "Most of those are fixed, so there's no real range. The cap is about $400,000, set by the owner. It's a ceiling, not something that moves around day to day. The rep call is around twenty minutes. Some run a bit longer, but I don't time them. The inspector is two working days, and that's the minimum he needs. The lab adds three days, flat. The interest is about 9% a year, what the dealer pays on the money tied up. I don't set that rate, and I can't say how it's moved over the years.",
+      "at": "2026-10-09T23:31:51.826Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Thanks, that settles those. For these, which come from records, which from your experience and which are guesses: the records coming back about half the time, the 10% deposit, the inspector twice a week at most, a third of cheap-looking buys losing money, and the newcomer's way working six times in ten?",
+      "at": "2026-10-09T23:32:01.010Z",
+      "kind": "clarify",
+      "reason": "source",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "The 10% deposit is just the auction's terms, so that's fixed and it's in the paperwork. The inspector's twice a week is how his schedule works, so that's a fact too, not an estimate. The rest is experience, not my log. Records coming back about half the time is what I remember from asking. The third of cheap-looking buys losing money is my sense of it, and so is the newcomer working six in ten. I've watched newcomers do it, but I never counted. None of those are pure guesses like the bidder count, but I'd treat them as rough.",
+      "at": "2026-10-09T23:32:07.018Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Now for your own rule figures: where do these come from, records, experience or a guess? They are the $400,000 inventory cap, the $45,000 line for skipping inspection, the $50,000 line for always inspecting or passing, bidding up to 75% of resale, and the $12,000 taken off resale for the max bid.",
+      "at": "2026-10-09T23:32:16.993Z",
+      "kind": "clarify",
+      "reason": "source",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "The $400,000 cap is the owner's number, so that's just a policy, not something I measured. The $45,000 and $50,000 lines are experience. I've settled on them over fourteen years, and they're not out of my log, so they're rules of thumb. The 75% of resale and the $12,000 off for the max bid are the same, experience. I worked them out from what repairs and margins usually look like, and I've tuned them over time. None of them is a guess exactly, but none is a calculated figure either.",
+      "at": "2026-10-09T23:32:21.170Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "Last set of figures. Where do these come from, records, experience or a guess: about three cases in ten near the line, hour meters from 3,000 to 12,000, three days left when you notice a listing, and transport of $1,800 to $3,500?",
+      "at": "2026-10-09T23:32:30.667Z",
+      "kind": "clarify",
+      "reason": "source",
+      "stage": 11
+    },
+    {
+      "role": "expert",
+      "text": "Transport I can look up, it's on the freight invoices, so $1,800 to $3,500 is solid. The hour range, 3,000 to 12,000, is in our purchase records too, since every machine has its meter reading logged. The three in ten near the line is experience. I never counted it. And the three days left is experience as well. It's what I usually see, not something I've tracked. Listings open about a week out, so one to seven is just how the auction works, but where I typically notice them is a rough memory.",
+      "at": "2026-10-09T23:32:34.679Z",
+      "stage": 11,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "One last question before I write this up. What matters in this decision that I have not asked about?",
+      "at": "2026-10-09T23:32:41.663Z",
+      "kind": "open",
+      "stage": 12
+    },
+    {
+      "role": "expert",
+      "text": "Financing, honestly. People think about the repair bill, but a slow machine costs more than that. We pay about 9% a year on the money tied up, so a bad machine sitting two or three months bleeds interest, and it also eats room under the $400,000 cap, so I can't buy something better. That's the part that never shows up on the repair list. And one thing I should fix from earlier: I said the inspection catches pretty much everything. That was loose talk. It catches about seven in ten, and it misses the intermittent hydraulic faults.",
+      "at": "2026-10-09T23:32:45.807Z",
+      "stage": 12,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "That is all the questions. Next I write up what I understood, in plain words, so you can check it.",
+      "at": "2026-10-09T23:32:51.980Z",
+      "kind": "open",
+      "stage": 13
+    },
+    {
+      "role": "consultant",
+      "text": "Here is what I understood. Tell me what is wrong. Below it are the points I could not settle from your answers: take any you can.",
+      "at": "2026-10-09T23:34:27.340Z",
+      "kind": "readback",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "Taking those in order. \"Never bid blind\" means no inspection on a no-records machine or anything over $50,000. A fleet machine with records isn't really blind to me, because the records are the check. The max bid is the hammer price. The $12,000 is a rough allowance for premium, freight and margin, not exact. Without an inspection I use the lower of the two caps. The $8,000 to $10,000 loss is the usual case. A $30,000 repair would lose more, and I haven't tracked that. Two days is the minimum, and I don't remember the longest wait. The \"third\" is just a rough feel.",
+      "at": "2026-10-09T23:34:35.616Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I fixed the meaning of \"never bid blind\", the max bid as hammer price only, the lower-of-two-caps rule, the usual loss, and two days as the minimum. When an inspection flags something short of a clear pass, do you always walk away, or do you bid lower?",
+      "at": "2026-10-09T23:34:57.096Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "Most of the time I walk away. If he flags the hydraulics or anything that smells like a major fault, I'm out, because I can't open that up and I don't want to guess. If it's only undercarriage wear, I might still bid, but lower, taking the cost of that wear off my max. He's cautious there, so a flag doesn't always mean a bad machine. I can't tell you how often I go each way, or what I usually knock off. I haven't tracked it, and it depends on the machine. A flag on a machine over $50,000 with no records, I'd lean toward passing.",
+      "at": "2026-10-09T23:35:03.971Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I added how you act on an inspection flag: you walk away on hydraulics or a major fault, and bid lower on undercarriage-only wear. When you sell a machine, how does the resale price usually compare with what you paid at the hammer?",
+      "at": "2026-10-09T23:35:11.463Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "Usually it sells for a fair bit more than the hammer, but the gap isn't just profit. On the last excavator I paid $60,500 and expected about $78,000 after cleanup. Then the premium, freight, repairs and the inspection come out of that difference, so what's left is the margin. I can't give you a clean ratio across machines. I haven't tracked resale against hammer price as a percentage, and it moves with the machine. The one pair I can speak to is that excavator.",
+      "at": "2026-10-09T23:35:15.449Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I noted that resale runs a fair bit above hammer but you have not tracked a ratio, with the excavator as the one pair. When you bid on a machine, how often do other bidders push the price past your max so that you lose it?",
+      "at": "2026-10-09T23:35:24.014Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "Pretty often, honestly. Most of the time I lose a machine, it's a contractor who goes past me, because they'll run it and I have to resell it. That's the price of keeping to my number. I don't have a count of how often it happens, though. I haven't tracked wins against losses, or how many times I win at or under my max. I'd rather lose one than chase it past my limit in the last minutes.",
+      "at": "2026-10-09T23:35:28.338Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I filed that you often lose machines to contractors who go past your max, with no count. Of the machines where you did inspect and the report came back, how many did you then decide not to bid on?",
+      "at": "2026-10-09T23:35:35.901Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "I don't have a count. I haven't tracked how many inspected machines I then passed on. Most of the ones I inspect, I end up bidding on, and the passes are the smaller group. That's a feel, not a number. Some of those passes are real faults he caught. Some are good machines he flagged because he's cautious on undercarriages. I couldn't tell you the split from my own records. And a pass after an inspection is $550 gone with nothing to show for it.",
+      "at": "2026-10-09T23:35:41.158Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I added that most inspected machines you still bid on, that passes are fewer and not counted, and that a pass leaves the $550 spent. When you pass on a machine without bidding, what does that cost you?",
+      "at": "2026-10-09T23:35:46.938Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "expert",
+      "text": "Directly, nothing. If I pass before inspecting, I've spent no money, so there's no bill. The cost is the margin I didn't make, and on a sound machine that's usually around ten grand. But I can't put a number on it, because I never know afterward whether the one I passed on was sound. I haven't tracked what happens to the machines I walk away from. If I pass after paying for an inspection, I'm out the $550. Passing too often has a cost as well. The yard sits light, and the owner is still looking at quarterly margin. I'd still rather pass than bid on something I don't trust.",
+      "at": "2026-10-09T23:35:52.274Z",
+      "stage": 13,
+      "spoken": false
+    },
+    {
+      "role": "consultant",
+      "text": "I filed that passing before inspecting costs no money directly, that the lost margin is around ten grand on a sound machine but unknowable, and that passing too often leaves the yard light. How much does a high hour count raise the odds of a major fault compared with a low one, from what you have seen?",
+      "at": "2026-10-09T23:36:02.445Z",
+      "kind": "clarify",
+      "reason": "missing",
+      "stage": 13
+    },
+    {
+      "role": "consultant",
+      "text": "Here is what I understood. Tell me what is wrong. Below it are the points I could not settle from your answers: take any you can.",
+      "at": "2026-10-09T23:37:23.174Z",
+      "kind": "readback",
+      "stage": 13
+    },
+    {
+      "role": "consultant",
+      "text": "Thank you. The case file is the finished document. Use Copy or Download to send it.",
+      "at": "2026-10-09T23:37:23.174Z",
+      "kind": "note",
+      "stage": 13
+    }
+  ],
+  "caseFile": {
+    "meta": {
+      "field": "Used construction equipment dealer: buys machines at online auctions and resells them to contractors (excavators, loaders and similar)",
+      "role": "Senior buyer at a regional dealer",
+      "experience": "Fourteen years"
+    },
+    "decision": {
+      "who": "The senior buyer (the expert) makes the inspect-or-bid call and sets the max bid. The owner does not weigh in on individual machines.",
+      "decision": "Which machines to bid on at auction, and whether to check them out first (a winning bid is binding)",
+      "options": [
+        "Pay for an independent inspection first, then bid",
+        "Bid blind, without checking"
+      ],
+      "goal": "Margin per machine after everything comes out (hammer price, premium, transport, repairs, inspection), with the cash back within about 90 days so the machine does not sit. A sound machine that sells in a few weeks with a decent margin is a good buy; one sitting in the yard for months is a bad one, even if the repair bill looks survivable.",
+      "last_time": "A 20-ton excavator, high hours, no service records, sold by a contractor. Paid for an independent inspection, which came back clean. Bid and won at $60,500, a little under what was expected. Should resell for around $78,000 after cleanup.",
+      "how_often": "A few times a month"
+    },
+    "parties": {
+      "none": false,
+      "list": [
+        {
+          "name": "Owner",
+          "wants": "Looks at quarterly gross margin",
+          "knows": "",
+          "can_do": "Does not weigh in on individual machines",
+          "behaviour": ""
+        },
+        {
+          "name": "Independent inspector",
+          "wants": "To get paid and not get blamed; cares about his name; does not care whether the expert wins the machine",
+          "knows": "",
+          "can_do": "Inspects machines, charging per job; he is shared, so he is not always available when wanted",
+          "behaviour": "Leans cautious, especially on undercarriages. He will flag a machine that is probably fine rather than risk missing something. If he signs off on something that turns out to be junk, the expert stops calling him. The expert prefers this to the opposite, but it costs a deal now and then."
+        },
+        {
+          "name": "Auction house",
+          "wants": "A high hammer price and volume",
+          "knows": "The seller's history",
+          "can_do": "Writes the listing",
+          "behaviour": "Won't volunteer problems"
+        },
+        {
+          "name": "Seller",
+          "wants": "To get the machine gone",
+          "knows": "The maintenance history",
+          "can_do": "",
+          "behaviour": "A lot of them are fleets clearing out or contractors in some kind of trouble"
+        },
+        {
+          "name": "Other bidders (dealers and contractors)",
+          "wants": "Dealers: a good machine cheap, to resell at a margin, while watching their own inventory and cash. Contractors: a machine they will actually use.",
+          "knows": "",
+          "can_do": "Bid against the expert at the auction",
+          "behaviour": "Contractors tend to bid higher, often higher than the expert can, because they will run the machine. Pretty often he loses a machine; most of the time it is a contractor who goes past his max. He has no count of how often, and has not tracked wins against losses or how many times he wins at or under his max. He would rather lose one than chase it past his limit. In the last few minutes people get carried away, the expert included on a bad day."
+        },
+        {
+          "name": "Mechanic in the expert's yard",
+          "wants": "To know what is wrong with the machine before it goes on the lot, and for his repair list to be right, because if something is missed and a customer finds it, that lands on him too",
+          "knows": "Finds out what was really bought, after the purchase; checks hydraulics, final drives, undercarriage, and whether the hour meter makes sense",
+          "can_do": "Goes through the whole machine in the first couple of weeks and gives the expert a repair list with a rough cost, so the expert knows what to price it at",
+          "behaviour": "On salary, so he is not defending a name like the inspector is. Comes in later, after the buy."
+        }
+      ]
+    },
+    "information": {
+      "visible": [
+        {
+          "item": "Photos",
+          "from": "Auction listing",
+          "trust": ""
+        },
+        {
+          "item": "Hour meter reading",
+          "from": "Auction listing",
+          "trust": "Expert wants to know whether it is honest"
+        },
+        {
+          "item": "Year",
+          "from": "Auction listing",
+          "trust": ""
+        },
+        {
+          "item": "Condition note",
+          "from": "Seller",
+          "trust": ""
+        },
+        {
+          "item": "Auction condition score",
+          "from": "Auction house",
+          "trust": "Barely trusts these"
+        },
+        {
+          "item": "Service records (none on the last machine)",
+          "from": "Seller",
+          "trust": "Missing on the last machine, which is part of why he inspected"
+        }
+      ],
+      "hidden": [
+        {
+          "item": "State of the hydraulic pump",
+          "who_knows": "",
+          "comes_out": "Mostly only once the mechanic has the machine in the yard; the inspector cannot open the hydraulics",
+          "matters": "Most wanted to know; cannot be seen from a listing"
+        },
+        {
+          "item": "State of the final drives",
+          "who_knows": "",
+          "comes_out": "Mostly only once the mechanic has the machine in the yard",
+          "matters": "Most wanted to know; cannot be seen from a listing"
+        },
+        {
+          "item": "Whether the hour meter is honest",
+          "who_knows": "",
+          "comes_out": "Mostly only once the mechanic has the machine in the yard (he checks whether the hour meter makes sense)",
+          "matters": "Expert would like to know it is honest"
+        },
+        {
+          "item": "Major hidden fault in general (pump and final drives are the usual culprits, but not only those)",
+          "who_knows": "",
+          "comes_out": "Once the mechanic has been through the machine",
+          "matters": "About four in ten machines with no records or an unknown seller turn out to have one, from his purchase log of roughly 400 machines"
+        }
+      ],
+      "hints": [
+        "No service records or an unknown seller: about four in ten turn out to have a major hidden fault (from his own purchase log, roughly 400 machines)",
+        "Fleet seller with records: more like one in ten",
+        "High hours push the fault rate up a bit, but he has not split the log out that finely",
+        "He won't bid blind on machines with no records; the inspection is not perfect but moves the odds a lot"
+      ]
+    },
+    "moves": {
+      "list": [
+        {
+          "name": "Independent inspection",
+          "does": "Independent inspector goes over the machine before the bid",
+          "money": "Usually around $550 per job",
+          "time": "Two working days at the minimum, from calling to report; he does not remember the longest wait",
+          "limit": "Inspector is shared, so he can be had twice a week at most, and it has to happen before the auction closes. With two days left or less he cannot get him out at all. The expert often only notices a listing with three days left, so timing gets tight."
+        },
+        {
+          "name": "Call the auction rep",
+          "does": "Phone the auction house rep about the machine",
+          "money": "Free",
+          "time": "About twenty minutes",
+          "limit": "They rarely tell you much"
+        },
+        {
+          "name": "Ask the seller for service records through the auction house",
+          "does": "Request the maintenance records via the auction house",
+          "money": "Costs nothing",
+          "time": "About a day",
+          "limit": "You only get them roughly half the time"
+        },
+        {
+          "name": "Oil sample",
+          "does": "Oil sample sent to a lab, on top of the inspection",
+          "money": "About $90 extra",
+          "time": "Lab adds another three days",
+          "limit": "Only works if he spots the listing early"
+        },
+        {
+          "name": "Bid blind or pass",
+          "does": "Bid without checking, or do not bid",
+          "money": "If a major fault turns up after a blind win, repairs usually around $20,000. Passing before inspecting costs no money directly; the cost is the margin not made, on a sound machine usually around ten grand, but he cannot put a number on it because he never knows afterward whether the machine he passed on was sound. Passing after a paid inspection costs the $550.",
+          "time": "Machine sits in the yard a couple of months if a major fault turns up",
+          "limit": "Expert would not do either on the last machine; he won't bid blind on machines with no records or over $50,000. Passing too often has a cost: the yard sits light while the owner is still looking at quarterly margin. He would still rather pass than bid on something he does not trust. He has not tracked what happens to machines he walks away from."
+        },
+        {
+          "name": "Act on an inspection flag",
+          "does": "After the inspector flags something short of a clear pass, walk away or bid lower",
+          "money": "If only undercarriage wear is flagged, he takes the cost of that wear off his max bid; he has not tracked what he usually knocks off, it depends on the machine",
+          "time": "",
+          "limit": "Most of the time he walks away. If hydraulics or anything that smells like a major fault is flagged, he is out, because he cannot open that up and does not want to guess. Undercarriage-only flag: he might still bid, but lower; the inspector is cautious there, so a flag does not always mean a bad machine. A flag on a machine over $50,000 with no records, he leans toward passing. He cannot say how often he goes each way."
+        }
+      ],
+      "budget": "Inventory cap of about $400,000 across the yard",
+      "deadline": "The inspection must happen before the auction closes. He often notices a listing with three days left; with two days left or less he cannot get the inspector out.",
+      "commit": "A winning bid is binding. Whatever the mechanic finds after the hammer falls, he owns the machine.",
+      "cost_to_undo": "Backing out forfeits the 10% deposit and gets him banned from the auction, which he says is a bigger problem than the money.",
+      "scarce": "The inspector is shared, so he cannot always be had when wanted; time before the auction closes also runs short"
+    },
+    "reveals": {
+      "list": [
+        {
+          "move": "Independent inspection",
+          "comes_back": "Report on the machine before the bid. Most inspected machines end up being bid on; the passes are the smaller group (a feel, not counted). Some passes are real faults caught, some are good machines flagged because he is cautious on undercarriages; he cannot give the split from his records. A pass after an inspection leaves the $550 spent with nothing to show for it.",
+          "catches": "About seven in ten real problems; misses about three, mostly intermittent hydraulic faults",
+          "false_alarms": "About one in ten good machines wrongly flagged, because he is cautious on undercarriages",
+          "wait": "Two working days at the minimum",
+          "gamed": "Seller can top up with heavy oil to hide something during a short test"
+        },
+        {
+          "move": "Oil sample",
+          "comes_back": "Lab result on the oil",
+          "catches": "Maybe one more in ten on top of the inspection (a feel, not tracked)",
+          "false_alarms": "Unknown; he has never tracked it",
+          "wait": "Lab adds another three days",
+          "gamed": ""
+        },
+        {
+          "move": "Call the auction rep",
+          "comes_back": "Rarely anything useful",
+          "catches": "",
+          "false_alarms": "",
+          "wait": "About twenty minutes",
+          "gamed": ""
+        },
+        {
+          "move": "Ask seller for service records through the auction house",
+          "comes_back": "Records, about half the time; worth having when they come",
+          "catches": "",
+          "false_alarms": "",
+          "wait": "About a day",
+          "gamed": ""
+        }
+      ]
+    },
+    "accounting": {
+      "adds": [
+        "Resale price after cleanup"
+      ],
+      "subtracts": [
+        "Hammer price",
+        "Buyer's premium (10% on top of hammer)",
+        "Transport",
+        "Repairs",
+        "Inspection (if paid for)",
+        "Cash sitting in the yard past 90 days counts against him",
+        "Interest on money tied up in inventory (about 9% a year)"
+      ],
+      "good_case": "A sound machine nets $8,000 to $12,000, usually around ten grand",
+      "bad_case": "A bad one loses $8,000 to $10,000, maybe nine thousand or so; this is the usual case. A $30,000 repair would lose more, but he has not tracked that.",
+      "typical_size": "Hammer price: lowest about $25,000, highest about $140,000, most between $40,000 and $80,000, usual about $60,000. The last excavator at $60,500 was in that range, expected resale about $78,000 after cleanup. Resale usually comes in a fair bit above hammer, but the gap is not profit: premium, freight, repairs and inspection come out of it, and what is left is the margin. He has not tracked resale against hammer as a ratio; it moves with the machine, and the excavator is the one pair he can speak to.",
+      "horizon": "Only really knows once his mechanic has been through the machine in the first couple of weeks; 90 days is his limit for getting cash back, not the usual time. A sound machine sells in three to six weeks; a bad one sits two to three months, which is where he hits the limit. Judges results over a bunch of machines, not one, since some bad ones slip through no matter what.",
+      "not_in_money": "A slow sale also uses up room under the $400,000 cap, so he cannot buy something better; he did not put a money figure on that. It never shows up on the repair list."
+    },
+    "tension": {
+      "pull": "Inspecting costs about $550 and two days, and he loses quick deals if he inspects everything. Not inspecting risks a major hidden fault: about one in ten with a fleet seller and records, about four in ten with no records or an unknown seller.",
+      "flips": "A fleet seller with full service records and a price under about $45,000: he would bid without inspecting. Timing can also force it: with two days left he cannot book the inspector, so he has to pass or bid blind.",
+      "threshold": "Under about $45,000 with a fleet seller and full records, he bids without inspecting. Over $50,000 he always inspects or passes. Between $45,000 and $50,000 it is a judgment call, not a clean rule: a contractor with complete records at $48,000 he would have bid on without inspecting, with only partial records he passed. The last case was a contractor, no records, over $50,000, so inspecting was the only sensible call.",
+      "near_line": "About three cases in ten sit near that line."
+    },
+    "variation": {
+      "list": [
+        {
+          "what": "Days left on the listing when he notices it",
+          "range": "One to seven days. Listings open about a week out.",
+          "how_common": "He often only spots a listing with three days to go. No fuller split given.",
+          "changes_choice": "yes: with two days or fewer he cannot get the inspector out, so he has to pass or bid blind",
+          "moves_with": ""
+        },
+        {
+          "what": "Hour meter reading",
+          "range": "About 3,000 to 12,000 hours",
+          "how_common": "No exact split of how common each end is; he has not split his log by hours",
+          "changes_choice": "no: not on its own. His rule runs on the seller, the records and the price. A fleet machine with records under about $45,000 he would bid on without inspecting even at high hours. In no-records cases, where he would already inspect or pass, high hours just make him warier: he looks harder at the paint and at whether the hour meter makes sense.",
+          "moves_with": "Cheaper machines tend to be the high-hours ones"
+        },
+        {
+          "what": "Transport cost (distance to the machine)",
+          "range": "$1,800 to $3,500, usually around $2,400",
+          "how_common": "No split given; it depends on how far away the machine is",
+          "changes_choice": "no: not the inspect call, which runs on seller, records and price. It comes straight off the margin, so his max bid drops by the freight on a distant machine. If that leaves the numbers too thin he passes, even on something that looks cheap. On a far-away no-records machine over $50,000, where he would already inspect or pass, freight tips him toward passing. Not common; he has no count.",
+          "moves_with": "Distance to the machine"
+        }
+      ],
+      "fixed": []
+    },
+    "yardsticks": {
+      "no_effort": "Bid on whatever looks cheap against book value. Loses money on about a third of them (his rough feel, not counted).",
+      "newcomer": "A capable newcomer trusts the condition score and the photos, and bids up to book less 10%.",
+      "newcomer_goes_wrong": "Works about six times in ten. It goes wrong on machines without records, because that is where the hidden faults are.",
+      "professional_rule": "Fleet seller with records and under $45,000: bid up to 75% of resale without inspecting. Over $50,000, or no records: inspect or pass. Never bid blind, which to him means no inspection on a no-records machine or on anything over $50,000; a fleet machine with records is not blind, because the records are the check. Max bid is the hammer price alone: resale, minus $12,000 (a rough allowance for premium, freight and margin, not exact), minus expected repairs. Without an inspection he uses the lower of the 75% cap and that figure. Then stick to it in the last minutes.",
+      "full_knowledge": "Would only buy the sound ones and walk away from the rest. Would bid harder on the good ones, because no cushion would be needed for the machine that turns out bad. No inspections, so he would save the $550 and the two days and lose fewer quick deals.",
+      "gap_in_money": "Maybe $6,000 more per machine with everything hidden in view, but that is a guess; he has not worked it out properly. Most of it comes from not eating the $20,000 repair jobs.",
+      "mistakes": [
+        {
+          "mistake": "Getting carried away in the last minutes: bidding past his set max because he had already put the time in",
+          "cost": "A few thousand on the machine; has done it more than once",
+          "tell": "The price crosses his max with a couple of minutes left; that is the cue to stop"
+        },
+        {
+          "mistake": "Trusting the auction's condition score on a machine with no records",
+          "cost": "",
+          "tell": "Machine has no service records; that is where the real surprises come from"
+        }
+      ]
+    },
+    "worked": {
+      "list": [
+        {
+          "kind": "obvious right",
+          "situation": "Fleet seller, full service records, $38,000, 5,000 hours, four days left.",
+          "numbers": "$38,000 price; 5,000 hours; four days left; inspection would be $550 and two working days",
+          "choice": "Bid without inspecting",
+          "why": "Fleet seller with records and under $45,000, so the odds of a major fault are low and $550 plus two days isn't worth it.",
+          "would_change": ""
+        },
+        {
+          "kind": "obvious wrong",
+          "situation": "Unknown seller, no records, $70,000 against $95,000 book, fresh paint, 9,000 hours, five days left. Looks like a bargain.",
+          "numbers": "$70,000 price against $95,000 book; 9,000 hours; five days left",
+          "choice": "Inspect. The real one had a pump whine, so he passed.",
+          "why": "Fresh paint on a high-hour machine is a warning, and there were no records and an unknown seller.",
+          "would_change": ""
+        },
+        {
+          "kind": "close",
+          "situation": "Contractor seller, partial records, $48,000, two days left. The price sits in the gap between $45,000 and the $50,000 point where he always inspects or passes.",
+          "numbers": "$48,000 price; two days left",
+          "choice": "Passed. No inspection was possible with two days left, and the records were only partial.",
+          "why": "With only two days left he cannot get the inspector out, and the records were only partial. The gap between $45,000 and $50,000 is why he called it close.",
+          "would_change": "With complete records he would have bid, without inspecting, since he could not book the inspector anyway. He says this is a judgment call, not a clean rule."
+        }
+      ]
+    },
+    "notes": {
+      "missed": [
+        "Financing: a slow machine costs more than the repair bill. About 9% a year is paid on the money tied up, so a bad machine sitting two or three months bleeds interest, and it uses up room under the $400,000 cap so he cannot buy something better. He says this never shows up on the repair list.",
+        "Correction from the expert: he earlier said the inspection catches pretty much everything, which was loose talk. It catches about seven in ten and misses the intermittent hydraulic faults."
+      ]
+    }
+  },
+  "numbers": [
+    {
+      "id": "inventory_cap",
+      "name": "Inventory cap across the yard",
+      "unit": "USD",
+      "low": "",
+      "typical": "400000",
+      "high": "",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "",
+      "note": "Expert said 'about $400,000', set by the owner; a ceiling, not something that moves day to day",
+      "stage": 1
+    },
+    {
+      "id": "cash_back_days",
+      "name": "Limit for getting cash back on a machine",
+      "unit": "days",
+      "low": "",
+      "typical": "90",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "",
+      "note": "Expert said the 90 days is his limit, not how long cash usually takes; a bad machine sitting two to three months is where he hits it",
+      "stage": 1
+    },
+    {
+      "id": "inspection_cost",
+      "name": "Independent inspection fee per job",
+      "unit": "USD",
+      "low": "450",
+      "typical": "550",
+      "high": "700",
+      "of_ten": "",
+      "fixed": "",
+      "source": "data",
+      "note": "Expert said 'usually around $550'; range $450 to $700 from the inspector's invoices",
+      "stage": 2
+    },
+    {
+      "id": "active_bidders",
+      "name": "Active bidders per machine",
+      "unit": "bidders",
+      "low": "5",
+      "typical": "",
+      "high": "6",
+      "of_ten": "",
+      "fixed": "",
+      "source": "guess",
+      "note": "Expert said 'somewhere around five or six active bidders', but that's a guess",
+      "stage": 2
+    },
+    {
+      "id": "major_fault_rate_no_records",
+      "name": "Machines with a major hidden fault, no records or unknown seller",
+      "unit": "machines",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "4 of 10",
+      "fixed": "",
+      "source": "data",
+      "note": "From his own purchase log, roughly 400 machines; pump and final drives are the usual culprits; high hours push it up a bit",
+      "stage": 3
+    },
+    {
+      "id": "major_fault_rate_fleet_records",
+      "name": "Machines with a major hidden fault, fleet seller with records",
+      "unit": "machines",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "1 of 10",
+      "fixed": "",
+      "source": "data",
+      "note": "Expert said 'more like one in ten'; from his purchase log of about 400 machines",
+      "stage": 3
+    },
+    {
+      "id": "oil_sample_cost",
+      "name": "Oil sample cost on top of inspection",
+      "unit": "USD",
+      "low": "90",
+      "typical": "90",
+      "high": "90",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "experience",
+      "note": "Expert said $90, flat, no range",
+      "stage": 4
+    },
+    {
+      "id": "records_request_success",
+      "name": "Share of record requests to seller that produce records",
+      "unit": "requests",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "5 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'roughly half the time'; from what he remembers of asking, not counted",
+      "stage": 4
+    },
+    {
+      "id": "auction_rep_call_time",
+      "name": "Time to call the auction rep",
+      "unit": "minutes",
+      "low": "",
+      "typical": "20",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "",
+      "note": "Expert said around twenty minutes; some run a bit longer but he does not time them",
+      "stage": 4
+    },
+    {
+      "id": "deposit_forfeit_share",
+      "name": "Deposit forfeited if you back out of a winning bid",
+      "unit": "% of bid",
+      "low": "",
+      "typical": "10",
+      "high": "",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "data",
+      "note": "Expert said 'forfeit the 10% deposit' and also gets banned from the auction; it is the auction's terms, in the paperwork",
+      "stage": 4
+    },
+    {
+      "id": "major_fault_repair_cost",
+      "name": "Repair cost on a major hidden fault",
+      "unit": "USD",
+      "low": "15000",
+      "typical": "20000",
+      "high": "30000",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said $15,000 to $30,000, usually about $20,000; from remembered repair bills",
+      "stage": 4
+    },
+    {
+      "id": "major_fault_yard_time",
+      "name": "Time machine sits in the yard after a major fault",
+      "unit": "months",
+      "low": "2",
+      "typical": "2",
+      "high": "3",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said a bad one sits two to three months",
+      "stage": 4
+    },
+    {
+      "id": "inspection_turnaround_days",
+      "name": "Time from calling inspector to report",
+      "unit": "working days",
+      "low": "2",
+      "typical": "2",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Two days is the minimum; he does not remember the longest wait",
+      "stage": 4
+    },
+    {
+      "id": "inspector_visits_per_week",
+      "name": "Inspector availability to the expert",
+      "unit": "visits per week",
+      "low": "",
+      "typical": "",
+      "high": "2",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "",
+      "note": "Expert said 'twice a week at most'; it is how the inspector's schedule works, a fact, not an estimate",
+      "stage": 4
+    },
+    {
+      "id": "inspection_min_days_left",
+      "name": "Days left on listing needed to get inspector out",
+      "unit": "days",
+      "low": "",
+      "typical": "3",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "",
+      "note": "Expert often notices listings with three days left; with two days or less he cannot get the inspector out",
+      "stage": 4
+    },
+    {
+      "id": "oil_lab_extra_days",
+      "name": "Extra days the oil sample lab adds",
+      "unit": "days",
+      "low": "",
+      "typical": "3",
+      "high": "",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "",
+      "note": "Expert said the lab adds three days, flat",
+      "stage": 4
+    },
+    {
+      "id": "inspection_catch_rate",
+      "name": "Real problems the inspection catches",
+      "unit": "machines with a real problem",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "7 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Misses about 3 of 10, mostly intermittent hydraulic faults; not from his log",
+      "stage": 5
+    },
+    {
+      "id": "inspection_false_flag_rate",
+      "name": "Good machines the inspection wrongly flags",
+      "unit": "good machines",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "1 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Because the inspector is cautious on undercarriages; not from his log",
+      "stage": 5
+    },
+    {
+      "id": "oil_sample_extra_catch",
+      "name": "Extra real problems the oil sample catches on top of inspection",
+      "unit": "machines with a real problem",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "1 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'maybe one more in ten'; a feel, not tracked",
+      "stage": 5
+    },
+    {
+      "id": "buyer_premium_share",
+      "name": "Buyer's premium on top of hammer price",
+      "unit": "% of hammer",
+      "low": "",
+      "typical": "10",
+      "high": "",
+      "of_ten": "",
+      "fixed": "yes",
+      "source": "data",
+      "note": "Expert said 'the 10% premium on top'; in auction records",
+      "stage": 6
+    },
+    {
+      "id": "sound_machine_margin",
+      "name": "Net margin on a sound machine",
+      "unit": "USD",
+      "low": "8000",
+      "typical": "10000",
+      "high": "12000",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said $8,000 to $12,000, usually around ten",
+      "stage": 6
+    },
+    {
+      "id": "bad_machine_loss",
+      "name": "Loss on a bad machine",
+      "unit": "USD",
+      "low": "8000",
+      "typical": "9000",
+      "high": "10000",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said $8,000 to $10,000; the $9,000 is from his earlier 'maybe nine thousand or so'",
+      "stage": 6
+    },
+    {
+      "id": "hammer_price",
+      "name": "Hammer price of a machine bought",
+      "unit": "USD",
+      "low": "25000",
+      "typical": "60000",
+      "high": "140000",
+      "of_ten": "",
+      "fixed": "",
+      "source": "data",
+      "note": "Most between $40,000 and $80,000; cheap ones tend to have high hours; last excavator $60,500; in auction records",
+      "stage": 6
+    },
+    {
+      "id": "inventory_interest_rate",
+      "name": "Interest cost on money tied up in inventory",
+      "unit": "% per year",
+      "low": "",
+      "typical": "9",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "",
+      "note": "Expert said about 9% a year, what the dealer pays; he does not set it and cannot say how it has moved; a $60,000 machine sitting a couple of months costs roughly another thousand in interest",
+      "stage": 6
+    },
+    {
+      "id": "skip_inspection_price_line",
+      "name": "Price under which he skips inspection when a fleet seller has full records",
+      "unit": "USD",
+      "low": "",
+      "typical": "45000",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'under about $45,000' with a fleet seller and full service records; above that, or with no records, he inspects. A rule of thumb settled over fourteen years, not from his log.",
+      "stage": 7
+    },
+    {
+      "id": "cases_near_line",
+      "name": "Cases near the inspect-or-bid-blind line",
+      "unit": "cases",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "3 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'about three cases in ten sit near that line'; never counted.",
+      "stage": 7
+    },
+    {
+      "id": "machine_hours",
+      "name": "Hour meter reading on machines considered",
+      "unit": "hours",
+      "low": "3000",
+      "typical": "",
+      "high": "12000",
+      "of_ten": "",
+      "fixed": "",
+      "source": "data",
+      "note": "No exact split of how common each end is; cheaper machines tend to be the high-hours ones. Every machine's meter reading is logged in the purchase records.",
+      "stage": 8
+    },
+    {
+      "id": "days_left_when_noticed",
+      "name": "Days left on a listing when he notices it",
+      "unit": "days",
+      "low": "1",
+      "typical": "3",
+      "high": "7",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Listings open about a week out, so one to seven is how the auction works; where he typically notices them (three days) is a rough memory, not tracked. With two or fewer he cannot get the inspector.",
+      "stage": 8
+    },
+    {
+      "id": "transport_cost",
+      "name": "Transport cost per machine",
+      "unit": "USD",
+      "low": "1800",
+      "typical": "2400",
+      "high": "3500",
+      "of_ten": "",
+      "fixed": "",
+      "source": "data",
+      "note": "Depends on distance; easy to forget on a distant machine. Expert said it is on the freight invoices, so the range is solid.",
+      "stage": 8
+    },
+    {
+      "id": "no_effort_loss_share",
+      "name": "Machines that lose money when bought with no effort (bid on whatever looks cheap against book)",
+      "unit": "machines",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "3 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'about a third'; just a rough feel, not counted",
+      "stage": 9
+    },
+    {
+      "id": "newcomer_success_rate",
+      "name": "Share of machines where the newcomer's approach (trust score and photos, bid up to book less 10%) works",
+      "unit": "machines",
+      "low": "",
+      "typical": "",
+      "high": "",
+      "of_ten": "6 of 10",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'about six times in ten'; fails on machines without records; he has watched newcomers but never counted, rough",
+      "stage": 9
+    },
+    {
+      "id": "no_inspect_bid_share_of_resale",
+      "name": "Max bid as share of resale when skipping inspection (fleet seller, records, under $45,000)",
+      "unit": "% of resale",
+      "low": "",
+      "typical": "75",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Part of the expert's rule; worked out from what repairs and margins usually look like and tuned over time; not a calculated figure.",
+      "stage": 9
+    },
+    {
+      "id": "max_bid_fixed_deduction",
+      "name": "Amount taken off resale when setting max bid, before expected repairs",
+      "unit": "USD",
+      "low": "",
+      "typical": "12000",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Rough allowance for premium, freight and margin, not exact; max bid is the hammer price alone; without inspection he uses the lower of this cap and 75% of resale",
+      "stage": 9
+    },
+    {
+      "id": "inspect_over_price_line",
+      "name": "Price over which he inspects or passes",
+      "unit": "USD",
+      "low": "",
+      "typical": "50000",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said 'over $50,000, or no records, inspect or pass'. A rule of thumb from fourteen years, not from his log.",
+      "stage": 9
+    },
+    {
+      "id": "full_knowledge_gain",
+      "name": "Extra money per machine if everything hidden were in view",
+      "unit": "USD per machine",
+      "low": "",
+      "typical": "6000",
+      "high": "",
+      "of_ten": "",
+      "fixed": "",
+      "source": "guess",
+      "note": "Expert said 'maybe $6,000 more per machine, but that's a guess'; most of it from not paying $20,000 repair jobs",
+      "stage": 9
+    },
+    {
+      "id": "sound_machine_sale_weeks",
+      "name": "Time for a sound machine to sell",
+      "unit": "weeks",
+      "low": "3",
+      "typical": "",
+      "high": "6",
+      "of_ten": "",
+      "fixed": "",
+      "source": "experience",
+      "note": "Expert said three to six weeks, 'a month and a half at the outside'",
+      "stage": 11
+    }
+  ],
+  "gaps": [
+    {
+      "id": "g1",
+      "stage": 1,
+      "kind": "error_rate",
+      "text": "You said the inspection catches pretty much everything. Out of ten machines with a real problem, how many does it miss, and how often does it flag a problem on a good machine?",
+      "about": "reveals",
+      "status": "closed"
+    },
+    {
+      "id": "g2",
+      "stage": 1,
+      "kind": "cost",
+      "text": "What did the independent inspection cost in money and in time?",
+      "about": "moves",
+      "status": "closed"
+    },
+    {
+      "id": "g3",
+      "stage": 1,
+      "kind": "aim",
+      "text": "What counts as this decision going well, in terms someone could check?",
+      "about": "decision",
+      "status": "closed"
+    },
+    {
+      "id": "g4",
+      "stage": 1,
+      "kind": "money",
+      "text": "What does it cost you when a machine turns out bad, in repairs or in months sitting in the yard?",
+      "about": "accounting",
+      "status": "closed"
+    },
+    {
+      "id": "g5",
+      "stage": 2,
+      "kind": "cost",
+      "text": "How long does an independent inspection take, from calling the inspector to having his report?",
+      "about": "moves",
+      "status": "closed"
+    },
+    {
+      "id": "g6",
+      "stage": 5,
+      "kind": "error_rate",
+      "text": "How often does the oil sample wrongly flag a good machine?",
+      "about": "reveals",
+      "status": "closed"
+    },
+    {
+      "id": "g7",
+      "stage": 6,
+      "kind": "money",
+      "text": "What does it cost you in money when a machine sits in the yard past 90 days?",
+      "about": "accounting",
+      "status": "closed"
+    },
+    {
+      "id": "g8",
+      "stage": 8,
+      "kind": "missing",
+      "text": "Does the hour meter reading or the transport cost change whether you inspect or bid blind?",
+      "about": "variation",
+      "status": "closed"
+    },
+    {
+      "id": "g9",
+      "stage": 9,
+      "kind": "missing",
+      "text": "What would you do with the hidden faults in full view, and how much better would you do in money?",
+      "about": "yardsticks",
+      "status": "closed"
+    },
+    {
+      "id": "g10",
+      "stage": 9,
+      "kind": "missing",
+      "text": "What do you do with a fleet machine with records priced between $45,000 and $50,000?",
+      "about": "yardsticks",
+      "status": "closed"
+    },
+    {
+      "id": "g11",
+      "stage": 9,
+      "kind": "missing",
+      "text": "What are the typical mistakes you or others make on this decision, what does each cost, and how can you tell early?",
+      "about": "yardsticks",
+      "status": "closed"
+    },
+    {
+      "id": "g12",
+      "stage": 9,
+      "kind": "vague",
+      "text": "What did the last bad buy based on the condition score on a no-records machine cost you, in dollars?",
+      "about": "yardsticks",
+      "status": "open"
+    },
+    {
+      "id": "g13",
+      "stage": 11,
+      "kind": "range",
+      "text": "The numbers: 17 figures still lack a range or a source. The table marks them.",
+      "about": "numbers",
+      "status": "open"
+    },
+    {
+      "id": "g14",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Does \"never bid blind\" only mean never bidding uninspected on a machine with no records, or is a bid on a fleet machine with records not what you call blind?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g15",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Is your max bid the hammer price alone, or the all-in figure including the 10% premium (and freight)?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g16",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "On a machine you buy without inspecting, which cap sets your max bid: 75% of resale, resale minus $12,000 minus repairs, or the lower of the two?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g17",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "When the repair bill is $30,000, what does the machine actually lose, and is $8,000 to $10,000 only the usual case?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g18",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Is two working days the usual time or the fastest, and what is the longest you have waited for a report?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g19",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Is it closer to three in ten or one in three?",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g20",
+      "stage": 13,
+      "kind": "missing",
+      "text": "The resale value of each machine and how it relates to hammer price and book value; only one pair is filed ($60,500 against $78,000).",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g21",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How the bidding plays out: what the other bidders are willing to pay, how often contractors outbid him, and how often he wins at or under his max.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g22",
+      "stage": 13,
+      "kind": "missing",
+      "text": "What he does when the inspection flags something short of a clear pass: whether he always walks away or bids lower, and the usual \"expected repairs\" and cleanup figure he takes off on a sound machine.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g23",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How often each kind of listing comes up (fleet, contractor or unknown seller; full, partial or no records; price band), and the fault rate for the in-between cases such as a contractor with complete records or any seller with partial records.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g24",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How many listings he looks at per week, how days-left is spread between one and seven, and how often the inspector is already booked when wanted.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g25",
+      "stage": 13,
+      "kind": "missing",
+      "text": "What passing costs, and the money value of a machine sitting past 90 days or of room used up under the $400,000 cap.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g26",
+      "stage": 13,
+      "kind": "missing",
+      "text": "What service records do to the fault odds when a request brings them back, and how often the oil sample wrongly flags a good machine.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g27",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How much high hours raise the fault rate, how often an hour meter is dishonest, and how the auction condition score relates to the machine's real state.",
+      "about": "audit",
+      "status": "closed",
+      "origin": "audit"
+    },
+    {
+      "id": "g28",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "If you win a sound machine right at your max bid, what margin do you expect to be left: around ten grand, or only a few thousand because you count on winning well under your max?",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g29",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Between $45,000 and $50,000 with complete records, and with time to book the inspector, do you inspect or bid without one, and does it matter whether the seller is a fleet or a contractor?",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g30",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Is passing without inspecting a third choice you weigh from the start on every listing, alongside inspecting and bidding without an inspection?",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g31",
+      "stage": 13,
+      "kind": "contradiction",
+      "text": "Is the $8,000 to $10,000 loss only the case with a repair of about $20,000, and does it already include the interest and any lower resale price on a repaired machine?",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g32",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How the bidding plays out: what the other five or six bidders will pay, how often a contractor goes past his max, how often he wins and how far under his max. Also whether the price in each worked case is the current bid, the expected hammer or his max.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g33",
+      "stage": 13,
+      "kind": "missing",
+      "text": "The resale value of a given machine and how he estimates it before bidding, including how it relates to hammer and to book value. Only the excavator pair ($60,500 against $78,000) and one book figure ($95,000 against $70,000) are filed.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g34",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How often each kind of listing comes up (fleet, contractor or unknown seller; full, partial or no records; price band), and the fault rate for the in-between cases such as a contractor with complete records, any seller with partial records, or a fleet seller without records.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g35",
+      "stage": 13,
+      "kind": "missing",
+      "text": "What an inspection report contains: how flags split between undercarriage-only and hydraulic or major, how much he takes off his max for undercarriage wear, how often he bids lower instead of walking away, and what 'expected repairs' are on a machine with no major fault.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g36",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How he chooses inside the $45,000 to $50,000 gap, and when the inspector cannot be had, what decides between passing and bidding without an inspection on a machine with records.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g37",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How many listings he looks at per week, how days left are spread between one and seven, how often the inspector is already booked, and the longest wait for a report.",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g38",
+      "stage": 13,
+      "kind": "missing",
+      "text": "What each extra signal does to the odds: service records when a request brings them back, the oil sample's wrong flags on good machines and what he does with a bad result, how much high hours raise the fault rate, how often an hour meter is dishonest, and how the condition score relates to the machi",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    },
+    {
+      "id": "g39",
+      "stage": 13,
+      "kind": "missing",
+      "text": "How the outcome is counted beyond the usual case: how repair bills spread between $15,000 and $30,000 and what a big one loses, the resale price and sale time of a repaired machine, what going past 90 days or filling the $400,000 cap costs in money, and what a light yard costs against the owner's qu",
+      "about": "audit",
+      "status": "open",
+      "origin": "audit"
+    }
+  ],
+  "gapSeq": 39,
+  "readback": {
+    "at": "2026-10-09T23:37:23.174Z",
+    "stale": false,
+    "summary": [
+      "You are the senior buyer at a regional used construction equipment dealer, fourteen years in. The decision is which machines to bid on at online auctions and whether to pay for an independent inspection first, bid without one, or pass. It comes up a few times a month, and the call and the max bid are yours. You are after margin per machine once hammer price, the 10% premium, transport, repairs and any inspection come out, with the cash back inside about 90 days. A winning bid is binding: backing out forfeits the 10% deposit and gets you banned, which you say is worse than the money.",
+      "Others act around you. The owner sets the inventory cap of about $400,000 and looks at quarterly gross margin, not single machines. The auction house writes the listing, knows the seller's history and won't volunteer problems. Sellers want the machine gone; many are fleets clearing out or contractors in trouble. Other dealers want the same as you; contractors often go past your max because they will run the machine, and you lose machines that way pretty often, with no count. The inspector protects his name, so he leans cautious, especially on undercarriages. Your mechanic goes through the machine in the first couple of weeks and gives you the repair list.",
+      "You see photos, the hour meter, the year, the seller's condition note, an auction condition score you barely trust, and service records when there are any. You cannot see the hydraulic pump, the final drives, or whether the hour meter is honest; that mostly comes out only in your yard. From your log of roughly 400 machines, about four in ten with no records or an unknown seller have a major hidden fault, against about one in ten for a fleet seller with records. High hours push that up a bit, but you have not split it out.",
+      "Before bidding you can call the auction rep (free, about twenty minutes, rarely useful) or ask for records through the auction house (free, about a day, they come about half the time). You can pay the inspector, usually around $550 ($450 to $700), two working days at the minimum, twice a week at most, and not at all with two days left or less. You can add an oil sample for $90 and three more days. The inspection catches about seven in ten real problems, misses mostly intermittent hydraulic faults, and wrongly flags about one in ten good machines. The oil sample catches maybe one more in ten. If the inspector flags hydraulics or anything that smells major, you are out; if it is only undercarriage wear, you may bid lower by the cost of that wear.",
+      "You count resale after cleanup, minus hammer, premium, transport ($1,800 to $3,500, usually $2,400), repairs and inspection, plus about 9% a year on money tied up. A sound machine nets $8,000 to $12,000 and sells in three to six weeks. A bad one usually means about $20,000 of repairs ($15,000 to $30,000), sits two to three months and loses $8,000 to $10,000. A slow machine also uses up room under the cap, which you did not put a figure on. Passing costs nothing directly, or $550 after an inspection, but passing too often leaves the yard light. You judge over a bunch of machines, not one.",
+      "What makes it hard is that inspecting costs $550 and two days and loses quick deals, while not inspecting risks the hidden fault. Your rule: fleet seller with records and under about $45,000, bid without inspecting, up to the lower of 75% of resale and resale minus $12,000 minus expected repairs. Over $50,000, or no records, inspect or pass. Between $45,000 and $50,000 it is a judgment call, and about three cases in ten sit near the line. Days left can force it, since you often notice a listing with three days to go. Hours (3,000 to 12,000) and freight do not flip the inspect call; freight lowers your max and can tip you to pass.",
+      "Someone making no effort bids on whatever looks cheap against book and loses money on about a third. A capable newcomer trusts the condition score and photos and bids up to book less 10%, which works about six times in ten and fails on machines without records. You set your number and stick to it; your own usual mistake is going past it in the last minutes, which has cost a few thousand more than once. With everything hidden in view you guess you would make maybe $6,000 more per machine."
+    ],
+    "contradictions": [
+      {
+        "a": "Max bid is the hammer price alone: resale, minus $12,000 (a rough allowance for premium, freight and margin, not exact), minus expected repairs.",
+        "b": "Buyer's premium is 10% on top of hammer, transport is usually around $2,400, and a sound machine nets $8,000 to $12,000. At a $60,000 hammer the premium and freight alone are about $8,400, leaving about $3,600 of the $12,000 for margin.",
+        "ask": "If you win a sound machine right at your max bid, what margin do you expect to be left: around ten grand, or only a few thousand because you count on winning well under your max?"
+      },
+      {
+        "a": "Skip-inspection line, as filed in the numbers: 'under about $45,000' with a fleet seller and full service records; above that, or with no records, he inspects.",
+        "b": "A contractor with complete records at $48,000 he would have bid on without inspecting.",
+        "ask": "Between $45,000 and $50,000 with complete records, and with time to book the inspector, do you inspect or bid without one, and does it matter whether the seller is a fleet or a contractor?"
+      },
+      {
+        "a": "Options filed for the decision: 'Pay for an independent inspection first, then bid' and 'Bid blind, without checking'.",
+        "b": "Close case choice: 'Passed. No inspection was possible with two days left, and the records were only partial.' Also 'He would still rather pass than bid on something he does not trust.'",
+        "ask": "Is passing without inspecting a third choice you weigh from the start on every listing, alongside inspecting and bidding without an inspection?"
+      },
+      {
+        "a": "A bad one loses $8,000 to $10,000, maybe nine thousand or so; this is the usual case.",
+        "b": "Repairs on a major fault run $15,000 to $30,000, usually about $20,000, on a machine that would otherwise net $8,000 to $12,000, plus roughly another thousand in interest. A $15,000 repair gives a loss of about $4,000 to $8,000, and a $30,000 repair about $19,000 to $23,000.",
+        "ask": "Is the $8,000 to $10,000 loss only the case with a repair of about $20,000, and does it already include the interest and any lower resale price on a repaired machine?"
+      }
+    ],
+    "worked_checks": [
+      {
+        "situation": "Fleet seller, full records, $38,000, 5,000 hours, four days left",
+        "stated_choice": "Bid without inspecting",
+        "rule_says": "Fleet seller with records and under $45,000: bid without inspecting, up to the lower of 75% of resale and resale minus $12,000 minus expected repairs.",
+        "agrees": true,
+        "note": "The inspect call matches, but no resale figure is filed for this machine, so whether $38,000 sits under his max bid cannot be checked."
+      },
+      {
+        "situation": "Unknown seller, no records, $70,000 against $95,000 book, fresh paint, 9,000 hours, five days left",
+        "stated_choice": "Inspect; the real one had a pump whine, so he passed",
+        "rule_says": "No records and over $50,000: inspect or pass, never bid blind. Five days left allows the two-day inspection, and a hydraulic flag means he is out.",
+        "agrees": true,
+        "note": "Both steps match the rule and the flag rule, though the file does not say whether the inspector's report or something else turned up the pump whine."
+      },
+      {
+        "situation": "Contractor seller, partial records, $48,000, two days left",
+        "stated_choice": "Passed; with complete records he would have bid without inspecting",
+        "rule_says": "The rule covers only a fleet seller with records under $45,000, and anything over $50,000 or with no records. A contractor with partial records at $48,000 falls in the gap he calls a judgment call, and no inspection is possible with two days left.",
+        "agrees": null,
+        "note": "Missing is how partial records and a non-fleet seller count between $45,000 and $50,000 (fault odds and which way he leans), so the rule cannot produce the pass by itself."
+      }
+    ],
+    "would_be_invented": [
+      "How the bidding plays out: what the other five or six bidders will pay, how often a contractor goes past his max, how often he wins and how far under his max. Also whether the price in each worked case is the current bid, the expected hammer or his max.",
+      "The resale value of a given machine and how he estimates it before bidding, including how it relates to hammer and to book value. Only the excavator pair ($60,500 against $78,000) and one book figure ($95,000 against $70,000) are filed.",
+      "How often each kind of listing comes up (fleet, contractor or unknown seller; full, partial or no records; price band), and the fault rate for the in-between cases such as a contractor with complete records, any seller with partial records, or a fleet seller without records.",
+      "What an inspection report contains: how flags split between undercarriage-only and hydraulic or major, how much he takes off his max for undercarriage wear, how often he bids lower instead of walking away, and what 'expected repairs' are on a machine with no major fault.",
+      "How he chooses inside the $45,000 to $50,000 gap, and when the inspector cannot be had, what decides between passing and bidding without an inspection on a machine with records.",
+      "How many listings he looks at per week, how days left are spread between one and seven, how often the inspector is already booked, and the longest wait for a report.",
+      "What each extra signal does to the odds: service records when a request brings them back, the oil sample's wrong flags on good machines and what he does with a bad result, how much high hours raise the fault rate, how often an hour meter is dishonest, and how the condition score relates to the machi",
+      "How the outcome is counted beyond the usual case: how repair bills spread between $15,000 and $30,000 and what a big one loses, the resale price and sale time of a repaired machine, what going past 90 days or filling the $400,000 cap costs in money, and what a light yard costs against the owner's qu"
+    ]
+  },
+  "approved": "2026-10-09T23:37:23.174Z",
+  "mode": "consultant"
+}

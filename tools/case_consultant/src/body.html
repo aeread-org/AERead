@@ -1,0 +1,64 @@
+<div class="app" id="app">
+  <header class="top">
+    <a class="brand" href="https://aeread.org" target="_blank" rel="noopener" aria-label="AERead, aeread.org">{{WORDMARK}}</a>
+    <h1 class="name">Case Consultant</h1>
+    <div class="pills">
+      <span class="pill" id="brainPill">Connecting</span>
+      <span class="pill" id="savePill">Saved on this device</span>
+    </div>
+    <button type="button" class="btn ghost" id="casesBtn" aria-expanded="false" aria-controls="casesPanel">Cases</button>
+  </header>
+  <div class="cases" id="casesPanel" hidden></div>
+  <nav class="progress" aria-label="Parts of the interview">
+    <ol class="rail" id="rail"></ol>
+    <p class="railLabel" id="railLabel"></p>
+  </nav>
+  <div class="tabs" role="tablist" aria-label="View">
+    <button type="button" role="tab" id="tabTalk" aria-selected="true" aria-controls="paneTalk">Interview</button>
+    <button type="button" role="tab" id="tabFile" aria-selected="false" aria-controls="paneFile">Case file</button>
+  </div>
+  <main class="panes">
+    <section class="pane talk is-active" id="paneTalk" role="tabpanel" aria-labelledby="tabTalk">
+      <div class="thread" id="thread" aria-live="polite"></div>
+      <div class="strip actions" id="actions" hidden></div>
+      <div class="strip notice" id="notice" role="status" hidden></div>
+      <aside class="example" id="example" hidden></aside>
+      <form class="composer" id="composer">
+        <label class="vh" for="answer">Your answer</label>
+        <textarea id="answer" rows="3" placeholder="Type your answer, or press Speak and say it"></textarea>
+        <p class="live" id="live" aria-live="off" hidden></p>
+        <div class="tools">
+          <button type="button" class="btn mic" id="micBtn" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="1" width="5" height="9" rx="2.5" fill="currentColor"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5V15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span id="micLabel">Speak</span></button>
+          <label class="vh" for="lang">Spoken language</label>
+          <select id="lang">
+            <option value="">Browser language</option>
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="zh-CN">中文（普通话）</option>
+            <option value="es-ES">Español</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="fr-FR">Français</option>
+            <option value="ja-JP">日本語</option>
+          </select>
+          <button type="button" class="btn ghost" id="exampleBtn" aria-expanded="false" aria-controls="example">Example answer</button>
+          <span class="grow"></span>
+          <button type="button" class="btn ghost" id="skipBtn">Move on</button>
+          <button type="submit" class="btn primary" id="sendBtn">Send</button>
+        </div>
+        <p class="voiceTip" id="voiceTip" role="status" hidden></p>
+      </form>
+    </section>
+    <section class="pane file" id="paneFile" role="tabpanel" aria-labelledby="tabFile">
+      <div class="fileHead">
+        <div class="ttl"><h2 id="fileTitle">Case file</h2><p id="fileSub"></p></div>
+        <div class="fileBtns">
+          <span class="toast" id="toast" role="status"></span>
+          <button type="button" class="btn" id="copyMd">Copy as Markdown</button>
+          <button type="button" class="btn" id="dlMd">Download .md</button>
+          <button type="button" class="btn" id="dlJson">Download .json</button>
+        </div>
+      </div>
+      <div class="doc" id="doc"></div>
+    </section>
+  </main>
+</div>

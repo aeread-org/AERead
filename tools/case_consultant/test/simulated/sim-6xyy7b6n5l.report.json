@@ -1,0 +1,106 @@
+{
+  "turns": 35,
+  "parseFailures": 0,
+  "forcedMoves": 0,
+  "medianSeconds": 9.306,
+  "turnsPerPart": {
+    "meta": 1,
+    "decision": 4,
+    "parties": 4,
+    "information": 2,
+    "moves": 3,
+    "reveals": 2,
+    "accounting": 3,
+    "tension": 1,
+    "variation": 3,
+    "yardsticks": 3,
+    "worked": 2,
+    "numbers": 6,
+    "missed": 1
+  },
+  "clarifyingByKind": {
+    "scope": 1,
+    "missing": 7,
+    "aim": 3,
+    "vague": 1,
+    "cost": 1,
+    "error_rate": 1,
+    "range": 3,
+    "money": 1,
+    "contradiction": 1,
+    "source": 3,
+    "readback:missing": 6
+  },
+  "partsFiled": [
+    "decision",
+    "parties",
+    "information",
+    "moves",
+    "reveals",
+    "accounting",
+    "tension",
+    "variation",
+    "yardsticks",
+    "worked",
+    "missed"
+  ],
+  "numbers": {
+    "filed": 36,
+    "withoutRange": 10,
+    "withoutSource": 7,
+    "bySource": {
+      "data": 8,
+      "experience": 19,
+      "guess": 2
+    }
+  },
+  "facts": {
+    "total": 28,
+    "saidByExpert": 25,
+    "filedOfSaid": 25,
+    "saidNotFiled": [],
+    "neverSaid": [
+      "comes up 3 times a month",
+      "at most 2 inspections a week",
+      "newcomer vs professional $4,000"
+    ],
+    "filedButNeverSaid": []
+  },
+  "looseClaimChallenged": true,
+  "figuresFiledButNeverSaid": [],
+  "firstAudit": {
+    "contradictions": 6,
+    "wouldBeInvented": 8
+  },
+  "readbackRounds": 6,
+  "leadingNumbers": [
+    {
+      "n": "9",
+      "text": "A sound one nets about ten grand and a bad one loses about nine. To compare the checks with the stakes, what does a typical machine cost you at the hammer: the lowest, the usual and the highest you have bought?"
+    }
+  ],
+  "openQuestions": 14,
+  "readiness": [
+    "ok   Every element has a value or a range | Every part is filed.",
+    "ok   The tension names something that flips the best choice | A fleet seller with full service records and a price under about $45,000: he would bid without inspecting. Timing can also force it: with two days left he cannot book the inspector, so he has to pass or bid blind.",
+    "ok   Newcomer and professional are each written as a rule",
+    "ok   The outcome can be computed in money",
+    "open Every number has a range and a source | 36 numbers: 10 without a range, 7 without a source, 2 marked as a guess.",
+    "ok   Three worked situations, one of them where the obvious choice is wrong | 3 with a choice and a reason.",
+    "open No two answers disagree | 4 found by the audit, 0 worked situations where the stated rule and the stated choice differ.",
+    "ok   The expert has approved the read-back | Approved 2026-10-09."
+  ],
+  "finalAudit": {
+    "contradictions": 4,
+    "wouldBeInvented": 8,
+    "workedAgree": [
+      true,
+      true,
+      null
+    ]
+  },
+  "missed": [
+    "Financing: a slow machine costs more than the repair bill. About 9% a year is paid on the money tied up, so a bad machine sitting two or three months bleeds interest, and it uses up room under the $400,000 cap so he cannot buy something better. He says this never shows up on the repair list.",
+    "Correction from the expert: he earlier said the inspection catches pretty much everything, which was loose talk. It catches about seven in ten and misses the intermittent hydraulic faults."
+  ]
+}
