@@ -46,6 +46,7 @@ where a family keeps a case directory for each version, each is still run.
 | Line | Latest | Other versions | Still imported by siblings |
 |---|---|---|---|
 | `confirmatory_case_matrix` | v2: [`confirmatory_v2_case_matrix.py`](../../src/aeread_families/procurement_allocation/confirmatory_v2_case_matrix.py) | [v1](../../src/aeread_families/procurement_allocation/confirmatory_case_matrix.py) | v1 by 7 |
+| `inference_case_matrix` | v2: [`inference_v2_case_matrix.py`](../../src/aeread_families/procurement_allocation/inference_v2_case_matrix.py) | [v1](../../src/aeread_families/procurement_allocation/inference_case_matrix.py) | v1 by 2 |
 | `negotiation_worksheet_campaign` | v2: [`negotiation_worksheet_v2_campaign.py`](../../src/aeread_families/procurement_allocation/negotiation_worksheet_v2_campaign.py) | [v1](../../src/aeread_families/procurement_allocation/negotiation_worksheet_campaign.py) | none |
 | `qwen235b_constraint_analysis` | v2: [`qwen235b_constraint_v2_analysis.py`](../../src/aeread_families/procurement_allocation/qwen235b_constraint_v2_analysis.py) | [v1](../../src/aeread_families/procurement_allocation/qwen235b_constraint_analysis.py) | none |
 | `qwen235b_constraint_campaign` | v2: [`qwen235b_constraint_v2_campaign.py`](../../src/aeread_families/procurement_allocation/qwen235b_constraint_v2_campaign.py) | [v1](../../src/aeread_families/procurement_allocation/qwen235b_constraint_campaign.py) | v1 by 2 |
