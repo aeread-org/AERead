@@ -59,13 +59,15 @@ SUBJECTS: dict[str, dict[str, Any]] = {
         "max_cost_usd_per_trajectory": 2.0, "total_cost_ceiling_usd": {"gate": 2.0, "panel": 25.0},
         "gate_version": 2,
     },
-    # Not a subject anyone asked to rank: the same Claude Code route on a model the login could
-    # reach when Fable 5.1 could not (CLI-O-01), run as a one-world check that the route works.
+    # The same Claude Code route on the model the login could reach when Fable 5.1 could not
+    # (CLI-O-01). First a one-world check that the route works; then, on the owner's word of
+    # 2026-10-08, the panel. The gate cost $0.41 at list for nine actions, so eighteen worlds are
+    # about $7.40 and the ceiling leaves room for a wave of three at the per-trajectory limit.
     "claude_opus55": {
         "provider": "claude_code", "model": "claude-opus-5-5",
         "profile_id": "procurement_claude_code_opus55_v1",
         "pricing": TokenPricing(4.0, 0.20, 20.0, "anthropic_list_2026-09-22_claude-opus-5-5"),
-        "max_cost_usd_per_trajectory": 1.0, "total_cost_ceiling_usd": {"gate": 1.0, "panel": 6.0},
+        "max_cost_usd_per_trajectory": 1.0, "total_cost_ceiling_usd": {"gate": 1.0, "panel": 12.0},
     },
     "codex_sol61": {
         "provider": codex.PROVIDER, "model": "gpt-6.1-sol",
