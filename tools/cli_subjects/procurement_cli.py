@@ -36,6 +36,8 @@ from aeread.shared_runner.schemas import AgentProfile, RunSpec
 from aeread.shared_runner.task.execution import ClaudeCodePrintClient, TokenPricing, execute_plan_cell
 from aeread_families.procurement_allocation import model_campaign as mc
 from aeread_families.procurement_allocation import runner
+from aeread_families.procurement_allocation import inference_v2_case_matrix as inference_v2
+from aeread_families.procurement_allocation import inference_v2_prompt
 from aeread_families.procurement_allocation.strategy_scaffold import PROMPT_ID, STRATEGY_PROMPT, TREATMENT_ID
 
 import codex_exec_client as codex
@@ -44,6 +46,21 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 CASE_ROOT = REPOSITORY / "cases/procurement_allocation_v1/inference_v1/labeled"
 #: The world the gate plays: the first of the panel in file order.
 GATE_WORLD = "lead_time_long_is_good__capacity"
+
+#: A pack is a set of worlds; a prompt is what the buyer is told. The first runs
+#: were ``inference_v1`` under ``scaffold_v3`` and their identities carry neither
+#: name. Any other pairing names both, so a changed control is a new identity.
+PACKS: dict[str, dict[str, Any]] = {
+    "inference_v1": {"paths": lambda: sorted(CASE_ROOT.glob("*.json")), "gate_world": GATE_WORLD},
+    # The gate plays a world whose cheapest unrecorded listing is a bad supplier.
+    "inference_v2": {"paths": lambda: list(inference_v2.case_paths()), "gate_world": "moq_high_is_good__timing"},
+}
+PROMPTS: dict[str, dict[str, str]] = {
+    "scaffold_v3": {"prompt_id": PROMPT_ID, "text": STRATEGY_PROMPT, "treatment_id": TREATMENT_ID},
+    "neutral_v1": {"prompt_id": inference_v2_prompt.PROMPT_ID, "text": inference_v2_prompt.NEUTRAL_PROMPT,
+                   "treatment_id": inference_v2_prompt.TREATMENT_ID},
+}
+DEFAULT_ARM = ("inference_v1", "scaffold_v3")
 
 #: List prices, used as the sealed price of a call. Both CLIs here run on a
 #: subscription login, so nothing is charged per call: Claude Code reports a
@@ -83,14 +100,18 @@ CONTROLS = {
 }
 
 
-def campaign_id(subject: str, panel: str) -> str:
-    stem = f"procurement_allocation_inference_v1_{SUBJECTS[subject]['provider']}_{subject.split('_', 1)[1]}"
-    return f"{stem}_gate_v{SUBJECTS[subject].get('gate_version', 1)}" if panel == "gate" else f"{stem}_v1"
+def campaign_id(subject: str, panel: str, pack: str = DEFAULT_ARM[0], prompt: str = DEFAULT_ARM[1]) -> str:
+    who = f"{SUBJECTS[subject]['provider']}_{subject.split('_', 1)[1]}"
+    if (pack, prompt) == DEFAULT_ARM:
+        stem = f"procurement_allocation_inference_v1_{who}"
+        return f"{stem}_gate_v{SUBJECTS[subject].get('gate_version', 1)}" if panel == "gate" else f"{stem}_v1"
+    stem = f"procurement_allocation_{pack}_{prompt.split('_', 1)[0]}_{who}"
+    return f"{stem}_gate_v1" if panel == "gate" else f"{stem}_v1"
 
 
-def case_paths(panel: str) -> list[Path]:
-    paths = sorted(CASE_ROOT.glob("*.json"))
-    return [p for p in paths if p.stem == GATE_WORLD] if panel == "gate" else paths
+def case_paths(panel: str, pack: str = DEFAULT_ARM[0]) -> list[Path]:
+    paths = PACKS[pack]["paths"]()
+    return [p for p in paths if p.stem == PACKS[pack]["gate_world"]] if panel == "gate" else paths
 
 
 async def _claude_runner(arguments: tuple[str, ...], standard_input: bytes) -> tuple[int, bytes, bytes]:
@@ -120,10 +141,12 @@ async def discover(subject: str) -> Any:
     return await codex.CodexExecClient.discover()
 
 
-def build_setup(subject: str, case_path: Path, runtime: Mapping[str, str]) -> runner.ProcurementAllocationSetup:
+def build_setup(subject: str, case_path: Path, runtime: Mapping[str, str],
+                prompt: str = DEFAULT_ARM[1]) -> runner.ProcurementAllocationSetup:
     """``runner.build_openrouter_setup`` with a CLI model block instead of an OpenRouter route."""
     spec = SUBJECTS[subject]
-    template = runner.build_offline_setup(case_path=case_path, prompt=STRATEGY_PROMPT, prompt_id=PROMPT_ID)
+    told = PROMPTS[prompt]
+    template = runner.build_offline_setup(case_path=case_path, prompt=told["text"], prompt_id=told["prompt_id"])
     harness = MinimalChatHarness()
     runtime_id = "aeread.shared_runner.task.execution"
     profile_id = f"{spec['profile_id']}_procurement_allocation"
@@ -143,7 +166,7 @@ def build_setup(subject: str, case_path: Path, runtime: Mapping[str, str]) -> ru
                     "sampling_controls": {"temperature": "unavailable", "max_output_tokens": "provider_model_default"},
                 },
             },
-            "prompt": {"prompt_id": PROMPT_ID, "sha256": hashlib.sha256(STRATEGY_PROMPT.encode("utf-8")).hexdigest()},
+            "prompt": {"prompt_id": told["prompt_id"], "sha256": hashlib.sha256(told["text"].encode("utf-8")).hexdigest()},
             "runtime": {"kind": "python", "implementation": runtime_id, "version": "0.1.0"},
             "tools": [],
             "memory": {"mode": "disabled"},
@@ -201,12 +224,14 @@ def build_setup(subject: str, case_path: Path, runtime: Mapping[str, str]) -> ru
     )
 
 
-def model_plan(subject: str, panel: str, runtime: Mapping[str, str]) -> dict[str, Any]:
+def model_plan(subject: str, panel: str, runtime: Mapping[str, str],
+               pack: str = DEFAULT_ARM[0], prompt: str = DEFAULT_ARM[1]) -> dict[str, Any]:
     spec = SUBJECTS[subject]
-    cases = mc._case_records(case_paths(panel))
+    told = PROMPTS[prompt]
+    cases = mc._case_records(case_paths(panel, pack))
     plan = {
         "schema_version": "aeread.procurement_allocation_cli_plan/0.1",
-        "campaign_id": campaign_id(subject, panel),
+        "campaign_id": campaign_id(subject, panel, pack, prompt),
         "claim_status": "development_gate" if panel == "gate" else "development_pilot",
         "cases": [{"case_id": r["case_id"], "content_sha256": r["content_sha256"]} for r in cases],
         "independent_case_count": len(cases),
@@ -217,8 +242,8 @@ def model_plan(subject: str, panel: str, runtime: Mapping[str, str]) -> dict[str
         "provider_runtime": dict(runtime),
         "billing": "subscription login; cost is the list price of the tokens, not a charge",
         "pricing_id": spec["pricing"].pricing_id,
-        "prompt": {"prompt_id": PROMPT_ID, "sha256": hashlib.sha256(STRATEGY_PROMPT.encode("utf-8")).hexdigest(),
-                   "treatment_id": TREATMENT_ID},
+        "prompt": {"prompt_id": told["prompt_id"], "sha256": hashlib.sha256(told["text"].encode("utf-8")).hexdigest(),
+                   "treatment_id": told["treatment_id"]},
         "harness": "minimal_chat/1.0 (fixed transport; not an estimand)",
         "tools": "none: Claude Code with --tools \"\"; Codex with its acting features disabled, and a call that uses a tool is refused",
         "controls": {**CONTROLS, "temperature": "unavailable", "seed": "unavailable", "max_output_tokens": "provider default",
@@ -232,14 +257,18 @@ def model_plan(subject: str, panel: str, runtime: Mapping[str, str]) -> dict[str
                              "regret_to_upper_bound_usd", "violations"],
         "claim_scope": "development probe of a CLI subject on declared cases; one replicate a world, no model ranking",
     }
+    if (pack, prompt) != DEFAULT_ARM:
+        # The first runs' plans carry neither key and stay as they were written.
+        plan["pack"], plan["prompt_arm"] = pack, prompt
     plan["plan_sha256"] = hashlib.sha256(canonical_json_bytes(plan)).hexdigest()
     return plan
 
 
 async def run_cell(*, subject: str, run_root: Path, case_path: Path, replicate: int, client: Any,
-                   runtime: Mapping[str, str], semaphore: asyncio.Semaphore) -> dict[str, Any]:
+                   runtime: Mapping[str, str], semaphore: asyncio.Semaphore,
+                   prompt: str = DEFAULT_ARM[1]) -> dict[str, Any]:
     """``model_campaign._run_cell`` for a CLI provider; the row has the same fields."""
-    setup = build_setup(subject, case_path, runtime)
+    setup = build_setup(subject, case_path, runtime, prompt)
     cell = setup.plan.cells[0]
     directory = mc._safe_case_directory(setup.case.case_id, setup.case.content_sha256)
     evidence_root = run_root / "executions" / directory / f"seed_{replicate}"
@@ -306,11 +335,14 @@ async def run_cell(*, subject: str, run_root: Path, case_path: Path, replicate: 
     return row
 
 
-async def run(subject: str, panel: str, run_root: Path, *, resume: bool) -> dict[str, Any]:
+async def run(subject: str, panel: str, run_root: Path, *, resume: bool,
+              pack: str = DEFAULT_ARM[0], prompt: str = DEFAULT_ARM[1]) -> dict[str, Any]:
     mc._validate_operational_run_root(run_root)
+    if pack == "inference_v2" and prompt != "neutral_v1":
+        raise ValueError("inference_v2 is played under the neutral prompt; its facts are what the pack assumes")
     inner = await discover(subject)
     runtime = dict(inner.runtime_metadata)
-    plan = model_plan(subject, panel, runtime)
+    plan = model_plan(subject, panel, runtime, pack, prompt)
     run_root.mkdir(parents=True, exist_ok=True)
     plan_path = run_root / "model_plan.json"
     if plan_path.exists():
@@ -321,7 +353,7 @@ async def run(subject: str, panel: str, run_root: Path, *, resume: bool) -> dict
     else:
         mc._atomic_write_json(plan_path, plan)
     client = codex.LoggedClient(inner, run_root / "cli_calls.jsonl", subject=subject)
-    records = mc._case_records(case_paths(panel))
+    records = mc._case_records(case_paths(panel, pack))
     rows: list[dict[str, Any]] = []
     todo: list[tuple[Path, int]] = []
     for record in records:
@@ -349,7 +381,7 @@ async def run(subject: str, panel: str, run_root: Path, *, resume: bool) -> dict
             break
         rows.extend(await asyncio.gather(*(
             run_cell(subject=subject, run_root=run_root, case_path=case_path, replicate=replicate,
-                     client=client, runtime=runtime, semaphore=semaphore)
+                     client=client, runtime=runtime, semaphore=semaphore, prompt=prompt)
             for case_path, replicate in todo[start:start + width])))
     rows.sort(key=lambda row: (str(row["case_id"]), int(row["inference_seed"])))
     summary = mc.summarize_rows(rows, planned_trajectory_count=plan["planned_trajectory_count"],
@@ -365,15 +397,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subject", choices=sorted(SUBJECTS), required=True)
     parser.add_argument("--panel", choices=("gate", "panel"), required=True)
+    parser.add_argument("--pack", choices=sorted(PACKS), default=DEFAULT_ARM[0])
+    parser.add_argument("--prompt", choices=sorted(PROMPTS), default=DEFAULT_ARM[1])
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--resume", action="store_true")
     arguments = parser.parse_args()
     if not arguments.execute:
         runtime = dict(asyncio.run(discover(arguments.subject)).runtime_metadata)
-        print(json.dumps(model_plan(arguments.subject, arguments.panel, runtime), indent=2, sort_keys=True))
+        print(json.dumps(model_plan(arguments.subject, arguments.panel, runtime, arguments.pack, arguments.prompt),
+                         indent=2, sort_keys=True))
         return 0
-    artifact = asyncio.run(run(arguments.subject, arguments.panel, arguments.run_root, resume=arguments.resume))
+    artifact = asyncio.run(run(arguments.subject, arguments.panel, arguments.run_root, resume=arguments.resume,
+                               pack=arguments.pack, prompt=arguments.prompt))
     rows = artifact["rows"]
     print(json.dumps({"campaign_id": artifact["plan"]["campaign_id"], "halted": artifact["halted"],
                       "rows": [{k: row.get(k) for k in ("case_id", "status", "decision", "regret_to_upper_bound_usd",
