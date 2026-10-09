@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import shutil
 import time
 from collections import Counter
 from pathlib import Path
@@ -52,7 +53,19 @@ SUBJECTS: dict[str, dict[str, Any]] = {
         "provider": "claude_code", "model": "claude-fable-5-1",
         "profile_id": "procurement_claude_code_fable51_v1",
         "pricing": TokenPricing(10.0, 0.25, 50.0, "anthropic_list_2026-09-15_claude-fable-5-1"),
-        "max_cost_usd_per_trajectory": 2.0, "total_cost_ceiling_usd": {"gate": 2.0, "panel": 12.0},
+        # The Opus 5.5 gate cost $0.41 at list for nine actions; Fable's prices are 2.5 times Opus's,
+        # so a panel of eighteen is about $18 at list. The first gate identity holds one refused
+        # cell (CLI-O-01) and is never rerun, so the next gate is v2.
+        "max_cost_usd_per_trajectory": 2.0, "total_cost_ceiling_usd": {"gate": 2.0, "panel": 25.0},
+        "gate_version": 2,
+    },
+    # Not a subject anyone asked to rank: the same Claude Code route on a model the login could
+    # reach when Fable 5.1 could not (CLI-O-01), run as a one-world check that the route works.
+    "claude_opus55": {
+        "provider": "claude_code", "model": "claude-opus-5-5",
+        "profile_id": "procurement_claude_code_opus55_v1",
+        "pricing": TokenPricing(4.0, 0.20, 20.0, "anthropic_list_2026-09-22_claude-opus-5-5"),
+        "max_cost_usd_per_trajectory": 1.0, "total_cost_ceiling_usd": {"gate": 1.0, "panel": 6.0},
     },
     "codex_sol61": {
         "provider": codex.PROVIDER, "model": "gpt-6.1-sol",
@@ -70,7 +83,7 @@ CONTROLS = {
 
 def campaign_id(subject: str, panel: str) -> str:
     stem = f"procurement_allocation_inference_v1_{SUBJECTS[subject]['provider']}_{subject.split('_', 1)[1]}"
-    return f"{stem}_gate_v1" if panel == "gate" else f"{stem}_v1"
+    return f"{stem}_gate_v{SUBJECTS[subject].get('gate_version', 1)}" if panel == "gate" else f"{stem}_v1"
 
 
 def case_paths(panel: str) -> list[Path]:
@@ -78,9 +91,30 @@ def case_paths(panel: str) -> list[Path]:
     return [p for p in paths if p.stem == GATE_WORLD] if panel == "gate" else paths
 
 
+async def _claude_runner(arguments: tuple[str, ...], standard_input: bytes) -> tuple[int, bytes, bytes]:
+    """The kernel's subprocess runner, with the CLI's own reason carried to where the adapter reads it.
+
+    On a non-zero exit the adapter reports standard error, and Claude Code puts the reason in the
+    JSON on standard output (RN-T-06). This copies it across so a refused cell says why.
+    """
+    returncode, stdout, stderr = await execution_module._run_subprocess(arguments, standard_input)
+    if returncode != 0 and not stderr.strip():
+        try:
+            payload = json.loads(stdout)
+            reason = f"{payload.get('result')} (api_error_status {payload.get('api_error_status')})"
+        except (ValueError, AttributeError):
+            reason = stdout.decode("utf-8", errors="replace")[-400:]
+        stderr = reason.encode("utf-8")
+    return returncode, stdout, stderr
+
+
 async def discover(subject: str) -> Any:
     if SUBJECTS[subject]["provider"] == "claude_code":
-        return await ClaudeCodePrintClient.discover()
+        found = await ClaudeCodePrintClient.discover()
+        return ClaudeCodePrintClient(
+            executable=Path(shutil.which("claude")).resolve(), runtime_version=found.runtime_version,
+            runtime_sha256=found.runtime_sha256, command_runner=_claude_runner,
+        )
     return await codex.CodexExecClient.discover()
 
 
