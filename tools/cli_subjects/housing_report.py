@@ -25,6 +25,7 @@ V14 = {
     "gpt-6 luna (v14)": "housing_lemons_price_confirmatory_v14_gpt6_luna",
 }
 CLI = {
+    "claude code opus 5.5": housing_cli.campaign_id("claude_opus55", "panel"),
     "codex sol 6.1": housing_cli.campaign_id("codex_sol61", "panel"),
     "claude code opus 5.5 (gate)": housing_cli.campaign_id("claude_opus55", "gate"),
     "claude code fable 5.1": housing_cli.campaign_id("claude_fable51", "panel"),
@@ -69,19 +70,23 @@ def main() -> int:
               f"{sum(x['cost_usd'] for x in r):9.2f}")
     cli = [n for n in rows if n in CLI and len(level[n]) >= 5]
     for name in cli:
-        print(f"\n{name} minus each v14 model, same worlds, primary measure")
-        for other in V14:
+        print(f"\n{name} minus each other subject, same worlds, primary measure")
+        for other in [n for n in cli if n != name and cli.index(n) > cli.index(name)] + list(V14):
             if other not in level:
                 continue
             both = sorted(set(level[name]) & set(level[other]))
             diffs = [level[name][s] - level[other][s] for s in both]
             higher = sum(d > 0 for d in diffs), sum(d < 0 for d in diffs)
             print(f"  minus {other:26s} {fmt(pub._interval(diffs))}; higher on {higher[0]}, lower on {higher[1]}, level on {len(diffs) - sum(higher)}")
+        print(f"\n{name} minus the scripted rule, by landlord arm, per cell")
+        for arm in pub.ARMS:
+            d = [r[pub.PRIMARY] - r["reference_net"] for r in rows[name] if r["arm"] == arm and r["status"] == "completed"]
+            print(f"  {arm:10s} {fmt(pub._interval(d)):30s} below the rule in {sum(x < -0.5 for x in d)} cells, above in {sum(x > 0.5 for x in d)}, equal in {sum(abs(x) <= 0.5 for x in d)}")
         print(f"\n{name} by stratum (worlds with both arms)")
         for stratum in ("favourite_is_lemon", "favourite_is_sound"):
             lv = pub.per_world(rows[name], pub.PRIMARY, stratum=stratum)
             line = f"  {stratum:20s} {fmt(pub._interval(list(lv.values()))):28s} rule {statistics.fmean(reference[s] for s in lv):.0f}"
-            for other in V14:
+            for other in [n for n in cli if n != name] + list(V14):
                 if other in rows:
                     ov = pub.per_world(rows[other], pub.PRIMARY, stratum=stratum)
                     both = sorted(set(lv) & set(ov))
