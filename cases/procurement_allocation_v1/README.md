@@ -530,3 +530,20 @@ python -m aeread_families.procurement_allocation.information_case_matrix --surfa
 `confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
 generated after that prompt was frozen and its development result read.
 
+
+`inference_v2/` is an eighteen-world panel on whom to verify. One of the two
+components carries a public marketplace record on every listing and the other
+has none. One listing attribute separates good from bad sellers on both
+components; the other two are crossed with quality, so the cheapest unrecorded
+listing is good in nine worlds and bad in nine. Five actions buy one verified
+supplier per component, and an award on a bad supplier costs about 60 percent of
+the bound, not all of it. It is played under `inference_v2_prompt.NEUTRAL_PROMPT`,
+which states the marketplace and prescribes no procedure. A policy that reads
+the record and carries it to the unrecorded component solves 18 of 18; the
+record plus any fixed listing rule solves 8 to 10 (`pack.json`). It exists
+because the two halves of `inference_v1` were its prompt's cost ranking being
+right or wrong (incident row P-D-15). Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.inference_v2_case_matrix --write
+```
