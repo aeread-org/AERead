@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check a case design file written by the case-from-history skill.
 
-    check_case.py <file.case.md> [--deny <digest folder>/masked-originals.txt]
+    check_case.py <file.case.md> --deny <digest folder>/masked-originals.txt
 
 Malformed (exit 1): a heading missing or out of order, a filed statement without a source mark, or
 anything sensitive: a credential, an email, a link, a home folder, a network address, a phone- or
@@ -47,10 +47,11 @@ def main(path: str, deny: list[str]) -> int:
     for what, rx in SENSITIVE:
         hit = rx.search(text)
         if hit:
-            bad.append(f"sensitive: {what} in the file ({hit.group(0)[:4]}...)")
+            bad.append(f"sensitive: {what} in the file, line {text.count(chr(10), 0, hit.start()) + 1}")
     for term in deny:
-        if len(term) >= 4 and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I):
-            bad.append(f"sensitive: a masked original appears in the file ({term[:3]}..., {len(term)} chars)")
+        rx = re.escape(term) if len(term) >= 4 else r"(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])"
+        if re.search(rx, text, re.I):
+            bad.append(f"sensitive: a masked original appears in the file (entry {deny.index(term) + 1} of the deny list, {len(term)} chars)")
     filed = 0
     for h in SECTIONS:
         b = body.get(h, "")
@@ -91,8 +92,18 @@ if __name__ == "__main__":
     deny: list[str] = []
     if "--deny" in args:
         i = args.index("--deny")
-        deny = [t.strip() for t in Path(args[i + 1]).expanduser().read_text().splitlines() if t.strip()]
+        if i + 1 >= len(args):
+            raise SystemExit("--deny needs the path to masked-originals.txt")
+        source = Path(args[i + 1]).expanduser()
+        if not source.is_file():
+            raise SystemExit(f"--deny: {source} does not exist; the check cannot pass without it")
+        deny = [t.strip() for t in source.read_text().splitlines() if t.strip()]
         del args[i:i + 2]
+    elif "--no-deny" in args:
+        args.remove("--no-deny")
+        print("  warning   run without the deny list: only pattern checks were made, masked names were not looked for")
+    else:
+        raise SystemExit("give --deny <digest folder>/masked-originals.txt (or --no-deny to check patterns only, which does not look for masked names)")
     if len(args) != 1:
         raise SystemExit(__doc__)
     raise SystemExit(main(args[0], deny))
