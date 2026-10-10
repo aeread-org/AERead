@@ -21,7 +21,9 @@ a stranger. Three layers, all required:
    tokens and the user's login name become tags such as `[email]`.
 2. **You mask what only a reader can recognise.** Before step 2, ask the user
    once: "Which names should never appear: people, your employer, clients,
-   suppliers, products, projects?" Pass each with `--mask`. In the case file,
+   suppliers, products, projects?" (This counts as one question of the
+   budget; with a budget of 0, skip it and generalise every proper name.)
+   Pass each with `--mask`. In the case file,
    refer to everyone by role ("the buyer", "the incumbent supplier", "Client
    A"), to firms by kind ("a mid-size contract manufacturer"), and to internal
    systems, repositories, tickets and files by what they are ("the order
@@ -50,30 +52,53 @@ possibly sensitive: <what kind of thing>", so the user decides.
 
 `SKILL_DIR` below is the folder this file is in.
 
-## How many cases
+## How many cases: as many as the history holds, within the person's time
 
-The first argument is the number of cases to capture, for example
-`/case-from-history 3`. With no number, capture **one**. The most in one run
-is **five**; if the user asks for more, do five and say so. Any other
-arguments are a topic, a working folder or session ids.
+Reading the history costs the person nothing. Answering questions costs them
+time. So the number of cases is not fixed: **capture every decision that
+qualifies in step 3, and limit the questions, not the cases.**
 
-One case file holds one decision. Two candidates are the same decision if
-they share the options and the hidden thing, even when the sessions differ:
-merge them into one case with more evidence, never two files. If the history
-holds fewer good candidates than the number asked for, write the ones it
-holds and say how many were found and why the rest did not qualify. Never pad
-the count with a routine task or a second version of the same decision.
+**The question budget.** Before asking anything, tell the person how many
+cases you found and ask once how much time they have: about 10 minutes (8
+questions), 20 minutes (15 questions, the default if they do not choose), or
+40 minutes (30 questions). A first argument that is a number of minutes sets
+it without asking, for example `/case-from-history 20`; `0` means ask nothing.
+The budget covers the whole run, across all cases, and includes the question
+about names to mask and every follow-up. Count each question you put.
 
-When capturing several:
+**Spending it.**
 
-1. Step 3 ranks the candidates and proposes the top N; the user confirms or swaps.
-2. Do steps 4 to 7 for one case completely before starting the next, so each
-   file is finished and checked on its own.
-3. Ask follow-up questions case by case, naming the case each time. Facts
-   about the expert (the first section) are asked once and reused.
-4. After the last file, write `cases-index.md`: one line per case with its
-   file name, the decision in one sentence, sections filed of twelve, and the
-   number of open questions.
+1. File every case from the history first, with no questions, and write each file.
+2. List every gap across all cases and rank them. Highest first: a gap that
+   stops the case being built at all (no second option, nothing hidden, no
+   outcome in money, no flip level), then error rates, then ranges, then the rest.
+3. Ask one question at a time in that order. Prefer a question whose answer
+   serves several cases, and ask facts about the person once and reuse them.
+   Keep one case in front of the person at a time: finish the questions you
+   mean to ask about it before moving to the next.
+4. At most four questions on any one section, and at most half the budget on any one case.
+5. When the budget is spent, stop. Do not ask for more time. Say how many
+   questions were asked, what is still open per case, and that running the
+   skill again on a case file continues from its open questions.
+
+Stop early if the person says "skip", "enough" or "just write it", or if their
+answers shorten to a word or two twice in a row: that is the burden showing.
+
+**What does not change.** One case file holds one decision. Two candidates are
+the same decision if they share the options and the hidden thing, even when
+the sessions differ: merge them into one case with more evidence. Never pad
+with a routine task. A case with many open questions is still worth writing;
+its file says what a builder would have to invent. The ceiling is twelve
+cases in one run, because past that the person can no longer check the
+read-backs; if more qualify, write the twelve that recur most and list the rest.
+
+After the last file, write `cases-index.md`: one line per case with its file
+name, the decision in one sentence, sections filed of twelve, open questions,
+and questions asked of the person.
+
+**Continuing a case.** If an argument is an existing `.case.md`, do not read
+the history again: take its open questions, ask them within the budget, mark
+the answers `[asked <date>]`, and rewrite the file.
 
 ## 1. Choose the sessions
 
@@ -86,8 +111,8 @@ Show the user the list as printed (it is masked the same way).
 Add `--project <text>` to keep one working folder, `--tool claude` or
 `--tool codex` for one tool. Show the user the list and agree which sessions to
 read. If they named a topic or passed session ids as arguments, use those and
-skip the question. Read at most eight sessions for one case, and at most
-sixteen in a run that captures several.
+skip the question. Read at most sixteen sessions in one run; choosing them
+does not count against the question budget.
 
 ## 2. Read them
 
@@ -103,17 +128,18 @@ on what was actually run, repeat with `--with-commands`.
 
 ## 3. Find the decision
 
-List up to eight candidate decisions you see in the history. A good candidate:
+List every candidate decision you see in the history. A good candidate:
 
 - was faced more than once, or will be again;
 - had at least two real options, one of which is the obvious one;
 - had something the user could not see when choosing, and a way to find out that cost time or money;
 - ended in an outcome that can be put in money.
 
-Routine instructions ("fix this test") are not decisions. Rank the candidates
-by how many of the four points each meets and how often it recurs. Show each
-in one line with the session and turn it comes from, recommend the top N for
-the number asked, and let the user confirm or swap.
+Routine instructions ("fix this test") are not decisions. Keep every candidate
+that meets at least three of the four points; rank them by how many points
+each meets and how often it recurs. Show each in one line with the session
+and turn it comes from, and let the person drop any they do not want. This
+confirmation is free and does not count against the question budget.
 
 ## 4. File what the history says
 
@@ -152,16 +178,17 @@ in the reference. Then follow up on the answer:
 - a rule described as feel or judgment: ask what they look at first and what they do when they see it;
 - an outcome in reputation or trust: ask what it costs when it goes wrong.
 
-At most four follow-ups per section, then move on and leave the rest as open
-questions. Say what you already found before asking, so the user corrects
+Stay inside the question budget set at the start: at most four follow-ups
+per section, then move on and leave the rest as open questions. Say what you already found before asking, so the user corrects
 instead of repeating: "From the 3 October session I have the test at about
 $250 and eight days. Out of ten bad suppliers, how many would it catch?" If
 the user says "skip", "don't know" or "just write it", stop asking and write
 the file with the gaps listed. A guess marked as a guess is useful; do not
 press a guess for precision.
 
-End with the question the template cannot ask: "What matters in this decision
-that I have not asked about?"
+If one question of the budget is left for a case, spend it on the one the
+template cannot ask: "What matters in this decision that I have not asked
+about?"
 
 ## 6. Check the rule against the situations
 
