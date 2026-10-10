@@ -226,6 +226,550 @@ the 299 of 300 generated seeds with `U > 0` are: naive 0.847 (sd 0.122) and adap
 0.835 (sd 0.127). These establish executable within-case comparisons, not universal
 scores or evidence that the suite is saturated.
 
+## 5c. Refusal under adverse selection: the lemons world
+
+`make_lemons_world` (`lemons.py`) is the pinned bid world plus quality. A declared
+`lemon_share` of the listings, rounded half up to an exact `lemon_count`, are lemons
+that post the same ask as sound units. A lemon is worth `lemon_loss` less to every
+tenant and costs its landlord `lemon_loss` less (floored at zero), so a lemon lease
+carries the surplus of a sound one and the welfare oracle is blind to quality by
+construction: a lemon signed at the ask still adds `value - cost` to welfare while
+the tenant seat loses. That is why this world is not scored on welfare. It is the
+first of the extensions in the economic-primitives design (refusal under adverse
+selection); solicitation and a concession schedule for scripted landlords, which
+that design also names, are not built here.
+
+**Phases.** `inspect -> contact -> respond -> commit`, one new phase per round. In
+`inspect` each unmatched tenant may pay `inspection_cost` to learn one open listing's
+quality (`{"decision": "inspect", "listing_id": 2}` or pass). The result is private
+to that tenant and persists across rounds; an invalid, leased, or repeated request is
+a pass that costs nothing (`unknown_listing`, `unavailable_listing`,
+`already_inspected`). The other three phases are the bid world's. The bid world keeps
+its three phases, its state bytes and its `economics()` unchanged, so every sealed
+campaign replays as before; the `lemons` payload adds `lemon_share`, `lemon_loss` and
+`inspection_cost`, and the plugin refuses either payload shape with the other's fields.
+
+**Information.** A tenant sees `private_values_if_sound`, the declared
+`lemon_count`, `lemon_share`, `lemon_loss` and `inspection_cost`, and its own
+`inspections`; never a true value or a quality it has not paid for. A landlord sees
+its own listing's `quality` beside its private cost. The tenant prompt states the
+objective in one sentence: value minus rent minus inspection spend, and zero minus
+inspection spend if nothing is signed.
+
+**Endpoint.** The primary estimand is the principal's outcome, `tenant_net_payoff`:
+the sum over tenants of signed value minus signed rent minus inspection spend, leaf
+`housing_tenant_net_payoff_leaf`, scorer `housing_lemons_outcome_v1`. Its bracket is
+`L = 0` (the `pass` policy), the comparison baseline `B` (`sign_anything`), the
+scripted reference `R` (`inspect_then_sign`), and `U`, the same max-weight matching
+on true surplus, now read as the most the tenants could capture under full
+information. `within_case_score = tenant_net_payoff / U` and is negative when the
+tenants lose. Welfare net of inspection spend, per-seat payoffs, `ir_violations` and
+`wasted_contacts` are reported as secondaries, as are `inspection_count`,
+`inspection_spend`, `lemon_signings` and `uninspected_lemon_signings`.
+
+**Abstention correctness.** Every hold a tenant faces at commit is a refusal
+decision, including a hold it lets expire. The decision is correct when the tenant
+signed and its expected value covered the rent, or declined and it did not. Expected
+value is the true value once inspected and otherwise
+`value_if_sound - p * lemon_loss`, with `p` the tenant's own posterior,
+`(lemon_count - lemons it has found) / (listings it has not inspected)`. The rule
+judges the decision against the information set, not the outcome: signing an
+uninspected unit that turns out sound is still wrong when the pooled expectation was
+below the rent. `abstention_correctness_rate` is null when no hold was faced.
+
+**Scripted tenant policies.** Three, each a function of the tenant observation alone,
+so the offline gate and the runner's scripted provider run the same code
+(`lemons.TENANT_POLICIES`, selected by the sealed model id
+`housing_scripted_tenant_<policy>_v1`):
+
+| policy | inspect | contact | commit |
+|---|---|---|---|
+| `sign_anything` | never | ask + 1 on the open listing with the largest value-if-sound gain | sign any hold at or below value-if-sound |
+| `pass` | never | never | pass |
+| `inspect_then_sign` | the best uninspected open listing whose gain, weighted by its chance of being sound under the posterior, exceeds the fee | ask + 1 on the best listing it has verified sound | sign only a verified-sound hold at or below its value |
+
+The legacy `housing_scripted_tenant_v1` plays the bid world only; the provider refuses
+a model id it does not know or a policy paired with the wrong world.
+
+**Admission.** A lemons world is admitted only when the ordering the design asks
+for holds on it with declared margins, normalized by `U`
+(`lemons.DEFAULT_ADMISSION_RULE`): at least one lemon and one sound listing, `U > 0`,
+`B / U <= -0.05`, `R / U >= 0.05`, and `(R - B) / U >= 0.25`. Over world seeds 0 to
+299 at six tenants, four listings and four rounds, with `python -m
+aeread_families.housing.lemons --seeds 300` and the flags named in the table:
+
+| lemon share | lemon loss | inspection cost | admitted | ordering holds | median `B / U` | median `R / U` |
+|---|---|---|---|---|---|---|
+| 0.5 | 1000 | 25 (default) | 0.760 | 0.857 | -0.486 | 0.179 |
+| 0.5 | 1500 | 25 | 0.813 | 0.893 | -1.083 | 0.179 |
+| 0.5 | 800 | 25 | 0.540 | 0.737 | -0.251 | 0.179 |
+| 0.5 | 1000 | 50 | 0.327 | 0.517 | -0.486 | 0.016 |
+| 0.5 | 1000 | 10 | 0.897 | 0.940 | -0.486 | 0.289 |
+
+The inspection fee is the lever that decides whether the scripted reference clears
+its margin, because six tenants searching the same four listings pay for about twelve
+inspections between them; the lemon loss is the lever on how far sign-anything falls.
+Every exclusion is named per world (`failed_requirements`), and a world that fails is
+excluded, never edited.
+
+**Round budget (ruling, 2026-09-25): new lemons identities use 3 rounds.** The first
+two identities kept the bid world's pinned 4, which was never chosen for this world.
+Over seeds 0-299 the scripted bracket is the same at 3, 4 and 6 rounds (admitted
+75%, 76%, 76%; ordering holds on 85%, 86%, 86%; median `R / U` 0.179 at each), and
+every world of the v2 pack is admitted at 3 with the same `R / U` and `B / U` as at 4.
+In the v2 runs the fourth round held about 20% of the model calls (Gemini 692 of
+3,261, GLM 638 of 3,137) and 1 and 5 of the 92 and 104 leases. Two rounds is not
+the default: admission falls to 68% and ordering to 78%, two v2 pack worlds fail,
+and a tenant can inspect at most two of four listings, so the world would test
+deciding under a deadline rather than refusing a lemon; that is a separate arm if
+it is wanted. The round count is a frozen control, so a 3-round run is a new
+identity, compared within itself and not against v2.
+
+**Reproduce.** `pytest tests/test_housing_lemons.py -q` covers the world, the market,
+the policies, the gate, the plugin and the plan-to-receipt-to-replay path;
+`python -m aeread_families.housing.runner --world-kind lemons --tenant-policy
+inspect_then_sign --run-root runs/lemons_smoke` runs one scripted cell. A live tenant
+takes `--provider openrouter --route google_gemini_38_flash` or `--route xai_grok_47`.
+
+### Exploratory price negotiation probe
+
+`housing_lemons_price_probe_v1` is a separate, provider-free experiment over the
+same `HousingMarket` inspection, offer, response, and commit transitions. It does
+not alter the frozen refusal campaigns or their scores. Each tenant inspects one
+open listing per round, offers $100 below the quality-adjusted ask for a known
+listing, and signs a counteroffer only when its inspected value covers that rent.
+The fixed landlord accepts an opening offer at or above its target; otherwise it
+counters at its reservation cost plus $25, capped at ask. A tenant can sign or
+walk that hold, but cannot continue negotiating the same listing after walking.
+
+The probe runs the same seeded mixed-quality worlds twice. In the `true_cost` arm,
+lemon landlords reserve against their lower true cost. In the `pooled` arm, both
+qualities use the sound-equivalent reservation; a counteroffer then does not
+mechanically reveal quality. The target rule is fixed in both arms, and the
+tenant receives only its own observation. This is a mechanics and information
+design comparison, not a test of model bargaining ability.
+
+Run `PYTHONPATH=src python -m aeread_families.housing.price_bargaining --seeds 30`
+for seeds 100000–100029, six tenants, four listings, three rounds, 50% lemons,
+and a $1,000 quality loss. The output retains listings, signings, counteroffers,
+signed rents, and signed rent relative to the listing's posted ask by quality.
+For this fixed 30-world development panel:
+
+| Landlord reservation | Quality | Signed / listings | Mean signed rent | Mean signed rent − ask | Signed after counter |
+|---|---|---:|---:|---:|---:|
+| true cost | sound | 56 / 60 | $2,251.95 | −$27.19 | 56 |
+| true cost | lemon | 59 / 60 | $1,407.52 | −$1,028.00 | 59 |
+| pooled | sound | 58 / 60 | $2,242.63 | −$27.18 | 58 |
+| pooled | lemon | 0 / 60 | undefined | undefined | 0 |
+
+The true-cost signed discount gap is $1,000.81 (sound minus lemon rent-minus-ask).
+Raw mean rents mix different posted asks, and signed prices condition on a lease;
+therefore the sign rates and eligible-listing denominators belong beside every
+price comparison. The near-$1,000 gap is mostly a consequence of the declared
+$1,000 cost shift and this fixed concession rule. No model tenant was run and no
+statistical population claim is made from this selected panel. A future scored
+model-tenant campaign needs its own identity and reference outcomes recomputed
+under this landlord; reusing the refusal campaign's reference would mis-score it.
+
+The first versioned model-tenant development pilot is declared in
+`configs/housing_lemons_price_pilot_v1.json` and run by
+`aeread_families.housing.price_campaign`. It pairs four worlds across the
+true-cost and pooled arms (eight cells, one inference seed, three rounds), pins
+Gemini 3.8 Flash on Google AI Studio, and assigns a $0.30 tenant ceiling per
+cell and a $3 total stop ceiling. `--run-root <path>` performs the provider-free
+eight-cell preflight; adding `--live` uses the pinned paid route. The driver
+writes one result per cell, verifies the receipt and state-and-score replay,
+halts on its first operational failure, and leaves untouched cells unattempted.
+The price table conditions on completed cells and retains the eligible-listing
+denominator. This small panel supports a diagnostic only; there is no model
+ranking or population interval.
+
+Two further identities, `housing_lemons_price_pilot_v2_glm53_flash_deepinfra` and
+`housing_lemons_price_pilot_v2_gpt56_luna`, put the same four worlds and both arms
+in front of GLM 5.3 Flash (DeepInfra, fp4) and GPT-5.6 Luna (OpenAI), so the models
+see identical lemon draws. Luna accepts no temperature or top_p; its profile
+declares `sampling_controls.temperature = "unavailable"` and sends neither, and a
+test asserts exactly what each identity puts on the wire. Their route pins live in
+`price_campaign.py` and not in `runner.py`, because a plan's implementation digests
+hash `runner.py`, `environment.py`, `lemons.py` and `price_bargaining.py`, and
+editing any of them moves the run-plan id of every sealed Housing identity (HL-T-04;
+`test_sealed_v1_plan_identity_survives_edits_to_this_module` pins the sealed ids).
+The DeepInfra identity ran once and failed (HL-O-08): its fp4 endpoint returns the
+answer in `reasoning` with `content` null on most calls, so a cell of about 57 calls
+cannot complete under this client. The same model on Parasail
+(`housing_lemons_price_pilot_v2_glm53_flash_parasail`, same controls) and Luna each
+completed all eight cells live ($0.051 and $0.105, no operational failure), as
+unpublished development pilots in local run roots. On the same four worlds all three
+models signed blind lowballs that the landlord's reply had already marked as lemons
+(2, 2 and 4 signings; expected loss $833, $1,333 and $1,833 over the four `true_cost`
+worlds for Gemini, GLM and Luna), while the realized `true_cost` minus `pooled`
+contrast changes sign by model and by world (per-world spreads of 160 to 420), so the
+arm effect is not established; the reply leak is the consistent finding.
+
+K=2 identities on the same four worlds (`housing_lemons_price_pilot_v3_glm53_flash_parasail_k2`
+and `..._v3_gpt56_luna_k2`, 16 cells each, $0.101 and $0.214, no operational failure)
+measure the replicate noise the K=1 runs could not. Pooling each model's K=1 and K=2
+cells as three replicates is an exploratory analysis across identities
+(`price_endpoint --pool`, `status: exploratory_pool`), not part of either identity's
+evidence. Within one world, arm and model, net payoff moves by a standard deviation of
+about $266 (GLM) and $200 (Luna) between runs. GLM's arm contrast is dominated by
+replicate noise (realized +72, replicate SD 402 against a world SD of 187, so no
+world-level signal is detectable); Luna's is dominated by the world (realized -110,
+world means +493, -319, -561, -52, a strong world-by-arm interaction). Neither is
+distinguishable from zero over four worlds (SE 94 and 226). The consistent finding is
+the reply leak: Luna signed a blind lemon the reply had already marked in 10 of 12
+`true_cost` cells ($569 expected loss per cell), GLM in 4 of 12 ($250).
+
+The 60-world panels (`housing_lemons_price_pilot_v4_glm53_flash_parasail_w60` and
+`..._v4_gpt56_luna_w60`, seeds 100000-100059, K=1, 118 and 114 completed cells,
+$0.81 and about $1.9) were sized to detect a $150 arm contrast. Four cells ended in
+rate-limit or timeout failures caused by the session's parallel workers (HL-O-09,
+HL-O-10) and stay missing, so GLM has 59 complete world pairs and Luna 57. With worlds
+as the resampling unit, `true_cost` minus `pooled`: GLM realized -49 [-148, +53],
+Luna realized -176 [-269, -80]; at the stated odds +208 [112, 308] and +266 [181, 349];
+at the reply-conditioned odds -150 [-244, -55] and -278 [-371, -182]. A blind signing the
+landlord's reply had already marked as a lemon occurred in 59% of GLM's and 82% of Luna's
+`true_cost` worlds (never under `pooled`), $359 and $544 expected loss per cell; Luna
+did it alone in 18 worlds against 6 for GLM (sign test p = 0.023). The stated-odds
+measure ranks `true_cost` above `pooled` and the realized and reply-conditioned measures
+rank it below, because a lowball the landlord accepts looks worth its price at the prior
+and is a certain lemon once the reply is read. The favourite's quality (the covariate,
+about 50/50 by chance) does not separate the contrasts. The four-world K=3 estimates
+(GLM +72, Luna -110) were inside their noise; GLM's had the wrong sign.
+
+**Same-state disclosure probe** (`price_disclosure_probe.py`; a diagnostic, not evidence).
+The commit-phase states the 60-world panels recorded are replayed unchanged with the
+original instructions, a qualitative hint, and an explicit statement that a sound listing's
+landlord never concedes more than $250 below the ask. For blind `true_cost` holds more than
+$250 below ask, signing falls from 72% to 7% (GLM) and from 91% to 13% (Luna); holds within
+$250, informed holds and `pooled`-arm holds do not move. The stated $250 is true but loose:
+these worlds draw a sound cost $20 to $80 under the ask (`make_bid_world`), so no sound landlord
+agrees to more than $55 below it, and holds $55 to $250 below the ask also prove a lemon; they
+sat in the "within $250" group, which the disclosure did not name (HL-J-09). Both models therefore discount for
+adverse selection when told how, and the panels' exposure is a disclosure gap, not a
+reasoning one. Turning the disclosure into an identity needs a tenant prompt with its own id,
+which lives in `runner.py`; editing that file moves every sealed Housing plan id (HL-T-04).
+
+**The price pilot's ex-ante endpoint** (`price_endpoint.py`). Realized net payoff
+mixes the tenant's decisions with the lemon draw, and the `true_cost` landlord adds a
+third thing: it reserves on a lemon's own cost, so a hold below the lowest rent a sound
+listing's landlord would take proves the listing a lemon, while the tenant's stated
+odds do not move. Each commit decision is scored at the stated odds (the
+`lemons_gap` decomposition: informed leases, blind good and bad bets, lemon draws,
+inspection spend, which sums exactly to the realized net) and at the
+response-conditioned odds, where such a hold is a certain lemon; the difference is the
+reply leak. On the Gemini pilot the `true_cost` arm looks better than `pooled` by
++$129 per world at the stated odds and worse by $79 realized, because in two worlds a
+blind lowball was accepted and the acceptance had already said lemon ($500 and $333 in
+expectation). The "lemon draw" in that arm is therefore selection by the landlord's
+reply, not luck, and a luck-removed score at stated odds is biased there. The
+response-conditioned score is an evaluator's benchmark: the floor uses the sound cost,
+which no tenant sees.
+
+**Quality-blind admission and a declared stratum** (`lemons_design.py`, HL-D-03). The
+favourite's quality is a declared stratum; a seed is admitted only if the sealed rule
+passes under both strata, so every admitted world appears in both and the stratum
+contrast is paired within the world. Built and tested, wired to no contract: a new
+identity must declare it, and must declare that blind admission shifts the pack toward
+less contested favourites (41% of seeds with a five-or-six-tenant favourite survive,
+against 69% for three or four).
+
+**Status.** Environment, endpoint, gate and scripted bracket are implemented and
+tested. No live result is claimed: the only live cells so far are a development probe
+from a local run root, recorded in the incident log (HL-O-01, HL-T-01). The first
+campaign identity on this world, the descriptive single-route pilot
+`housing_lemons_refusal_pilot_v1`, is specified in the [QC profile](qc.md) §20.
+
+### One deciding tenant and outside demand
+
+The six-tenant price panels measured mostly who won a contested listing (HL-D-04): a
+tie-break by seat number, the scripted rivals' one-dollar overbid, and, with six sampled
+copies, an opening round that already differed between the two landlord arms. The
+outside-demand pilot (`price_outside_demand.py`) keeps one deciding tenant, seat 0, and
+replaces the rivals with a declared rule: at the end of every round each open listing the
+tenant made no offer on is taken with probability 0.5, sound or lemon alike, on a
+schedule the world fixes, so both landlord arms and every model meet the same departures.
+A listing the tenant bid on cannot be taken in that round. The tenant is told the rule.
+The worlds are the 60 of the earlier panels (seeds 100000-100059), so the asks, the
+lemons and seat 0's values are unchanged.
+
+`housing_lemons_price_pilot_v10_glm53_flash_parasail_outside_w60` and
+`..._v10_deepseek_v4_flash_parasail_outside_w60`, K=1, 120 of 120 cells each, $0.09 and
+$0.58. The owner asked for DeepInfra; its shared pool was overloaded and the v8 and v9
+identities on that route have only failed gate cells (HL-O-15, HL-O-16). These are
+development pilots: the notice that tells the tenant the rule is appended by the seat
+router and is not in the kernel's sealed request (HL-D-05).
+
+The run roots are git-ignored, so this branch holds the code, the contracts and this
+write-up but not the cells. All thirteen v8-v12 roots and the scripted-rule reference run
+are archived on the owner's Google Drive at
+`LOCAL_DISK_CLEANUP_ARCHIVES/2026-10-02-housing-outside-demand-pilots/` (one `tar.zst`
+per root with a SHA-256 manifest of every file; restore steps in its `README.txt`). The
+numbers below are recomputed from them by the Examiner's `build_price_pilots.py`, and
+its `analysis/housing/claims_and_evidence.html` states every conclusion here as a claim
+with the analysis that decides it.
+
+| Seat 0 | GLM 5.3 Flash | DeepSeek V4 Flash 0731 |
+|---|---|---|
+| Signs a sound listing, lemon-landlord / pooled arm | 77% / 80% | 77% / 85% |
+| Signs a lemon, lemon-landlord / pooled arm | 17% / 2% | 15% / 3% |
+| Signs nothing, lemon-landlord / pooled arm | 7% / 18% | 8% / 12% |
+| Signs an uninspected listing after a revealing reply (lemon-landlord arm) | 15% of cells | 10% of cells |
+| Mean net payoff, lemon-landlord / pooled arm | $204 / $247 | $251 / $289 |
+| `true_cost` minus `pooled`, realized | -43 [-117, +31] | -38 [-86, +11] |
+| `true_cost` minus `pooled`, at the stated odds | +57 [0, +114] | +40 [-4, +85] |
+| `true_cost` minus `pooled`, at the reply-conditioned odds | -43 [-102, +16] | -26 [-78, +25] |
+
+Intervals are 95% t-intervals over 60 paired worlds. No arm contrast is distinguishable
+from zero on the realized or the reply-conditioned measure for either model; the sign
+pattern of the six-tenant panels survives (the lemon landlord looks better at the stated
+odds and worse once the reply is read). The sizes are not comparable with those panels'
+published contrasts, which summed six seats. DeepSeek minus
+GLM on the same worlds, both arms averaged: realized +45 [+1, +88], stated odds
++6 [-34, +46], reply-conditioned +23 [-24, +69]; the two ex-ante measures do not separate
+the models. The two share a declared reasoning effort and not a reasoning condition:
+DeepSeek writes 2,600 to 12,000 reasoning tokens a call and GLM 35 to 530 (HL-O-17).
+
+What the redesign bought. Seat 0 reaches a sound listing in 77 to 85% of cells, against
+38% with six copies of GLM and 22% against either scripted rival. In worlds where seat 0
+held no lemon in either arm, where the landlord arm cannot matter, the contrast has a
+standard deviation of $126 for GLM (6 of 40 worlds beyond $100) and $81 for DeepSeek
+(4 of 45); in the six-copy GLM panel it was $259 (16 of 34). What is left is the
+tenant's own sampling: its round-0 offer is the same listing at the same rent in both
+arms in only 8 (GLM) and 12 (DeepSeek) of 60 worlds. The arm's effect sits in the worlds
+where seat 0 held a lemon: 20 for GLM (mean -121, sd 451) and 15 for DeepSeek
+(mean -87, sd 339), too few to size from one replicate.
+
+Gemini 3.8 Flash on the same panel (`..._v10_gemini38_flash_outside_w60`, 120 of 120
+cells, $0.80) signs a sound listing in 87% and 88% of cells and a lemon in 8% and 3%.
+Its `true_cost` minus `pooled` contrast is +3 [-2, +8]: it plays the same opening
+inspection and offer in both arms in all 60 worlds, so 56 world pairs are identical and
+the tenant's own sampling noise, which dominates the GLM and DeepSeek pairs, is absent.
+Mean net payoff per world over both arms, and the scripted inspect-then-sign rule run
+through the same market provider-free:
+
+| Seat 0 | Realized | At the stated odds | At the reply-conditioned odds |
+|---|---|---|---|
+| Scripted inspect-then-sign | $241 | $241 | $241 |
+| GLM 5.3 Flash | $225 | $253 | $203 |
+| DeepSeek V4 Flash 0731 | $270 | $259 | $225 |
+| Gemini 3.8 Flash | $275 | $258 | $253 |
+
+At the stated odds the three models are within $6 of each other and none is
+distinguishable from the scripted rule (Gemini +18 [-10, +45]). Gemini minus GLM is
++50 [+7, +93] at the reply-conditioned odds and +50 [+10, +90] realized; Gemini minus
+DeepSeek is +27 [-3, +57] and +5 [-22, +32]. The gap to GLM has two sources that are not
+the same capability: Gemini signs an uninspected listing after a revealing reply in 2% of
+lemon-landlord cells against GLM's 15%, and GLM lost 21 actions in 12 cells to malformed
+or unavailable-listing outputs where DeepSeek and Gemini lost none.
+
+What this panel does not control, and so what a model gap here may be instead of
+capability: the declared reasoning effort is the same and the reasoning is not (GLM 35 to
+530 tokens a call, Gemini a median of 196, DeepSeek 2,600 to 12,000); one route returns
+the same answer for the same seed and the other two do not; the tenant is not told that
+there are three rounds; after walking from a hold it no longer sees the counteroffer it
+was given; and the landlord's rule leaves a median of $30 between a sound listing's ask
+and its lowest acceptable rent, against $449 between the tenant's best- and
+worst-looking listing, so the score is listing choice and inspection, not bargaining.
+
+#### The retry with those factors controlled (v11 and v12)
+
+Same 60 worlds and market. Changed: the tenant is told the market lasts three rounds and
+that it may offer again on a listing it walked from, and it is shown its own earlier
+offers, the landlords' binding rents and its decisions (notice v2); temperature 0 for
+every model; both open-weight models on one provider at fp8 (NextBit). Lost actions are
+counted apart from decisions. Not changed: the market still rewards choosing and
+inspecting far more than bargaining, and Gemini's serving stack cannot be matched.
+
+Reasoning could not be made equal. GLM and Gemini refuse effort "none"; GLM writes about
+the same at any declared effort; DeepSeek writes nothing at "none" and thousands of tokens
+at anything else, ignoring a token budget. The light tier is the closest available set:
+
+| Seat 0, 120 of 120 cells each | Scripted rule | GLM 5.3 Flash, "low" | DeepSeek V4 Flash, "none" | Gemini 3.8 Flash, "minimal" |
+|---|---|---|---|---|
+| Reasoning tokens per call, median (max) | 0 | 32 (310) | 0 (0) | 240 (1,591) |
+| Signs sound / lemon / nothing | 70 / 0 / 30% | 81 / 14 / 5% | 49 / 2 / 49% | 91 / 3 / 6% |
+| Lost actions (cells) | 0 | 3 (3) | 6 (6) | 0 |
+| Same opening inspection and offer in both arms | 60 of 60 | 24 of 60 | 31 of 60 | 60 of 60 |
+| Mean net, realized | $241 | $186 | $104 | $301 |
+| Mean net, at the stated odds | $241 | $257 | $113 | $296 |
+| Mean net, at the reply-conditioned odds | $241 | $192 | $113 | $285 |
+| Cost | $0 | $0.08 | $0.29 | $1.01 |
+
+Against the scripted rule, paired by world: Gemini +61 [+23, +99] realized, +55 [+22, +88]
+at the stated odds and +44 [+6, +82] at the reply-conditioned odds, the first model in
+this market to beat it. GLM is -54 [-120, +11], +17 [-28, +61] and -49 [-104, +6].
+DeepSeek without reasoning is -136 [-190, -83], below the rule on every measure: it ends
+with no lease in half its cells. Gemini minus GLM is +115 [+53, +177] realized and
++93 [+41, +145] reply-conditioned (+92 [+38, +145] on the 58 worlds where neither lost an
+action), and +39 [-3, +81] at the stated odds. The stated odds flatter GLM, because they price a
+revealed lemon as the coin flip the tenant was told. Splitting each model's
+reply-conditioned net by the kind of signing, $65 [+15, +116] of Gemini's $93 lead is
+verified sound leases (70%) and $19 [-2, +40] is lemons the landlord's reply had revealed
+(20%); against DeepSeek with reasoning the same parts are $55 of $56 and $11. Gemini ends
+82% of cells in a verified sound lease, GLM 68%, and ends 11% on a listing it never
+inspected against GLM's 27%. The split is accounting, not a counterfactual: a cell that
+ends on an uninspected listing cannot also end in a verified lease. Nor is Gemini reading
+the reply: it was granted only three revealing holds and signed two. It seldom bids on a
+listing it has not inspected (4 such bids on lemons in the 60 lemon-landlord cells,
+against GLM's 12), so it seldom gets that reply. GLM signs an uninspected
+listing after a revealing reply in 20% of lemon-landlord cells, Gemini in 3%, DeepSeek in
+none; GLM's `true_cost` minus `pooled` contrast at the reply-conditioned odds is
+-71 [-131, -10], Gemini's -20 [-50, +11].
+
+DeepSeek with reasoning on, the bracket (`..._v12_deepseek_v4_flash_nextbit_reason_outside_w60`,
+120 of 120 cells, $2.54): a median of 3,541 reasoning tokens a call and up to 16,384; 196 of
+its 649 calls ended at the output cap and were retried. Mean net $273 realized, $290 at the
+stated odds, $229 at the reply-conditioned odds; it signs a sound listing in 82% of cells, a
+lemon in 12%, nothing in 7%, and loses no action. Reasoning is worth +169 [+103, +235] a
+world to DeepSeek realized and +116 [+54, +178] at the reply-conditioned odds, against the
+same model with reasoning off. With it, DeepSeek is level with the scripted rule
+(+32 [-12, +77] realized, -12 [-46, +22] reply-conditioned) and ahead of GLM realized
+(+87 [+27, +146]). Gemini, on about a fifteenth of the reasoning, is not behind it:
++28 [-10, +67] realized, +6 [-30, +43] at the stated odds, and +56 [+13, +99] at the
+reply-conditioned odds, because DeepSeek signs an uninspected listing after a revealing reply
+in 18% of lemon-landlord cells and Gemini in 3%. Thousands of reasoning tokens improve
+which listing DeepSeek ends up with; they do not make it read the landlord's reply.
+
+Temperature 0 did not make the open-weight route repeat itself: the opening inspection
+and offer, which precede any landlord reply, are the same in both arms in 24 (GLM) and 31
+(DeepSeek) of 60 worlds, up from 8 and 10 at temperature 1, against 60 for Gemini. Their
+pairs still carry the tenant's own noise.
+
+Every conclusion in this section is restated as a claim with a computed verdict in the
+Examiner trajectory notebook (`trajectory_claims.py` in the Examiner repository, 25 claims),
+each with the tables and interval plots that decide it: 10 supported, 7 mixed, 5 refuted,
+2 not established, 1 not tested at this data. One of the two not established is whether the
+retry's changes widened Gemini's lead over GLM: per world the lead changed by
++65 [-2, +132], and Gemini already led in the first run (+50 [+10, +90]).
+
+**Stating the pricing rule (v13, run 2026-10-03).** The one claim not tested is that telling
+the tenant how landlords price would close the gap between Gemini and the other models; the
+data bounds only its direct part (re-scoring every revealed-lemon signing as a walk cuts
+Gemini's lead over GLM from $93 to $74 and over DeepSeek with reasoning from $56 to $45). v13
+runs the retry's three reading models again (`..._v13_gemini38_flash_rule_...`,
+`..._v13_glm53_flash_nextbit_rule_...`, `..._v13_deepseek_v4_flash_nextbit_reason_rule_...`),
+each contract identical to the run it is compared with except its id and its notice: notice v3
+is notice v2 plus how a sound landlord prices (`price_outside_demand.PRICING_RULE`), which is
+true in both arms and says that a rent more than $55 below the ask means a lemon. It is the
+sharpest true statement of the rule, so it bounds what disclosure can do. Decided before any
+v13 cell was read, per world on the 60 paired worlds, at the reply-conditioned odds (realized
+reported beside it): the gap is Gemini minus the other model in the same notice, and its change
+is the v13 gap minus the retry's gap. **Supported** if, for both GLM and DeepSeek with
+reasoning, the v13 gap's 95% interval includes zero and the change's interval is below zero;
+**refuted** if, for both, the change's interval includes zero and the v13 gap's interval is
+above zero; **mixed** otherwise. Mechanism check beside it: how often each model signs a hold
+below the listing's sound floor, with and without the rule.
+
+**Result: Mixed.** Gemini minus DeepSeek with reasoning, reply-conditioned, goes from +66 [+20, +112] in the retry to
++0 [-33, +34] with the rule stated (change -65 [-120, -11], n=54); Gemini minus GLM goes from +97 [+44, +150] to
++89 [+56, +122] (change -8 [-58, +41], n=59). The rule does what it says: GLM signs 3 of 9 holds below a listing's sound
+floor against 12 of 12 before, DeepSeek 4 of 6 against 11 of 11, Gemini 1 of 7 against 2 of 3. It lifts every model
+(Gemini +32 [+2, +62], GLM +40 [-2, +81], DeepSeek +91 [+47, +134] a world), and DeepSeek, which had lost most of its
+ground to revealed lemons, catches Gemini. GLM does not: most of its deficit is ending on a listing it never inspected
+(26% of retry cells against Gemini's 11%), which a statement about landlords' prices does not reach. Missing cells:
+HL-O-19 (Gemini, one) and HL-O-20 (DeepSeek, five); the snapshot and claim E4 are in the Examiner repository.
+
+#### A reachable reference, and how close the models are to it (2026-10-06)
+
+The full-information ceiling ($408 a world on the 60 development worlds: seat 0's best listing at
+its landlord's lowest acceptable rent, no inspection) is not reachable, so a model's share of it mixes
+what the model missed with what nobody could have had. `price_reference.py` drives the same market
+offline (the environment, the price landlord, the outside-demand seats) and first replays the sealed
+scripted reference, matching all 120 cells to the cent. Its strong tenant, `inspect_lowball`, uses only
+what notice v2 gives: each round it inspects its favourite unverified listing, offers $0 on the best
+listing it has verified, and signs any counter its known value covers. A $0 offer is always countered
+at the landlord's own target, so a verified listing is signed at the lowest rent its landlord accepts;
+under the leaky landlord that includes a verified lemon, which at its own floor leaves the tenant the
+same surplus as a sound listing at its floor. It earns $337 a world, 83% of the ceiling: 94% against the
+leaky landlord, where the only shortfall is the $25 fee, and 69% against the pooled one, mostly the 18 of
+60 worlds where the listings it reached were lemons or had been taken. It is a lower bound on what is
+reachable, not an upper one.
+
+Per world against it, realized, 60 worlds: Gemini -35 [-67, -4] (89% of it), DeepSeek with reasoning -64
+[-110, -18], the inspect-then-sign rule -96 [-122, -70], GLM -151 [-214, -87], DeepSeek without reasoning
+-232 [-281, -184]. With the pricing rule stated (v13), Gemini -3 [-24, +17] (n=59) and DeepSeek with
+reasoning +0 [-20, +21] (n=55) reach it and GLM stays at -91 [-152, -30]. Under notice v3 the top of the
+panel is saturated against this reference; under notice v2 it keeps $35 a world of headroom.
+
+**Round order, a diagnostic (not evidence).** Neither notice says that a round runs inspect, then offer,
+then sign. The 65 commit states in which GLM (v12) held a listing it had not inspected were rebuilt exactly
+as sent (kernel request, notice v2 and the logged history, each matching the logged instructions hash) and
+replayed three times unchanged and three times with one paragraph stating the order and that a listing
+offered on is not taken in that round. GLM signed every one of the 35 holds below a sound floor either way,
+so round order does not explain the revealed-lemon signings. On the 52 other holds in rounds 0 and 1 it
+signed 14 points less often (sign-flip permutation p 0.009), mostly sound listings it would otherwise have
+signed blind. Cost $0.08; script and replies in the worktree's `runs/diagnostics/`.
+
+**The confirmatory pack.** One deciding tenant makes seat 0's favourite the one whose quality matters;
+it differs from the market favourite the sealed stratum uses in 18 of the 60 development worlds.
+`lemons_design.confirmatory_pack()` admits a seed on seat 0's structure alone (its favourite has a
+positive gain if sound, and so does a second listing), keeps the seed's own lemon draw, which the runner
+already builds, and reads the stratum after admission; among 3,906 admitted seeds the favourite is a
+lemon in 49.8%. Seeds are taken in order until each quota is full: main pack 200 favourite-lemon and 60
+favourite-sound worlds from seeds 300000-300441, holdout 30 and 10 from 400000-400063, disjoint from
+each other and from the development worlds (pack digest `39ddf59f…`). On the main pack the reference
+reaches 73% of the ceiling in favourite-lemon worlds (94% leaky, 35% pooled) and 94% in favourite-sound ones.
+
+#### v14, the confirmatory panel (declared 2026-10-06, before any v14 cell)
+
+Three identities, `housing_lemons_price_confirmatory_v14_{glm53_flash_nextbit,gpt6_luna,gemini38_flash}`,
+identical except for the model and its route: one deciding tenant, outside demand at 0.5 a round,
+both landlord arms, one replicate, on the seat-0 pack (260 worlds) and its holdout (40), so 600
+cells each. What changed from the pilots:
+
+- **The rules are in the sealed prompt (HL-D-05).** Notice v4 is notice v2 (departure rule,
+  horizon, walking does not close a listing) plus the round-order paragraph the GLM probe tested,
+  as a declared tenant prompt (`housing_tenant_lemons_price_outside_v1`) that the plan seals. The
+  reply history is no longer appended by the seat router: the episode state keeps each tenant's own
+  offers, the landlord's binding rent (accepted or countered) and its sign-or-walk decision, and the
+  observation shows them as `your_history` (`runner.TENANT_HISTORY_V1`), so the kernel's
+  `provider_call_started` event holds exactly what the model read. Both are opt-in; earlier
+  identities send the same bytes as before (tested).
+- **Retry policy v2**: timeouts and transport errors retried, the length-retry ceiling (32,768
+  tokens) and the backoff declared and sealed in the profile, three consecutive failed cells stop a
+  run and a single one does not.
+- **The pack**: seeds admitted on seat 0's structure only, stratified on seat 0's favourite.
+
+Analysis, fixed now (`price_campaign.CONFIRMATORY_ANALYSIS`). Primary measure: seat 0's net at the
+reply-conditioned odds per world, the mean of the two arms. Contrasts: the three model pairs (Holm
+over the three) and each model minus the reachable reference (`price_reference.inspect_lowball`),
+paired by world, 95% Student-t intervals. Population: the 260-world main pack; the holdout is
+reported separately and never pooled; the two strata are reported beside the pooled estimate. A
+difference under $50 a world is not treated as meaningful. A failed cell is typed missingness and
+is not rerun. Secondary: realized net, signings of holds below every sound floor, and the share of
+cells ending on an inspected listing.
+
+Budget: the owner set $10 for all remaining work. From the retry runs' measured cost per cell, 600
+cells cost about $0.40 (GLM), $0.50 (GPT-6 Luna, probed at $0.00017 a call) and $5 (Gemini).
+DeepSeek with reasoning ($13) and GPT-6.1 Sol ($6) do not fit beside Gemini, and the pricing-rule
+arm would double every model's cost, so v14 has neither. The cheap pair runs first, as the
+shakedown of the 600-cell path, and Gemini only if they complete cleanly. Serial wall time from the
+retry runs' sealed events: about 10 s a cell, 1.5 to 2 hours a model, run in parallel ranges.
+
+**v14 result (2026-10-06; bundle `evidence/housing/housing_lemons_price_confirmatory_v14`).** GLM and GPT-6
+Luna completed 600 of 600 cells, Gemini 564 (36 cells refused for lack of account credits, typed missingness,
+HL-O-21). Every published receipt replays from its sealed events (`aeread verify-replay`, 1,800 of 1,800).
+Primary measure on the 260-world main pack, per world: Gemini +211 [+188, +233] (240 worlds with both arms), GLM
++137 [+111, +162], Luna +130 [+104, +156]. Pairs, Holm over three: Gemini minus GLM +70 [+48, +92] (p 2e-9),
+Gemini minus Luna +80 [+62, +99] (p 2e-15), both past the $50 minimum; GLM minus Luna +7 [-16, +29] (p 0.56), an
+interval inside the $50 band, so the two are not meaningfully different. The holdout (40 worlds) points the same
+way: Gemini minus GLM +106 [+44, +168], Gemini minus Luna +55 [+12, +98], GLM minus Luna -40 [-106, +26].
+Against the reachable reference all three fall short: Gemini -81 [-97, -65], GLM -155, Luna -162. The shortfall
+is the favourite-lemon worlds: there the models reach 60% (Gemini), 27% (GLM) and 22% (Luna) of the reference,
+against 97%, 83% and 98% where the favourite is sound. With the rules and the reply history in the sealed prompt,
+GLM and Luna still sign holds that only a lemon's landlord would offer (54 of 73 and 80 of 88 such holds signed;
+Gemini 7 of 38). Cost $7.44 for the three panels.
+
+**The refused Gemini cells, filled (2026-10-06).** By the owner's decision the 36 Gemini cells the account refused
+(HL-O-21) ran under their own identity, `housing_lemons_price_confirmatory_v14_gemini38_flash_fill`, whose contract
+lists them; an exception to the no-rerun rule, published beside v14 as
+`evidence/housing/housing_lemons_price_confirmatory_v14_gemini_fill`, with the v14 bundle unchanged. The driver
+runs both arms of a world, so 12 cells v14 had completed ran again: all 12 gave the same seat-0 outcome, so Gemini on
+this route is deterministic per cell and the fill continues v14 rather than redrawing it. With the fill Gemini has
+260 of 260 main-pack worlds and nothing moves: Gemini +211 [+189, +233]; Gemini minus GLM +74 [+53, +95], minus Luna
++81 [+63, +98] (Holm p < 1e-10); holdout +105 [+46, +164] and +65 [+23, +106]. Cost $0.61; replay 48 of 48.
+
 ## 6. Metrics
 
 | metric | definition |
