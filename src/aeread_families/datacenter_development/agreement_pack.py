@@ -28,7 +28,11 @@ CASES_ROOT = REPOSITORY_ROOT / "cases" / FAMILY_ID
 SOURCE_ROOT = REPOSITORY_ROOT / "cases" / "datacenter_risk_allocation_contracts_v1"
 GENERATOR_ID = "datacenter_agreement_generator_v1"
 GENERATOR_VERSION = "0.1.0"
-PACKS: dict[str, dict[str, Any]] = {"agreement_dev_v1": {"split": "dev", "source_pack": "contracts_eval_v1"}}
+PACKS: dict[str, dict[str, Any]] = {
+    "agreement_dev_v1": {"split": "dev", "source_pack": "contracts_eval_v1"},
+    # the same worlds, the client's brief stating what walking away costs it
+    "agreement_dev_walkaway_v1": {"split": "dev", "source_pack": "contracts_eval_v1", "brief_version": "walkaway_stated_v1"},
+}
 
 
 def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -38,8 +42,10 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     for path in sorted(p for p in (SOURCE_ROOT / spec["source_pack"]).glob("*.json") if p.name != "pack.json"):
         one = json.loads(path.read_text())
         payload = {k: one["payload"][k] for k in ("world", "integrator_type", "extras")}
+        if spec.get("brief_version"):
+            payload["brief_version"] = spec["brief_version"]
         plugin.validate_payload(payload)
-        cw, it = rc.world_from(payload)
+        cw, it = rc.world_from({k: payload[k] for k in ("world", "integrator_type", "extras")})
         code = hashlib.sha256(f"{pack}:{one['case_id']}".encode()).hexdigest()[:8]
         raw = {
             "spec_version": CaseManifest.SPEC_VERSION, "case_id": f"{FAMILY_ID}.{spec['split']}.{code}", "family_id": FAMILY_ID,
@@ -56,7 +62,7 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         available = max(0.0, cw.best_outside[1] - cw.w.terms.floor_margin - ag.joint_cost(cw, it, best))
         index.append({
             "case_id": raw["case_id"], "content_sha256": raw["content_sha256"], "source_case_id": one["case_id"], "world_seed": one["world_seed"],
-            "playbook": cw.playbook, "draft": d.label(), "best_agreement": best.label(),
+            "playbook": cw.playbook, **({"outside_option": cw.best_outside[0]} if spec.get("brief_version") else {}), "draft": d.label(), "best_agreement": best.label(),
             "clauses_to_change": sorted(k for k in ag.TERMS if getattr(best, k) != getattr(d, k)),
             "available_surplus": round(available, 3),
             "left_on_the_table_by_the_draft": round(ag.joint_cost(cw, it, d) - ag.joint_cost(cw, it, best), 3),

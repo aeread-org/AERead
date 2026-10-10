@@ -40,6 +40,11 @@ ACTION_SCHEMA = "datacenter_agreement_action_v1"
 VISIBILITY_POLICY = "datacenter_agreement_own_costs_private_v1"
 TERMINATIONS = ("signed", "walked", "invalid_action")
 PAYLOAD_FIELDS = {"world", "integrator_type", "extras"}
+BRIEF_FIELD = "brief_version"  # optional; absent means the v1 brief, so every earlier case is unchanged
+
+
+def _world(payload: Mapping[str, Any]):
+    return rc.world_from({k: payload[k] for k in PAYLOAD_FIELDS})
 NOTE_LIMIT = 400
 
 
@@ -128,9 +133,11 @@ def _history_for(state: Mapping[str, Any], seat: str) -> list[dict[str, Any]]:
 
 class AgreementPlugin:
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        if not isinstance(payload, Mapping) or set(payload) != PAYLOAD_FIELDS:
-            raise ValueError(f"payload fields must be {sorted(PAYLOAD_FIELDS)}")
-        cw, it = rc.world_from(payload)
+        if not isinstance(payload, Mapping) or set(payload) - {BRIEF_FIELD} != PAYLOAD_FIELDS:
+            raise ValueError(f"payload fields must be {sorted(PAYLOAD_FIELDS)}, with an optional {BRIEF_FIELD!r}")
+        if payload.get(BRIEF_FIELD, "v1") not in ag.BRIEFS or payload.get(BRIEF_FIELD) == "v1":
+            raise ValueError(f"{BRIEF_FIELD} must be one of {ag.BRIEFS[1:]} when present; leave it out for v1")
+        cw, it = _world(payload)
         if it not in cw.types:
             raise ValueError("the integrator's type is not one the client's brief names")
         if cw.w.client.risk_charge not in {c for c, _ in cw.w.client_prior}:
@@ -139,7 +146,7 @@ class AgreementPlugin:
 
     def initial_state(self, family_case, run) -> dict[str, Any]:
         del run
-        return ag.initial_state(rc.world_from(family_case)[0])
+        return ag.initial_state(_world(family_case)[0])
 
     def phases(self, family_case) -> tuple[PhaseSpec, ...]:
         del family_case
@@ -155,11 +162,11 @@ class AgreementPlugin:
 
     def observe(self, family_case, state, seat, phase) -> dict[str, Any]:
         del phase
-        cw, it = rc.world_from(family_case)
+        cw, it = _world(family_case)
         st = state["standing"]
         return {
             "seat": seat,
-            "brief": ag.brief(cw, seat, it if seat == "integrator" else None),
+            "brief": ag.brief(cw, seat, it if seat == "integrator" else None, family_case.get(BRIEF_FIELD, "v1")),
             "move": state["move"], "moves": state["moves"],
             "your_moves_left": sum(1 for m in range(state["move"], state["moves"] + 1) if (m % 2 == 1) == (seat == ag.FIRST)),
             "final": ag.is_final(state),
@@ -194,7 +201,7 @@ class AgreementPlugin:
             reason = envelope.parse.error_code if not envelope.parse.ok else envelope.legality.reason
             cur.update(finished=True, termination="invalid_action", invalid=reason, invalid_by=seat)
             return TransitionResult(cur, None, {"termination": "invalid_action", "invalid": reason, "invalid_by": seat})
-        new = ag.apply(cur, _thaw(envelope.action), rc.world_from(family_case)[0])
+        new = ag.apply(cur, _thaw(envelope.action), _world(family_case)[0])
         return TransitionResult(new, None if new["finished"] else PHASE_OF[new["to_move"]],
                                 {"termination": new["termination"], "move": cur["move"], "by": seat})
 
@@ -203,7 +210,7 @@ class AgreementPlugin:
         return json.loads(json.dumps(_thaw(state))) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
-        cw, it = rc.world_from(family_case)
+        cw, it = _world(family_case)
         return {"termination": terminal["termination"], "signed": terminal["signed"], "invalid": terminal.get("invalid"),
                 "invalid_by": terminal.get("invalid_by"), "grade": ag.grade(cw, it, terminal)}
 

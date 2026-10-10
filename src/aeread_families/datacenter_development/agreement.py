@@ -305,8 +305,18 @@ _MEANING = {
 }
 
 
-def brief(cw: rc.CWorld, seat: str, own: ra.IntegratorType | None = None) -> str:
-    """The seat's brief: the facts both know, its own costs, the other side's only as declared odds."""
+BRIEFS = ("v1", "walkaway_stated_v1")
+
+
+def brief(cw: rc.CWorld, seat: str, own: ra.IntegratorType | None = None, version: str = "v1") -> str:
+    """The seat's brief: the facts both know, its own costs, the other side's only as declared odds.
+
+    ``walkaway_stated_v1`` adds one line to the client's brief: each outside option's expected cost to it and the
+    lower of the two, worked out from the figures the brief already gives. Nothing else differs, and the
+    integrator's brief is the same in both versions.
+    """
+    if version not in BRIEFS:
+        raise ValueError(f"unknown brief version {version!r}")
     w, x = cw.w, cw.x
     r, c, t = w.risks, w.client, w.terms
     tests = sorted({i.test_cost for i in cw.types})
@@ -341,6 +351,11 @@ def brief(cw: rc.CWorld, seat: str, own: ra.IntegratorType | None = None) -> str
             f"- Outside option 1: a rival turnkey contract at {ra._k(c.turnkey_all_in)} all in, every risk priced in.",
             f"- Outside option 2: manage the deployment yourself. Your own team would cost {ra._k(x.team)} besides the hardware; you would carry every "
             "risk yourself, pay every fix and every week of standby, and nobody would pre-stage the cluster or prepare the site.",
+            *([] if version == "v1" else [
+                "- Worked out for you from the figures above, in expectation at your risk charge: option 1 costs you "
+                f"{ra._k(round(cw.outside_cost('turnkey'), 1))} and option 2 costs you {ra._k(round(cw.outside_cost('self_manage'), 1))}. "
+                f"Walking away therefore costs you {ra._k(round(cw.best_outside[1], 1))}: an agreement is worth signing only if its "
+                "expected total cost to you is below that."]),
             "",
             "The integrator negotiates for itself: it wants the highest expected profit over other work that would earn it "
             f"{ra._k(t.floor_margin)}. What you know about its costs:",
@@ -374,5 +389,5 @@ def brief(cw: rc.CWorld, seat: str, own: ra.IntegratorType | None = None) -> str
     ])
 
 
-__all__ = ["ACTIONS", "ALL_AGREEMENTS", "FIRST", "MOVES", "POLICIES", "SEATS", "TERMS", "WORDING", "allowed", "apply", "best_agreement",
+__all__ = ["ACTIONS", "ALL_AGREEMENTS", "BRIEFS", "FIRST", "MOVES", "POLICIES", "SEATS", "TERMS", "WORDING", "allowed", "apply", "best_agreement",
            "brief", "costs", "document", "draft", "grade", "initial_state", "is_final", "joint_cost", "other"]

@@ -228,7 +228,7 @@ class PairClient:
         self.replies: list[str] = []
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
-        cw, it = rc.world_from(self.payload)
+        cw, it = rc.world_from({k: self.payload[k] for k in ("world", "integrator_type", "extras")})
         state = ag.initial_state(cw)
         for text in self.replies:
             state = ag.apply(state, parse_move(CanonicalResponse(text, "stop", False, False, (), (), 0, 0, 0, 0.0)).action, cw)
@@ -352,6 +352,9 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
 
 async def run(directory: Path) -> None:
     plan = json.loads((directory / "campaign_plan.json").read_text())
+    global PACK
+    PACK = plan["pack"]
+    CONTROLS.update(plan["controls"])
     if any(_digest(rel) != d for rel, d in plan["sources"].items()):
         raise SystemExit("sources changed since the plan was frozen; freeze a new campaign directory")
     clients = await discover(sorted({p for pairing in plan["pairings"] for p in _providers_of(pairing)}))
@@ -379,9 +382,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--worlds", type=int, default=1, help="how many worlds of the pack, in case-id order")
     parser.add_argument("--world", action="append", help="a world's case code; overrides --worlds")
     parser.add_argument("--campaign", default=CAMPAIGN_ID, help="campaign identity; a different pairing or world set is a different campaign")
+    parser.add_argument("--pack", choices=sorted(ap.PACKS), help="the case pack; frozen into the plan")
+    parser.add_argument("--replicates", type=int, help="plays of each world in each pairing; frozen into the plan's controls")
     parser.add_argument("--max-cost", type=float, help="the campaign's list-price ceiling in USD, frozen into the plan's controls")
     parser.add_argument("--parallel", type=int, help="negotiations run at once, frozen into the plan's controls")
     args = parser.parse_args(argv)
+    global PACK
+    if args.pack is not None:
+        PACK = args.pack
+    if args.replicates is not None:
+        CONTROLS["replicates"] = args.replicates
     if args.max_cost is not None:
         CONTROLS["max_cost_usd_total"] = args.max_cost
     if args.parallel is not None:
