@@ -50,6 +50,31 @@ possibly sensitive: <what kind of thing>", so the user decides.
 
 `SKILL_DIR` below is the folder this file is in.
 
+## How many cases
+
+The first argument is the number of cases to capture, for example
+`/case-from-history 3`. With no number, capture **one**. The most in one run
+is **five**; if the user asks for more, do five and say so. Any other
+arguments are a topic, a working folder or session ids.
+
+One case file holds one decision. Two candidates are the same decision if
+they share the options and the hidden thing, even when the sessions differ:
+merge them into one case with more evidence, never two files. If the history
+holds fewer good candidates than the number asked for, write the ones it
+holds and say how many were found and why the rest did not qualify. Never pad
+the count with a routine task or a second version of the same decision.
+
+When capturing several:
+
+1. Step 3 ranks the candidates and proposes the top N; the user confirms or swaps.
+2. Do steps 4 to 7 for one case completely before starting the next, so each
+   file is finished and checked on its own.
+3. Ask follow-up questions case by case, naming the case each time. Facts
+   about the expert (the first section) are asked once and reused.
+4. After the last file, write `cases-index.md`: one line per case with its
+   file name, the decision in one sentence, sections filed of twelve, and the
+   number of open questions.
+
 ## 1. Choose the sessions
 
 ```bash
@@ -61,7 +86,8 @@ Show the user the list as printed (it is masked the same way).
 Add `--project <text>` to keep one working folder, `--tool claude` or
 `--tool codex` for one tool. Show the user the list and agree which sessions to
 read. If they named a topic or passed session ids as arguments, use those and
-skip the question. Take at most eight sessions for a first pass.
+skip the question. Read at most eight sessions for one case, and at most
+sixteen in a run that captures several.
 
 ## 2. Read them
 
@@ -77,16 +103,17 @@ on what was actually run, repeat with `--with-commands`.
 
 ## 3. Find the decision
 
-List up to five candidate decisions you see in the history. A good candidate:
+List up to eight candidate decisions you see in the history. A good candidate:
 
 - was faced more than once, or will be again;
 - had at least two real options, one of which is the obvious one;
 - had something the user could not see when choosing, and a way to find out that cost time or money;
 - ended in an outcome that can be put in money.
 
-Routine instructions ("fix this test") are not decisions. Show each candidate
-in one line with the session and turn it comes from, recommend one, and let
-the user pick. One case file holds one decision.
+Routine instructions ("fix this test") are not decisions. Rank the candidates
+by how many of the four points each meets and how often it recurs. Show each
+in one line with the session and turn it comes from, recommend the top N for
+the number asked, and let the user confirm or swap.
 
 ## 4. File what the history says
 
