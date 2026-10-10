@@ -379,7 +379,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--worlds", type=int, default=1, help="how many worlds of the pack, in case-id order")
     parser.add_argument("--world", action="append", help="a world's case code; overrides --worlds")
     parser.add_argument("--campaign", default=CAMPAIGN_ID, help="campaign identity; a different pairing or world set is a different campaign")
+    parser.add_argument("--max-cost", type=float, help="the campaign's list-price ceiling in USD, frozen into the plan's controls")
+    parser.add_argument("--parallel", type=int, help="negotiations run at once, frozen into the plan's controls")
     args = parser.parse_args(argv)
+    if args.max_cost is not None:
+        CONTROLS["max_cost_usd_total"] = args.max_cost
+    if args.parallel is not None:
+        CONTROLS["max_parallel_cells"] = args.parallel
     if args.command in ("freeze", "dry-run") and not args.directory.exists():
         codes = args.world or [c.case_id.rsplit(".", 1)[-1] for c in cases()][: args.worlds]
         scripted = [p for p in PAIRINGS if PAIRINGS[p][0].startswith(SCRIPTED)]
