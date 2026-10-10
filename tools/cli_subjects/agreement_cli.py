@@ -378,12 +378,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--pairing", action="append", choices=sorted(PAIRINGS))
     parser.add_argument("--worlds", type=int, default=1, help="how many worlds of the pack, in case-id order")
     parser.add_argument("--world", action="append", help="a world's case code; overrides --worlds")
+    parser.add_argument("--campaign", default=CAMPAIGN_ID, help="campaign identity; a different pairing or world set is a different campaign")
     args = parser.parse_args(argv)
     if args.command in ("freeze", "dry-run") and not args.directory.exists():
         codes = args.world or [c.case_id.rsplit(".", 1)[-1] for c in cases()][: args.worlds]
         scripted = [p for p in PAIRINGS if PAIRINGS[p][0].startswith(SCRIPTED)]
         pairings = scripted if args.command == "dry-run" else (args.pairing or ["codex_integrator__claude_client"])
-        plan = freeze(args.directory, pairings, codes, CAMPAIGN_ID + ("_scripted_dry_run" if args.command == "dry-run" else ""))
+        plan = freeze(args.directory, pairings, codes, args.campaign + ("_scripted_dry_run" if args.command == "dry-run" else ""))
         print(f"froze {sum(len(p['cells']) for p in plan['plans'])} cells in {len(plan['plans'])} plans: {plan['plan_sha256'][:12]}")
     if args.command in ("run", "dry-run"):
         asyncio.run(run(args.directory))
