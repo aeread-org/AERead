@@ -38,6 +38,8 @@ from aeread_families.procurement_allocation import model_campaign as mc
 from aeread_families.procurement_allocation import runner
 from aeread_families.procurement_allocation import inference_v2_case_matrix as inference_v2
 from aeread_families.procurement_allocation import inference_v2_prompt
+from aeread_families.procurement_allocation import pay_or_test_case_matrix as pay_or_test
+from aeread_families.procurement_allocation import pay_or_test_prompt
 from aeread_families.procurement_allocation.strategy_scaffold import PROMPT_ID, STRATEGY_PROMPT, TREATMENT_ID
 
 import codex_exec_client as codex
@@ -54,11 +56,21 @@ PACKS: dict[str, dict[str, Any]] = {
     "inference_v1": {"paths": lambda: sorted(CASE_ROOT.glob("*.json")), "gate_world": GATE_WORLD},
     # The gate plays a world whose cheapest unrecorded listing is a bad supplier.
     "inference_v2": {"paths": lambda: list(inference_v2.case_paths()), "gate_world": "moq_high_is_good__timing"},
+    # The gate plays a world where a test beats paying and the cheapest listing is the wrong one to test.
+    # Ten actions a world, not five: the Opus 5.5 gate on the first panel cost $0.41 at list for nine,
+    # so twenty-four worlds are about $10 and the ceiling leaves room for a wave of three at the limit.
+    "pay_or_test_v1": {"paths": lambda: list(pay_or_test.case_paths()), "gate_world": "test_other__tight__1",
+                       "prompt": "accounting_v1",
+                       "total_cost_ceiling_usd": {"claude_opus55": {"gate": 1.0, "panel": 20.0},
+                                                  "claude_fable51": {"gate": 2.0, "panel": 45.0},
+                                                  "codex_sol61": {"gate": 1.0, "panel": 12.0}}},
 }
 PROMPTS: dict[str, dict[str, str]] = {
     "scaffold_v3": {"prompt_id": PROMPT_ID, "text": STRATEGY_PROMPT, "treatment_id": TREATMENT_ID},
     "neutral_v1": {"prompt_id": inference_v2_prompt.PROMPT_ID, "text": inference_v2_prompt.NEUTRAL_PROMPT,
                    "treatment_id": inference_v2_prompt.TREATMENT_ID},
+    "accounting_v1": {"prompt_id": pay_or_test_prompt.PROMPT_ID, "text": pay_or_test_prompt.PAY_OR_TEST_PROMPT,
+                      "treatment_id": pay_or_test_prompt.TREATMENT_ID},
 }
 DEFAULT_ARM = ("inference_v1", "scaffold_v3")
 
@@ -107,6 +119,12 @@ def campaign_id(subject: str, panel: str, pack: str = DEFAULT_ARM[0], prompt: st
         return f"{stem}_gate_v{SUBJECTS[subject].get('gate_version', 1)}" if panel == "gate" else f"{stem}_v1"
     stem = f"procurement_allocation_{pack}_{prompt.split('_', 1)[0]}_{who}"
     return f"{stem}_gate_v1" if panel == "gate" else f"{stem}_v1"
+
+
+def cost_ceiling(subject: str, panel: str, pack: str = DEFAULT_ARM[0]) -> float:
+    """The total list-price ceiling for a run: the pack's own where it declares one, else the subject's."""
+    declared = PACKS[pack].get("total_cost_ceiling_usd", {}).get(subject, SUBJECTS[subject]["total_cost_ceiling_usd"])
+    return float(declared[panel])
 
 
 def case_paths(panel: str, pack: str = DEFAULT_ARM[0]) -> list[Path]:
@@ -248,7 +266,8 @@ def model_plan(subject: str, panel: str, runtime: Mapping[str, str],
         "tools": "none: Claude Code with --tools \"\"; Codex with its acting features disabled, and a call that uses a tool is refused",
         "controls": {**CONTROLS, "temperature": "unavailable", "seed": "unavailable", "max_output_tokens": "provider default",
                      "max_cost_usd_per_trajectory": spec["max_cost_usd_per_trajectory"],
-                     "total_cost_ceiling_usd": spec["total_cost_ceiling_usd"][panel],
+                     "total_cost_ceiling_usd": (cost_ceiling(subject, panel, pack) if "total_cost_ceiling_usd" in PACKS[pack]
+                                                else spec["total_cost_ceiling_usd"][panel]),
                      "halt_rule": "a failed cell is typed missingness and is not rerun; the run stops launching cells after "
                                   "max_consecutive_operational_failures consecutive failed cells or when the next cell could exceed the total ceiling"},
         "retry_policy": "one sealed attempt per action; no retries",
@@ -340,6 +359,8 @@ async def run(subject: str, panel: str, run_root: Path, *, resume: bool,
     mc._validate_operational_run_root(run_root)
     if pack == "inference_v2" and prompt != "neutral_v1":
         raise ValueError("inference_v2 is played under the neutral prompt; its facts are what the pack assumes")
+    if (prompt == "accounting_v1") != (pack == "pay_or_test_v1"):
+        raise ValueError("pay_or_test_v1 and the accounting prompt go together: the prompt states that pack's rules")
     inner = await discover(subject)
     runtime = dict(inner.runtime_metadata)
     plan = model_plan(subject, panel, runtime, pack, prompt)
@@ -364,7 +385,7 @@ async def run(subject: str, panel: str, run_root: Path, *, resume: bool,
             else:
                 todo.append((record["path"], replicate))
     semaphore = asyncio.Semaphore(CONTROLS["max_parallel_cells"])
-    ceiling = SUBJECTS[subject]["total_cost_ceiling_usd"][panel]
+    ceiling = cost_ceiling(subject, panel, pack)
     per_cell = SUBJECTS[subject]["max_cost_usd_per_trajectory"]
     width = CONTROLS["max_parallel_cells"]
     halted = None
