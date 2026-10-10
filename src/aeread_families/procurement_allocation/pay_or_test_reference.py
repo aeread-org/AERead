@@ -403,14 +403,17 @@ def score_actions(payload: Mapping[str, Any], actions: Sequence[Mapping[str, Any
 
     ``decision_loss_usd`` is the sum over actions of the best policy's value
     less the value of the action taken, both given only what the buyer had
-    learned. ``search`` is the part lost on requests and on walking away,
-    ``award_timing`` on awarding when a further request was worth more, and
-    ``award_terms`` on the supplier and quantity of the award itself.
+    learned. It is split by what the action was: ``requests`` (a quote or a
+    sample that was not the best next step), ``strays`` (an inquiry, a counter
+    or a pre-award check, none of which can change anything in this pack),
+    ``walk_away`` (a defer or a rejected action), ``award_timing`` (awarding
+    when a further request was worth more) and ``award_terms`` (the supplier
+    and quantity of the award itself).
     """
     ref = Reference(payload)
     state = ref.plugin.initial_state(ref.case, None)
     steps: list[dict[str, Any]] = []
-    loss = {"search": 0.0, "award_timing": 0.0, "award_terms": 0.0}
+    loss = {"requests": 0.0, "strays": 0.0, "walk_away": 0.0, "award_timing": 0.0, "award_terms": 0.0}
     for raw in actions:
         if state["done"]:
             break
@@ -423,7 +426,7 @@ def score_actions(payload: Mapping[str, Any], actions: Sequence[Mapping[str, Any
         row: dict[str, Any] = {"action": kind, "supplier_id": action.get("supplier_id"), "day": day, "actions_left": left,
                                "best_value_usd": round(best, 4), "best_action": _describe(ref, ref.best_action(status, left, day))}
         if not valid or kind == "defer":
-            taken, part = ref.defer_value, "search"
+            taken, part = ref.defer_value, "walk_away"
         elif kind == "submit_award":
             result = evaluate_award(ref.case, award_lines=action["award_lines"], offers=state["offers"],
                                     quality_evidence=state["quality_evidence"], elapsed_days=day,
@@ -435,7 +438,8 @@ def score_actions(payload: Mapping[str, Any], actions: Sequence[Mapping[str, Any
             part = None
         else:
             supplier = ref.index.get(action.get("supplier_id")) if kind in ("request_quote", "request_sample") else None
-            taken, part = ref.request_value(status, left, day, kind, supplier), "search"
+            taken = ref.request_value(status, left, day, kind, supplier)
+            part = "requests" if kind in ("request_quote", "request_sample") else "strays"
         if part:
             loss[part] += best - taken
         row["value_taken_usd"], row["loss_usd"], row["valid"] = round(taken, 4), round(best - taken, 4), valid

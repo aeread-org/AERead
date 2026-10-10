@@ -547,3 +547,29 @@ right or wrong (incident row P-D-15). Regenerate with:
 ```bash
 python -m aeread_families.procurement_allocation.inference_v2_case_matrix --write
 ```
+
+
+`pay_or_test_v1/` is a twenty-four-world panel on one decision: pay the premium
+to the one supplier with a record, or spend money and days testing a cheaper
+one without. Each new listing states the odds for sellers of its kind (how many
+proved unreliable on delivery, how many failed inspection). A quote shows
+lateness, a sample shows yield, and both cost money and days; supplying nothing
+costs the shortfall penalty on all fifty kits. Six cells of four worlds: paying
+is right on the money, paying is right because a failed test would leave no
+time for the recorded supplier, and testing is right with the cheapest or with
+another newcomer as the one to test, each on a tight and a loose clock. Worlds
+are admitted on what a buyer can see; the suppliers' types are drawn afterwards
+on their own stream. It is played under `pay_or_test_prompt.PAY_OR_TEST_PROMPT`,
+which states how the order is counted and what each request shows and
+prescribes no procedure.
+
+`pay_or_test_reference.py` computes the best informed policy by backward
+induction, values scripted rules exactly, and prices a trajectory one action at
+a time against the best action available then, so a score does not move with
+how a tested supplier turned out. Against that policy, always paying loses
+$75 a world, cheapest-first $81 and searching until one qualifies $146
+(`pack.json`). Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.pay_or_test_case_matrix --write
+```

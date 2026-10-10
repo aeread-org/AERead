@@ -52,7 +52,7 @@ package that owns it.
 | [`govsim/`](govsim/) | GovSim | [`govsim`](../src/aeread_families/govsim/) | 12 |
 | [`housing_v1/`](housing_v1/) | Housing | [`housing`](../src/aeread_families/housing/) | 1 |
 | [`negarena/`](negarena/) | NegotiationArena | [`negarena`](../src/aeread_families/negarena/) | 9 |
-| [`procurement_allocation_v1/`](procurement_allocation_v1/) | Procurement allocation | [`procurement_allocation`](../src/aeread_families/procurement_allocation/) | 170 |
+| [`procurement_allocation_v1/`](procurement_allocation_v1/) | Procurement allocation | [`procurement_allocation`](../src/aeread_families/procurement_allocation/) | 195 |
 | [`procurement_grounding_v1/`](procurement_grounding_v1/) | Procurement grounding | [`procurement_grounding`](../src/aeread_families/procurement_grounding/) | 2 |
 | [`refund_v1/`](refund_v1/) | Refund | [`refund`](../src/aeread_families/refund/) | 25 |
 | [`refund_v2/`](refund_v2/) | Refund | [`refund`](../src/aeread_families/refund/) | 2 |
