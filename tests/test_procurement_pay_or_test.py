@@ -17,7 +17,7 @@ import pytest
 from aeread_families.procurement_allocation import pay_or_test_case_matrix as pack_module
 from aeread_families.procurement_allocation import pay_or_test_reference as reference
 from aeread_families.procurement_allocation.environment import ProcurementAllocationPlugin, _base_offer, _quantity_values, evaluate_award
-from aeread_families.procurement_allocation.pay_or_test_prompt import PAY_OR_TEST_PROMPT
+from aeread_families.procurement_allocation.pay_or_test_prompt import PAY_OR_TEST_PROMPT, PAY_OR_TEST_PROMPT_V2
 
 GOOD, LATE, POOR = reference.GOOD, reference.LATE, reference.POOR
 
@@ -310,3 +310,24 @@ def test_the_prompt_names_only_things_the_buyer_can_see_and_prescribes_nothing(w
     lowered = PAY_OR_TEST_PROMPT.lower()
     for word in ("cheapest", "rank", "first test", "start with", "smallest", "always", "never test", "should"):
         assert word not in lowered, word
+
+
+def test_version_two_adds_only_two_stated_rules_and_both_are_true(worlds) -> None:
+    added = [line for line in PAY_OR_TEST_PROMPT_V2.splitlines() if line not in PAY_OR_TEST_PROMPT.splitlines()]
+    assert len(added) == 4 and all(line in PAY_OR_TEST_PROMPT_V2.splitlines() for line in PAY_OR_TEST_PROMPT.splitlines())
+    assert "final price and terms" in PAY_OR_TEST_PROMPT_V2 and "average margin" in PAY_OR_TEST_PROMPT_V2
+    # A quote is final: no counter improves any term, and trying costs the stated fee and day.
+    world = worlds[0]
+    payload = world["case"]["payload"]
+    sid = world["established"]["supplier_id"]
+    process = _observe(payload)["policy"]["process"]
+    assert (process["counter_fee_usd"], process["counter_days"]) == (pack_module.COUNTER_FEE_USD, 1)
+    offer = next(iter(_observe(payload, [_quote(sid)])["formal_offers"].values()))
+    for proposal in ({"unit_price_usd": round(offer["unit_price_usd"] - 0.01, 2)}, {"moq": offer["moq"] - 5},
+                     {"payment_terms_days": offer["payment_terms_days"] + 15},
+                     {"refund_window_days": offer["return_policy"]["refund_window_days"] + 10}):
+        counter = {"action": "counter_offer", "supplier_id": sid, "offer_id": offer["offer_id"], "proposal": proposal, "message": "?"}
+        after = _observe(payload, [_quote(sid), counter])
+        assert list(after["formal_offers"]) == [offer["offer_id"]], proposal
+        assert after["elapsed_days"] == pack_module.QUOTE_DAYS + 1
+        assert after["information_cost_usd"] == pack_module.QUOTE_FEE_USD + pack_module.COUNTER_FEE_USD

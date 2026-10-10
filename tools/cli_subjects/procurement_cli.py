@@ -60,7 +60,7 @@ PACKS: dict[str, dict[str, Any]] = {
     # Ten actions a world, not five: the Opus 5.5 gate on the first panel cost $0.41 at list for nine,
     # so twenty-four worlds are about $10 and the ceiling leaves room for a wave of three at the limit.
     "pay_or_test_v1": {"paths": lambda: list(pay_or_test.case_paths()), "gate_world": "test_other__tight__1",
-                       "prompt": "accounting_v1",
+                       "prompts": ("accounting_v1", "finalquotes_v2"),
                        "total_cost_ceiling_usd": {"claude_opus55": {"gate": 1.0, "panel": 20.0},
                                                   "claude_fable51": {"gate": 2.0, "panel": 45.0},
                                                   "codex_sol61": {"gate": 1.0, "panel": 12.0}}},
@@ -71,6 +71,9 @@ PROMPTS: dict[str, dict[str, str]] = {
                    "treatment_id": inference_v2_prompt.TREATMENT_ID},
     "accounting_v1": {"prompt_id": pay_or_test_prompt.PROMPT_ID, "text": pay_or_test_prompt.PAY_OR_TEST_PROMPT,
                       "treatment_id": pay_or_test_prompt.TREATMENT_ID},
+    # The same prompt, also stating that a quote is final and that the buyer is judged on its average.
+    "finalquotes_v2": {"prompt_id": pay_or_test_prompt.PROMPT_ID_V2, "text": pay_or_test_prompt.PAY_OR_TEST_PROMPT_V2,
+                       "treatment_id": pay_or_test_prompt.TREATMENT_ID_V2},
 }
 DEFAULT_ARM = ("inference_v1", "scaffold_v3")
 
@@ -359,8 +362,8 @@ async def run(subject: str, panel: str, run_root: Path, *, resume: bool,
     mc._validate_operational_run_root(run_root)
     if pack == "inference_v2" and prompt != "neutral_v1":
         raise ValueError("inference_v2 is played under the neutral prompt; its facts are what the pack assumes")
-    if (prompt == "accounting_v1") != (pack == "pay_or_test_v1"):
-        raise ValueError("pay_or_test_v1 and the accounting prompt go together: the prompt states that pack's rules")
+    if (prompt in PACKS["pay_or_test_v1"]["prompts"]) != (pack == "pay_or_test_v1"):
+        raise ValueError("pay_or_test_v1 and its own prompts go together: they state that pack's rules")
     inner = await discover(subject)
     runtime = dict(inner.runtime_metadata)
     plan = model_plan(subject, panel, runtime, pack, prompt)

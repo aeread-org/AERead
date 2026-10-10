@@ -69,4 +69,27 @@ Facts about this marketplace:
 Return only the next JSON action.
 """
 
-__all__ = ["PAY_OR_TEST_PROMPT", "PROMPT_ID", "TREATMENT_ID"]
+# Version 2 states two things the first panels showed the first version left open
+# (incident rows P-D-19 and P-D-21): that a quote is final, and that the buyer is
+# judged on its average over many such orders. Without the first, a counter-offer
+# is a reasonable thing to try and costs a day. Without the second, a cautious
+# move that gives up expected margin is not clearly a mistake.
+PROMPT_ID_V2 = "procurement_allocation_pay_or_test_neutral_v2"
+TREATMENT_ID_V2 = "order_accounting_request_facts_final_quotes_average_objective_v2"
+
+_AVERAGE = """- You place many orders like this one and are judged on your average margin across
+  them, not on how any single order turns out.
+"""
+_FINAL = """- A formal quote is the supplier's final price and terms. A counter_offer cannot
+  improve them; it costs policy.process.counter_fee_usd and policy.process.counter_days.
+"""
+_COUNTED = "What each request costs and shows:\n"
+_FACTS = "Facts about this marketplace:\n"
+assert PAY_OR_TEST_PROMPT.count(_COUNTED) == 1 and PAY_OR_TEST_PROMPT.count(_FACTS) == 1
+PAY_OR_TEST_PROMPT_V2 = (
+    PAY_OR_TEST_PROMPT
+    .replace("\n" + _COUNTED, _AVERAGE + "\n" + _COUNTED)
+    .replace("\n" + _FACTS, _FINAL + "\n" + _FACTS)
+)
+
+__all__ = ["PAY_OR_TEST_PROMPT", "PAY_OR_TEST_PROMPT_V2", "PROMPT_ID", "PROMPT_ID_V2", "TREATMENT_ID", "TREATMENT_ID_V2"]

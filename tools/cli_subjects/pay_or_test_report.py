@@ -1,6 +1,6 @@
 """What each subject gave up, action by action, on the pay-or-test pack.
 
-    PYTHONPATH=src python tools/cli_subjects/pay_or_test_report.py <runs/procurement_allocation> [--gate] [--json out.json]
+    PYTHONPATH=src python tools/cli_subjects/pay_or_test_report.py <runs/procurement_allocation> [--arm accounting|finalquotes] [--gate] [--json out.json]
 
 The primary number is decision loss: for every action a subject took, the
 best informed policy's value at that point less the value of the action taken,
@@ -21,7 +21,7 @@ from typing import Any, Sequence
 from aeread_families.procurement_allocation import pay_or_test_case_matrix as pack_module
 from aeread_families.procurement_allocation.pay_or_test_reference import score_actions
 
-ROOT_PREFIX = "pay_or_test_v1_accounting_"
+ARMS = {"accounting": "pay_or_test_v1_accounting_", "finalquotes": "pay_or_test_v1_finalquotes_"}
 SMALL_USD = 1.0
 RESAMPLES = 10_000
 
@@ -166,12 +166,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("runs", type=Path)
     parser.add_argument("--gate", action="store_true", help="read the one-world gates instead of the panels")
+    parser.add_argument("--arm", choices=sorted(ARMS), default="finalquotes", help="which prompt the runs were played under")
     parser.add_argument("--json", type=Path)
     arguments = parser.parse_args(argv)
     manifest, payloads = load_pack()
-    roots = sorted(p for p in arguments.runs.glob(f"{ROOT_PREFIX}*") if (p / "summary.json").exists()
+    prefix = ARMS[arguments.arm]
+    roots = sorted(p for p in arguments.runs.glob(f"{prefix}*") if (p / "summary.json").exists()
                    and (("_gate_" in p.name) == arguments.gate))
-    runs = {root.name.removeprefix(ROOT_PREFIX): score_run(root, manifest, payloads) for root in roots}
+    runs = {root.name.removeprefix(prefix): score_run(root, manifest, payloads) for root in roots}
     report: dict[str, Any] = {"subjects": {name: summarize(run) for name, run in runs.items() if run["worlds"]}}
     slugs = set.intersection(*({w["slug"] for w in run["worlds"]} for run in runs.values())) if runs else set()
     if slugs:
