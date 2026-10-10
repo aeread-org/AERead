@@ -102,14 +102,14 @@ async def run(subject: str,base: Path,limit: int|None):
     else:cx._run=codex_stream_runner
     runtime=dict(inner.runtime_metadata)
     contract=hc.build_contract(subject,'panel',runtime)
-    original=contract['campaign_id'];name=original+'_reasoning_diagnostic_v1'
+    original=contract['campaign_id'];name=original+contract.get('diagnostic_campaign_suffix','_reasoning_diagnostic_v1')
     hc.pc.IDENTITIES[name]={**hc.pc.IDENTITIES[original],'world_seeds':sorted({s for s,a in CELLS})}
     contract.update(campaign_id=name,world_seeds=sorted({s for s,a in CELLS}),claim_status='result_selected_reasoning_diagnostic')
     selected=CELLS[:limit] if limit else CELLS
     contract['diagnostic']={'selected_cells':[{'world_seed':s,'arm':a} for s,a in selected],
-        'original_campaign':original,'selection':'nine cells where neither original subject signed an inspected listing',
+        'original_campaign':original,'selection':contract.get('diagnostic_selection','nine cells where neither original subject signed an inspected listing'),
         'retention':'request and raw stdout/stderr per call; exposed reasoning blocks and summaries',
-        'transport_change':'Claude verbose stream-json and summarized thinking display; Codex detailed reasoning summary',
+        'transport_change':contract.get('diagnostic_transport','Claude verbose stream-json and summarized thinking display; Codex detailed reasoning summary'),
         'full_internal_chain_of_thought_available':False,'prompt_changed':False,'session_persistence':False}
     spec=hc.SUBJECTS[subject]
     contract['total_cost_ceiling_usd']=spec['cell_ceiling_usd']*len(selected)
