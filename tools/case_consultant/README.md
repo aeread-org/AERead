@@ -113,3 +113,22 @@ CC-D-01 to CC-D-03 in `docs/operations/incident_log.md`.
 Not yet exercised: a real microphone, the model call inside the claude.ai
 viewer, and a real expert. One scripted persona answering cooperatively is a
 floor on difficulty, not a measurement of how the interview goes with people.
+
+## As a skill: a case design from session history
+
+`skill/case-from-history/` is the same protocol as a Claude Code and Codex
+skill. It reads the user's own session history on their machine, files what
+the history supports with a source mark on every statement, asks staged
+follow-up questions only for the gaps, and writes `<name>.case.md`.
+
+```bash
+sh tools/case_consultant/skill/case-from-history/install.sh   # into ~/.claude/skills and ~/.codex/skills
+# then, in a session:  /case-from-history            (Codex: $case-from-history)
+```
+
+Sensitive specifics are masked twice: `scripts/sessions.py` replaces
+credentials, emails, links, home folders, addresses, phone- and card-shaped
+numbers, long tokens, the login name and any `--mask` names with tags before
+the model reads the history, and `scripts/check_case.py --deny` fails the
+finished file if any of them, or any masked original, appears in it.
+`references/case-file.md` is generated from `src/core.js` by `node build_skill.mjs`.
