@@ -117,3 +117,40 @@ def test_the_other_sides_plan_changes_what_it_earns_and_holding_out_is_not_the_b
     assert len({round(v, 3) for v in earned.values()}) >= 3
     assert best >= max(earned.values()) - 1e-6
     assert best > earned["never comes down"] + 1.0
+
+
+def _first_deal_world(seat):
+    return next((cw, it) for cw, it in _worlds() if check.Informed(cw, it, seat).available > 100)
+
+
+def test_overreach_opens_with_an_offer_no_declared_type_could_sign_and_ends_with_one_that_can_be():
+    cw, it = _first_deal_world("client")
+    script = an.Negotiator(cw, "integrator", it, "overreach")
+    state = ag.initial_state(cw)
+    first = script.move(state)
+    state = ag.apply(state, first, cw)
+    me = an.Negotiator(cw, "client", None, "even")
+    assert all(me.surplus(rc.Contract(**state["terms"]), first["price"], o)[0] < 0 for o in me.prior)
+    for _ in range(2):  # the client holds at an even split; the script comes down on the clock
+        state = ag.apply(state, check.Informed(cw, it, "client").ask(state, 0.5), cw)
+        act = script.move(state)
+        if act["action"] != "redline":
+            break
+        state = ag.apply(state, act, cw)
+    assert act["action"] == "sign" or check.Informed(cw, it, "client").worth(state) > 0
+
+
+def test_price_only_never_touches_a_clause_and_prices_the_clauses_the_other_side_sets():
+    for seat in ag.SEATS:
+        cw, it = _first_deal_world(ag.other(seat))
+        state = ag.initial_state(cw)
+        if seat == "client":
+            state = ag.apply(state, check.Informed(cw, it, "integrator").ask(state, 0.9), cw)
+        act = an.negotiator_move(state, cw, it, "price_only")
+        assert act["action"] == "redline" and all(v is None for v in act["clauses"].values())
+
+
+def test_collapse_holds_its_ask_then_drops_it_on_its_last_proposal():
+    cw, it = _first_deal_world("client")
+    asks = _ask_after(cw, it, "collapse", [0.9, 0.9])
+    assert asks == [0.9, 0.9, 0.3]

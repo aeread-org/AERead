@@ -21,7 +21,8 @@ What it does on a move:
    surplus it believes there is, and it walks when nothing left to it meets that. ``least`` is what
    makes a last-move ultimatum risky for the other side; it costs the pair a deal when it binds.
 
-``STYLES`` names fixed settings: three that hold a line to different degrees, and ``soft``, which gives way. ``drawn_style`` draws one from ``POPULATION`` from the world
+``STYLES`` names fixed settings: three that hold a line to different degrees; ``soft``, which gives way; and three
+tactics a counterpart can use that change the right reply (``overreach``, ``price_only``, ``collapse``). ``drawn_style`` draws one from ``POPULATION`` from the world
 and the seat alone, so a world always meets the same counterpart and a replay reproduces it, and
 the other side is not told which. The style is declared in the plan, so a result against the
 script says which script.
@@ -49,6 +50,9 @@ class Style:
     reciprocity: float = 1.0  # 1: it comes down only as far as the other side came toward it; 0: one step a proposal regardless
     cover: float = 0.0  # the least belief mass a proposal must be signable by; 0 lets it pick the reach worth most to it
     accept_odds: float = 0.8  # how likely it takes its own next counter-offer to be signed, when weighing sign against counter
+    past: bool = False  # True: an ask of 1 or more is priced past what any declared type of the other side could sign
+    clauses: str = "best"  # "best": it proposes the clauses worth most; "standing": it never touches a clause and haggles the price only
+    late: bool = False  # True: it holds its opening ask until its last proposal, then drops to ``final`` in one step
 
 
 STYLES: dict[str, Style] = {
@@ -58,7 +62,16 @@ STYLES: dict[str, Style] = {
     # gives way: it comes down on the clock whatever the other side does, signs whatever beats walking away,
     # and takes an offer on the table over a counter-offer it thinks unlikely to be signed
     "soft": Style(opening=0.55, final=0.25, least=0.0, reciprocity=0.0, accept_odds=0.4),
+    # asks for more than there is: its first offers leave the other side worse off than walking away, and it comes
+    # down on the clock to an offer worth signing. The right reply is to refuse the early ones.
+    "overreach": Style(opening=1.30, final=0.70, least=0.20, reciprocity=0.0, past=True),
+    # never touches a clause: it prices whatever clauses stand. The other side has to fix the clauses itself.
+    "price_only": Style(opening=0.70, final=0.50, least=0.20, reciprocity=1.0, clauses="standing"),
+    # holds a high ask until its last proposal, then gives most of it up, and signs anything that beats walking away.
+    # Patience is what pays against it.
+    "collapse": Style(opening=0.90, final=0.30, least=0.0, late=True),
 }
+NOMINAL = 5.0  # what a price-only script asks above its break-even when the clauses as they stand create nothing
 DRAWN = "drawn"
 #: What ``drawn_style`` draws from, uniformly and independently.
 POPULATION = {"opening": (0.60, 0.90), "comes_down": (0.05, 0.30), "final_at_least": 0.45, "least": (0.10, 0.35), "reciprocity": (0.5, 1.0)}
@@ -155,6 +168,9 @@ class Negotiator:
         st = self.style
         mine = ag.MOVES // 2 if self.seat == ag.FIRST else ag.MOVES // 2 - 1
         step = 0.0 if mine <= 1 else (st.opening - st.final) / (mine - 1)
+        if st.late:
+            made = sum(1 for h in state["history"] if h["action"] == "redline" and h["by"] == self.seat)
+            return st.final if made >= mine - 1 else st.opening
         pie = self.pie(belief)
         share, asked, theirs, moved = st.opening, False, None, None
         terms = ag.draft(self.cw)
@@ -190,20 +206,26 @@ class Negotiator:
         best_offer: tuple[rc.Contract, float, float] | None = None
         gain = lambda o: max(self.total(c, o) for c in ag.ALL_AGREEMENTS)
         ranked = sorted(belief, key=lambda o: (-round(gain(o), 6), o.p))
-        for n in range(1, len(ranked) + 1):
+        standing = rc.Contract(**state["terms"]) if self.style.clauses == "standing" else None
+        for n in range(len(ranked) if self.style.past else 1, len(ranked) + 1):
             reach = ranked[:n]
             mass = math.fsum(o.p for o in reach)
             if mass < self.style.cover - EPS and n < len(ranked):
                 continue
             inside = [replace(o, p=o.p / mass) for o in reach]
-            c = max(ag.ALL_AGREEMENTS, key=lambda k: (round(math.fsum(o.p * self.total(k, o) for o in inside), 6), k == d, k))
+            c = standing or max(ag.ALL_AGREEMENTS, key=lambda k: (round(math.fsum(o.p * self.total(k, o) for o in inside), 6), k == d, k))
             expected = math.fsum(o.p * self.total(c, o) for o in inside)
-            if expected <= EPS:
+            if expected <= EPS and standing is None:
                 continue
             level = -sign * self.mine(c, 0.0, inside)  # the price at which I am level with walking away, in expectation
             cap = sign * min(self.surplus(c, 0.0, o)[1] * sign for o in reach) if sign > 0 else max(-self.surplus(c, 0.0, o)[1] for o in reach)
-            price = level + sign * share * expected
-            price = min(price, cap) if sign > 0 else max(price, cap)
+            price = level + sign * (share * expected if expected > EPS else NOMINAL)
+            if self.style.past and share >= 1.0:
+                # past what the keenest type of the other side could sign, by the part of the ask above everything
+                keenest = max(self.surplus(c, 0.0, o)[1] for o in reach) if sign > 0 else min(-self.surplus(c, 0.0, o)[1] for o in reach)
+                price = keenest + sign * ((share - 1.0) * expected + 5.0)
+            elif expected > EPS:
+                price = min(price, cap) if sign > 0 else max(price, cap)
             price = math.floor(price / 5.0) * 5.0 if sign > 0 else math.ceil(price / 5.0) * 5.0  # whole $5k, never past the cap
             worth = mass * self.mine(c, price, inside)
             if worth > EPS and (best_offer is None or worth > best_offer[2] + EPS):
@@ -224,7 +246,7 @@ class Negotiator:
         enough = on_table is not None and on_table >= max(0.0, self.style.least * self.pie(belief)) - EPS
         if enough and (counter is None or on_table >= counter - EPS):
             return {"action": "sign", "clauses": None, "price": None, "note": None}
-        if offer is not None and counter > EPS:
+        if offer is not None and (counter > EPS or self.style.clauses == "standing"):  # a price-only script keeps haggling while it can
             best, price, _ = offer
             now = rc.Contract(**state["terms"])
             return {"action": "redline", "clauses": {k: (getattr(best, k) if getattr(best, k) != getattr(now, k) else None) for k in ag.TERMS},
