@@ -34,6 +34,7 @@ from aeread.shared_runner.task.evaluation import finalize_family_execution, fina
 from aeread.shared_runner.task.execution import CanonicalResponse, ClaudeCodePrintClient, ProviderRequest, ProviderResult, TokenPricing, execute_plan_cell
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 from aeread_families.datacenter_development import agreement as ag
+from aeread_families.datacenter_development import agreement_negotiator as an
 from aeread_families.datacenter_development import agreement_pack as ap
 from aeread_families.datacenter_development import risk_allocation_campaign as oc
 from aeread_families.datacenter_development import risk_allocation_contracts as rc
@@ -68,6 +69,13 @@ PAIRINGS: dict[str, tuple[str, str]] = {
     "oracle_integrator__oracle_client": ("scripted_oracle", "scripted_oracle"),
     "draft_integrator__draft_client": ("scripted_draft", "scripted_draft"),
 }
+# The scripted negotiator (agreement_negotiator) in either seat, against itself and against each model.
+_SHORT = {"codex_sol61": "codex", "claude_opus55": "claude"}
+for _style in (*an.STYLES, an.DRAWN):
+    PAIRINGS[f"negotiator_{_style}_integrator__negotiator_{_style}_client"] = (f"scripted_negotiator_{_style}", f"scripted_negotiator_{_style}")
+    for _subject, _name in _SHORT.items():
+        PAIRINGS[f"negotiator_{_style}_integrator__{_name}_client"] = (f"scripted_negotiator_{_style}", _subject)
+        PAIRINGS[f"{_name}_integrator__negotiator_{_style}_client"] = (_subject, f"scripted_negotiator_{_style}")
 CONTROLS = {"reasoning_effort": "low", "timeout_seconds": 300.0, "max_action_attempts": 1, "replicates": 1,
             "max_cost_usd_per_seat": 1.0, "max_cost_usd_total": 6.0, "max_parallel_cells": 2}
 CLAIM_STATUS = "development probe: one play a world between two CLI subjects; no winner, no ranking"
@@ -78,6 +86,7 @@ SOURCES = (
     "src/aeread_families/datacenter_development/agreement_environment.py",
     "src/aeread_families/datacenter_development/agreement_measurement.py",
     "src/aeread_families/datacenter_development/agreement_pack.py",
+    "src/aeread_families/datacenter_development/agreement_negotiator.py",
     "tools/cli_subjects/agreement_cli.py",
     "tools/cli_subjects/codex_exec_client.py",
     "src/aeread/shared_runner/task/execution.py",
@@ -159,7 +168,7 @@ def _profile(pairing: str, seat: str, subject: str, runtimes: Mapping[str, Mappi
 def build_setup(pairing: str, case_list: Sequence[CaseManifest], runtimes: Mapping[str, Mapping[str, str]]) -> Setup:
     family = agreement_family_manifest()
     integrator_subject, client_subject = PAIRINGS[pairing]
-    scripted = integrator_subject.startswith(SCRIPTED)
+    scripted = integrator_subject.startswith(SCRIPTED) and client_subject.startswith(SCRIPTED)
     sampling = SamplingPlan.from_dict({
         "spec_version": SamplingPlan.SPEC_VERSION, "sampling_plan_id": f"agreement_{pairing}_sample_v1",
         "estimand": "joint_value_lost_on_a_development_pack", "target": "negotiating_an_agreement_clause_by_clause",
@@ -219,22 +228,44 @@ def build_setup(pairing: str, case_list: Sequence[CaseManifest], runtimes: Mappi
     return Setup(plan, registry, {prompt_id(s): system_prompt(s) for s in ag.SEATS}, pricing, harnesses, providers)
 
 
-class PairClient:
-    """Both seats of a scripted pair: it rebuilds the negotiation from its own earlier replies and answers for the seat to move."""
+def scripted_policy(name: str):
+    """A scripted seat's rule by name: the two controls, or the negotiator in one of its styles."""
+    if name in ag.POLICIES:
+        return ag.POLICIES[name]
+    if name.startswith("negotiator_") and name[len("negotiator_"):] in (*an.STYLES, an.DRAWN):
+        style = name[len("negotiator_"):]
+        return lambda state, cw, it: an.negotiator_move(state, cw, it, style)
+    raise ValueError(f"unknown scripted policy {name!r}")
 
-    def __init__(self, payload: Mapping[str, Any], policy: str) -> None:
+
+def state_from_observation(cw: rc.CWorld, observation: Mapping[str, Any]) -> dict[str, Any]:
+    """The negotiation so far, rebuilt from what the seat is shown. A scripted seat reads nothing else."""
+    state = ag.initial_state(cw)
+    for row in observation["history"]:
+        changes = row.get("changes") if isinstance(row.get("changes"), Mapping) else {}
+        act = {"action": row["action"], "note": row.get("note"), "price": row.get("price"),
+               "clauses": {k: (changes[k]["now"] if k in changes else None) for k in ag.TERMS} if row["action"] == "redline" else None}
+        state = ag.apply(state, act, cw)
+    if state["to_move"] != observation["seat"] or state["move"] != observation["move"]:
+        raise RuntimeError("the observation's history does not lead to this seat's move")
+    return state
+
+
+class ScriptedClient:
+    """The scripted seats of a pairing. Each answers from its own observation, so it can sit opposite a model."""
+
+    def __init__(self, payload: Mapping[str, Any], policies: Mapping[str, str]) -> None:
         self.payload = AgreementPlugin().validate_payload(payload)
-        self.policy = ag.POLICIES[policy]
-        self.replies: list[str] = []
+        self.policies = {seat: scripted_policy(name) for seat, name in policies.items()}
+        self.calls = 0
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         cw, it = rc.world_from({k: self.payload[k] for k in ("world", "integrator_type", "extras")})
-        state = ag.initial_state(cw)
-        for text in self.replies:
-            state = ag.apply(state, parse_move(CanonicalResponse(text, "stop", False, False, (), (), 0, 0, 0, 0.0)).action, cw)
-        text = json.dumps(self.policy(state, cw, it))
-        self.replies.append(text)
-        return ProviderResult(response_id=f"scripted_{len(self.replies)}", requested_model=request.model, resolved_model=request.revision or request.model,
+        observation = json.loads(request.input_text)["observation"]
+        seat = observation["seat"]
+        text = json.dumps(self.policies[seat](state_from_observation(cw, observation), cw, it))
+        self.calls += 1
+        return ProviderResult(response_id=f"scripted_{self.calls}", requested_model=request.model, resolved_model=request.revision or request.model,
                               output_text=text, finish_reason="stop", input_tokens=0, cached_input_tokens=0, output_tokens=0, cost_usd=0.0,
                               raw_response={"scripted": True, "output_text": text})
 
@@ -298,6 +329,14 @@ def freeze(directory: Path, pairings: Sequence[str], worlds: Sequence[str], camp
         },
         "sources": {rel: _digest(rel) for rel in SOURCES}, "plans": plans,
     }
+    styles = sorted({s[len(SCRIPTED + "negotiator_"):] for p in pairings for s in PAIRINGS[p] if s.startswith(SCRIPTED + "negotiator_")})
+    if styles:
+        plan["scripted_negotiator"] = {
+            "module": "aeread_families.datacenter_development.agreement_negotiator", "styles_in_this_campaign": styles,
+            "fixed_styles": {k: vars(v) for k, v in an.STYLES.items()}, "drawn_from": an.POPULATION,
+            "drawn_by": "the world and the seat alone, so a world always meets the same counterpart; the other side is not told which",
+            "reads": "its own seat's information: its own costs, the other side's as the declared types and odds, and the moves; never a note",
+        }
     plan["plan_sha256"] = hashlib.sha256(canonical_json_bytes(plan)).hexdigest()
     (directory / "campaign_plan.json").write_text(json.dumps(plan, indent=1, default=str))
     return plan
@@ -317,7 +356,7 @@ async def _run_cell(directory: Path, entry: Mapping[str, Any], setup: Setup, cel
         providers: dict[str, Any] = {name: codex.LoggedClient(client, directory / "cli_calls.jsonl", subject=name) for name, client in clients.items()
                                      if name in setup.providers}
         if "fake" in setup.providers:
-            providers["fake"] = PairClient(payload, entry["integrator"][len(SCRIPTED):])
+            providers["fake"] = ScriptedClient(payload, {seat: entry[seat][len(SCRIPTED):] for seat in ag.SEATS if entry[seat].startswith(SCRIPTED)})
         record: dict[str, Any] = {"cell_key": key, "pairing": entry["pairing"], "integrator": entry["integrator"], "client": entry["client"],
                                   "case_id": cell.case_id, "cell_id": cell.cell_id, "replicate_index": cell.replicate_index,
                                   "run_plan_id": setup.plan.run_plan_id}
@@ -398,7 +437,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         CONTROLS["max_parallel_cells"] = args.parallel
     if args.command in ("freeze", "dry-run") and not args.directory.exists():
         codes = args.world or [c.case_id.rsplit(".", 1)[-1] for c in cases()][: args.worlds]
-        scripted = [p for p in PAIRINGS if PAIRINGS[p][0].startswith(SCRIPTED)]
+        scripted = [p for p in PAIRINGS if all(x.startswith(SCRIPTED) for x in PAIRINGS[p])]
         pairings = scripted if args.command == "dry-run" else (args.pairing or ["codex_integrator__claude_client"])
         plan = freeze(args.directory, pairings, codes, args.campaign + ("_scripted_dry_run" if args.command == "dry-run" else ""))
         print(f"froze {sum(len(p['cells']) for p in plan['plans'])} cells in {len(plan['plans'])} plans: {plan['plan_sha256'][:12]}")
