@@ -21,7 +21,7 @@ What it does on a move:
    surplus it believes there is, and it walks when nothing left to it meets that. ``least`` is what
    makes a last-move ultimatum risky for the other side; it costs the pair a deal when it binds.
 
-``STYLES`` names three fixed settings. ``drawn_style`` draws one from ``POPULATION`` from the world
+``STYLES`` names fixed settings: three that hold a line to different degrees, and ``soft``, which gives way. ``drawn_style`` draws one from ``POPULATION`` from the world
 and the seat alone, so a world always meets the same counterpart and a replay reproduces it, and
 the other side is not told which. The style is declared in the plan, so a result against the
 script says which script.
@@ -55,6 +55,9 @@ STYLES: dict[str, Style] = {
     "even": Style(opening=0.60, final=0.50, least=0.20),
     "firm": Style(opening=0.80, final=0.65, least=0.30),
     "hard": Style(opening=0.95, final=0.85, least=0.40, accept_odds=0.7),
+    # gives way: it comes down on the clock whatever the other side does, signs whatever beats walking away,
+    # and takes an offer on the table over a counter-offer it thinks unlikely to be signed
+    "soft": Style(opening=0.55, final=0.25, least=0.0, reciprocity=0.0, accept_odds=0.4),
 }
 DRAWN = "drawn"
 #: What ``drawn_style`` draws from, uniformly and independently.
