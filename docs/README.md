@@ -59,6 +59,7 @@ not intended as a second reading order.
 - [Pull-request lanes and limits](operations/pr_lanes.md)
 - [Incident log](operations/incident_log.md)
 - [Moved documents](operations/moved_documents.md): where a cited path went
+- [Errata: flagging published evidence after the fact](operations/errata.md)
 
 ## Benchmark families
 

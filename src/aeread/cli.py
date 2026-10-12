@@ -31,6 +31,8 @@ VERBS: dict[str, tuple[str, str]] = {
                       "find the commit a bundle's pinned source digests came from"),
     "verify-replay": ("aeread.shared_runner.run.replay_verification",
                       "recompute a published bundle's scores from its sealed run evidence"),
+    "errata": ("aeread.shared_runner.analysis.errata",
+               "regenerate the errata register over published evidence"),
 }
 
 
