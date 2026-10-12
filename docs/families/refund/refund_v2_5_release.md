@@ -187,9 +187,7 @@ pairs/repetitions appropriately. Use exact replay rather than model judges.
 Do not interpret selective infrastructure recovery as successful original primary
 inference or mistake developmental calibration for held-out confirmation.
 
-## Implementation map
-
-### Verification on the public-release tree
+## Verification on the public-release tree
 
 - Latest-main revision rechecked: `dec1a40f8de6fcef1dca950e965df37544d3c3a6`.
 - Core/branch/collection/seat tests plus current kernel scoring and duplicate-binding checks: **1,610 passed, 8 bridge-gated skips**.
@@ -198,6 +196,14 @@ inference or mistake developmental calibration for held-out confirmation.
 - Built and installed wheel executed outside the checkout: V5.1 payments **12/12**, with packaged V2.5 QC records and no campaign archives.
 - Compile checks passed with temporary bytecode output; source checkout unchanged by compilation. No paid model calls.
 - Repository-wide local collection additionally encounters the existing checkout-name assumption tracked in [#268](https://github.com/aeread-org/AERead/issues/268); it is not a V2.5 change and no full-suite green claim is made from that invocation.
+
+The broader local run excluding that module was interrupted after 4,086 passes,
+267 skips and one expected failure; two Everos HTTP-stub setup errors were caused
+by the sandbox denying loopback socket binding, not a Refund assertion. This is
+reported as partial repository verification, not a completed full suite.
+All 29 Everos tests subsequently passed with explicit local-socket permission.
+
+## Implementation map
 
 - `v2_4_cases/reference/scoring`: preserved interaction baseline and alias taxonomy.
 - `v2_5_policy/branches`: complete policy contracts, case builders, branch resolver.
