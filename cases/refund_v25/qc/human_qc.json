@@ -1,0 +1,13 @@
+{
+  "artifact": "refund_v25_human_qc_approval",
+  "family": "refund_v2",
+  "family_version": "2.5.0",
+  "decision": "approved",
+  "scope": "developmental_design",
+  "reviewer": "user",
+  "approval_date": "2026-10-12",
+  "approval_reference": "Explicit user reply: 批准, following the release-specific developmental QC question in session 01a0d0d0-f0ee-7853-b15b-449f40d6ebcc",
+  "condition": "Current compatibility tests must pass before release; preserve local historical experiment evidence and case semantics.",
+  "normative_benchmark_promotion": false,
+  "paid_execution_authorized": false
+}

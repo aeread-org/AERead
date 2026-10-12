@@ -1,5 +1,17 @@
 # Incident log
 
+## Refund V2.5 public-release compatibility audit — 2026-10-12
+
+| ID | Class | Finding | Detection | Cost | Disposition |
+|---|---|---|---|---|---|
+| RV25-D-01 | design | Historical V2.5 tests/paid smoke paths load local frozen configurations and experiment artifacts; they are not a portable release. | Clean worktree on main dec1a40f; missing-module/file test collection failures. | Local test time; zero paid calls. | Fixed: public qualification/replay factory and self-contained branch, collection and V5.1 tests; historical archive tests/drivers remain outside release scope. |
+| RV25-D-02 | design | Local V2.5 admission reused V2.1 QC evidence while naming V2.5. | Read contribution records and QC JSON in clean checkout. | No external spend or published inference. | Fixed: distinct V2.5 developmental QC; explicit user approval after the release-specific question, conditional on passing compatibility tests. No normative promotion or paid authority. |
+| RV25-T-01 | tooling | Current kernel Arena adapter rejects completed invalid JSON before family contract scoring and does not honor all profile controls; historical campaign attribution is not portable as-is. | Read ArenaChatClient on main and compare local campaign adapter. | Zero paid calls. | Open: [#267](https://github.com/aeread-org/AERead/issues/267), related [#264](https://github.com/aeread-org/AERead/issues/264). Public V2.5 execution is provider-free; no vendored kernel workaround or paid-equivalence claim. |
+| RV25-T-02 | tooling | V2.5 policy binds the decoy catalogue twice at module scope; newer duplicate-binding CI rejects it. | test_no_duplicate_class_members on latest main. | Local test failure only. | Fixed: one dictionary expression with the same defaults/overrides; no fact/score redesign. |
+| RV25-T-03 | tooling | Existing Anaconda NumPy/SciPy versions cannot import scipy.optimize, blocking unrelated Housing scoring-contract fixtures. | Kernel scoring-contract test ImportError for numpy.Inf. | Local test time; zero paid calls. | Fixed for verification: isolated temporary test environment with compatible NumPy/SciPy; user environment unchanged. |
+| RV25-T-04 | tooling | Existing negarena provisioning tests fail collection unless the checkout has an ancestor literally named AERead; the managed worktree ends in AER. | Unchanged-main test collection during repository-wide verification. | Local test time; zero paid calls. | Open: [#268](https://github.com/aeread-org/AERead/issues/268). Local broader-suite runs explicitly exclude this one module; not reported as a full-suite pass. Other-family source/tests untouched. |
+| RV25-T-05 | tooling | Local sandbox denies loopback socket binding for two existing Everos HTTP-stub tests. | PermissionError at HTTPServer(127.0.0.1, 0) in the broader run; interrupted after 4,086 passes, 267 skips and one expected failure. | Local test time; zero paid calls. | Retested with explicit local-socket permission; no family/kernel source workaround. Partial broader verification is not called a full-suite pass. |
+
 **Status:** the single register of things that went wrong, across design,
 operations, tooling, and judgment. One place, so an auditor can ask "what failed
 and was it addressed" without reading five documents.
