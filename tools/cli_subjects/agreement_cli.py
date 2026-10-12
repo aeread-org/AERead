@@ -66,6 +66,9 @@ SUBJECTS: dict[str, dict[str, Any]] = {
 PAIRINGS: dict[str, tuple[str, str]] = {
     "codex_integrator__claude_client": ("codex_sol61", "claude_opus55"),
     "claude_integrator__codex_client": ("claude_opus55", "codex_sol61"),
+    # the same model in both seats: the seats are not interchangeable, so this measures the seat's share at equal skill, not a null
+    "codex_integrator__codex_client": ("codex_sol61", "codex_sol61"),
+    "claude_integrator__claude_client": ("claude_opus55", "claude_opus55"),
     "oracle_integrator__oracle_client": ("scripted_oracle", "scripted_oracle"),
     "draft_integrator__draft_client": ("scripted_draft", "scripted_draft"),
 }
@@ -177,7 +180,7 @@ def build_setup(pairing: str, case_list: Sequence[CaseManifest], runtimes: Mappi
     })
     block = EvaluationBlock.from_dict({
         "spec_version": EvaluationBlock.SPEC_VERSION, "block_id": f"agreement_{pairing}_block",
-        "kind": "reference" if scripted else "cross_play", "subject_seats": list(ag.SEATS), "controlled_profiles": {}, "repetitions": 1,
+        "kind": "reference" if scripted else "self_play" if integrator_subject == client_subject else "cross_play", "subject_seats": list(ag.SEATS), "controlled_profiles": {}, "repetitions": 1,
         "seed_policy": "fixed",
     })
     analysis = AnalysisPlan.from_dict({
@@ -336,6 +339,14 @@ def freeze(directory: Path, pairings: Sequence[str], worlds: Sequence[str], camp
             "fixed_styles": {k: vars(v) for k, v in an.STYLES.items()}, "drawn_from": an.POPULATION,
             "drawn_by": "the world and the seat alone, so a world always meets the same counterpart; the other side is not told which",
             "reads": "its own seat's information: its own costs, the other side's as the declared types and odds, and the moves; never a note",
+        }
+    same = [p for p in pairings if PAIRINGS[p][0] == PAIRINGS[p][1] and not PAIRINGS[p][0].startswith(SCRIPTED)]
+    if same:
+        plan["same_model_pairings"] = {
+            "pairings": same,
+            "estimand": "per world, the integrator's surplus minus the client's surplus in the same negotiation: what the seat is worth when the same model plays both",
+            "not_a_null": "the two seats have different payoffs and information, so no difference of zero is expected; this is not an A/A comparison",
+            "also": "joint value lost, deals lost and signatures below a walk-away point, beside the mixed pairings on the same worlds",
         }
     plan["plan_sha256"] = hashlib.sha256(canonical_json_bytes(plan)).hexdigest()
     (directory / "campaign_plan.json").write_text(json.dumps(plan, indent=1, default=str))
