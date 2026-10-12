@@ -1,0 +1,15 @@
+{
+  "artifact": "refund_v25_provider_free_conformance",
+  "family": "refund_v2",
+  "family_version": "2.5.0",
+  "scope": "developmental_four_seat_design",
+  "status": "passed",
+  "planned": 816,
+  "completed": 816,
+  "operational_exclusions": 0,
+  "independent_replays": 816,
+  "paid_calls": 0,
+  "base_main": "dec1a40f",
+  "verification_command": "python -m aeread_families.refund.v2_5_release --panel all --output FRESH_PATH",
+  "limitation": "Developmental qualification, not a published model-comparison evidence bundle. Re-run on the reviewed tree. No Arena equivalence or normative promotion is asserted."
+}
