@@ -241,6 +241,30 @@ corrected together by Holm's method.
 - **Does revealing pay?** For Sol, on this evidence, yes: fitting its clauses to its type is
   worth 120 of joint value a world [83, 157], and being read cost it -8 [-42, 26].
 
+**Why the look-back number was wrong** (`tools/cli_subjects/agreement_signal_placebo.py`, no
+model called). The 0.52 was a real correlation in the earlier runs, and it was not about Opus.
+The same regression, run on a price that cannot carry the client's type because the opener is
+never told it:
+
+| The look-back regression applied to | Earlier runs (type differs between worlds) | Type-swap run (each world under both types) |
+|---|---|---|
+| Opus's counter-offer price | 0.52 [0.27, 0.74] | 0.18 [0.07, 0.39] |
+| Opus's reply, a signature counted as taking the offer's price | 0.72 [0.55, 0.88] | 0.02 [-0.06, 0.10] |
+| A scripted integrator's opening price (cannot know the type) | 0.38 [0.23, 0.52] | 0.04 [0.02, 0.06] |
+| Codex's opening price as integrator (cannot know the type) | 0.59 [0.29, 0.84] | not played |
+
+- **The hidden type is tied to the world.** The pack fixes the charge by cell: 8, 22 and 28
+  worlds carry the low, middle and high charge, and the gap between the three types' limits at
+  the standard draft averages 547, 398 and 169 in them. Comparing types across worlds compares
+  those worlds (incident row DC-D-33).
+- **Counter-offers only.** In the type-swap run Opus countered in 24 of 52 replies under the
+  high charge and 11 of 52 under the low, so the replies that were kept depended on the type.
+  That leaves 0.18 among counter-offers where every reply together gives 0.02.
+- **A random-label check would have passed it.** Reassigning the hidden type at random 3,000
+  times never reached 0.52. That check asks whether price is associated with the type; a
+  confound is an association. Only a price that cannot be affected, or holding the world
+  fixed, separates the two.
+
 Secondary, with no claim: Sol's own price pass-through 0.56 [-0.11, 1.23]; Sol against the
 price reader +9 [-12, 29]; Opus against the clause reader -8 [-21, 4]; the value of tailoring
 to Opus 5 [-4, 14]. The integrator's seat was tested only on its pre-staging cost: Sol 0.55
