@@ -1,4 +1,5 @@
 import json
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,15 @@ from aeread_families.refund.v2_environment import (
 from aeread_families.refund.v2_experiment import run as run_v21_experiment
 from aeread_families.refund.v2_runner import RefundV21Plugin, build_refund_v21_run
 from aeread_families.refund.v2_publication import publish_refund_v21
+from aeread_families.refund.v2_2_environment import (
+    build_n1_batch,
+    build_n1_panel,
+    run_scripted_n1,
+    verify_n1_trajectory,
+    derive_priority,
+)
+from aeread_families.refund.v2_2_experiment import run as run_v22_conformance
+from aeread_families.refund.v2_2_runner import build_refund_v22_run, run as run_v22_runner
 from aeread.shared_runner.task.execution import EvidenceStore
 
 
@@ -228,6 +238,103 @@ def test_v21_publication_rejects_a_shared_analysis_and_publication_directory(tmp
             analysis_root=shared,
             publication_root=shared,
         )
+
+
+def test_v22_n1_batch_has_shared_budget_and_three_customers() -> None:
+    cases = build_n1_batch(11)
+
+    assert len(cases) == 3
+    assert {case.customer_id for case in cases} == {"customer_1", "customer_2", "customer_3"}
+    assert sum(case.authorized_refund_amount for case in cases if case.eligible) > 120.0
+
+
+def test_v22_panel_varies_budget_and_priorities_across_worlds() -> None:
+    first = build_n1_panel(0)
+    second = build_n1_panel(1)
+
+    assert first.content_sha256 != second.content_sha256
+    assert first.refund_budget != second.refund_budget
+    assert [case.priority for case in first.cases] != [case.priority for case in second.cases]
+
+
+def test_v22_priority_is_derived_from_declared_basis() -> None:
+    panel = build_n1_panel(5)
+    assert [case.priority_basis for case in panel.cases] == ["critical", "standard", "elevated"]
+    assert [case.priority for case in panel.cases] == [derive_priority(case.priority_basis) for case in panel.cases]
+
+
+def test_v22_scripted_n1_allocates_shared_budget_once() -> None:
+    cases = build_n1_batch(12)
+    state, outcome = run_scripted_n1(cases)
+
+    assert outcome.policy_compliant is True
+    assert outcome.allocation_score == 1.0
+    assert outcome.transaction_score == 1.0
+    assert len(state.transactions) == 1
+    assert state.transactions[0]["customer_id"] == "customer_2"
+    assert state.budget_remaining == 30.0
+
+
+def test_v22_verifier_rejects_a_feasible_but_lower_priority_allocation() -> None:
+    batch = build_n1_panel(0)
+    state, _ = run_scripted_n1(batch)
+    # The apparel refund is feasible on its own, but the declared objective
+    # prioritizes the software claim in this world.
+    apparel, software, _ = batch.cases
+    state.decisions[apparel.case_id] = {
+        "decision": "approve", "amount": apparel.authorized_refund_amount,
+        "method": apparel.authorized_refund_method,
+    }
+    state.decisions[software.case_id] = {
+        "decision": "deny_or_defer", "amount": 0.0, "method": "none",
+    }
+    state.transactions = [{
+        "customer_id": apparel.customer_id, "case_id": apparel.case_id,
+        "amount": apparel.authorized_refund_amount,
+        "method": apparel.authorized_refund_method,
+    }]
+    state.budget_remaining = batch.refund_budget - apparel.authorized_refund_amount
+
+    outcome = verify_n1_trajectory(batch, state)
+
+    assert outcome.transaction_score == 1.0
+    assert outcome.allocation_score == 0.0
+    assert outcome.policy_compliant is False
+    assert "allocation_policy_mismatch" in outcome.verifier_reasons
+
+
+def test_v22_customer_information_is_revealed_in_two_requests() -> None:
+    state, _ = run_scripted_n1(build_n1_batch(13))
+
+    for case in build_n1_batch(13):
+        messages = [
+            message for message in state.transcript
+            if message["speaker"] == "customer" and message["customer_id"] == case.customer_id
+        ]
+        assert messages[0]["revealed_fields"] == []
+        assert messages[1]["revealed_fields"] == ["condition", "issue_type", "evidence_provided"]
+        assert messages[2]["revealed_fields"] == ["return_received"]
+
+
+def test_v22_conformance_experiment_writes_batch_summary(tmp_path) -> None:
+    summary = run_v22_conformance(world_seeds=(0, 1), output=tmp_path)
+
+    assert summary["topology"] == "N:1"
+    assert summary["planned_batches"] == 2
+    assert summary["planned_customer_cases"] == 6
+    assert summary["metrics"]["allocation"] == 1.0
+    assert (tmp_path / "refund_v2_2_conformance_summary.json").exists()
+
+
+def test_v22_shared_runner_seals_a_controlled_policy_batch(tmp_path) -> None:
+    setup = build_refund_v22_run(world_seeds=(0,))
+    assert set(setup.plan.cells[0].profile_by_seat) == {
+        "policy", "customer_1", "customer_2", "customer_3", "payments",
+    }
+    report = asyncio.run(run_v22_runner(output=tmp_path, world_seeds=(0,)))
+    assert report["completed_batches"] == 1
+    assert report["receipts"][0]["inclusion_status"] == "included"
+    assert (tmp_path / f"{report['run_plan_id']}" / "run_plan.json").exists()
 
 
 def test_committed_refund_kernel_trajectory_grains_use_terminal_action_statuses() -> None:
