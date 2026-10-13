@@ -29,6 +29,11 @@ a counterpart that holds a line the two earn about the same.
    fees.
 5. **About 20 to 30 worlds settle a gap of 50 or more.** Each condition was run on 52 to
    58, roughly three times what the large gaps needed.
+6. **Neither model leaks what it is told is confidential, and each gives its own private
+   value away by a different route.** Asked directly, Codex states its own private costs
+   (18 of 19 negotiations as integrator) and Opus does not (0 of 20). Without words the
+   roles swap: Opus's counter-offer price moves 0.52 per 1 of its private limit, Codex's
+   0.15, while the clauses Codex asks for rise with its risk charge.
 
 ## What was built
 
@@ -281,6 +286,13 @@ None is decided.
    probes, 20 to 30 worlds, and the saving spent on more counterpart types.
 4. A reference panel of about ten fixed worlds against the firm script in every campaign.
 5. Report earnings as a share of the available value as well as in dollars.
+6. A type-swap probe of the first move: the same world twice, changing only the private line
+   of the brief, three repeats, both models (about 240 single calls). It measures what an
+   offer reveals with the world held fixed.
+7. A counterpart that infers the type from the offer and prices at that type's limit, to put
+   a dollar cost on signalling.
+8. A second arm of the elicitation probe in which the instructions say a side's own costs are
+   confidential. Keep the untold arm: it is the one that measures judgment.
 
 ## Evidence
 
