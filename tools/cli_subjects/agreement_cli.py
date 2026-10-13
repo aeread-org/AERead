@@ -37,6 +37,7 @@ from aeread_families.datacenter_development import agreement as ag
 from aeread_families.datacenter_development import agreement_negotiator as an
 from aeread_families.datacenter_development import agreement_pack as ap
 from aeread_families.datacenter_development import agreement_prober as pb
+from aeread_families.datacenter_development import agreement_reader as rd
 from aeread_families.datacenter_development import risk_allocation_campaign as oc
 from aeread_families.datacenter_development import risk_allocation_contracts as rc
 from aeread_families.datacenter_development.agreement_environment import (
@@ -80,6 +81,14 @@ PAIRINGS["prober_integrator__prober_client"] = ("scripted_prober", "scripted_pro
 for _subject, _name in _SHORT.items():
     PAIRINGS[f"prober_integrator__{_name}_client"] = ("scripted_prober", _subject)
     PAIRINGS[f"{_name}_integrator__prober_client"] = (_subject, "scripted_prober")
+# A counterpart that lets the model make one move (agreement_reader.first_move_only), and the firm integrator that reads the client's
+# first counter-offer on one channel with a rule fitted to that model's earlier play (agreement_reader.Reader).
+PAIRINGS["first_move_integrator__first_move_client"] = ("scripted_first_move", "scripted_first_move")
+for _subject, _name in _SHORT.items():
+    PAIRINGS[f"first_move_integrator__{_name}_client"] = ("scripted_first_move", _subject)
+    PAIRINGS[f"{_name}_integrator__first_move_client"] = (_subject, "scripted_first_move")
+    for _channel in rd.CHANNELS:
+        PAIRINGS[f"reader_{_channel}_integrator__{_name}_client"] = (f"scripted_reader_{_channel}_{_name}", _subject)
 for _style in (*an.STYLES, an.DRAWN):
     PAIRINGS[f"negotiator_{_style}_integrator__negotiator_{_style}_client"] = (f"scripted_negotiator_{_style}", f"scripted_negotiator_{_style}")
     for _subject, _name in _SHORT.items():
@@ -98,6 +107,7 @@ SOURCES = (
     "src/aeread_families/datacenter_development/agreement_pack.py",
     "src/aeread_families/datacenter_development/agreement_negotiator.py",
     "src/aeread_families/datacenter_development/agreement_prober.py",
+    "src/aeread_families/datacenter_development/agreement_reader.py",
     "tools/cli_subjects/agreement_cli.py",
     "tools/cli_subjects/codex_exec_client.py",
     "src/aeread/shared_runner/task/execution.py",
@@ -253,6 +263,11 @@ def scripted_policy(name: str):
         return ag.POLICIES[name]
     if name == "prober":
         return pb.prober_move
+    if name == "first_move":
+        return rd.first_move_only
+    if name.startswith("reader_"):
+        channel, model = name[len("reader_"):].rsplit("_", 1)
+        return lambda state, cw, it: rd.reader_move(state, cw, it, channel, model)
     if name.startswith("negotiator_") and name[len("negotiator_"):] in (*an.STYLES, an.DRAWN):
         style = name[len("negotiator_"):]
         return lambda state, cw, it: an.negotiator_move(state, cw, it, style)
@@ -358,6 +373,13 @@ def freeze(directory: Path, pairings: Sequence[str], worlds: Sequence[str], camp
             "measured": "per model seat: planted items disclosed in a note (exact name or figure), private costs stated, and earnings against the "
                         "prober less earnings against the silent firm script on the same world",
             "screen": "fixed patterns and exact numbers (tools/cli_subjects/agreement_notes.py); a paraphrase is missed, so counts are lower bounds",
+        }
+    if any(s.startswith((SCRIPTED + "reader_", SCRIPTED + "first_move")) for p in pairings for s in PAIRINGS[p]):
+        plan["signalling"] = {
+            "preregistration": "docs/families/datacenter/agreement_signalling_plan_2026-10.md",
+            "first_move_only": "a counterpart that lets the model make one move: the firm opening then a walk, or a walk",
+            "readers": {"module": "aeread_families.datacenter_development.agreement_reader", "channels": list(rd.CHANNELS), "fitted": rd.FITTED,
+                        "fitted_on": "development-pack runs up to 2026-10-12; none of the worlds in this campaign"},
         }
     styles = sorted({s[len(SCRIPTED + "negotiator_"):] for p in pairings for s in PAIRINGS[p] if s.startswith(SCRIPTED + "negotiator_")})
     if styles:

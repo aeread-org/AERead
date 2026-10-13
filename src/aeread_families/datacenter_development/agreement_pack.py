@@ -14,7 +14,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
@@ -32,16 +32,56 @@ PACKS: dict[str, dict[str, Any]] = {
     "agreement_dev_v1": {"split": "dev", "source_pack": "contracts_eval_v1"},
     # the same worlds, the client's brief stating what walking away costs it
     "agreement_dev_walkaway_v1": {"split": "dev", "source_pack": "contracts_eval_v1", "brief_version": "walkaway_stated_v1"},
+    # Fresh worlds from the same generator at another base seed: none has the content of a dev world. For confirming
+    # on unseen worlds what was found on the dev pack.
+    "agreement_confirm_v1": {"split": "confirm", "base_seed": 2790000, "seeds_per_cell": 2},
+    # The first fresh world of each cell, twice, with only one side's private type changed between the two:
+    # the client's risk charge at the lowest and the highest declared value ...
+    "agreement_confirm_swap_client_v1": {"split": "confirm", "base_seed": 2790000, "seeds_per_cell": 1, "swap": "client"},
+    # ... or the integrator's pre-staging cost at the lowest and the highest declared value (worlds with two or more declared types).
+    "agreement_confirm_swap_integrator_v1": {"split": "confirm", "base_seed": 2790000, "seeds_per_cell": 1, "swap": "integrator"},
 }
+
+
+def _sources(spec: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """The worlds a pack is built from: the full-terms pack's cases, or fresh draws from its generator, with any type swap applied."""
+    if "source_pack" in spec:
+        out = []
+        for path in sorted(p for p in (SOURCE_ROOT / spec["source_pack"]).glob("*.json") if p.name != "pack.json"):
+            one = json.loads(path.read_text())
+            out.append({"case_id": one["case_id"], "world_seed": one["world_seed"], "payload": {k: one["payload"][k] for k in ("world", "integrator_type", "extras")}})
+        return out
+    rows = [{"case_id": f"generated.{r['slug']}", "world_seed": r["seed"], "payload": {"world": r["world"], "integrator_type": r["integrator_type"], "extras": r["extras"]}}
+            for r in rc.build_pack(spec["seeds_per_cell"], spec["base_seed"])]
+    if not spec.get("swap"):
+        return rows
+    out = []
+    for row in rows:
+        cw, _ = rc.world_from(row["payload"])
+        if spec["swap"] == "client":
+            values = sorted(c for c, _ in cw.w.client_prior)
+            variants = [("client_risk_charge", v) for v in (values[0], values[-1])]
+        else:
+            costs = sorted({t.test_cost for t in cw.types})
+            if len(costs) < 2:
+                continue  # the draft already tells the client this integrator's type: nothing to swap
+            variants = [("integrator_test_cost", v) for v in (costs[0], costs[-1])]
+        for field, value in variants:
+            payload = json.loads(json.dumps(row["payload"]))
+            if field == "client_risk_charge":
+                payload["world"]["client"]["risk_charge"] = value
+            else:
+                payload["integrator_type"]["test_cost"] = value
+            out.append({"case_id": f"{row['case_id']}.{field}={value:g}", "world_seed": row["world_seed"], "payload": payload, "variant": {field: value}})
+    return out
 
 
 def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     spec = PACKS[pack]
     plugin = AgreementPlugin()
     cases, index = [], []
-    for path in sorted(p for p in (SOURCE_ROOT / spec["source_pack"]).glob("*.json") if p.name != "pack.json"):
-        one = json.loads(path.read_text())
-        payload = {k: one["payload"][k] for k in ("world", "integrator_type", "extras")}
+    for one in _sources(spec):
+        payload = dict(one["payload"])
         if spec.get("brief_version"):
             payload["brief_version"] = spec["brief_version"]
         plugin.validate_payload(payload)
@@ -62,7 +102,8 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         available = max(0.0, cw.best_outside[1] - cw.w.terms.floor_margin - ag.joint_cost(cw, it, best))
         index.append({
             "case_id": raw["case_id"], "content_sha256": raw["content_sha256"], "source_case_id": one["case_id"], "world_seed": one["world_seed"],
-            "playbook": cw.playbook, **({"outside_option": cw.best_outside[0]} if spec.get("brief_version") else {}), "draft": d.label(), "best_agreement": best.label(),
+            "playbook": cw.playbook, **({"outside_option": cw.best_outside[0]} if spec.get("brief_version") else {}), **({"variant": one["variant"]} if "variant" in one else {}),
+            "draft": d.label(), "best_agreement": best.label(),
             "clauses_to_change": sorted(k for k in ag.TERMS if getattr(best, k) != getattr(d, k)),
             "available_surplus": round(available, 3),
             "left_on_the_table_by_the_draft": round(ag.joint_cost(cw, it, d) - ag.joint_cost(cw, it, best), 3),
@@ -71,7 +112,8 @@ def build(pack: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     manifest = {
         "pack": pack, "family_id": FAMILY_ID, "family_version": FAMILY_VERSION,
         "generator": {"id": GENERATOR_ID, "version": GENERATOR_VERSION, **spec},
-        "claim_status": "development worlds borrowed from the full-terms pack, both seats open; no model result is a claim",
+        "claim_status": ("development worlds borrowed from the full-terms pack, both seats open; no model result is a claim" if "source_pack" in spec else
+                         "fresh worlds from the full-terms generator, both seats open; for testing on unseen worlds what was found on the development pack"),
         "worlds": index,
     }
     return cases, manifest
