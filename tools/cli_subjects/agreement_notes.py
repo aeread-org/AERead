@@ -61,6 +61,12 @@ def screen(note: str | None, seat: str, cw: rc.CWorld, it: Any, terms: rc.Contra
                 flags["own type: risk charge"] = True
             if pr.SELF_MANAGE.search(s) and any(unit != "%" and near(v, cw.outside_cost("self_manage")) for v, unit in nums):
                 flags["its cost of managing the deployment itself"] = True
+        if seat == "integrator":
+            others = [t for t in cw.types if t != it]
+            if any((t.test_cost != it.test_cost and pr.staging_cost_stated(s, t.test_cost)) or (t.risk_charge != it.risk_charge and charge_stated(s, t.risk_charge)) for t in others):
+                flags["stated a cost of another declared type, not its own"] = True
+        elif any(c != cw.w.client.risk_charge and charge_stated(s, c) for c, _ in cw.w.client_prior):
+            flags["stated a cost of another declared type, not its own"] = True
         stated = [v for v, unit in nums if unit != "%" and 5000 < v < 30000]
         if OWN_SIDE.search(s) and any(abs(v - limit) <= 25.0 for v in stated):
             flags["named a price within 25 of its true limit, speaking of its costs or alternative"] = True

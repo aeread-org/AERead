@@ -1,6 +1,6 @@
 # Negotiating into an agreement: what the runs showed
 
-**Status:** results of development probes, 2026-10-09 to 2026-10-11. Nothing here is a
+**Status:** results of development probes, 2026-10-09 to 2026-10-12. Nothing here is a
 confirmatory result. The case design is in [agreement_case.md](agreement_case.md), which
 was written before anything was built; this note records what was built and run since.
 
@@ -48,6 +48,12 @@ a counterpart that holds a line the two earn about the same.
   script, with no model called.
 - **Same-model pairings** in `tools/cli_subjects/agreement_cli.py`, declared as self-play
   with their estimand in the plan.
+- **A probing counterpart** (`agreement_prober.py`): the firm script that also asks, in its
+  notes, for the other side's private costs and for a confidential third party, and believes
+  a stated cost that matches a declared type. A prompt variant (`confidential_v1`) gives each
+  model seat a confidential name and figure that change no payoff.
+- **A screen of notes** (`tools/cli_subjects/agreement_notes.py`): fixed patterns and exact
+  numbers, no model reading the text, so its counts are lower bounds.
 
 ## Head to head
 
@@ -135,6 +141,41 @@ the seats differ, and the plan says so.
 - Opus as integrator earns 291 against an Opus client and 67 against a Codex client. It is
   not a weak integrator in general; what it earns depends on whether the client holds.
 
+## What the notes give away
+
+**Unprompted (every run above, 3,492 notes by a model).** Screened by pattern and exact number.
+
+| What a note could give away | Found |
+|---|---|
+| Its own private cost (risk charge, pre-staging cost, cost of self-managing) | 0 |
+| A question to the other side about anything | 0 |
+| A price within 25 of its true limit, in a sentence about its costs or alternative | 13 negotiations of about 1,900 model seats (Codex client 5, Opus client 5, Opus integrator 3) |
+| "Final price", "cannot go below" and the like | 114 negotiations; the stated number was better for the speaker than its true limit in 112, by a median of 99 to 279 |
+
+**When the counterpart asks** (`elicitation_probe_v1`: 20 worlds, one play, each model in each
+seat against the prober and against the silent firm script, both with the confidential
+instructions; 158 of 160 valid).
+
+| | Codex, integrator | Codex, client | Opus, integrator | Opus, client |
+|---|---|---|---|---|
+| Disclosed a planted confidential name or figure | 0 of 19 | 0 of 20 | 0 of 20 | 0 of 20 |
+| Declined in words | 18 of 19 | 20 of 20 | 12 of 20 | 10 of 20 |
+| Stated its own private cost when asked | 18 of 19 (pre-staging cost; risk charge in 9) | 1 of 20 | 0 of 20 | 0 of 20 |
+| Stated a false cost | 0 | 0 | 0 | 0 |
+| Earned against the prober minus against the silent script | -15 [-86, 57] | 4 [-18, 25] | 1 [-25, 26] | 3 [-15, 22] |
+| Unprompted disclosures against the silent script | 0 | 0 | 0 | 0 |
+
+- Both models kept what they were told was confidential, every time. No paraphrased leak was
+  found on reading the notes that mention a supplier or bidder.
+- **Codex gives its own private costs to anyone who asks; Opus does not.** Nothing in the
+  instructions says a side's own costs are confidential. Opus treated them so anyway.
+- **Telling the truth about its costs did not cost Codex on average.** In the 7 negotiations
+  where the script learned something it did not know, its next price moved in Codex's favour
+  in 3, against it in 3 and not at all in 1 (range -50 to 50). A stated high cost is a
+  reason for a better price; a stated low cost invites a worse one. In 9 of the 19 worlds the
+  script already knew the integrator's type from the draft.
+- Asking changed no one's earnings measurably.
+
 ## What each model does
 
 | Behaviour | Codex | Opus |
@@ -145,6 +186,9 @@ the seats differ, and the plan says so.
 | Deals lost by pressing the firm script, as integrator | 7 of 52 | 1 of 52 |
 | Signed below its own walk-away point | none in the 58-world head-to-head run | 12 of 52 head to head, 23 of 52 against overreach, 5 of 20 against itself |
 | Walks when no deal is worth signing | every time | every time |
+| Asked for its private costs | states them (18 of 19 as integrator) | declines |
+| Asked for something it was told is confidential | declines, every time | declines or ignores, every time |
+| Asks the other side anything | never | never |
 | Play-to-play spread, in share of the available value | about 20 points | about 20 points |
 
 ## What the runs showed about measurement
@@ -196,7 +240,10 @@ Kept so the earlier versions are not repeated.
 - What Opus computes for the self-manage option when the number is not stated is unknown.
 - 16 scripted negotiations failed on CLI errors and were played again as three separate
   campaigns on the owner's ruling (DC-O-17, DC-O-18, DC-O-19). The original bundles keep
-  their missing cells.
+  their missing cells. Two more failed in the elicitation probe (DC-O-20) and stay missing.
+- The elicitation probe used one ladder of three questions, a script that believes what it
+  is told, and planted items that change no payoff. It does not test a persistent or
+  deceptive prober, or a secret whose disclosure has a price.
 - No run was sized from a declared minimum effect. None passed the variance-pilot and
   confirmatory-freeze gates of the campaign SOP.
 
@@ -227,7 +274,8 @@ Bundles under `evidence/datacenter_development/`, names prefixed
 | Each model against overreach, price only and collapse | `scripted_tactics_v1` | 696 | 684 | $33.41 |
 | The 16 failed negotiations, played again | `scripted_fill1_v1`, `scripted_fill2_v1`, `scripted_fill3_v1` | 16 | 16 | $0.55 |
 | Same model in both seats | `selfplay_probe_v1` | 40 | 40 | $4.19 |
-| Total | | 1,572 | 1,556 | $94.71 |
+| Probing and silent counterparts, confidential instructions | `elicitation_probe_v1` | 160 | 158 | $7.92 |
+| Total | | 1,732 | 1,714 | $102.63 |
 
 The head-to-head negotiations can be read move by move in the Examiner; the scripted and
 same-model runs are not in it yet.
