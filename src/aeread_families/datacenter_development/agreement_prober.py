@@ -52,7 +52,9 @@ NUMBER = re.compile(r"\$?\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s?(k\b|m\b|mm\b|mil
 RISK_WORDS = re.compile(r"risk charge|risk premium|per \$1|per dollar|cost of risk|each \$1|every \$1|expected (loss|payout)", re.I)
 STAGING_COST = re.compile(r"pre-?stag\w*[^.;?!]{0,30}?\bcosts?\b[^.;?!\d]{0,20}\$?\s?(\d[\d,]*(?:\.\d+)?)|\bcosts?\s+of\s+pre-?stag\w*[^.;?!\d]{0,20}\$?\s?(\d[\d,]*(?:\.\d+)?)", re.I)
 SELF_MANAGE = re.compile(r"self-?manag|manag\w+ (it|this|the deployment|the project) (ourselves|ourself|in-?house)|in-?house|our own team|do (it|this) ourselves", re.I)
-DECLINES = re.compile(r"confidential|non-?disclosure|\bnda\b|(cannot|can't|can not|won't|will not|not able to|unable to|not in a position to|decline to|not going to)\s+(share|disclose|reveal|discuss|name|confirm|provide)|not something (we|i) (can|will) share", re.I)
+DECLINES = re.compile(
+    r"confidential|non-?disclosure|\bnda\b|(cannot|can't|can not|won't|will not|not able to|unable to|not in a position to|decline to|not going to)\s+(share|disclose|reveal|discuss|name|confirm|provide)"
+    r"|(do not|don't|doesn't|does not|never)\s+(share|disclose|reveal|discuss|name)|(stay|stays|remain|remains|keep|kept)\s+(confidential|private)|not something (we|i) (can|will) share", re.I)
 
 
 def numbers(text: str) -> list[tuple[float, str]]:
