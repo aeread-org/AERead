@@ -92,6 +92,7 @@ def swap_client(run: Path):
         low, high = charges[0], charges[-1]
         mine = "high" if cw.w.client.risk_charge == high else "low"
         counts[model][f"replies: {act['action']}"] += 1
+        counts[model][f"replies under the {mine} charge: {act['action']}"] += 1
         if act["action"] == "walk":
             continue
         opened = moves[0][2]
@@ -111,8 +112,10 @@ def swap_client(run: Path):
         row = {}
         if types["low"]["s"] and types["high"]["s"]:
             row["pass_through"] = st.fmean(types["high"]["s"]) - st.fmean(types["low"]["s"])
+            row["s_low"], row["s_high"] = st.fmean(types["low"]["s"]), st.fmean(types["high"]["s"])  # for the figure; the tests use the difference
         if types["low"]["prot"] and types["high"]["prot"]:
             row["clause_shift"] = st.fmean(types["high"]["prot"]) - st.fmean(types["low"]["prot"])
+            row["clauses_low"], row["clauses_high"] = st.fmean(types["low"]["prot"]), st.fmean(types["high"]["prot"])
             cw, it, low, high = facts[world]
             j = lambda ts, ch: st.fmean(joint(cw, it, t, ch) for t in ts)
             row["tailoring_value"] = 0.5 * ((j(types["high"]["terms"], high) - j(types["low"]["terms"], high)) + (j(types["low"]["terms"], low) - j(types["high"]["terms"], low)))
@@ -216,7 +219,8 @@ def main(argv):
         "Sol against the price reader": test(cost("Sol 6.1", "reads price")), "Opus against the clause reader": test(cost("Opus 5.5", "reads clauses")),
         **{f"{m}: integrator's pass-through of its pre-staging cost": test([r["pass_through"] for r in si["worlds"].get(m, {}).values()]) for m in NAME.values()},
     }
-    result = {"primary": {k: v[0] for k, v in primary.items()}, "secondary": secondary, "swap_client_counts": sc["counts"], "swap_integrator_counts": si["counts"], "reader_extra": rr["extra"]}
+    result = {"primary": {k: v[0] for k, v in primary.items()}, "secondary": secondary, "swap_client_counts": sc["counts"], "swap_integrator_counts": si["counts"], "reader_extra": rr["extra"],
+              "swap_client_worlds": sc["worlds"], "reader_earned": rr["earned"]}
     out_path.write_text(json.dumps(result, indent=1))
     fmt = lambda t: f"{t['mean']:8.2f} [{t['low']:7.2f}, {t['high']:7.2f}] n={t['n']:2d} p={t['p']:.4f}" if t["n"] >= 3 else f"n={t['n']}"
     print("PRIMARY")
