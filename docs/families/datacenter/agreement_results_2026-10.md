@@ -176,6 +176,28 @@ instructions; 158 of 160 valid).
   script already knew the integrator's type from the draft.
 - Asking changed no one's earnings measurably.
 
+**Without words: what a first offer gives away** (`tools/cli_subjects/agreement_signals.py`,
+every run above, no model called). The client's risk charge is one of three hidden values in
+every world, and its limits under the three are about 410 to 470 apart.
+
+| The client's first counter-offer | Codex | Opus |
+|---|---|---|
+| Price moves, per 1 of its own private limit | 0.15 [-0.05, 0.38] | 0.52 [0.28, 0.75] |
+| Distance of the offer from its true limit (median) | 416 | 208 |
+| The offer rules out at least one hidden type | 58% | 77% |
+| The offer pins its true type exactly | 4% | 20% |
+| The offer is worse for it than walking away | 0% | 9% |
+| Clauses protecting it that it asks for, at risk charge 0.15 / 0.75 / 1.55 (of 6) | 3.1 / 4.1 / 5.1 | 3.8 / 3.6 / 4.5 |
+| Correlation across worlds, risk charge with clauses asked for | +0.69 | +0.34 |
+
+- Opus signals through its **price**, which tracks what it is willing to pay. Codex signals
+  through the **clauses** it asks for, which is also how the right clauses get found.
+- As integrator neither reveals much: both open about 370 to 400 above their own limit, and
+  the price shows no reliable relation to the one thing that is private there, the
+  pre-staging cost. The integrator's risk charge is already public through its draft.
+- This is a comparison across worlds, where the private type is a property of the world. A
+  clean measurement would hold the world fixed and change only the private line of the brief.
+
 ## What each model does
 
 | Behaviour | Codex | Opus |
