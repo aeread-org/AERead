@@ -1,6 +1,7 @@
 # Negotiating into an agreement: what the runs showed
 
-**Status:** results of development probes, 2026-10-09 to 2026-10-12. Nothing here is a
+**Status:** results of development probes, 2026-10-09 to 2026-10-13, and of one test declared
+in advance (the section "What an offer gives away: the declared test"). Nothing else here is a
 confirmatory result. The case design is in [agreement_case.md](agreement_case.md), which
 was written before anything was built; this note records what was built and run since.
 
@@ -29,11 +30,13 @@ a counterpart that holds a line the two earn about the same.
    fees.
 5. **About 20 to 30 worlds settle a gap of 50 or more.** Each condition was run on 52 to
    58, roughly three times what the large gaps needed.
-6. **Neither model leaks what it is told is confidential, and each gives its own private
-   value away by a different route.** Asked directly, Codex states its own private costs
-   (18 of 19 negotiations as integrator) and Opus does not (0 of 20). Without words the
-   roles swap: Opus's counter-offer price moves 0.52 per 1 of its private limit, Codex's
-   0.15, while the clauses Codex asks for rise with its risk charge.
+6. **Neither model leaks what it is told is confidential.** Asked directly, Codex states its
+   own private costs (18 of 19 negotiations as integrator) and Opus does not (0 of 20).
+7. **Codex's clause requests reveal its hidden risk charge, and that pays.** In a test
+   declared in advance on fresh worlds, it asked for 1.8 more protective clauses of six under
+   the high charge than the low [1.2, 2.4]. Fitting its clauses to its type is worth about
+   120 of joint value a world, and a counterpart that read those clauses took back nothing
+   measurable. The earlier claim that Opus's price reveals its value was **not supported**.
 
 ## What was built
 
@@ -181,8 +184,11 @@ instructions; 158 of 160 valid).
   script already knew the integrator's type from the draft.
 - Asking changed no one's earnings measurably.
 
-**Without words: what a first offer gives away** (`tools/cli_subjects/agreement_signals.py`,
-every run above, no model called). The client's risk charge is one of three hidden values in
+**Without words: what a first offer seemed to give away, before it was tested.** This
+subsection is a look back through runs made for other purposes. Its price claim about Opus
+did not survive the declared test in the next section, and its numbers should be read as
+patterns that prompted a test, not as findings. (`tools/cli_subjects/agreement_signals.py`,
+every run above, no model called.) The client's risk charge is one of three hidden values in
 every world, and its limits under the three are about 410 to 470 apart.
 
 | The client's first counter-offer | Codex | Opus |
@@ -202,6 +208,45 @@ every world, and its limits under the three are about 410 to 470 apart.
   pre-staging cost. The integrator's risk charge is already public through its draft.
 - This is a comparison across worlds, where the private type is a property of the world. A
   clean measurement would hold the world fixed and change only the private line of the brief.
+
+## What an offer gives away: the declared test
+
+The plan is [agreement_signalling_plan_2026-10.md](agreement_signalling_plan_2026-10.md),
+committed before the runs; the analysis is `tools/cli_subjects/agreement_signalling_test.py`,
+committed before they finished. 58 fresh worlds no model had played. Six primary predictions,
+corrected together by Holm's method.
+
+| Prediction, as written before the runs | Result | Worlds | Corrected p | Verdict |
+|---|---|---|---|---|
+| Opus's price reveals its hidden risk charge (pass-through above 0) | -0.07 [-0.18, 0.05] | 23 | 0.73 | not supported |
+| ... and more than Sol's does | -0.69 [-1.43, 0.06] | 15 | 0.27 | not supported |
+| Sol's clause requests reveal its hidden risk charge (shift above 0) | +1.82 [1.23, 2.40] | 19 | <0.001 | supported |
+| ... and more than Opus's do | +1.58 [0.95, 2.22] | 18 | <0.001 | supported |
+| A counterpart that reads price costs Opus money | +2 [-14, 17] | 52 | 1.00 | not supported |
+| A counterpart that reads clauses costs Sol money | -8 [-42, 26] | 45 | 1.00 | not supported |
+
+- **Type swap.** The same world twice, the client's risk charge at the lowest and the highest
+  declared value and nothing else changed; a scripted integrator opens identically for both;
+  the model replies once. 364 of 376 one-move negotiations valid.
+- **Why the price prediction failed.** Opus signed the scripted opening in 67 of 104 replies,
+  whichever type it had. A model that takes the first offer under both types reveals nothing
+  through price.
+- **Why the clause prediction held.** Sol's count of protective clauses rose in 15 of 19
+  worlds and fell in none; Opus's barely moved (+0.10 [-0.17, 0.37]).
+- **Reading counterparts.** The firm integrator with its belief reweighted by the client's
+  first counter-offer, by price or by clauses, the rule fitted per model on the development
+  runs and frozen. 339 of 348 valid. The clause reader named Sol's true type in 29 of 45
+  offers (a third by chance), and Sol's earnings did not fall measurably. The test could
+  detect a cost of about 50.
+- **Does revealing pay?** For Sol, on this evidence, yes: fitting its clauses to its type is
+  worth 120 of joint value a world [83, 157], and being read cost it -8 [-42, 26].
+
+Secondary, with no claim: Sol's own price pass-through 0.56 [-0.11, 1.23]; Sol against the
+price reader +9 [-12, 29]; Opus against the clause reader -8 [-21, 4]; the value of tailoring
+to Opus 5 [-4, 14]. The integrator's seat was tested only on its pre-staging cost: Sol 0.55
+[-0.08, 1.18] over 17 worlds, Opus too few usable worlds (5) to say. Not declared, so
+exploratory: Opus countered in 24 of 52 replies under the high charge and 11 of 52 under the
+low.
 
 ## What each model does
 
@@ -251,6 +296,9 @@ Kept so the earlier versions are not repeated.
 - **"Stating the walk-away cost raised Opus's earnings as client"** (42 to 58). Not
   established: its three plays under the old brief averaged 62, 52 and 12, a wider range
   than the change. The fall in losing signatures (15 of 60 to 1 of 60) is established.
+- **"Opus's counter-offer price reveals its private value"** (0.52 per 1 of its limit). Not
+  supported by the declared test: -0.07 [-0.18, 0.05]. The figure came from counter-offers
+  only, compared across worlds (incident row DC-J-07).
 - **"The case is a choice among 600 agreements with no message channel."** Wrong: the
   price is a free number and each move can carry a note (incident row DC-J-06).
 
@@ -267,7 +315,8 @@ Kept so the earlier versions are not repeated.
 - What Opus computes for the self-manage option when the number is not stated is unknown.
 - 16 scripted negotiations failed on CLI errors and were played again as three separate
   campaigns on the owner's ruling (DC-O-17, DC-O-18, DC-O-19). The original bundles keep
-  their missing cells. Two more failed in the elicitation probe (DC-O-20) and stay missing.
+  their missing cells. Two more failed in the elicitation probe (DC-O-20) and 21 in the declared test (DC-O-21); all
+  stay missing.
 - The elicitation probe used one ladder of three questions, a script that believes what it
   is told, and planted items that change no payoff. It does not test a persistent or
   deceptive prober, or a secret whose disclosure has a price.
@@ -286,11 +335,11 @@ None is decided.
    probes, 20 to 30 worlds, and the saving spent on more counterpart types.
 4. A reference panel of about ten fixed worlds against the firm script in every campaign.
 5. Report earnings as a share of the available value as well as in dollars.
-6. A type-swap probe of the first move: the same world twice, changing only the private line
-   of the brief, three repeats, both models (about 240 single calls). It measures what an
-   offer reveals with the world held fixed.
-7. A counterpart that infers the type from the offer and prices at that type's limit, to put
-   a dollar cost on signalling.
+6. Give the integrator a real secret: a variant in which its draft does not reveal its risk
+   charge, so its seat can be tested as the client's was.
+7. A stronger reader. The frozen readers named the type correctly about twice as often as
+   chance and still gained nothing; a counterpart that reads price and clauses together and
+   keeps reading after the first offer would say whether that is a limit of the reader.
 8. A second arm of the elicitation probe in which the instructions say a side's own costs are
    confidential. Keep the untold arm: it is the one that measures judgment.
 
@@ -309,7 +358,9 @@ Bundles under `evidence/datacenter_development/`, names prefixed
 | The 16 failed negotiations, played again | `scripted_fill1_v1`, `scripted_fill2_v1`, `scripted_fill3_v1` | 16 | 16 | $0.55 |
 | Same model in both seats | `selfplay_probe_v1` | 40 | 40 | $4.19 |
 | Probing and silent counterparts, confidential instructions | `elicitation_probe_v1` | 160 | 158 | $7.92 |
-| Total | | 1,732 | 1,714 | $102.63 |
+| Declared test: type swap, one move | `signal_swap_client_v1`, `signal_swap_integrator_v1` | 376 | 364 | $7.60 |
+| Declared test: reading counterparts | `signal_reader_v1` | 348 | 339 | $8.90 |
+| Total | | 2,456 | 2,417 | $119.13 |
 
 The head-to-head negotiations can be read move by move in the Examiner; the scripted and
 same-model runs are not in it yet.
