@@ -711,7 +711,9 @@ reaches 73% of the ceiling in favourite-lemon worlds (94% leaky, 35% pooled) and
 #### v14, the confirmatory panel (declared 2026-10-06, before any v14 cell)
 
 Three identities, `housing_lemons_price_confirmatory_v14_{glm53_flash_nextbit,gpt6_luna,gemini38_flash}`,
-identical except for the model and its route: one deciding tenant, outside demand at 0.5 a round,
+identical in design and differing in the model, its route, its reasoning tier (Gemini `minimal`,
+GLM and Luna `low`), its sampling (Luna sends no temperature) and its per-cell cost ceiling
+(HL-J-12; this sentence first said "except for the model and its route"): one deciding tenant, outside demand at 0.5 a round,
 both landlord arms, one replicate, on the seat-0 pack (260 worlds) and its holdout (40), so 600
 cells each. What changed from the pilots:
 
