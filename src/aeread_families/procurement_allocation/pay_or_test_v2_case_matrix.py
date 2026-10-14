@@ -49,6 +49,12 @@ best policy tests a newcomer) and ``myopic_tests`` (to a newcomer: it tests one
 directly where the best policy first takes a test for what it tells about
 another), each on a ``tight`` clock (one full newcomer test fits before the
 recorded supplier) and a ``loose`` one (two).
+
+A split (``SPLITS``) is the same generator, admission rule and brief on its own
+seed range under its own pack id: ``pay_or_test_v2`` is the committed
+confirmatory pack, and ``pay_or_test_v2_pilot`` the variance pilot of the
+confirmatory plan (three worlds a cell from seed 9 100 000). The default split
+builds the committed pack byte for byte.
 """
 
 from __future__ import annotations
@@ -87,6 +93,13 @@ WORLDS_PER_CELL = 6
 #: Disjoint from version 1 (8 839 800 to 8 912 000) and the inference packs (8 810 000 to 8 830 719).
 SEED_START = 8_950_000
 SEEDS_PER_WORLD = 5_000
+PILOT_PACK_ID = "pay_or_test_v2_pilot"
+#: Each split's seed range and size. The pilot's 9 100 000 to 9 160 000 lies above the
+#: committed pack's 8 950 000 to 9 070 000, so no seed is scanned by both.
+SPLITS: dict[str, dict[str, int]] = {
+    PACK_ID: {"seed_start": SEED_START, "worlds_per_cell": WORLDS_PER_CELL},
+    PILOT_PACK_ID: {"seed_start": 9_100_000, "worlds_per_cell": 3},
+}
 
 TARGET_KITS, MINIMUM_SERVICE_KITS = 50, 40
 REVENUE_PER_KIT_USD, SHORTFALL_PENALTY_USD = 37.0, 12.0
@@ -121,13 +134,20 @@ ATTRIBUTION_USD = 5.0
 ADMISSION_RULES = (*LOOKAHEAD_RULES, *FIXED_RULES, *SHORTCUT_RULES)
 
 
-def world_specs() -> tuple[dict[str, Any], ...]:
+def pack_root(split: str = PACK_ID) -> Path:
+    if split not in SPLITS:
+        raise KeyError(f"unknown split {split!r}")
+    return REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / split
+
+
+def world_specs(split: str = PACK_ID) -> tuple[dict[str, Any], ...]:
+    per_cell, start = SPLITS[split]["worlds_per_cell"], SPLITS[split]["seed_start"]
     specs = []
     for cell_index, (kind, clock) in enumerate(CELLS):
-        for k in range(WORLDS_PER_CELL):
-            ordinal = cell_index * WORLDS_PER_CELL + k
-            specs.append({"slug": f"{kind}__{clock}__{k + 1}", "kind": kind, "clock": clock,
-                          "ordinal": ordinal + 1, "seed_block": SEED_START + ordinal * SEEDS_PER_WORLD})
+        for k in range(per_cell):
+            ordinal = cell_index * per_cell + k
+            specs.append({"slug": f"{kind}__{clock}__{k + 1}", "kind": kind, "clock": clock, "pack_id": split,
+                          "ordinal": ordinal + 1, "seed_block": start + ordinal * SEEDS_PER_WORLD})
     return tuple(specs)
 
 
@@ -222,10 +242,10 @@ def build_case(spec: Mapping[str, Any], seed: int, structure: Mapping[str, Any],
     suppliers = [suppliers[i] for i in structure["listing_order"]]
     case: dict[str, Any] = {
         "spec_version": CaseManifest.SPEC_VERSION,
-        "case_id": f"procurement_allocation_v1.{PACK_ID}.{spec['slug']}",
+        "case_id": f"procurement_allocation_v1.{spec.get('pack_id', PACK_ID)}.{spec['slug']}",
         "family_id": "procurement_allocation_v1",
         "family_version": "1.0.0",
-        "split": PACK_ID,
+        "split": spec.get("pack_id", PACK_ID),
         "world_seed": seed,
         "seats": [{"id": "buyer", "role": "buyer"}],
         "episode": {"max_logical_actions": BUDGET_ACTIONS,
@@ -433,9 +453,10 @@ def scan(spec: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     raise RuntimeError(f"no seed in the block admits a world for {spec['slug']}")
 
 
-def build_pack(entries: Sequence[tuple[dict[str, Any], dict[str, Any]]] | None = None) -> dict[str, Any]:
+def build_pack(entries: Sequence[tuple[dict[str, Any], dict[str, Any]]] | None = None,
+               split: str = PACK_ID) -> dict[str, Any]:
     """The pack: every cell's first admitted world, or ``entries`` already built in ``world_specs`` order."""
-    built = list(entries) if entries is not None else [scan(spec) for spec in world_specs()]
+    built = list(entries) if entries is not None else [scan(spec) for spec in world_specs(split)]
     cases = [case for case, _ in built]
     worlds = [entry for _, entry in built]
     scanned_total = sum(w["seeds_scanned"] for w in worlds)
@@ -444,15 +465,16 @@ def build_pack(entries: Sequence[tuple[dict[str, Any], dict[str, Any]]] | None =
     if mean_loss["one_step_value"] < MEAN_MARGIN_USD:
         raise RuntimeError(f"mean one-step loss {mean_loss['one_step_value']} is under {MEAN_MARGIN_USD}")
     manifest = {
-        "schema_version": PACK_SCHEMA, "pack_id": PACK_ID,
+        "schema_version": PACK_SCHEMA, "pack_id": split,
         "generator": {"id": GENERATOR_ID, "version": GENERATOR_VERSION},
         "controls": {
             "budget_actions": BUDGET_ACTIONS, "target_kits": TARGET_KITS, "minimum_service_kits": MINIMUM_SERVICE_KITS,
             "revenue_per_kit_usd": REVENUE_PER_KIT_USD, "shortfall_penalty_usd": SHORTFALL_PENALTY_USD,
             "no_supply_value_usd": NO_SUPPLY_VALUE_USD, "cash_budget_usd": CASH_BUDGET_USD,
             "quote_fee_usd": QUOTE_FEE_USD, "quote_days": QUOTE_DAYS, "newcomer_sample_days": NEWCOMER_SAMPLE_DAYS,
-            "established_sample": list(ESTABLISHED_SAMPLE), "seed_start": SEED_START, "seeds_per_world": SEEDS_PER_WORLD,
-            "worlds_per_cell": WORLDS_PER_CELL, "same_source_probabilities": list(SAME_SOURCE_PROBABILITIES),
+            "established_sample": list(ESTABLISHED_SAMPLE), "seed_start": SPLITS[split]["seed_start"],
+            "seeds_per_world": SEEDS_PER_WORLD, "worlds_per_cell": SPLITS[split]["worlds_per_cell"],
+            "same_source_probabilities": list(SAME_SOURCE_PROBABILITIES),
             "good": {"on_time": GOOD_ON_TIME, "yield": GOOD_YIELD}, "late_on_time": LATE_ON_TIME, "poor_yield": POOR_YIELD,
         },
         "admission": {
@@ -473,10 +495,11 @@ def build_pack(entries: Sequence[tuple[dict[str, Any], dict[str, Any]]] | None =
     return {"manifest": manifest, "cases": cases}
 
 
-def write_pack(root: Path | None = None, pack: Mapping[str, Any] | None = None) -> tuple[Path, ...]:
-    destination = root or PACK_ROOT
+def write_pack(root: Path | None = None, pack: Mapping[str, Any] | None = None,
+               split: str = PACK_ID) -> tuple[Path, ...]:
+    destination = root or pack_root(split)
     destination.mkdir(parents=True, exist_ok=True)
-    pack = pack or build_pack()
+    pack = pack or build_pack(split=split)
     written = []
     for name, body in [(f"{case['case_id'].rsplit('.', 1)[-1]}.json", case) for case in pack["cases"]] + [
         ("pack.json", pack["manifest"])
@@ -489,20 +512,21 @@ def write_pack(root: Path | None = None, pack: Mapping[str, Any] | None = None) 
     return tuple(written)
 
 
-def case_paths(root: Path | None = None) -> tuple[Path, ...]:
-    return tuple(sorted(p for p in (root or PACK_ROOT).glob("*.json") if p.name != "pack.json"))
+def case_paths(root: Path | None = None, split: str = PACK_ID) -> tuple[Path, ...]:
+    return tuple(sorted(p for p in (root or pack_root(split)).glob("*.json") if p.name != "pack.json"))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--root", type=Path)
+    parser.add_argument("--split", choices=sorted(SPLITS), default=PACK_ID)
     arguments = parser.parse_args(argv)
     if arguments.write:
-        for path in write_pack(arguments.root):
+        for path in write_pack(arguments.root, split=arguments.split):
             print(path)
         return 0
-    manifest = build_pack()["manifest"]
+    manifest = build_pack(split=arguments.split)["manifest"]
     print(json.dumps({"expected_loss_usd_by_rule": manifest["expected_loss_usd_by_rule"],
                       "seeds_scanned": manifest["seeds_scanned"],
                       "worlds": [{k: w[k] for k in ("slug", "world_seed", "seeds_scanned", "best_first_action",
@@ -516,7 +540,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "ADMISSION_RULES", "ATTRIBUTION_USD", "CELLS", "CLOCK_TESTS", "GENERATOR_ID", "INFORMATION_HEADROOM_USD",
-    "MARGIN_USD", "MEAN_MARGIN_USD", "PACK_ID", "PACK_ROOT", "admit", "build_case", "build_pack", "build_world",
-    "case_paths", "classify", "draw_structure", "draw_types", "expected_full_information_value", "groups_of",
-    "realized", "world_specs", "write_pack",
+    "MARGIN_USD", "MEAN_MARGIN_USD", "PACK_ID", "PACK_ROOT", "PILOT_PACK_ID", "SPLITS", "admit", "build_case",
+    "build_pack", "build_world", "case_paths", "classify", "draw_structure", "draw_types",
+    "expected_full_information_value", "groups_of", "pack_root", "realized", "world_specs", "write_pack",
 ]

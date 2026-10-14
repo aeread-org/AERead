@@ -102,6 +102,35 @@ def test_the_manifest_is_rebuilt_from_its_worlds_byte_for_byte(manifest, worlds)
     assert len(worlds) == WORLD_COUNT
 
 
+PILOT = pack_module.PILOT_PACK_ID
+
+
+@pytest.mark.parametrize("index", range(len(pack_module.CELLS) * pack_module.SPLITS[PILOT]["worlds_per_cell"]))
+def test_each_pilot_world_is_the_first_admitted_seed_of_its_block_reproduced_byte_for_byte(index) -> None:
+    """The pilot split is the same generator and admission on its own seed range, under its own pack id."""
+    manifest = json.loads((pack_module.pack_root(PILOT) / "pack.json").read_text(encoding="utf-8"))
+    spec = pack_module.world_specs(PILOT)[index]
+    entry = manifest["worlds"][index]
+    assert entry["slug"] == spec["slug"] and entry["case_id"] == f"procurement_allocation_v1.{PILOT}.{spec['slug']}"
+    for seed in range(spec["seed_block"], entry["world_seed"]):
+        admitted, _ = pack_module.admit(spec, seed, pack_module.draw_structure(spec, seed))
+        assert not admitted, (spec["slug"], seed)
+    case, rebuilt = pack_module.world_at(spec, entry["world_seed"], entry["seeds_scanned"])
+    assert rebuilt == entry and case["split"] == PILOT
+    path = pack_module.pack_root(PILOT) / f"{spec['slug']}.json"
+    assert path.read_text(encoding="utf-8") == json.dumps(case, indent=2, sort_keys=True) + "\n"
+
+
+def test_the_pilot_manifest_is_rebuilt_from_its_worlds_byte_for_byte() -> None:
+    root = pack_module.pack_root(PILOT)
+    manifest = json.loads((root / "pack.json").read_text(encoding="utf-8"))
+    cases = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in pack_module.case_paths(split=PILOT)}
+    pack = pack_module.build_pack([(cases[w["slug"]], w) for w in manifest["worlds"]], split=PILOT)
+    assert (root / "pack.json").read_text(encoding="utf-8") == json.dumps(pack["manifest"], indent=2, sort_keys=True) + "\n"
+    assert manifest["pack_id"] == PILOT and manifest["world_count"] == 12
+    assert manifest["controls"]["seed_start"] == 9_100_000 and manifest["controls"]["worlds_per_cell"] == 3
+
+
 def test_cells_are_balanced_by_kind_and_clock(worlds) -> None:
     assert Counter((w["kind"], w["clock"]) for w in worlds) == Counter({cell: pack_module.WORLDS_PER_CELL for cell in pack_module.CELLS})
     for world in worlds:
