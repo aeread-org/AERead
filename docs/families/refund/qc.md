@@ -145,8 +145,42 @@ Blockers to `passed`:
 | informed or adaptive policy | the deterministic reference profiles, one per seat |
 | oracle-informed ceiling | the same reference; it is the answer key |
 
-There is no beatability rule. This is RF-D-04, open since V2.1 and carried into
-V2.5 by RF-D-06.
+There was no beatability rule before 2026-10-13. This is RF-D-04, open since
+V2.1 and carried into V2.5 by RF-D-06.
+
+### Beatability rule `refund_v25_beatability/1`
+
+Declared and committed on 2026-10-13 **before any control was executed on any
+case**, in `src/aeread_families/refund/v2_5_controls.py` (`RULE`,
+`evaluate_rule`). For each screened seat, each public cohort at seed 301 and
+each declared lower control K, with the release's reference profile in the
+active seat as the comparison and every other seat scripted:
+
+| Clause | Requirement |
+|---|---|
+| B1 | mean reference `end_to_end` − mean K `end_to_end` ≥ **0.50** |
+| B2 | mean reference `policy_semantic` − mean K `policy_semantic` ≥ **0.25**, policy seat only (elsewhere `policy_semantic` is the scripted policy counterpart's) |
+| B3 | share of cases where K's `end_to_end` reaches the reference's ≤ **0.10**; under ten cases that allows none |
+
+A cohort passes for a seat only if every clause holds for every control. A
+failing cohort is reported as a finding (the cohort is trivial for that seat:
+a control without the judgment reaches the reference), not fixed by retuning:
+a changed threshold or clause is a new rule identity, and this verdict stays.
+The margins are set from the leaves' units: a floor that completes half the
+strict trajectories leaves half the cohort unable to separate judgment from its
+absence; 0.25 is one of `policy_semantic`'s four fields, the most a constant
+answer should get by base rate.
+
+Declared controls (`CONTROLS`, `refund_v25_lower_controls/1`):
+
+| Seat | Controls |
+|---|---|
+| policy | `refuse_empty`, `noop_null_resolution`, `naive_full_refund`, `random_legal` at seeds 0, 1, 2 |
+| customer | `refuse_empty`, `naive_overdisclose`, `naive_first_record` |
+| intake | `refuse_empty`, `naive_first_sorted` |
+| payments | `refuse_empty`, `naive_no_mutation` |
+
+`CONTROL_DESCRIPTIONS` in the module defines each one. Results are pending.
 
 What the reference run shows instead: each of the 180 case IDs yields exactly
 one action sequence, whichever seat is nominally active and whichever cohort
