@@ -35,7 +35,7 @@ real environment and verifier on every admitted world, with no model, and checks
 its declared result: the Housing reference and a full-information tenant reproduce the published
 values in all 600 v14 cells; Procurement's best policy equals the environment's average over its
 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
-both packs; Refund's release requires full credit on every case. The tests were added after the
+both development packs and all 60 of the pack admitted after the runs; Refund's release requires full credit on every case. The tests were added after the
 runs; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
 or the reference is wrong.
 
@@ -46,10 +46,10 @@ decide the outcome. Uncertainty is computed over worlds, claims name their count
 analyses (Housing v14's and the data-center signalling test) were declared before their runs.
 
 **What it found.** Every failure is written into the incident log when it happens, in design,
-operational, tooling and judgment rows that are never deleted (50, 43, 82 and 23 rows about the four
-cases and their predecessors). Of 21 defects quality control found, 13 were invisible in any single
-world; the 8 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
-single gate cell (Table F.4). Six are still open. The same checks corrected statements of our own
+operational, tooling and judgment rows that are never deleted (50, 43, 85 and 23 rows about the four
+cases and their predecessors). Of 23 defects quality control found, 14 were invisible in any single
+world; the 9 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
+single gate cell (Table F.4). Seven are still open. The same checks corrected statements of our own
 while this paper was written (P-J-05, HL-J-12).
 
 ### References
@@ -61,6 +61,7 @@ while this paper was written (P-J-05, HL-J-12).
 | Claim | Source |
 |---|---|
 | Gates and their vocabulary | the benchmark QC standard on the main branch |
+| Data-center admitted pack (Appendix F.2) | `agreement_admitted_pack.py`, `tests/test_datacenter_agreement_admitted_pack.py` and `cases/datacenter_agreement_v1/agreement_admitted_v1/` on branch `codex/datacenter-agreement` (cce96138); rows DC-D-34 to DC-D-36 (ac28de38) |
 | Refund lower controls (Appendix F.4) | `src/aeread_families/refund/v2_5_controls.py`, record `cases/refund_v25/qc/lower_controls.json` and rule `refund_v25_beatability/1` (committed 1ededca5 before the controls ran) on branch `docs/refund-qc-profile` (b73722a5) |
 | Profiles and statuses (Appendix F.1) | the v14 section of the Housing profile, the pay-or-test section of the procurement profile, section 11 of the data-center profile (each on its case branch), and the Refund profile on branch `docs/refund-qc-profile` |
 | Reference runs | tests `test_housing_price_oracle_run.py` (Housing branch, 50f8dbed), `test_procurement_pay_or_test.py` (procurement branch, 1fdc3eb5), `test_datacenter_agreement_oracle_run.py` (data-center branch, 3320fd51); Refund's release command (`v2_5_release.py`) |

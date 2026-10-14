@@ -99,7 +99,11 @@ counterpart the two are not distinguishable, so a result against one counterpart
 number in that range. Against an overreaching script Opus signs below its own walk-away point in
 23 of 52 worlds and Sol in none; against a counterpart that asks for private information neither
 model leaks a confidential item. A test declared before its runs supported one of two
-looked-back signals and rejected the other.
+looked-back signals and rejected the other. The client seat measures less than the integrator's:
+the integrator's private cost barely moves the best agreement (knowing it is worth at most $19k to
+the client's choice, against $25k to $77k for the integrator knowing the client's charge), so
+client-seat results measure pricing and the decision to walk, not inference about clauses
+(DC-D-35).
 
 ### 5.2 Where the shortfall comes from
 

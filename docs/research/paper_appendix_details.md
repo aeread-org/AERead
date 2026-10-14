@@ -270,8 +270,9 @@ The QC standard defines six gates and the rule that a changed bound input reopen
 the main branch rejects a registered family without a profile. Each of the four current designs
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
 and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test pack
-fails Gates 1 and 3; the data-center agreement fails Gate 1, because its packs were not admitted
-by its own rules and its hidden type is tied to the pack cell; Refund V2.5 fails Gate 3 on its
+fails Gates 1 and 3; the data-center agreement's development packs, which all its runs used,
+fail Gate 1, because they were not admitted by the case's own rules and the hidden type is tied to
+the pack cell, and the admitted pack built after the runs is `partial` (Appendix F.2); Refund V2.5 fails Gate 3 on its
 lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
 identity, and Procurement's corrected schema ran under new identities.
 
@@ -305,12 +306,20 @@ identity, and Procurement's corrected schema ran under new identities.
   on all 600 v14 cells, reproducing the published per-cell values and reaching the ceiling in
   every cell (offline, against the same functions that wrote the bundle); Procurement's best policy
   equals the environment's average over the 27 type profiles in all 24 worlds; the data-center
-  oracle pair loses nothing in all 116 worlds of both packs, against an optimum the test computes
+  oracle pair loses nothing in all 116 worlds of both development packs, against an optimum the test computes
   independently; Refund's release requires the reference to take full credit on every case.
 - **Replay.** The 1,800 published Housing v14 receipts replay from their sealed events with no
   provider call; the agreement driver replayed every receipt before counting it; the procurement
   panels replay to their recorded margins; Refund's 816 provider-free trajectories replay, though
   they are unpublished and only 174 are distinct.
+- **Admission before types.** After the runs, the data-center agreement gained a pack admitted by
+  its own rules: 60 worlds from 2,729 scanned, each admitted on its public parameters and the type
+  prior while its hidden charge does not yet exist, then given types drawn independently of its
+  cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
+  shortcut through the environment for every type pair and confirm the loss admission assigned,
+  and the oracle pair loses nothing in all 60 worlds. No model has played it, so headroom is
+  unmeasured, and the client seat cannot meet the case's rule that the best agreement depends on
+  the counterpart (DC-D-35).
 - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
   Procurement and Refund; the agreement case has no such test.
 - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
@@ -384,7 +393,7 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 |---|---:|---:|---:|---:|---:|
 | Housing lemons and price line (HL) | 9 | 21 | 8 | 12 | 50 |
 | Procurement (P) | 23 | 6 | 10 | 4 | 43 |
-| Data center (DC) | 33 | 21 | 20 | 8 | 82 |
+| Data center (DC) | 36 | 21 | 20 | 8 | 85 |
 | Refund (RF, RV25) | 12 | 0 | 8 | 3 | 23 |
 
 ### F.7 What quality control found
@@ -404,8 +413,10 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | P-D-17 | Under sample noise the pre-award check reveals the true yield for one free action | yes, by reading the tool's code | designing a sample-again decision | open; 1 of 260 noisy cells used it, no published number moves |
 | DC-D-27 (predecessor case) | Walking away came within $11k to $46k of the right contract, and asking for every protection within $26k to $88k | no: a strategy-class simulation | simulating shortcut policies on the pack | before any freeze: each named shortcut must cost $75k more than the best contract, and a deal must beat the better outside option by $150k |
 | DC-D-29 (predecessor case) | At low effort the case could not separate two models: about 83% of the per-world gap was seed noise | no: needs paired seeds | variance split of the paired gap | one seed per world and more worlds; a redesign of the case |
-| DC-D-32 | The scripted style hashed the whole world, including the client's hidden charge | no: needs two copies of a world | a test that the opening is identical for both types failed | the declared test uses a fixed style |
-| DC-D-33 | The hidden type was fixed by pack cell and moved with public quantities | no | a placebo outcome, after the look-back (Appendix F.4) | packs that play each world under each type |
+| DC-D-32 | The scripted style hashed the whole world, including the client's hidden charge | no: needs two copies of a world | a test that the opening is identical for both types failed | the declared test uses a fixed style; the admitted pack draws the style from the public world only |
+| DC-D-33 | The hidden type was fixed by pack cell and moved with public quantities | no | a placebo outcome, after the look-back (Appendix F.4) | an admitted pack whose types are drawn after admission (Appendix F.2) |
+| DC-D-34 | The generator priced the client's rival offer, a public number in both briefs, from the drawn integrator type, so a public parameter depended on both hidden types | yes, by reading the generator | building the admitted pack | the admitted pack prices it before any type is drawn; the development packs keep theirs |
+| DC-D-35 | The integrator's private cost barely moves the best agreement, so the client seat has almost nothing to infer about clauses | no: a value of information across worlds | building the admission rule for both seats | open; the client seat needs worlds where the integrator's risk charge is private |
 | HL-D-07 | The primary measure conditions on the landlord's reply only below the sound floor; a reply that proves a listing sound is still scored at the stated odds | yes, by reading the measure's code | writing the formal appendix of this paper | recomputed from the sealed run roots: 57 signings move, no declared verdict changes, Gemini's leads shrink by $10 and $13 in the v14 cells; an erratum is owed |
 | RF-D-01 | The 120-cell panel was six cases: the world seed changed only the case id, and the policy seat ran at temperature 0 | no: needs the seeds compared | rebuilding the cases and reading the reference run's resolutions | the case is the unit of analysis; V2.5 varies declared conditions by seed |
 | RF-D-03 | A correct denial written with method `null` failed: the prompt says "none", the schema allows null, the verifier compares strings | yes, by reading one proposal against the verifier | building the gap decomposition | recorded; reported as format, not outcome |
@@ -415,9 +426,9 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | RV25-D-03 to D-06 | In three of Refund V2.5's four seats a naive control comes close to the reference: a full refund that collects nothing is fully right on 38 of 180 policy cases, the evidence leaf passes any legal path, the customer seat reduces to copying and the payments seat to the base rate of no payment | no: a rate across cases | lower controls under a rule committed before they ran | open; Gate 3 recorded `failed`; scoring pairs of cases would stop the full-refund control (0 of 38 pairs), a rule not yet declared |
 | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Thirteen of the twenty-one were invisible in any single world; the eight visible ones were found
-by reading code or sealed bytes, by tracing a case, or in a single gate cell. Six are still open
-(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01, RV25-D-03 to D-06).
+Fourteen of the twenty-three were invisible in any single world; the nine visible ones were found
+by reading code or sealed bytes, by tracing a case, or in a single gate cell. Seven are still open
+(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01, RV25-D-03 to D-06, DC-D-35).
 
 ### F.8 Assessment against the Agentic Benchmark Checklist
 
@@ -438,7 +449,7 @@ tests or a judge model.
 | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, by tests added after the runs (Appendix F.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-one defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
+| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-three defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
