@@ -44,14 +44,62 @@ Classify every knob in the campaign contract:
 - **diagnostic:** recorded for interpretation, never used to pick the winner or
   retune a completed confirmatory campaign.
 
+### Claim scope: name the counterparts
+
+A result holds for the counterparts it was measured against and for no
+others. The claim names them: "A beats B against the scripted firm and soft
+integrators", not "A beats B".
+
+- When more than one counterpart type is run, the counterpart is a declared
+  factor. Report the gap for each type, and test whether the gap varies by
+  type (a model-by-counterpart term) before pooling.
+- A claim of a general advantage needs the gap to be positive for every
+  declared type.
+- Report each type's discrimination: how far apart it puts the models. A type
+  that separates none of them marks the limit of the claim. Keep it as
+  coverage, not as a reported split.
+- The design contract lists the counterpart types and marks each one a
+  reported split or coverage.
+
+The data-center agreement case is why this is a rule. The same two models were
+about $250k a world apart when they faced each other and $17k apart, with an
+interval that includes zero, against the firm script (#275 has the table).
+
+### Exploratory designs that cross factors
+
+One focal factor per campaign is the rule for a claim. To decide which factor
+deserves the next confirmatory campaign, a design may instead be declared
+**exploratory** and cross two to four factors on a small pack, as a full or a
+fractional factorial.
+
+- It is labelled exploratory in the contract and in every report. It never
+  supports a winner or a ranking, and is used only to choose the next focal
+  factor.
+- The design contract names the factors, their levels, the fraction run, and
+  which interactions are aliased with which effects.
+- Where the factor space is large, such as prompt or harness permutations, a
+  screening design (sequential bifurcation) may find the few factors that
+  matter before any factorial. It assumes every factor's effect has a known
+  sign; state that assumption in the design.
+
 ### Strata: declare only the splits you will report
 
 A stratum is a slice the design fixes before any model acts: world type, seat,
 reasoning arm, opponent, difficulty. Declare each one in the design contract as
 either a **reported split** or **coverage**, and pay only for the first.
 
-- **A reported split names its estimand and is sized to be tested.** At least 5
-  independent units (worlds, or clusters of twins) per stratum. Seeds are not
+- **A reported split names its estimand and is sized for its own effect.** Its
+  question is a gap between gaps. It declares its own minimum meaningful
+  difference between strata and is sized for it with the calculation that
+  sizes the main comparison (`aeread.design.worlds_needed`, below). That costs
+  far more than the main comparison: each stratum holds about half the worlds,
+  and the difference of two stratum gaps has about twice the standard error of
+  the pooled gap, so a split effect half the size of the main effect needs
+  about 16 times the worlds for the same power. The design contract records
+  each reported split's declared minimum effect and the worlds it needs; a
+  split that cannot be given them is declared as coverage. Five independent
+  units (worlds, or clusters of twins) per stratum is the floor for printing a
+  stratum row at all, not a size. Seeds are not
   units: a seed re-draws the noise inside one world, so two worlds with five
   seeds each are two units, not ten. Before any
   stratum row is read, the split is tested against shuffled stratum labels, and
@@ -83,10 +131,10 @@ saves; the Examiner prints the test under every split
 | 2 | `provider_free_validation` | schema, scripted execution, scoring, sealing, and offline replay pass with no paid calls |
 | 3 | `profile_admission` | every model-harness-tool combination is admitted and its resolved profile and route expectations are sealed |
 | 4 | `full_trajectory` | one complete trajectory per condition verifies routing, parsing, tools, retry visibility, scoring, replay, and billing evidence |
-| 5 | `variance_pilot` | the full paired design completes on a predeclared development panel; world-level variance and operational missingness are measured |
-| 6 | `confirmatory_freeze` | cases/holdout, sample size, profiles, seeds, execution order, analysis, stopping rule, and implementation pins are hashed before confirmatory outcomes are inspected |
-| 7 | `confirmatory_execution` | every planned cell has a verified receipt or typed missingness; no selective reruns or post-freeze configuration edits occurred |
-| 8 | `publication` | fact tables and manifest verify, aggregates trace to admitted rows, uncertainty uses the declared cluster, and exploratory/confirmatory claims are labeled |
+| 5 | `variance_pilot` | the full paired design completes on a predeclared development panel; world-level variance and operational missingness are measured; an A/A arm shows the claim rule does not fire on one profile against itself |
+| 6 | `confirmatory_freeze` | cases/holdout, sample size and its sizing record, profiles, seeds, execution order, analysis, stopping rule, and implementation pins are hashed before confirmatory outcomes are inspected |
+| 7 | `confirmatory_execution` | every planned cell has a verified receipt or typed missingness; missingness is compared between arms; no selective reruns or post-freeze configuration edits occurred |
+| 8 | `publication` | fact tables and manifest verify, aggregates trace to admitted rows, uncertainty uses the declared cluster and names its interval and test, and exploratory/confirmatory claims are labeled |
 
 Do not infer a winner from the full-trajectory gate or variance pilot. Their job
 is to expose integration failures and size the confirmatory run from the
@@ -99,6 +147,56 @@ variation within a world.
 The frozen analysis and stopping rule at `confirmatory_freeze`, followed by
 complete reporting at `confirmatory_execution`, implement the prospective
 commitment described by [Nosek et al. (2018)](https://doi.org/10.1073/pnas.1708274114).
+
+### Size the confirmatory run and seal the arithmetic
+
+`aeread.design.worlds_needed` is the shared calculation. It returns the
+smallest number of independent worlds n with
+n >= ((t + z_power) x SD / effect)^2, then divides by one minus the declared
+attrition rate. SD is the pilot's standard deviation of per-world paired
+differences after repeats are averaged, and t is the multiplier for n - 1
+degrees of freedom, which matters when the answer is small.
+
+```python
+from aeread.design import sizing_record, verify_sizing_record
+
+record = sizing_record(
+    sd_of_differences=pilot_sd,        # per-world paired differences, repeats averaged
+    minimum_effect=minimum_meaningful_effect,
+    pilot_worlds=24,
+    pilot_source="evidence/<family>/<pilot bundle>",
+    power=0.8,
+    attrition=0.1,                     # the pilot's share of worlds that lost a pair
+)
+verify_sizing_record(record, frozen_worlds=len(holdout_worlds))  # at confirmatory_freeze
+```
+
+Seal the record with the freeze. It holds the declared inputs and the resulting
+counts, so a reader can redo the arithmetic and a freeze test can refuse a
+pack smaller than its own sizing asks for. Report the design's reliability at
+the frozen size beside it ([QC standard](benchmark_qc.md), Gate 5).
+
+More worlds is the default way to buy precision. A repeat shrinks only the
+play-to-play part of a world's difference (`aeread.design.sd_of_differences`);
+the part that differs from world to world stays. Where worlds are scarce a
+design may declare extra plays for the worlds that vary most, and says so in
+the contract.
+
+### A/A before the freeze
+
+The variance pilot includes an A/A arm: the control profile against itself on
+the pilot pack, through execution, scoring, the sealed analysis and the claim
+rule. Report the estimated gap, its interval and whether the claim rule fires.
+If it fires, stop before `confirmatory_freeze`. The instrument is producing a
+difference: seat order, a tie-break, or a counterpart that reacts to something
+the arms do not control. Housing's self-play price pilot is the recorded case,
+where a tie-break gave seat 0 most of the sound listings with one model in
+every seat (HL-D-04).
+
+`aeread.design.aa_check` is the provider-free half. It deals one profile's
+replicate plays into two arms and reports how often a claim rule fires, which
+tests the analysis and the rule on the pilot's own score distribution. It
+cannot see an artifact of execution, so it does not replace the live arm.
 
 ## 3. Enforce promotion in campaign drivers
 
@@ -206,6 +304,17 @@ fields, and raw-response retention. The service must execute the same AERead
 cases and produce AERead-verifiable receipts; an external arena score is not a
 substitute for the Housing scorer or canonical fact tables.
 
+### Arms that share an account
+
+When two arms draw on one account, one key or one route, an empty balance or a
+rate limit fails whichever arm happens to be running, so missingness follows
+the execution order and not the arms. Interleave such arms by world: run both
+arms of a world before moving to the next, so an outage removes whole pairs
+and the pairs that remain are intact. Pin that order in the contract's
+execution block with the other ordering controls. A campaign that runs one arm
+to completion before the other says so and reports missingness by arm
+(section 4).
+
 ### Spend of a failed cell
 
 A cell that fails after paid calls still spent money, and a total that omits
@@ -308,13 +417,32 @@ a tool. Use `model_calls.csv`, trajectories, and receipts for observed behavior.
   samples when the sampled unit is a world or case cluster.
 - Report fact-table coverage, exclusions, invalid measurements, missing cells,
   and telemetry completeness alongside aggregate outcomes.
-- With few independent worlds, describe the interval as the method actually
-  computed. [Cameron, Gelbach, and Miller (2008)](https://doi.org/10.1162/rest.90.3.414)
-  show that some standard cluster inference can over-reject with 5–30 clusters
-  and study cluster bootstrap-t methods for regression. AERead currently uses
-  percentile resampling of whole worlds for several paired effects; whether
-  those intervals attain nominal coverage for each AERead estimand remains to
-  be checked by simulation before treating a method change as validated.
+- Name the interval and the test in the analysis report, and choose them by
+  the number of independent clusters:
+  - **50 or more:** the paired t interval on cluster means or the percentile
+    bootstrap of whole clusters. Either may be reported.
+  - **Fewer than 50:** the paired t interval on cluster means, or a
+    bias-corrected (CR2) or wild cluster bootstrap interval. Not the
+    percentile bootstrap, which is too narrow when clusters are few: on
+    simulated campaigns with no true gap it covers about 89% at 10 worlds, 93%
+    at 20 and 94% at 50, where the t interval holds 95% at all three
+    (`tests/test_design_intervals.py`).
+    [Cameron, Gelbach, and Miller (2008)](https://doi.org/10.1162/rest.90.3.414)
+    describe the same over-rejection with 5 to 30 clusters.
+  - **About 20 or fewer:** take p-values from an exact sign-flip
+    (randomization) test on the cluster differences.
+
+  The kernel's paired analysis returns both intervals (`paired_t_95` and
+  `cluster_bootstrap_95`); the report states which one its claim rests on. The
+  sign-flip test is not in the kernel yet (#271).
+- Compare missingness between arms before reading a gap: planned against
+  realized cells per arm, with a test of whether the rates differ. Report the
+  rate per arm and the test.
+- A campaign with missing cells declares a score range per world in its design
+  contract and reports the kernel's worst-case bounds
+  (`missingness_difference_bounds` in the paired analysis) beside its main
+  estimate. If the bounds include zero or reverse the sign of a claimed gap,
+  the report says "inconclusive", not a winner.
 - Never overwrite a different fact export in place. Create a new run or output
   directory when its sealed inputs change.
 
