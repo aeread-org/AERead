@@ -212,6 +212,7 @@ All 29 Everos tests subsequently passed with explicit local-socket permission.
 - `v2_5_seat_cases/seat_design_v3/seat_extension_v4/seat_extension_v5`: public seat cohorts.
 - `v2_5_payment_units_v51`: wire-unit clarification.
 - `v2_5_release`: portable qualification CLI and independent replay factory.
+- `v2_5_controls`: provider-free lower controls and the pre-declared beatability rule for QC Gate 3; a new, unpinned module whose screen record is `cases/refund_v25/qc/lower_controls.json` ([QC profile](qc.md), Gate 3).
 
 Historical campaign continuation, budget recovery, private artifact-loading tests,
 credentials, run outputs and PDFs are outside this implementation PR.

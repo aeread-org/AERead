@@ -20,12 +20,14 @@ Supporting track: `provider_free_conformance=passed` (816 of 816 trajectories,
 rerun 2026-10-13). That is environment conformance, not a measurement.
 
 The construct gate is **failed**, and that is the most important line in this
-profile. The family has no policy below its reference: every non-model policy
-is the deterministic reference profile, which scores at the ceiling by
-construction (the release raises if any score is not 1). "Qualified" therefore
-means the reference reproduces itself, not that the panel tells a better
-refund handler from a worse one. Until a lower control exists, a model's score
-on this family has nothing below it to be read against.
+profile. Since 2026-10-13 it fails on a measurement rather than for want of
+one. Lower controls now exist for every seat, and a beatability rule was
+declared before any of them ran. The reference fails that rule on all 11 public
+cohorts in the policy seat, the seat comparison campaigns use. An
+unconditional full refund that collects no fact passes the strict
+`end_to_end` on 38 of the 180 case IDs (Gate 3). Customer and payments fail
+too; only intake passes. A model's policy-seat score therefore includes cases
+a constant answer passes, and must not be read as policy judgment.
 
 This profile binds the shared gates to Refund. Requirements inherited from the
 standard are not repeated unless Refund supplies a specific implementation,
@@ -91,9 +93,11 @@ Evidence on hand:
 
 Blockers to `passed`:
 
-1. **Headroom is unmeasured.** No control has been run on any case. The only
-   policy ever executed is the reference, at the ceiling by construction, so no
-   case has been shown to be non-trivial, non-floored or non-saturated.
+1. **Headroom is measured only from below.** The lower-control screen (Gate 3)
+   tests the *trivial* ground. In the policy seat a full-refund constant
+   solves 38 of the 180 case IDs, so those cases are trivial. The *floored* and
+   *saturated* grounds need a model control at several seeds, and none has
+   run.
 2. **The independent unit is undeclared.** It could be 44 templates, 90 pairs,
    124 contents or 180 case IDs, and only one seed has been qualified. V2.1
    made this mistake once: its 120-cell panel is six cases (RF-D-01).
@@ -126,7 +130,9 @@ Blockers to `passed`:
    `payment` 0.5, `contract` 0, `end_to_end` 0. That needs a ruling, then a new
    identity.
 2. **The `operational` leaf is the constant 1.0** and is one of the four
-   admission leaves. It cannot fail, so it guards nothing.
+   admission leaves. It cannot fail, so it guards nothing. Measured: every
+   control scores 1.0 on it, including `refuse_empty`, which returns `{}` on
+   every placement of every seat.
 3. **No guard has a mutation record.** Planted counterexamples exist (Gate 1,
    second evidence item). No guard has been reverted and seen to kill its test, which the
    standard requires before a check counts as evidence.
@@ -135,18 +141,23 @@ Blockers to `passed`:
 
 ## 3. Construct validity and baselines
 
-**Status: failed.**
+**Status: failed.** The gate now fails on a measurement. Lower controls exist
+for every seat, and the beatability rule below was declared and pushed
+(`1ededca5`) before any control ran. The reference fails that rule on every
+public cohort in the policy, customer and payments seats. RF-D-05 also still
+stands: the `payment` leaf checks binding to the proposal, not the money that
+moved. That alone is a Gate 3 stop condition, whatever the controls show.
 
 | Control the standard asks for | Refund V2.5 |
 |---|---|
-| no-op or feasible lower anchor | none |
-| seeded random or weak control | none |
-| simple comparison baseline | none |
+| no-op or feasible lower anchor | `refuse_empty` (every seat); `noop_null_resolution` (policy) |
+| seeded random or weak control | `random_legal` at seeds 0, 1 and 2 (policy), legal-only and checked |
+| simple comparison baseline | `naive_full_refund` (policy), `naive_overdisclose` and `naive_first_record` (customer), `naive_first_sorted` (intake), `naive_no_mutation` (payments) |
 | informed or adaptive policy | the deterministic reference profiles, one per seat |
 | oracle-informed ceiling | the same reference; it is the answer key |
 
-There was no beatability rule before 2026-10-13. This is RF-D-04, open since
-V2.1 and carried into V2.5 by RF-D-06.
+Until 2026-10-13 there was no lower control and no beatability rule (RF-D-04,
+open since V2.1 and carried into V2.5 by RF-D-06).
 
 ### Beatability rule `refund_v25_beatability/1`
 
@@ -180,45 +191,106 @@ Declared controls (`CONTROLS`, `refund_v25_lower_controls/1`):
 | intake | `refuse_empty`, `naive_first_sorted` |
 | payments | `refuse_empty`, `naive_no_mutation` |
 
-`CONTROL_DESCRIPTIONS` in the module defines each one. Results are pending.
+`CONTROL_DESCRIPTIONS` in the module defines each one. A random draw is keyed
+by its seed and the canonical observation, so it depends only on what the seat
+sees.
 
-What the reference run shows instead: each of the 180 case IDs yields exactly
-one action sequence, whichever seat is nominally active and whichever cohort
-places it. So the 816 trajectories are 180 per-case sequences, and by action
-payload digest only 174 are distinct. On the V5.1 payments cohort, four of the
-twelve cases share one byte-identical reference trajectory that ends in
-`no_mutation`, and two more groups of two and three cases also coincide. A
-constant payments action that never reads the ledger would therefore match the
-reference on at least four of those twelve. No such control has been run.
+### Screen result
 
-Three findings narrow the construct before any control is added:
+`python -m aeread_families.refund.v2_5_controls --output FRESH_PATH --record cases/refund_v25/qc/lower_controls.json`
+plays the reference and every control through the real environment for each
+seat and each of the 11 cohorts at seed 301. Each trajectory goes through
+kernel finalization, replay and independent audit. That is 3,468 trajectories
+and 0 paid calls. The record holds every leaf for every case, the per-cohort
+means, illegal-move counts and the verdict. It is bound to the controls'
+source digest, and a test regenerates one cohort byte for byte. The reference
+scores 1.0 on every leaf of every placement. `random_legal` made 0 illegal
+moves in 612 trajectories.
+
+| Cohort | n | Policy | Customer | Intake | Payments |
+|---|---:|---|---|---|---|
+| `core` | 24 | fail: full refund reaches 5 (B3) | fail: first record reaches 24 (B1+B3) | pass (2 reached) | fail: no-mutation reaches 10 (B3) |
+| `policy` | 76 | fail: full refund reaches 14 (B3) | fail: first record reaches 76 (B1+B3) | pass (2 reached) | fail: no-mutation reaches 32 (B3) |
+| `v3_common` | 8 | fail: full refund reaches 2 (B3) | fail: first record reaches 8 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 4 (B3) |
+| `v3_intake` | 24 | fail: full refund reaches 3 (B3) | fail: first record reaches 24 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 15 (B1+B3) |
+| `v3_payments` | 18 | fail: full refund reaches 10 (B1+B3) | fail: first record reaches 18 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 5 (B3) |
+| `v3_customer` | 16 | fail: full refund reaches 3 (B3) | fail: first record reaches 16 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 7 (B3) |
+| `v4_payments` | 8 | fail: full refund reaches 4, semantic gap 0.19 (B2+B3) | fail: first record reaches 8 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 3 (B3) |
+| `v4_customer` | 4 | fail: full refund reaches 1 (B3) | fail: first record reaches 2 (B3) | pass (0 reached) | fail: no-mutation reaches 2 (B3) |
+| `v5_intake` | 8 | fail: null resolution, semantic gap 0.00 (B2) | fail: first record reaches 8 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 8 (B1+B3) |
+| `v51_payments` | 12 | fail: full refund, semantic gap 0.00 (B2) | fail: first record reaches 12 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 2 (B3) |
+| `v5_customer` | 6 | fail: full refund reaches 1 (B3) | fail: first record reaches 4 (B1+B3) | pass (0 reached) | fail: no-mutation reaches 2 (B3) |
+
+"Reaches k" counts the cases where that control's strict `end_to_end` equals
+the reference's. Only the failing control is named in each cell; every
+other control passed every clause there.
+
+What the screen establishes:
+
+1. **The policy seat has trivial cases (RV25-D-03).** `naive_full_refund`
+   grants a full refund on the first turn and collects nothing. It is
+   illegal on any case that still has a pending fact, yet it passes the strict
+   composite on 38 of the 180 case IDs. On those cases intake has already
+   disclosed every fact the branch needs, and the answer is a full refund. On
+   `v5_intake` every reference resolution is a hold, and on `v51_payments`
+   every one is a full refund. There a constant is semantically exact. No
+   other control ever reaches the reference: `refuse_empty`,
+   `noop_null_resolution` and the three `random_legal` seeds have strict
+   `end_to_end` 0 on all 204 placements. Random `policy_semantic` ranges from
+   0.17 to 0.50 per cohort.
+2. **`evidence` measures legality, not collection (RV25-D-04).** Requests are
+   legal only inside the public pending set, and submitting is illegal until
+   that set is empty. So every legal path scores 1.0, and `random_legal` does
+   on all 612 of its trajectories.
+3. **Customer and payments measure copying and base rate (RV25-D-05,
+   RV25-D-06).** This confirms by measurement what this profile argued from
+   the legality rules. A customer that takes the first listed record equals
+   the reference wherever the observation is a flat fact map (9 cohorts). A
+   payments seat that always emits `no_mutation` is right on every no-op
+   ticket, which is 17% to 100% of each cohort. Intake passes, but only against
+   a sorted-order control. On `v5_intake` its legal set is a single batch, so a
+   random legal intake would be the reference.
+4. **Correction (RV25-J-02).** This profile earlier predicted that a constant
+   payments action matches at least four of the twelve `v51_payments` cases.
+   The measured number is 2. Ten of the twelve execute on first delivery and
+   reach `no_mutation` only at redelivery.
+
+A post-hoc hypothesis, not a verdict: score minimal pairs instead of cases.
+The full-refund constant passes both members of 0 of the 38 `policy` pairs,
+which include `core`'s 12. Across all 102 pair placements it passes both
+members of 7, all in the two payments cohorts. A pair-level rule would be a
+new identity (`refund_v25_beatability/2`), declared before it is evaluated,
+and this verdict stays recorded.
+
+Two structural findings still narrow the construct:
 
 1. **Most seats have no judgment to measure.** The customer, payments and V5
    intake seats each have exactly one legal action per phase: the claim must
    equal the public claim, a disclosure must equal exactly the requested facts
    and values, a confirmation must name the current proposal, a payment must
-   match the ticket, and a V5 intake batch must equal the reference set. For
-   those seats a leaf can only separate "emitted the unique legal action" from
-   "invalid". What they measure is reading and binding, not refund judgment.
-   More than one legal action exists only in the policy seat and the pre-V5
-   intake seat, and comparison campaigns are restricted to the policy seat.
-2. **`payment` measures binding, not money (RF-D-05).** The leaf compares the
-   payments seat's execution with the environment's own ticket, which is built
-   from the policy proposal, not with the reference resolution. Write
-   `payment_mutation: "refund"` and the alias scores as `execute`, but the
-   environment builds a no-op ticket from the raw string: no money moves where
-   the reference refunds, and `payment` scores 1.0. Only `contract` and
-   `end_to_end` fall to 0. `test_v25_unambiguous_v24_aliases_only_affect_attribution`
-   asserts that 1.0 as intended. This hides a component failure behind its own
-   name, which is a Gate 3 stop condition.
-3. `end_to_end` is a strict composite. The release document says it is not a
-   universal model utility, and no other leaf is declared as the construct.
+   match the ticket, and a V5 intake batch must equal the reference set. The
+   screen above measures the consequence. More than one legal action exists
+   only in the policy seat and the pre-V5 intake seat, and comparison campaigns
+   are restricted to the policy seat.
+2. **`payment` measures binding, not money (RF-D-05, still open).** The leaf
+   compares the payments seat's execution with the environment's own ticket,
+   which is built from the policy proposal, not with the reference resolution.
+   Write `payment_mutation: "refund"` and the alias scores as `execute`, but
+   the environment builds a no-op ticket from the raw string. No money moves
+   where the reference refunds, yet `payment` scores 1.0; only `contract` and
+   `end_to_end` fall to 0.
+   `test_v25_unambiguous_v24_aliases_only_affect_attribution` asserts that 1.0
+   as intended. This hides a component failure behind its own name, which is a
+   Gate 3 stop condition. `end_to_end` remains a strict composite, not a
+   universal model utility.
 
-**Closure requires** at least a no-op/invalid policy and a constant or
-public-observation policy per active seat, scored on every public case. It also
-requires a beatability rule declared before any model result, a
-better-informed-policy contrast on a declared nontrivial slice, and a `payment`
-leaf that compares executed transactions with the reference.
+**Closure requires** a policy-seat panel or scoring unit that passes a
+beatability rule declared before it is evaluated, which rules out admitting
+cases a constant answer solves. It also requires the floored and saturated
+grounds measured with a model control, a better-informed-policy contrast on a
+declared nontrivial slice, an `evidence` leaf that scores collection rather
+than legality, and a `payment` leaf that compares executed transactions with
+the reference.
 
 ## 4. Attribution and experimental controls
 
@@ -269,17 +341,18 @@ three different failures into one zero (RF-D-02). The guarded-metric
 falsifiability check (item 7 of the standard) has not been attempted for any
 Refund metric.
 
-Blocker: everything upstream. A pilot needs a lower control, a declared
-cluster, an admitted profile and a full-trajectory gate first.
+Blocker: everything upstream. A pilot needs a policy-seat panel that passes a
+declared beatability rule, a declared cluster, an admitted profile and a
+full-trajectory gate first.
 
 ## Current implementation coverage
 
 | Gate | Status | Main blocker to `passed` |
 |---|---|---|
 | Profile admission | `passed` | none |
-| Task-distribution admission | `partial` | no measured headroom, undeclared independent unit, no executed holdout |
+| Task-distribution admission | `partial` | 38 of 180 case IDs trivial for the policy seat, floored and saturated grounds unmeasured, undeclared independent unit, no executed holdout |
 | Environment and verifier | `partial` | null refund method accepted by schema and failed by verifier (RF-D-03); constant `operational` leaf; no mutation records |
-| Construct validity and baselines | `failed` | no lower control or beatability rule (RF-D-04); `payment` scores a refund that never happened (RF-D-05) |
+| Construct validity and baselines | `failed` | the reference fails `refund_v25_beatability/1` on all 11 cohorts in the policy, customer and payments seats (RV25-D-03, D-05, D-06); `evidence` scores legality (RV25-D-04); `payment` scores a refund that never happened (RF-D-05) |
 | Attribution and controls | `partial` | no admitted profile or adapter (#267); self-binding QC approval (RF-T-01); vacuous closed-schema admission (RV25-T-06) |
 | Confirmatory reliability | `not_run` | every gate above |
 
@@ -288,19 +361,21 @@ cluster, an admitted profile and a full-trajectory gate first.
 V2.5 is a **provider-free developmental environment**. Its four-seat protocol,
 admission checks, visibility rules and replay are conformant: the deterministic
 reference reproduces itself, at full score, on 816 trajectories covering 180
-cases. V2.1 results describe six cases per model, and their policy-compliance
-rates are not policy judgment (RF-D-02).
+cases. Against provider-free lower controls it is beatable only in the intake
+seat; in the policy seat a constant full refund passes the strict composite on
+38 of the 180 case IDs. V2.1 results describe six cases per model, and their
+policy-compliance rates are not policy judgment (RF-D-02).
 
 Not permitted, and not claimed in the release: any statement about LLM
 ability, a model ranking, paid-equivalence with the historical Arena runs,
-reading `payment` as correct money movement, or treating 816, 204 or 180 as
-independent observations.
+reading `payment` as correct money movement, reading `evidence` as collection
+judgment, or treating 816, 204 or 180 as independent observations.
 
 ## Registers
 
 - **Tier 1:** none. A Refund failure register is owed.
 - **Tier 2,** in [the incident log](../../operations/incident_log.md):
-  RV25-D-01..02 and RV25-T-01..06 are on this branch. RF-D-01..04, RF-T-01 and
+  RV25-D-01..06, RV25-T-01..06 and RV25-J-01..02 are on this branch. RF-D-01..04, RF-T-01 and
   RF-J-01 are on branch `codex/refund-gap-analysis`, with the V2.1 gap analysis
   `evidence/refund/refund_v2_1_gap/`. RF-D-05 and RF-D-06 are on branch
   `docs/paper-case-studies-qc`. None of those branches is merged, so the rows
