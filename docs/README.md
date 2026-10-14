@@ -154,6 +154,8 @@ identities, so their citations are redirected, not rewritten.
 - [Paper section draft: case studies](research/paper_case_studies.md) (Housing, Procurement, Data center and Refund as worked examples, 2026-10-13)
 - [Paper section draft: quality control](research/paper_qc_design.md)
 - [Paper appendices A–D: case specifications](research/paper_appendix_case_specs.md)
+- [Paper appendices E–F: case details and quality control in detail](research/paper_appendix_details.md)
+- [Paper text for §4: kinds of verifier](research/paper_verification_kinds.md)
 - [Exploit agent: design](research/exploit_agent_design.md)
 - [Full bibliography (BibTeX)](../references.bib)
 
