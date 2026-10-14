@@ -24,9 +24,11 @@ their length near the main-text budget of comparable environment papers.
 | Refund | resolution (eligibility, remedy, amount, liability; workflow) against the reference | answer (declared as rule checks in the code) | share of fields matched | outcome |
 | Refund | evidence complete before deciding; contract format; payment bound to the proposal (RF-D-05) | rule | pass or fail per leaf | path |
 
-None of the four uses a rubric. Every score is computed from the sealed trajectory and replayed
-without a model, which is the property we ask contributors to preserve where they can; a
-rubric leaf is supported, but it is kept beside the computed ones and never folded into them.
+None of the four uses a rubric. Every score is computed by code from the recorded trajectory,
+with no model or rater in the loop. The kernel's replay certifies each receipt's own score; in
+Housing and Procurement the headline measure is computed outside the receipt (Appendix F.2), and
+a contributed case should make its headline a receipt leaf so that replay covers it. A rubric leaf
+is supported, but it is kept beside the computed ones and never folded into them.
 
 ### E.2 Pack construction
 
@@ -70,7 +72,7 @@ own admission rules are designed but not built.
 | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
 | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused, P-O-06) | 24 cells each, second brief | $0.21 | development |
 | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
-| Data center | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.13 | development; one declared test |
+| Data center | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
 | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
 | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
 
@@ -90,7 +92,9 @@ Over all 260 main-pack worlds the models fall short of the reachable reference b
 (Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
 is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
-[+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same score.
+[+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same receipt score, which totals all six tenants
+(HL-D-09); the seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
+derived analyses.
 Scripted tenants played offline on every cell give the floor: passing earns $0, never inspecting and signing any
 hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
 pay then signing $145; the models beat the first two by $130 to $292 a world. Sixteen GLM cells
@@ -291,7 +295,7 @@ identity, and Procurement's corrected schema ran under new identities.
 |---|---|---|---|
 | 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The four current profiles were written after their runs |
 | 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2 is `partial`: no simple rule solves any world, but no model has played it |
-| 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | 1,800 of 1,800 Housing v14 receipts replay from sealed events with no provider call |
+| 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | 1,800 of 1,800 Housing v14 receipts replay from sealed events with no provider call, but the headline measure is computed outside the receipts (HL-D-09) |
 | 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test v1 fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; v2, built after the runs, passes for scripted policies: every screened rule, the one-step rule included, gives up at least $10 in every world; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
 | 4. Attribution and controls | Does the result support the attribution it claims? | an undeclared control changes, the matrix is incomplete, the block cannot carry the claim | the three v14 identities differ in model and route and also in reasoning tier, sampling and cost ceiling, a declared choice the contract did not state (HL-J-12); data-center claims name their counterparts |
 | 5. Confirmatory reliability and publication | Was the comparison sized, frozen and executed without tuning on outcomes? | incomplete pilot, a frozen control changed, selective missingness, a guardrail no behaviour can fail | Housing v14's analysis was declared before any cell and 36 refused cells stayed missing, but no sizing record was sealed; no other case reached this gate |
@@ -317,10 +321,17 @@ identity, and Procurement's corrected schema ran under new identities.
   equals the environment's average over the 27 type profiles in all 24 worlds; the data-center
   oracle pair loses nothing in all 116 worlds of both development packs, against an optimum the test computes
   independently; Refund V2.5's release requires the reference to take full credit on every case.
-- **Replay.** The 1,800 published Housing v14 receipts replay from their sealed events with no
-  provider call; the agreement driver replayed every receipt before counting it; the procurement
-  panels replay to their recorded margins; Refund's 816 provider-free trajectories replay, though
-  they are unpublished and only 174 are distinct.
+- **Replay.** The kernel's replay recomputes each receipt's own score from its sealed events with
+  no provider call: all 1,800 published Housing v14 receipts; every agreement receipt, replayed
+  in-line by the driver (the branch predates the independent `aeread verify-replay`); the
+  procurement panels' receipts, in-line; and Refund V2.5's 816 provider-free trajectories
+  (unpublished; 174 are distinct). The certificate does not cover two headline measures.
+  Housing's seat-0 measure is case code over each cell's outcome, the receipts' own score totals
+  all six tenants (HL-D-09), and the measure was re-derived from the sealed event logs by the
+  derived analyses of Table 5.2. Procurement's decision loss is computed from the action list kept
+  in each result row through a reference module the plans do not pin (P-T-17). The Housing
+  receipts also name the model for the five tenant seats a script played; the true seat map is in
+  an unsealed log (HL-T-09).
 - **Admission before types.** After the runs, the data-center agreement gained a pack admitted by
   its own rules: 60 worlds from 2,729 scanned, each admitted on its public parameters and the type
   prior while its hidden charge does not yet exist, then given types drawn independently of its
@@ -407,9 +418,9 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 
 | Case (row prefix) | Design | Operational | Tooling | Judgment | Total |
 |---|---:|---:|---:|---:|---:|
-| Housing lemons and price line (HL) | 9 | 21 | 8 | 12 | 50 |
-| Procurement (P) | 25 | 6 | 11 | 4 | 46 |
-| Data center (DC) | 36 | 21 | 20 | 8 | 85 |
+| Housing lemons and price line (HL) | 9 | 21 | 9 | 12 | 51 |
+| Procurement (P) | 25 | 6 | 12 | 4 | 47 |
+| Data center (DC) | 36 | 21 | 20 | 9 | 86 |
 | Refund (RF, RV25) | 12 | 0 | 8 | 3 | 23 |
 
 ### F.7 What quality control found
@@ -440,11 +451,13 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | RF-D-05 | Refund's payment leaf checks that payments executed what the proposal asked, so a proposal with an aliased mutation moves no money where the reference refunds $185.22 and still scores 1.0 | yes, by tracing one case | writing the formal appendix of this paper | open; report the leaf as binding and add a check against the reference |
 | HL-D-09 | The v14 receipts' own scores total all six tenant seats against baselines from a market without outside demand, so they are not the deciding tenant's | yes, by reading the receipts | building the seat-0 controls | open; the published primary is computed separately and is unaffected; a seat-0 scorer needs a module outside the hashed runner |
 | RV25-D-03 to D-06 | In three of Refund V2.5's four seats a naive control comes close to the reference: a full refund that collects nothing is fully right on 38 of 180 policy cases, the evidence leaf passes any legal path, the customer seat reduces to copying and the payments seat to the base rate of no payment | no: a rate across cases | lower controls under a rule committed before they ran | open; Gate 3 recorded `failed`; scoring pairs of cases would stop the full-refund control (0 of 38 pairs), a rule not yet declared |
+| HL-T-09 | The v14 receipts name the model for the five tenant seats a script played; the true seat map is only in an unsealed log | yes, by reading the driver's seat router | the paper's runtime review | open; record the seat map inside the seal under a new identity |
+| P-T-17 | Procurement's decision loss is computed outside the receipts, from a copy of the actions through a reference module the plans do not pin, so replay does not certify it | yes, by reading the driver | the paper's runtime review | open; make it a receipt leaf before the panels are published |
 | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Fourteen of the twenty-three were invisible in any single world; the nine visible ones were found
-by reading code or sealed bytes, by tracing a case, or in a single gate cell. Seven are still open
-(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01, RV25-D-03 to D-06, DC-D-35).
+Fourteen of the twenty-five were invisible in any single world; the eleven visible ones were found
+by reading code or sealed bytes, by tracing a case, or in a single gate cell. Nine are still open
+(P-D-17, P-T-17, HL-D-07, HL-D-09, HL-T-09, RF-D-05, RF-T-01, RV25-D-03 to D-06, DC-D-35).
 
 ### F.8 Assessment against the Agentic Benchmark Checklist
 
@@ -465,7 +478,7 @@ tests or a judge model.
 | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, by tests added after the runs (Appendix F.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-three defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
+| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-five defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |

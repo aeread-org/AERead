@@ -40,8 +40,10 @@ kinds of verifier and counterpart, not sampled from that distribution.
 
 The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
 an answer key, declared rules, the value of the best policy or a bound, relative standing
-against another agent, or a rubric. The four cases use the first four and no rubric, and every
-score replays from the sealed trajectory without a model. Table E.1 lists every check.
+against another agent, or a rubric. The four cases use the first four and no rubric. Every score is computed by code, with
+no model in the loop; the kernel's replay recomputes each receipt's own score from its sealed
+events, while the headline measures of Housing and Procurement are computed by case code outside
+that certificate (Appendix F.2). Table E.1 lists every check.
 
 ### 5.1 Results
 
