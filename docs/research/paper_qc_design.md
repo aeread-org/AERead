@@ -5,7 +5,7 @@
 [campaign SOP](../operations/experiment_campaign_sop.md) and the
 [incident log](../operations/incident_log.md) define it, with the newest rule text from
 draft PR #288 (sampling plans, reliability, counterpart scope, the A/A arm), and illustrates
-each part with what it caught in the four cases of the companion
+each part with what it caught in the three cases of the companion
 [case-study section](paper_case_studies.md). Incident row ids (HL-, P-, DC-) refer to the
 incident log on the branch of each case.
 
@@ -17,7 +17,7 @@ incident log on the branch of each case.
 
 An AERead item is a world drawn from a generator, scored in dollars against a reference
 computed for it, often against a counterpart that adapts. The defects that mattered in the
-four cases were properties of the distribution, the information structure, the brief, the
+three cases were properties of the distribution, the information structure, the brief, the
 counterpart or the analysis, and every world was individually correct when they were found:
 
 - in Housing's six-tenant market, which tenant signed a sound listing was decided by a
@@ -34,7 +34,7 @@ counterpart or the analysis, and every world was individually correct when they 
 Reading one world at a time passes all four. Quality control is therefore built around checks
 on populations of worlds and on the experiment, and around recording every failure at the
 moment it happens. Because AERead is meant to grow through contributed cases, the same process
-is the checklist a contributor works through, and the four cases of Section 5 went through it
+is the checklist a contributor works through, and the three cases of Section 5 went through it
 with the defects in §6.7 to show for it. This section describes that checklist (§6.1),
 the automated checks (§6.2), the tools for reading a play (§6.3), the adversarial checks
 (§6.4), the statistical controls (§6.5), how failures are recorded and evidence reviewed
@@ -55,7 +55,7 @@ campaign reportable. Each gate ends in one of five typed states (`passed`, `fail
 
 **Table 6.1. Benchmark QC gates.**
 
-| Gate | Question | Stops when | In the four cases |
+| Gate | Question | Stops when | In the three cases |
 |---|---|---|---|
 | 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | Procurement's construct check ran and found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost |
 | 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test admits on what a buyer can see and draws types afterwards |
@@ -73,12 +73,8 @@ contributed family must bind, in one version-bound record: a unique namespace; c
 observation schemas (every property required, nothing extra allowed); a provider-free conformance
 report covering everything it declares; finite ceilings on wall time, actions, provider calls,
 tokens and cost; and a human QC approval whose digest binds that exact contribution. The
-approval must come from outside the contribution. Refund V2.1 showed why: its runner hashed two
-status-only QC stubs and set the approval's digest to the contribution it had just built, so the
-approval bound whatever the runner produced (RF-T-01). Refund V2.5's record names a reviewer and a
-date and rejects V2.1's, but its runner still binds the approval to the contribution it has just
-built (RF-D-06): the admission path is specified, and the mechanism that makes the approval
-independent is not yet in place.
+approval must come from outside the contribution: a runner that mints its own approval binds
+whatever it produces, and the mechanism that keeps the two apart is not yet in place.
 
 Three checks are owed before any model plays a new case. The reference plays every admitted
 world and agrees with the environment (§6.2). Every rule the brief states is checked against
@@ -92,15 +88,15 @@ frontier agents found that comparison (§5.6).
 
 Each kind of verifier in §5.1 owes a different proof that it measures what it claims.
 
-**Table 6.2. What each kind of verifier must be shown to do, and how the four cases show it.**
+**Table 6.2. What each kind of verifier must be shown to do, and how the three cases show it.**
 
-| Kind | Must be shown | How it is shown in the four cases |
+| Kind | Must be shown | How it is shown in the three cases |
 |---|---|---|
-| Answer | the key is correct and complete for every admitted case | Refund's reference resolution is written by hand per template, and admission requires the policy's public compiler to reproduce it on every case, with a unique path through the policy's precedence |
-| Rule | every rule is stated to the subject, and each check fails on a counterexample | briefs are checked against the environment by tests; checks are mutation-verified (below); a rule left unstated is a defect of the case (P-D-19, RF-D-03) |
+| Answer | the key is correct and complete for every admitted case | not used in the three cases |
+| Rule | every rule is stated to the subject, and each check fails on a counterexample | briefs are checked against the environment by tests; checks are mutation-verified (below); a rule left unstated, or a schema that disagrees with its parser, is a defect of the case (P-D-19, P-D-23) |
 | Value | the reference agrees with the environment, and a simple rule does not already match it | Procurement's policy equals the environment's average over 27 type profiles; Housing's offline reference replays the sealed scripted cells to the cent; the one-step rule is run first |
 | Relative | the counterparts are named, the gap is reported per counterpart, and the analysis does not fire on identical arms | the data-center counterpart table (Table 5.7); an A/A arm (§6.5) |
-| Rubric | the rater agrees with people and resists gaming | not used in the four cases |
+| Rubric | the rater agrees with people and resists gaming | not used in the three cases |
 
 The checks below run without calling a model.
 
@@ -116,17 +112,15 @@ The checks below run without calling a model.
   over the same 58.
 - **Reference run on every admitted world.** Before a pack is frozen, its reference is played
   on every admitted world through the real environment and verifier, with no model, and must
-  reach its declared result; a test on the committed pack enforces it. In the four cases: the
+  reach its declared result; a test on the committed pack enforces it. In the three cases: the
   Housing reference and a full-information tenant play all 600 v14 cells and reproduce the
   published per-cell values, the tenant reaching the ceiling in every cell; Procurement's best
   policy equals the environment's average over the 27 type profiles in all 24 worlds; the
   data-center oracle pair loses nothing in all 116 worlds of both packs, checked against an
-  optimum the test computes on its own; Refund's release requires full credit on every case.
+  optimum the test computes on its own.
   Mutation tests show each check fails when the reference or the grade is wrong.
 - **Replay.** Every published receipt is rebuilt from its sealed events with no provider call
-  and must reproduce its state and score; for Housing v14 that is 1,800 of 1,800. Refund V2.5
-  qualifies its whole public release this way, with deterministic profiles in every seat: 816 of
-  816 trajectories, every leaf covered, each receipt replayed independently.
+  and must reproduce its state and score; for Housing v14 that is 1,800 of 1,800.
 - **Visibility.** Every payload a seat receives is audited for evaluator-only state.
 - **Plan-level contract tests.** Paired plans are tested to differ only in the declared
   treatment or rotation.
@@ -271,7 +265,6 @@ in two registers that are not interchangeable.
 | Housing lemons and price line (HL) | 7 | 21 | 8 | 12 | 48 |
 | Procurement (P) | 23 | 6 | 15 | 5 | 49 |
 | Data center (DC) | 33 | 21 | 20 | 8 | 82 |
-| Refund (RF, RV25) | 6 | 0 | 2 | 1 | 9 |
 
 The counts cover each family's earlier designs as well as the current one. Operational rows are
 where a measurement was lost and not rerun (a provider account out of credit, a CLI outage, an
@@ -286,7 +279,7 @@ replaying every receipt from its sealed events with no provider call, scanning f
 text, and pasting the output as the review; nobody is asked to read a 100,000-line bundle.
 Changes to the shared runner need an approving review from someone other than the author.
 
-### 6.7 What quality control found in the four cases
+### 6.7 What quality control found in the three cases
 
 **Table 6.5. Defects found by quality control, with the level at which each was visible.**
 
@@ -306,25 +299,21 @@ Changes to the shared runner need an approving review from someone other than th
 | DC-D-32 | The scripted style hashed the whole world, including the client's hidden charge | no: needs two copies of a world | a test that the opening is identical for both types failed | the declared test uses a fixed style |
 | DC-D-33 | The hidden type was fixed by pack cell and moved with public quantities | no | a placebo outcome (§6.4) | packs that play each world under each type |
 | HL-D-07 | The primary measure conditions on the landlord's reply only below the sound floor; a reply that proves a listing sound is still scored at the stated odds | yes, by reading the measure's code | writing the formal appendix of this paper | recomputed from the sealed run roots: 57 signings move, no declared verdict changes, Gemini's leads shrink by $10 to $15; an erratum is owed |
-| RF-D-01 | The 120-cell panel was six cases: the world seed changed only the case id, and the policy seat ran at temperature 0 | no: needs the seeds compared | rebuilding the cases and reading the reference run's resolutions | the case is the unit of analysis; V2.5 varies declared conditions by seed |
-| RF-D-03 | A correct denial written with method `null` failed: the prompt says "none", the schema allows null, the verifier compares strings | yes, by reading one proposal against the verifier | building the gap decomposition | recorded; reported as format, not outcome |
-| RF-T-01 | The human-QC approval was minted by the runner from two status-only stubs, so it bound whatever the runner produced | yes, by reading the runner's code | the Refund audit | V2.5 names a reviewer, but the runner still binds the approval to its own output (RF-D-06, open) |
-| RF-D-05 | Refund's payment leaf checks that payments executed what the proposal asked, so a proposal with an aliased mutation moves no money where the reference refunds $185.22 and still scores 1.0 | yes, by tracing one case | writing the formal appendix of this paper | open; report the leaf as binding and add a check against the reference |
 | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Twelve of the nineteen were invisible in any single world, and the seven that were visible were
-found by reading code or sealed bytes, or by tracing one case, not by playing a panel. That is the main reason quality control
+Eleven of the fifteen were invisible in any single world, and the four that were visible were
+found by reading code or sealed bytes, or in a single gate cell, not by playing a panel. That is the main reason quality control
 is organised around populations of worlds, declared analyses, code reading and recorded
 failures rather than around reviewing instances.
 
 ### 6.8 Assessment against the Agentic Benchmark Checklist
 
 The QC standard aligns its task and outcome validity checks with the Agentic Benchmark
-Checklist [ABC]. Table 6.6 assesses the four cases as they stand, item by item; the
+Checklist [ABC]. Table 6.6 assesses the three cases as they stand, item by item; the
 outcome-validity items that apply are those for a quality measure, since no case is scored by
 string matching, unit tests or a judge model.
 
-**Table 6.6. The four cases against the checklist.**
+**Table 6.6. The three cases against the checklist.**
 
 | Item | Status | Evidence |
 |---|---|---|
@@ -336,8 +325,8 @@ string matching, unit tests or a judge model.
 | T.6 Setup does not change over time | met | the environments are deterministic and sealed; hosted model routes are pinned and snapshotted |
 | T.7 Ground truth verified | met | each reference is played on every admitted world through the environment and reaches its declared result, enforced by a test (§6.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
-| T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | shortcut policies, trivial-world screens and brief audits (§6.4); nineteen defects found (Table 6.5); a wrong refund can still pass Refund's payment leaf (RF-D-05); a model-driven exploit agent is designed, not built |
+| T.9 Oracle solver | partly | exact for Procurement; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
+| T.10 Free of exploitable shortcuts | partly | shortcut policies, trivial-world screens and brief audits (§6.4); fifteen defects found (Table 6.5); a model-driven exploit agent is designed, not built |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
@@ -351,26 +340,22 @@ string matching, unit tests or a judge model.
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |
 | R.12 Non-AI baselines | partly | scripted policies in every case; no human |
-| R.13 Trivial agents | partly | always paying (Procurement) and signing the draft (Data center) are reported; Housing v14 reports no do-nothing tenant, and Refund V2.1 has no lower anchor (RF-D-04) |
+| R.13 Trivial agents | partly | always paying (Procurement) and signing the draft (Data center) are reported; Housing v14 reports no do-nothing tenant |
 
 ### 6.9 Where quality control falls short today
 
 Each item is stated with what has been done about it.
 
-- **The current designs are recorded, and not yet qualified.** Each of the four current designs
+- **The current designs are recorded, and not yet qualified.** Each of the three current designs
   now has its own section in its family's QC profile, with a typed status and a blocker per
   gate. Housing v14 is `partial` throughout. Procurement's pay-or-test pack fails Gates 1 and 3:
   a rule that reads only what the buyer sees, comparing each newcomer with paying one test ahead,
   reaches the best policy to within $0.06 a world. The data-center agreement fails Gate 1: its
-  packs are not admitted by the case's own rules, and the hidden type is tied to the pack cell.
-  Refund fails Gate 3 for want of any lower control. Their results remain campaign evidence, not
+  packs are not admitted by the case's own rules, and the hidden type is tied to the pack cell. Their results remain campaign evidence, not
   qualified constructs.
 - **Only Housing ran a declared confirmatory campaign.** Procurement and the data-center
   agreement have not passed a variance pilot and a confirmatory freeze; the agreement runs were
   not sized from a declared minimum effect.
-- **Qualification is not discrimination.** Refund V2.5's release shows that its environment,
-  scripted seats and verifiers agree on every case; with no lower control it does not show that
-  the panel separates strong from weak play (RF-D-06).
 - **No practitioner has set or reviewed the numbers.** Every price, fee, odds figure and clause
   cost is the designers' assumption.
 - **The exploit agent is designed, not built, and there is no human baseline.** The design has
@@ -385,8 +370,7 @@ Each item is stated with what has been done about it.
   agreement's Gate 0 test failed on its branch for four days without anyone seeing it (DC-J-08).
 - **Contributed families cannot yet be admitted on their own.** Trusted execution of contributed
   conformance reports, runtime enforcement of declared resource ceilings, and authenticated
-  human approval remain open; Refund's contribution record still passes on placeholder schemas
-  (RV25-T-06).
+  human approval remain open.
 - **Two CLIs expose no seed or temperature,** so their repeat plays are fresh draws and their
   determinism cannot be set. This is a property of the tools and stays a stated limit.
 
@@ -399,10 +383,11 @@ Each item is stated with what has been done about it.
 | Claim | Source |
 |---|---|
 | Gate definitions, sampling-plan table, reliability formula, counterpart scope, A/A arm | the benchmark QC standard and campaign SOP; the newest rule text on branch `codex/methods-design` (draft PR #288), whose `aeread.design` package computes Table 6.3 |
-| Rows in §6.0, Tables 6.1 and @5 | the incident log on branches `codex/housing-lemons-outside-demand`, `codex/procurement-pay-or-test` and `codex/datacenter-agreement`; the procurement and data-center QC profiles |
+| Rows in §6.0, Tables 6.1 and 6.5 | the incident log on branches `codex/housing-lemons-outside-demand`, `codex/procurement-pay-or-test` and `codex/datacenter-agreement`; the procurement and data-center QC profiles |
 | Table 6.4 | row ids carrying each prefix, collected from `docs/operations/incident_log.md` on every remote branch, 2026-10-13 |
-| Reference checks (§6.2) | Housing case contract (v14 branch), `price_reference.py`; `tests/test_procurement_pay_or_test.py` on branch `codex/procurement-pay-or-test`; the agreement controls run on branch `codex/datacenter-agreement` |
+| Reference runs (§6.2) | tests `test_housing_price_oracle_run.py` (50f8dbed, Housing branch), `test_procurement_pay_or_test.py` (1fdc3eb5, procurement branch), `test_datacenter_agreement_oracle_run.py` (3320fd51, data-center branch); rule text on branch `docs/qc-reference-run` (ae2228e1) |
+| QC-profile statuses (§6.9) | the v14 section of the Housing profile (50f8dbed), the pay-or-test section of the procurement profile (68f0579a), section 11 of the data-center profile (3320fd51) |
 | Data-center measurement facts (§6.5) | `agreement_results_2026-10.md` on branch `codex/datacenter-agreement`, section "What the runs showed about measurement" |
 | Summary-setting check | one-pager `housing_summary_on_off_experiment.pdf`, run root `summary_experiment_20261009_v2` |
-| Examiner checklist counts | the Examiner's triage build of 2026-10-13 (private repository, branch `qc-triage`) |
-| Table 6.5 items | [ABC], Figures 2 to 4 |
+| Examiner checklist counts | the Examiner's triage build of 2026-10-13 (private repository, branch `qc-triage`); the #287 rules on branch `checklist-rules-287` (492223ca), measured on the v96 catalog |
+| Table 6.6 items | [ABC], Figures 2 to 4 |
