@@ -141,7 +141,8 @@ A panel is *informative* only if the declared control leaves rows it can fail.
 Establish this by measurement, not by inspecting world definitions:
 
 1. Before freezing a panel, run **the frozen control itself** across every
-   candidate world, at one seed if budget is tight. A cheaper proxy policy is not
+   candidate world, at one seed if budget is tight (one seed can discard a
+   candidate; it cannot admit one, see the sampling plans below). A cheaper proxy policy is not
    a substitute unless that proxy is first shown to track the control on a panel
    of known difficulty.
 2. Admit a world only after rejecting it on **three separate grounds**, each
@@ -190,6 +191,39 @@ Establish this by measurement, not by inspecting world definitions:
 
 7. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
+
+#### Sampling plans
+
+The seeds per world and the two cut-offs are a sampling plan, and a plan errs
+in known ways. State the plan and its miss rates in the panel manifest;
+`aeread.design.screen_plan` computes both. For a control whose outcome on a
+seed is success or failure:
+
+| Seeds per world | Rejected when the control succeeds | Admits a world solved 95% of the time | Admits one solved 90% | Admits one solved 5% | Rejects one solved 50% |
+|---:|---|---:|---:|---:|---:|
+| 1 | never or always | 0% | 0% | 0% | 100% |
+| 3 | never or always | 14% | 27% | 14% | 25% |
+| 5 | never or always | 23% | 41% | 23% | 6% |
+| 10 | never or always | 40% | 65% | 40% | 0% |
+| 10 | 1 or fewer, or 9 or more | 9% | 26% | 9% | 2% |
+| 20 | 2 or fewer, or 18 or more | 8% | 32% | 8% | 0% |
+
+- **One seed cannot admit a world.** Never-or-always covers both outcomes of a
+  single draw. One seed is enough to discard a candidate, not to admit one.
+- **Under never-or-always, more seeds admit more near-saturated worlds.** One
+  failure is enough to admit, so at 10 seeds a world the control solves nine
+  times in ten is admitted 65% of the time. Saturated and floored are claims
+  about a rate: reject on the rate (9 or more of 10), not on unanimity.
+- **Choose the plan from the miss rate the campaign can carry.** At 3 seeds
+  about one in seven of the candidates the control solves 95% of the time is
+  admitted, and one informative world in four is refused. Add seeds, or
+  tighten the cut-offs, until the declared rates give miss rates the design
+  contract accepts.
+
+For a continuous score the same statement is owed for the dispersion rule:
+the seeds per world, the spread that counts as degenerate, and how often a
+world with a declared true spread is refused. No shared calculation covers
+that case yet.
 
 If a family cannot produce worlds that pass all three grounds, the finding is
 about the environment and not about the panel. Check whether the rule admitting a
@@ -319,6 +353,13 @@ Required controls:
    rotation changes between paired plans.
 5. Declare the independent cluster. Treat repeats, seats, calls, turns, and
    opponents inside that cluster as correlated observations.
+6. Name the counterparts a claim covers. When more than one counterpart type
+   is run, report the gap per type and test whether it varies by type before
+   pooling. A general advantage needs a positive gap against every declared
+   type ([campaign SOP](experiment_campaign_sop.md), claim scope).
+7. Run an A/A arm in the variance pilot: one profile in both arms, through
+   execution, scoring, analysis and the claim rule. A claim rule that fires on
+   it stops the campaign before the freeze.
 
 #### Profile admission
 
@@ -352,7 +393,10 @@ Required sequence:
 1. Complete the full paired design on a predeclared variance-pilot panel. Do not
    infer or publish a winner from the pilot.
 2. Choose confirmatory cluster count from paired cluster-level variance, a
-   declared minimum meaningful effect, target power, and attrition rule.
+   declared minimum meaningful effect, target power, and attrition rule. Use
+   the shared calculation and seal its record with the freeze
+   (`aeread.design.sizing_record`); a pack smaller than its own sizing record
+   is not frozen.
 3. Before confirmatory outcomes are inspected, hash the holdout tasks, seeds,
    profiles, prompts, harness, retry rules, execution order, analysis plan,
    missingness policy, stopping rule, implementation pins, and cost ceiling.
@@ -362,7 +406,10 @@ Required sequence:
    not selectively rerun a losing condition or score operational failure as
    task-quality zero.
 6. Report paired cluster-level intervals, predeclared slices, reliability,
-   exclusions, and missingness alongside aggregates.
+   exclusions, and missingness alongside aggregates. Name the interval and the
+   test, chosen by cluster count. Compare missingness between arms, and when
+   cells are missing report the worst-case bounds beside the estimate
+   ([campaign SOP](experiment_campaign_sop.md), reuse and reporting rules).
 7. Prove every guarded metric is falsifiable. For each quantity a promotion rule
    guards, construct a synthetic arm that maximizes it through behavior the rule
    is meant to reject, and require the rule to reject that arm. A metric is a
@@ -372,6 +419,35 @@ Required sequence:
    guarded quantity must instead be one that a deferral fails.
 8. Publish canonical fact tables and a manifest whose rows trace to admitted
    profiles, plans, receipts, and evidence.
+
+#### Reliability
+
+Reliability is the share of a comparison that would recur: the expected
+correlation between the model means of two independent runs of the same
+design, each on its own draw of worlds and plays.
+
+```text
+reliability = var_model / (var_model + var_world_model / worlds + var_play / (worlds x plays))
+```
+
+- `var_model` is the variance between the models' true means: what the
+  campaign is trying to see.
+- `var_world_model` is how much a model's standing changes from world to
+  world, and `var_play` is play-to-play noise inside a world. These two are
+  the error. A counterpart or a seat that the design samples is error in the
+  same way and enters with its own count; one that the design fixes as a
+  control narrows the claim instead.
+- A world's own level is not error. Every model meets the same worlds, so an
+  easy world lifts all of them and cancels in the comparison.
+
+Estimate the variances from the variance pilot
+(`aeread.design.variance_components`, worlds by models by plays) and report
+the reliability at the confirmatory size, with the number of worlds that
+reaches the campaign's target (`aeread.design.worlds_for_reliability`). For a
+single pair of models, also report the chance that two runs would put them in
+the same order (`aeread.design.sign_agreement`). With two or three models the
+model variance rests on two or three means, so the figure describes the
+design and is not a test; report the sizing calculation beside it.
 
 This gate is enforced through `variance_pilot`, `confirmatory_freeze`,
 `confirmatory_execution`, and `publication` in the
