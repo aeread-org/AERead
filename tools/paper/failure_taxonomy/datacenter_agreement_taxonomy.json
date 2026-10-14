@@ -1,0 +1,857 @@
+{
+ "bundles": {
+  "head_to_head": [
+   "datacenter_agreement_cli_pair_dev_v1",
+   "datacenter_agreement_cli_pair_reverse_dev_v1",
+   "datacenter_agreement_cli_pair_spread_dev_v1",
+   "datacenter_agreement_cli_pair_rest_dev_v1"
+  ],
+  "vs_firm_population": [
+   "datacenter_agreement_cli_scripted_canary_v1",
+   "datacenter_agreement_cli_scripted_rest_v1"
+  ]
+ },
+ "case": "datacenter_agreement",
+ "pairings": {
+  "Opus 5.5 vs firm population (both seats)": {
+   "all_58_worlds": {
+    "per_world": {
+     "commitment_error": 6.185328,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 26.724138,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 4.306626
+    },
+    "share": {
+     "commitment_error": 0.1662,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.71808,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.115719
+    },
+    "total_shortfall_per_world": 37.216091,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 101,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 21
+    },
+    "worlds": 58,
+    "worlds_left_out": []
+   },
+   "deal_worlds_52": {
+    "per_world": {
+     "commitment_error": 6.899019,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 29.807692,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 4.803544
+    },
+    "share": {
+     "commitment_error": 0.1662,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.71808,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.115719
+    },
+    "total_shortfall_per_world": 41.510255,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 101,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 21
+    },
+    "worlds": 52,
+    "worlds_left_out": []
+   },
+   "seatings": [
+    "Opus integrator vs firm client",
+    "Opus client vs firm integrator"
+   ]
+  },
+  "Opus client vs firm integrator": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 16,
+     "interaction_cost: redline fees paid by the integrator": 15,
+     "worse_terms: signed a clause set worth less together than the best one": 15
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 8.6207,
+     "interaction_cost: redline fees paid by the integrator": 7.3276,
+     "worse_terms: signed a clause set worth less together than the best one": 8.1679
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 15.948276,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 8.16786
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.661311,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.338689
+    },
+    "total_shortfall_per_world": 24.116136,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 31,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 15
+    },
+    "worlds": 58
+   },
+   "bundles": [
+    "datacenter_agreement_cli_scripted_canary_v1",
+    "datacenter_agreement_cli_scripted_rest_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 16,
+     "interaction_cost: redline fees paid by the integrator": 15,
+     "worse_terms: signed a clause set worth less together than the best one": 15
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 9.6154,
+     "interaction_cost: redline fees paid by the integrator": 8.1731,
+     "worse_terms: signed a clause set worth less together than the best one": 9.1103
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 17.788462,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 9.110305
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.661311,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.338689
+    },
+    "total_shortfall_per_world": 26.898767,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 31,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 15
+    },
+    "worlds": 52
+   },
+   "group": "vs_firm_population",
+   "missing": [],
+   "pairing": "negotiator_drawn_integrator__claude_client"
+  },
+  "Opus integrator vs Sol client": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 54,
+     "interaction_cost: redline fees paid by the integrator": 42,
+     "worse_terms: signed a clause set worth less together than the best one": 31
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 40.5172,
+     "interaction_cost: redline fees paid by the integrator": 20.2586,
+     "worse_terms: signed a clause set worth less together than the best one": 10.9593
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 60.775862,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 10.959265
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.847226,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.152774
+    },
+    "total_shortfall_per_world": 71.735127,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 96,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 31
+    },
+    "worlds": 58
+   },
+   "bundles": [
+    "datacenter_agreement_cli_pair_rest_dev_v1",
+    "datacenter_agreement_cli_pair_reverse_dev_v1",
+    "datacenter_agreement_cli_pair_spread_dev_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 52,
+     "interaction_cost: redline fees paid by the integrator": 41,
+     "worse_terms: signed a clause set worth less together than the best one": 31
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 44.2308,
+     "interaction_cost: redline fees paid by the integrator": 22.1154,
+     "worse_terms: signed a clause set worth less together than the best one": 12.2238
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 66.346154,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 12.223795
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.844421,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.155579
+    },
+    "total_shortfall_per_world": 78.569949,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 93,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 31
+    },
+    "worlds": 52
+   },
+   "group": "head_to_head",
+   "missing": [],
+   "pairing": "claude_integrator__codex_client"
+  },
+  "Opus integrator vs firm client": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 1,
+     "interaction_cost: redline fees paid by the client": 52,
+     "interaction_cost: redline fees paid by the integrator": 18,
+     "worse_terms: signed a clause set worth less together than the best one": 6
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 12.3707,
+     "interaction_cost: redline fees paid by the client": 29.3103,
+     "interaction_cost: redline fees paid by the integrator": 8.1897,
+     "worse_terms: signed a clause set worth less together than the best one": 0.4454
+    },
+    "per_world": {
+     "commitment_error": 12.370655,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 37.5,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.445391
+    },
+    "share": {
+     "commitment_error": 0.245859,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.745289,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.008852
+    },
+    "total_shortfall_per_world": 50.316047,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 70,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 6
+    },
+    "worlds": 58
+   },
+   "bundles": [
+    "datacenter_agreement_cli_scripted_canary_v1",
+    "datacenter_agreement_cli_scripted_rest_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 1,
+     "interaction_cost: redline fees paid by the client": 52,
+     "interaction_cost: redline fees paid by the integrator": 18,
+     "worse_terms: signed a clause set worth less together than the best one": 6
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 13.798,
+     "interaction_cost: redline fees paid by the client": 32.6923,
+     "interaction_cost: redline fees paid by the integrator": 9.1346,
+     "worse_terms: signed a clause set worth less together than the best one": 0.4968
+    },
+    "per_world": {
+     "commitment_error": 13.798038,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 41.826923,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.496783
+    },
+    "share": {
+     "commitment_error": 0.245859,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.745289,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.008852
+    },
+    "total_shortfall_per_world": 56.121744,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 70,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 6
+    },
+    "worlds": 52
+   },
+   "group": "vs_firm_population",
+   "missing": [],
+   "pairing": "claude_integrator__negotiator_drawn_client"
+  },
+  "Sol 6.1 vs firm population (both seats)": {
+   "all_58_worlds": {
+    "per_world": {
+     "commitment_error": 28.487854,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 71.296296,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 8.059072
+    },
+    "share": {
+     "commitment_error": 0.26416,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.661111,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.07473
+    },
+    "total_shortfall_per_world": 107.843222,
+    "units": {
+     "commitment_error": 8,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 183,
+     "operational": 4,
+     "procedure_and_format": 0,
+     "worse_terms": 22
+    },
+    "worlds": 54,
+    "worlds_left_out": [
+     "5677b4e9",
+     "89dc4d94",
+     "a7f2fc80",
+     "d420d62a"
+    ]
+   },
+   "deal_worlds_52": {
+    "per_world": {
+     "commitment_error": 32.048835,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 80.208333,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 9.066456
+    },
+    "share": {
+     "commitment_error": 0.26416,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.661111,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.07473
+    },
+    "total_shortfall_per_world": 121.323624,
+    "units": {
+     "commitment_error": 8,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 183,
+     "operational": 4,
+     "procedure_and_format": 0,
+     "worse_terms": 22
+    },
+    "worlds": 48,
+    "worlds_left_out": [
+     "5677b4e9",
+     "89dc4d94",
+     "a7f2fc80",
+     "d420d62a"
+    ]
+   },
+   "seatings": [
+    "Sol integrator vs firm client",
+    "Sol client vs firm integrator"
+   ]
+  },
+  "Sol client vs firm integrator": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 1,
+     "interaction_cost: redline fees paid by the client": 51,
+     "interaction_cost: redline fees paid by the integrator": 50,
+     "worse_terms: signed a clause set worth less together than the best one": 14
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 7.2737,
+     "interaction_cost: redline fees paid by the client": 43.5345,
+     "interaction_cost: redline fees paid by the integrator": 36.2069,
+     "worse_terms: signed a clause set worth less together than the best one": 12.5311
+    },
+    "per_world": {
+     "commitment_error": 7.273724,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 79.741379,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 12.531139
+    },
+    "share": {
+     "commitment_error": 0.073069,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.801049,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.125883
+    },
+    "total_shortfall_per_world": 99.546243,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 101,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 14
+    },
+    "worlds": 58
+   },
+   "bundles": [
+    "datacenter_agreement_cli_scripted_canary_v1",
+    "datacenter_agreement_cli_scripted_rest_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 1,
+     "interaction_cost: redline fees paid by the client": 51,
+     "interaction_cost: redline fees paid by the integrator": 50,
+     "worse_terms: signed a clause set worth less together than the best one": 14
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 8.113,
+     "interaction_cost: redline fees paid by the client": 48.5577,
+     "interaction_cost: redline fees paid by the integrator": 40.3846,
+     "worse_terms: signed a clause set worth less together than the best one": 13.977
+    },
+    "per_world": {
+     "commitment_error": 8.113,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 88.942308,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 13.97704
+    },
+    "share": {
+     "commitment_error": 0.073069,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.801049,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.125883
+    },
+    "total_shortfall_per_world": 111.032348,
+    "units": {
+     "commitment_error": 1,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 101,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 14
+    },
+    "worlds": 52
+   },
+   "group": "vs_firm_population",
+   "missing": [],
+   "pairing": "negotiator_drawn_integrator__codex_client"
+  },
+  "Sol integrator vs Opus client": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 44,
+     "interaction_cost: redline fees paid by the integrator": 35,
+     "worse_terms: signed a clause set worth less together than the best one": 42
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 24.569,
+     "interaction_cost: redline fees paid by the integrator": 18.1034,
+     "worse_terms: signed a clause set worth less together than the best one": 31.7296
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 42.672414,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 31.729566
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.573539,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.426461
+    },
+    "total_shortfall_per_world": 74.40198,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 79,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 42
+    },
+    "worlds": 58
+   },
+   "bundles": [
+    "datacenter_agreement_cli_pair_dev_v1",
+    "datacenter_agreement_cli_pair_rest_dev_v1",
+    "datacenter_agreement_cli_pair_spread_dev_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "interaction_cost: redline fees paid by the client": 42,
+     "interaction_cost: redline fees paid by the integrator": 34,
+     "worse_terms: signed a clause set worth less together than the best one": 42
+    },
+    "by_rule_per_world": {
+     "interaction_cost: redline fees paid by the client": 26.4423,
+     "interaction_cost: redline fees paid by the integrator": 19.7115,
+     "worse_terms: signed a clause set worth less together than the best one": 35.3907
+    },
+    "per_world": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 46.153846,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 35.39067
+    },
+    "share": {
+     "commitment_error": 0.0,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.565996,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.434004
+    },
+    "total_shortfall_per_world": 81.544516,
+    "units": {
+     "commitment_error": 0,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 76,
+     "operational": 0,
+     "procedure_and_format": 0,
+     "worse_terms": 42
+    },
+    "worlds": 52
+   },
+   "group": "head_to_head",
+   "missing": [],
+   "pairing": "codex_integrator__claude_client"
+  },
+  "Sol integrator vs firm client": {
+   "all_58_worlds": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 7,
+     "interaction_cost: redline fees paid by the client": 48,
+     "interaction_cost: redline fees paid by the integrator": 42,
+     "worse_terms: signed a clause set worth less together than the best one": 8
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 49.1632,
+     "interaction_cost: redline fees paid by the client": 36.5741,
+     "interaction_cost: redline fees paid by the integrator": 26.8519,
+     "worse_terms: signed a clause set worth less together than the best one": 2.6588
+    },
+    "per_world": {
+     "commitment_error": 49.163189,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 63.425926,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 2.658772
+    },
+    "share": {
+     "commitment_error": 0.426586,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.550344,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.02307
+    },
+    "total_shortfall_per_world": 115.247887,
+    "units": {
+     "commitment_error": 7,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 90,
+     "operational": 4,
+     "procedure_and_format": 0,
+     "worse_terms": 8
+    },
+    "worlds": 54
+   },
+   "bundles": [
+    "datacenter_agreement_cli_scripted_canary_v1",
+    "datacenter_agreement_cli_scripted_rest_v1"
+   ],
+   "deal_worlds_52": {
+    "by_rule_count": {
+     "commitment_error: walked from an available deal (client walked)": 7,
+     "interaction_cost: redline fees paid by the client": 48,
+     "interaction_cost: redline fees paid by the integrator": 42,
+     "worse_terms: signed a clause set worth less together than the best one": 8
+    },
+    "by_rule_per_world": {
+     "commitment_error: walked from an available deal (client walked)": 55.3086,
+     "interaction_cost: redline fees paid by the client": 41.1458,
+     "interaction_cost: redline fees paid by the integrator": 30.2083,
+     "worse_terms: signed a clause set worth less together than the best one": 2.9911
+    },
+    "per_world": {
+     "commitment_error": 55.308588,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 71.354167,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 2.991118
+    },
+    "share": {
+     "commitment_error": 0.426586,
+     "contrary_to_information_held": 0.0,
+     "information_not_acquired": 0.0,
+     "interaction_cost": 0.550344,
+     "operational": 0.0,
+     "procedure_and_format": 0.0,
+     "worse_terms": 0.02307
+    },
+    "total_shortfall_per_world": 129.653872,
+    "units": {
+     "commitment_error": 7,
+     "contrary_to_information_held": 0,
+     "information_not_acquired": 0,
+     "interaction_cost": 90,
+     "operational": 4,
+     "procedure_and_format": 0,
+     "worse_terms": 8
+    },
+    "worlds": 48
+   },
+   "group": "vs_firm_population",
+   "missing": [
+    {
+     "status": "invalid_measurement",
+     "world": "5677b4e9"
+    },
+    {
+     "status": "invalid_measurement",
+     "world": "89dc4d94"
+    },
+    {
+     "status": "invalid_measurement",
+     "world": "a7f2fc80"
+    },
+    {
+     "status": "invalid_measurement",
+     "world": "d420d62a"
+    }
+   ],
+   "pairing": "codex_integrator__negotiator_drawn_client"
+  }
+ },
+ "side_level_commitment_errors": {
+  "Opus client vs firm integrator": {
+   "Opus 5.5 as client": {
+    "below_own_walk_away": 2,
+    "below_own_walk_away_deal_worlds": 2,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [
+     -280.415,
+     -160.885
+    ],
+    "signed": 52,
+    "terms_put_on_the_table_by_itself": 1,
+    "terms_put_on_the_table_by_the_other_side": 1,
+    "walked_from_an_available_deal": 0
+   }
+  },
+  "Opus integrator vs Sol client": {
+   "Opus 5.5 as integrator": {
+    "below_own_walk_away": 0,
+    "below_own_walk_away_deal_worlds": 0,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [],
+    "signed": 52,
+    "terms_put_on_the_table_by_itself": 0,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 0
+   },
+   "Sol 6.1 as client": {
+    "below_own_walk_away": 0,
+    "below_own_walk_away_deal_worlds": 0,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [],
+    "signed": 52,
+    "terms_put_on_the_table_by_itself": 0,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 0
+   }
+  },
+  "Opus integrator vs firm client": {
+   "Opus 5.5 as integrator": {
+    "below_own_walk_away": 0,
+    "below_own_walk_away_deal_worlds": 0,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [],
+    "signed": 51,
+    "terms_put_on_the_table_by_itself": 0,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 0
+   }
+  },
+  "Sol client vs firm integrator": {
+   "Sol 6.1 as client": {
+    "below_own_walk_away": 1,
+    "below_own_walk_away_deal_worlds": 1,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [
+     -300.163
+    ],
+    "signed": 51,
+    "terms_put_on_the_table_by_itself": 1,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 1
+   }
+  },
+  "Sol integrator vs Opus client": {
+   "Opus 5.5 as client": {
+    "below_own_walk_away": 12,
+    "below_own_walk_away_deal_worlds": 12,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [
+     -370.473,
+     -268.65,
+     -226.243,
+     -200.885,
+     -182.312,
+     -147.205,
+     -105.141,
+     -97.925,
+     -91.294,
+     -61.112,
+     -53.308,
+     -51.914
+    ],
+    "signed": 52,
+    "terms_put_on_the_table_by_itself": 4,
+    "terms_put_on_the_table_by_the_other_side": 8,
+    "walked_from_an_available_deal": 0
+   },
+   "Sol 6.1 as integrator": {
+    "below_own_walk_away": 0,
+    "below_own_walk_away_deal_worlds": 0,
+    "negotiations": 58,
+    "own_surplus_in_those_negotiations_usd_k": [],
+    "signed": 52,
+    "terms_put_on_the_table_by_itself": 0,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 0
+   }
+  },
+  "Sol integrator vs firm client": {
+   "Sol 6.1 as integrator": {
+    "below_own_walk_away": 0,
+    "below_own_walk_away_deal_worlds": 0,
+    "negotiations": 54,
+    "own_surplus_in_those_negotiations_usd_k": [],
+    "signed": 41,
+    "terms_put_on_the_table_by_itself": 0,
+    "terms_put_on_the_table_by_the_other_side": 0,
+    "walked_from_an_available_deal": 0
+   }
+  }
+ },
+ "unit": "$k of joint value lost per world (negotiation)"
+}

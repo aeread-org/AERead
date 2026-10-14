@@ -2,7 +2,7 @@
 
 **Author:** Chenyu Li. **Status:** working draft, 2026-10-13. The main-text section; case
 details are in [Appendix E](paper_appendix_details.md), formal specifications in
-[Appendices A–D](paper_appendix_case_specs.md). One result is confirmatory (Housing v14), one is
+[Appendices A–D](paper_appendix_case_specs.md). One comparison was declared before its runs (Housing v14), one is
 a test declared before its runs (the data-center signalling test), and everything else is a
 development probe. The companion section is [Quality control](paper_qc_design.md).
 
@@ -14,8 +14,13 @@ AERead is meant to grow through cases contributed by a wider community. We prese
 built by the maintainers as worked examples of what a contributed case can look like (Table
 5.1). Housing, Procurement and Data center are described here and specified in Appendices A–D;
 Refund appears only in the cross-case comparison. Each case is a family rather than a fixed task
-set: a generator of worlds, a reference computed from what the deciding side may know, an
-admission rule that keeps only worlds where the decision matters, and a set of verifiers.
+set: a generator of worlds, a case-specific reference (a policy that uses only what the deciding
+side may know, or an explicitly labelled full-information upper bound), an admission rule that
+keeps only worlds where the decision matters, and a set of verifiers. The references differ in
+what a shortfall means: against a reachable policy it is value a feasible strategy would have
+kept; against the best policy given the decider's information it is the whole cost of the
+decisions; against a full-information bound it also includes the value of information no seat
+had (Appendix C).
 
 Cases are chosen by the economic value of the decision, not by occupation [AV]: an activity
 qualifies when its value is decided rather than produced, a counterparty has its own interest and
@@ -28,10 +33,10 @@ kinds of verifier and counterpart, not sampled from that distribution.
 
 | Case | Decision under test | Model's seat; counterpart | Reference | Verifiers | Status | Headroom (hardest stratum) |
 |---|---|---|---|---|---|---|
-| Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | a reachable scripted tenant ($292 a world); a full-information ceiling ($370) | value; rule | confirmatory | shown: Gemini −102 [−122, −82] a world against the reference where the favourite is a lemon |
-| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | the best informed policy, solved exactly ($451 a world) | value, priced per action | development | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
-| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | the best of 600 agreements at both sides' true costs | value; relative; rule | development, one declared test | shown: the pair loses 79 [70, 88] of about 410 a world head to head |
-| Refund | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
+| Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | reachable policy: a scripted tenant using only the tenant's information ($292 a world); full-information upper bound ($370) | value; rule | comparison declared before the runs; case not qualified | shown: Gemini −99 [−119, −80] a world against the reference where the favourite is a lemon (corrected measure; −102 as declared) |
+| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | best policy given the buyer's information, solved exactly ($451 a world) | value, priced per action | development | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
+| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | development, one declared test | shown: the pair loses 79 [70, 88] of about 410 a world head to head |
+| Refund (V2.1 results; V2.5 QC) | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
 
 The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
 an answer key, declared rules, the value of the best policy or a bound, relative standing
@@ -40,28 +45,45 @@ score replays from the sealed trajectory without a model. Table E.1 lists every 
 
 ### 5.1 Results
 
+None of the four cases yet passes Gates 1 to 5 of §6. "Declared" below describes how a comparison
+was run, with its analysis committed before any cell, not the case: the results compare the named
+subjects on these worlds and are not qualified benchmark scores.
+
 **Housing.** A tenant faces four landlords; two listings are lemons worth $1,000 less, an
 inspection costs $25, and over three rounds each listing the tenant did not bid on is taken by
 outside demand with probability ½. Every world is played against a landlord whose reply reveals
-a lemon and one whose reply does not. Blind signings are scored at their expected value given
-the reply, so the score follows the decision rather than the draw.
+a lemon and one whose reply does not. A blind signing is scored at its expected value given what
+the tenant knew, so the score follows the decision rather than the draw. The declared measure
+conditions on the landlord's reply in only one case; a correction found while writing this paper
+(HL-D-07) conditions on every informative reply, and Table 5.2 shows both.
 
-**Table 5.2. Housing v14, main pack (260 worlds); dollars per world, 95% intervals paired by world.**
+**Table 5.2. Housing v14, main pack; dollars per world, 95% intervals over worlds.**
 
 | | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
 |---|---:|---:|---:|
-| Tenant net per world | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
-| Minus the reference, favourite is a lemon (200) | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
-| Minus the reference, favourite is sound (60) | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
+| Complete worlds: all (favourite lemon / sound) | 240 (183 / 57) | 260 (200 / 60) | 260 (200 / 60) |
+| *Declared measure, as frozen* | | | |
+| Tenant net | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
+| Minus the reference, favourite is a lemon | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
+| Minus the reference, favourite is sound | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
 | Minus a rule that inspects when the odds make it pay, then signs | +64 [+48, +80] | −8 [−30, +14] | −15 [−32, +2] |
+| *Corrected measure (HL-D-07), reanalysis* | | | |
+| Tenant net | +213 [+190, +235] | +149 [+124, +175] | +147 [+121, +174] |
+| Minus the reference, favourite is a lemon | −99 [−119, −80] | −164 [−189, −139] | −185 [−208, −162] |
+| Minus the reference, favourite is sound | −13 [−18, −8] | −70 [−108, −32] | −9 [−16, −2] |
+| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | +5 [−17, +27] | +3 [−15, +20] |
 
-Under an analysis declared before any cell (three pairs, Holm; $50 minimum), Gemini leads GLM by
-+70 [+48, +92] and Luna by +80 [+62, +99]; GLM and Luna do not differ; the 40-world holdout
-agrees. None reaches the reference, and almost the whole shortfall is in worlds where the
-favourite listing is a lemon. Scored after the runs, a scripted tenant that inspects whenever the
-stated odds make it pay and then signs earns $145 a world: Gemini beats it, while GLM and Luna do
-not. A correction to the measure found while writing this paper
-(HL-D-07) moves no declared verdict: Gemini's leads become +60 and +67.
+Thirty-six Gemini cells were refused when the provider account ran out of credit, so Gemini has
+240 complete worlds and every contrast with Gemini is paired over those 240; differences of the
+displayed means, which use each model's own worlds, therefore do not reproduce the paired
+contrasts. Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini
+leads GLM by +70 [+48, +92] and Luna by +80 [+62, +99], and GLM and Luna do not differ (+7 [−16,
++29]); the 40-world holdout agrees. Under the corrected measure, a reanalysis not declared in
+advance, the leads are +60 [+39, +81] and +67 [+49, +84] and GLM minus Luna is +2 [−20, +24]: no
+declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
+almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
+last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
+beats it and GLM and Luna are not distinguishable from it.
 
 **Procurement.** A buyer owes 50 kits by a deadline. It may pay the most for a supplier with a
 long record, or test a cheaper newcomer whose cohort record states how often its kind failed; a
@@ -77,29 +99,36 @@ what it gave up against the exact best informed policy at that point.
 
 The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
 run came from two rules the brief left unsaid, that a quote is final and that the average is the
-criterion. The flash models give up what always paying the premium gives up: their loss is in
+criterion. That ceiling shows less than it seems: on this pack a rule that looks one test ahead
+comes within $0.06 a world of the best policy, so near-perfect play shows that the agents avoid
+the listed mistakes, not that they plan further ahead than one test. A second pack on which that
+rule gives up $30 a world has been built but not played (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
 the worlds where a newcomer was worth testing.
 
 **Data center.** Client and integrator redline one services agreement, eight risk clauses and a
 price, over six moves; each knows only its own costs, and every amount is computed at both sides'
 true costs.
 
-**Table 5.4. Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
+**Table 5.4. Sol 6.1 minus Opus 5.5 in the same seat ($ thousands per world, 52 deal worlds).**
 
-| Counterpart | As integrator | As client |
+| | As integrator | As client |
 |---|---:|---:|
-| The other model | +248 [+206, +290] | +251 [+209, +293] |
+| *Head to head: the two pairings (the opponent changes with the focal model)* | | |
+| Sol against Opus, minus Opus against Sol | +248 [+206, +290] | +251 [+209, +293] |
+| *Against the same scripted counterpart* | | |
 | Soft script | +86 [+56, +116] | +95 [+74, +115] |
 | Collapse, price-only, overreach scripts | +32 to +112 | +54 to +148 |
 | Firm population of scripts | +17 [−10, +44] | +23 [−2, +48] |
 
 Head to head the pair recovers about 80% of the value available, against 14% for signing the
-draft unchanged. Sol keeps far more than Opus against a model that gives way, but against a firm
-counterpart the two are not distinguishable, so a result against one counterpart could be any
-number in that range. Against an overreaching script Opus signs below its own walk-away point in
+draft unchanged. The head-to-head row compares two pairings, so it describes how the pair divides
+the surplus when the roles swap, not a model effect against a fixed counterpart; the scripted
+rows hold the counterpart fixed. Against a script that gives way Sol keeps far more than Opus,
+against the firm population the two are not distinguishable, so a result against one counterpart
+could be any number in that range. Against an overreaching script Opus signs below its own walk-away point in
 23 of 52 worlds and Sol in none; against a counterpart that asks for private information neither
 model leaks a confidential item. A test declared before its runs supported one of two
-looked-back signals and rejected the other. The client seat measures less than the integrator's:
+looked-back signals and did not support the other. The client seat measures less than the integrator's:
 the integrator's private cost barely moves the best agreement (knowing it is worth at most $19k to
 the client's choice, against $25k to $77k for the integrator knowing the client's charge), so
 client-seat results measure pricing and the decision to walk, not inference about clauses
@@ -108,29 +137,35 @@ client-seat results measure pricing and the decision to walk, not inference abou
 ### 5.2 Where the shortfall comes from
 
 Each case's shortfall against its reference splits into a small set of shared classes, named by
-what happened in the sealed trajectory rather than by an inferred cause, and computed rather than
-judged. Each unit of shortfall (a cell, or in Procurement an action) is assigned to the first
-thing that went wrong, by a declared priority, so the classes sum exactly to the shortfall.
-Appendix E.5 gives the rules for each case and the full tables.
+the action observed in the sealed trajectory rather than by an inferred cause, and computed rather
+than judged. Each unit of shortfall (a cell, or in Procurement an action) is assigned to the first
+class whose rule fires, in a declared priority order, so the classes sum exactly to the shortfall.
+That makes the table an accounting decomposition under a stated order, not a causal attribution:
+a different order would move amounts between classes. Appendix E.5 gives the rules for each case
+and the full tables.
 
-**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units).**
+**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units; Housing on the declared measure, corrected totals in Appendix E.5; Refund V2.1).**
 
 | Class (what happened) | Housing $: Gemini / Luna | Procurement $: Opus / Gemini | Data center $k joint: Opus / Sol vs firm | Refund points: GPT-5.6 Luna / Gemini 2.5 FL |
 |---|---|---|---|---|
 | Information not acquired | 6.6 / 32.4 | 2.6 / 75.2 | — | 15.0 / 0 |
-| Information misread | 11.2 / 86.4 | 2.8 / 0 | — | 0 / 0 |
+| Acted contrary to information held | 11.2 / 86.4 | 2.8 / 0 | — | 0 / 0 |
 | Worse terms | 54.6 / 39.1 | 0 / 0 | 4.8 / 9.1 | 0 / 0 |
 | Commitment error | 8.5 / 2.9 | 0 / 0 | 6.9 / 32.0 | — |
-| Bargaining cost | 0.2 / 1.0 | 0 / 0 | 29.8 / 80.2 | — |
+| Interaction cost | 0.2 / 1.0 | 0 / 0 | 29.8 / 80.2 | — |
 | Procedure and format | 0 / 0 | 0 / 0 | 0 / 0 | 5.8 / 98.3 |
 | **Total shortfall** | **81.0 / 161.6** | **5.4 / 75.2** | **41.5 / 121.3** | **20.8 / 98.3** |
 
 The classes separate failures that one score would merge. The flash models in Procurement lose
 almost everything by not acquiring information: they pay the premium where a test was worth it.
-In Housing, GLM and Luna lose most by misreading what they were shown, signing holds only a lemon's
-landlord would offer (about half of their shortfall), while Gemini's smaller loss is mostly worse
-terms. In the agreement the joint loss is mostly bargaining cost; against the firm script Sol also
-loses deals (commitment errors), though in 7 of its 8 the script walked away from Sol's last offer; Opus's characteristic error does not appear in joint value at all,
+In Housing, about half of GLM's and Luna's shortfall is signing a hold that, under the landlords'
+pricing rule, only a lemon's landlord offers, at a rent above a lemon's value. The v14 brief did
+not state that rule, so whether the tenants could have read the reply is a hypothesis this table
+cannot test. Gemini's smaller loss is mostly worse terms. In the agreement the joint loss is
+mostly interaction cost, the redline fees; a redline can also improve the agreement, and that
+gain appears as smaller worse-terms loss, so the class prices the moves rather than judging them.
+Against the firm script Sol also loses deals (commitment errors), though in 7 of its 8 the script
+walked away from Sol's last offer. Opus's characteristic error does not appear in joint value at all,
 because signing below one's own walk-away point is a transfer: as client it did so in 12 of 52
 worlds against Sol and 2 against the firm script. In Refund most models lose by deciding before a
 required fact (information not acquired), while Gemini 2.5 Flash Lite loses almost everything to
@@ -168,6 +203,7 @@ no human has played them.
 | Data center (Tables 5.4, E.3), adversarial counterparts, declared test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund rows of Tables 5.1 and 5.5 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Failure classes (Table 5.5, Appendix E.5) | scripts and results in `~/analysis/paper/failure_taxonomy/` (outside the repository), built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
+| Failure classes (Table 5.5, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
+| Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 | Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

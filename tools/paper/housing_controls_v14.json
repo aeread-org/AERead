@@ -1,0 +1,44 @@
+{
+ "housing_lemons_price_confirmatory_v14_gemini38_flash": {
+  "primary_v1": {
+   "hi": 80.2,
+   "lo": 48.02,
+   "mean": 64.11,
+   "n": 240
+  },
+  "primary_v2": {
+   "hi": 82.36,
+   "lo": 50.02,
+   "mean": 66.19,
+   "n": 240
+  }
+ },
+ "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit": {
+  "primary_v1": {
+   "hi": 13.87,
+   "lo": -30.12,
+   "mean": -8.12,
+   "n": 260
+  },
+  "primary_v2": {
+   "hi": 26.69,
+   "lo": -17.29,
+   "mean": 4.7,
+   "n": 260
+  }
+ },
+ "housing_lemons_price_confirmatory_v14_gpt6_luna": {
+  "primary_v1": {
+   "hi": 2.45,
+   "lo": -31.78,
+   "mean": -14.67,
+   "n": 260
+  },
+  "primary_v2": {
+   "hi": 20.01,
+   "lo": -14.73,
+   "mean": 2.64,
+   "n": 260
+  }
+ }
+}

@@ -156,7 +156,7 @@ Two copies of Sol split the value evenly (integrator minus client −6 [−94, +
   Overreach tests whether the model refuses a deal worse than walking away: as client, Opus
   signed below its own walk-away point in 23 of 52 worlds and earned −8 a world on average;
   Sol signed none and earned 100. Collapse tests patience: as client, Sol earned 187 and Opus
-  40. Price only tests whether the model fixes the clauses itself: as integrator, Opus reached
+  earned 40. Price only tests whether the model fixes the clauses itself: as integrator, Opus reached
   the best clause set in 0 of 52 worlds and lost 15 deals; Sol reached it in 10.
 - *A probing counterpart* (20 worlds, each model in each seat against the prober and against a
   silent script; 158 of 160 valid, $7.92). Both sides' briefs carried a planted confidential name
@@ -165,7 +165,8 @@ Two copies of Sol split the value evenly (integrator minus client −6 [−94, +
   for its own costs, Sol as integrator stated its pre-staging cost in 18 of 19 negotiations, and
   Opus in none of 40; nothing in the brief says a side's own costs are confidential, and no model
   stated a false cost. Asking changed no one's earnings measurably (−15 [−86, +57], +4 [−18,
-  +25], +1 [−25, +26], +3 [−15, +22]). Unprompted, across 3,492 notes, no model stated its own
+  +25], +1 [−25, +26], +3 [−15, +22]); the intervals are wide, so this does not show that
+  disclosure is harmless. Unprompted, across 3,492 notes, no model stated its own
   private cost; in 114 negotiations a note called a price final or a floor, and in 112 of them the
   stated number was better for the speaker than its true limit.
 
@@ -174,10 +175,13 @@ price seemed to follow its private value, and Sol's clause requests seemed to fo
 charge. The claims, measures, exclusions and six primary predictions were committed before any
 run, on the fresh worlds of Appendix E.2. Sol asks for 1.82 [1.23, 2.40] more protective clauses of six
 under the high charge (supported, Holm p < 0.001), 1.58 [0.95, 2.22] more than Opus does;
-fitting its clauses to its type is worth about +120k [+83k, +156k] of joint value a world to it.
+at the true charge, the clauses Sol chose for its type are worth about +120k [+83k, +156k] a world
+more joint value than those it chose for the other type (a secondary measure; joint value is the
+pair's surplus, not Sol's own earnings).
 Opus's price pass-through is −0.07 [−0.18, +0.05], not supported; the earlier 0.52 came from
 counter-offers only, compared across worlds, and was withdrawn. Counterparts that read the first
-offer gained nothing measurable from either model (+2k [−14k, +17k]; −8k [−42k, +26k]).
+offer gained nothing measurable from either model (+2k [−14k, +17k]; −8k [−42k, +26k]), which does
+not show that being read is harmless: the intervals allow a cost of up to $42k.
 
 Of 2,456 negotiations, 2,417 are valid. Every failure is a CLI service error; the original
 bundles keep them as missing, and 16 were played again under separate identities by the owner's
@@ -190,27 +194,31 @@ ruling.
 | Class | What happened |
 |---|---|
 | Information not acquired | acted without information worth acquiring: signed an uninspected listing whose quality nothing it knew had settled; paid the premium or awarded the recorded supplier where the best policy tested a newcomer; decided before a required fact |
-| Information misread | had the information, or was shown it, and acted against it: signed a hold only a lemon's landlord offers, at a rent above a lemon's value; awarded a supplier its own test showed bad; stopped after one bad newcomer where another test was worth it; tested the wrong newcomer or in the wrong order; a decision the answer key contradicts |
+| Acted contrary to information held | the trajectory contains information (an inspection result, a landlord's reply, a sample result, revealed facts) under which the reference acts differently, and the subject did not: signed a hold that, under the landlords' pricing rule, only a lemon's landlord offers, at a rent above a lemon's value; awarded a supplier its own test showed bad; stopped after one bad newcomer where another test was worth it; tested the wrong newcomer or in the wrong order; a decision the answer key contradicts after every required fact was revealed. The class records that the information was in the trajectory, not that the subject could interpret it |
 | Worse terms | agreed to a worse deal than one available, with no protocol error: a verified listing worth less net of rent than the reference's; a worse award on a qualified supplier; a clause set worth less to the pair than the best one |
 | Commitment error | signed what it should have refused or refused what it should have signed: no lease where the reference leased; deferred where an award or a test was worth more; no deal where one was available |
-| Bargaining cost | moves that cost and could not gain: redline fees after the opening; inquiries, counter-offers and checks that can change nothing; inspection spend above the reference's on a lease of the same value |
+| Interaction cost | the charge for moves the case prices: redline fees after the opening; inquiries, counter-offers and checks; inspection spend above the reference's on a lease of the same value. Any gain such a move brings appears in another class (a better clause set is smaller worse-terms loss), so this class prices the moves and does not judge them |
 | Procedure and format | an action the environment rejected or could not parse; a fact request the case rejects; a format the verifier rejects |
 | Operational | a cell with no measurement; counted, never scored |
 
+The priority order makes the decomposition an accounting identity, not a causal attribution.
+
 **Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
 the reachable reference's net minus the tenant's at the published measure, and the rules apply in
-the order procedure, misread, not acquired, commitment, worse terms, bargaining. A known lemon
+the order procedure, contrary to information held, not acquired, commitment, worse terms,
+interaction cost. A known lemon
 signed at a rent its lemon value covers is judged on terms, as the reference does the same.
-Revealed-lemon signings count as misread although the v14 prompt did not state how landlords
-price; counted as not acquired instead, GLM's not-acquired loss would be about $102. *Procurement:*
+Revealed-lemon signings count as contrary to information held although the v14 prompt did not
+state how landlords price; counted as not acquired instead, GLM's not-acquired loss would be about $102. *Procurement:*
 the unit is the action, and each action's loss against the best policy (which sums to the decision
 loss) goes to a class by what the action did; a request to the recorded supplier counts as not
-acquired only when the episode never tests a newcomer, and as misread otherwise. *Data center:* the
+acquired only when the episode never tests a newcomer, and as contrary to information held
+otherwise. *Data center:* the
 unit is each part of a negotiation's grade: no deal is a commitment error (labelled by the side that
-walked), a worse clause set is worse terms, and redline fees are bargaining cost; signing below
+walked), a worse clause set is worse terms, and redline fees are interaction cost; signing below
 one's own walk-away point is counted separately because it moves value between the sides and never
 appears in joint value. *Refund:* the published gap decomposition's parts map onto the classes
-(deciding before a required fact to not acquired, a wrong decision to misread, re-asked or unknown
+(deciding before a required fact to not acquired, a wrong decision to contrary to information held, re-asked or unknown
 facts and the null-method format to procedure).
 
 **Table E.5. Housing and Procurement, every subject ($ per world; Housing with the HL-D-07 measure in brackets).**
@@ -218,10 +226,10 @@ facts and the null-method format to procedure).
 | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Information not acquired | 6.6 (3.9) | 28.1 (9.2) | 32.4 (10.1) | 0 | 2.6 | 75.2 | 71.8 |
-| Information misread | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
+| Acted contrary to information held | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
 | Worse terms | 54.6 (55.1) | 36.1 (42.2) | 39.1 (44.0) | 0 | 0 | 0 | 0.7 |
 | Commitment error | 8.5 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
-| Bargaining cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
+| Interaction cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
 | Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
 | Total | 81.0 (78.9) | 155.1 (142.3) | 161.6 (144.3) | 1.0 | 5.4 | 75.2 | 74.4 |
 
@@ -232,10 +240,10 @@ Thirty Gemini cells of the main pack are operational missingness and are not sco
 | Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Information not acquired | — | — | — | — | 44.2 | 0 | 15.0 | 29.2 |
-| Information misread | — | — | — | — | 0 | 0 | 0 | 0.8 |
+| Acted contrary to information held | — | — | — | — | 0 | 0 | 0 | 0.8 |
 | Worse terms | 35.4 | 12.2 | 9.1 | 4.8 | 0 | 0 | 0 | 0 |
 | Commitment error | 0 | 0 | 32.0 | 6.9 | — | — | — | — |
-| Bargaining cost | 46.2 | 66.3 | 80.2 | 29.8 | — | — | — | — |
+| Interaction cost | 46.2 | 66.3 | 80.2 | 29.8 | — | — | — | — |
 | Procedure and format | 0 | 0 | 0 | 0 | 5.8 | 98.3 | 5.8 | 17.5 |
 | Total | 81.5 | 78.6 | 121.3 | 41.5 | 50.0 | 98.3 | 20.8 | 47.5 |
 
@@ -308,7 +316,7 @@ identity, and Procurement's corrected schema ran under new identities.
   every cell (offline, against the same functions that wrote the bundle); Procurement's best policy
   equals the environment's average over the 27 type profiles in all 24 worlds; the data-center
   oracle pair loses nothing in all 116 worlds of both development packs, against an optimum the test computes
-  independently; Refund's release requires the reference to take full credit on every case.
+  independently; Refund V2.5's release requires the reference to take full credit on every case.
 - **Replay.** The 1,800 published Housing v14 receipts replay from their sealed events with no
   provider call; the agreement driver replayed every receipt before counting it; the procurement
   panels replay to their recorded margins; Refund's 816 provider-free trajectories replay, though
@@ -461,7 +469,7 @@ tests or a judge model.
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
-| R.3 Contamination prevented | met | generated worlds; holdouts from a disjoint seed range; fresh worlds for declared tests |
+| R.3 Measures against contamination | met | preventive measures, not proof of zero contamination: worlds are generated, holdouts come from a disjoint seed range, and declared tests run on fresh worlds |
 | R.4 Plans to update | partly | packs regenerate from new seeds; no refresh schedule is stated |
 | R.5 Capability related to construct | met | each case states the decision it measures (Table 5.1) |
 | R.6 Evaluation subject stated | met | the subject is a profile (model, harness, prompt, tools, reasoning, retries); CLI agents are named with their harness |
@@ -492,5 +500,9 @@ named here when it is not.
 - **Sources for every number.** The tables at the end of the two section files
   (`docs/research/paper_case_studies.md`, `docs/research/paper_qc_design.md`) map each table and
   claim to its bundle, run root, commit or incident row.
+- **Paper analyses.** `tools/paper/` on the paper branch holds the HL-D-07 rescoring, the failure
+  taxonomy of §5.2 and the control contrasts of Table 5.2, with a runner and the inputs each needs.
+  The Housing v14 and Procurement inputs are sealed run roots not yet published as bundles, so those
+  numbers can be checked against the run roots but not yet from `evidence/` alone.
 - **Not in the repository.** The trajectory viewer (Examiner) is private; the one-page result
-  sheets and the HL-D-07 recomputation script are kept with the authors and available on request.
+  sheets restate numbers from the bundles above.

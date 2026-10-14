@@ -35,7 +35,7 @@ real environment and verifier on every admitted world, with no model, and checks
 its declared result: the Housing reference and a full-information tenant reproduce the published
 values in all 600 v14 cells; Procurement's best policy equals the environment's average over its
 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
-both development packs and all 60 of the pack admitted after the runs; Refund's release requires full credit on every case. The tests were added after the
+both development packs and all 60 of the pack admitted after the runs; Refund V2.5's release requires full credit on every case. The tests were added after the
 runs; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
 or the reference is wrong.
 

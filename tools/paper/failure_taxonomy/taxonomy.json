@@ -1,0 +1,3463 @@
+{
+ "cases": {
+  "datacenter_agreement": {
+   "side_level_commitment_errors": {
+    "Opus client vs firm integrator": {
+     "Opus 5.5 as client": {
+      "below_own_walk_away": 2,
+      "below_own_walk_away_deal_worlds": 2,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [
+       -280.415,
+       -160.885
+      ],
+      "signed": 52,
+      "terms_put_on_the_table_by_itself": 1,
+      "terms_put_on_the_table_by_the_other_side": 1,
+      "walked_from_an_available_deal": 0
+     }
+    },
+    "Opus integrator vs Sol client": {
+     "Opus 5.5 as integrator": {
+      "below_own_walk_away": 0,
+      "below_own_walk_away_deal_worlds": 0,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [],
+      "signed": 52,
+      "terms_put_on_the_table_by_itself": 0,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 0
+     },
+     "Sol 6.1 as client": {
+      "below_own_walk_away": 0,
+      "below_own_walk_away_deal_worlds": 0,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [],
+      "signed": 52,
+      "terms_put_on_the_table_by_itself": 0,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 0
+     }
+    },
+    "Opus integrator vs firm client": {
+     "Opus 5.5 as integrator": {
+      "below_own_walk_away": 0,
+      "below_own_walk_away_deal_worlds": 0,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [],
+      "signed": 51,
+      "terms_put_on_the_table_by_itself": 0,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 0
+     }
+    },
+    "Sol client vs firm integrator": {
+     "Sol 6.1 as client": {
+      "below_own_walk_away": 1,
+      "below_own_walk_away_deal_worlds": 1,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [
+       -300.163
+      ],
+      "signed": 51,
+      "terms_put_on_the_table_by_itself": 1,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 1
+     }
+    },
+    "Sol integrator vs Opus client": {
+     "Opus 5.5 as client": {
+      "below_own_walk_away": 12,
+      "below_own_walk_away_deal_worlds": 12,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [
+       -370.473,
+       -268.65,
+       -226.243,
+       -200.885,
+       -182.312,
+       -147.205,
+       -105.141,
+       -97.925,
+       -91.294,
+       -61.112,
+       -53.308,
+       -51.914
+      ],
+      "signed": 52,
+      "terms_put_on_the_table_by_itself": 4,
+      "terms_put_on_the_table_by_the_other_side": 8,
+      "walked_from_an_available_deal": 0
+     },
+     "Sol 6.1 as integrator": {
+      "below_own_walk_away": 0,
+      "below_own_walk_away_deal_worlds": 0,
+      "negotiations": 58,
+      "own_surplus_in_those_negotiations_usd_k": [],
+      "signed": 52,
+      "terms_put_on_the_table_by_itself": 0,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 0
+     }
+    },
+    "Sol integrator vs firm client": {
+     "Sol 6.1 as integrator": {
+      "below_own_walk_away": 0,
+      "below_own_walk_away_deal_worlds": 0,
+      "negotiations": 54,
+      "own_surplus_in_those_negotiations_usd_k": [],
+      "signed": 41,
+      "terms_put_on_the_table_by_itself": 0,
+      "terms_put_on_the_table_by_the_other_side": 0,
+      "walked_from_an_available_deal": 0
+     }
+    }
+   },
+   "subjects": {
+    "Opus 5.5 vs firm population (both seats)": {
+     "all_58_worlds": {
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 6.185328,
+        "share": 0.1662,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 26.724138,
+        "share": 0.71808,
+        "units": 101
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 4.306626,
+        "share": 0.115719,
+        "units": 21
+       }
+      },
+      "total_shortfall_per_world": 37.216091,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 6.899019,
+        "share": 0.1662,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 29.807692,
+        "share": 0.71808,
+        "units": 101
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 4.803544,
+        "share": 0.115719,
+        "units": 21
+       }
+      },
+      "total_shortfall_per_world": 41.510255,
+      "worlds": 52
+     }
+    },
+    "Opus client vs firm integrator": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 8.6207,
+       "interaction_cost: redline fees paid by the integrator": 7.3276,
+       "worse_terms: signed a clause set worth less together than the best one": 8.1679
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 15.948276,
+        "share": 0.661311,
+        "units": 31
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 8.16786,
+        "share": 0.338689,
+        "units": 15
+       }
+      },
+      "total_shortfall_per_world": 24.116136,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 9.6154,
+       "interaction_cost: redline fees paid by the integrator": 8.1731,
+       "worse_terms: signed a clause set worth less together than the best one": 9.1103
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 17.788462,
+        "share": 0.661311,
+        "units": 31
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 9.110305,
+        "share": 0.338689,
+        "units": 15
+       }
+      },
+      "total_shortfall_per_world": 26.898767,
+      "worlds": 52
+     }
+    },
+    "Opus integrator vs Sol client": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 40.5172,
+       "interaction_cost: redline fees paid by the integrator": 20.2586,
+       "worse_terms: signed a clause set worth less together than the best one": 10.9593
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 60.775862,
+        "share": 0.847226,
+        "units": 96
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 10.959265,
+        "share": 0.152774,
+        "units": 31
+       }
+      },
+      "total_shortfall_per_world": 71.735127,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 44.2308,
+       "interaction_cost: redline fees paid by the integrator": 22.1154,
+       "worse_terms: signed a clause set worth less together than the best one": 12.2238
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 66.346154,
+        "share": 0.844421,
+        "units": 93
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 12.223795,
+        "share": 0.155579,
+        "units": 31
+       }
+      },
+      "total_shortfall_per_world": 78.569949,
+      "worlds": 52
+     }
+    },
+    "Opus integrator vs firm client": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 12.3707,
+       "interaction_cost: redline fees paid by the client": 29.3103,
+       "interaction_cost: redline fees paid by the integrator": 8.1897,
+       "worse_terms: signed a clause set worth less together than the best one": 0.4454
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 12.370655,
+        "share": 0.245859,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 37.5,
+        "share": 0.745289,
+        "units": 70
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 0.445391,
+        "share": 0.008852,
+        "units": 6
+       }
+      },
+      "total_shortfall_per_world": 50.316047,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 13.798,
+       "interaction_cost: redline fees paid by the client": 32.6923,
+       "interaction_cost: redline fees paid by the integrator": 9.1346,
+       "worse_terms: signed a clause set worth less together than the best one": 0.4968
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 13.798038,
+        "share": 0.245859,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 41.826923,
+        "share": 0.745289,
+        "units": 70
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 0.496783,
+        "share": 0.008852,
+        "units": 6
+       }
+      },
+      "total_shortfall_per_world": 56.121744,
+      "worlds": 52
+     }
+    },
+    "Sol 6.1 vs firm population (both seats)": {
+     "all_58_worlds": {
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 28.487854,
+        "share": 0.26416,
+        "units": 8
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 71.296296,
+        "share": 0.661111,
+        "units": 183
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 8.059072,
+        "share": 0.07473,
+        "units": 22
+       }
+      },
+      "total_shortfall_per_world": 107.843222,
+      "worlds": 54
+     },
+     "deal_worlds_52": {
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 32.048835,
+        "share": 0.26416,
+        "units": 8
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 80.208333,
+        "share": 0.661111,
+        "units": 183
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 9.066456,
+        "share": 0.07473,
+        "units": 22
+       }
+      },
+      "total_shortfall_per_world": 121.323624,
+      "worlds": 48
+     }
+    },
+    "Sol client vs firm integrator": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 7.2737,
+       "interaction_cost: redline fees paid by the client": 43.5345,
+       "interaction_cost: redline fees paid by the integrator": 36.2069,
+       "worse_terms: signed a clause set worth less together than the best one": 12.5311
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 7.273724,
+        "share": 0.073069,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 79.741379,
+        "share": 0.801049,
+        "units": 101
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 12.531139,
+        "share": 0.125883,
+        "units": 14
+       }
+      },
+      "total_shortfall_per_world": 99.546243,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 8.113,
+       "interaction_cost: redline fees paid by the client": 48.5577,
+       "interaction_cost: redline fees paid by the integrator": 40.3846,
+       "worse_terms: signed a clause set worth less together than the best one": 13.977
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 8.113,
+        "share": 0.073069,
+        "units": 1
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 88.942308,
+        "share": 0.801049,
+        "units": 101
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 13.97704,
+        "share": 0.125883,
+        "units": 14
+       }
+      },
+      "total_shortfall_per_world": 111.032348,
+      "worlds": 52
+     }
+    },
+    "Sol integrator vs Opus client": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 24.569,
+       "interaction_cost: redline fees paid by the integrator": 18.1034,
+       "worse_terms: signed a clause set worth less together than the best one": 31.7296
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 42.672414,
+        "share": 0.573539,
+        "units": 79
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 31.729566,
+        "share": 0.426461,
+        "units": 42
+       }
+      },
+      "total_shortfall_per_world": 74.40198,
+      "worlds": 58
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "interaction_cost: redline fees paid by the client": 26.4423,
+       "interaction_cost: redline fees paid by the integrator": 19.7115,
+       "worse_terms: signed a clause set worth less together than the best one": 35.3907
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 46.153846,
+        "share": 0.565996,
+        "units": 76
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 35.39067,
+        "share": 0.434004,
+        "units": 42
+       }
+      },
+      "total_shortfall_per_world": 81.544516,
+      "worlds": 52
+     }
+    },
+    "Sol integrator vs firm client": {
+     "all_58_worlds": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 49.1632,
+       "interaction_cost: redline fees paid by the client": 36.5741,
+       "interaction_cost: redline fees paid by the integrator": 26.8519,
+       "worse_terms: signed a clause set worth less together than the best one": 2.6588
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 49.163189,
+        "share": 0.426586,
+        "units": 7
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 63.425926,
+        "share": 0.550344,
+        "units": 90
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 2.658772,
+        "share": 0.02307,
+        "units": 8
+       }
+      },
+      "total_shortfall_per_world": 115.247887,
+      "worlds": 54
+     },
+     "deal_worlds_52": {
+      "by_rule_per_world": {
+       "commitment_error: walked from an available deal (client walked)": 55.3086,
+       "interaction_cost: redline fees paid by the client": 41.1458,
+       "interaction_cost: redline fees paid by the integrator": 30.2083,
+       "worse_terms: signed a clause set worth less together than the best one": 2.9911
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 55.308588,
+        "share": 0.426586,
+        "units": 7
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "information_not_acquired": {
+        "amount_per_world": null,
+        "cannot_occur": true,
+        "share": null,
+        "units": null
+       },
+       "interaction_cost": {
+        "amount_per_world": 71.354167,
+        "share": 0.550344,
+        "units": 90
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 2.991118,
+        "share": 0.02307,
+        "units": 8
+       }
+      },
+      "total_shortfall_per_world": 129.653872,
+      "worlds": 48
+     }
+    }
+   },
+   "unit": "$k of joint value lost per world; deal_worlds_52 is the published headline basis"
+  },
+  "housing_v14": {
+   "subjects": {
+    "GLM 5.3 Flash": {
+     "campaign_id": "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit",
+     "corrected/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 14,
+       "contrary_to_information_held": 49,
+       "information_not_acquired": 36,
+       "interaction_cost": 179,
+       "operational": 0,
+       "procedure_and_format": 15,
+       "worse_terms": 227
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 12.389058,
+        "share": 0.087081,
+        "units": 14
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 73.608865,
+        "share": 0.517387,
+        "units": 49
+       },
+       "information_not_acquired": {
+        "amount_per_world": 9.222577,
+        "share": 0.064824,
+        "units": 36
+       },
+       "interaction_cost": {
+        "amount_per_world": -0.240385,
+        "share": -0.00169,
+        "units": 50
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 5.083865,
+        "share": 0.035734,
+        "units": 10
+       },
+       "worse_terms": {
+        "amount_per_world": 42.206346,
+        "share": 0.296663,
+        "units": 227
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 12.389058
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 73.608865
+       },
+       "information_not_acquired": {
+        "negative": -3.261577,
+        "positive": 12.484154
+       },
+       "interaction_cost": {
+        "negative": -1.394231,
+        "positive": 1.153846
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 5.083865
+       },
+       "worse_terms": {
+        "negative": -23.307135,
+        "positive": 65.513481
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 14.6209,
+        "rent_above_landlord_floor": 58.988
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -1.2981,
+        "listing_choice_at_floor": 10.4895,
+        "rent_above_landlord_floor": 0.0311
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 3.9423,
+        "listing_choice_at_floor": 33.5623,
+        "rent_above_landlord_floor": 4.7017
+       }
+      },
+      "total_shortfall_per_world": 142.270327,
+      "worlds": 260
+     },
+     "corrected/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 11,
+       "contrary_to_information_held": 46,
+       "information_not_acquired": 30,
+       "interaction_cost": 92,
+       "operational": 0,
+       "procedure_and_format": 15,
+       "worse_terms": 206
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 13.003525,
+        "share": 0.079333,
+        "units": 11
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 90.3975,
+        "share": 0.551508,
+        "units": 46
+       },
+       "information_not_acquired": {
+        "amount_per_world": 5.6892,
+        "share": 0.034709,
+        "units": 30
+       },
+       "interaction_cost": {
+        "amount_per_world": -0.6875,
+        "share": -0.004194,
+        "units": 45
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 6.609025,
+        "share": 0.040321,
+        "units": 10
+       },
+       "worse_terms": {
+        "amount_per_world": 48.8979,
+        "share": 0.298322,
+        "units": 206
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 13.003525
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 90.3975
+       },
+       "information_not_acquired": {
+        "negative": -4.24005,
+        "positive": 9.92925
+       },
+       "interaction_cost": {
+        "negative": -1.8125,
+        "positive": 1.125
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 6.609025
+       },
+       "worse_terms": {
+        "negative": -30.286,
+        "positive": 79.1839
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 17.5182,
+        "rent_above_landlord_floor": 72.8793
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -1.75,
+        "listing_choice_at_floor": 7.4392,
+        "rent_above_landlord_floor": 0.0
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 4.6875,
+        "listing_choice_at_floor": 38.3065,
+        "rent_above_landlord_floor": 5.9039
+       }
+      },
+      "total_shortfall_per_world": 163.90965,
+      "worlds": 200
+     },
+     "corrected/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 3,
+       "contrary_to_information_held": 3,
+       "information_not_acquired": 6,
+       "interaction_cost": 87,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 21
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 10.340833,
+        "share": 0.147433,
+        "units": 3
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 17.64675,
+        "share": 0.251596,
+        "units": 3
+       },
+       "information_not_acquired": {
+        "amount_per_world": 21.0005,
+        "share": 0.299412,
+        "units": 6
+       },
+       "interaction_cost": {
+        "amount_per_world": 1.25,
+        "share": 0.017822,
+        "units": 5
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 19.901167,
+        "share": 0.283738,
+        "units": 21
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 10.340833
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 17.64675
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 21.0005
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 1.25
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -0.04425,
+        "positive": 19.945417
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 4.9632,
+        "rent_above_landlord_floor": 12.6836
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": 0.2083,
+        "listing_choice_at_floor": 20.6572,
+        "rent_above_landlord_floor": 0.1349
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 1.4583,
+        "listing_choice_at_floor": 17.7485,
+        "rent_above_landlord_floor": 0.6943
+       }
+      },
+      "total_shortfall_per_world": 70.13925,
+      "worlds": 60
+     },
+     "missing_cells": {
+      "by_condition": {},
+      "main": 0,
+      "total": 0
+     },
+     "published/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 14,
+       "contrary_to_information_held": 49,
+       "information_not_acquired": 56,
+       "interaction_cost": 177,
+       "operational": 0,
+       "procedure_and_format": 15,
+       "worse_terms": 209
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 12.389058,
+        "share": 0.079883,
+        "units": 14
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 73.608865,
+        "share": 0.474618,
+        "units": 49
+       },
+       "information_not_acquired": {
+        "amount_per_world": 28.120692,
+        "share": 0.181318,
+        "units": 56
+       },
+       "interaction_cost": {
+        "amount_per_world": -0.240385,
+        "share": -0.00155,
+        "units": 50
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 5.083865,
+        "share": 0.03278,
+        "units": 10
+       },
+       "worse_terms": {
+        "amount_per_world": 36.128615,
+        "share": 0.232952,
+        "units": 209
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 12.389058
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 73.608865
+       },
+       "information_not_acquired": {
+        "negative": -3.261577,
+        "positive": 31.382269
+       },
+       "interaction_cost": {
+        "negative": -1.394231,
+        "positive": 1.153846
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 5.083865
+       },
+       "worse_terms": {
+        "negative": -23.307135,
+        "positive": 59.43575
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 14.6209,
+        "rent_above_landlord_floor": 58.988
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -1.2981,
+        "listing_choice_at_floor": 29.3876,
+        "rent_above_landlord_floor": 0.0311
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 3.9423,
+        "listing_choice_at_floor": 27.4846,
+        "rent_above_landlord_floor": 4.7017
+       }
+      },
+      "total_shortfall_per_world": 155.090712,
+      "worlds": 260
+     },
+     "published/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 11,
+       "contrary_to_information_held": 46,
+       "information_not_acquired": 48,
+       "interaction_cost": 92,
+       "operational": 0,
+       "procedure_and_format": 15,
+       "worse_terms": 188
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 13.003525,
+        "share": 0.072682,
+        "units": 11
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 90.3975,
+        "share": 0.505269,
+        "units": 46
+       },
+       "information_not_acquired": {
+        "amount_per_world": 28.5901,
+        "share": 0.159802,
+        "units": 48
+       },
+       "interaction_cost": {
+        "amount_per_world": -0.6875,
+        "share": -0.003843,
+        "units": 45
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 6.609025,
+        "share": 0.036941,
+        "units": 10
+       },
+       "worse_terms": {
+        "amount_per_world": 40.99685,
+        "share": 0.229149,
+        "units": 188
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 13.003525
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 90.3975
+       },
+       "information_not_acquired": {
+        "negative": -4.24005,
+        "positive": 32.83015
+       },
+       "interaction_cost": {
+        "negative": -1.8125,
+        "positive": 1.125
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 6.609025
+       },
+       "worse_terms": {
+        "negative": -30.286,
+        "positive": 71.28285
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 17.5182,
+        "rent_above_landlord_floor": 72.8793
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -1.75,
+        "listing_choice_at_floor": 30.3401,
+        "rent_above_landlord_floor": 0.0
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 4.6875,
+        "listing_choice_at_floor": 30.4054,
+        "rent_above_landlord_floor": 5.9039
+       }
+      },
+      "total_shortfall_per_world": 178.9095,
+      "worlds": 200
+     },
+     "published/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 3,
+       "contrary_to_information_held": 3,
+       "information_not_acquired": 8,
+       "interaction_cost": 85,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 21
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 10.340833,
+        "share": 0.136612,
+        "units": 3
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 17.64675,
+        "share": 0.23313,
+        "units": 3
+       },
+       "information_not_acquired": {
+        "amount_per_world": 26.556,
+        "share": 0.35083,
+        "units": 8
+       },
+       "interaction_cost": {
+        "amount_per_world": 1.25,
+        "share": 0.016514,
+        "units": 5
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 19.901167,
+        "share": 0.262913,
+        "units": 21
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 10.340833
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 17.64675
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 26.556
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 1.25
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -0.04425,
+        "positive": 19.945417
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 4.9632,
+        "rent_above_landlord_floor": 12.6836
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": 0.2083,
+        "listing_choice_at_floor": 26.2127,
+        "rent_above_landlord_floor": 0.1349
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 1.4583,
+        "listing_choice_at_floor": 17.7485,
+        "rent_above_landlord_floor": 0.6943
+       }
+      },
+      "total_shortfall_per_world": 75.69475,
+      "worlds": 60
+     },
+     "reproduced_corrected_minus_reference_hl_d_07": -142.270327,
+     "reproduced_published_minus_reference": -155.090712,
+     "rules_fired": {
+      "corrected": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 13,
+        "interaction_cost": 28,
+        "worse_terms": 62
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {
+        "commitment_error": 5,
+        "interaction_cost": 8,
+        "worse_terms": 2
+       },
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 13,
+        "ended with no lease where the reference leased: walked from a hold worth its rent": 1,
+        "neither leased; the difference is inspection spend": 25,
+        "same lease value as the reference; the difference is inspection spend": 154,
+        "seat 0 sent an action the environment did not accept (malformed_commit)": 1,
+        "seat 0 sent an action the environment did not accept (unavailable_listing)": 14,
+        "signed a listing whose quality its information did not settle": 36,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 49,
+        "terms: a better lease than the reference's (negative)": 14,
+        "terms: a listing worth less, net of rent, than the reference's": 146,
+        "terms: leased where the reference did not": 44,
+        "terms: the reference's listing at a higher rent": 23
+       }
+      },
+      "no_lease_cells_main": {
+       "total": 51,
+       "walked_from_a_hold_worth_signing_at_stated_odds": 8
+      },
+      "published": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 13,
+        "interaction_cost": 28,
+        "worse_terms": 62
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {
+        "commitment_error": 5,
+        "interaction_cost": 8,
+        "worse_terms": 2
+       },
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 13,
+        "ended with no lease where the reference leased: walked from a hold worth its rent": 1,
+        "neither leased; the difference is inspection spend": 25,
+        "same lease value as the reference; the difference is inspection spend": 152,
+        "seat 0 sent an action the environment did not accept (malformed_commit)": 1,
+        "seat 0 sent an action the environment did not accept (unavailable_listing)": 14,
+        "signed a listing whose quality its information did not settle": 56,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 49,
+        "terms: a better lease than the reference's (negative)": 14,
+        "terms: a listing worth less, net of rent, than the reference's": 128,
+        "terms: leased where the reference did not": 44,
+        "terms: the reference's listing at a higher rent": 23
+       }
+      }
+     }
+    },
+    "GPT-6 Luna": {
+     "campaign_id": "housing_lemons_price_confirmatory_v14_gpt6_luna",
+     "corrected/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 5,
+       "contrary_to_information_held": 56,
+       "information_not_acquired": 54,
+       "interaction_cost": 184,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 221
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 2.852269,
+        "share": 0.019762,
+        "units": 5
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 86.407135,
+        "share": 0.598688,
+        "units": 56
+       },
+       "information_not_acquired": {
+        "amount_per_world": 10.100692,
+        "share": 0.069985,
+        "units": 54
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.961538,
+        "share": 0.006662,
+        "units": 36
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 44.005904,
+        "share": 0.304903,
+        "units": 221
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 2.852269
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 86.407135
+       },
+       "information_not_acquired": {
+        "negative": -6.153865,
+        "positive": 16.254558
+       },
+       "interaction_cost": {
+        "negative": -0.432692,
+        "positive": 1.394231
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -17.241019,
+        "positive": 61.246923
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.1923,
+        "listing_choice_at_floor": 20.9544,
+        "rent_above_landlord_floor": 65.2604
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -2.2115,
+        "listing_choice_at_floor": 6.1827,
+        "rent_above_landlord_floor": 6.1296
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 5.1923,
+        "listing_choice_at_floor": 26.4436,
+        "rent_above_landlord_floor": 12.37
+       }
+      },
+      "total_shortfall_per_world": 144.327538,
+      "worlds": 260
+     },
+     "corrected/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 5,
+       "contrary_to_information_held": 56,
+       "information_not_acquired": 54,
+       "interaction_cost": 82,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 203
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 3.70795,
+        "share": 0.020046,
+        "units": 5
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 112.329275,
+        "share": 0.607268,
+        "units": 56
+       },
+       "information_not_acquired": {
+        "amount_per_world": 13.1309,
+        "share": 0.070988,
+        "units": 54
+       },
+       "interaction_cost": {
+        "amount_per_world": 1.125,
+        "share": 0.006082,
+        "units": 34
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 54.6816,
+        "share": 0.295617,
+        "units": 203
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 3.70795
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 112.329275
+       },
+       "information_not_acquired": {
+        "negative": -8.000025,
+        "positive": 21.130925
+       },
+       "interaction_cost": {
+        "negative": -0.5625,
+        "positive": 1.6875
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -22.413325,
+        "positive": 77.094925
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.25,
+        "listing_choice_at_floor": 27.2408,
+        "rent_above_landlord_floor": 84.8385
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -2.875,
+        "listing_choice_at_floor": 8.0375,
+        "rent_above_landlord_floor": 7.9684
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 6.625,
+        "listing_choice_at_floor": 34.1319,
+        "rent_above_landlord_floor": 13.9246
+       }
+      },
+      "total_shortfall_per_world": 184.974725,
+      "worlds": 200
+     },
+     "corrected/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 0,
+       "contrary_to_information_held": 0,
+       "information_not_acquired": 0,
+       "interaction_cost": 102,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 18
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "information_not_acquired": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.416667,
+        "share": 0.047151,
+        "units": 2
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 8.42025,
+        "share": 0.952849,
+        "units": 18
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 0.416667
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": 0.0,
+        "positive": 8.42025
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {},
+       "information_not_acquired": {},
+       "worse_terms": {
+        "inspection_spend_above_reference": 0.4167,
+        "listing_choice_at_floor": 0.8156,
+        "rent_above_landlord_floor": 7.188
+       }
+      },
+      "total_shortfall_per_world": 8.836917,
+      "worlds": 60
+     },
+     "missing_cells": {
+      "by_condition": {},
+      "main": 0,
+      "total": 0
+     },
+     "published/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 5,
+       "contrary_to_information_held": 56,
+       "information_not_acquired": 81,
+       "interaction_cost": 184,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 194
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 2.852269,
+        "share": 0.017646,
+        "units": 5
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 86.407135,
+        "share": 0.534582,
+        "units": 56
+       },
+       "information_not_acquired": {
+        "amount_per_world": 32.354231,
+        "share": 0.200168,
+        "units": 81
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.961538,
+        "share": 0.005949,
+        "units": 36
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 39.059885,
+        "share": 0.241655,
+        "units": 194
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 2.852269
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 86.407135
+       },
+       "information_not_acquired": {
+        "negative": -6.153865,
+        "positive": 38.508096
+       },
+       "interaction_cost": {
+        "negative": -0.432692,
+        "positive": 1.394231
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -17.165327,
+        "positive": 56.225212
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.1923,
+        "listing_choice_at_floor": 20.9544,
+        "rent_above_landlord_floor": 65.2604
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -2.2115,
+        "listing_choice_at_floor": 28.4362,
+        "rent_above_landlord_floor": 6.1296
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 5.1923,
+        "listing_choice_at_floor": 21.4975,
+        "rent_above_landlord_floor": 12.37
+       }
+      },
+      "total_shortfall_per_world": 161.635058,
+      "worlds": 260
+     },
+     "published/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 5,
+       "contrary_to_information_held": 56,
+       "information_not_acquired": 81,
+       "interaction_cost": 82,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 176
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 3.70795,
+        "share": 0.017872,
+        "units": 5
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 112.329275,
+        "share": 0.541412,
+        "units": 56
+       },
+       "information_not_acquired": {
+        "amount_per_world": 42.0605,
+        "share": 0.202726,
+        "units": 81
+       },
+       "interaction_cost": {
+        "amount_per_world": 1.125,
+        "share": 0.005422,
+        "units": 34
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 48.251775,
+        "share": 0.232567,
+        "units": 176
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 3.70795
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 112.329275
+       },
+       "information_not_acquired": {
+        "negative": -8.000025,
+        "positive": 50.060525
+       },
+       "interaction_cost": {
+        "negative": -0.5625,
+        "positive": 1.6875
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -22.314925,
+        "positive": 70.5667
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.25,
+        "listing_choice_at_floor": 27.2408,
+        "rent_above_landlord_floor": 84.8385
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -2.875,
+        "listing_choice_at_floor": 36.9671,
+        "rent_above_landlord_floor": 7.9684
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 6.625,
+        "listing_choice_at_floor": 27.7021,
+        "rent_above_landlord_floor": 13.9246
+       }
+      },
+      "total_shortfall_per_world": 207.4745,
+      "worlds": 200
+     },
+     "published/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 0,
+       "contrary_to_information_held": 0,
+       "information_not_acquired": 0,
+       "interaction_cost": 102,
+       "operational": 0,
+       "procedure_and_format": 0,
+       "worse_terms": 18
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "information_not_acquired": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.416667,
+        "share": 0.047151,
+        "units": 2
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 0
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 8.42025,
+        "share": 0.952849,
+        "units": 18
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 0.416667
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": 0.0,
+        "positive": 8.42025
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 0,
+       "missing_cells": 0,
+       "worlds_left_out": 0
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {},
+       "information_not_acquired": {},
+       "worse_terms": {
+        "inspection_spend_above_reference": 0.4167,
+        "listing_choice_at_floor": 0.8156,
+        "rent_above_landlord_floor": 7.188
+       }
+      },
+      "total_shortfall_per_world": 8.836917,
+      "worlds": 60
+     },
+     "reproduced_corrected_minus_reference_hl_d_07": -144.327538,
+     "reproduced_published_minus_reference": -161.635058,
+     "rules_fired": {
+      "corrected": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 24,
+        "interaction_cost": 8,
+        "worse_terms": 52
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {},
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 5,
+        "neither leased; the difference is inspection spend": 32,
+        "same lease value as the reference; the difference is inspection spend": 152,
+        "signed a listing whose quality its information did not settle": 54,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 56,
+        "terms: a better lease than the reference's (negative)": 15,
+        "terms: a listing worth less, net of rent, than the reference's": 132,
+        "terms: leased where the reference did not": 38,
+        "terms: the reference's listing at a higher rent": 36
+       }
+      },
+      "no_lease_cells_main": {
+       "total": 37,
+       "walked_from_a_hold_worth_signing_at_stated_odds": 3
+      },
+      "published": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 24,
+        "interaction_cost": 8,
+        "worse_terms": 50
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {},
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 5,
+        "neither leased; the difference is inspection spend": 32,
+        "same lease value as the reference; the difference is inspection spend": 152,
+        "signed a listing whose quality its information did not settle": 81,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 56,
+        "terms: a better lease than the reference's (negative)": 13,
+        "terms: a listing worth less, net of rent, than the reference's": 107,
+        "terms: leased where the reference did not": 38,
+        "terms: the reference's listing at a higher rent": 36
+       }
+      }
+     }
+    },
+    "Gemini 3.8 Flash": {
+     "campaign_id": "housing_lemons_price_confirmatory_v14_gemini38_flash",
+     "corrected/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 10,
+       "contrary_to_information_held": 6,
+       "information_not_acquired": 12,
+       "interaction_cost": 142,
+       "operational": 30,
+       "procedure_and_format": 0,
+       "worse_terms": 310
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 8.4755,
+        "share": 0.107406,
+        "units": 10
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 11.171812,
+        "share": 0.141575,
+        "units": 6
+       },
+       "information_not_acquired": {
+        "amount_per_world": 3.942396,
+        "share": 0.04996,
+        "units": 12
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.208333,
+        "share": 0.00264,
+        "units": 20
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 30
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 55.112625,
+        "share": 0.698418,
+        "units": 310
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 8.4755
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 11.171812
+       },
+       "information_not_acquired": {
+        "negative": -1.446771,
+        "positive": 5.389167
+       },
+       "interaction_cost": {
+        "negative": -0.416667,
+        "positive": 0.625
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -29.811313,
+        "positive": 84.923937
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 10,
+       "missing_cells": 30,
+       "worlds_left_out": 20
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 1.0175,
+        "rent_above_landlord_floor": 10.1543
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -0.4167,
+        "listing_choice_at_floor": -0.417,
+        "rent_above_landlord_floor": 4.776
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 9.5312,
+        "listing_choice_at_floor": 29.0796,
+        "rent_above_landlord_floor": 16.5018
+       }
+      },
+      "total_shortfall_per_world": 78.910667,
+      "worlds": 240
+     },
+     "corrected/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 10,
+       "contrary_to_information_held": 6,
+       "information_not_acquired": 12,
+       "interaction_cost": 74,
+       "operational": 26,
+       "procedure_and_format": 0,
+       "worse_terms": 264
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 11.11541,
+        "share": 0.111922,
+        "units": 10
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 14.651557,
+        "share": 0.147528,
+        "units": 6
+       },
+       "information_not_acquired": {
+        "amount_per_world": 5.170355,
+        "share": 0.052061,
+        "units": 12
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.273224,
+        "share": 0.002751,
+        "units": 20
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 26
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 68.103169,
+        "share": 0.685738,
+        "units": 264
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 11.11541
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 14.651557
+       },
+       "information_not_acquired": {
+        "negative": -1.897404,
+        "positive": 7.06776
+       },
+       "interaction_cost": {
+        "negative": -0.546448,
+        "positive": 0.819672
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -39.096803,
+        "positive": 107.199973
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 8,
+       "missing_cells": 26,
+       "worlds_left_out": 17
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 1.3345,
+        "rent_above_landlord_floor": 13.3171
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -0.5464,
+        "listing_choice_at_floor": -0.5469,
+        "rent_above_landlord_floor": 6.2637
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 12.3634,
+        "listing_choice_at_floor": 38.1372,
+        "rent_above_landlord_floor": 17.6026
+       }
+      },
+      "total_shortfall_per_world": 99.313716,
+      "worlds": 183
+     },
+     "corrected/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 0,
+       "contrary_to_information_held": 0,
+       "information_not_acquired": 0,
+       "interaction_cost": 68,
+       "operational": 4,
+       "procedure_and_format": 0,
+       "worse_terms": 46
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "information_not_acquired": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 13.40614,
+        "share": 1.0,
+        "units": 46
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": 0.0,
+        "positive": 13.40614
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 2,
+       "missing_cells": 4,
+       "worlds_left_out": 3
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {},
+       "information_not_acquired": {},
+       "worse_terms": {
+        "inspection_spend_above_reference": 0.4386,
+        "listing_choice_at_floor": 0.0,
+        "rent_above_landlord_floor": 12.9675
+       }
+      },
+      "total_shortfall_per_world": 13.40614,
+      "worlds": 57
+     },
+     "missing_cells": {
+      "by_condition": {
+       "SchedulerContractError": 36
+      },
+      "main": 30,
+      "total": 36
+     },
+     "published/main": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 10,
+       "contrary_to_information_held": 6,
+       "information_not_acquired": 15,
+       "interaction_cost": 142,
+       "operational": 30,
+       "procedure_and_format": 0,
+       "worse_terms": 307
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 8.4755,
+        "share": 0.104644,
+        "units": 10
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 11.171812,
+        "share": 0.137934,
+        "units": 6
+       },
+       "information_not_acquired": {
+        "amount_per_world": 6.584292,
+        "share": 0.081294,
+        "units": 15
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.208333,
+        "share": 0.002572,
+        "units": 20
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 30
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 54.554042,
+        "share": 0.673557,
+        "units": 307
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 8.4755
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 11.171812
+       },
+       "information_not_acquired": {
+        "negative": -1.446771,
+        "positive": 8.031062
+       },
+       "interaction_cost": {
+        "negative": -0.416667,
+        "positive": 0.625
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -29.732125,
+        "positive": 84.286167
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 10,
+       "missing_cells": 30,
+       "worlds_left_out": 20
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 1.0175,
+        "rent_above_landlord_floor": 10.1543
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -0.4167,
+        "listing_choice_at_floor": 2.2249,
+        "rent_above_landlord_floor": 4.776
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 9.5312,
+        "listing_choice_at_floor": 28.521,
+        "rent_above_landlord_floor": 16.5018
+       }
+      },
+      "total_shortfall_per_world": 80.993979,
+      "worlds": 240
+     },
+     "published/main_favourite_is_lemon": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 10,
+       "contrary_to_information_held": 6,
+       "information_not_acquired": 15,
+       "interaction_cost": 74,
+       "operational": 26,
+       "procedure_and_format": 0,
+       "worse_terms": 261
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 11.11541,
+        "share": 0.108926,
+        "units": 10
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 14.651557,
+        "share": 0.143578,
+        "units": 6
+       },
+       "information_not_acquired": {
+        "amount_per_world": 8.635137,
+        "share": 0.08462,
+        "units": 15
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.273224,
+        "share": 0.002677,
+        "units": 20
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 26
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 67.370601,
+        "share": 0.660199,
+        "units": 261
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 11.11541
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 14.651557
+       },
+       "information_not_acquired": {
+        "negative": -1.897404,
+        "positive": 10.532541
+       },
+       "interaction_cost": {
+        "negative": -0.546448,
+        "positive": 0.819672
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": -38.992951,
+        "positive": 106.363552
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 8,
+       "missing_cells": 26,
+       "worlds_left_out": 17
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {
+        "inspection_spend_above_reference": 0.0,
+        "listing_choice_at_floor": 1.3345,
+        "rent_above_landlord_floor": 13.3171
+       },
+       "information_not_acquired": {
+        "inspection_spend_above_reference": -0.5464,
+        "listing_choice_at_floor": 2.9179,
+        "rent_above_landlord_floor": 6.2637
+       },
+       "worse_terms": {
+        "inspection_spend_above_reference": 12.3634,
+        "listing_choice_at_floor": 37.4046,
+        "rent_above_landlord_floor": 17.6026
+       }
+      },
+      "total_shortfall_per_world": 102.045929,
+      "worlds": 183
+     },
+     "published/main_favourite_is_sound": {
+      "cells_by_class_including_zero_gap": {
+       "commitment_error": 0,
+       "contrary_to_information_held": 0,
+       "information_not_acquired": 0,
+       "interaction_cost": 68,
+       "operational": 4,
+       "procedure_and_format": 0,
+       "worse_terms": 46
+      },
+      "classes": {
+       "commitment_error": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "contrary_to_information_held": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "information_not_acquired": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "interaction_cost": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "operational": {
+        "amount_per_world": null,
+        "note": "missing cells (typed missingness): counted, never scored",
+        "share": null,
+        "units": 4
+       },
+       "procedure_and_format": {
+        "amount_per_world": 0.0,
+        "share": 0.0,
+        "units": 0
+       },
+       "worse_terms": {
+        "amount_per_world": 13.40614,
+        "share": 1.0,
+        "units": 46
+       }
+      },
+      "gross_per_world": {
+       "commitment_error": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "contrary_to_information_held": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "information_not_acquired": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "interaction_cost": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "operational": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "procedure_and_format": {
+        "negative": 0.0,
+        "positive": 0.0
+       },
+       "worse_terms": {
+        "negative": 0.0,
+        "positive": 13.40614
+       }
+      },
+      "operational_detail": {
+       "completed_cells_left_out_with_their_world": 2,
+       "missing_cells": 4,
+       "worlds_left_out": 3
+      },
+      "reading_pieces_per_world": {
+       "contrary_to_information_held": {},
+       "information_not_acquired": {},
+       "worse_terms": {
+        "inspection_spend_above_reference": 0.4386,
+        "listing_choice_at_floor": 0.0,
+        "rent_above_landlord_floor": 12.9675
+       }
+      },
+      "total_shortfall_per_world": 13.40614,
+      "worlds": 57
+     },
+     "reproduced_corrected_minus_reference_hl_d_07": -78.910667,
+     "reproduced_published_minus_reference": -80.993979,
+     "rules_fired": {
+      "corrected": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 5,
+        "interaction_cost": 8,
+        "worse_terms": 75
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {},
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 10,
+        "neither leased; the difference is inspection spend": 23,
+        "same lease value as the reference; the difference is inspection spend": 120,
+        "signed a listing whose quality its information did not settle": 12,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 6,
+        "terms: a better lease than the reference's (negative)": 16,
+        "terms: a listing worth less, net of rent, than the reference's": 161,
+        "terms: leased where the reference did not": 58,
+        "terms: the reference's listing at a higher rent": 84
+       }
+      },
+      "no_lease_cells_main": {
+       "total": 33,
+       "walked_from_a_hold_worth_signing_at_stated_odds": 6
+      },
+      "published": {
+       "blind_signings_where_inspecting_was_not_worth_the_fee": 0,
+       "negative_gap_cells_by_class": {
+        "information_not_acquired": 5,
+        "interaction_cost": 8,
+        "worse_terms": 74
+       },
+       "procedure_cells_next_class_if_procedure_ignored": {},
+       "rules_fired_main": {
+        "ended with no lease where the reference leased: no hold worth signing": 10,
+        "neither leased; the difference is inspection spend": 23,
+        "same lease value as the reference; the difference is inspection spend": 120,
+        "signed a listing whose quality its information did not settle": 15,
+        "signed an uninspected listing its information showed a lemon (a hold only a lemon's landlord offers, or elimination), at a rent above a lemon's value": 6,
+        "terms: a better lease than the reference's (negative)": 15,
+        "terms: a listing worth less, net of rent, than the reference's": 159,
+        "terms: leased where the reference did not": 58,
+        "terms: the reference's listing at a higher rent": 84
+       }
+      }
+     }
+    }
+   },
+   "unit": "USD per world, seat 0 net at the measure, reachable reference (inspect_lowball) minus model; a world is the mean of its two landlord arms; main pack"
+  },
+  "procurement_pay_or_test_v1": {
+   "subjects": {
+    "GPT-6 Luna": {
+     "award_actions_with_both_timing_and_terms_loss": 3,
+     "by_rule_count": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 4,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 1,
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 12,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 28,
+      "worse_terms: awarded a qualified supplier at a worse supplier choice or quantity": 2
+     },
+     "by_rule_per_world": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 1.236,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.6406,
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 46.0765,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 25.7611,
+      "worse_terms: awarded a qualified supplier at a worse supplier choice or quantity": 0.6611
+     },
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 1.876629,
+       "share": 0.025232,
+       "units": 5
+      },
+      "information_not_acquired": {
+       "amount_per_world": 71.837594,
+       "share": 0.96588,
+       "units": 40
+      },
+      "interaction_cost": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "worse_terms": {
+       "amount_per_world": 0.661077,
+       "share": 0.008888,
+       "units": 2
+      }
+     },
+     "report_parts_per_world": {
+      "award_terms": 2.4219,
+      "award_timing": 44.3157,
+      "requests": 27.6377,
+      "strays": 0.0,
+      "walk_away": 0.0
+     },
+     "reproduced_published_decision_loss": 74.4,
+     "run_root": "/Users/chenyusu/AERead-worktrees/procurement-pay-or-test/runs/procurement_allocation/pay_or_test_v1_finalquotes_openrouter_gpt6_luna_v2",
+     "total_shortfall_per_world": 74.3753,
+     "worlds": 24
+    },
+    "Gemini 3.8 Flash": {
+     "award_actions_with_both_timing_and_terms_loss": 0,
+     "by_rule_count": {
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 14,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 32
+     },
+     "by_rule_per_world": {
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 48.1938,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 26.9971
+     },
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "information_not_acquired": {
+       "amount_per_world": 75.1909,
+       "share": 1.0,
+       "units": 46
+      },
+      "interaction_cost": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "report_parts_per_world": {
+      "award_terms": 0.0,
+      "award_timing": 48.1938,
+      "requests": 26.9971,
+      "strays": 0.0,
+      "walk_away": 0.0
+     },
+     "reproduced_published_decision_loss": 75.2,
+     "run_root": "/Users/chenyusu/AERead-worktrees/procurement-pay-or-test/runs/procurement_allocation/pay_or_test_v1_finalquotes_openrouter_gemini38_flash_v2",
+     "total_shortfall_per_world": 75.1909,
+     "worlds": 24
+    },
+    "Opus 5.5 (Claude Code, brief v2)": {
+     "award_actions_with_both_timing_and_terms_loss": 0,
+     "by_rule_count": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 4,
+      "contrary_to_information_held: stopped after a bad newcomer where another test was worth it": 2,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 1,
+      "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 4,
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 2,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 4
+     },
+     "by_rule_per_world": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 0.2114,
+      "contrary_to_information_held: stopped after a bad newcomer where another test was worth it": 1.5901,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.0375,
+      "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 0.9257,
+      "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 1.682,
+      "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 0.9423
+     },
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 2.764689,
+       "share": 0.513025,
+       "units": 11
+      },
+      "information_not_acquired": {
+       "amount_per_world": 2.624306,
+       "share": 0.486975,
+       "units": 6
+      },
+      "interaction_cost": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "report_parts_per_world": {
+      "award_terms": 0.0,
+      "award_timing": 3.2721,
+      "requests": 2.1169,
+      "strays": 0.0,
+      "walk_away": 0.0
+     },
+     "reproduced_published_decision_loss": 5.4,
+     "run_root": "/Users/chenyusu/AERead/runs/procurement_allocation/pay_or_test_v1_finalquotes_claude_code_opus55_v1",
+     "total_shortfall_per_world": 5.388995,
+     "worlds": 24
+    },
+    "Sol 6.1 (Codex CLI)": {
+     "award_actions_with_both_timing_and_terms_loss": 0,
+     "by_rule_count": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 2,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 3,
+      "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 4
+     },
+     "by_rule_per_world": {
+      "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 0.4,
+      "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.1303,
+      "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 0.4923
+     },
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 1.022603,
+       "share": 1.0,
+       "units": 9
+      },
+      "information_not_acquired": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "interaction_cost": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "report_parts_per_world": {
+      "award_terms": 0.0,
+      "award_timing": 0.0,
+      "requests": 1.0226,
+      "strays": 0.0,
+      "walk_away": 0.0
+     },
+     "reproduced_published_decision_loss": 1.0,
+     "run_root": "/Users/chenyusu/AERead/runs/procurement_allocation/pay_or_test_v1_finalquotes_codex_cli_sol61_v1",
+     "total_shortfall_per_world": 1.022603,
+     "worlds": 24
+    }
+   },
+   "unit": "USD of decision loss per world (sum over actions of best informed value less the value of the action taken), 24 worlds"
+  },
+  "refund_v2_1": {
+   "mapping": {
+    "decided_before_required_facts": "information_not_acquired",
+    "denial_method_null": "procedure_and_format",
+    "re_requested_known_fact": "procedure_and_format",
+    "requested_unknown_fact": "procedure_and_format",
+    "transaction_error": "procedure_and_format",
+    "wrong_amount_or_method": "worse_terms",
+    "wrong_decision": "contrary_to_information_held"
+   },
+   "source": "origin/codex/refund-gap-analysis:evidence/refund/refund_v2_1_gap",
+   "subjects": {
+    "DeepSeek V4 Flash": {
+     "bundle": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "information_not_acquired": {
+       "amount_per_world": 44.166667,
+       "share": 0.883333,
+       "units": 53
+      },
+      "interaction_cost": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 5.833333,
+       "share": 0.116667,
+       "units": 7
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "outcome_view": {
+      "no_decision_reached": 0.0,
+      "resolved_as_scored": 50.0,
+      "right_outcome": 100.0,
+      "wrong_outcome": 0.0
+     },
+     "parts_points": {
+      "decided_before_required_facts": 44.166667,
+      "denial_method_null": 5.833333,
+      "re_requested_known_fact": 0.0,
+      "requested_unknown_fact": 0.0,
+      "transaction_error": 0.0,
+      "wrong_amount_or_method": 0.0,
+      "wrong_decision": 0.0
+     },
+     "total_shortfall_per_world": 50.0
+    },
+    "GPT-5.6 Luna": {
+     "bundle": "refund_v2_1_gpt56luna_controlled_2026-09-12",
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "information_not_acquired": {
+       "amount_per_world": 15.0,
+       "share": 0.72,
+       "units": 18
+      },
+      "interaction_cost": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 5.833333,
+       "share": 0.28,
+       "units": 7
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "outcome_view": {
+      "no_decision_reached": 5.8333,
+      "resolved_as_scored": 79.1667,
+      "right_outcome": 94.1667,
+      "wrong_outcome": 0.0
+     },
+     "parts_points": {
+      "decided_before_required_facts": 15.0,
+      "denial_method_null": 0.0,
+      "re_requested_known_fact": 0.0,
+      "requested_unknown_fact": 5.833333,
+      "transaction_error": 0.0,
+      "wrong_amount_or_method": 0.0,
+      "wrong_decision": 0.0
+     },
+     "total_shortfall_per_world": 20.833333
+    },
+    "Gemini 2.5 Flash Lite": {
+     "bundle": "refund_v2_1_gemini25flashlite_controlled_2026-09-12",
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "information_not_acquired": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      },
+      "interaction_cost": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 98.333333,
+       "share": 1.0,
+       "units": 118
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "outcome_view": {
+      "no_decision_reached": 81.6667,
+      "resolved_as_scored": 1.6667,
+      "right_outcome": 18.3333,
+      "wrong_outcome": 0.0
+     },
+     "parts_points": {
+      "decided_before_required_facts": 0.0,
+      "denial_method_null": 16.666667,
+      "re_requested_known_fact": 80.833333,
+      "requested_unknown_fact": 0.833333,
+      "transaction_error": 0.0,
+      "wrong_amount_or_method": 0.0,
+      "wrong_decision": 0.0
+     },
+     "total_shortfall_per_world": 98.333333
+    },
+    "Grok 4.3": {
+     "bundle": "refund_v2_1_grok43_controlled_2026-09-12",
+     "classes": {
+      "commitment_error": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "contrary_to_information_held": {
+       "amount_per_world": 0.833333,
+       "share": 0.017544,
+       "units": 1
+      },
+      "information_not_acquired": {
+       "amount_per_world": 29.166667,
+       "share": 0.614035,
+       "units": 35
+      },
+      "interaction_cost": {
+       "amount_per_world": null,
+       "cannot_occur": true,
+       "share": null,
+       "units": null
+      },
+      "operational": {
+       "amount_per_world": null,
+       "note": "missing cells (typed missingness): counted, never scored",
+       "share": null,
+       "units": 0
+      },
+      "procedure_and_format": {
+       "amount_per_world": 17.5,
+       "share": 0.368421,
+       "units": 21
+      },
+      "worse_terms": {
+       "amount_per_world": 0.0,
+       "share": 0.0,
+       "units": 0
+      }
+     },
+     "outcome_view": {
+      "no_decision_reached": 0.0,
+      "resolved_as_scored": 52.5,
+      "right_outcome": 99.1667,
+      "wrong_outcome": 0.8333
+     },
+     "parts_points": {
+      "decided_before_required_facts": 29.166667,
+      "denial_method_null": 17.5,
+      "re_requested_known_fact": 0.0,
+      "requested_unknown_fact": 0.0,
+      "transaction_error": 0.0,
+      "wrong_amount_or_method": 0.0,
+      "wrong_decision": 0.833333
+     },
+     "total_shortfall_per_world": 47.5
+    }
+   },
+   "unit": "percentage points of cells unresolved, mean per case then over the six cases"
+  }
+ },
+ "classes": [
+  {
+   "key": "information_not_acquired",
+   "label": "Information not acquired"
+  },
+  {
+   "key": "contrary_to_information_held",
+   "label": "Acted contrary to information held"
+  },
+  {
+   "key": "worse_terms",
+   "label": "Worse terms"
+  },
+  {
+   "key": "commitment_error",
+   "label": "Commitment error"
+  },
+  {
+   "key": "interaction_cost",
+   "label": "Interaction cost"
+  },
+  {
+   "key": "procedure_and_format",
+   "label": "Procedure and format"
+  },
+  {
+   "key": "operational",
+   "label": "Operational"
+  }
+ ],
+ "convention": "aeread.gap_decomposition/0.1: every shortfall unit is assigned to exactly one class, so the classes sum exactly to the shortfall; negative units (the subject beat the reference) are included",
+ "definitions": "definitions.md",
+ "schema_version": "aeread.paper_failure_taxonomy/0.1"
+}
