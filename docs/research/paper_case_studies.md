@@ -122,11 +122,12 @@ The classes separate failures that one score would merge. The flash models in Pr
 almost everything by not acquiring information: they pay the premium where a test was worth it.
 In Housing, GLM and Luna lose most by misreading what they were shown, signing holds only a lemon's
 landlord would offer (about half of their shortfall), while Gemini's smaller loss is mostly worse
-terms. In the agreement the joint loss is mostly bargaining cost, and Sol's walks against the firm
-script are commitment errors; Opus's characteristic error does not appear in joint value at all,
+terms. In the agreement the joint loss is mostly bargaining cost; against the firm script Sol also
+loses deals (commitment errors), though in 7 of its 8 the script walked away from Sol's last offer; Opus's characteristic error does not appear in joint value at all,
 because signing below one's own walk-away point is a transfer: as client it did so in 12 of 52
-worlds against Sol and 2 against the firm script. In Refund the loss is procedure: deciding before a
-required fact, or, for Gemini 2.5 Flash Lite, asking again for facts it already had. A class records
+worlds against Sol and 2 against the firm script. In Refund most models lose by deciding before a
+required fact (information not acquired), while Gemini 2.5 Flash Lite loses almost everything to
+procedure, asking again for facts it already had. A class records
 what happened, not why; a cause stays a hypothesis until a probe holds the world fixed, as the
 data-center signalling test did.
 
