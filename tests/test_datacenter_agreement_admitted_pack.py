@@ -516,3 +516,29 @@ def test_through_the_environment_the_pilot_oracle_loses_nothing_and_the_draft_pa
     assert oracle_failures(recorded(m.PILOT.pack, "oracle")) == []
     failures, _ = draft_failures(recorded(m.PILOT.pack, "draft"))
     assert failures == []
+
+
+# ---------------------------------------------------------------------------
+# 9. The free baselines against the public firm style (agreement_admitted_baselines).
+
+
+def test_the_committed_free_baselines_recompute_and_the_best_plan_is_never_below_the_first_offer() -> None:
+    from aeread_families.datacenter_development import agreement_admitted_baselines as fb
+    from aeread_families.datacenter_development import agreement_pack as ap
+
+    committed_report = json.loads((fb.OUT / "reports" / "baselines.json").read_text())
+    assert (fb.OUT / "README.md").read_text() == fb.readme(committed_report)
+    assert set(committed_report["packs"]) == set(fb.PACKS)
+    for pack in fb.PACKS:
+        rows = committed_report["packs"][pack]["worlds"]
+        assert committed_report["packs"][pack]["summary"] == fb._summary(rows)
+        _, raw = ap.load(pack)
+        assert len(rows) == len(raw)
+        for row in rows:
+            for seat in ag.SEATS:
+                s = row["seats"][seat]
+                assert s["best_plan"]["earnings"] >= s["first_offer"]["earnings"] - 1e-3
+        # two worlds of each pack recomputed from scratch
+        by_code = {c["case_id"].rsplit(".", 1)[-1]: c["payload"] for c in raw.values()}
+        for row in (rows[0], rows[-1]):
+            assert fb.one_world((row["world"], by_code[row["world"]])) == row

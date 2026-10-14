@@ -1,0 +1,3759 @@
+{
+ "counterpart": "agreement_admitted_pack.public_style (drawn_public_v1)",
+ "earnings": "the seat's surplus over its own outside option, $k, at both sides' true costs, redline fees deducted",
+ "grid": [
+  0.1,
+  0.2,
+  0.3,
+  0.4,
+  0.5,
+  0.6,
+  0.7,
+  0.8,
+  0.9,
+  1.0
+ ],
+ "packs": {
+  "agreement_admitted_pilot_v1": {
+   "summary": {
+    "client": {
+     "best_less_first_mean": 92.69,
+     "best_plan_mean": 175.59,
+     "first_offer_mean": 82.9,
+     "first_offer_signed": 9
+    },
+    "deal_worlds": 12,
+    "integrator": {
+     "best_less_first_mean": 79.86,
+     "best_plan_mean": 213.04,
+     "first_offer_mean": 133.18,
+     "first_offer_signed": 11
+    },
+    "worlds": 12
+   },
+   "worlds": [
+    {
+     "available": 494.8,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 246.88,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 80.8,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.596,
+        "least": 0.306,
+        "opening": 0.89,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 296.36,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 100.05,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.674,
+        "least": 0.269,
+        "opening": 0.803,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "3e58960e"
+    },
+    {
+     "available": 631.332,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 391.932,
+        "moves": 5,
+        "plan": [
+         0.8,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 307.58,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.177,
+        "opening": 0.603,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 353.799,
+        "moves": 4,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 315.666,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.5,
+        "least": 0.306,
+        "opening": 0.664,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "4c1768d2"
+    },
+    {
+     "available": 58.556,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.504,
+        "least": 0.298,
+        "opening": 0.639,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 5.856,
+        "moves": 2,
+        "plan": [
+         0.1
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 3,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.574,
+        "least": 0.14,
+        "opening": 0.786,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "6707ee78"
+    },
+    {
+     "available": 97.276,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.611,
+        "least": 0.29,
+        "opening": 0.73,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 68.093,
+        "moves": 2,
+        "plan": [
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 48.638,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.103,
+        "opening": 0.657,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "6b1dbd6f"
+    },
+    {
+     "available": 378.663,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 215.064,
+        "moves": 5,
+        "plan": [
+         0.9,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 82.348,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.573,
+        "least": 0.256,
+        "opening": 0.818,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 227.198,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 189.332,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.79,
+        "least": 0.27,
+        "opening": 0.861,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "74fba85f"
+    },
+    {
+     "available": 216.51,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 104.906,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 88.0,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.53,
+        "least": 0.158,
+        "opening": 0.607,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 148.208,
+        "moves": 4,
+        "plan": [
+         0.9,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 108.255,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.209,
+        "opening": 0.646,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "7b6d7764"
+    },
+    {
+     "available": 456.692,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 269.685,
+        "moves": 5,
+        "plan": [
+         0.9,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 105.022,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.52,
+        "least": 0.325,
+        "opening": 0.798,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 315.354,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 228.346,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.528,
+        "least": 0.127,
+        "opening": 0.732,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "84058cbf"
+    },
+    {
+     "available": 429.28,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 232.568,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 63.288,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.592,
+        "least": 0.293,
+        "opening": 0.773,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 207.568,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.6,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 108.0,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.623,
+        "least": 0.349,
+        "opening": 0.749,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "97a78a2b"
+    },
+    {
+     "available": 543.11,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 221.555,
+        "moves": 5,
+        "plan": [
+         0.6,
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 1.544,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.625,
+        "least": 0.173,
+        "opening": 0.86,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 330.177,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 271.555,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.18,
+        "opening": 0.676,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "ab7f8454"
+    },
+    {
+     "available": 189.864,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 31.959,
+        "moves": 3,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.325,
+        "opening": 0.704,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 113.918,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 94.932,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.642,
+        "least": 0.349,
+        "opening": 0.894,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "b282adb4"
+    },
+    {
+     "available": 396.766,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 213.06,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 92.317,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.618,
+        "least": 0.175,
+        "opening": 0.697,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 267.413,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 116.6,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.518,
+        "least": 0.12,
+        "opening": 0.71,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "ed5deeda"
+    },
+    {
+     "available": 340.695,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 179.417,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 173.895,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.658,
+        "least": 0.242,
+        "opening": 0.795,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 222.556,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 16.8,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.67,
+        "least": 0.175,
+        "opening": 0.863,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "f32dc5f4"
+    }
+   ]
+  },
+  "agreement_admitted_v1": {
+   "summary": {
+    "client": {
+     "best_less_first_mean": 71.18,
+     "best_plan_mean": 137.94,
+     "first_offer_mean": 66.76,
+     "first_offer_signed": 35
+    },
+    "deal_worlds": 45,
+    "integrator": {
+     "best_less_first_mean": 79.74,
+     "best_plan_mean": 192.98,
+     "first_offer_mean": 113.25,
+     "first_offer_signed": 44
+    },
+    "worlds": 60
+   },
+   "worlds": [
+    {
+     "available": 539.977,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 181.232,
+        "moves": 6,
+        "plan": [
+         0.9,
+         0.8,
+         "sign"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 65.358,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.826,
+        "least": 0.312,
+        "opening": 0.881,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 435.98,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.7,
+         0.9
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 269.989,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.108,
+        "opening": 0.731,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "0064cc63"
+    },
+    {
+     "available": 318.37,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 166.022,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 131.804,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.734,
+        "least": 0.237,
+        "opening": 0.866,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 204.696,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 71.566,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.536,
+        "least": 0.103,
+        "opening": 0.783,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "0589c053"
+    },
+    {
+     "available": 615.062,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 319.037,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 98.9,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.643,
+        "least": 0.227,
+        "opening": 0.862,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 380.543,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 307.531,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.645,
+        "least": 0.254,
+        "opening": 0.712,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "0605e34d"
+    },
+    {
+     "available": 500.132,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 325.093,
+        "moves": 3,
+        "plan": [
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 53.983,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.714,
+        "least": 0.127,
+        "opening": 0.895,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 350.106,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 126.15,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.639,
+        "least": 0.178,
+        "opening": 0.693,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "15abc97f"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.63,
+        "least": 0.315,
+        "opening": 0.851,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.527,
+        "least": 0.183,
+        "opening": 0.806,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "169dc89b"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.588,
+        "least": 0.151,
+        "opening": 0.703,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.516,
+        "least": 0.253,
+        "opening": 0.734,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "17a06ecb"
+    },
+    {
+     "available": 108.342,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.464,
+        "least": 0.234,
+        "opening": 0.75,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 54.171,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 54.171,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.226,
+        "opening": 0.607,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "19fcd619"
+    },
+    {
+     "available": 154.59,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 5.918,
+        "moves": 3,
+        "plan": [
+         0.2
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.69,
+        "least": 0.29,
+        "opening": 0.848,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 73.672,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 18.56,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.807,
+        "least": 0.162,
+        "opening": 0.895,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "1b6c7e6e"
+    },
+    {
+     "available": 458.855,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 133.542,
+        "moves": 5,
+        "plan": [
+         0.5,
+         0.4
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 4.815,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.614,
+        "least": 0.238,
+        "opening": 0.899,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 271.199,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 70.05,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.703,
+        "least": 0.232,
+        "opening": 0.859,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "243a85db"
+    },
+    {
+     "available": 201.58,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 75.79,
+        "moves": 3,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 11.478,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.272,
+        "opening": 0.618,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 100.79,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 100.79,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.668,
+        "least": 0.137,
+        "opening": 0.729,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "2817b359"
+    },
+    {
+     "available": 354.275,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 197.993,
+        "moves": 5,
+        "plan": [
+         0.8,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 86.732,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.499,
+        "least": 0.182,
+        "opening": 0.753,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 162.565,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 68.87,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.62,
+        "least": 0.32,
+        "opening": 0.819,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "2db42e15"
+    },
+    {
+     "available": 493.516,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 196.758,
+        "moves": 5,
+        "plan": [
+         0.6,
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 107.984,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.633,
+        "least": 0.177,
+        "opening": 0.777,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 394.164,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.9
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 120.532,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.756,
+        "least": 0.105,
+        "opening": 0.823,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "345bcf9c"
+    },
+    {
+     "available": 213.076,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 102.846,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 73.921,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.535,
+        "least": 0.332,
+        "opening": 0.674,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 99.153,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 4.154,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.693,
+        "least": 0.153,
+        "opening": 0.806,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "3bf2617c"
+    },
+    {
+     "available": 288.153,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 234.337,
+        "moves": 3,
+        "plan": [
+         0.9
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 227.613,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.539,
+        "least": 0.106,
+        "opening": 0.604,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 99.196,
+        "moves": 5,
+        "plan": [
+         0.5,
+         0.4,
+         "sign"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 94.196,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.567,
+        "least": 0.104,
+        "opening": 0.668,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "4763287e"
+    },
+    {
+     "available": 262.725,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 107.635,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 73.021,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.581,
+        "least": 0.322,
+        "opening": 0.68,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 131.363,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 131.363,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.591,
+        "least": 0.279,
+        "opening": 0.655,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "48c9e950"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.197,
+        "opening": 0.601,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.783,
+        "least": 0.122,
+        "opening": 0.848,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "493365ff"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.661,
+        "least": 0.304,
+        "opening": 0.889,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.151,
+        "opening": 0.704,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "4a81884f"
+    },
+    {
+     "available": 1.362,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.462,
+        "least": 0.299,
+        "opening": 0.752,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 1.09,
+        "moves": 2,
+        "plan": [
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.681,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.75,
+        "least": 0.174,
+        "opening": 0.895,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "5251e335"
+    },
+    {
+     "available": 387.995,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 130.198,
+        "moves": 3,
+        "plan": [
+         0.4
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.671,
+        "least": 0.1,
+        "opening": 0.869,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 182.797,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 98.75,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.655,
+        "least": 0.332,
+        "opening": 0.737,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "56878b62"
+    },
+    {
+     "available": 359.242,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 165.545,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 139.836,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.561,
+        "least": 0.274,
+        "opening": 0.758,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 201.469,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 86.992,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.225,
+        "opening": 0.626,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "610f80fa"
+    },
+    {
+     "available": 380.116,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 102.046,
+        "moves": 5,
+        "plan": [
+         0.5,
+         0.4
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 45.956,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.798,
+        "least": 0.205,
+        "opening": 0.862,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 216.081,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 109.16,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.599,
+        "least": 0.268,
+        "opening": 0.81,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "66befad3"
+    },
+    {
+     "available": 248.61,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 94.405,
+        "moves": 2,
+        "plan": [
+         "sign"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 94.405,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.727,
+        "least": 0.25,
+        "opening": 0.851,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 148.888,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 124.305,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.684,
+        "least": 0.153,
+        "opening": 0.74,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "67119862"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.319,
+        "opening": 0.728,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.463,
+        "least": 0.19,
+        "opening": 0.745,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "68651f1f"
+    },
+    {
+     "available": 606.296,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 338.778,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 137.138,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.598,
+        "least": 0.289,
+        "opening": 0.785,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 374.407,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 303.148,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.509,
+        "least": 0.249,
+        "opening": 0.631,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "688282e0"
+    },
+    {
+     "available": 371.2,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 197.72,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 173.74,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.586,
+        "least": 0.173,
+        "opening": 0.666,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 172.72,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 22.46,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.801,
+        "least": 0.283,
+        "opening": 0.854,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "6b3bce32"
+    },
+    {
+     "available": 216.094,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 104.656,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 57.33,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.51,
+        "least": 0.292,
+        "opening": 0.693,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 122.875,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.7,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 108.047,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.542,
+        "least": 0.181,
+        "opening": 0.744,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "6e8bb0f4"
+    },
+    {
+     "available": 107.769,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 28.884,
+        "moves": 3,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 5.889,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.6,
+        "least": 0.108,
+        "opening": 0.83,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 53.885,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 53.885,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.59,
+        "least": 0.269,
+        "opening": 0.67,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "6ec740f5"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.543,
+        "least": 0.263,
+        "opening": 0.707,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.6,
+        "least": 0.328,
+        "opening": 0.659,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "747a604a"
+    },
+    {
+     "available": 124.767,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.818,
+        "least": 0.223,
+        "opening": 0.872,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 87.337,
+        "moves": 2,
+        "plan": [
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 62.383,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.229,
+        "opening": 0.614,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "784f45cc"
+    },
+    {
+     "available": 345.28,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 122.64,
+        "moves": 5,
+        "plan": [
+         0.5,
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 64.208,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.685,
+        "least": 0.323,
+        "opening": 0.779,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 191.696,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 172.64,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.531,
+        "least": 0.218,
+        "opening": 0.623,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "8043050d"
+    },
+    {
+     "available": 445.845,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 262.091,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 82.602,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.559,
+        "least": 0.175,
+        "opening": 0.804,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 262.091,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 164.06,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.554,
+        "least": 0.144,
+        "opening": 0.841,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "821d1f44"
+    },
+    {
+     "available": 465.348,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 182.674,
+        "moves": 5,
+        "plan": [
+         0.6,
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 68.02,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.587,
+        "least": 0.18,
+        "opening": 0.855,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 229.209,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 77.328,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.614,
+        "least": 0.317,
+        "opening": 0.719,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "83f63ed6"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.526,
+        "least": 0.133,
+        "opening": 0.708,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.628,
+        "least": 0.265,
+        "opening": 0.781,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "858570fb"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.26,
+        "opening": 0.709,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.63,
+        "least": 0.147,
+        "opening": 0.767,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "8758daee"
+    },
+    {
+     "available": 244.883,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 48.465,
+        "moves": 3,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.625,
+        "least": 0.2,
+        "opening": 0.879,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 122.442,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 122.442,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.665,
+        "least": 0.347,
+        "opening": 0.826,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "9351db38"
+    },
+    {
+     "available": 239.53,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 46.859,
+        "moves": 3,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 1.95,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.54,
+        "least": 0.319,
+        "opening": 0.677,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 142.671,
+        "moves": 4,
+        "plan": [
+         0.9,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 119.765,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.502,
+        "least": 0.23,
+        "opening": 0.636,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "959f8768"
+    },
+    {
+     "available": 37.67,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.608,
+        "least": 0.312,
+        "opening": 0.766,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 22.602,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 18.835,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.457,
+        "least": 0.149,
+        "opening": 0.693,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "984cbbde"
+    },
+    {
+     "available": 424.16,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 204.496,
+        "moves": 5,
+        "plan": [
+         0.6,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 84.16,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.574,
+        "least": 0.251,
+        "opening": 0.813,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 289.328,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.7,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 212.08,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.153,
+        "opening": 0.637,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "a43f0775"
+    },
+    {
+     "available": 224.974,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 42.492,
+        "moves": 3,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 2.91,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.725,
+        "least": 0.234,
+        "opening": 0.827,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 112.487,
+        "moves": 2,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 112.487,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.622,
+        "least": 0.35,
+        "opening": 0.696,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "a7b8e18a"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.637,
+        "least": 0.309,
+        "opening": 0.816,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.541,
+        "least": 0.189,
+        "opening": 0.8,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "acfc41f0"
+    },
+    {
+     "available": 256.61,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 103.305,
+        "moves": 3,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 59.65,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.675,
+        "least": 0.296,
+        "opening": 0.779,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 155.288,
+        "moves": 6,
+        "plan": [
+         0.7,
+         0.7,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 128.305,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.581,
+        "least": 0.21,
+        "opening": 0.734,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "b163fa81"
+    },
+    {
+     "available": 262.008,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 133.406,
+        "moves": 5,
+        "plan": [
+         0.8,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 120.64,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.58,
+        "least": 0.166,
+        "opening": 0.825,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 119.965,
+        "moves": 5,
+        "plan": [
+         0.8,
+         0.5,
+         "sign"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 84.965,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.186,
+        "opening": 0.702,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "b46552de"
+    },
+    {
+     "available": 655.68,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 277.84,
+        "moves": 5,
+        "plan": [
+         0.6,
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 166.12,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.737,
+        "least": 0.296,
+        "opening": 0.827,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 474.544,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 194.56,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.531,
+        "least": 0.179,
+        "opening": 0.752,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "b602d375"
+    },
+    {
+     "available": 322.626,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 143.576,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 102.672,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.54,
+        "least": 0.294,
+        "opening": 0.659,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 175.838,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 69.954,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.553,
+        "least": 0.219,
+        "opening": 0.7,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "bbbf8a75"
+    },
+    {
+     "available": 241.85,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 71.74,
+        "moves": 3,
+        "plan": [
+         0.4
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 3.814,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.653,
+        "least": 0.281,
+        "opening": 0.887,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 168.48,
+        "moves": 4,
+        "plan": [
+         1.0,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 120.925,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.147,
+        "opening": 0.687,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "bf61977b"
+    },
+    {
+     "available": 531.149,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 346.804,
+        "moves": 3,
+        "plan": [
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 305.383,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.597,
+        "least": 0.118,
+        "opening": 0.822,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 374.919,
+        "moves": 6,
+        "plan": [
+         0.4,
+         0.4,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 80.766,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.794,
+        "least": 0.115,
+        "opening": 0.852,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "c3bf8eff"
+    },
+    {
+     "available": 206.148,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 78.074,
+        "moves": 3,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 48.24,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.71,
+        "least": 0.214,
+        "opening": 0.831,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 123.689,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 103.074,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.527,
+        "least": 0.263,
+        "opening": 0.782,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "c69251bd"
+    },
+    {
+     "available": 305.447,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 97.179,
+        "moves": 3,
+        "plan": [
+         0.4
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 45.337,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.743,
+        "least": 0.292,
+        "opening": 0.853,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 163.813,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.6,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 105.15,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.538,
+        "least": 0.122,
+        "opening": 0.756,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "c6d106b6"
+    },
+    {
+     "available": 320.341,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 167.205,
+        "moves": 3,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 21.021,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.531,
+        "least": 0.278,
+        "opening": 0.74,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 206.273,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.6,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 160.171,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.109,
+        "opening": 0.673,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "cd6b12a1"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.526,
+        "least": 0.114,
+        "opening": 0.686,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.112,
+        "opening": 0.642,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "cdff8d82"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.491,
+        "least": 0.106,
+        "opening": 0.749,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.647,
+        "least": 0.187,
+        "opening": 0.814,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "d07aae13"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.76,
+        "least": 0.216,
+        "opening": 0.823,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.551,
+        "least": 0.254,
+        "opening": 0.734,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "db144696"
+    },
+    {
+     "available": 595.195,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 307.117,
+        "moves": 5,
+        "plan": [
+         0.7,
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 104.75,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.632,
+        "least": 0.142,
+        "opening": 0.79,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 426.156,
+        "moves": 6,
+        "plan": [
+         0.6,
+         0.7,
+         0.8
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 297.598,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.476,
+        "least": 0.146,
+        "opening": 0.611,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "dc296c28"
+    },
+    {
+     "available": 154.702,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 5.94,
+        "moves": 3,
+        "plan": [
+         0.2
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.605,
+        "least": 0.26,
+        "opening": 0.736,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 92.821,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 77.351,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.512,
+        "least": 0.171,
+        "opening": 0.65,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "df0e1d78"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.587,
+        "least": 0.154,
+        "opening": 0.657,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.519,
+        "least": 0.176,
+        "opening": 0.78,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "e1ae27db"
+    },
+    {
+     "available": 599.225,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 274.613,
+        "moves": 3,
+        "plan": [
+         0.5
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 132.893,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.66,
+        "least": 0.191,
+        "opening": 0.731,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 369.457,
+        "moves": 6,
+        "plan": [
+         0.5,
+         0.5,
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 176.15,
+        "moves": 3,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.45,
+        "least": 0.238,
+        "opening": 0.706,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "e954a9e7"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.5,
+        "least": 0.214,
+        "opening": 0.664,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.519,
+        "least": 0.283,
+        "opening": 0.78,
+        "reciprocity": 1.0
+       }
+      }
+     },
+     "world": "f034b3d4"
+    },
+    {
+     "available": 0.0,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 2,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.756,
+        "least": 0.158,
+        "opening": 0.887,
+        "reciprocity": 1.0
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 0.0,
+        "moves": 1,
+        "plan": [
+         "walk"
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "walked"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 1,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.751,
+        "least": 0.167,
+        "opening": 0.889,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "f7195011"
+    },
+    {
+     "available": 112.36,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 53.652,
+        "moves": 3,
+        "plan": [
+         0.7
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.604,
+        "least": 0.29,
+        "opening": 0.703,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 33.708,
+        "moves": 2,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 3,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.714,
+        "least": 0.119,
+        "opening": 0.846,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "ff56345b"
+    },
+    {
+     "available": 179.447,
+     "seats": {
+      "client": {
+       "best_plan": {
+        "earnings": 28.834,
+        "moves": 3,
+        "plan": [
+         0.3
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 0.0,
+        "moves": 2,
+        "termination": "walked"
+       },
+       "script_style": {
+        "final": 0.575,
+        "least": 0.23,
+        "opening": 0.757,
+        "reciprocity": 0.5
+       }
+      },
+      "integrator": {
+       "best_plan": {
+        "earnings": 107.668,
+        "moves": 2,
+        "plan": [
+         0.6
+        ],
+        "script_signed_below_its_outside_option": false,
+        "termination": "signed"
+       },
+       "first_offer": {
+        "earnings": 89.724,
+        "moves": 2,
+        "termination": "signed"
+       },
+       "script_style": {
+        "final": 0.469,
+        "least": 0.255,
+        "opening": 0.616,
+        "reciprocity": 0.5
+       }
+      }
+     },
+     "world": "fff83730"
+    }
+   ]
+  }
+ },
+ "plan": "docs/families/datacenter/agreement_confirmatory_plan.md",
+ "stand_in": "knows both true types; best_plan is a ceiling against this script, not an attainable target",
+ "summary_over": "deal worlds (available > 0)"
+}
