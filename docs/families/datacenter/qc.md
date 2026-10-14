@@ -76,6 +76,7 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_risk_allocation_menu_v1` | 0.1.0 | the client negotiating a scripted integrator's posted playbook and menu, the pricing policy hidden; registration in #224 (kernel lane); gates in §10 | `menu_eval_v1` (36 worlds) |
 | `datacenter_risk_allocation_contracts_v1` | 0.1.0 | the menu with every contract term the economics can grade exactly (damages rate, liability cap, deposit size, escrow, burn-in, site preparation), 64 to 360 contracts a playbook; registration in #224 (kernel lane); gates in §10 | `contracts_eval_v1` (52 worlds) |
 | `datacenter_risk_allocation_tender_v1` | 0.1.0 | a tender: three managed or turnkey firms bid once each and the client negotiates every term with any of them in the same turn; registration on `codex/datacenter-risk-allocation` (kernel lane); gates in §10 | `tender_pilot_v1` (24 worlds) |
+| `datacenter_agreement_v1` | 0.1.0 | two sides redline one services agreement clause by clause and settle a price, both seats open, graded at both true costs; registration on `codex/datacenter-agreement` (kernel lane, 03a7faef, no PR); gates in §11 | `agreement_dev_v1` (58 worlds), `agreement_confirm_v1` (58 fresh worlds), a walk-away brief variant and two type-swap packs |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,
@@ -683,3 +684,75 @@ on 54 worlds and Gemini default minus low effort of −114 [−191, −54] on 20
 episodes to its output limit and one provider rejection (DC-O-16). Descriptive, not
 confirmatory: one pack, no pre-registration beyond the frozen plan.
 
+
+## 11. Negotiating into an agreement (`datacenter_agreement_v1`)
+
+The case of `docs/families/datacenter/agreement_case.md`, results in
+`agreement_results_2026-10.md`: an integrator and a client redline one services
+agreement of eight clauses and an all-in price (600 agreements) over six alternating
+moves, both seats open, graded exactly at both sides' true costs (`agreement.grade`).
+Its campaigns are the 18 `datacenter_agreement_cli_*` bundles: 2,456 negotiations of
+Codex (Sol 6.1) and Opus 5.5 against each other, themselves and scripted counterparts,
+2,417 valid. **Normative status: failed**, on Gate 1.
+
+**Gate 0, profile admission: partial.** This section is the profile. From the registry
+row of 2026-10-09 (03a7faef) until it, the family was trusted with neither a profile nor
+an exemption, so `tests/test_benchmark_qc_profiles.py` failed on the branch through every
+agreement campaign (DC-J-08); that test now maps the family here. The registry row is
+kernel lane, on a branch with no PR, and needs a non-author review.
+
+**Gate 1, task-distribution admission: failed.** Both packs regenerate to the committed
+digests and share no world, but neither was admitted for this case. `agreement_dev_v1`
+(58 worlds, 6 with no deal worth signing) is the full-terms case's `contracts_eval_v1`,
+admitted for a client choosing from a list; `agreement_confirm_v1` (58, 6) is the same
+generator at base seed 2790000, a new seed and not a held-out mechanism. The case's own
+admission rules (c* differs from the draft by a margin, c* depends on the counterpart's
+type, each shortcut loses a margin, a quota of worlds where the right move gives a clause
+up, types drawn after admission on their own stream) are designed and not implemented,
+and the last fails on both packs: the client's hidden charge is fixed by cell, 8, 22 and
+28 worlds at the low, middle and high charge against a prior of a third each (DC-D-33).
+No measured-headroom screen has run. Blocker: a pack built by those rules.
+
+**Gate 2, environment and verifier: partial.** `tests/test_datacenter_agreement_oracle_run.py`
+plays every world of both packs through the plugin's own hooks (parse, legality, step,
+terminal, outcome) and checks the grade against an optimum the test computes from the
+two cost functions. The full-information pair loses 0 (to 1e-6) in 116 of 116 worlds,
+signs c* in the 104 deal worlds and walks in the 12 others; the draft pair loses exactly
+what signing the draft at its midpoint predicts in all 116, $317.64k a world on dev and
+$289.02k on confirm. The grade is the outcome hook's, computed from the terminal state,
+and the terminal is reproduced from its own moves; the kernel's replay re-executes the
+steps and recomputes the outcome, and the CLI driver replays every receipt to the same
+digest before a cell counts. Three mutations kill the checks: a benchmark that names the
+draft (the grade alone still reads zero), clauses dropped by the environment, a price off
+the midpoint. Partial because no test exercises the invalid, malformed or truncated
+goldens the parser and legality codes define; the leak check compares briefs on the swap
+packs, not whole observations; and the run drives the plugin, not the kernel scheduler
+(the 116-cell scripted dry run of 9d7429e0 is in gitignored `runs/`).
+
+**Gate 3, construct validity and baselines: partial.** Lower control: the draft pair,
+which signs in only 15 of the 52 dev deal worlds. Counterparts: the scripted negotiator
+in seven fixed styles and a `drawn` population; the Codex-Opus gap runs from 17 and 23
+against `firm` to 148 against `collapse`, so a result is a result for that counterpart.
+Stand-ins with both types known (`agreement_negotiator_check.py`) give a sign-the-first-
+offer anchor (122 and 114 against `firm`) and a best plan against each script, a ceiling
+the models fall 45 to 247 below, not an attainable target. Partial because the design's
+primary measure, loss by turn against a best informed policy, and its one-step check
+that the case is not arithmetic are not built; the `drawn` style's draw hashes the
+client's hidden charge (DC-D-32); no shortcut is screened at admission.
+
+**Gate 4, attribution and experimental controls: partial.** Pairings are compared on the
+same worlds; same-model pairings are declared self-play with their estimand. An A/A
+check on repeat plays flagged 0 of 48, and the counterpart carries 25 to 33% of the spread
+in earnings (shuffled labels 2% or less); both come from notebooks outside the
+repository. All 39 failed negotiations were CLI or service errors, typed missingness; 16
+were played again as three new campaigns by owner ruling (DC-O-17 to DC-O-19), the other
+23 stay missing (DC-O-20, DC-O-21). Partial because a CLI takes no seed or temperature,
+each model has one route and one reasoning setting, 36 of the 39 failures are Codex's,
+and no plan-level test shows that only the treatment differs between paired plans.
+
+**Gate 5, confirmatory reliability and publication: not_run.** No variance pilot, no run
+sized from a declared minimum effect, no confirmatory freeze. The one declared test, of
+what an offer gives away, committed its plan (`agreement_signalling_plan_2026-10.md`,
+e69b6cff) before its runs, on fresh worlds with six predictions corrected by Holm; it
+did not pass the campaign SOP's variance-pilot or freeze gates. Blocker: a variance pilot
+on an admitted panel, a sizing record from its paired spread, and a frozen holdout.
