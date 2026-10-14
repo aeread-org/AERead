@@ -155,7 +155,8 @@ def test_the_pack_records_types_that_match_its_cases(worlds) -> None:
 # --- the reference's numbers are the environment's ------------------------------
 
 
-@pytest.mark.parametrize("index", [0, 5, 9, 14, 17, 22])
+# Every world, not a sample of them: about half a second each, 13 s for the 24 (2026-10-13).
+@pytest.mark.parametrize("index", range(len(pack_module.CELLS) * pack_module.WORLDS_PER_CELL))
 def test_expected_values_equal_the_average_over_every_way_the_newcomers_could_turn_out(worlds, index) -> None:
     world = worlds[index]
     ref = reference.Reference(world["case"]["payload"])
