@@ -1,0 +1,4276 @@
+{
+ "campaign_id": "datacenter_agreement_confirm_adversarial_v1",
+ "arm": "A",
+ "role": "arm A, secondary: each model in each seat against the overreach, price_only and collapse styles; no claim",
+ "claim_status": "confirmatory, secondary: reported without a claim",
+ "confirmatory_plan": {
+  "path": "docs/families/datacenter/agreement_confirmatory_plan.md",
+  "commit": "ca9d5cac6c601466e062b928c6fb565385b497d1",
+  "sha256": "dbda0a6e0e1e9aed461cd40153c95e435bc0abbc6a7520e49fff13180f076d8a"
+ },
+ "source_commit": "06cb46abbb395889c1cb4fd4b9524b1927d271a2",
+ "frozen_at": "2026-10-14T17:11:23+00:00",
+ "pack": "agreement_admitted_v1",
+ "pack_json_sha256": "265770bd86576c0577035a9f3e2943d1a058e06b7845743474737a8ec3ed700b",
+ "pack_manifest_sha256": "0bb592e37ceef48d946117890081135297772de4e002f7789f448e3320f6543b",
+ "worlds": [
+  "0064cc63",
+  "0589c053",
+  "0605e34d",
+  "15abc97f",
+  "169dc89b",
+  "17a06ecb",
+  "19fcd619",
+  "1b6c7e6e",
+  "243a85db",
+  "2817b359",
+  "2db42e15",
+  "345bcf9c",
+  "3bf2617c",
+  "4763287e",
+  "48c9e950",
+  "493365ff",
+  "4a81884f",
+  "5251e335",
+  "56878b62",
+  "610f80fa",
+  "66befad3",
+  "67119862",
+  "68651f1f",
+  "688282e0",
+  "6b3bce32",
+  "6e8bb0f4",
+  "6ec740f5",
+  "747a604a",
+  "784f45cc",
+  "8043050d",
+  "821d1f44",
+  "83f63ed6",
+  "858570fb",
+  "8758daee",
+  "9351db38",
+  "959f8768",
+  "984cbbde",
+  "a43f0775",
+  "a7b8e18a",
+  "acfc41f0",
+  "b163fa81",
+  "b46552de",
+  "b602d375",
+  "bbbf8a75",
+  "bf61977b",
+  "c3bf8eff",
+  "c69251bd",
+  "c6d106b6",
+  "cd6b12a1",
+  "cdff8d82",
+  "d07aae13",
+  "db144696",
+  "dc296c28",
+  "df0e1d78",
+  "e1ae27db",
+  "e954a9e7",
+  "f034b3d4",
+  "f7195011",
+  "ff56345b",
+  "fff83730"
+ ],
+ "controls": {
+  "reasoning_effort": "low",
+  "timeout_seconds": 300.0,
+  "max_action_attempts": 1,
+  "replicates": 1,
+  "max_cost_usd_per_seat": 1.0,
+  "max_cost_usd_total": 69.2,
+  "max_parallel_cells": 6,
+  "prompt_variant": "v1",
+  "max_wall_minutes": 204.0,
+  "halt_after_consecutive_operational_failures": 5
+ },
+ "estimates": {
+  "negotiations": 720,
+  "list_usd": 34.6,
+  "wall_minutes": 102.0
+ },
+ "pairings": {
+  "codex_integrator__negotiator_overreach_client": [
+   "codex_sol61",
+   "scripted_negotiator_overreach"
+  ],
+  "claude_integrator__negotiator_overreach_client": [
+   "claude_opus55",
+   "scripted_negotiator_overreach"
+  ],
+  "negotiator_overreach_integrator__codex_client": [
+   "scripted_negotiator_overreach",
+   "codex_sol61"
+  ],
+  "negotiator_overreach_integrator__claude_client": [
+   "scripted_negotiator_overreach",
+   "claude_opus55"
+  ],
+  "codex_integrator__negotiator_price_only_client": [
+   "codex_sol61",
+   "scripted_negotiator_price_only"
+  ],
+  "claude_integrator__negotiator_price_only_client": [
+   "claude_opus55",
+   "scripted_negotiator_price_only"
+  ],
+  "negotiator_price_only_integrator__codex_client": [
+   "scripted_negotiator_price_only",
+   "codex_sol61"
+  ],
+  "negotiator_price_only_integrator__claude_client": [
+   "scripted_negotiator_price_only",
+   "claude_opus55"
+  ],
+  "codex_integrator__negotiator_collapse_client": [
+   "codex_sol61",
+   "scripted_negotiator_collapse"
+  ],
+  "claude_integrator__negotiator_collapse_client": [
+   "claude_opus55",
+   "scripted_negotiator_collapse"
+  ],
+  "negotiator_collapse_integrator__codex_client": [
+   "scripted_negotiator_collapse",
+   "codex_sol61"
+  ],
+  "negotiator_collapse_integrator__claude_client": [
+   "scripted_negotiator_collapse",
+   "claude_opus55"
+  ]
+ },
+ "provider_runtimes": {
+  "claude_code": {
+   "runtime_version": "2.1.299",
+   "runtime_sha256": "ba5ab7b8c195fa03ab8d5bf3915c76153b576a2c40e79a5c46e265e7ed9744b3"
+  },
+  "codex_cli": {
+   "runtime_version": "0.162.1",
+   "runtime_sha256": "74c6a6d263f40d65f99c27a815275f5b4ed0bcc2baecc396b4cf3255498bdfc0",
+   "adapter_sha256": "3f2548731411377d3aad25db0247bed567bc1575b99460acd9c492c1d22b8740",
+   "sandbox": "read-only",
+   "web_search": "disabled",
+   "user_config": "ignored",
+   "instructions": "model_instructions_file (replaces the agent instructions)",
+   "disabled_features": "shell_tool,unified_exec,apps,plugins,multi_agent,image_generation,memories,browser_use,browser_use_external,computer_use,goals,view_image,skill_search,tool_suggest,sleep_tool,hooks,in_app_browser,remote_plugin,workspace_dependencies"
+  }
+ },
+ "subjects": {
+  "claude_opus55": {
+   "provider": "claude_code",
+   "model": "claude-opus-5-5",
+   "pricing_id": "anthropic_list_2026-09-22_claude-opus-5-5"
+  },
+  "codex_sol61": {
+   "provider": "codex_cli",
+   "model": "gpt-6.1-sol",
+   "pricing_id": "openai_list_2026-10-04_gpt-6.1-sol"
+  }
+ },
+ "billing": "subscription logins; cost is the list price of the tokens, not a charge",
+ "tools": "none: Claude Code with --tools \"\"; Codex with its acting features disabled, and a call that uses a tool is refused",
+ "system_prompts": {
+  "datacenter_agreement_integrator_prompt_v1": "You are negotiating a services agreement on behalf of the integrator; the client is another negotiator acting for itself. Each turn you receive a JSON object whose observation holds your brief (observation.brief: the facts, what each clause decides, your own costs, what you know about the other side, the rules of the negotiation and your objective), the agreement as it stands clause by clause (observation.agreement: each clause's current position and text, the positions it can take, and the latest tracked change with who made it and what it replaced), the price on the table and whose it is (observation.on_the_table), every move so far with its changes, price and note (observation.history), and the actions allowed now. Reply with exactly one JSON object and nothing else:\n{\"action\": \"redline\" | \"sign\" | \"walk\", \"clauses\": {\"warranty\": <none | fix | fix_and_delay | null>, \"damages\": <50 | 100 | 200 | null>, \"liability_cap\": <uncapped | 1500 | 500 | null>, \"readiness\": <client | integrator | null>, \"consequential\": <excluded | included | null>, \"deposit\": <none | 25% | 50% | null>, \"escrow\": <false | true | null>, \"burn_in\": <false | true | null>} or null, \"price\": <all-in price in $ thousands> or null, \"note\": \"<one or two sentences the other side will read>\" or null}\nIn a redline, give a position for each clause you change and null for each clause you leave as it stands, and state the all-in price at which you would sign the agreement as you leave it. To sign the version the other side put on the table at its price, or to walk, set clauses and price to null.",
+  "datacenter_agreement_client_prompt_v1": "You are negotiating a services agreement on behalf of the client; the integrator is another negotiator acting for itself. Each turn you receive a JSON object whose observation holds your brief (observation.brief: the facts, what each clause decides, your own costs, what you know about the other side, the rules of the negotiation and your objective), the agreement as it stands clause by clause (observation.agreement: each clause's current position and text, the positions it can take, and the latest tracked change with who made it and what it replaced), the price on the table and whose it is (observation.on_the_table), every move so far with its changes, price and note (observation.history), and the actions allowed now. Reply with exactly one JSON object and nothing else:\n{\"action\": \"redline\" | \"sign\" | \"walk\", \"clauses\": {\"warranty\": <none | fix | fix_and_delay | null>, \"damages\": <50 | 100 | 200 | null>, \"liability_cap\": <uncapped | 1500 | 500 | null>, \"readiness\": <client | integrator | null>, \"consequential\": <excluded | included | null>, \"deposit\": <none | 25% | 50% | null>, \"escrow\": <false | true | null>, \"burn_in\": <false | true | null>} or null, \"price\": <all-in price in $ thousands> or null, \"note\": \"<one or two sentences the other side will read>\" or null}\nIn a redline, give a position for each clause you change and null for each clause you leave as it stands, and state the all-in price at which you would sign the agreement as you leave it. To sign the version the other side put on the table at its price, or to walk, set clauses and price to null."
+ },
+ "stops": {
+  "list_price": "no negotiation starts once the campaign's list-price total reaches max_cost_usd_total",
+  "wall_time": "no negotiation starts after max_wall_minutes from the start of the run",
+  "halt": "no negotiation starts after 5 consecutive operational failures (DC-T-08)",
+  "per_move": "a CLI call that exceeds timeout_seconds fails its negotiation; one attempt a move"
+ },
+ "missingness": "a negotiation that ends in an operational failure, or is not started, is typed missing; never rerun or replaced",
+ "declared_analysis": "docs/families/datacenter/agreement_confirmatory_plan.md, sections 'Primary contrasts', 'Exclusions and missingness' and 'Analysis'",
+ "sources": {
+  "src/aeread_families/datacenter_development/risk_allocation.py": "7cb657be6b4f856ec56f584b64e3e82b0ada883532c492eb793ca9dc1ec2184a",
+  "src/aeread_families/datacenter_development/risk_allocation_contracts.py": "9a6b69575b7a79c52dafd59a1f0630072c572d44c92c4e6ef2bdf9a1b479a1f9",
+  "src/aeread_families/datacenter_development/agreement.py": "587d49a932385a01d85c8a3a731553c8807596cb0ce3d0ab4794bb7672aa9432",
+  "src/aeread_families/datacenter_development/agreement_environment.py": "25704ad5b273083f96827faf4c6b5041d809a406056188e0d0233bbfe1d99ee7",
+  "src/aeread_families/datacenter_development/agreement_measurement.py": "776bf554298cf101945289d1cd4e03a612af2fc053a7a58cb415dce83c2b36c8",
+  "src/aeread_families/datacenter_development/agreement_pack.py": "c9db23e9584c263170c80ec045d4efd44d3f381c50a6d2642e85d44ad4e6fcd3",
+  "src/aeread_families/datacenter_development/agreement_negotiator.py": "e602d3f0a27721010b627159e4a07e03405acccccd3d9574081c9f6e9f668573",
+  "src/aeread_families/datacenter_development/agreement_prober.py": "173fe38dddbca8ffa731bb81461f43cec524e5704212c72918fe706353063310",
+  "src/aeread_families/datacenter_development/agreement_reader.py": "9d3464986385c2c0023c93765895077cc9b9e29761bbb50b246936fbfc8065d9",
+  "tools/cli_subjects/agreement_cli.py": "83d3985f0cdc83996ddc4c321490e7caaf788d48bf808ec0d9985d87feef057d",
+  "tools/cli_subjects/codex_exec_client.py": "3f2548731411377d3aad25db0247bed567bc1575b99460acd9c492c1d22b8740",
+  "src/aeread/shared_runner/task/execution.py": "3cd3278cc489c7d7008531075fc7d714d2a3aaeeecfa2647af7a6a9a17e4dbd6",
+  "src/aeread/shared_runner/task/evaluation.py": "e950da4375ceaf58b4d6fb8bc51b1af38ce0b68231c977069d01f47164117882",
+  "src/aeread_families/datacenter_development/agreement_admitted_pack.py": "03deaf8c2052141d224cb7925dac0e86ff5721128805725952ec3f00ac97a01e",
+  "tools/cli_subjects/agreement_confirmatory_cli.py": "ee3e71ddbc99664d516e865bf33aa305eb0eb299a26d10e35f2a638d1a2b62be"
+ },
+ "plans": [
+  {
+   "pairing": "codex_integrator__negotiator_overreach_client",
+   "integrator": "codex_sol61",
+   "client": "scripted_negotiator_overreach",
+   "run_plan_id": "runplan_f4df4437151ec66e",
+   "cells": [
+    {
+     "cell_id": "cell_0143350c2845d923ca46",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_02dad4e48780aac56dec",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_03485a0536756eb07d65",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0808f0515f60eb9fc3ee",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_086e89ac78722bbf83cb",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_096c93acd4eba5e422c4",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0dc7b636a612eae8480e",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0f012b0810a75cd201d0",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_10f5ec35ed3ca6846a78",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1507df977092e7960522",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1d51e7efc8480f6a13bb",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1f2059fbbc9c083a6fa7",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1fedb1bc4fa710f6d19a",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_207adc02f0eb115b1917",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2167dbc86d89814ac729",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2e54cda094d4deb3a1e1",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2f09852d4d50c020645a",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_31355fd3b721b05cfa6a",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3b582ef4eba71dda1ded",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3e60da3fc54d092dc1e9",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3f07568caa6a4282633e",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_47bdeac7748feec69986",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_57ed229d1640d4886868",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_58e45cd5ac2b8e2ba9bf",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_61f2d08e3dab0e58f81e",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6460b93f9c58f7711a33",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_69e12e87834dc99a3d1d",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6d28ef703ee534b4ba57",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_72eadea0e0e2e1e09309",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_737bf47e463643b02d33",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_760349e2becd0e97c665",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7b41193b17661c524823",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_803fbd241f1768e06ccc",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8083d474542320e2d78a",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_819b30d4b44fb3292681",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_82b70cfe6dce27ecd322",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8806b105ce43cdfe0596",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8a859833455bcfe36b75",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8d76433a395235622300",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9f5dce916cb30accd6d8",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a9094f27228fbf19ebd0",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ac36819c67a2c03d8603",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_af7f21e2004a0067d69a",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b16b806a46f5b5c717f6",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b8654daeedeb64a6a046",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b964d262d00efd7c5e40",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b9e826001451b03b62d6",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bffe8db0588cad6a9503",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c1977e579ce3ecbdeb95",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c1e456716a81be6585f8",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c5ad802a950b072c6109",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d0263a4d73aaefe51deb",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_da96179e107c6330fff7",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e05a680a45a1ecd601aa",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e335e844bb30ee31f150",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e6b8232cf32b2f6265c0",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f4215f10e78c9641b6a2",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f7fd4df2ca796629f408",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f841469c44c6e513631a",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fe70fc0e8b4d53edb8d0",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "claude_integrator__negotiator_overreach_client",
+   "integrator": "claude_opus55",
+   "client": "scripted_negotiator_overreach",
+   "run_plan_id": "runplan_a7c8377e28875193",
+   "cells": [
+    {
+     "cell_id": "cell_04cedfc7312163c576c9",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_065e7c0088daedc90c9b",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_07cf4bc6d25be7d24d78",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0b41186bf7b92ba5a1f4",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0c2fdb3bdb1e0863dfce",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0fd90a6269e5b0a3bf8b",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_11863a2ffb2c13230d1d",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_14d29bab67168418272d",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_17d8790136f6f68bf6b0",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_180be4f373c1e34c0320",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1b2f297123ca0a3a1ae1",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_22e82e619ac29d6144ff",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2762f31b1973406b2e3d",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_29974515911ff00eed49",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2a1f3eef47646831fbc4",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2eb688b946f770afa5da",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3409498c5a7fca2b68b3",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3c3edfe0d4d05c176082",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3d9e5f8f660476e37ec1",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_461075dede12e7e97a67",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_46b15145c3fd6c80e925",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4ae3d7c5a8aecc07286f",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4b599546fca70a3f2ada",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4eb06e19e261ebefd67a",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_51da209097c0a9ed35d7",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_522f655cdb2938c56e80",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5b410f9b6ecb18785381",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5c1580172b9675fa35e0",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5fa5af59e5b682091a20",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6be83b6f4004464b5a3c",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_71cb11d75f0911214519",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_73ebe076e4f5d269a4c7",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_74210aa4310fbc2fa89f",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7771c91ecc721948474a",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7a9133ba2148692fb014",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_84664c81b22b11935c6c",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_86fe20a1c41558c1777d",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8ab201f586f75f82d39e",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_907d2c76835533845bbe",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_93c852f9d101d8c466c6",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_962d23d3e8d4901f923b",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9ceb566a650ea29b76ca",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9e026067bb9ec3fdc132",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9fe89e6d30c1de1c282f",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a7261054401e26a125bb",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bcc98fcd5c7c898560de",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bdcaca8cd0909b0e05a9",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c24ec407a55c18594e82",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c810e8d875e073a165d4",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cf2fef23f86384c4c839",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e03ee37d442deed74bdd",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e8fbb75c013b62c39726",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_eb637b0c55a1b799aae4",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f30175e9d206dcbbe097",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f4ab04efc26edf746838",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f6dbc11b40a9bfb6c675",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f7009c813299c9dc4d10",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f7289723f88b73984e2f",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fd415d3ac7d365ee66b9",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fe0dcbd0087aa81725da",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_overreach_integrator__codex_client",
+   "integrator": "scripted_negotiator_overreach",
+   "client": "codex_sol61",
+   "run_plan_id": "runplan_ca9804b7cee537fc",
+   "cells": [
+    {
+     "cell_id": "cell_0687ba52a579794a7478",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_06a201e2b44b31bb765a",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_07212cb6811c5e39c99f",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_08bf9316bc89ea5c2a96",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0a12dbbe39479902538c",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0e113a612eb9a32aec99",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_17b9eec07804e33ea10d",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1881f106bc1658f1240f",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1bdeef70117db34709aa",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2217bf06afc1fdf3f13b",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3012c2d7f37f1a8141d3",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3274be916e02d7f41bf6",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_365c6a7df4023ccd1f54",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3d44cca1d2ac66b7624f",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3e23e7b7103564d42b94",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4491ed6c17c573652323",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4617ec8734ba2a377bc1",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4966724331297ed8688e",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5b6ee19b4d471aa7803e",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5cedfbb7ae706ceeee9e",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5cf66ec94ed5576c1240",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6b3f132c12dca99e5df3",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_714410715555751bced3",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_745f26228bbfcef0d4d1",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_80292e33466b1cfbe684",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_894758de7315ce32f824",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_90556225b60c7d5b535e",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_93b55424952d734b71b6",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_955b384829d68f0c0389",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_96c68339682d903405e0",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_97492e136148808cba41",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_97db7e8a4eb098d4daae",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_98f12d02089859e7c799",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_99ca337b552de5c28c7e",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9c003c9a91f7d96782f0",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a022ee7d1de41f1cfd64",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a2ff8ba5a49ff413c6f5",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a4b28184cf73425ac2d1",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a561fb013e3f9a3efbc8",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a67bbf8f0ea0eb5d3630",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a9db008c65a39b6d3059",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b305ee5679676f06dad7",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b69b57be4220980840ba",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b9ac3f9faac07f3331fd",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_baf16066de3036962a1d",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c4709a1f11fa14895e7c",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c4d9e50b8c497b21155c",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ce69e3480fd4c8fa9efb",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cf0a72a2e8f6687dc591",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d37d3ff9891320f0d023",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dc0e4b9cbb117842e871",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dcda97bbd5d10079705a",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e9840517503fe7b2a3ab",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e9b47851ed168a78e02e",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f02802ddb012653eb870",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f05bdf1d02c35769ed81",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f07d6e5bbc6d1ce782a7",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f6684ff3fa0526e68a38",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f898fbe21f3ad6a8da90",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fd29eb84483dac41f3dc",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_overreach_integrator__claude_client",
+   "integrator": "scripted_negotiator_overreach",
+   "client": "claude_opus55",
+   "run_plan_id": "runplan_26f15fadfc0bcfc7",
+   "cells": [
+    {
+     "cell_id": "cell_0059f1126c4effce6bb7",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0761dadea3760d7d6ac5",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_08b96a473d059e8499e0",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_09369289083cd31b11c0",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0bb4d332dd1117e9ff42",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0fabbca38cad345babc7",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_14e68f01bca23eeefeaf",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1d7675b59afc88b34e39",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2d7dcacd91df60e5822b",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_315b96945521a1a9cc2f",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_31939363fadeff6ed467",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_354d3e4bbef779606b23",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_378d5c114db905a32043",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3a59ffc1486abbec6536",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3ef6684d6bdf8230b4db",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_41e19e582f512e569759",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4213ce3d82ebe75d93d6",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_429f7d9bb26e1492bbe5",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_448c0849a08a6826d418",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_46cf7f349f4bcaa03ede",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_47d449f9f5dbd4ecfa75",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4aa71889eb2fdbda0ea1",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4eea0ed255de6c77acaf",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5223e2c403c02c742632",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_574b4b5d10012b0d3a0c",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_598d3cc52707cff0a6aa",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5fb60028b455002c0180",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_67c33248a932c323bb8e",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6aaaced5c714d96bfb8b",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6d378a3b6c553f82c05e",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_745b91a934e8a548fa76",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_764883f7783bd2dd2ae3",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7c976db13b0ec51aaba1",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8c9705f750ff48b40310",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8d7a2b0354158f406b60",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9883ea791ce60bdf8fa6",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9e3e7c51e52dd05caeb2",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9f15caebca1eb80c5705",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a073053225571eed6e98",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b0a53e5c79d1fd624c13",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b1caed5dd01866181711",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b87698b082ab1cb5afa2",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bbbb15a2e95d7e63a1d6",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bd885c57ee48b0d267ba",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c015d49a40bd6651b9d2",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c29c37de00f9da3708f3",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ced0451c708caed9789d",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d4cf32bdbb79efb0fa59",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d5cb6d06acb16f8b4e64",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d67b8a122dcb4174f8eb",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e07cd1e7926f4dfc6541",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e37ab8a9772e13cc43af",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e8daf8adf47609a6dba8",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ec8602d12d77e9b1ee4e",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ee9b24a369bd18c06be8",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f2541c791ad2e7639077",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f43e6c95eb2ea2f9246e",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f60c0150e9562db87f91",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f6be04225f8ff5feb7ab",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fc0c08cc15b592c2390e",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "codex_integrator__negotiator_price_only_client",
+   "integrator": "codex_sol61",
+   "client": "scripted_negotiator_price_only",
+   "run_plan_id": "runplan_0c9cd2e64612a713",
+   "cells": [
+    {
+     "cell_id": "cell_005b03cf77d170017558",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0071dc420e18dc3a11ed",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0b14ff4aee4614cea207",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0e5ce86eae324845d1e2",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_125aa7ff6e6ba8731061",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1b8b6eab3a14fa4edd05",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1dc646683d4d76fd6833",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_21052223d8ce86d117d5",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_216cfd809f3c0ac0c908",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_25afcb1df108969afbde",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_284938da8a5e35beabea",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_28f1f09f37b8380d3fda",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2cda71dc8c41a376654b",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2e529a0bb7f7e7d6bd02",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2fa44765a58f20a0ab5c",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_33dc098c61f000d517b2",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_35982bd64c49f7f7f85c",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3967996285727e861ba2",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_403e50da6cf291b8270b",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_47a9747625cd88b17f6d",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_55dbf0f1728da6cbadbc",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5907b888958b45ea3bca",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_68f3c018156ab50e4514",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_70191fc195cd6ef0ea70",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_70f5d3a5a576887add09",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_717b0f403f6222ac06f5",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_76e036a4167ba95a7d9f",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8041883fa5231991c67f",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_81723dc3c7d8bf6e332a",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_846c435a5f40fd380413",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_869dd511d79b4fc2b1bc",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8d45f06d91ee0f1de698",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8f667c59bd674ab563ac",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_91393a0a18eb49aaeff4",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_94628bb6d73d1b72d7a2",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_953ce56cd19d5af67019",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_98e8192c7405efb7f746",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_98ed5c2f487a0ec6f54b",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9937205d82e9f41ecd5b",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9bed550f503d06d414af",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9c3f0f27317d08c55e7d",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9ea9590fa0806dd8ff3a",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a0a8cae61adabec52fbb",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a4fbb6b352a6c9b204b8",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b0606626843d7951169f",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_be6680abfb4b5668c668",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_be8a6e6cb6f99e2be735",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c35c57b2acd1d9bcfb5b",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d0319d3d58e8ca264e0d",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d1ab4a4d63dc657c0187",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_da12f3dedb530f76508e",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dbe10d63c992a6193326",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e1add38c90d53fc89e13",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e24b2a89aad495450b13",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ed3a90adf460f20c60eb",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f5b88361ef08c3ed68a4",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f67a3b963ff43b48e788",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f8116fc1b95a7bde28ca",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fa3d1a8b51b4d7ce3fa6",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fcc29e5964078ea7c126",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "claude_integrator__negotiator_price_only_client",
+   "integrator": "claude_opus55",
+   "client": "scripted_negotiator_price_only",
+   "run_plan_id": "runplan_de8212a52549a493",
+   "cells": [
+    {
+     "cell_id": "cell_028df2e560f59b8dc1b7",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0638faedd915efe19c10",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_06e614131f6a400d91e5",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_086bacb30c8b00965bac",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_19be0077615f4a9e8cd0",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2352d0408c9fd6f56b6f",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2a061335c48b7222f32d",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2a490db10bb07e455406",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2befff88c58ed8328587",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_314c8eef0523f2fd23de",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_321e06382952cf6bdb56",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_331c6aa17e5ccc6a3b89",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3380f8e3ff58b9efe574",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_35d928459dae6c162eea",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3aebbbcfd8d827fdc4f5",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_401ce0b9b1f5feed31a2",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4031d9260d99f6972145",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_442879b2300a739dea31",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_49ad1dd51569d7372a31",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_49e9d8666289d7ab6e2e",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_504e5f7d122b8c90b052",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_55dc595243b1ae20d3b9",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_575f6748a8a127cf426c",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5852122a6c8771317422",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5a18096590f6ee3f2770",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5c63b1f5fa908d2708f0",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5ef0b16811e1524d6a29",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_65578a9ac2c80f628895",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_68e3557901b085c8ce17",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_746dbe25a6af18e40889",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7775e64ed452d699ccd9",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7d90d7451ebda8a03876",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7e303b8f605fb584ce87",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_87803c1040ae28f78134",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8b1c2578329c8faae2ad",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_930c907c39efc20c355f",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9c3724867013aa3b5b54",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9e3829936c8e4f436238",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9e650ea96066af86f23e",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a346b2aa7965d798ab84",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a66420befb4cce793161",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b412e8b77d058a9e0239",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ba3e69728833679d31ce",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bf44f7e732b4e2bf9fd7",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c08713f19700f6b8f621",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c0d3440096491050e56a",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ca5f6b877d278c3bbf3a",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cb5cac55e2b0b93b94f5",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d71c722ecdd92eaa56df",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dae2a706e7734fd1f997",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dcee6d467919d7802e32",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_df49f037aa8a043cc2bd",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_df7f1d0f11506b45f12b",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e0f7531776334a933079",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e57e238c874ee7a0faa2",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f59175067b5969b966b7",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f8cd9b6e5b7f1f58bea3",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fb461632cd643d4f26e4",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fd11a11aaeb859b88d72",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ff9b49710e7b6df4ed8c",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_price_only_integrator__codex_client",
+   "integrator": "scripted_negotiator_price_only",
+   "client": "codex_sol61",
+   "run_plan_id": "runplan_99bdf331fb28c67e",
+   "cells": [
+    {
+     "cell_id": "cell_05c8ae7468019f9afbe3",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_08216716e7df660c7648",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0a359ec976a0a6e9727a",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_10947e17d4f31eb2714b",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_10be2c1be1d52fa1b4c9",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1304e62e91e27ba2b59d",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1362e4f71a9113b2e5af",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1ca8ade03445363c1bc4",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1d59d03dc9bcbd78ca99",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_307426e36e0e57ffd1ef",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_31ab686fbe3a368d6cbb",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3384a01179f1034812a9",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_39be7e50034b7ebbde7a",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3e48c789599c7c18b42f",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3e64c8bfea0541c2bdbd",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_42d4ee0854992776c54f",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_46ac46f2b291b4e6f686",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4ccd17099cb7760e9887",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4d45f4d870a2273c519e",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4e21192bc7ff9ef4fee7",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4fa09e30da863dcf30d0",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_500b6ce5e07bd88c6f62",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_567988a9957ce8254747",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5a040e0fd49bd6f452dc",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5cf0dccdccb2b018fc7a",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_607955e5f987ef4011e0",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_688a8ad42b2bff97e772",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6ace30791954093565fe",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6b00d50862f9e01daf52",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6fc36687faae84aada13",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_73f9da7ef01a2ddec1a2",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_79dfd3c464125f51433e",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7cebf9de04ab8e506543",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7cf2b664bb6f0f27cfa5",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7e6fe779e789da799f3c",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7edbd8da1a066dbddea8",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8591b9c6f5a2197aec7a",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_92bdb27e679b4cb30bbb",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_937f0a68b14d9da19c93",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_95e3c0b1b0c11180c130",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_97dbd322bc31ac63c7f0",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9982c5d31ad6a70e5049",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9a5bd3dea712fba05442",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a65b52ff9d5258b7b10d",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a85e0f34fd2514b60f86",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a97d7f9c22246476005d",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b37c3eb1f91b753231dd",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bebc1c9bea87cd3d4208",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c44b3d9f39b3414f476e",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ca3435068aa2702d824b",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cbd889990f7699e013fe",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d3d262e32f51e8bfca07",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d4a0dc34c53237104493",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d70fa9713e72c340ace5",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e497ccb76eec0dea473a",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ea609493c49d44488d2f",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_eddf1311d95ec98f3771",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ef558dc0a1cd4f3c95b0",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f013ac4fd1f7a3aad49b",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fa677cba2102d878424c",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_price_only_integrator__claude_client",
+   "integrator": "scripted_negotiator_price_only",
+   "client": "claude_opus55",
+   "run_plan_id": "runplan_28493e59be27773c",
+   "cells": [
+    {
+     "cell_id": "cell_04670a68c240895e11e1",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_07235b1fbe17b8c04a6c",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_10e344fb042438c00f94",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1147203c0f0bddfbf183",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_13785eaf53a040d52a08",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_15f9affce5da3e703c1c",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1bb9d7cd5a934278c3be",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1d1c34c8f61f24c7fadd",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1f7def42d12a37fcfda2",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_256d217b1ef6626935a0",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_26f2dc0bbd2f6a279e63",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_29dd2503913aa841c3c7",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2bc775f694acdeb75a2c",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_35afaa1fcdf69bbb49df",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4350bed865ef03387b45",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_47e41ae1cdfa1e8f04e1",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4b6be9e80361c42175fd",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4d3682d7a6cf6ba77528",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_514d6a56caa65e22526d",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_58ae53021d92c8b7dacc",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_59d406a1c9c12ba84896",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5aaba6da672ded2ac320",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5b40f67ccb7215c58e9b",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5be0551e4c2259f7de9b",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5d4f8939a52554b822e8",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5d8460100c8310a2bbb7",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_676909849683ac803ff8",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_678b6854f2744e37831c",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6afb73f46d70bc492555",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6be52d751277b95c557a",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_75f352e2e1f1dbce509e",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7669a05b350d17fe8b32",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7ad9bd226007689cd97d",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7f92d099a74994e72f96",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_86afdc8141cf023e1b6b",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8f1d6e0d8bd634a842e0",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_99b932233a6e734a5d76",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a08622dbc67f7ca017c6",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a12f963b49103f720ba4",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a6308a633e622ff7ab90",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_aa9dda01f8560535a5c7",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b1df0710f125c0e0dcba",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b3a1ad46fd8d79e2c615",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b989559d4633f3b5340c",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bb043488b2713549e4c9",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c4a4deb0d92864e1b518",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d0f4d1333c00a1b8124a",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d13c64d97eec905eac57",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d1dc6ad0c5dee5e1f6d9",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d268093deff938189162",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d327bea0423a7202460f",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_db2961c7a87dc5f612f7",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_df6a2454fdaaedfaa567",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e1d1f480472d961a2d33",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e1f65eab6390dc9b4921",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e30f8631c8aa9dd4f23b",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e7ccbecdd08895f03184",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ee39067ad89569054103",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f86c88558a528b043bd2",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fcee74ddc81669344605",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "codex_integrator__negotiator_collapse_client",
+   "integrator": "codex_sol61",
+   "client": "scripted_negotiator_collapse",
+   "run_plan_id": "runplan_28c594b259c00b6e",
+   "cells": [
+    {
+     "cell_id": "cell_0bbab88f271b3e8fd096",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0c0ad79a09b512643f15",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_124b74eb205dcbae5402",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_13c1bfeb44b80a98af2e",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_145b6eb35e3b2f6ef3a1",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_198f46f86cc46c6fc5da",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1a742b67c4c9eaf97ad8",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_21b026fcda16f58d1ca3",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2ddda82b3069e45f6d39",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2e238bc65fdfa1b7a760",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3414625b367f3ac61c9e",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3cec6ed10523a95a421f",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_3efdaf614ac9ac498477",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_46767a561030a089f241",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4bdb24a0f412df7e9fde",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4e7148dbb2d84368ea46",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4ebf289f7f0169187945",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_548f3cc921d40f29729c",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5544bc2654c02c74f027",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5f29d358d66871dd9f45",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_64fa50cd753443b98a17",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_67ae74feb20d1b8166a1",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6969185cf2493e6ee1f0",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6a70f95f0e19b52e02d1",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_713a5090fe5ec574903a",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_713cd00b4e0863a19c5e",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7308bd3efe416223ddf3",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_759314e1e1195f8c33c4",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7d14e89b6c450fcbffed",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_80c7b2c832243979b6ec",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_85c7a2c431c6cee20414",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8a4b93bde36f33714bf5",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_947dfac778fdf09dde6f",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_948701da9767c00c868c",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_958ea5bd33d759a4c694",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_988c1af8d6bb4d05cdef",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a4907c972443111fb0aa",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a7167c0bec325218005b",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b35966bcc903d5252fd4",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b7cc273b72edf12af99a",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b95fcd4ae3cfbf51ac79",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c52e4379c744121b20f1",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c5651916977df7ad99f3",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ccd0740932d2883311c7",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cef5815ee29930bb916d",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cf20fc4672a6ebee4e49",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cfc76b176b67d3dce56c",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d24e54586c4f7a642477",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d7f519b0498fc4911009",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_dcf3c73c2abfd760208a",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ddb84b539e342fb17919",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e0cc011cbbc30d6b0af7",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ebbb70397a7f92a83634",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_edc49d1284faa7750f2c",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f5aa4e8fe5522fc75a0a",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f989a095fd2ea16090c2",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fb09940aa7248139f004",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fb6087161c091d40b0a6",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fcdcd4e9fb457b43bb13",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ffeb34a2925fbeb52330",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "claude_integrator__negotiator_collapse_client",
+   "integrator": "claude_opus55",
+   "client": "scripted_negotiator_collapse",
+   "run_plan_id": "runplan_010f02f6bdb9cae9",
+   "cells": [
+    {
+     "cell_id": "cell_005e59d9470e9b36e3e4",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_00c3db2452c9eb3291c3",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_03a9d5fa62f8cb8ad1b1",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1162d129874d0a11d3ec",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_13f96d8f716bb33c689f",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_16327490b3142db8f1be",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_16f0e1793e40933fb0ab",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_17942e032318e8ae8448",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1b3e3ed33a3b17f8906e",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_20fdb8b12e2aaebfab6e",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_270c4e73059cebd28b5d",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_271244da880bb044cc83",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_275734d66c875d97c1cd",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_277646fcb42047c8178b",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2c34cc458a10ff3b646e",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_35dd7e894a3a552fb122",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_374f700147065839e042",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_43355006392e2f77f4b2",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_46567e737b7cc7ff14ff",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_47ae5051db9ddddc8598",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4b25c098e8c0812ba386",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4e57c3d7fc5dffaa38c0",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_54867cd1f54cfa669417",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_54b351bc808c9e578b75",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_571a52a54c46bc20ba8c",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_59c110038c7c823c1287",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5aed9dd54dd6d7066a22",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6234d48ede39c71312a0",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6e097f05ec67e6e25bcb",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6e5a06d13f21fea6d734",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6f0c98d43e820b1ed2f4",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_73a828adde4202c07408",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7c03060703366863c6a2",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7d64383979924e670c2a",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8483ca9e5a3cbb85b622",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_863bc0b4c9bbfecea06f",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8ca92d7b69ba38623cf2",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8ccf1716fa8c6437fe1e",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8e6814a976649141afbe",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8f72d10e294cf3c9d5b6",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_96637bb46fe3085a1e29",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9cd7f07673296a24142b",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a1f09d28b34bda9d8371",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a536a381e81dc2db6235",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a62f3e7dcd50930f535b",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a9406b7b3819c432e608",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b57a1af04469c5cdf0e5",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c4f6f802a2a7f795a35d",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c74f6280fdacab1027f9",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c85e7a130e5b04738222",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d05e8f6c0e6af9bebad5",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d5a636b13d7b098593c9",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d8cccb06a88c9533aa44",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e030c63ab2dbb9ce26e1",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e2255f9bfca48b94c787",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e2a168d97666fb2cf4be",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e9753342907b18b01301",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f11186fe3ea8e46aa88c",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f31e5ad42c26507b9e5b",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f561dc7851eecaae6ae2",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_collapse_integrator__codex_client",
+   "integrator": "scripted_negotiator_collapse",
+   "client": "codex_sol61",
+   "run_plan_id": "runplan_19ea6a2cc13e68d6",
+   "cells": [
+    {
+     "cell_id": "cell_050b303d63c05d1118cc",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_06170df196449022e1e6",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0a822b2645489e37edd1",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0df6a14a6a833c423cb0",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0e47250ed759bde0d937",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_19c151c05ee9dbd85a51",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2008bd58c70b7a88661f",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_22cf43b0a8db0f2f1b4a",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_24e68ac2670336e57440",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2613f2315d2fbf3e4fe3",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2798811d39f1dd3bc916",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2b3a1edd3ac7264ad21e",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2e7241c555ce5e2cf564",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_352967d17168f66589af",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4835a9739edb3c1363dd",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_49a801bb58adc680f229",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4ef764efdc40ab822d0d",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5017b3a3562bddfa7378",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_514966cf913d009af999",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_52559e7e06bc6e558cab",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_56ede1e91648d6f0abaa",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_58b937ebf5885a4fde6b",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_59e541061f950b52cb24",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5aef6e2ae13b121a674c",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5b305da948b29316a214",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_673ddd8e9d6d2a3f0eee",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_72ed6d5108d8e67e3888",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_797eb5f65688b4098a9f",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_7e26f110c18159fc948d",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_832533cb3394d17bfce7",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_88ccb1e6f70451493ca6",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_983b71774830838fd879",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9b87a1037b566b4f1c73",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9b9c79c183ac8c56dbfa",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a27b5f94fe4d9f8b9984",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a4bfb7b0fc9fa7e4fce5",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a63f3c7daa043c83087b",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_aaf6db44e26934f632c8",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ab2f1b5e1769d469efc9",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ae0901314cd3f53f130d",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_af3369a1ce8546893c1e",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b56f3ac7c435536520a3",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b6dafa741484f80e8ce1",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b7b0865dac0591318888",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b82cd57ce0e4a52c6657",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b9f81818c1683979e9d9",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ba6a5bf7de92df5ce652",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bdb4c0f34742115c68fa",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_bf7702c9563a63a6457c",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c6026851261267f352f5",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c60c1c2ed51a39f1a4e9",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_db4ccb9d6554a4c4d688",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e231f35eccde114cd8f2",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e25f2bd3f3214862045b",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e38e7d958e07eb9f8024",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e7950c1a849289b92cc4",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_eefd753073e49542f5df",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f76d129948268e3efd4e",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_faf1e49d29ffd059caab",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ff457bf98cd4caac3cff",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    }
+   ]
+  },
+  {
+   "pairing": "negotiator_collapse_integrator__claude_client",
+   "integrator": "scripted_negotiator_collapse",
+   "client": "claude_opus55",
+   "run_plan_id": "runplan_61bfea850c83aaa0",
+   "cells": [
+    {
+     "cell_id": "cell_0500fa6d85983c7751de",
+     "case_id": "datacenter_agreement_v1.admitted.4a81884f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_07d67017ec3a714f1501",
+     "case_id": "datacenter_agreement_v1.admitted.83f63ed6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_084e2a60902e908fd19c",
+     "case_id": "datacenter_agreement_v1.admitted.3bf2617c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0874b6b901210f280d5c",
+     "case_id": "datacenter_agreement_v1.admitted.345bcf9c",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0ac7c74cefb9dadbb462",
+     "case_id": "datacenter_agreement_v1.admitted.169dc89b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0b4e79416fb521932af3",
+     "case_id": "datacenter_agreement_v1.admitted.4763287e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_0e6808c5773e75c7ce66",
+     "case_id": "datacenter_agreement_v1.admitted.b602d375",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_10c57123bd4c28cc9d45",
+     "case_id": "datacenter_agreement_v1.admitted.68651f1f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1175b2fe90054eb7ce58",
+     "case_id": "datacenter_agreement_v1.admitted.6b3bce32",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_1d67309cc81ce55d082d",
+     "case_id": "datacenter_agreement_v1.admitted.b46552de",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_266f5553aceea1809e0c",
+     "case_id": "datacenter_agreement_v1.admitted.821d1f44",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_2a93867ce5ae377baab9",
+     "case_id": "datacenter_agreement_v1.admitted.acfc41f0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_347d89c02749c287b19e",
+     "case_id": "datacenter_agreement_v1.admitted.19fcd619",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_379e9782149ba57b17ff",
+     "case_id": "datacenter_agreement_v1.admitted.6e8bb0f4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_38d02105f6fa4a4ad5cb",
+     "case_id": "datacenter_agreement_v1.admitted.cdff8d82",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_401ed60dcd6e260a13ab",
+     "case_id": "datacenter_agreement_v1.admitted.bbbf8a75",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_4032352a9ade662a6cb0",
+     "case_id": "datacenter_agreement_v1.admitted.610f80fa",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_49d3a68220cadb516185",
+     "case_id": "datacenter_agreement_v1.admitted.e1ae27db",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5532f118c4dd2dd3a8ec",
+     "case_id": "datacenter_agreement_v1.admitted.984cbbde",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_566f88115773071bcd87",
+     "case_id": "datacenter_agreement_v1.admitted.5251e335",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_57815b803978286739d6",
+     "case_id": "datacenter_agreement_v1.admitted.a43f0775",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_59918b2f8e518d26214b",
+     "case_id": "datacenter_agreement_v1.admitted.784f45cc",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5c4e4da077a0b60394e1",
+     "case_id": "datacenter_agreement_v1.admitted.9351db38",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5c9039969b848a57da98",
+     "case_id": "datacenter_agreement_v1.admitted.f034b3d4",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_5ed0d6a67009a02a659b",
+     "case_id": "datacenter_agreement_v1.admitted.2db42e15",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_609b880caa87b991a405",
+     "case_id": "datacenter_agreement_v1.admitted.2817b359",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_65be556089bb7452a271",
+     "case_id": "datacenter_agreement_v1.admitted.56878b62",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6d643ee90955be03c52f",
+     "case_id": "datacenter_agreement_v1.admitted.0589c053",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6e1d1de7be41a5a64da1",
+     "case_id": "datacenter_agreement_v1.admitted.f7195011",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6ebf12e60af14a37cbbc",
+     "case_id": "datacenter_agreement_v1.admitted.e954a9e7",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_6f1fe983721ce48a5306",
+     "case_id": "datacenter_agreement_v1.admitted.c69251bd",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_74c1b54895cf2ab11c28",
+     "case_id": "datacenter_agreement_v1.admitted.fff83730",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_76ce49678cf1c38c1af3",
+     "case_id": "datacenter_agreement_v1.admitted.66befad3",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_814477545a1af06fe075",
+     "case_id": "datacenter_agreement_v1.admitted.8758daee",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_823a86853ce1c778779c",
+     "case_id": "datacenter_agreement_v1.admitted.ff56345b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_828962902e636636d33f",
+     "case_id": "datacenter_agreement_v1.admitted.493365ff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_8f57dbc5b701c50377a1",
+     "case_id": "datacenter_agreement_v1.admitted.db144696",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_944e8ad72bdeee10e731",
+     "case_id": "datacenter_agreement_v1.admitted.df0e1d78",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9a9c260860c8dc706d86",
+     "case_id": "datacenter_agreement_v1.admitted.747a604a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_9f7a314a42f35864ad60",
+     "case_id": "datacenter_agreement_v1.admitted.858570fb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a252c02fe58e45e46671",
+     "case_id": "datacenter_agreement_v1.admitted.0605e34d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a438233fe72cb73a0f10",
+     "case_id": "datacenter_agreement_v1.admitted.dc296c28",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_a996176e55bf1324b864",
+     "case_id": "datacenter_agreement_v1.admitted.d07aae13",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_aa552062a33cbc9fdd90",
+     "case_id": "datacenter_agreement_v1.admitted.cd6b12a1",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b273bc8d556781cb77c6",
+     "case_id": "datacenter_agreement_v1.admitted.6ec740f5",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b4d8957253e1afd255bd",
+     "case_id": "datacenter_agreement_v1.admitted.17a06ecb",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_b526c56db0810d47a763",
+     "case_id": "datacenter_agreement_v1.admitted.b163fa81",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ba3c34e65df737de1f91",
+     "case_id": "datacenter_agreement_v1.admitted.a7b8e18a",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_c33768302332552e3c66",
+     "case_id": "datacenter_agreement_v1.admitted.688282e0",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_cf492794f69dc9ecfe5d",
+     "case_id": "datacenter_agreement_v1.admitted.bf61977b",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d0a646e7cc3b1d4801a3",
+     "case_id": "datacenter_agreement_v1.admitted.c3bf8eff",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d15158675e89ca937857",
+     "case_id": "datacenter_agreement_v1.admitted.c6d106b6",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_d7aaea1685b3f60b8b5c",
+     "case_id": "datacenter_agreement_v1.admitted.15abc97f",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_e9690e4b61f0d1082259",
+     "case_id": "datacenter_agreement_v1.admitted.1b6c7e6e",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_ea1649bfc3eb34b5501a",
+     "case_id": "datacenter_agreement_v1.admitted.959f8768",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f2abc353b5223bd2d055",
+     "case_id": "datacenter_agreement_v1.admitted.8043050d",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_f4222f15052454599afa",
+     "case_id": "datacenter_agreement_v1.admitted.67119862",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fb58a09cad11c7daa80e",
+     "case_id": "datacenter_agreement_v1.admitted.48c9e950",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fd1eda6d5cbac9fba891",
+     "case_id": "datacenter_agreement_v1.admitted.0064cc63",
+     "replicate_index": 0
+    },
+    {
+     "cell_id": "cell_fd388a946554dd3f2ca4",
+     "case_id": "datacenter_agreement_v1.admitted.243a85db",
+     "replicate_index": 0
+    }
+   ]
+  }
+ ],
+ "scripted_negotiator": {
+  "module": "aeread_families.datacenter_development.agreement_negotiator",
+  "styles_in_this_campaign": [
+   "collapse",
+   "overreach",
+   "price_only"
+  ],
+  "fixed_styles": {
+   "overreach": {
+    "opening": 1.3,
+    "final": 0.7,
+    "least": 0.2,
+    "reciprocity": 0.0,
+    "cover": 0.0,
+    "accept_odds": 0.8,
+    "past": true,
+    "clauses": "best",
+    "late": false
+   },
+   "price_only": {
+    "opening": 0.7,
+    "final": 0.5,
+    "least": 0.2,
+    "reciprocity": 1.0,
+    "cover": 0.0,
+    "accept_odds": 0.8,
+    "past": false,
+    "clauses": "standing",
+    "late": false
+   },
+   "collapse": {
+    "opening": 0.9,
+    "final": 0.3,
+    "least": 0.0,
+    "reciprocity": 1.0,
+    "cover": 0.0,
+    "accept_odds": 0.8,
+    "past": false,
+    "clauses": "best",
+    "late": true
+   }
+  },
+  "reads": "its own seat's information: its own costs, the other side's as the declared types and odds, and the moves; never a note"
+ },
+ "sizing_record": {
+  "path": "cases/datacenter_agreement_v1/agreement_confirmatory_v1/p2_sizing_record.json",
+  "sha256": "608e1d2a873c5b5360e807a932b363b4657aebfaee10ca905df9ae5ce601f735",
+  "record": {
+   "analysis_module_sha256": "94847c561cc15b136a9c7452f02227435ce96835b234c9b25cd7708d1055d880",
+   "contrast": "P2",
+   "deal_worlds_available": 42,
+   "deal_worlds_needed": 18,
+   "detectable_at_42": 28.29,
+   "pilot_campaign": {
+    "campaign_id": "datacenter_agreement_confirm_pilot_v1",
+    "cells": 96,
+    "list_price_usd": 5.805,
+    "missing": [],
+    "missing_by_cause": {},
+    "plan_sha256": "a27bf4fc3738a73f8bac8c88747c7fb7f1483f4e9043583789c7fe625c094a39",
+    "status": {
+     "ok": 96
+    },
+    "valid": 96,
+    "wall_minutes": [
+     22.42
+    ]
+   },
+   "pilot_pack": "agreement_admitted_pilot_v1",
+   "pilot_world_values": {
+    "3e58960e": [
+     89.406,
+     -40.619
+    ],
+    "4c1768d2": [
+     25.0,
+     50.0
+    ],
+    "6707ee78": [
+     80.763,
+     82.575
+    ],
+    "6b1dbd6f": [
+     53.862,
+     97.591
+    ],
+    "74fba85f": [
+     -6.25,
+     -40.269
+    ],
+    "7b6d7764": [
+     -84.255,
+     -5.0
+    ],
+    "84058cbf": [
+     -23.8,
+     51.675
+    ],
+    "97a78a2b": [
+     47.5,
+     -63.36
+    ],
+    "ab7f8454": [
+     137.808,
+     52.5
+    ],
+    "b282adb4": [
+     75.0,
+     46.188
+    ],
+    "ed5deeda": [
+     5.0,
+     12.5
+    ],
+    "f32dc5f4": [
+     30.0,
+     -2.5
+    ]
+   },
+   "record": {
+    "artifact_sha256": "7511fc9f7aa55415ce69d58a6d98157e92a4efede7e3e7b4726456055ba181fd",
+    "inputs": {
+     "alpha": 0.016666666666666666,
+     "attrition": 0.07,
+     "minimum_effect": 50.0,
+     "pilot_source": "datacenter_agreement_confirm_pilot_v1 (plan a27bf4fc3738): arm F on agreement_admitted_pilot_v1, two plays a world",
+     "pilot_worlds": 12,
+     "power": 0.8,
+     "sd_of_differences": 54.933
+    },
+    "method": "paired t on per-world differences: the smallest n with n >= ((t(n-1, 1-alpha/2) + z(power)) * sd / effect)^2, then n / (1 - attrition) rounded up",
+    "schema_version": "aeread.design.sizing/1",
+    "worlds": 18,
+    "worlds_before_attrition": 16
+   },
+   "sizing_module_sha256": "6a3f0794d336b92d6d5566159885d8b1dd03ff284e21d6478b2d8aba22d6a41f",
+   "variance": {
+    "development_sd": 71.9,
+    "sd_one_play": 54.933,
+    "sd_two_play_mean": 43.483,
+    "var_play": 2253.838,
+    "var_world": 763.819,
+    "worlds_complete": 12,
+    "worlds_deal": 12
+   },
+   "within_world_spread": {
+    "by_world": {
+     "3e58960e": {
+      "claude_client": [
+       80.8,
+       80.8
+      ],
+      "claude_integrator": [
+       100.05,
+       100.05
+      ],
+      "codex_client": [
+       149.6125,
+       149.6125
+      ],
+      "codex_integrator": [
+       210.05,
+       -50.0
+      ]
+     },
+     "4c1768d2": {
+      "claude_client": [
+       337.58,
+       307.58
+      ],
+      "claude_integrator": [
+       215.552,
+       215.552
+      ],
+      "codex_client": [
+       332.58,
+       337.58
+      ],
+      "codex_integrator": [
+       270.552,
+       285.552
+      ]
+     },
+     "6707ee78": {
+      "claude_client": [
+       -235.15,
+       -215.15
+      ],
+      "claude_integrator": [
+       -50.0,
+       -50.0
+      ],
+      "codex_client": [
+       -73.623,
+       -50.0
+      ],
+      "codex_integrator": [
+       -50.0,
+       -50.0
+      ]
+     },
+     "6b1dbd6f": {
+      "claude_client": [
+       -245.1825,
+       -245.1825
+      ],
+      "claude_integrator": [
+       37.458,
+       32.458
+      ],
+      "codex_client": [
+       -50.0,
+       -50.0
+      ],
+      "codex_integrator": [
+       -50.0,
+       32.458
+      ]
+     },
+     "74fba85f": {
+      "claude_client": [
+       94.848,
+       100.538
+      ],
+      "claude_integrator": [
+       162.34,
+       162.34
+      ],
+      "codex_client": [
+       107.348,
+       -50.0
+      ],
+      "codex_integrator": [
+       137.34,
+       232.34
+      ]
+     },
+     "7b6d7764": {
+      "claude_client": [
+       88.0,
+       88.0
+      ],
+      "claude_integrator": [
+       103.51,
+       103.51
+      ],
+      "codex_client": [
+       73.0,
+       83.0
+      ],
+      "codex_integrator": [
+       -50.0,
+       98.51
+      ]
+     },
+     "84058cbf": {
+      "claude_client": [
+       252.6225,
+       193.5225
+      ],
+      "claude_integrator": [
+       184.82,
+       154.82
+      ],
+      "codex_client": [
+       155.0225,
+       216.8725
+      ],
+      "codex_integrator": [
+       234.82,
+       234.82
+      ]
+     },
+     "97a78a2b": {
+      "claude_client": [
+       63.2875,
+       63.2875
+      ],
+      "claude_integrator": [
+       108.0,
+       108.0
+      ],
+      "codex_client": [
+       73.2875,
+       94.5675
+      ],
+      "codex_integrator": [
+       193.0,
+       -50.0
+      ]
+     },
+     "ab7f8454": {
+      "claude_client": [
+       1.5445,
+       31.5445
+      ],
+      "claude_integrator": [
+       204.45,
+       204.45
+      ],
+      "codex_client": [
+       187.16,
+       71.5445
+      ],
+      "codex_integrator": [
+       294.45,
+       269.45
+      ]
+     },
+     "b282adb4": {
+      "claude_client": [
+       -207.76,
+       -207.76
+      ],
+      "claude_integrator": [
+       82.624,
+       72.624
+      ],
+      "codex_client": [
+       -47.76,
+       7.24
+      ],
+      "codex_integrator": [
+       72.624,
+       -50.0
+      ]
+     },
+     "ed5deeda": {
+      "claude_client": [
+       67.31716,
+       92.31716
+      ],
+      "claude_integrator": [
+       106.6,
+       116.6
+      ],
+      "codex_client": [
+       67.31716,
+       67.31716
+      ],
+      "codex_integrator": [
+       116.6,
+       166.6
+      ]
+     },
+     "f32dc5f4": {
+      "claude_client": [
+       173.895,
+       173.895
+      ],
+      "claude_integrator": [
+       16.8,
+       16.8
+      ],
+      "codex_client": [
+       123.895,
+       123.895
+      ],
+      "codex_integrator": [
+       126.8,
+       61.8
+      ]
+     }
+    },
+    "mean_absolute_difference_between_plays": {
+     "claude_client": 14.15,
+     "claude_integrator": 4.58,
+     "codex_client": 37.48,
+     "codex_integrator": 92.22
+    }
+   }
+  }
+ },
+ "plan_sha256": "50d4b80177f0f175c9a0397788d5a56a6d25cfc452ff3a05a2c3445175505f4b"
+}
