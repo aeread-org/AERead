@@ -2,6 +2,7 @@
 
     python -m aeread_families.datacenter_development.agreement_admitted_pack --write   # scan, admit, draw types, write
     python -m aeread_families.datacenter_development.agreement_admitted_pack --check   # rescan every seed, compare with the pack
+    python -m aeread_families.datacenter_development.agreement_admitted_pack --pack agreement_admitted_pilot_v1 --write
 
 The case is ``docs/families/datacenter/agreement_case.md`` ("The pack", "Before any model plays"); the QC profile is
 ``docs/families/datacenter/qc.md`` section 11. The development packs (:mod:`.agreement_pack`) borrowed worlds admitted
@@ -58,6 +59,12 @@ declared prior within the playbook. The cell never enters the draw.
 The scripted counterpart's ``drawn`` style (``agreement_negotiator.drawn_style``) hashes the whole world, the client's
 hidden charge included (DC-D-32). :func:`public_style` draws the same population from the public world and the seat
 only; ``Negotiator`` takes a ``Style`` directly, so :func:`public_negotiator_move` uses it without editing the negotiator.
+
+**Other packs from the same rules.** A :class:`PackSpec` names a pack, its split, its first seed and its quotas; every
+step reads it, and the admitted pack's spec is the default, so its files are unchanged. The confirmatory plan's variance
+pilot, ``agreement_admitted_pilot_v1`` (:data:`PILOT`), is the same generator and admission from seed 6,500,000 with 4
+worlds a cell; its case codes and hidden types are keyed by its own pack id, and it shares no world with the admitted
+pack or a development pack.
 """
 
 from __future__ import annotations
@@ -69,7 +76,7 @@ import math
 import random
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -119,6 +126,35 @@ EVERY_PROTECTION = {
 }
 AGREEMENTS = ag.ALL_AGREEMENTS
 INDEX = {c: i for i, c in enumerate(AGREEMENTS)}
+
+
+@dataclass(frozen=True)
+class PackSpec:
+    """A pack built by these rules: its id, its split, where its scan starts and how many worlds each cell takes."""
+    pack: str
+    split: str
+    base_seed: int
+    quotas: Mapping[str, int] = field(default_factory=lambda: dict(QUOTAS))
+    max_scan: int = MAX_SCAN
+    claim_status: str = ("admitted on its structure before any hidden type was drawn; no model has played it. For the plan "
+                         "docs/families/datacenter/agreement_confirmatory_plan.md")
+
+    @property
+    def root(self) -> Path:
+        return CASES_ROOT / self.pack
+
+    @property
+    def type_stream(self) -> str:
+        return self.pack + "/hidden_types/v1:{seed}"
+
+
+ADMITTED = PackSpec(PACK, SPLIT, BASE_SEED)
+#: The confirmatory plan's variance pilot ("Before the confirmatory runs", step 3): 12 worlds, never a confirmatory world.
+PILOT = PackSpec("agreement_admitted_pilot_v1", "pilot", 6_500_000,
+                 {"walk": 4, "trade": 4, "hand_risk_over": 4, "take_risk_on": 0, "move_the_price": 0},
+                 claim_status="the variance pilot of docs/families/datacenter/agreement_confirmatory_plan.md: the admitted pack's "
+                              "generator and rules on their own seeds; development evidence, never a confirmatory world")
+SPECS = {s.pack: s for s in (ADMITTED, PILOT)}
 DEVELOPMENT_PACKS = ("agreement_dev_v1", "agreement_dev_walkaway_v1", "agreement_confirm_v1", "agreement_confirm_swap_client_v1",
                      "agreement_confirm_swap_integrator_v1")
 
@@ -349,9 +385,9 @@ def screen(seed: int) -> dict[str, Any]:
 # Step 3: the hidden types, on their own stream.
 
 
-def hidden_types(seed: int, cw: rc.CWorld) -> tuple[ra.IntegratorType, float]:
+def hidden_types(seed: int, cw: rc.CWorld, spec: PackSpec = ADMITTED) -> tuple[ra.IntegratorType, float]:
     """The client's charge, then the integrator's type, at the declared priors. Keyed by the pack and the seed only."""
-    rng = random.Random(int.from_bytes(hashlib.sha256(TYPE_STREAM.format(seed=seed).encode("utf-8")).digest(), "big"))
+    rng = random.Random(int.from_bytes(hashlib.sha256(spec.type_stream.format(seed=seed).encode("utf-8")).digest(), "big"))
     charge = _pick(rng, [(c, q) for c, q in cw.w.client_prior])
     weight = dict(cw.w.prior)
     it = _pick(rng, [(t, weight[t]) for t in cw.types])
@@ -470,16 +506,16 @@ def summary(log: Sequence[Sequence[Any]]) -> dict[str, Any]:
     }
 
 
-def case_of(seed: int, cw: rc.CWorld) -> dict[str, Any]:
+def case_of(seed: int, cw: rc.CWorld, spec: PackSpec = ADMITTED) -> dict[str, Any]:
     payload = {"world": ra.world_to_dict(cw.w), "integrator_type": None, "extras": {"team": cw.x.team, "site_prep": cw.x.site_prep}}
-    it, charge = hidden_types(seed, cw)
+    it, charge = hidden_types(seed, cw, spec)
     payload["world"]["client"]["risk_charge"] = charge
     payload["integrator_type"] = {"test_cost": it.test_cost, "risk_charge": it.risk_charge}
     AgreementPlugin().validate_payload(payload)
-    code = hashlib.sha256(f"{PACK}:{seed}".encode()).hexdigest()[:8]
+    code = hashlib.sha256(f"{spec.pack}:{seed}".encode()).hexdigest()[:8]
     raw = {
-        "spec_version": CaseManifest.SPEC_VERSION, "case_id": f"{FAMILY_ID}.{SPLIT}.{code}", "family_id": FAMILY_ID,
-        "family_version": FAMILY_VERSION, "split": SPLIT, "world_seed": seed,
+        "spec_version": CaseManifest.SPEC_VERSION, "case_id": f"{FAMILY_ID}.{spec.split}.{code}", "family_id": FAMILY_ID,
+        "family_version": FAMILY_VERSION, "split": spec.split, "world_seed": seed,
         "seats": [{"id": s, "role": s} for s in ag.SEATS],
         "episode": {"max_logical_actions": ag.MOVES, "termination": list(TERMINATIONS)},
         "visibility_policy": VISIBILITY_POLICY, "payload": payload,
@@ -521,31 +557,30 @@ def index_row(r: Mapping[str, Any], raw: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def generator_spec() -> dict[str, Any]:
+def generator_spec(spec: PackSpec = ADMITTED) -> dict[str, Any]:
     return {
-        "id": GENERATOR_ID, "version": GENERATOR_VERSION, "split": SPLIT, "base_seed": BASE_SEED, "max_scan": MAX_SCAN,
+        "id": GENERATOR_ID, "version": GENERATOR_VERSION, "split": spec.split, "base_seed": spec.base_seed, "max_scan": spec.max_scan,
         "public_stream": "random.Random(seed): a regime of risk_allocation_contracts.CELLS (its ranges; its client charge ignored), "
                          "a playbook it allows, then each public range in risk_allocation_contracts.draw_world's order and rounding",
         "turnkey_price": "round to $10k of (the prior-weighted least joint cost over the 600 agreements + floor margin + the drawn turnkey offset)",
         "margins": {"draft": DRAFT_MARGIN, "shortcut": SHORTCUT_MARGIN, "walk": WALK_MARGIN, "information": INFORMATION_MARGIN},
         "shortcuts": list(SHORTCUTS), "every_protection": {k: c.label() for k, c in EVERY_PROTECTION.items()},
-        "quotas": dict(QUOTAS), "give_up_share_at_least": round(GIVE_UP_SHARE, 6),
-        "hidden_type_stream": "random.Random(int(sha256('" + TYPE_STREAM + "'))): the client's charge, then the integrator's type, at the declared priors",
+        "quotas": dict(spec.quotas), "give_up_share_at_least": round(GIVE_UP_SHARE, 6),
+        "hidden_type_stream": "random.Random(int(sha256('" + spec.type_stream + "'))): the client's charge, then the integrator's type, at the declared priors",
         "style_population": STYLE_POPULATION,
     }
 
 
-def build(result: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any], list[list[Any]]]:
+def build(result: Mapping[str, Any], spec: PackSpec = ADMITTED) -> tuple[list[dict[str, Any]], dict[str, Any], list[list[Any]]]:
     """The case files, ``pack.json`` and ``scan.json`` from a scan's result."""
     cases, worlds = [], []
     for r in result["admitted"]:
-        raw = case_of(r["seed"], r["world"].cw)
+        raw = case_of(r["seed"], r["world"].cw, spec)
         cases.append(raw)
         worlds.append(index_row(r, raw))
     manifest = {
-        "pack": PACK, "family_id": FAMILY_ID, "family_version": FAMILY_VERSION, "generator": generator_spec(),
-        "claim_status": "admitted on its structure before any hidden type was drawn; no model has played it. For the plan "
-                        "docs/families/datacenter/agreement_confirmatory_plan.md",
+        "pack": spec.pack, "family_id": FAMILY_ID, "family_version": FAMILY_VERSION, "generator": generator_spec(spec),
+        "claim_status": spec.claim_status,
         "scan": summary(result["log"]), "scan_log_fields": list(LOG_FIELDS), "worlds": worlds,
     }
     return cases, manifest, [list(row) for row in result["log"]]
@@ -555,19 +590,20 @@ def _dump(value: Any) -> str:
     return json.dumps(value, indent=1, sort_keys=True) + "\n"
 
 
-def files(result: Mapping[str, Any]) -> dict[str, str]:
-    """Each file of the pack, by its name under :data:`ROOT`, as the bytes that are committed."""
-    cases, manifest, log = build(result)
+def files(result: Mapping[str, Any], spec: PackSpec = ADMITTED) -> dict[str, str]:
+    """Each file of the pack, by its name under the spec's root, as the bytes that are committed."""
+    cases, manifest, log = build(result, spec)
     out = {f"{raw['case_id'].rsplit('.', 1)[-1]}.json": _dump(raw) for raw in cases}
     out["pack.json"] = _dump(manifest)
     out["scan.json"] = "[\n" + ",\n".join(json.dumps(row, separators=(",", ":")) for row in log) + "\n]\n"
     return out
 
 
-def load() -> tuple[dict[str, Any], dict[str, dict[str, Any]], list[list[Any]]]:
-    manifest = json.loads((ROOT / "pack.json").read_text())
-    cases = {w["case_id"]: json.loads((ROOT / f"{w['case_id'].rsplit('.', 1)[-1]}.json").read_text()) for w in manifest["worlds"]}
-    return manifest, cases, json.loads((ROOT / "scan.json").read_text())
+def load(spec: PackSpec = ADMITTED) -> tuple[dict[str, Any], dict[str, dict[str, Any]], list[list[Any]]]:
+    root = spec.root
+    manifest = json.loads((root / "pack.json").read_text())
+    cases = {w["case_id"]: json.loads((root / f"{w['case_id'].rsplit('.', 1)[-1]}.json").read_text()) for w in manifest["worlds"]}
+    return manifest, cases, json.loads((root / "scan.json").read_text())
 
 
 def replay(log: Sequence[Sequence[Any]]) -> dict[str, Any]:
@@ -594,11 +630,11 @@ def verify_rows(log: Sequence[Sequence[Any]], seeds: Sequence[int]) -> list[str]
     return out
 
 
-def sequence_failures(log: Sequence[Sequence[Any]], quotas: Mapping[str, int] = QUOTAS) -> list[str]:
+def sequence_failures(log: Sequence[Sequence[Any]], quotas: Mapping[str, int] | None = None, spec: PackSpec = ADMITTED) -> list[str]:
     """Whether the log's statuses follow from its reasons and cells: seeds in order from the base seed, a seed admitted exactly
     when it breaks no rule and its cell is still open, and the scan stopping on the seed that fills the last quota."""
-    out, left = [], dict(quotas)
-    if [row[0] for row in log] != list(range(BASE_SEED, BASE_SEED + len(log))):
+    out, left = [], dict(spec.quotas if quotas is None else quotas)
+    if [row[0] for row in log] != list(range(spec.base_seed, spec.base_seed + len(log))):
         out.append("the log is not every seed in order from the base seed")
     for row in log:
         expected = "rejected" if row[4] else "admitted" if left[row[3]] > 0 else "cell_full"
@@ -615,10 +651,10 @@ def sequence_failures(log: Sequence[Sequence[Any]], quotas: Mapping[str, int] = 
 # Checks on the pack as a whole.
 
 
-def development_worlds() -> dict[str, set[str]]:
-    """The full-content and public digests of every world in the development packs."""
+def development_worlds(packs: Sequence[str] = DEVELOPMENT_PACKS) -> dict[str, set[str]]:
+    """The full-content and public digests of every world in these packs (by default the development packs)."""
     full, public = set(), set()
-    for pack in DEVELOPMENT_PACKS:
+    for pack in packs:
         manifest = json.loads((CASES_ROOT / pack / "pack.json").read_text())
         for w in manifest["worlds"]:
             raw = json.loads((CASES_ROOT / pack / f"{w['case_id'].rsplit('.', 1)[-1]}.json").read_text())
@@ -628,13 +664,14 @@ def development_worlds() -> dict[str, set[str]]:
     return {"full": full, "public": public}
 
 
-def pack_failures(manifest: Mapping[str, Any], cases: Mapping[str, Mapping[str, Any]]) -> list[str]:
-    """Pack-level admission: quotas, the share giving a clause up, distinct worlds, nothing shared with a development pack."""
+def pack_failures(manifest: Mapping[str, Any], cases: Mapping[str, Mapping[str, Any]], spec: PackSpec = ADMITTED) -> list[str]:
+    """Pack-level admission: quotas, the share giving a clause up, distinct worlds, nothing shared with a development pack
+    (nor, for any pack but the admitted one, with the admitted pack)."""
     worlds = manifest["worlds"]
     out = []
     by_cell = Counter(w["cell"] for w in worlds)
-    if dict(by_cell) != {c: q for c, q in QUOTAS.items() if q}:
-        out.append(f"cells {dict(by_cell)} are not the quotas {QUOTAS}")
+    if dict(by_cell) != {c: q for c, q in spec.quotas.items() if q}:
+        out.append(f"cells {dict(by_cell)} are not the quotas {dict(spec.quotas)}")
     if sum(w["gives_a_clause_up"] for w in worlds) < GIVE_UP_SHARE * len(worlds) - 1e-9:
         out.append("too few worlds give a clause up")
     for key in ("public_sha256", "content_sha256", "world_seed"):
@@ -643,7 +680,12 @@ def pack_failures(manifest: Mapping[str, Any], cases: Mapping[str, Mapping[str, 
     dev = development_worlds()
     if {w["content_sha256"] for w in worlds} & dev["full"] or {w["public_sha256"] for w in worlds} & dev["public"]:
         out.append("a world equals a development world")
-    if min(w["world_seed"] for w in worlds) < BASE_SEED:
+    if spec != ADMITTED:
+        admitted = load(ADMITTED)[0]["worlds"]
+        if ({w["public_sha256"] for w in worlds} & {w["public_sha256"] for w in admitted}
+                or {w["world_seed"] for w in worlds} & {w["world_seed"] for w in admitted}):
+            out.append("a world equals an admitted world")
+    if min(w["world_seed"] for w in worlds) < spec.base_seed:
         out.append("a seed below the pack's range")
     if set(cases) != {w["case_id"] for w in worlds}:
         out.append("the case files are not the indexed worlds")
@@ -655,16 +697,19 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - thin CLI
     parser.add_argument("--write", action="store_true", help="scan, admit, draw the types and write the pack")
     parser.add_argument("--check", action="store_true", help="rescan every seed and compare with the committed pack, byte for byte")
     parser.add_argument("--processes", type=int, default=8)
+    parser.add_argument("--pack", choices=sorted(SPECS), default=PACK, help="which pack these rules build")
     args = parser.parse_args(argv)
-    result = scan(args.processes)
-    made = files(result)
+    spec = SPECS[args.pack]
+    result = scan(args.processes, spec.base_seed, spec.quotas, spec.max_scan)
+    made = files(result, spec)
+    root = spec.root
     if args.write:
-        ROOT.mkdir(parents=True, exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         for name, text in made.items():
-            (ROOT / name).write_text(text)
-        print(f"{ROOT}: {len(made) - 2} worlds, {len(result['log'])} seeds scanned")
+            (root / name).write_text(text)
+        print(f"{root}: {len(made) - 2} worlds, {len(result['log'])} seeds scanned")
     if args.check:
-        on_disk = {p.name: p.read_text() for p in ROOT.glob("*.json")}
+        on_disk = {p.name: p.read_text() for p in root.glob("*.json")}
         if on_disk != made:
             print("differs:", sorted(k for k in set(on_disk) | set(made) if on_disk.get(k) != made.get(k)))
             return 1
@@ -676,7 +721,7 @@ if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
 
 
-__all__ = ["BASE_SEED", "CELLS", "DRAFT_MARGIN", "EVERY_PROTECTION", "GIVE_UP_SHARE", "INFORMATION_MARGIN", "MARGIN", "PACK", "QUOTAS", "REASONS",
+__all__ = ["ADMITTED", "PILOT", "SPECS", "PackSpec", "BASE_SEED", "CELLS", "DRAFT_MARGIN", "EVERY_PROTECTION", "GIVE_UP_SHARE", "INFORMATION_MARGIN", "MARGIN", "PACK", "QUOTAS", "REASONS",
            "SHORTCUTS", "SHORTCUT_MARGIN", "WALK_MARGIN", "PublicWorld", "admission_failures", "best_index", "build", "case_of", "cell_of", "files",
            "gives_a_clause_up", "hidden_types", "joint_costs", "load", "pack_failures", "pairs_of", "protection", "public_dict", "public_negotiator_move",
            "public_sha256", "public_style", "public_world", "replay", "requirement", "scan", "screen", "sequence_failures", "structure", "summary",

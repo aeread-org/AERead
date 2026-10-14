@@ -18,12 +18,17 @@ Each check is made against a counterexample that breaks it. What is tested:
    each cell, loses exactly what admission assigned it.
 6. The publicly drawn counterpart style does not move with the client's hidden charge; ``drawn_style`` does (DC-D-32).
 7. No world shares a seed range, a content digest or its drawn public parameters with a development pack.
+8. The variance pilot ``agreement_admitted_pilot_v1`` is the same rules on its own seeds: reproduced byte for byte from
+   its scan log, at its quotas, keyed by its own pack id, sharing no world with the admitted pack or a development pack,
+   and played through the environment the full-information pair loses 0 and the draft pair loses its midpoint. Adding it
+   left the admitted pack's files unchanged (``pack.json`` sha256 265770bd..., the digest the confirmatory plan pins).
 
 Profile: ``docs/families/datacenter/qc.md`` section 11.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from collections import Counter
@@ -464,3 +469,50 @@ def test_no_world_shares_seeds_content_or_drawn_parameters_with_a_development_pa
     planted["worlds"][0]["public_sha256"] = next(iter(dev["public"]))
     assert "a world equals a development world" in m.pack_failures(planted, cases)
     assert dev_manifest["worlds"]
+
+
+# ---------------------------------------------------------------------------
+# 8. The variance pilot.
+
+ADMITTED_PACK_SHA256 = "265770bd86576c0577035a9f3e2943d1a058e06b7845743474737a8ec3ed700b"
+
+
+@lru_cache(maxsize=None)
+def pilot():
+    return m.load(m.PILOT)
+
+
+def test_the_admitted_pack_is_the_one_the_confirmatory_plan_pins() -> None:
+    assert hashlib.sha256((m.ROOT / "pack.json").read_bytes()).hexdigest() == ADMITTED_PACK_SHA256
+    assert m.ADMITTED.root == m.ROOT and m.ADMITTED.type_stream == m.TYPE_STREAM and m.generator_spec() == m.generator_spec(m.ADMITTED)
+
+
+def test_the_pilot_pack_is_reproduced_byte_for_byte_from_its_scan_log_at_its_own_quotas() -> None:
+    manifest, cases, log = pilot()
+    on_disk = {p.name: p.read_text() for p in m.PILOT.root.glob("*.json")}
+    assert m.files(m.replay(log), m.PILOT) == on_disk
+    assert m.sequence_failures(log, spec=m.PILOT) == [] and m.sequence_failures(log)  # not the admitted pack's sequence
+    assert manifest["generator"] == m.generator_spec(m.PILOT) and manifest["scan"] == m.summary(log)
+    assert manifest["scan"]["seeds"]["first"] == m.PILOT.base_seed == 6_500_000
+    assert Counter(w["cell"] for w in manifest["worlds"]) == {"walk": 4, "trade": 4, "hand_risk_over": 4}
+    assert all(w["case_id"].split(".")[1] == "pilot" for w in manifest["worlds"])
+
+
+def test_the_pilot_shares_no_world_with_the_admitted_pack_and_its_types_come_from_its_own_stream() -> None:
+    manifest, cases, _ = pilot()
+    assert m.pack_failures(manifest, cases, m.PILOT) == []
+    admitted, _, _ = committed()
+    assert min(w["world_seed"] for w in manifest["worlds"]) > max(w["world_seed"] for w in admitted["worlds"])
+    for w in manifest["worlds"]:
+        cw, it = rc.world_from(cases[w["case_id"]]["payload"])
+        assert m.hidden_types(w["world_seed"], cw, m.PILOT) == (it, cw.w.client.risk_charge)
+    # the check is not vacuous: an admitted world planted in the pilot is caught
+    planted = json.loads(json.dumps(manifest))
+    planted["worlds"][0]["public_sha256"] = admitted["worlds"][0]["public_sha256"]
+    assert "a world equals an admitted world" in m.pack_failures(planted, cases, m.PILOT)
+
+
+def test_through_the_environment_the_pilot_oracle_loses_nothing_and_the_draft_pair_loses_its_midpoint() -> None:
+    assert oracle_failures(recorded(m.PILOT.pack, "oracle")) == []
+    failures, _ = draft_failures(recorded(m.PILOT.pack, "draft"))
+    assert failures == []
