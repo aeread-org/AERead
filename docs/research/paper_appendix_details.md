@@ -82,116 +82,71 @@ trajectory, so it measures the environment's conformance, not a model; with ever
 trajectories are 174 distinct action sequences (four payments cases share one reference
 trajectory).
 
-### E.4 Results in full
+### E.4 Results beyond the main text
 
 #### Housing
 
-The three flash models were run under one analysis declared before any cell: three model pairs
-corrected together (Holm), each model against the reference, a $50 minimum meaningful
-difference, the holdout reported apart.
-
-**Table E.3. Housing v14, main pack (260 worlds); dollars per world, 95% intervals paired by world.**
-
-| | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
-|---|---:|---:|---:|
-| Tenant net per world | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
-| Minus the reference, all worlds | −81 [−97, −65] | −155 [−177, −134] | −162 [−181, −142] |
-| Minus the reference, favourite is a lemon (200) | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
-| Minus the reference, favourite is sound (60) | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
-
-Gemini leads GLM by +70 [+48, +92] and Luna by +80 [+62, +99] (Holm p < 10⁻⁸); GLM and Luna
-differ by +7 [−16, +29], inside the $50 band. The 40-world holdout points the same way (+106
-[+44, +168], +55 [+12, +98], −40 [−106, +26]). All 1,800 published receipts replay to the same
-score. Thirty-six Gemini cells were refused when the provider account ran out of credit; they
-stay missing in the declared bundle, and a separately identified fill run moves nothing (+74,
-+81). A reading of the measure's code for this paper found that a blind signing of a listing the
-leaky landlord's reply had proved sound is valued at the stated odds rather than as sound
-(HL-D-07). Recomputed from the sealed run roots with every blind signing valued at the
-posterior given inspections and informative replies, the correction moves 21 (GLM), 33 (Luna)
-and 3 (Gemini) signings and no declared verdict: Gemini leads GLM by +60 [+38, +81] and Luna by
-+67 [+49, +84] (Holm p < 10⁻⁶), still past the $50 band, though the lower bounds now fall below
-it; GLM and Luna differ by +2 [−20, +24]; each model minus the reference becomes −79, −142 and
-−144. The published bundle is not edited; an erratum is owed once the errata layer lands.
-
-None of the three reaches the reference, and almost the whole shortfall sits in the
-favourite-lemon stratum, where the models keep 60%, 27% and 22% of what the reference earns,
-against 97%, 83% and 98% where the favourite is sound. A pooled score would report a gap of $81
-to $162 and hide that, on the quarter of the pack where the favourite is sound, two of the
-three models are within $13 of the reference.
+Over all 260 main-pack worlds the models fall short of the reachable reference by −81 [−97, −65]
+(Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
+22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
+is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
+[+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same score.
+Thirty-six Gemini cells were refused when the provider account ran out of credit; they stay
+missing in the declared bundle, and a separately identified fill moves nothing (+74, +81). Under
+the HL-D-07 correction (a blind signing valued at the posterior given inspections and informative
+replies) 21 (GLM), 33 (Luna) and 3 (Gemini) signings change value: Gemini leads by +60 [+38, +81]
+and +67 [+49, +84] (Holm p < 10⁻⁶), GLM−Luna is +2 [−20, +24], and each model minus the reference
+becomes −79, −142 and −144. The published bundle is not edited.
 
 Two CLI agents played the first 20 worlds of the main pack (40 cells each). Sol 6.1 earns $313
 [225, 402] and Opus 5.5 $291 [198, 383] against the reference's $331 on those worlds; the
 difference, +23 [−19, +64], is not established. Both equal the reference where the favourite is
 sound ($427) and fall short where it is a lemon ($200 and $155 against $235).
 
-The reference is reachable, not best. An exact best informed tenant (a belief over which
-listings are lemons and which landlord kind it faces, solved by backward induction, Appendix C)
-earns $307 a world on the main pack when it knows the two landlord kinds and how each prices.
-The v14 subjects were not told that, so part of their gap to it is information rather than
-judgment. This tenant is development work on an unmerged branch.
+The reference is reachable, not best. An exact best informed tenant (Appendix C) earns $307 a
+world on the main pack when it knows the two landlord kinds and how each prices; the v14 subjects
+were not told that, so part of their gap to it is information rather than judgment. This tenant is
+development work on an unmerged branch.
 
 #### Procurement
 
-**Table E.4. Procurement pay-or-test, 24 worlds, one play a world; dollars given up per world.**
-
-| | Sol 6.1 (Codex CLI) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
-|---|---:|---:|---:|---:|
-| First brief | 12.2 [4.3, 23.6] | 19.4 [6.0, 38.2] | | |
-| Brief stating that a quote is final and that the buyer is judged on its average | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
-| Share of the best policy's value (second brief) | 99.8% | 98.8% | 83.3% | 83.5% |
-| Worlds with nothing given up (second brief) | 20 of 24 | 17 of 24 | 8 of 24 | 7 of 24 |
-
-Fixed rules, scored exactly over the same 24 worlds: comparing each untested newcomer with
-paying, one test ahead and keeping the recorded supplier reachable, gives up $0.06 a world;
-testing the best odds once $45.7; always paying $75.2; testing the cheapest once $81.4; working
-up the price list until one qualifies $146.1.
-
-Opus gives up $4.4 [0.6, 9.0] more than Sol under the second brief. Both pay without a test in
-all eight worlds where paying is right, on both briefs, and the first newcomer each tests is the
-right one in 15 (Sol) and 14 (Opus) of 16 worlds. All 96 cells completed and replay to their
-recorded margins. The case is at its ceiling for these two subjects: its best policy is a
-one-step comparison, and both make it. Stating two rules in the brief cut the loss by $11.1
-[3.6, 22.3] and $14.0 [0.4, 33.5] (Appendix E.5). The record pack is saturated the same way: Opus solves
-18 worlds and Sol 16.
-
-Two flash-tier models played the same 24 worlds under the second brief, through the same
-environment and an OpenRouter route (all 48 cells valid and replayed, $0.21 in all). They give up
-about $75 a world: Gemini $75.2 [48.7, 101.4], exactly what always paying the premium gives up,
-because it never tested a newcomer; Luna $74.4 [46.7, 102.7], having tested in two worlds. The two
-are indistinguishable (+$0.8 [−3.7, +6.3]). Almost the whole loss is in the 16 worlds where a test
-is the best plan ($112.8 and $111.0 a world there, against $0.0 and $1.0 where paying is). GLM 5.3
-Flash did not play: its route changed price before any call (P-O-06). So the case separates the
-flash tier from the frontier but not frontier agents from each other. Because the reference is
-exact per action, both statements are dollars given up rather than pass rates.
+Fixed rules, scored exactly over the 24 worlds: comparing each untested newcomer with paying, one
+test ahead and keeping the recorded supplier reachable, gives up $0.06 a world; testing the best
+odds once $45.7; always paying $75.2; testing the cheapest once $81.4; working up the price list
+until one qualifies $146.1. On a first brief that did not state that a quote is final or that the
+average is the criterion, the CLI agents gave up $12.2 [4.3, 23.6] (Sol) and $19.4 [6.0, 38.2]
+(Opus); stating the two rules cut the loss by $11.1 [3.6, 22.3] and $14.0 [0.4, 33.5]. Under the
+second brief the agents give up nothing in 20, 17, 8 and 7 of 24 worlds (Sol, Opus, Gemini, Luna);
+both CLI agents pay without a test in all eight worlds where paying is right, and the first
+newcomer each tests is the right one in 15 and 14 of 16. The record pack is saturated the same
+way: Opus solves 18 of 18 worlds and Sol 16. Of the flash models Gemini never tested a newcomer
+and Luna tested in two worlds; the two are indistinguishable (+$0.8 [−3.7, +6.3]), their loss is
+$112.8 and $111.0 a world where a test is the best plan against $0.0 and $1.0 where paying is, and
+all 48 cells are valid and replayed ($0.21). GLM 5.3 Flash did not play: its route changed price
+before any call (P-O-06).
 
 #### Data center
 
-Head to head, the pair recovers about 80% of the value available, against 14% for signing the
-draft unchanged, and which model sits in which seat changes the total by +3 [−11, +18] ($
-thousands a world). Who keeps it differs sharply: Sol earns about 250 more than Opus in the same
-seat and is ahead in 51 of 52 worlds in each seat. Each model was then played in each seat
-against scripted negotiators (Appendix B gives the rule and every style's parameters).
+Which model sits in which seat changes the pair's total by +3 [−11, +18] ($ thousands a world);
+Sol is ahead of Opus in 51 of 52 worlds in each seat head to head. Table E.3 gives every
+counterpart; Appendix B gives each style's rule and parameters.
 
-**Table E.5. Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
+**Table E.3. Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
 
-| Counterpart | What it does | As integrator | As client |
-|---|---|---:|---:|
-| The other model | | +248 [+206, +290] | +251 [+209, +293] |
-| Firm population | each world and seat draws an opening ask (60% to 90% of the deal's value), a final ask, a least acceptable share (10% to 35%) and how closely it matches concessions | +17 [−10, +44] | +23 [−2, +48] |
-| Soft | concedes on a clock from 55% to 25% of the deal's value, whatever the model does | +86 [+56, +116] | +95 [+74, +115] |
-| Price only | never changes a clause, haggles the price | +112 [+75, +149] | +54 [+36, +71] |
-| Collapse | holds a 90% ask until its last proposal, then asks 30% | +88 [+51, +126] | +148 [+117, +179] |
-| Overreach | opens with offers worse than walking away for every type of the model's side, then comes down | +32 [+10, +53] | +108 [+72, +144] |
+| Counterpart | As integrator | As client |
+|---|---:|---:|
+| The other model | +248 [+206, +290] | +251 [+209, +293] |
+| Firm population | +17 [−10, +44] | +23 [−2, +48] |
+| Soft | +86 [+56, +116] | +95 [+74, +115] |
+| Price only | +112 [+75, +149] | +54 [+36, +71] |
+| Collapse | +88 [+51, +126] | +148 [+117, +179] |
+| Overreach | +32 [+10, +53] | +108 [+72, +144] |
 
-The direction is the same against every counterpart; the size runs from not distinguishable to
-250, so a result against one counterpart could have been any number in that range. Against the
-firm population both models earn about what signing its first offer earns (a stand-in that does
-so earns 122 as integrator and 114 as client), by the opposite routes described in Appendix E.5. At equal
-skill the seat is worth nothing: two copies of Sol split the value evenly (integrator minus
-client −6 [−94, +81]).
+Against the firm population both models earn about what signing its first offer earns (a stand-in
+that does so earns 122 as integrator and 114 as client), by the opposite routes in Appendix E.5.
+Two copies of Sol split the value evenly (integrator minus client −6 [−94, +81]).
 
-**Adversarial counterparts.** Two kinds of counterpart try to exploit the model rather than
-trade with it.
+**Adversarial counterparts.**
 
 - *Hardball scripts* (overreach, collapse, price only; 684 of 696 negotiations valid, $33.41).
   Overreach tests whether the model refuses a deal worse than walking away: as client, Opus
@@ -253,7 +208,7 @@ number cut such signatures from 15 of 60 plays to 1 of 60. Against the firm popu
 the first offer in 36 of 52 worlds as client, while Sol bargains to the last move, pays for
 redlines and loses seven deals to the script's floor.
 
-**Table E.6. Opus 5.5 and Sol 6.1 on the three cases both played.**
+**Table E.4. Opus 5.5 and Sol 6.1 on the three cases both played.**
 
 | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
 |---|---|---:|---:|---:|---|
@@ -323,7 +278,7 @@ Each kind of verifier (§4) owes a different proof that it measures what it clai
 | Answer | the key is correct and complete for every admitted case | Refund's reference resolution is written by hand per template, and admission requires the policy's public compiler to reproduce it on every case, with a unique path through the policy's precedence |
 | Rule | every rule is stated to the subject, and each check fails on a counterexample | briefs are checked against the environment by tests; checks are mutation-verified (below); a rule left unstated is a defect of the case (P-D-19, RF-D-03) |
 | Value | the reference agrees with the environment, and a simple rule does not already match it | Procurement's policy equals the environment's average over 27 type profiles; Housing's offline reference replays the sealed scripted cells to the cent; the one-step rule is run first |
-| Relative | the counterparts are named, the gap is reported per counterpart, and the analysis does not fire on identical arms | the data-center counterpart table (Table E.5); an A/A arm (Appendix F.5) |
+| Relative | the counterparts are named, the gap is reported per counterpart, and the analysis does not fire on identical arms | the data-center counterpart table (Table E.3); an A/A arm (Appendix F.5) |
 | Rubric | the rater agrees with people and resists gaming | not used in the four cases |
 
 The checks below run without calling a model.
@@ -442,7 +397,7 @@ world against about 160 at three.
 reported per type and tested for variation before pooling, and a general advantage needs a
 positive gap against every declared type. In the data-center case the counterpart accounts for
 25% to 33% of the spread in what a model earns (shuffled labels give 2% or less), and the gap
-between the same two agents runs from not distinguishable to $251k (Table E.5).
+between the same two agents runs from not distinguishable to $251k (Table E.3).
 
 **An A/A arm runs through the whole pipeline.** One profile in both arms, through execution,
 scoring, analysis and the claim rule; a rule that fires stops the campaign before its freeze.
@@ -576,3 +531,25 @@ string matching, unit tests or a judge model.
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |
 | R.12 Non-AI baselines | partly | scripted policies in every case; no human |
 | R.13 Trivial agents | partly | always paying (Procurement) and signing the draft (Data center) are reported; Housing v14 reports no do-nothing tenant, and Refund V2.1 has no lower anchor (RF-D-04) |
+
+## Appendix G. Artifacts
+
+Everything the numbers in Sections 5 and 6 rest on is in the public AERead repository or is
+named here when it is not.
+
+- **Code and cases.** The shared runner and the case families, with each case's generator,
+  reference, verifiers, packs and tests, on the branches `codex/housing-lemons-outside-demand`
+  (Housing), `codex/procurement-pay-or-test` (Procurement), `codex/datacenter-agreement` (Data
+  center) and `codex/refund-v25-shared-runner` (Refund).
+- **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
+  its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
+  decomposition. The Procurement pay-or-test panels are development runs kept as sealed run roots
+  and are not yet published as bundles.
+- **Quality control.** Each family's QC profile (`docs/families/<family>/qc.md`) and the incident
+  log (`docs/operations/incident_log.md`) on the branches above; the reference-run tests named in
+  §6.
+- **Sources for every number.** The tables at the end of the two section files
+  (`docs/research/paper_case_studies.md`, `docs/research/paper_qc_design.md`) map each table and
+  claim to its bundle, run root, commit or incident row.
+- **Not in the repository.** The trajectory viewer (Examiner) is private; the one-page result
+  sheets and the HL-D-07 recomputation script are kept with the authors and available on request.
