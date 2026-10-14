@@ -12,7 +12,8 @@ $ thousands for Data center.
 
 Each case is written as an environment Γ (outcomes, private types and their prior, payoffs), a
 protocol (seats, order of play, actions, what each seat observes, termination), and fixed
-counterpart policies (Appendix B). Refund is not specified here. The evaluated seat is subscript A, a counterpart B. The
+counterpart policies (Appendix B). Refund is not specified here. Symbols are local to each case;
+each case's table lists them, with the kind of quantity each is. The evaluated seat is subscript A, a counterpart B. The
 prior and the counterpart policies are fixed across evaluated agents, so differences between
 agents are attributed to their policies; the reference policies of Appendix C are computed in
 the same Γ.
@@ -66,6 +67,17 @@ that a listing seat 0 bid on is protected that round, the three-round horizon, t
 not close a listing, and the order of phases. It does not state the landlord's pricing rule or
 the cost range.
 
+**Example: a reply and a signing.** A listing asks a = $2,400; its sound cost is c^S = $2,350, so
+a lemon's is c^L = $1,350, and seat 0 values it at v = $2,600 if sound. With the $25 margin
+(B.1) a sound listing's landlord targets $2,375, a lemon's leaky landlord $1,375, and a lemon's
+pooled landlord $2,375. Seat 0 offers $2,000. A sound landlord counters at $2,375; a pooled lemon
+landlord also counters at $2,375; a leaky lemon landlord accepts at $2,000, and only a lemon's
+landlord would, so the acceptance itself marks the lemon. Signing pays v − rent = +$225 for the
+sound listing at $2,375, v − D − rent = −$400 for the leaky lemon at $2,000, and −$775 for the
+pooled lemon at $2,375; inspecting first costs $25 and shows the quality under either kind. Had
+seat 0 offered $0, the leaky lemon landlord would have countered at $1,375, which also marks the
+lemon, and signing there pays +$225.
+
 ### A.2 Procurement: pay or test (`pay_or_test_v1`)
 
 **Environment.** One buyer and one component. The suppliers are one recorded supplier E and
@@ -117,6 +129,16 @@ by two lines; the second adds that the buyer "places many orders like this one a
 its average margin across them", and that "a formal quote is the supplier's final price and
 terms. A counter_offer cannot improve them."
 
+**Example: what a quote is worth.** The recorded supplier lists $26.00, so awarding it 55 units
+earns A(26.00) = 1817 − 53.79·26.00 = $418.46. A newcomer lists 15% less, $22.10, worth A = $628.24
+if good; its cohort record shows 8 of 40 sellers late and 14 of 40 failing inspection, so γ = 0.45,
+λ = 0.20, ρ = 0.35, and its sample costs $50. A quote costs $2 and identifies a late supplier,
+which saves the $50 sample with probability λ: worth 0.20·50 − 2 = $8 before the sample. Testing
+the newcomer (quote, then sample if the quote is clean) instead of paying the premium is worth
+γ(628.24 − 418.46 + 30) − 2 − (1 − λ)·50 = $65.90 in expectation, where the $30 is the recorded
+supplier's sample the buyer no longer needs, provided a failed test still leaves time to return to
+the recorded supplier before the deadline.
+
 ### A.3 Data center: negotiating into an agreement
 
 **Outcomes.** X = (C × ℝ₊) ∪ {∅}: a clause vector c with an all-in price p, or no deal.
@@ -145,23 +167,56 @@ client's prior and in 22 of 58 worlds reveals the type. The client has a risk ch
 ρ_C ∈ {0.15, 0.75, 1.55}, declared prior one third each; in the packs ρ_C is fixed by the world's
 cell rather than drawn (DC-D-33).
 
-**Events and costs.** Four independent events, given the integrator's choices a (pre-stage) and s
-(prepare the site): a compatibility defect with probability q₁ if a else q₀; a late facility with
-u·(0.4 if s else 1); an incident after handover with ι·(0.5 if burn-in else 1); integrator failure
-with ν if there is a deposit and no escrow, else 0. Over the 16 outcomes, the real loss is
-L = D(F + w_D v) + U(S + w_U v) + IΛ + N·δH; the integrator owes O = D[F·𝟙(W ≠ none) +
-d·w_D·𝟙(W = fix and delay)] + U·S·𝟙(R = integrator) + IΛ·𝟙(Q = included), and pays P = min(O, K),
-the cap applying to the total in each outcome. The integrator's cost is
+**Table A.5. Data-center symbols.** Money in $ thousands; ranges are the generator's uniform draws
+on the base pack (some cells widen them), public to both sides unless marked private.
 
-C_I = H + σ + a·t + s·x + 40·B + (1 + ρ_I)·E[P] + 𝟙(R = integrator)·1.5·P(late)·S − 𝟙(deposit, no escrow)·0.14·δH·13/52,
+| Symbol | Kind | Meaning | Value or range |
+|---|---|---|---|
+| a, s | decision (0/1) | the integrator pre-stages the cluster; it prepares the client's site (only if it carries site readiness) | chosen to minimise its cost |
+| e_def, e_late, e_inc, e_fail | event indicator (0/1) | a compatibility defect; a late facility; an incident after handover; the integrator fails and the deposit is lost | independent given a, s and the clauses |
+| q₀, q₁ | probability | a defect without and with pre-staging | 0.25–0.35; 0.04–0.08 |
+| u | probability | a late facility (×0.4 if the site is prepared) | 0.20–0.30 |
+| ι | probability | an incident (×0.5 with burn-in) | 0.04–0.06 |
+| ν | probability | the integrator fails (counts only with a deposit not in escrow) | 0–0.015 |
+| F | money | fixing a defect | 200–300 |
+| S | money | standby cost of a late facility | 150–220 |
+| Φ | money | an incident's loss | 2,500–3,500 |
+| v | money per week | the client's cost of a week's delay | 90–130 |
+| w_def, w_late | duration (weeks) | delay from a defect; from a late facility | 3–5; 2–4 |
+| H, σ | money | hardware; services | 9,600; 600 |
+| δ | share | deposit, as a share of hardware | 0, 0.25 or 0.5 (clause) |
+| t | money, private | the integrator's pre-staging cost | 40, 120 or 200 |
+| ρ_I, ρ_C | risk charge, private | each side's markup on the expected loss it carries | 0.3 or 1.2; 0.15, 0.75 or 1.55 |
+| x | money | preparing the client's site | 30–90 |
+| r_C | rate per year | the client's cost of capital on a deposit (13 weeks) | 0.05–0.07 |
+| team | money | the client's own team if it manages the deployment | 600–1,000 |
+| T | money | the rival turnkey offer | stated in both briefs |
+| m | money | the integrator's outside option | 500 |
+| O, Y | money, per outcome | what the contract says the integrator owes; what it pays after the cap K | below |
 
-with H = 9,600 and σ = 600; its best response (a\*, s\*) minimises C_I, and IC(c) = C_I(a\*, s\*). The
-client's cost, excluding price, is CC(c) = (1 + ρ_C)·E[L − P | a\*, s\*] + 𝟙(deposit)·r_C·δH·13/52 +
-10·𝟙(escrow) + v·𝟙(burn-in).
+**Events and costs.** Given a and s, the four events are independent: P(e_def) = q₁ if a else q₀;
+P(e_late) = u·(0.4 if s else 1); P(e_inc) = ι·(0.5 if burn-in else 1); P(e_fail) = ν if there is a
+deposit and no escrow, else 0. In each of the 16 outcomes the real loss is
+
+L = e_def·(F + w_def·v) + e_late·(S + w_late·v) + e_inc·Φ + e_fail·δH,
+
+the integrator owes
+
+O = e_def·[F·𝟙(W ≠ none) + d·w_def·𝟙(W = fix and delay)] + e_late·S·𝟙(R = integrator) + e_inc·Φ·𝟙(Q = included),
+
+and pays Y = min(O, K), the cap applying to the total in each outcome. With 𝔼 the expectation over
+the outcomes, the integrator's cost is
+
+C_I = H + σ + a·t + s·x + 40·B + (1 + ρ_I)·𝔼[Y] + 𝟙(R = integrator)·1.5·P(e_late)·S − 𝟙(deposit, no escrow)·0.14·δH·13/52;
+
+its best response (a\*, s\*) minimises C_I, and IC(c) = C_I(a\*, s\*). The client's cost, excluding
+price, is
+
+CC(c) = (1 + ρ_C)·𝔼[L − Y | a\*, s\*] + 𝟙(deposit)·r_C·δH·13/52 + 10·𝟙(escrow) + v·𝟙(burn-in).
 
 **Outside options and payoffs.** The client's outside option is O_C = min(T, M), the cheaper of a
-rival turnkey offer T and managing the deployment itself, M = H + team + (1 + ρ_C)[q₀(F + w_D v) +
-u(S + w_U v) + ιΛ]; the integrator's is m = 500. With n_i side i's redlines after the first move,
+rival turnkey offer T and managing the deployment itself, M = H + team + (1 + ρ_C)[q₀(F + w_def·v) +
+u(S + w_late·v) + ιΦ]; the integrator's is m = 500. With n_i side i's redlines after the first move,
 a signed (c, p) pays U_I = p − IC − m − 25·n_I and U_C = O_C − p − CC − 25·n_C; no deal pays
 U_i = −25·n_i.
 
@@ -173,6 +228,14 @@ is illegal ends the episode as an invalid action; each move gets one attempt. Ea
 own brief (every public number, its own type, the other side's possible types with their odds)
 and, at each move, the document with the latest tracked change on each clause, the price on the
 table and the full history including notes.
+
+**Example: one clause.** Take v = 110, ι = 0.05 and Φ = 3,000 with consequential loss excluded, so
+the client carries incidents. Adding burn-in costs the integrator its crew, 40, and the client a
+week's delay, v = 110. It halves the incident chance, cutting the client's expected loss by
+0.025·3,000 = 75 before its risk charge, which it values at (1 + ρ_C)·75: 86 at ρ_C = 0.15, 131 at
+0.75 and 191 at 1.55. Joint cost therefore changes by 40 + 110 − (1 + ρ_C)·75: +64, +19 or −41. So
+burn-in belongs in the best agreement only for a client with the high charge, which the integrator
+does not know; that is why the best agreement depends on the other side's type.
 
 ## Appendix B. Counterpart policies
 
@@ -205,7 +268,8 @@ Awards are scored on the true private terms.
 ### B.3 Data center: the scripted negotiator
 
 The script plays seat σ, knows its own type exactly, and knows the other side through the
-declared types Θ and their prior β₀. For a type θ write v_σ and v₋σ for the two sides' surpluses
+declared types Θ and their prior β₀. Shares (s, s_min) are fractions of the value on the table Π;
+τ, χ and V are money; r, α and κ are dimensionless weights. For a type θ write v_σ and v₋σ for the two sides' surpluses
 and G(c; θ) = v_σ + v₋σ, which does not depend on price.
 
 1. **Belief.** β ∝ β₀ restricted to types for which every redline the other side made was worth
@@ -213,7 +277,7 @@ and G(c; θ) = v_σ + v₋σ, which does not depend on price.
 2. **Value on the table.** Π = max(0, max over c of E_β G).
 3. **Ask.** With N own proposals (3 as integrator, 2 as client) and Δ = (s_open − s_final)/(N − 1),
    the ask share starts at s₁ = s_open and moves to s_{k+1} = max(s_final, s_k − Δκ_k), with
-   κ = (1 − r) + r·min(2, max(0, μ/Δ)), where μ is how far the other side moved toward the script
+   κ = (1 − r) + r·min(2, max(0, η/Δ)), where η is how far the other side moved toward the script
    since its last proposal, measured as a share of Π. Collapse holds s_open until its last
    proposal, then asks s_final.
 4. **Proposal.** For each set of the most valuable remaining types, the script picks the clause
@@ -222,13 +286,13 @@ and G(c; θ) = v_σ + v₋σ, which does not depend on price.
    type in the set would accept, rounds to $5k, and keeps the set with the largest expected value
    to itself, types outside the set counting as refusing.
 5. **Move.** With τ the expected value to the script of the standing offer and χ = α·V − 25 the
-   value of proposing, it signs if τ ≥ max(0, ℓΠ) and either it cannot propose or τ ≥ χ; otherwise
+   value of proposing, it signs if τ ≥ max(0, s_min·Π) and either it cannot propose or τ ≥ χ; otherwise
    it redlines if it has a proposal with χ > 0; otherwise it walks. It never reads or writes a
    note.
 
-**Table B.1. Counterpart styles of the data-center case.** (Defaults r = 1, α = 0.8, ℓ = 0.)
+**Table B.1. Counterpart styles of the data-center case.** (Defaults r = 1, α = 0.8, s_min = 0.)
 
-| Style | Role | Opening ask s_open | Final ask s_final | Least share ℓ | Reciprocity r | α | Other |
+| Style | Role | Opening ask s_open | Final ask s_final | Least share s_min | Reciprocity r | α | Other |
 |---|---|---|---|---|---|---|---|
 | firm population (`drawn`) | core | U(0.60, 0.90) | max(0.45, s_open − U(0.05, 0.30)) | U(0.10, 0.35) | 0.5 or 1.0, equal odds | 0.8 | drawn per world and seat |
 | soft | core | 0.55 | 0.25 | 0 | 0 | 0.4 | concedes on a clock |
@@ -262,6 +326,14 @@ over the client's charge reweighted by the client's first counter-offer, through
 
 ## Appendix C. Reference policies and baselines
 
+The references are of three kinds, and a shortfall means something different against each. A
+*reachable policy* (Housing's `inspect_lowball`) uses only what the deciding seat may know; it is
+a witness to what is achievable, not an optimum. The *best policy given the decider's
+information* (Procurement) is the exact optimum over what the buyer can learn, so a shortfall
+against it is the whole cost of the subject's decisions. A *full-information upper bound*
+(Housing's ceiling, the data-center best agreement) uses hidden state that no seat sees, so a
+shortfall against it also contains the value of information no seat had.
+
 ### C.1 Housing
 
 **Reachable reference (`inspect_lowball`).** Each round: if no open, verified-sound listing exists,
@@ -277,24 +349,46 @@ reachable in round 0. $447.82 (leaky), $292.40 (pooled), mean $370.11.
 the best verified-sound listing and signs it ($144.70); `sign_anything` never inspects and signs its
 favourite (−$348.76); `pass` never acts ($0).
 
-**Best informed tenant (development).** The belief is uniform over hypotheses h = (θ, Λ) consistent
-with the inspection record q ∈ {?, S, L}⁴ and, for the `pricing` tenant, the reply record
-a ∈ {–, N, L}⁴, where L marks a reply more than $55 below the ask and a_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ).
-The `pricing` tenant puts ½ on each landlord kind; the `stated` tenant assumes the pooled kind. With
-λ_ℓ = P(ℓ ∈ Λ), ρ̂_ℓ = P(θ = leaky ∧ ℓ ∈ Λ), P_ℓ the rent it expects (the rent heard once heard;
-before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L), and offers always $0, over
-the open set O:
+**Best informed tenant (development).** This tenant plans exactly against the market's rules. Its
+belief covers the landlord kind and the lemon pair and is updated by inspections and, for the
+`pricing` tenant, by the replies it hears. It is computed by backward induction over the three
+rounds in five functions that follow one round's phases:
 
-V(r, O, q, a) = 0 if r ≥ 3 or O = ∅; otherwise
-V = max{ U(r, O, q, a), max over ℓ ∈ O with q_ℓ = ? and 0 < λ_ℓ < 1 of [ −c + λ_ℓ·U(r, O, q[ℓ↦L], a) + (1 − λ_ℓ)·U(r, O, q[ℓ↦S], a) ] }
+- V, at the start of a round, chooses whether to inspect, and which uncertain listing;
+- U, the contact step, chooses which listing to make an offer on, or none;
+- W_ℓ averages over the replies the landlord of ℓ may give, when none has been heard yet;
+- C_ℓ, the commit step, chooses whether to sign the hold on ℓ or walk;
+- E values moving to the next round, while each open listing the tenant did not bid on may be
+  taken by outside demand.
 
-U(r, O, q, a) = max{ E(r, O, q, a, ∅), max over ℓ ∈ O of W_ℓ }
+**Table C.1. Symbols of the best informed tenant.**
 
-W_ℓ = C_ℓ(q, a) if a_ℓ ≠ –, otherwise (1 − ρ̂_ℓ)·C_ℓ(q, a[ℓ↦N]) + ρ̂_ℓ·C_ℓ(q, a[ℓ↦L])
+| Symbol | Kind | Meaning |
+|---|---|---|
+| r | round | 0, 1 or 2 |
+| O | set | the open listings |
+| q ∈ {?, S, L}⁴ | record | each listing not inspected, inspected sound, or inspected lemon |
+| z ∈ {–, N, L}⁴ | record | each listing's reply: none heard, a counter within $55 of the ask, or a reply more than $55 below the ask |
+| h = (θ, Λ) | hypothesis | the landlord kind and the lemon pair; the belief is uniform over those consistent with q and z, and z_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ) |
+| λ_ℓ | probability | P(ℓ ∈ Λ) under the belief |
+| ψ_ℓ | probability | P(θ = leaky ∧ ℓ ∈ Λ), the chance that ℓ's reply will be low |
+| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L |
+| B, G | sets | listings protected this round (bid on); listings taken by outside demand |
 
-C_ℓ(q, a) = max{ v_ℓ − D·λ_ℓ(q, a) − P_ℓ(a_ℓ), E(r, O, q, a, {ℓ}) }
+The `pricing` tenant puts ½ on each landlord kind; the `stated` tenant assumes the pooled kind, so
+its replies carry no information. Offers are always $0. The five functions are:
 
-E(r, O, q, a, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of 2^(−|O∖B|)·V(r + 1, O∖G, q, a)
+V(r, O, q, z) = 0 if r ≥ 3 or O = ∅; otherwise
+
+V(r, O, q, z) = max{ U(r, O, q, z), max over ℓ ∈ O with q_ℓ = ? and 0 < λ_ℓ < 1 of [ −c + λ_ℓ·U(r, O, q[ℓ↦L], z) + (1 − λ_ℓ)·U(r, O, q[ℓ↦S], z) ] }
+
+U(r, O, q, z) = max{ E(r, O, q, z, ∅), max over ℓ ∈ O of W_ℓ(r, O, q, z) }
+
+W_ℓ(r, O, q, z) = C_ℓ(r, O, q, z) if z_ℓ ≠ –, otherwise (1 − ψ_ℓ)·C_ℓ(r, O, q, z[ℓ↦N]) + ψ_ℓ·C_ℓ(r, O, q, z[ℓ↦L])
+
+C_ℓ(r, O, q, z) = max{ v_ℓ − D·λ_ℓ − R_ℓ, E(r, O, q, z, {ℓ}) }
+
+E(r, O, q, z, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of 2^(−|O∖B|)·V(r + 1, O∖G, q, z)
 
 An unheard floor is set to its mean and the tenant re-plans when a rent is heard. Main pack: `pricing`
 $307.32, `stated` $266.89 (below the reachable reference, so `stated` is not a best policy for the
@@ -322,7 +416,7 @@ environment's average over the 27 type profiles to within 3·10⁻¹³; its mean
 
 **Fixed rules.** Expected loss is the equal-weight mean over the 24 worlds of V\* − V^rule.
 
-**Table C.1. Procurement fixed rules.**
+**Table C.2. Procurement fixed rules.**
 
 | Rule | Definition | Expected loss per world |
 |---|---|---:|
@@ -353,7 +447,12 @@ target.
 
 ## Appendix D. Measures
 
-**D.1 Housing.** A decision is *blind* if the listing was not inspected when seat 0 committed; its
+Each measure answers one question in the case's own units.
+
+**D.1 Housing.** *What did the tenant's decisions earn, with luck taken out?* The measure is the
+tenant's net in dollars, except that a listing signed without knowing its quality is valued at what
+the tenant could expect from it rather than at the quality that happened to be drawn. A decision is
+*blind* if the listing was not inspected when seat 0 committed; its
 stated lemon probability is p_d = (2 − lemons found)/(4 − listings inspected). A blind signing is
 valued at v − D when the landlord is leaky and the rent is below the listing's sound floor, and at
 v − D·p_d otherwise. Per cell, N = (v_true − rent) for an informed signing or (value − rent) for a
@@ -361,18 +460,25 @@ blind one, less c·k; per world, Y_w = ½(N_leaky + N_pooled), a world missing e
 dropped. Reported: the mean of Y_w over the main pack with a 95% Student-t interval; model pairs
 paired by world, Holm-adjusted over three; each model minus the reachable reference; $50 as the
 smallest meaningful difference. A counter at the sound floor proves a listing sound but is still
-valued at p_d, and a lemon revealed on one listing does not update p_d on another (HL-D-07). Valuing every blind
-signing at the posterior given inspections and informative replies moves 57 signings in v14 and no
-declared verdict; the second gap has no effect on these data.
+valued at p_d, and a lemon revealed on one listing does not update p_d on another (HL-D-07). The
+*corrected measure* (`price_reply_posterior`) values every blind signing at v − D·P(ℓ ∈ Λ | the
+inspections and every informative reply); in the v14 cells it moves 57 signings and no declared
+verdict, and the second gap has no effect on these data. Table 5.2 reports both.
 
-**D.2 Procurement.** For each action taken, ℓₜ = V(sₜ) − Q(sₜ, aₜ), and a play's decision loss is
+**D.2 Procurement.** *Where in the episode was value lost, and how much?* Each action is charged
+what it gave up against the best action available at that point, given what the buyer had
+learned; the charges add up to the play's shortfall in expected value, so the measure says both
+how much was lost and at which step. For each action taken, ℓₜ = V(sₜ) − Q(sₜ, aₜ), and a play's decision loss is
 DL = Σₜ ℓₜ. For inquire, counter and check, Q = −c + V(σ, n − 1, t + d); for defer or an invalid
 action Q = D; for an award, Q is its margin at I = 0, or D if infeasible. Because every Q is an
 expectation, E[DL(π)] = V\*(s₀) − V^π(s₀). DL is reported in five parts: requests, strays, walking
 away, award timing (V less the best award available) and award terms (the best award available less
 the award taken).
 
-**D.3 Data center.** Joint value lost = A − (U_I + U_C), the sum of three parts: allocation
+**D.3 Data center.** *How much of what the best agreement makes available did the pair fail to
+realise?* Value is lost by settling on worse clauses, by failing to agree, or by paying for
+redlines; how the remainder is split between the sides is reported separately, as each side's
+surplus. Joint value lost = A − (U_I + U_C), the sum of three parts: allocation
 J(c) − min(J(c\*), O_C − m) if signed; no deal, A, if nothing is signed (an invalid move counts as no
 deal); and delay, 25·(n_I + n_C). Each side's surplus is U_I or U_C. A side signs below its walk-away
 point if its surplus before fees is negative.

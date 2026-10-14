@@ -123,7 +123,7 @@ true costs.
 Head to head the pair recovers about 80% of the value available, against 14% for signing the
 draft unchanged. The head-to-head row compares two pairings, so it describes how the pair divides
 the surplus when the roles swap, not a model effect against a fixed counterpart; the scripted
-rows hold the counterpart fixed. Against a script that gives way Sol keeps far more than Opus,
+rows hold the counterpart fixed. Against a script that gives way Sol keeps far more than Opus;
 against the firm population the two are not distinguishable, so a result against one counterpart
 could be any number in that range. Against an overreaching script Opus signs below its own walk-away point in
 23 of 52 worlds and Sol in none; against a counterpart that asks for private information neither
