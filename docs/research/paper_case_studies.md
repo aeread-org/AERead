@@ -15,8 +15,14 @@ built by the maintainers as worked examples of what a contributed case can look 
 5.1). Housing, Procurement and Data center are described here and specified in Appendices A–D;
 Refund appears only in the cross-case comparison. Each case is a family rather than a fixed task
 set: a generator of worlds, a reference computed from what the deciding side may know, an
-admission rule that keeps only worlds where the decision matters, and a set of verifiers. Cases
-are chosen by the economic value of the decision, not by occupation [AV] (§5.3).
+admission rule that keeps only worlds where the decision matters, and a set of verifiers.
+
+Cases are chosen by the economic value of the decision, not by occupation [AV]: an activity
+qualifies when its value is decided rather than produced, a counterparty has its own interest and
+private information, and the result can be scored inside a world against a computed reference.
+The four examples sit in two of the five classes of transaction that weight the suite's target
+distribution (business and household purchases, 49% of the weight); they were chosen to span the
+kinds of verifier and counterpart, not sampled from that distribution.
 
 **Table 5.1. The four examples.**
 
@@ -113,29 +119,9 @@ does (stating two rules cut procurement loss by $11 to $14; stating a walk-away 
 signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
 found by looking back is a hypothesis until a declared test confirms it.
 
-### 5.3 Coverage and task distribution
-
-Cases are weighted by the flow a class of transaction decides, not by the hours spent on it [AV]:
-an activity qualifies when its value is decided rather than produced, a counterparty has its own
-interest and private information, and the result can be scored in a world against a computed
-reference. Each transaction is counted once, its two seats share the weight, and a 10% floor keeps
-every class readable.
-
-**Table 5.6. The target distribution, and where the four examples sit.**
-
-| Class | Flow decided (US, 2025) | Weight | Examples |
-|---|---|---:|---|
-| Business purchases | $20.0T of inputs | 39% | Procurement; Data center |
-| Labour contracts | $15.7T of compensation | 30% | none |
-| Capital and corporate transactions | $5.6T of investment | 11% | none |
-| Household purchases, the dealt part | $3.2T | 10% | Housing; Refund |
-| Public purchases | $3.1T | 10% | none |
-
-The examples cover two classes, 49% of the weight, by design: they were chosen to span kinds of
-verifier and counterpart, and the distribution is what contributed cases fill. They do not rank
-models in general: two frontier agents at one reasoning setting and a few flash-tier models
-played, no human did, the numbers are the designers' assumptions, and only Housing ran a declared
-confirmatory campaign.
+These cases do not rank models in general: two frontier agents at one reasoning setting and a few
+flash-tier models played them. No practitioner has set or reviewed the prices, fees and odds, and
+no human has played them.
 
 ### References
 
@@ -145,16 +131,15 @@ confirmatory campaign.
 
 | Table or claim | Source | Status |
 |---|---|---|
-| Table 5.5, Housing v14 | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
+| Housing v14 (Tables 5.2, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
 | HL-D-07 recomputation | the sealed v14 run roots; script and results `~/analysis/housing/hl_d_07/` (outside the repository) | derived |
 | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
 | Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
-| Table 5.6, pay-or-test | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
+| Pay-or-test (Tables 5.3, E.4) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
 | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
-| Table 5.7, adversarial counterparts, declared test, §5.7 data-center counts | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
+| Data center (Tables 5.4, E.5), adversarial counterparts, declared test, Appendix E.5 counts | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund V2.1 rows of Tables 5.4 and 5.9, and §5.1 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Task distribution (Table 5.10) | [AV], from the BEA national accounts (2025) and BLS wage statistics (May 2023) | |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

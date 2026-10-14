@@ -53,18 +53,6 @@ case's design, 12 were invisible in any single world, and the 7 that were visibl
 reading code or sealed bytes, or by tracing a single case, not by playing a panel (Table F.5).
 The same checks corrected statements of our own while this paper was written (P-J-05, HL-J-12).
 
-**Where it falls short.**
-
-- Each current design has a typed status per gate, and none is qualified: Housing v14 is
-  `partial`; Procurement's pay-or-test pack fails Gates 1 and 3, because a rule reading only what
-  the buyer sees reaches the best policy to within $0.06 a world; the data-center agreement fails
-  Gate 1, because its packs are not admitted by its own rules; Refund fails Gate 3 for want of a
-  lower control.
-- Only Housing ran a declared confirmatory campaign.
-- No practitioner has set or reviewed the prices, fees and odds, and no human has played.
-- Contributed cases cannot yet be admitted without the maintainers: trusted conformance runs,
-  enforced resource ceilings and authenticated approval remain open.
-
 ### References
 
 - [ABC] Zhu, Y., et al. *Establishing Best Practices for Building Rigorous Agentic Benchmarks.* arXiv:2507.02825, 2025.

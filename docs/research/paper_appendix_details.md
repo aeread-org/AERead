@@ -302,8 +302,7 @@ approval must come from outside the contribution. Refund V2.1 showed why: its ru
 status-only QC stubs and set the approval's digest to the contribution it had just built, so the
 approval bound whatever the runner produced (RF-T-01). Refund V2.5's record names a reviewer and a
 date and rejects V2.1's, but its runner still binds the approval to the contribution it has just
-built (RF-D-06): the admission path is specified, and the mechanism that makes the approval
-independent is not yet in place.
+built (RF-D-06).
 
 Three checks are owed before any model plays a new case. The reference plays every admitted
 world and agrees with the environment (Appendix F.2). Every rule the brief states is checked against
@@ -571,7 +570,7 @@ string matching, unit tests or a judge model.
 | R.5 Capability related to construct | met | each case states the decision it measures (Table 5.1) |
 | R.6 Evaluation subject stated | met | the subject is a profile (model, harness, prompt, tools, reasoning, retries); CLI agents are named with their harness |
 | R.7 Steps to prevent, find and correct flaws | met | the gates, the incident log and errata (Appendix F.1, Appendix F.6) |
-| R.8 Qualitative discussion of unavoidable flaws | met | §5.3 and §6 |
+| R.8 Qualitative discussion of unavoidable flaws | met | §5.2 |
 | R.9 Quantitative analysis of flaw impact | partly | measured for the brief change, the refused cells and missingness bounds; not for every open row |
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |

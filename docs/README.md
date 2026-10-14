@@ -156,6 +156,7 @@ identities, so their citations are redirected, not rewritten.
 - [Paper appendices A–D: case specifications](research/paper_appendix_case_specs.md)
 - [Paper appendices E–F: case details and quality control in detail](research/paper_appendix_details.md)
 - [Paper text for §4: kinds of verifier](research/paper_verification_kinds.md)
+- [Paper text for the introduction: task distribution](research/paper_intro_task_distribution.md)
 - [Exploit agent: design](research/exploit_agent_design.md)
 - [Full bibliography (BibTeX)](../references.bib)
 
