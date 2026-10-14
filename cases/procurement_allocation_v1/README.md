@@ -573,3 +573,28 @@ $75 a world, cheapest-first $81 and searching until one qualifies $146
 ```bash
 python -m aeread_families.procurement_allocation.pay_or_test_case_matrix --write
 ```
+
+`pay_or_test_v2/` is the same decision with one fact added: new listings of one
+seller kind may share a source, with a chance the case states
+(`policy.newcomer_sourcing.same_source_probability`, 0.8 to 0.95), and when they
+do they are all sound, all late or all failing inspection. Each listing's own
+odds are still its cohort record. A cheap sample on a listing nobody would buy
+from can then be worth taking for what it says about a much cheaper listing of
+the same kind whose sample is dear, and no rule that looks one test ahead sees
+that. Twenty-four worlds in four cells of six: the one-step rule pays the
+premium or tests a newcomer directly, each on a tight and a loose clock. A
+world is admitted only if the one-step rule, version 1's one-step comparison,
+every fixed rule and a kind-blind shortcut each give up at least $10 against
+the best informed policy, with the source never shared the one-step rule is
+within $5 of it, and information is worth at least $10; the pack's mean
+one-step loss must be at least $15 (it is $30.09). Admission reads only what a
+buyer sees; types are drawn afterwards, under the stated law, on their own
+stream. It is played under `pay_or_test_v2_prompt.PAY_OR_TEST_V2_PROMPT`: brief
+v2 and the shared source stated. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.pay_or_test_v2_case_matrix --write
+```
+
+The scan takes about six minutes; `tests/test_procurement_pay_or_test_v2.py`
+checks it world by world.
