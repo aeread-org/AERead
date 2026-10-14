@@ -12,7 +12,7 @@ $ thousands for Data center.
 
 Each case is written as an environment Γ (outcomes, private types and their prior, payoffs), a
 protocol (seats, order of play, actions, what each seat observes, termination), and fixed
-counterpart and scripted-seat policies (Appendix B). The evaluated seat is subscript A, a counterpart B. The
+counterpart policies (Appendix B). Refund is not specified here. The evaluated seat is subscript A, a counterpart B. The
 prior and the counterpart policies are fixed across evaluated agents, so differences between
 agents are attributed to their policies; the reference policies of Appendix C are computed in
 the same Γ.
@@ -174,59 +174,7 @@ own brief (every public number, its own type, the other side's possible types wi
 and, at each move, the document with the latest tracked change on each clause, the price on the
 table and the full history including notes.
 
-### A.4 Refund: a four-seat refund workflow (V2.5)
-
-**Case.** A case binds a category k ∈ {perishable goods, consumer electronics, software,
-apparel}, fixed by its interaction template (44 templates in the public pack); a public claim q;
-private facts φ: F → V, where F holds the facts that decide the case and decoys that decide
-nothing, every ID requestable and every value private; a rendered policy P_c (category rules,
-public price p and tax t = round(0.0825·p, 2), fact domains, a precedence clause, a numbered rule
-catalogue, the fact-dependency graph, and the public branch specification as executable JSON); a
-reference resolution r\*(c); a pair ID; and the declared changed facts Δ. No seat has a utility
-and there is no prior: the panel is fixed, generated deterministically from (seed, template,
-variant).
-
-**Table A.5. The resolution.**
-
-| Field | Domain |
-|---|---|
-| eligibility | eligible, ineligible, unresolved |
-| remedy | full refund, partial refund, none |
-| workflow | execute refund, no mutation, request evidence, identity review, seller review, payment review, return and inspect |
-| amount | ℝ≥0 in cents, reported in major units |
-| refund method | original payment, none |
-| payment mutation | execute, none |
-| return shipping payer | seller, customer, none |
-| policy basis = reason code | a rule ID from the case's catalogue |
-
-An amount of 0 forces workflow ≠ execute refund and method = mutation = none; a payment mutation
-executes iff the workflow is execute refund and the amount is positive. The branch specification is
-an ordered list of (predicate, outcome) ending in "otherwise", evaluated three-valued (true, false,
-unknown); pending(R) is the set of unknown facts the first undecided branch needs, and resolve(R)
-is defined only when pending(R) is empty. Amounts are zero, full (p + t), partial (min(x, p·cap)),
-piecewise, or residual (p + t less what is already settled), each rounded to cents.
-
-**Table A.6. Refund protocol.**
-
-| Phase | Seat | Legal actions |
-|---|---|---|
-| claim | customer | state the claim q |
-| intake request | intake | request 1–3 distinct undisclosed fact IDs |
-| disclosure | customer | reveal exactly the requested IDs, with values of the declared type |
-| policy turn | policy | request 1–3 facts among pending(R), or submit a resolution (all nine fields; legal only when pending(R) is empty) |
-| confirmation | customer | confirm the current proposal |
-| payments | payments | execute the refund or make no mutation, exactly as the ticket says |
-
-The policy turn alternates with disclosure until a resolution is submitted. A case is capped at 30
-logical actions; the legal collection path needs at most 2N + 5, with N the number of facts that
-decide it (1 to 5). The first parse or legality failure ends the episode as an invalid action.
-The customer sees the claim, its private facts and, at confirmation, the proposal; intake sees the
-fact IDs, which are disclosed and a routing plan, never values; the policy seat sees the policy and
-the disclosed values, never the reference; payments sees only the confirmed ticket or ledger.
-Later cohorts add split disclosures, superseded proposals, redelivery, a public ledger with
-revisions and tenders, and intake under prerequisites and a collection budget.
-
-## Appendix B. Counterpart and scripted-seat policies
+## Appendix B. Counterpart policies
 
 ### B.1 Housing: landlords and outside demand
 
@@ -311,18 +259,6 @@ Two *reading* counterparts were used only in the declared test: the firm script 
 over the client's charge reweighted by the client's first counter-offer, through the price
 (p − μ̄ ~ N(a + b(lim(ρ) − μ̄), sd²)) or through the number of protective clauses asked for
 (~ N(m_ρ, sd²)), with parameters fitted per model on earlier runs and frozen in code.
-
-### B.4 Refund: scripted seats
-
-Every seat that is not the subject is scripted, and in the V2.5 release every seat is. The
-customer copies the claim and discloses exactly the requested facts (in later cohorts, from the
-current revision of each source). Intake requests the first three undisclosed facts in the
-template's order (later cohorts: the material facts in scope up to capacity, or the set of maximum
-utility within budget). The policy seat parses the public branch specification, requests
-pending(R) three at a time until it is empty, then submits resolve(R). Payments executes iff the
-ticket says so, allocating across tenders by the declared waterfall and paying any residual. The
-customer, payments and later intake seats have exactly one legal action per phase, so a subject in
-those seats is graded on reproducing it.
 
 ## Appendix C. Reference policies and baselines
 
@@ -415,14 +351,6 @@ if it is worth at least walking away, and earns 114 and 122; *best plan* searche
 keeps the best for itself net of fees, an exact best reply within that grid and a ceiling, not a
 target.
 
-### C.4 Refund
-
-The reference resolution r\* is written by hand per template, and admission requires the policy's
-public compiler to equal it on the full facts of every case. Payment references are the
-evaluator's ticket or, in ledger cohorts, a separate reducer. The only non-model policies are the
-deterministic reference profiles, which score 1.0 on every leaf by construction; there is no
-no-op, naive or random policy and no beatability rule (RF-D-06).
-
 ## Appendix D. Measures
 
 **D.1 Housing.** A decision is *blind* if the listing was not inspected when seat 0 committed; its
@@ -448,27 +376,6 @@ the award taken).
 J(c) − min(J(c\*), O_C − m) if signed; no deal, A, if nothing is signed (an invalid move counts as no
 deal); and delay, 25·(n_I + n_C). Each side's surplus is U_I or U_C. A side signs below its walk-away
 point if its surplus before fees is negative.
-
-**D.4 Refund.** Seven leaves, all declared as rule checks on the terminal state.
-
-**Table D.1. Refund leaves.**
-
-| Leaf | Check |
-|---|---|
-| policy semantic | the share of {eligibility, remedy, amount, liability} present that match the reference, after exact aliases |
-| workflow | the workflow matches the reference |
-| payment | the payment mutation and method match; 0 if payments ran and did not bind to the ticket (later cohorts: IDs, mode, cents, allocations summing to the amount, redelivery a no-op). It checks binding to the proposal, not that the right money moved (RF-D-05) |
-| evidence | pending(R) was empty at submission |
-| contract | all nine fields present, raw values canonical, policy basis = reason code = the reference rule |
-| end to end | no failure, the proposal confirmed and bound, and the five leaves above at 1 with full coverage |
-| operational | constant 1.0 in this release |
-
-An alias earns full semantic credit with contract = 0 and end to end = 0; a submission rejected as
-premature keeps its content, scoring semantic credit with evidence = 0. Four collaboration
-diagnostics ride in the end-to-end metadata with their opportunity counts: whether the customer
-disclosed exactly what was asked, the quality of intake's request, whether the customer confirmed
-the current proposal, and whether payments echoed the ticket. A diagnostic with no opportunity
-scores 0 with coverage 0, never full credit.
 
 ---
 
@@ -496,10 +403,3 @@ outside options `risk_allocation_contracts.py`:57–217, 299–308; constants `r
 `agreement_negotiator.py`:45–254; prober `agreement_prober.py`:110–162; readers
 `agreement_reader.py`:39–102; stand-ins `agreement_negotiator_check.py`:27–115; packs
 `agreement_pack.py`:31–55.
-
-Refund (`src/aeread_families/refund/`, branch `codex/refund-v25-shared-runner` at 24c7edd0):
-policy, cases and reference `v2_5_policy.py`:23–857; branches, amounts, pending and resolve
-`v2_5_branches.py`:22–288; protocol, observation, legality, scoring and diagnostics
-`v2_5_runner.py`:39–797; leaves `v2_5_measurement.py`:15–77; collection budget
-`v2_5_collection_budget.py`:19–39; later cohorts `v2_5_seat_design_v3.py`, `v2_5_seat_extension_v4.py`,
-`v2_5_seat_extension_v5.py`; release `v2_5_release.py`:24–126; QC records `cases/refund_v25/qc/`.

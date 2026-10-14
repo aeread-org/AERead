@@ -18,8 +18,8 @@ AERead is meant to grow through cases contributed by a wider community. This sec
 presents four cases built by the maintainers as worked examples of what a contributed case
 can look like: renting under adverse selection (Housing), qualifying a supplier under a
 deadline (Procurement), negotiating a services agreement (Data center), and resolving a
-refund claim across a four-seat workflow (Refund). Each case is a family rather than a fixed
-task set: a generator of worlds or cases, a reference computed from what the deciding side is
+refund claim across a four-seat workflow (Refund). The first three are described in full; Refund appears only in the cross-case
+tables. Each case is a family rather than a fixed task set: a generator of worlds or cases, a reference computed from what the deciding side is
 allowed to know, an admission rule that keeps only worlds where the decision matters, and a
 set of verifiers. Together they cover the kinds of verifier the environment supports, two
 kinds of counterpart (scripted and model), and both single-seat and multi-seat play.
@@ -59,7 +59,7 @@ checked (§6.2). Five kinds cover the four cases and the design space:
 Two labels go on every check. Its **output** is pass or fail, a count, or an amount. Its
 **scope** is the outcome or the path that led to it. The scope matters in practice: in the
 earlier Refund runs the models reached the answer key's outcome in 94% to 100% of cells, but
-only 50% to 79% were resolved as scored, because of how they got there (§5.6). These five
+only 50% to 79% were resolved as scored, because of how they got there (§5.8). These five
 kinds are the repository's verifier taxonomy under plain names (canonical reference, rule and
 constraint, objective reference, comparative, rater and judge).
 
@@ -86,7 +86,8 @@ rubric leaf is supported, but it is kept beside the computed ones and never fold
 A case fixes one decision, the seat the model plays, what that seat sees and what is hidden
 from it, the actions it may take, and how long it has. The other seats are scripted, or are
 another model; a script follows a stated rule on its own seat's information. Appendix A gives
-each case formally, in the form of an environment, a protocol and fixed counterpart policies.
+Housing, Procurement and Data center formally, in the form of an environment, a protocol and
+fixed counterpart policies.
 
 **Housing.** A tenant faces four landlords. Two of the four listings are lemons, worth $1,000
 less; an inspection costs $25 and reveals one listing's quality to the tenant alone. Over three
@@ -115,16 +116,6 @@ handover, the integrator failing while holding an unprotected deposit), and the 
 pre-stages hardware and prepares the site exactly when the clauses make that cheaper for it, so
 moving a risk to the side that can control it shrinks the total rather than only moving it.
 Each redline after the opening costs its author $25k.
-
-**Refund.** A customer claims a refund. Intake chooses which facts to request; the customer
-discloses only those; the policy seat either requests further facts the written policy makes
-conditional or submits a resolution; the customer confirms the current proposal; payments
-executes it exactly once, or makes no change. Each seat sees only its own part: the customer
-its private facts, intake the public work-order rules and which facts are disclosed but not
-their values, the policy seat the public policy and the disclosed facts, payments only
-confirmed obligations and its ledger. A resolution states eligibility, remedy, workflow,
-amount, refund method, mutation, liability, policy basis and reason code, so holds, reviews,
-partial remedies and return routes are not collapsed into approve or deny.
 
 **Table 5.3. The four cases in brief.**
 
@@ -166,18 +157,10 @@ identical except for the client's hidden risk charge. The admission rule impleme
 predecessor's (a shortcut must lose by a margin on the playbook's menu); the agreement case's
 own admission rules are designed but not built.
 
-**Refund.** Cases come in eleven public cohorts, each built around one mechanism (policy
-precedence, evidence authority, intake prioritisation, payment allocation, redelivery, source
-revisions and others). Cases come in minimal pairs: two cases that differ in one declared fact,
-with the reference resolution expected to change or, for an invariance control, not to. For
-seed 301 the cohorts place 204 cases, 180 of them distinct, built from 44 interaction templates. Admission checks the declared
-change of each pair, completeness of each fact's domain, a unique path through the policy's
-precedence, unambiguous ledger revisions, the rendered contract and the scripted trajectories.
-
 ### 5.4 References and measures
 
-Every case scores a play against something computed, not judged. Appendix C gives each
-reference policy as a recursion and Appendix D each measure.
+Every case scores a play against something computed, not judged. For the three cases described
+in full, Appendix C gives each reference policy as a recursion and Appendix D each measure.
 
 - **Housing.** The reference is a scripted tenant that uses only what the prompt gives: it
   inspects its favourite, offers $0 on the best listing it has verified, and signs any counter
@@ -200,14 +183,6 @@ reference policy as a recursion and Appendix D each measure.
   Against a script, a stand-in that knows both sides' costs and the script's style gives a
   ceiling that is not a fair target. The design's per-turn loss against a best informed policy
   is not built.
-- **Refund.** Each case carries a hand-written reference resolution, and admission requires the
-  policy's public compiler to reproduce it from the full facts. Seven leaves are kept as a
-  vector: the resolution's meaning against the reference, the workflow, the payment, the
-  evidence, the contract's format, an end-to-end trajectory check, and an operational leaf that
-  is constant in this release. The end-to-end leaf is a strict composite, not a utility; a
-  resolution rejected as premature keeps its content, so a correct decision is not confused with
-  a missing step. The payment leaf checks that payments executed what the proposal asked, not
-  that the right money moved (RF-D-05, open).
 
 ### 5.5 Composition
 
@@ -374,29 +349,6 @@ Of 2,456 negotiations, 2,417 are valid. Every failure is a CLI service error; th
 bundles keep them as missing, and 16 were played again under separate identities by the owner's
 ruling.
 
-#### Refund
-
-The V2.5 release is qualified, not measured: all 816 trajectories of seed 301 (180 distinct
-cases, each played with each of the four seats active) complete with every leaf and every
-collaboration diagnostic covered, and each receipt replays independently. That shows the
-environment, the scripted seats and the verifiers agree with each other on every case; it does
-not show that the panel separates strong from weak play, because no lower control exists
-(RF-D-06). No model result on V2.5 is public. The model evidence comes from V2.1, which had one model seat (policy) and six cases, each
-repeated 20 times at temperature 0, so the unit of analysis is the case (RF-D-01).
-
-**Table 5.8. Refund V2.1, policy seat, six cases × 20 repeats; share of cells.**
-
-| | DeepSeek V4 Flash | Gemini 2.5 Flash Lite | GPT-5.6 Luna | Grok 4.3 |
-|---|---:|---:|---:|---:|
-| Reached the answer key's outcome | 100.0% | 18.3% | 94.2% | 99.2% |
-| Resolved as scored | 50.0% | 1.7% | 79.2% | 52.5% |
-| Ended before any decision | 0.0% | 81.7% | 5.8% | 0.0% |
-| Reached a wrong outcome | 0.0% | 0.0% | 0.0% | 0.8% |
-
-One cell in 480 reached a wrong outcome. The gap between the first two rows is procedure and
-format, decomposed in §5.7. The scripted reference policy resolves every case; V2.1 has no
-lower anchor (no-op or naive policy) to read the model rates against (RF-D-04).
-
 ### 5.7 Error analysis
 
 The losses concentrate in a few behaviours, each counted from the sealed trajectories.
@@ -426,15 +378,7 @@ number cut such signatures from 15 of 60 plays to 1 of 60. Against the firm popu
 the first offer in 36 of 52 worlds as client, while Sol bargains to the last move, pays for
 redlines and loses seven deals to the script's floor.
 
-**Refund: right outcome, wrong procedure.** Of the share of cells not resolved as scored, almost
-all is procedure or format. DeepSeek decided before a required fact in 44.2 percentage points of
-cells, Grok in 29.2 and GPT in 15.0, every one a denial the answer key also makes; Gemini asked
-again for a fact it already had in 80.8 points, which the environment rejects as terminal. A
-correct denial written with the refund method `null` rather than `"none"` failed in 5.8, 16.7 and
-17.5 points for DeepSeek, Gemini and Grok: the prompt says "method none", the schema allows null,
-and the verifier compares strings (RF-D-03, a defect of the case, not of the models).
-
-**Table 5.9. Opus 5.5 and Sol 6.1 on the three cases both played.**
+**Table 5.8. Opus 5.5 and Sol 6.1 on the three cases both played.**
 
 | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
 |---|---|---:|---:|---:|---|
@@ -457,9 +401,9 @@ Five observations hold across the cases.
 3. **What the brief states moves the score as much as the subject does.** Stating that a quote
    is final and that the average is the criterion cut procurement loss by $11 to $14, more than
    twice the gap between the two agents; stating a walk-away cost cut the data-center losing
-   signatures from 15 of 60 to 1 of 60; a schema that allows `null` where the verifier wants
-   `"none"` cost Refund models up to 17.5 points. The brief and the schema are controlled,
-   versioned parts of the case.
+   signatures from 15 of 60 to 1 of 60; in Refund a schema that allows a value its verifier
+   rejects cost the models points. The brief and the schema are controlled, versioned parts of
+   the case.
 4. **Outcome and path diverge.** Refund models reach the right outcome far more often than they
    follow the procedure; Housing models often sign the right kind of listing without having
    verified it. A case should say which it scores, and report both where both matter.
@@ -471,9 +415,9 @@ Five observations hold across the cases.
 A case is useful only while it is not saturated, and unsaturation has to be shown rather than
 assumed. We count a case as having headroom when the best subject falls short of a reference it
 could have reached, in a stratum declared before the runs, by an interval that excludes zero.
-Table 5.10 states the evidence case by case.
+Table 5.9 states the evidence case by case.
 
-**Table 5.10. Evidence of headroom in each case's hardest declared stratum.**
+**Table 5.9. Evidence of headroom in each case's hardest declared stratum.**
 
 | Case | Hardest declared stratum | Best subject | Reference | Best subject minus reference | Headroom |
 |---|---|---|---|---|---|
@@ -534,7 +478,7 @@ inside the transactions, as the data-center clauses do.
 Each transaction is counted once and its two seats share the weight; a 10% floor keeps every
 class readable, and results are reported per class, never as one undecomposed score.
 
-**Table 5.11. The target distribution, and where the four examples sit.**
+**Table 5.10. The target distribution, and where the four examples sit.**
 
 | Class | Seats | Flow decided (US, 2025) | Weight | Examples in this section |
 |---|---|---|---:|---|
@@ -568,6 +512,6 @@ case states its class and seat, and the suite reports each class on its own.
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
 | Table 5.7, adversarial counterparts, declared test, §5.7 data-center counts | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
-| Table 5.8 and the Refund error analysis | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Task distribution (Table 5.11) | [AV], from the BEA national accounts (2025) and BLS wage statistics (May 2023) | |
+| Refund V2.1 rows of Tables 5.4 and 5.9, and §5.1 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+| Task distribution (Table 5.10) | [AV], from the BEA national accounts (2025) and BLS wage statistics (May 2023) | |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
