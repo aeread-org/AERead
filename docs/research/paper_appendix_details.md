@@ -570,7 +570,7 @@ string matching, unit tests or a judge model.
 | R.5 Capability related to construct | met | each case states the decision it measures (Table 5.1) |
 | R.6 Evaluation subject stated | met | the subject is a profile (model, harness, prompt, tools, reasoning, retries); CLI agents are named with their harness |
 | R.7 Steps to prevent, find and correct flaws | met | the gates, the incident log and errata (Appendix F.1, Appendix F.6) |
-| R.8 Qualitative discussion of unavoidable flaws | met | §5.2 |
+| R.8 Qualitative discussion of unavoidable flaws | met | the end of §5.1 |
 | R.9 Quantitative analysis of flaw impact | partly | measured for the brief change, the refused cells and missingness bounds; not for every open row |
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |

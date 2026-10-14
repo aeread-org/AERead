@@ -26,12 +26,12 @@ kinds of verifier and counterpart, not sampled from that distribution.
 
 **Table 5.1. The four examples.**
 
-| Case | Decision under test | Model's seat; counterpart | Reference | Verifiers | Status |
-|---|---|---|---|---|---|
-| Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | a reachable scripted tenant ($292 a world); a full-information ceiling ($370) | value; rule | confirmatory |
-| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | the best informed policy, solved exactly ($451 a world) | value, priced per action | development |
-| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | the best of 600 agreements at both sides' true costs | value; relative; rule | development, one declared test |
-| Refund | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental |
+| Case | Decision under test | Model's seat; counterpart | Reference | Verifiers | Status | Headroom (hardest stratum) |
+|---|---|---|---|---|---|---|
+| Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | a reachable scripted tenant ($292 a world); a full-information ceiling ($370) | value; rule | confirmatory | shown: Gemini −102 [−122, −82] a world against the reference where the favourite is a lemon |
+| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | the best informed policy, solved exactly ($451 a world) | value, priced per action | development | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
+| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | the best of 600 agreements at both sides' true costs | value; relative; rule | development, one declared test | shown: the pair loses 79 [70, 88] of about 410 a world head to head |
+| Refund | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
 
 The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
 an answer key, declared rules, the value of the best policy or a bound, relative standing
@@ -98,21 +98,7 @@ number in that range. Against an overreaching script Opus signs below its own wa
 model leaks a confidential item. A test declared before its runs supported one of two
 looked-back signals and rejected the other.
 
-### 5.2 Headroom, and what holds across cases
-
-A case is useful only while it is unsaturated, so headroom is shown, not assumed: the best
-subject must fall short of a reference it could reach, in a stratum declared before the runs.
-
-**Table 5.5. Headroom in each case's hardest declared stratum.**
-
-| Case | Stratum | Best subject minus reference | Headroom |
-|---|---|---|---|
-| Housing | favourite is a lemon | Gemini −102 [−122, −82] a world | shown |
-| Data center | deal worlds, head to head | the pair loses 79 [70, 88] of about 410 | shown |
-| Procurement | all worlds | frontier: Sol gives up 1.0 [0.2, 2.1]; flash: Luna 74.4 [46.7, 102.7] | shown for the flash tier only |
-| Refund | six cases, one seat | best model resolves 79% as scored against 100% | suggested; no interval |
-
-Four things hold across the cases. The gap sits in a stratum the design fixes in advance, so every
+**Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
 case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
 names the counterparts it covers. What the brief states moves the score as much as the subject
 does (stating two rules cut procurement loss by $11 to $14; stating a walk-away cost cut losing
