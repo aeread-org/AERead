@@ -1,5 +1,6 @@
 // The interview outside the screen: state, saving, the model connection and export.
 // core.js (window.CaseCore) holds the protocol; this module runs it and tells the screen when anything changed.
+// On the hosted copy, ctl.voice (voice.js) runs the interview as a call instead of model calls from here.
 const C = window.CaseCore;
 const LS_STATE = "case-consultant:state:v1", LS_DRAFT = "case-consultant:draft";
 const UNAVAILABLE = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
@@ -19,6 +20,7 @@ export const ctl = {
   inViewer,
   downloads: null,
   spokenSinceSend: false,
+  voice: null,         // the call, on the hosted copy only (voice.js)
   store: { db: null, uid: null, http: false, where: "device", localOk: true, timer: 0, writing: false, dirty: false },
 };
 
@@ -26,6 +28,7 @@ export const ctl = {
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 export function snapshot() { return version; }
 function changed() { version += 1; listeners.forEach((fn) => fn()); }
+export const refresh = changed;
 
 /* ---- storage: this browser always; the viewer's account or the local server when there is one ---- */
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
@@ -40,6 +43,7 @@ function commit() {
   queueRemote();
   changed();
 }
+export const save = commit;
 function queueRemote() {
   const st = ctl.store;
   if (!st.db && !st.http) return;
@@ -132,6 +136,7 @@ function httpBrain() {
   } };
 }
 function connectBrain() {
+  if (ctl.voice) { ctl.brainKind = "voice"; changed(); return Promise.resolve(); }
   const viewer = inViewer ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
   return viewer.then((sample) => {
     if (sample) { ctl.brain = viewerBrain(sample); ctl.brainKind = "claude"; return; }
@@ -191,6 +196,7 @@ export function runReadback() {
 }
 export function send(text) {
   text = String(text || "").trim();
+  if (text && ctl.voice) { lsSet(LS_DRAFT, ""); ctl.voice.sendTyped(text); return Promise.resolve(); }
   if (!text || ctl.busy) return Promise.resolve();
   C.addExpert(ctl.S, text, { spoken: ctl.spokenSinceSend });
   ctl.spokenSinceSend = false;

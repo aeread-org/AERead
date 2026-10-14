@@ -6,8 +6,8 @@ answers, and compiles a case design document: the twelve elements a synthetic
 environment is built from, a table of numbers with ranges and sources, the open
 questions, and a read-back the expert approves.
 
-Live page: <https://claude.ai/artifact/4EnuNAwM63p2BARZPiJ95a> (private to the
-owner until shared).
+Live page: <https://claude.ai/artifact/4EnuNAwM63p2BARZPiJ95a> (shared with
+anyone who has the link). By voice: <https://aeread.org/interview>.
 
 ## The interview
 
@@ -58,6 +58,7 @@ same code.
 | Where | Model | Voice | Saves to |
 |---|---|---|---|
 | The artifact link, inside claude.ai | the viewer's own Claude, with their consent | keyboard dictation only | the viewer's account when they may write, else their browser |
+| aeread.org/interview (`dist/interview.html`) | Claude through Vapi, on the Vapi account | a phone-style call | the browser; the expert downloads the case |
 | `node serve.mjs`, then `http://localhost:8787` | the Claude Code CLI on this machine | the Speak button, live | `cases/<id>.json` on disk |
 | Any other copy of the page | none | where the browser allows | the browser |
 
@@ -74,8 +75,40 @@ a spoken answer is marked so the consultant confirms numbers that look misheard.
 The claude.ai artifact viewer refuses microphone access to pages, so inside it
 the button explains keyboard dictation instead (Mac: Fn twice; phones: the
 keyboard microphone; Windows: Win+H). In-page voice together with a model
-therefore needs the local server, or a hosted copy with its own model endpoint,
-which does not exist yet (CC-O-01).
+therefore needs the local server, or the hosted copy below.
+
+## The interview as a call (aeread.org/interview)
+
+`dist/interview.html` runs the same thirteen parts as a voice call through
+[Vapi](https://vapi.ai): the expert presses Talk and answers out loud, or types
+during the call. Vapi carries speech to text (Deepgram), the model (Claude, on
+the Vapi account) and the voice. `ui/src/voice.js` drives the call; the page
+still owns the interview:
+
+- The model keeps the conversation itself. It speaks each question, then calls
+  the tool `file_turn` with what the answer added. The page applies that with
+  the same `applyTurn` as a typed turn, then sends a `NOW` note: the part, what
+  it still needs, how many clarifying questions are left and the next part's
+  opening question (`voiceStatus` in `src/core.js`).
+- Vapi starts speaking only once the tool call is fully written (measured: a
+  2,500-character filing cost Sonnet 5 ten seconds), so a voice turn files only
+  what is new, and lists and tables are merged by entry instead of replaced.
+- Both tools carry an empty `request-complete` message; without it Vapi asks
+  the model to answer the tool's result, and it speaks a second time.
+- After the last part the page asks for the summary (`write_readback`); it
+  appears on screen, the expert corrects it by voice, and approves it with the
+  button.
+
+Audio is not recorded (`artifactPlan.recordingEnabled: false`). The words pass
+through Vapi and stay in its call log, and in the expert's browser. Cases are
+not sent anywhere else: the expert downloads the case from the menu.
+
+Build it with the Vapi browser key in the environment; the key is written into
+that one file and nowhere else:
+
+```sh
+VAPI_PUBLIC_KEY=... node build.mjs   # also VAPI_MODEL (default claude-haiku-5-5), VAPI_VOICE (Emma)
+```
 
 ## Run and test
 
@@ -83,7 +116,8 @@ which does not exist yet (CC-O-01).
 npm ci --prefix ui                  # once: React, assistant-ui and esbuild, pinned in ui/package-lock.json
 node build.mjs                      # dist/index.html (published) and dist/standalone.html
 node serve.mjs                      # local page with voice; --port, --data, --model, --readback-model
-node --test test/core.test.mjs      # 11 tests of the interview logic
+node --test test/core.test.mjs      # 15 tests of the interview logic
+PLAYWRIGHT_CORE=<path> node test/simulate_voice.mjs   # the same simulated expert, typing into a live call (billed to Vapi)
 node test/simulate.mjs              # a full interview against a simulated expert, about 15 minutes
 node test/score.mjs test/simulated/sim-6xyy7b6n5l.json
 ```

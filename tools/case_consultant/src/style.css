@@ -126,6 +126,20 @@ button, textarea { font: inherit; color: inherit; }
 .link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .hint { margin-left: auto; font-size: 12px; color: var(--dim); }
 
+/* the voice call (hosted copy) */
+.talk { height: 36px; border-radius: 999px; border: 0; background: var(--ink); color: var(--bg); display: inline-flex; align-items: center; gap: 7px; padding: 0 15px 0 12px; font-size: 14px; font-weight: 600; cursor: pointer; flex: none; }
+.talk:hover { opacity: .88; }
+.talk svg { width: 17px; height: 17px; }
+.call { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 18px; padding: 6px 6px 6px 14px; box-shadow: var(--shadow); }
+.call .txt { flex: 1 1 auto; font-size: 14px; color: var(--ink-soft); }
+.call .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rec); flex: none; animation: pulse 1.6s ease-in-out infinite; }
+.call.speaking .dot { background: var(--ink-soft); animation-duration: .8s; }
+.call .iconBtn.on { color: var(--rec); }
+.call .iconBtn:disabled { opacity: .4; cursor: default; }
+.chip.end { border-color: var(--rec); color: var(--rec); }
+.chip.end:disabled { opacity: .5; cursor: default; }
+.msg.u.heard .bub { opacity: .62; }
+
 @media (max-width: 600px) {
   .col, .footer { padding-left: 16px; padding-right: 16px; }
   .hello { padding-top: 5vh; }
@@ -133,4 +147,4 @@ button, textarea { font: inherit; color: inherit; }
   .msg.u .bub { max-width: 88%; }
   .hint { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .typing span, .mic.on svg { animation: none; } .bar span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .typing span, .mic.on svg, .call .dot { animation: none; } .bar span { transition: none; } }

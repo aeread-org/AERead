@@ -133,3 +133,82 @@ test("the numbers part asks about figures that lack a range or a source, with it
   assert.equal(C.STAGES[S.stage].id, "missed");
   assert.equal(S.gaps.filter((g) => g.status === "open").length, 1, "one summary question, not one per figure");
 });
+
+/* ---- voice ---- */
+test("a voice turn adds to lists and tables instead of replacing them, and a matching row is updated", () => {
+  const S = C.newState();
+  S.stage = 4;
+  C.addExpert(S, "Samples cost $250.");
+  C.applyTurn(S, turn({ sections: { moves: { list: [{ name: "Samples", money: "$250" }], commit: "the purchase order" } } }), { additive: true });
+  C.addExpert(S, "References are free, and samples take eight days.");
+  C.applyTurn(S, turn({ sections: { moves: { list: [{ name: "references", money: "free" }, { name: "samples", time: "8 days" }], commit: "" } } }), { additive: true });
+  assert.deepEqual(S.caseFile.moves.list.map((r) => [r.name, r.money, r.time]), [["Samples", "$250", "8 days"], ["references", "free", ""]]);
+  assert.equal(S.caseFile.moves.commit, "the purchase order");
+  C.addExpert(S, "And the build date is fixed.");
+  C.applyTurn(S, turn({ sections: { variation: { fixed: ["The build date"] } } }), { additive: true });
+  C.applyTurn(S, turn({ sections: { variation: { fixed: ["the build date", "Price list"] } } }), { additive: true });
+  assert.deepEqual(S.caseFile.variation.fixed, ["The build date", "Price list"]);
+  // A typed turn still returns whole sections and replaces lists, as before.
+  C.applyTurn(S, turn({ sections: { variation: { fixed: ["Only this"] } } }));
+  assert.deepEqual(S.caseFile.variation.fixed, ["Only this"]);
+});
+
+test("the NOW note carries the part, what it still needs, the cap and the next opening", () => {
+  const S = C.newState();
+  let note = C.voiceStatus(S);
+  assert.match(note, /^NOW .*part 1 of 13, You and your work/);
+  assert.match(note, /still needs: your line of work; your role/);
+  assert.ok(note.includes(C.STAGES[1].opening));
+  S.stage = 1;
+  S.followups = C.MAX_FOLLOWUPS;
+  note = C.voiceStatus(S);
+  assert.match(note, /They are used up/);
+  S.stage = C.READBACK - 1;
+  assert.match(C.voiceStatus(S), /This is the last part/);
+  S.stage = C.READBACK;
+  assert.match(C.voiceStatus(S), /calling write_readback once/);
+  C.applyReadback(S, C.normalizeReadback({ summary: ["You buy machines."], worked_checks: [{ situation: "one", agrees: "no" }, { situation: "two", agrees: "cannot tell" }, { situation: "three", agrees: "yes" }] }));
+  assert.deepEqual(S.readback.worked_checks.map((w) => w.agrees), [false, null, true]);
+  assert.match(C.voiceStatus(S), /The summary is on the expert's screen/);
+});
+
+test("the call's system prompt holds the voice rules and, for a continued interview, what was filed", () => {
+  const S = C.newState();
+  let p = C.voiceSystemPrompt(S);
+  assert.ok(p.includes("HOW EACH TURN GOES") && p.includes("THE CASE FILE: SECTIONS AND THEIR FIELDS"));
+  assert.ok(!p.includes("REPLY WITH ONLY THIS JSON OBJECT"));
+  assert.ok(!p.includes("CONTINUED INTERVIEW"));
+  assert.equal(C.voiceFirstMessage(S), C.INTRO + " " + C.STAGES[0].opening);
+  C.addExpert(S, "I buy parts.");
+  C.applyTurn(S, turn({ sections: { meta: { field: "Electronics" } }, move: "next", reply: "Pick one decision." }), { additive: true });
+  p = C.voiceSystemPrompt(S);
+  assert.ok(p.includes("CONTINUED INTERVIEW") && p.includes("\"field\":\"Electronics\""));
+  assert.equal(C.voiceFirstMessage(S), "Let's carry on where we stopped. Pick one decision.");
+  for (const t of [C.FILE_TURN_TOOL, C.READBACK_TOOL]) assert.equal(t.parameters.type, "object");
+  assert.deepEqual(C.FILE_TURN_TOOL.parameters.properties.reason.enum, Object.keys(C.GAP_KINDS));
+});
+
+// The voice work shares RULES and READBACK_SPEC with the typed interview. These digests pin the typed
+// prompts as they were before it, so a change to them is deliberate: update the digests when it is.
+test("the typed interview's prompts are unchanged by the voice protocol", async () => {
+  const { createHash } = await import("node:crypto");
+  const h = (s) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+  const S = C.newState();
+  C.addExpert(S, "I buy used excavators for a rental fleet, nine years.");
+  C.applyTurn(S, { sections: { meta: { field: "equipment rental", role: "fleet buyer", experience: "nine years" } }, numbers: [], new_gaps: [], closed_gaps: [], move: "next", reply: "Pick one decision." });
+  C.addExpert(S, "Whether to buy a machine at auction or from a dealer. Auction is about 15% cheaper.", { spoken: true });
+  C.applyTurn(S, { sections: { decision: { decision: "auction or dealer", options: ["auction", "dealer"] } }, numbers: [{ id: "auction_discount", name: "Auction discount", unit: "%", typical: "15" }], new_gaps: [{ kind: "range", about: "auction_discount", text: "Lowest and highest discount?" }], closed_gaps: [], move: "stay", reason: "range", reply: "What is the lowest and highest discount?" });
+  C.addExpert(S, "Between 5 and 30.");
+  assert.equal(h(C.turnPrompt(S)), "afd9bbd36483ebca");
+  assert.equal(h(C.readbackPrompt(S)), "7f4809704b8a2ccb");
+  S.stage = C.READBACK;
+  assert.equal(h(C.turnPrompt(S)), "7aa4e725c68700ca");
+});
+
+test("the NOW note names what to ask next, and says to move on once a part's needs are met", () => {
+  const S = C.newState();
+  assert.match(C.voiceStatus(S), /Ask next about: your line of work\./);
+  C.addExpert(S, "Electronics buyer.");
+  C.applyTurn(S, turn({ sections: { meta: { field: "Electronics", role: "Buyer" } } }), { additive: true });
+  assert.match(C.voiceStatus(S), /This part's needs are met\. .*move on now/);
+});

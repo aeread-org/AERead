@@ -235,6 +235,39 @@
     return out;
   }
 
+  /* A voice turn files only what is new (speech waits until the filing is written), so a list
+     gains entries instead of being replaced, and a table row whose first column matches one
+     already filed updates that row. Text and yes/no fields merge as above. */
+  function sameText(a, b) { return String(a == null ? "" : a).trim().toLowerCase() === String(b == null ? "" : b).trim().toLowerCase(); }
+  function mergeSectionAdditive(sec, old, incoming) {
+    if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) return clone(old);
+    var scalars = {};
+    sec.fields.forEach(function (f) { if ((f.type === "text" || f.type === "bool") && incoming[f.k] !== undefined) scalars[f.k] = incoming[f.k]; });
+    var out = mergeSection(sec, old, scalars);
+    sec.fields.forEach(function (f) {
+      var v = incoming[f.k];
+      if (!Array.isArray(v)) return;
+      if (f.type === "list") {
+        v.forEach(function (x) {
+          var item = str(x, 600);
+          if (item && out[f.k].length < 24 && !out[f.k].some(function (y) { return sameText(y, item); })) out[f.k].push(item);
+        });
+      } else if (f.type === "rows") {
+        var key = f.cols[0][0];
+        v.forEach(function (r) {
+          if (!r || typeof r !== "object" || Array.isArray(r)) return;
+          var row = {};
+          f.cols.forEach(function (c) { row[c[0]] = str(r[c[0]], 600); });
+          if (!f.cols.some(function (c) { return row[c[0]]; })) return;
+          var cur = row[key] ? out[f.k].filter(function (x) { return sameText(x[key], row[key]); })[0] : null;
+          if (cur) f.cols.forEach(function (c) { if (c[0] !== key && row[c[0]]) cur[c[0]] = row[c[0]]; });
+          else if (out[f.k].length < 24) out[f.k].push(row);
+        });
+      }
+    });
+    return out;
+  }
+
   /* ---- what each part still needs, computed from the file, never from the model ---- */
   function miss() {
     var out = [];
@@ -404,8 +437,9 @@
     S.updatedAt = now();
   }
 
-  /* Apply one consultant turn. Throws when the reply cannot be used, leaving the state untouched. */
-  function applyTurn(S, out) {
+  /* Apply one consultant turn. Throws when the reply cannot be used, leaving the state untouched.
+     opts.additive: the turn holds only what is new (a voice turn), merged by mergeSectionAdditive. */
+  function applyTurn(S, out, opts) {
     if (!out || typeof out !== "object" || Array.isArray(out)) throw new Error("The reply was not an object.");
     var reply = str(out.reply, 1500);
     if (!reply) throw new Error("The reply had no question in it.");
@@ -413,7 +447,7 @@
 
     if (out.sections && typeof out.sections === "object") {
       SECTIONS.forEach(function (sec) {
-        if (out.sections[sec.id] !== undefined) S.caseFile[sec.id] = mergeSection(sec, S.caseFile[sec.id], out.sections[sec.id]);
+        if (out.sections[sec.id] !== undefined) S.caseFile[sec.id] = (opts && opts.additive ? mergeSectionAdditive : mergeSection)(sec, S.caseFile[sec.id], out.sections[sec.id]);
       });
     }
     if (Array.isArray(out.numbers)) {
@@ -628,6 +662,12 @@
     return parts.join("\n");
   }
 
+  var READBACK_SPEC = [
+    "summary: four to seven short paragraphs in plain words, addressed to the expert as you. Cover the decision and what you are after; who else acts; what you can and cannot see; what you can do and what it costs; how the result is counted; what makes it hard and what flips it; how cases differ; what a newcomer and a professional do. Use the expert's own numbers. Say nothing that is not in the file. Write in the language the expert used. Never use these words: environment, simulation, agent, model, policy, parameter, observation, reward, benchmark, schema.",
+    "contradictions: pairs of filed statements or numbers that cannot both hold. Quote them closely. Empty if there are none.",
+    "worked_checks: one per worked situation. Apply the professional rule and the flip level in the file to that situation's numbers. If the rule cannot be applied because something is missing, set agrees to null and say what is missing.",
+    "would_be_invented: at most eight, most blocking first, each one short and put to the expert as you. Do not supply the values yourself."
+  ];
   function readbackPrompt(S) {
     var open = S.gaps.filter(function (g) { return g.status === "open"; });
     var lines = S.transcript.filter(function (m) { return m.kind !== "note"; }).map(function (m) { return (m.role === "expert" ? "EXPERT: " : "CONSULTANT: ") + m.text; });
@@ -643,17 +683,181 @@
       "  \"worked_checks\": [ { \"situation\": \"short label\", \"stated_choice\": \"what the expert chose\", \"rule_says\": \"what the expert's own rule and flip level choose with these numbers\", \"agrees\": true, \"note\": \"one sentence\" } ],",
       "  \"would_be_invented\": [ \"something a builder would have to make up because the file does not say\" ]",
       "}",
-      "",
-      "summary: four to seven short paragraphs in plain words, addressed to the expert as you. Cover the decision and what you are after; who else acts; what you can and cannot see; what you can do and what it costs; how the result is counted; what makes it hard and what flips it; how cases differ; what a newcomer and a professional do. Use the expert's own numbers. Say nothing that is not in the file. Write in the language the expert used. Never use these words: environment, simulation, agent, model, policy, parameter, observation, reward, benchmark, schema.",
-      "contradictions: pairs of filed statements or numbers that cannot both hold. Quote them closely. Empty if there are none.",
-      "worked_checks: one per worked situation. Apply the professional rule and the flip level in the file to that situation's numbers. If the rule cannot be applied because something is missing, set agrees to null and say what is missing.",
-      "would_be_invented: at most eight, most blocking first, each one short and put to the expert as you. Do not supply the values yourself.",
+      ""
+    ].concat(READBACK_SPEC, [
       "",
       "THE CASE FILE", JSON.stringify(S.caseFile),
       "", "NUMBERS", JSON.stringify(S.numbers),
       "", "OPEN QUESTIONS", open.length ? open.map(function (g) { return "[" + g.kind + "] " + g.text; }).join("\n") : "none",
       "", "THE INTERVIEW", text
-    ].join("\n");
+    ]).join("\n");
+  }
+
+  /* ---- voice: the same interview as a call ----
+     In a call the model keeps the conversation itself. It speaks each question, then files the
+     answer with the file_turn tool; the page applies the filing with applyTurn and sends back a
+     NOW note saying where the interview stands, so the page still owns the order of parts, the
+     cap on clarifying questions and what a part still needs. The call service starts speaking
+     only once the tool call is written, so a voice turn files only what is new. */
+  function swapLines(text, swaps) {
+    var lines = text.split("\n");
+    swaps.forEach(function (sw) {
+      for (var i = 0; i < lines.length; i++) if (lines[i].indexOf(sw[0]) === 0) { lines[i] = sw[1]; return; }
+      throw new Error("voice rules: no line starts with " + sw[0]);
+    });
+    return lines.join("\n");
+  }
+  var VOICE_RULES = swapLines(RULES, [
+    ["You are a consultant interviewing", "You are a consultant interviewing an industry expert on a voice call, one question at a time. Your client will turn the answers into a simulated version of one real decision from the expert's work, used to test how well people and AI systems make that decision. It is only useful if it is faithful to the expert's world, so nothing may be invented: everything filed must come from the expert's own words."],
+    ["- One question per turn.", "- One question per turn, spoken aloud. Say it as you would on the phone: at most two short sentences, no lists, headings, symbols or brackets. A clarifying question asks about one thing only: never join two questions with \"and\". The one exception is the part called The numbers, where a single question may name up to three figures."],
+    ["- You may open with one short sentence", "- Never thank or praise the expert, and never say an answer is clear, helpful or interesting. You may open with a few words that repeat the specific thing you just heard. No summary of the interview."],
+    ["- Write reply in the language", "- Speak in the language the expert is using. File everything in English.\n- The expert's words reach you through speech recognition, so a number or a name may be misheard. When one matters and looks wrong or surprising, read it back and ask them to confirm."],
+    ["- When you change a section, return that whole section", "- File only what this answer added or changed. A section holds only its new or changed fields. For a list or a table give only the new or changed entries: an entry whose first column matches one already filed updates it. Never repeat what is already filed."],
+    ["- To move on, set move to \"next\"", "- To move on, set move to \"next\". Your reply is then the next part's opening question, in your own words, tied to this expert's case, leaving out whatever they have already answered."]
+  ]) + "\n\n" + [
+    "HOW EACH TURN GOES",
+    "- Every turn is exactly one call of file_turn and nothing else. Put what you say to the expert in its reply field: the page speaks it. Never write text outside the call, or the expert hears it twice.",
+    "- Stay in the current part. Ask about what the NOW note says this part still needs, or about a gap in what the expert just said on this part's subject. When the expert mentions something that belongs to a later part, file it and leave the questions about it for that part.",
+    "- When you move on, your reply is the next part's opening question from the NOW note, in your own words.",
+    "- Call file_turn after every answer, even when the answer added nothing: then it holds only reply, move and reason.",
+    "- file_turn returns nothing and needs no answer. Never mention filing, notes, tools or the case file to the expert.",
+    "- Notes headed NOW come from the page that keeps the case file. Each replaces the one before. Follow the latest: it says which part you are in, what the part still needs, and when you must move on.",
+    "- The expert may also type. A typed answer is exact; treat it like a spoken one otherwise."
+  ].join("\n");
+
+  var VOICE_REMINDER = "Your next turn: one file_turn call. Its reply is one question, at most two short sentences, no thanks or praise.";
+  var NUMBER_FIELDS = ["id", "name", "unit", "low", "typical", "high", "of_ten", "fixed", "source", "note"];
+  function strings(keys) { var o = {}; keys.forEach(function (k) { o[k] = { type: "string" }; }); return o; }
+  var FILE_TURN_TOOL = {
+    name: "file_turn",
+    description: "Your whole turn: what you say to the expert, and what their last answer added or changed. Call it exactly once after every answer.",
+    parameters: { type: "object", required: ["reply", "sections", "numbers", "move"], properties: {
+      reply: { type: "string", description: "What you say to the expert, spoken aloud for you: one question, at most two short sentences. No thanks, no praise, and nothing about the parts of the interview, your notes or what you will do next." },
+      sections: { type: "object", description: "Only the sections with something new or changed, keyed by section id. Each holds only its new or changed fields; a list or a table holds only its new or changed entries. Empty when the answer added nothing." },
+      numbers: { type: "array", description: "Every figure in this answer that describes the decision in general: a cost, a price, a time, a rate, a share, a count of ten, the level where the choice flips. One entry per figure, with low, typical and high as the expert said them. A figure also written into a section still gets its entry here. Reuse an id to update one. Empty when the answer had no such figure.", items: { type: "object", properties: strings(NUMBER_FIELDS) } },
+      new_gaps: { type: "array", items: { type: "object", properties: { kind: { type: "string", enum: Object.keys(GAP_KINDS) }, about: { type: "string" }, text: { type: "string" } } } },
+      closed_gaps: { type: "array", description: "Ids of open gaps this answer settled.", items: { type: "string" } },
+      move: { type: "string", enum: ["stay", "next"] },
+      reason: { type: "string", enum: Object.keys(GAP_KINDS), description: "The kind of the question you asked, when move is stay." }
+    } }
+  };
+  var READBACK_TOOL = {
+    name: "write_readback",
+    description: "Write the summary the expert will check, with the audit. Call it once each time a NOW note asks for the summary.",
+    parameters: { type: "object", required: ["summary"], properties: {
+      summary: { type: "array", items: { type: "string" } },
+      contradictions: { type: "array", items: { type: "object", properties: strings(["a", "b", "ask"]) } },
+      worked_checks: { type: "array", items: { type: "object", properties: Object.assign(strings(["situation", "stated_choice", "rule_says", "note"]), { agrees: { type: "string", enum: ["yes", "no", "cannot tell"] } }) } },
+      would_be_invented: { type: "array", items: { type: "string" } }
+    } }
+  };
+
+  /* Only the fields that hold something, so a note stays short. */
+  function compact(v) {
+    if (Array.isArray(v)) { var a = v.map(compact).filter(function (x) { return x !== undefined; }); return a.length ? a : undefined; }
+    if (v && typeof v === "object") {
+      var o = {}, any = false;
+      for (var k in v) { var c = compact(v[k]); if (c !== undefined) { o[k] = c; any = true; } }
+      return any ? o : undefined;
+    }
+    return v === "" || v === false || v == null ? undefined : v;
+  }
+  function openGapLines(S, cap) {
+    var open = S.gaps.filter(function (g) { return g.status === "open"; });
+    if (open.length > cap) open = open.slice(open.length - cap);
+    return open.length ? open.map(function (g) { return g.id + " [" + g.kind + "] " + g.text; }).join("\n") : "none";
+  }
+  function voiceConversation(S, cap) {
+    var lines = S.transcript.filter(function (m) { return m.kind !== "note"; }).map(function (m) { return (m.role === "expert" ? "EXPERT: " : "CONSULTANT: ") + m.text; });
+    var text = lines.join("\n");
+    while (text.length > cap && lines.length > 2) { lines.shift(); text = lines.join("\n"); }
+    return text;
+  }
+
+  /* The note sent after every filed turn. It replaces nothing in the model's memory, so it
+     carries only what the page knows and the model cannot: where the interview stands. */
+  function voiceStatus(S) {
+    var open = "Open gaps (ids for closed_gaps):\n" + openGapLines(S, 12);
+    if (S.stage === READBACK) {
+      if (!S.readback) return voiceReadbackNote(S);
+      return ["NOW (this replaces every earlier NOW note): the questions are done. The summary is on the expert's screen, with the points you could not settle. The expert is reading it and will correct it, or add what was never asked.",
+        "File each correction with file_turn in the section it belongs to, with move \"stay\", and file any new fact where it belongs. Anything that matters and was never asked goes in notes.missed. Close every open gap the answer settles.",
+        "In reply: one sentence on what you changed. Then, if open gaps remain, ask the one that most blocks building, one at a time, and set reason to its kind. If none remain, or the expert says they are done or does not know, ask only whether anything else is wrong. When the expert says the summary is right, tell them to press \"This is right\" on the screen, then download the case from the menu.",
+        open, VOICE_REMINDER].join("\n");
+    }
+    var stage = STAGES[S.stage], next = STAGES[S.stage + 1], cap = capFor(stage);
+    var needs = NEEDS[stage.id](S.caseFile, S);
+    if (needs.length > 12) needs = needs.slice(0, 12).concat(["and " + (needs.length - 12) + " more"]);
+    var filed = {};
+    stage.fills.forEach(function (id) { var c = compact(S.caseFile[id]); if (c) filed[id] = c; });
+    var lines = ["NOW (this replaces every earlier NOW note): part " + (S.stage + 1) + " of " + READBACK + ", " + stage.title,
+      "Purpose: " + stage.purpose,
+      "This part still needs: " + (needs.length ? needs.join("; ") : "nothing. Its needs are met."),
+      "Worth probing here: " + stage.probe.join(" "),
+      "Clarifying questions used in this part: " + S.followups + " of " + cap + "." + (S.followups >= cap ? " They are used up: with your next reply, file what was said, put what is still unknown in new_gaps, and move on." : "")];
+    // A fast voice model follows the expert into later parts unless told what to ask; the page names it.
+    if (S.followups < cap) lines.push(needs.length
+      ? "Ask next about: " + needs[0] + ". Unless the last answer itself needs a clarifying question first: a vague word where a count belongs, a number without a range, a check without its error rates, or two answers that disagree."
+      : "This part's needs are met. Unless the last answer itself needs a clarifying question, move on now with the next part's opening question.");
+    if (stage.fills.length) lines.push("Filed in this part so far: " + (Object.keys(filed).length ? JSON.stringify(filed) : "nothing"));
+    if (stage.id === "numbers") lines.push("Numbers so far: " + JSON.stringify(S.numbers.map(function (q) { var c = compact(q); delete c.stage; return c; })));
+    else lines.push("Numbers filed so far: " + (S.numbers.length ? S.numbers.map(function (q) { return q.id; }).join(", ") : "none") + ". Every general figure the expert gives goes in numbers, with its own id.");
+    lines.push(open);
+    lines.push(next.id === "readback"
+      ? "This is the last part. When you move on, your reply says in one or two sentences that the questions are done and that you will now write up what you understood, which takes about a minute."
+      : "The next part: " + next.title + ". Its opening question: " + next.opening);
+    lines.push(VOICE_REMINDER);
+    return lines.join("\n");
+  }
+  function voiceReadbackNote(S) {
+    return ["NOW (this replaces every earlier NOW note): the questions are done. Write the summary the expert will check, and audit the file, by calling write_readback once and writing nothing else. The page tells the expert when it is on their screen.",
+      "The summary will be used to build a simulated version of the decision, so it must be faithful to what the expert said."].concat(READBACK_SPEC, [
+      "For agrees, use yes, no, or cannot tell.",
+      "", "THE CASE FILE", JSON.stringify(compact(S.caseFile) || {}),
+      "", "NUMBERS", JSON.stringify(S.numbers),
+      "", "OPEN QUESTIONS", openGapLines(S, 40)]).join("\n");
+  }
+  /* opts.summary: a call held only to write (or rewrite) the summary. */
+  function voiceSystemPrompt(S, opts) {
+    var parts = [VOICE_RULES, "", "THE PARTS OF THE INTERVIEW"];
+    STAGES.forEach(function (s, i) { parts.push((i + 1) + ". " + s.title + (s.fills.length ? " (files: " + s.fills.join(", ") + ")" : s.id === "numbers" ? " (files: numbers)" : "") + ". " + s.purpose); });
+    parts.push("", "THE CASE FILE: SECTIONS AND THEIR FIELDS", schemaText());
+    var started = S.transcript.some(function (m) { return m.role === "expert"; });
+    if (started) {
+      parts.push("", "THIS IS A CONTINUED INTERVIEW. Everything below was said or filed before this call.");
+      parts.push("", "FILED SO FAR", JSON.stringify(compact(S.caseFile) || {}));
+      parts.push("", "NUMBERS SO FAR", JSON.stringify(S.numbers.map(function (q) { var c = clone(q); delete c.stage; return c; })));
+      parts.push("", "THE CONVERSATION SO FAR, MOST RECENT LAST", voiceConversation(S, 12000));
+    }
+    parts.push("", opts && opts.summary ? voiceReadbackNote(S) : voiceStatus(S));
+    return parts.join("\n");
+  }
+  /* What the call opens with: the introduction and the first question, or where it stopped. */
+  function voiceFirstMessage(S, opts) {
+    if (opts && opts.summary) return S.readback ? "I'm rewriting the summary with your corrections. It takes about a minute." : "I'm writing up what I understood now. It takes about a minute, and it will appear on your screen.";
+    var last = null;
+    for (var i = S.transcript.length - 1; i >= 0; i--) if (S.transcript[i].role === "consultant" && S.transcript[i].kind !== "note") { last = S.transcript[i]; break; }
+    if (!S.transcript.some(function (m) { return m.role === "expert"; })) return INTRO + " " + STAGES[0].opening;
+    if (S.stage === READBACK && S.readback) return "Let's carry on. The summary is on your screen. Tell me what is wrong with it, or what is missing.";
+    if (S.stage === READBACK) return "I'm writing up what I understood now. It takes about a minute, and it will appear on your screen.";
+    return "Let's carry on where we stopped. " + (last ? last.text : STAGES[S.stage].opening);
+  }
+  function normalizeReadback(out) {
+    var o = out && typeof out === "object" ? clone(out) : {};
+    if (Array.isArray(o.worked_checks)) o.worked_checks.forEach(function (w) {
+      if (!w || typeof w !== "object") return;
+      var a = String(w.agrees == null ? "" : w.agrees).trim().toLowerCase();
+      w.agrees = a === "yes" || a === "true" ? true : a === "no" || a === "false" ? false : null;
+    });
+    if (typeof o.summary === "string") o.summary = o.summary.split(/\n{2,}/);
+    return o;
+  }
+  /* A reply the model spoke without filing (an aside): kept in the transcript, nothing else moves. */
+  function addConsultant(S, text, kind) {
+    text = str(text, 1500);
+    if (!text) return;
+    S.transcript.push(msg("consultant", text, { kind: kind || "aside", stage: S.stage }));
+    S.updatedAt = now();
   }
 
   /* Tolerant JSON read: the whole text, else one fenced block, else first brace to last brace. */
@@ -770,7 +974,9 @@
     skip: skip, applyTurn: applyTurn, worksheetStep: worksheetStep, applyReadback: applyReadback, approve: approve,
     stageStatus: stageStatus, numberIssues: numberIssues, sectionTouched: sectionTouched, readiness: readiness,
     turnPrompt: turnPrompt, readbackPrompt: readbackPrompt, parseJson: parseJson, partialReply: partialReply,
-    toMarkdown: toMarkdown, caseTitle: caseTitle
+    toMarkdown: toMarkdown, caseTitle: caseTitle,
+    VOICE_RULES: VOICE_RULES, FILE_TURN_TOOL: FILE_TURN_TOOL, READBACK_TOOL: READBACK_TOOL, voiceSystemPrompt: voiceSystemPrompt, voiceStatus: voiceStatus,
+    voiceReadbackNote: voiceReadbackNote, voiceFirstMessage: voiceFirstMessage, normalizeReadback: normalizeReadback, addConsultant: addConsultant
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.CaseCore = api;
