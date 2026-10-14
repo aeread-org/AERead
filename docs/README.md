@@ -151,7 +151,7 @@ identities, so their citations are redirected, not rewritten.
 - [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
 - [Representative trajectory analysis, 2026-09-05](research/representative_trajectory_analysis_2026-09-05.md)
-- [Paper section draft: case studies](research/paper_case_studies.md) (Housing, Procurement and Data center as worked examples, 2026-10-13)
+- [Paper section draft: case studies](research/paper_case_studies.md) (Housing, Procurement, Data center and Refund as worked examples, 2026-10-13)
 - [Paper section draft: quality control](research/paper_qc_design.md)
 - [Paper appendices A–D: case specifications](research/paper_appendix_case_specs.md)
 - [Exploit agent: design](research/exploit_agent_design.md)
