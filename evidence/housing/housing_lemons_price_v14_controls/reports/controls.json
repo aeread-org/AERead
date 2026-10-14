@@ -1,0 +1,1303 @@
+{
+ "beatability_main_pack_primary_v1": {
+  "GLM": {
+   "inspect_lowball": {
+    "hi": -133.54,
+    "lo": -176.64,
+    "mean": -155.09,
+    "n": 260,
+    "p": 3.860450177548667e-34
+   },
+   "inspect_then_sign": {
+    "hi": 13.87,
+    "lo": -30.12,
+    "mean": -8.12,
+    "n": 260,
+    "p": 0.4678501774379615
+   },
+   "pass": {
+    "hi": 162.5,
+    "lo": 110.66,
+    "mean": 136.58,
+    "n": 260,
+    "p": 2.5722651583022966e-21
+   },
+   "sign_anything": {
+    "hi": 243.83,
+    "lo": 188.38,
+    "mean": 216.1,
+    "n": 260,
+    "p": 2.9553103293841746e-38
+   }
+  },
+  "Gemini": {
+   "inspect_lowball": {
+    "hi": -65.26,
+    "lo": -96.72,
+    "mean": -80.99,
+    "n": 240,
+    "p": 2.4582959235538085e-20
+   },
+   "inspect_then_sign": {
+    "hi": 80.2,
+    "lo": 48.02,
+    "mean": 64.11,
+    "n": 240,
+    "p": 1.3879228228233563e-13
+   },
+   "pass": {
+    "hi": 233.27,
+    "lo": 188.19,
+    "mean": 210.73,
+    "n": 240,
+    "p": 9.427871915950271e-48
+   },
+   "sign_anything": {
+    "hi": 315.74,
+    "lo": 267.6,
+    "mean": 291.67,
+    "n": 240,
+    "p": 3.2723896284129096e-65
+   }
+  },
+  "Luna": {
+   "inspect_lowball": {
+    "hi": -142.09,
+    "lo": -181.18,
+    "mean": -161.64,
+    "n": 260,
+    "p": 1.571388412277984e-41
+   },
+   "inspect_then_sign": {
+    "hi": 2.45,
+    "lo": -31.78,
+    "mean": -14.67,
+    "n": 260,
+    "p": 0.09274837921637427
+   },
+   "pass": {
+    "hi": 155.6,
+    "lo": 104.46,
+    "mean": 130.03,
+    "n": 260,
+    "p": 3.638254563055525e-20
+   },
+   "sign_anything": {
+    "hi": 237.76,
+    "lo": 181.36,
+    "mean": 209.56,
+    "n": 260,
+    "p": 9.64535076306517e-36
+   }
+  }
+ },
+ "controls": {
+  "inspect_lowball": "aeread_families.housing.price_reference.inspect_lowball_action",
+  "inspect_then_sign": "aeread_families.housing.lemons.inspect_then_sign_action",
+  "pass": "aeread_families.housing.lemons.pass_action",
+  "sign_anything": "aeread_families.housing.lemons.sign_anything_action"
+ },
+ "inputs": {
+  "pack_sha256": "39ddf59f93940a22a414729eb6878b45f422592a6312b17a75ee2157a0e8a888",
+  "v14_manifest_sha256": "64ebaba31a2ee52c19fa53505299dbe65b0b92e48de36eb43e0d42219fdc06e5"
+ },
+ "measures": {
+  "net_realized": "seat 0's realized net",
+  "primary_v1": "the v14 primary (price_endpoint)",
+  "primary_v2": "housing_price_reply_conditioned_v2"
+ },
+ "not_included": {
+  "best_informed": "price_best_informed is on branch codex/housing-best-informed, not here"
+ },
+ "reproduction": "the inspect_lowball net and the ceiling equal the bundle's reference_net and ceiling in all 600 cells; each model's share of the ceiling as published equals the bundle's analysis.json",
+ "schema_version": "aeread.housing_price_controls/1",
+ "scopes": {
+  "holdout": {
+   "ceiling": {
+    "per_world": 353.15,
+    "pooled": 282.68,
+    "true_cost": 423.62
+   },
+   "controls": {
+    "inspect_lowball": {
+     "cells_signed": 66,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 319.58,
+      "lo": 239.61,
+      "mean": 279.6,
+      "n": 40,
+      "p": 6.102295962696655e-17
+     },
+     "net_realized_pooled": 162.88,
+     "net_realized_true_cost": 396.31,
+     "primary_v1": {
+      "hi": 319.58,
+      "lo": 239.61,
+      "mean": 279.6,
+      "n": 40,
+      "p": 6.102295962696655e-17
+     },
+     "primary_v2": {
+      "hi": 319.58,
+      "lo": 239.61,
+      "mean": 279.6,
+      "n": 40,
+      "p": 6.102295962696655e-17
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": 0.7953,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": 0.5851,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": 0.9355,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "inspect_then_sign": {
+     "cells_signed": 52,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 205.46,
+      "lo": 91.29,
+      "mean": 148.37,
+      "n": 40,
+      "p": 5.542629302795108e-06
+     },
+     "net_realized_pooled": 148.37,
+     "net_realized_true_cost": 148.37,
+     "primary_v1": {
+      "hi": 205.46,
+      "lo": 91.29,
+      "mean": 148.37,
+      "n": 40,
+      "p": 5.542629302795108e-06
+     },
+     "primary_v2": {
+      "hi": 205.46,
+      "lo": 91.29,
+      "mean": 148.37,
+      "n": 40,
+      "p": 5.542629302795108e-06
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": 0.4237,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": 0.5337,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": 0.3503,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "pass": {
+     "cells_signed": 0,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 40,
+      "p": 1.0
+     },
+     "net_realized_pooled": 0.0,
+     "net_realized_true_cost": 0.0,
+     "primary_v1": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 40,
+      "p": 1.0
+     },
+     "primary_v2": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 40,
+      "p": 1.0
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "sign_anything": {
+     "cells_signed": 80,
+     "cells_signed_blind": 80,
+     "net_realized": {
+      "hi": -219.86,
+      "lo": -493.11,
+      "mean": -356.49,
+      "n": 40,
+      "p": 5.196224617593642e-06
+     },
+     "net_realized_pooled": -356.49,
+     "net_realized_true_cost": -356.49,
+     "primary_v1": {
+      "hi": -67.11,
+      "lo": -145.86,
+      "mean": -106.48,
+      "n": 40,
+      "p": 2.8194946700667896e-06
+     },
+     "primary_v2": {
+      "hi": -67.11,
+      "lo": -145.86,
+      "mean": -106.48,
+      "n": 40,
+      "p": 2.8194946700667896e-06
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": -0.9524,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": -1.1186,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": -0.8415,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "models": {
+    "GLM": {
+     "net_realized": {
+      "hi": 157.69,
+      "lo": 4.2,
+      "mean": 80.95,
+      "n": 40,
+      "p": 0.039249614289148756
+     },
+     "primary_v1": {
+      "hi": 140.17,
+      "lo": 5.05,
+      "mean": 72.61,
+      "n": 40,
+      "p": 0.035840302197651365
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": 0.2532,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_as_published": 0.2292,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": 0.5287,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": 0.0694,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Gemini": {
+     "net_realized": {
+      "hi": 255.25,
+      "lo": 120.23,
+      "mean": 187.74,
+      "n": 36,
+      "p": 2.26689108580535e-06
+     },
+     "primary_v1": {
+      "hi": 255.25,
+      "lo": 120.23,
+      "mean": 187.74,
+      "n": 36,
+      "p": 2.26689108580535e-06
+     },
+     "realized_share_of_ceiling": {
+      "cells": 69,
+      "share": 0.5367,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_as_published": 0.5308,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 33,
+      "share": 0.6966,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 36,
+      "share": 0.4264,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Luna": {
+     "net_realized": {
+      "hi": 227.99,
+      "lo": 47.83,
+      "mean": 137.91,
+      "n": 40,
+      "p": 0.003616573484822172
+     },
+     "primary_v1": {
+      "hi": 180.17,
+      "lo": 45.66,
+      "mean": 112.91,
+      "n": 40,
+      "p": 0.0015856840553015493
+     },
+     "realized_share_of_ceiling": {
+      "cells": 77,
+      "share": 0.3958,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_as_published": 0.3905,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 37,
+      "share": 0.5567,
+      "zero_ceiling_cells_excluded": 3
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 40,
+      "share": 0.2885,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "worlds": 40,
+   "zero_ceiling_cells": [
+    [
+     400007,
+     "pooled"
+    ],
+    [
+     400019,
+     "pooled"
+    ],
+    [
+     400061,
+     "pooled"
+    ]
+   ]
+  },
+  "main": {
+   "ceiling": {
+    "per_world": 370.11,
+    "pooled": 292.4,
+    "true_cost": 447.82
+   },
+   "controls": {
+    "inspect_lowball": {
+     "cells_signed": 430,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 308.25,
+      "lo": 275.08,
+      "mean": 291.67,
+      "n": 260,
+      "p": 3.550237875967911e-99
+     },
+     "net_realized_pooled": 161.69,
+     "net_realized_true_cost": 421.65,
+     "primary_v1": {
+      "hi": 308.25,
+      "lo": 275.08,
+      "mean": 291.67,
+      "n": 260,
+      "p": 3.550237875967911e-99
+     },
+     "primary_v2": {
+      "hi": 308.25,
+      "lo": 275.08,
+      "mean": 291.67,
+      "n": 260,
+      "p": 3.550237875967911e-99
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": 0.7891,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": 0.5556,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": 0.9416,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "inspect_then_sign": {
+     "cells_signed": 332,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 168.03,
+      "lo": 121.37,
+      "mean": 144.7,
+      "n": 260,
+      "p": 2.1650175115983426e-27
+     },
+     "net_realized_pooled": 144.7,
+     "net_realized_true_cost": 144.7,
+     "primary_v1": {
+      "hi": 168.03,
+      "lo": 121.37,
+      "mean": 144.7,
+      "n": 260,
+      "p": 2.1650175115983426e-27
+     },
+     "primary_v2": {
+      "hi": 168.03,
+      "lo": 121.37,
+      "mean": 144.7,
+      "n": 260,
+      "p": 2.1650175115983426e-27
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": 0.392,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": 0.4975,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": 0.3231,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "pass": {
+     "cells_signed": 0,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 260,
+      "p": 1.0
+     },
+     "net_realized_pooled": 0.0,
+     "net_realized_true_cost": 0.0,
+     "primary_v1": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 260,
+      "p": 1.0
+     },
+     "primary_v2": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 260,
+      "p": 1.0
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "sign_anything": {
+     "cells_signed": 520,
+     "cells_signed_blind": 520,
+     "net_realized": {
+      "hi": -295.08,
+      "lo": -402.44,
+      "mean": -348.76,
+      "n": 260,
+      "p": 2.2581149609561653e-29
+     },
+     "net_realized_pooled": -348.76,
+     "net_realized_true_cost": -348.76,
+     "primary_v1": {
+      "hi": -62.41,
+      "lo": -96.65,
+      "mean": -79.53,
+      "n": 260,
+      "p": 1.7791902333631695e-17
+     },
+     "primary_v2": {
+      "hi": -62.41,
+      "lo": -96.65,
+      "mean": -79.53,
+      "n": 260,
+      "p": 1.7791902333631695e-17
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": -0.9159,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": -1.1258,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": -0.7788,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "models": {
+    "GLM": {
+     "net_realized": {
+      "hi": 162.61,
+      "lo": 102.21,
+      "mean": 132.41,
+      "n": 260,
+      "p": 6.171884707877733e-16
+     },
+     "primary_v1": {
+      "hi": 162.5,
+      "lo": 110.66,
+      "mean": 136.58,
+      "n": 260,
+      "p": 2.5722651583022966e-21
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": 0.3642,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_as_published": 0.3578,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": 0.5097,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": 0.2692,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Gemini": {
+     "net_realized": {
+      "hi": 235.54,
+      "lo": 185.92,
+      "mean": 210.73,
+      "n": 240,
+      "p": 4.084229256827447e-42
+     },
+     "primary_v1": {
+      "hi": 233.27,
+      "lo": 188.19,
+      "mean": 210.73,
+      "n": 240,
+      "p": 9.427871915950271e-48
+     },
+     "realized_share_of_ceiling": {
+      "cells": 474,
+      "share": 0.5727,
+      "zero_ceiling_cells_excluded": 6
+     },
+     "realized_share_of_ceiling_as_published": 0.571,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 234,
+      "share": 0.7396,
+      "zero_ceiling_cells_excluded": 6
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 240,
+      "share": 0.4636,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Luna": {
+     "net_realized": {
+      "hi": 168.48,
+      "lo": 103.13,
+      "mean": 135.8,
+      "n": 260,
+      "p": 1.2473346300078547e-14
+     },
+     "primary_v1": {
+      "hi": 155.6,
+      "lo": 104.46,
+      "mean": 130.03,
+      "n": 260,
+      "p": 3.638254563055525e-20
+     },
+     "realized_share_of_ceiling": {
+      "cells": 513,
+      "share": 0.3686,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_as_published": 0.3669,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 253,
+      "share": 0.5528,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 260,
+      "share": 0.2484,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "worlds": 260,
+   "zero_ceiling_cells": [
+    [
+     300002,
+     "pooled"
+    ],
+    [
+     300055,
+     "pooled"
+    ],
+    [
+     300073,
+     "pooled"
+    ],
+    [
+     300308,
+     "pooled"
+    ],
+    [
+     300346,
+     "pooled"
+    ],
+    [
+     300357,
+     "pooled"
+    ],
+    [
+     300409,
+     "pooled"
+    ]
+   ]
+  },
+  "main_favourite_is_lemon": {
+   "ceiling": {
+    "per_world": 349.13,
+    "pooled": 248.39,
+    "true_cost": 449.86
+   },
+   "controls": {
+    "inspect_lowball": {
+     "cells_signed": 310,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 270.09,
+      "lo": 240.02,
+      "mean": 255.06,
+      "n": 200,
+      "p": 1.2147402099746509e-83
+     },
+     "net_realized_pooled": 86.08,
+     "net_realized_true_cost": 424.03,
+     "primary_v1": {
+      "hi": 270.09,
+      "lo": 240.02,
+      "mean": 255.06,
+      "n": 200,
+      "p": 1.2147402099746509e-83
+     },
+     "primary_v2": {
+      "hi": 270.09,
+      "lo": 240.02,
+      "mean": 255.06,
+      "n": 200,
+      "p": 1.2147402099746509e-83
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": 0.732,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": 0.3506,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": 0.9426,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "inspect_then_sign": {
+     "cells_signed": 212,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 91.42,
+      "lo": 53.51,
+      "mean": 72.46,
+      "n": 200,
+      "p": 1.6426734476802383e-12
+     },
+     "net_realized_pooled": 72.46,
+     "net_realized_true_cost": 72.46,
+     "primary_v1": {
+      "hi": 91.42,
+      "lo": 53.51,
+      "mean": 72.46,
+      "n": 200,
+      "p": 1.6426734476802383e-12
+     },
+     "primary_v2": {
+      "hi": 91.42,
+      "lo": 53.51,
+      "mean": 72.46,
+      "n": 200,
+      "p": 1.6426734476802383e-12
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": 0.209,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": 0.2958,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": 0.1611,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "pass": {
+     "cells_signed": 0,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 200,
+      "p": 1.0
+     },
+     "net_realized_pooled": 0.0,
+     "net_realized_true_cost": 0.0,
+     "primary_v1": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 200,
+      "p": 1.0
+     },
+     "primary_v2": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 200,
+      "p": 1.0
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "sign_anything": {
+     "cells_signed": 400,
+     "cells_signed_blind": 400,
+     "net_realized": {
+      "hi": -557.19,
+      "lo": -595.86,
+      "mean": -576.53,
+      "n": 200,
+      "p": 9.463670607728663e-128
+     },
+     "net_realized_pooled": -576.53,
+     "net_realized_true_cost": -576.53,
+     "primary_v1": {
+      "hi": -57.19,
+      "lo": -95.86,
+      "mean": -76.53,
+      "n": 200,
+      "p": 3.306647700045593e-13
+     },
+     "primary_v2": {
+      "hi": -57.19,
+      "lo": -95.86,
+      "mean": -76.53,
+      "n": 200,
+      "p": 3.306647700045593e-13
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": -1.6149,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": -2.2187,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": -1.2816,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "models": {
+    "GLM": {
+     "net_realized": {
+      "hi": 98.84,
+      "lo": 38.45,
+      "mean": 68.65,
+      "n": 200,
+      "p": 1.2396129853119752e-05
+     },
+     "primary_v1": {
+      "hi": 100.41,
+      "lo": 51.89,
+      "mean": 76.15,
+      "n": 200,
+      "p": 3.392142600630465e-09
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": 0.2055,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_as_published": 0.1966,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": 0.368,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": 0.1158,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Gemini": {
+     "net_realized": {
+      "hi": 177.33,
+      "lo": 127.87,
+      "mean": 152.6,
+      "n": 183,
+      "p": 2.5056093203392215e-25
+     },
+     "primary_v1": {
+      "hi": 173.23,
+      "lo": 131.97,
+      "mean": 152.6,
+      "n": 183,
+      "p": 1.904089056376727e-32
+     },
+     "realized_share_of_ceiling": {
+      "cells": 360,
+      "share": 0.4411,
+      "zero_ceiling_cells_excluded": 6
+     },
+     "realized_share_of_ceiling_as_published": 0.4387,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 177,
+      "share": 0.6452,
+      "zero_ceiling_cells_excluded": 6
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 183,
+      "share": 0.3288,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Luna": {
+     "net_realized": {
+      "hi": 88.67,
+      "lo": 21.49,
+      "mean": 55.08,
+      "n": 200,
+      "p": 0.0014302753478874504
+     },
+     "primary_v1": {
+      "hi": 67.64,
+      "lo": 27.53,
+      "mean": 47.58,
+      "n": 200,
+      "p": 5.3188036899376044e-06
+     },
+     "realized_share_of_ceiling": {
+      "cells": 393,
+      "share": 0.1601,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_as_published": 0.1578,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 193,
+      "share": 0.3524,
+      "zero_ceiling_cells_excluded": 7
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 200,
+      "share": 0.0539,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "worlds": 200,
+   "zero_ceiling_cells": [
+    [
+     300002,
+     "pooled"
+    ],
+    [
+     300055,
+     "pooled"
+    ],
+    [
+     300073,
+     "pooled"
+    ],
+    [
+     300308,
+     "pooled"
+    ],
+    [
+     300346,
+     "pooled"
+    ],
+    [
+     300357,
+     "pooled"
+    ],
+    [
+     300409,
+     "pooled"
+    ]
+   ]
+  },
+  "main_favourite_is_sound": {
+   "ceiling": {
+    "per_world": 440.06,
+    "pooled": 439.13,
+    "true_cost": 441.0
+   },
+   "controls": {
+    "inspect_lowball": {
+     "cells_signed": 120,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 452.09,
+      "lo": 375.32,
+      "mean": 413.71,
+      "n": 60,
+      "p": 1.1377510877074287e-29
+     },
+     "net_realized_pooled": 413.71,
+     "net_realized_true_cost": 413.71,
+     "primary_v1": {
+      "hi": 452.09,
+      "lo": 375.32,
+      "mean": 413.71,
+      "n": 60,
+      "p": 1.1377510877074287e-29
+     },
+     "primary_v2": {
+      "hi": 452.09,
+      "lo": 375.32,
+      "mean": 413.71,
+      "n": 60,
+      "p": 1.1377510877074287e-29
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.9401,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.9421,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.9381,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "inspect_then_sign": {
+     "cells_signed": 120,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 423.17,
+      "lo": 347.8,
+      "mean": 385.48,
+      "n": 60,
+      "p": 1.7348932184785534e-28
+     },
+     "net_realized_pooled": 385.48,
+     "net_realized_true_cost": 385.48,
+     "primary_v1": {
+      "hi": 423.17,
+      "lo": 347.8,
+      "mean": 385.48,
+      "n": 60,
+      "p": 1.7348932184785534e-28
+     },
+     "primary_v2": {
+      "hi": 423.17,
+      "lo": 347.8,
+      "mean": 385.48,
+      "n": 60,
+      "p": 1.7348932184785534e-28
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.876,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.8778,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.8741,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "pass": {
+     "cells_signed": 0,
+     "cells_signed_blind": 0,
+     "net_realized": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 60,
+      "p": 1.0
+     },
+     "net_realized_pooled": 0.0,
+     "net_realized_true_cost": 0.0,
+     "primary_v1": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 60,
+      "p": 1.0
+     },
+     "primary_v2": {
+      "hi": 0.0,
+      "lo": 0.0,
+      "mean": 0.0,
+      "n": 60,
+      "p": 1.0
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.0,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "sign_anything": {
+     "cells_signed": 120,
+     "cells_signed_blind": 120,
+     "net_realized": {
+      "hi": 448.17,
+      "lo": 372.8,
+      "mean": 410.48,
+      "n": 60,
+      "p": 6.519692866801082e-30
+     },
+     "net_realized_pooled": 410.48,
+     "net_realized_true_cost": 410.48,
+     "primary_v1": {
+      "hi": -51.83,
+      "lo": -127.2,
+      "mean": -89.52,
+      "n": 60,
+      "p": 1.3262493617463706e-05
+     },
+     "primary_v2": {
+      "hi": -51.83,
+      "lo": -127.2,
+      "mean": -89.52,
+      "n": 60,
+      "p": 1.3262493617463706e-05
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.9328,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.9348,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.9308,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "models": {
+    "GLM": {
+     "net_realized": {
+      "hi": 403.07,
+      "lo": 286.84,
+      "mean": 344.95,
+      "n": 60,
+      "p": 2.770376234519438e-17
+     },
+     "primary_v1": {
+      "hi": 390.97,
+      "lo": 285.05,
+      "mean": 338.01,
+      "n": 60,
+      "p": 1.2482782505418771e-18
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.7839,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_as_published": 0.7839,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.7767,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.791,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Gemini": {
+     "net_realized": {
+      "hi": 437.23,
+      "lo": 357.51,
+      "mean": 397.37,
+      "n": 57,
+      "p": 3.824813980212132e-27
+     },
+     "primary_v1": {
+      "hi": 437.23,
+      "lo": 357.51,
+      "mean": 397.37,
+      "n": 57,
+      "p": 3.824813980212132e-27
+     },
+     "realized_share_of_ceiling": {
+      "cells": 114,
+      "share": 0.9089,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_as_published": 0.9089,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 57,
+      "share": 0.9109,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 57,
+      "share": 0.9068,
+      "zero_ceiling_cells_excluded": 0
+     }
+    },
+    "Luna": {
+     "net_realized": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60,
+      "p": 8.345582559043759e-29
+     },
+     "primary_v1": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60,
+      "p": 8.345582559043759e-29
+     },
+     "realized_share_of_ceiling": {
+      "cells": 120,
+      "share": 0.92,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_as_published": 0.92,
+     "realized_share_of_ceiling_pooled": {
+      "cells": 60,
+      "share": 0.9305,
+      "zero_ceiling_cells_excluded": 0
+     },
+     "realized_share_of_ceiling_true_cost": {
+      "cells": 60,
+      "share": 0.9096,
+      "zero_ceiling_cells_excluded": 0
+     }
+    }
+   },
+   "worlds": 60,
+   "zero_ceiling_cells": []
+  }
+ },
+ "zero_ceiling_rule": {
+  "applies_to": "a cell whose full-information ceiling (price_reference.ceiling) is $0: no listing is worth its landlord's lowest acceptable rent to seat 0",
+  "declared": "2026-10-13, after v14 ran; no declared v14 verdict uses a share of the ceiling",
+  "net_measures": "kept: the cell enters every per-world mean and every contrast",
+  "reporting": "counted and listed, by population, stratum and arm, wherever a share of the ceiling is reported",
+  "rule_id": "housing_price_zero_ceiling_v1",
+  "share_of_ceiling": "excluded from the numerator and the denominator of every share-of-ceiling ratio"
+ }
+}
