@@ -693,7 +693,10 @@ agreement of eight clauses and an all-in price (600 agreements) over six alterna
 moves, both seats open, graded exactly at both sides' true costs (`agreement.grade`).
 Its campaigns are the 18 `datacenter_agreement_cli_*` bundles: 2,456 negotiations of
 Codex (Sol 6.1) and Opus 5.5 against each other, themselves and scripted counterparts,
-2,417 valid. **Normative status: failed**, on Gate 1.
+2,417 valid, every one of them on a development pack. **Normative status: failed** for
+those campaigns, on Gate 1. The admitted pack `agreement_admitted_v1` (2026-10-13) is
+`partial` at Gate 1; no model has played it, and the confirmatory plan that would is
+`agreement_confirmatory_plan.md`.
 
 **Gate 0, profile admission: partial.** This section is the profile. From the registry
 row of 2026-10-09 (03a7faef) until it, the family was trusted with neither a profile nor
@@ -701,17 +704,82 @@ an exemption, so `tests/test_benchmark_qc_profiles.py` failed on the branch thro
 agreement campaign (DC-J-08); that test now maps the family here. The registry row is
 kernel lane, on a branch with no PR, and needs a non-author review.
 
-**Gate 1, task-distribution admission: failed.** Both packs regenerate to the committed
-digests and share no world, but neither was admitted for this case. `agreement_dev_v1`
-(58 worlds, 6 with no deal worth signing) is the full-terms case's `contracts_eval_v1`,
-admitted for a client choosing from a list; `agreement_confirm_v1` (58, 6) is the same
-generator at base seed 2790000, a new seed and not a held-out mechanism. The case's own
-admission rules (c* differs from the draft by a margin, c* depends on the counterpart's
-type, each shortcut loses a margin, a quota of worlds where the right move gives a clause
-up, types drawn after admission on their own stream) are designed and not implemented,
-and the last fails on both packs: the client's hidden charge is fixed by cell, 8, 22 and
-28 worlds at the low, middle and high charge against a prior of a third each (DC-D-33).
-No measured-headroom screen has run. Blocker: a pack built by those rules.
+**Gate 1, task-distribution admission: failed for the development packs, which every
+published campaign used; partial for `agreement_admitted_v1`, which no model has played.**
+
+*The development packs.* Both regenerate to the committed digests and share no world, but
+neither was admitted for this case. `agreement_dev_v1` (58 worlds, 6 with no deal worth
+signing) is the full-terms case's `contracts_eval_v1`, admitted for a client choosing from
+a list; `agreement_confirm_v1` (58, 6) is the same generator at base seed 2790000, a new
+seed and not a held-out mechanism. The client's hidden charge is fixed by cell, 8, 22 and
+28 worlds at the low, middle and high charge against a prior of a third each (DC-D-33),
+and the rival turnkey price, a public number, is the drawn integrator type's best contract
+cost plus an offset, so it moves with both hidden types (DC-D-34). These packs stay failed;
+nothing published on them is relabelled.
+
+*The admitted pack* (`cases/datacenter_agreement_v1/agreement_admitted_v1/`, built by
+`agreement_admitted_pack.py`, tested by `tests/test_datacenter_agreement_admitted_pack.py`,
+26 tests). What holds:
+
+- **Regeneration.** The generator scans seeds from 6,100,000 in order until every quota is
+  filled: 2,729 seeds. A full rescan (`python -m ...agreement_admitted_pack --check`, 45 s on
+  eight cores) reproduces all 62 files byte for byte. The test rebuilds them from the
+  committed scan log, recomputing the 60 admitted seeds and a fixed sample of 108 rows,
+  and checks that every status in the log follows from its reasons and cells.
+- **Admission before any type exists**, by the case's rules, on the public world and the
+  declared priors (the world's client charge is `None` until the types are drawn, so
+  anything reading it fails). In expectation over the prior on both hidden types, at both
+  sides' true costs: the draft leaves at least 75 against c*; signing the draft, haggling
+  only the price and asking for every protection (either side's) each lose at least 75, and
+  walking at least 150 (the full-terms case's margins: three redline fees, and twice that,
+  against the 322 an admitted deal world makes available); knowing the client's charge is
+  worth at least 25 (one redline) to the integrator's choice of agreement, and for every
+  integrator type the best outcome differs between charges. Every world meets every rule
+  when it is recomputed from the environment's cost functions, and each rule rejects a world
+  built or found to break it. The binding rule is asking for every client protection (2,054
+  of 2,729 rejections).
+- **Shortcuts are what they are said to be.** Each, played as a scripted pair through the
+  plugin's hooks for every type pair of one world per cell, loses exactly the amount
+  admission assigned it, and the prior-weighted sum is the pack's record.
+- **Cells and the give-up share.** 20 worlds where walking is right against at least a
+  third of counterparts, 20 where the best agreement trades a client protection for
+  another, 20 where it only hands risk to the integrator; 34 of 60 give a clause up (at
+  least a third declared). The design's other two cells cannot be filled: the draft is the
+  best agreement for no type pair in 2,729 worlds, and only 1 admissible world asks the
+  client only to take risk on (DC-D-36).
+- **Types drawn after admission, on their own stream** keyed by the pack and the seed:
+  client charges 26, 15 and 19 at 0.15, 0.75 and 1.55; against the prior by cell,
+  chi-square 5.7 on 6 df, p 0.46 (0.49 by simulation at the prior; independence 0.55);
+  integrator types within playbook p 0.61. The stream ignores the public world and the
+  cell, and admission is identical under each substituted charge. The same check rejects
+  DC-D-33's pattern (charge set by cell).
+- **Reference values.** Through the plugin's hooks, with the oracle test's harness, the
+  full-information pair loses 0 in 60 of 60 worlds, signs c* in the 45 deal worlds and
+  walks in the 15 others; the draft pair loses what its midpoint predicts in all 60.
+- **Splits.** Seeds start at 6,100,000 against at most 3,820,000 in every development
+  pack, and no world shares a content digest, a public-world digest or a set of drawn
+  parameters with one. The generator is a new mechanism (type-free turnkey anchor,
+  independent types, admission), not a new seed.
+- **Counterpart style.** `agreement_admitted_pack.public_style` draws the `drawn` population
+  from the public world and the seat: the same under all three charges in every world,
+  where `drawn_style` changes in all 120 world-seats (DC-D-32). `Negotiator` takes a
+  `Style`, so no hashed module is edited; no driver uses it yet.
+
+Blockers:
+
+1. **The client seat fails the rule that the best agreement depends on the counterpart's
+   type** (DC-D-35). The client's hidden counterpart type is the integrator's pre-staging
+   cost, and knowing it is worth at most 19.4 to the client's choice of agreement in 2,729
+   candidate worlds (median 0, 99th percentile 10.5) and at most 12.9 in the admitted 60.
+   The pack is admitted on the integrator seat's information alone, so a client-seat
+   result on it measures price and the walk-away decision under nearly complete clause
+   information. Clearing it needs a world family in which the integrator's risk charge is
+   private.
+2. **No measured-headroom screen.** Nothing has played the pack, so the control's per-world
+   rate at several plays and the trivial and degenerate grounds are not measured. The
+   shortcuts are deterministic public-information policies and each loses a margin in every
+   world, which is necessary and not sufficient. The confirmatory plan's variance pilot on a
+   separate admitted draw supplies the screen.
 
 **Gate 2, environment and verifier: partial.** `tests/test_datacenter_agreement_oracle_run.py`
 plays every world of both packs through the plugin's own hooks (parse, legality, step,
@@ -737,8 +805,10 @@ Stand-ins with both types known (`agreement_negotiator_check.py`) give a sign-th
 offer anchor (122 and 114 against `firm`) and a best plan against each script, a ceiling
 the models fall 45 to 247 below, not an attainable target. Partial because the design's
 primary measure, loss by turn against a best informed policy, and its one-step check
-that the case is not arithmetic are not built; the `drawn` style's draw hashes the
-client's hidden charge (DC-D-32); no shortcut is screened at admission.
+that the case is not arithmetic are not built; on the development packs the `drawn`
+style's draw hashes the client's hidden charge (DC-D-32) and no shortcut is screened at
+admission. The admitted pack screens every shortcut and has a public style, which no
+driver uses yet.
 
 **Gate 4, attribution and experimental controls: partial.** Pairings are compared on the
 same worlds; same-model pairings are declared self-play with their estimand. An A/A
@@ -754,5 +824,7 @@ and no plan-level test shows that only the treatment differs between paired plan
 sized from a declared minimum effect, no confirmatory freeze. The one declared test, of
 what an offer gives away, committed its plan (`agreement_signalling_plan_2026-10.md`,
 e69b6cff) before its runs, on fresh worlds with six predictions corrected by Holm; it
-did not pass the campaign SOP's variance-pilot or freeze gates. Blocker: a variance pilot
-on an admitted panel, a sizing record from its paired spread, and a frozen holdout.
+did not pass the campaign SOP's variance-pilot or freeze gates. An admitted panel now
+exists, and `agreement_confirmatory_plan.md`, committed before any run, declares the
+pilot, the sizing from the development spread, the contrasts and the freeze. Blocker: none
+of it has run.
