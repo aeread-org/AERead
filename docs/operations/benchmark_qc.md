@@ -244,6 +244,30 @@ checks, replay results, visibility audits, and scorer/accounting reports.
 Stop when invalid activity mutates protected state, an oracle check disagrees,
 hidden state leaks, a score cannot be reconstructed, or replay differs.
 
+#### Reference run on every admitted world
+
+Goldens exercise a handful of trajectories. Before a pack is frozen, the case's
+reference must also be played on **every** admitted world, through the real
+environment and verifier with no model, and must produce exactly the result the
+case says it should:
+
+| Kind of check the case scores | Required result of the reference run |
+|---|---|
+| Answer or rule | the reference scores full credit on every leaf |
+| Value against a best policy | zero loss against itself, and a value equal to the one computed offline (for a policy over hidden types, equal to the environment's average over the type draws) |
+| Value against a full-information ceiling | a full-information player reaches the ceiling in every world |
+| Relative | the reference pairing reproduces its computed split |
+
+A test enforces it on the committed pack, so a pack change that breaks it fails
+review rather than a later campaign. The test plays the trajectory through the
+environment's step function and scores the terminal state; calling the grading
+function on a constructed outcome is not a reference run. A world where the
+reference does not reach its declared result is a finding about the case and is
+recorded in the incident log; it is never dropped from the pack to make the test
+pass. The enumerated shortcut policies of Gate 3 are the complement: the
+reference shows that the best result is reachable, the shortcuts that weaker
+behaviour cannot reach it.
+
 #### External-wrapper parity
 
 An external benchmark wrapper must declare, before execution:
