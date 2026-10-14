@@ -46,10 +46,10 @@ decide the outcome. Uncertainty is computed over worlds, claims name their count
 analyses (Housing v14's and the data-center signalling test) were declared before their runs.
 
 **What it found.** Every failure is written into the incident log when it happens, in design,
-operational, tooling and judgment rows that are never deleted (48, 43, 82 and 16 rows about the four
-cases and their predecessors). Of 19 defects quality control found, 12 were invisible in any single
-world; the 7 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
-single gate cell (Table F.4). Four are still open. The same checks corrected statements of our own
+operational, tooling and judgment rows that are never deleted (50, 43, 82 and 16 rows about the four
+cases and their predecessors). Of 20 defects quality control found, 12 were invisible in any single
+world; the 8 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
+single gate cell (Table F.4). Five are still open. The same checks corrected statements of our own
 while this paper was written (P-J-05, HL-J-12).
 
 ### References

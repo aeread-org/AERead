@@ -91,10 +91,14 @@ Over all 260 main-pack worlds the models fall short of the reachable reference b
 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
 is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
 [+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same score.
-Thirty-six Gemini cells were refused when the provider account ran out of credit; they stay
+Scripted tenants played offline on every cell give the floor: passing earns $0, signing the
+first listing offered −$80 a world (it signs lemons), and inspecting when the stated odds make it
+pay then signing $145; the models beat the first two by $130 to $292 a world. Sixteen GLM cells
+contain invalid tenant actions, almost all offers on a listing already leased; the bundle did not
+report them (HL-D-08) and no number moves. Thirty-six Gemini cells were refused when the provider account ran out of credit; they stay
 missing in the declared bundle, and a separately identified fill moves nothing (+74, +81). Under
 the HL-D-07 correction (a blind signing valued at the posterior given inspections and informative
-replies) 21 (GLM), 33 (Luna) and 3 (Gemini) signings change value: Gemini leads by +60 [+38, +81]
+replies) 21 (GLM), 33 (Luna) and 3 (Gemini) signings change value: Gemini leads by +60 [+39, +81]
 and +67 [+49, +84] (Holm p < 10⁻⁶), GLM−Luna is +2 [−20, +24], and each model minus the reference
 becomes −79, −142 and −144. The published bundle is not edited.
 
@@ -309,8 +313,15 @@ identity, and Procurement's corrected schema ran under new identities.
   they are unpublished and only 174 are distinct.
 - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
   Procurement and Refund; the agreement case has no such test.
-- **Paired plans.** Refund tests that a plan has a single subject seat; the agreement case tests
-  its packs; no case tests that paired plans differ only in the treatment.
+- **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
+  asserts that they differ only in model and route, reasoning tier, sampling and cost ceiling,
+  the differences HL-J-12 recorded; Refund tests that a plan has a single subject seat; the
+  agreement case tests its packs.
+- **Golden plays.** For Housing, tests added after the runs play five kinds of tenant on v14
+  worlds through the real market: a good lease with its accounting checked by hand, a poor blind
+  lemon signing, invalid and unauthorised actions (the market ends exactly as if the tenant had
+  passed), malformed output through the kernel (typed as an error and scored as a pass, never as
+  $0), and a world whose ceiling is $0; each has a counterexample that makes it fail.
 
 ### F.3 Reading trajectories
 
@@ -324,7 +335,9 @@ an earlier data-center design was traced the same way on 2026-09-14.
 
 - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
   the value available in the agreement case; always paying the premium gives up $75.2 a world in
-  Procurement.
+  Procurement; in Housing, scored after the runs, passing earns $0, signing the first listing
+  offered −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
+  beat (Table 5.2).
 - **Fixed rules** are scored exactly against Procurement's best policy; the one-step rule's $0.06
   is the finding that fails Gates 1 and 3.
 - **Brief audits** found instructions that decided outcomes in Procurement (P-D-15, P-D-19, P-D-21)
@@ -358,7 +371,7 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 
 | Case (row prefix) | Design | Operational | Tooling | Judgment | Total |
 |---|---:|---:|---:|---:|---:|
-| Housing lemons and price line (HL) | 7 | 21 | 8 | 12 | 48 |
+| Housing lemons and price line (HL) | 9 | 21 | 8 | 12 | 50 |
 | Procurement (P) | 23 | 6 | 10 | 4 | 43 |
 | Data center (DC) | 33 | 21 | 20 | 8 | 82 |
 | Refund (RF, RV25) | 8 | 0 | 7 | 1 | 16 |
@@ -387,11 +400,12 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | RF-D-03 | A correct denial written with method `null` failed: the prompt says "none", the schema allows null, the verifier compares strings | yes, by reading one proposal against the verifier | building the gap decomposition | recorded; reported as format, not outcome |
 | RF-T-01 | The human-QC approval was minted by the runner from two status-only stubs, so it bound whatever the runner produced | yes, by reading the runner's code | the Refund audit | V2.5 names a reviewer, but the runner still binds the approval to its own output (RF-D-06, open) |
 | RF-D-05 | Refund's payment leaf checks that payments executed what the proposal asked, so a proposal with an aliased mutation moves no money where the reference refunds $185.22 and still scores 1.0 | yes, by tracing one case | writing the formal appendix of this paper | open; report the leaf as binding and add a check against the reference |
+| HL-D-09 | The v14 receipts' own scores total all six tenant seats against baselines from a market without outside demand, so they are not the deciding tenant's | yes, by reading the receipts | building the seat-0 controls | open; the published primary is computed separately and is unaffected; a seat-0 scorer needs a module outside the hashed runner |
 | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Twelve of the nineteen were invisible in any single world; the seven visible ones were found by
-reading code or sealed bytes, by tracing a case, or in a single gate cell. Four are still open
-(P-D-17, HL-D-07, RF-D-05, RF-T-01).
+Twelve of the twenty were invisible in any single world; the eight visible ones were found by
+reading code or sealed bytes, by tracing a case, or in a single gate cell. Five are still open
+(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01).
 
 ### F.8 Assessment against the Agentic Benchmark Checklist
 
@@ -412,7 +426,7 @@ tests or a judge model.
 | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, by tests added after the runs (Appendix F.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); nineteen defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
+| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
@@ -426,7 +440,7 @@ tests or a judge model.
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |
 | R.12 Non-AI baselines | partly | scripted policies in every case; no human |
-| R.13 Trivial agents | partly | always paying (Procurement) and signing the draft (Data center) are reported; Housing v14 reports no do-nothing tenant, and Refund V2.1 has no lower anchor (RF-D-04) |
+| R.13 Trivial agents | partly | always paying (Procurement), signing the draft (Data center) and passing, signing anything and inspect-then-sign (Housing, scored after the runs) are reported; Refund V2.1 has no lower anchor (RF-D-04) |
 
 ## Appendix G. Artifacts
 

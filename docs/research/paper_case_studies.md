@@ -53,11 +53,14 @@ the reply, so the score follows the decision rather than the draw.
 | Tenant net per world | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
 | Minus the reference, favourite is a lemon (200) | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
 | Minus the reference, favourite is sound (60) | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
+| Minus a rule that inspects when the odds make it pay, then signs | +64 [+48, +80] | −8 [−30, +14] | −15 [−32, +2] |
 
 Under an analysis declared before any cell (three pairs, Holm; $50 minimum), Gemini leads GLM by
 +70 [+48, +92] and Luna by +80 [+62, +99]; GLM and Luna do not differ; the 40-world holdout
 agrees. None reaches the reference, and almost the whole shortfall is in worlds where the
-favourite listing is a lemon. A correction to the measure found while writing this paper
+favourite listing is a lemon. Scored after the runs, a scripted tenant that inspects whenever the
+stated odds make it pay and then signs earns $145 a world: Gemini beats it, while GLM and Luna do
+not. A correction to the measure found while writing this paper
 (HL-D-07) moves no declared verdict: Gemini's leads become +60 and +67.
 
 **Procurement.** A buyer owes 50 kits by a deadline. It may pay the most for a supplier with a
@@ -162,4 +165,5 @@ no human has played them.
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund rows of Tables 5.1 and 5.5 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
 | Failure classes (Table 5.5, Appendix E.5) | scripts and results in `~/analysis/paper/failure_taxonomy/` (outside the repository), built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
+| Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
