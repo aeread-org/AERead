@@ -218,7 +218,7 @@ world against about 160 at three.
 reported per type and tested for variation before pooling, and a general advantage needs a
 positive gap against every declared type. In the data-center case the counterpart accounts for
 25% to 33% of the spread in what a model earns (shuffled labels give 2% or less), and the gap
-between the same two agents runs from not distinguishable to $251k (Table 5.5).
+between the same two agents runs from not distinguishable to $251k (Table 5.7).
 
 **An A/A arm runs through the whole pipeline.** One profile in both arms, through execution,
 scoring, analysis and the claim rule; a rule that fires stops the campaign before its freeze.
