@@ -313,6 +313,78 @@ the award (award timing). Paired by world, Gemini minus Luna is +$0.8
 [-3.7, 6.3]. The gap to the frontier CLI agents is $69 to $74 a world, and the
 one-step rule closes all of it.
 
+### 8.1 Version 2: `pay_or_test_v2`
+
+**Status as of 2026-10-14:** Gate 0 `passed`, Gate 1 `partial`, Gate 2
+`passed`, Gate 3 `passed`, Gate 4 `not_run`, Gate 5 `not_run`. No model or
+provider has been called on this pack.
+
+Version 1 failed because a test was worth only what it showed about the
+listing tested, so looking one test ahead was enough. Version 2 adds one stated
+fact: new listings of one seller kind share a source with a chance the case
+states (0.8, 0.9 or 0.95), and sharing one they are all sound, all late or all
+failing inspection; each listing's own odds are still its cohort record. A cheap
+sample can then be worth taking for what it says about another listing. In
+`myopic_pays__tight__1`, three trading-company newcomers are each 20% likely to
+be sound; one is 36% cheaper than the recorded supplier but its sample costs
+$160, another is 4% cheaper with a $20 sample. Testing the cheap one for $22
+tells the buyer, nine times in ten, whether the dear one is sound: if it passes,
+the dear one is 92% likely sound and worth its $160, with the cheap one as the
+fallback. The one-step rule pays the premium and gives up $55.51.
+
+Mechanisms considered. (A) the shared source, chosen: it needs no environment
+change (types are pack properties the environment applies as before), and the
+shortfall it creates is attributable, because on the same listings with the
+source never shared the one-step rule is within $0.33 of the best policy in
+every world ($0.03 on average). On version 1's own ranges it was not enough
+(P-D-24); it works once sample fees and discounts are drawn on their own over
+wide ranges. (B) odds read from cohort records rather than stated: with
+independent types a one-step rule reads the same records and computes the same
+odds, so nothing changes; with an unknown kind-level rate it is (A) again,
+with a prior the brief would have to state as a distribution. Rejected. (C) a
+cheaper-but-slower and a dearer-but-faster test of one supplier: the
+environment has one sample per supplier with one fee and one duration, so it
+needs an environment change. Rejected. A variant the environment does support,
+per-listing sample days on a clock that leaves no time to return to the recorded
+supplier, also defeats the one-step rule (up to $121 a world), but through the
+clock, not through information; it is left out so the shortfall has one cause.
+
+| Gate | Status | Evidence | Blocker |
+|---|---|---|---|
+| 0. Profile admission | `passed` | this subsection | none |
+| 1. Task-distribution admission | `partial` | 24 worlds, four cells of six (`myopic_pays` and `myopic_tests`, named by where the one-step rule's first request goes, each on a tight and a loose clock). Each world is the first seed of its own 5,000-seed block that `admit` accepts; 5,798 seeds were scanned (1,957 and 2,634 for the two `myopic_pays` cells, 674 and 533 for `myopic_tests`), so admission keeps 0.2% to 1.1% of draws. Every world is rebuilt byte for byte and every earlier seed of its block is rejected again (`test_each_world_is_the_first_admitted_seed_of_its_block_reproduced_byte_for_byte`, about 570 CPU-seconds, 95 s on 8 workers), and the manifest is rebuilt from the worlds (`test_the_manifest_is_rebuilt_from_its_worlds_byte_for_byte`). Admission (declared in `pay_or_test_v2_case_matrix.admit`) reads the listings, the clock and the stated law only; types are drawn afterwards on their own stream (`test_admission_does_not_depend_on_how_the_newcomers_turned_out`, `test_a_listing_is_the_same_whatever_type_its_seller_is`). The *trivial* ground: every world defeats the one-step rule, version 1's one-step comparison, the four fixed rules and the kind-blind shortcut by at least $10 (`test_every_world_defeats_the_one_step_rules_and_every_fixed_rule_by_the_margin`), the one-step rule's mean loss is $30.09 against a declared $15 (`test_the_one_step_rule_loses_the_declared_mean_and_the_manifest_says_so`), and information is worth at least $24.0 in every world against a declared $10 (`test_information_has_headroom_in_every_world`). Seeds 8,950,000 to 9,070,000, disjoint from version 1 and the inference packs (`test_the_pack_does_not_overlap_version_one_seeds`) | the grounds that need the control itself. Measured headroom asks for the frozen control's scores at several seeds a world to reject *degenerate* worlds, and no subject has played version 2. The variance pilot in the [confirmatory plan](pay_or_test_v2_confirmatory_plan.md) is that measurement |
+| 2. Environment and verifier | `passed` | no pinned module changed: version 2 lives in three new modules, and its reference subclasses version 1's without editing it. In all 24 worlds the best policy's value and every one of the ten rules' values equal the environment's own average over the 27 type profiles weighted by the stated law, each policy played through the environment (`test_expected_values_equal_the_environments_average_over_every_way_the_newcomers_could_turn_out`); the reference's joint prior equals the stated law computed independently from the listings (`test_the_reference_prior_is_the_stated_law_exactly`); the generator's draws follow the stated shares and the stated chance of a shared source over 4,000 seeds, for pairs of one kind and of two kinds (`test_types_follow_the_stated_shares_and_the_stated_chance_of_a_shared_source`); every rule the brief states is checked against the environment as in version 1 (order counting, a void award, the deadline, what a quote and a sample show, a quote is final) | none for the scripted scope. Receipt replay is checked on the first panel with the driver's `--verify`, as for version 1 |
+| 3. Construct validity and baselines | `passed` | declared before any model result: the margins above and the rules they apply to. Controls: walking away ($600 short), always pay, test the cheapest once, test the best odds once, work up the price list, the one-step rule with and without the shared source, the kind-blind shortcut, and the evaluator-only full-information value. A better-informed policy improves the outcome on every world by at least $10 against every one of them. The controlled perturbation removes the effect: with the source never shared the one-step rule is within $0.33 of the best policy (`test_without_a_shared_source_the_one_step_rule_is_close_to_the_best_policy`). Shortcut tests: starting a test with the sample instead of the quote does not help the one-step rule ($30.14); sampling the cheapest sample first without reading kinds gives up $32.07 and is screened (P-D-25); a listing and the policy block are identical whatever the types; the prompt names no procedure. Diagnostics: a two-test lookahead gives up $5.89 (3 of 24 worlds at $10 or more), and a habit that writes the inference down, sample the cheapest of a kind that has a dearer one first, $7.11 (10 of 24) | none for the policy-level checks. Whether the pack separates subjects is Gate 4 and 5's question; a subject that matches the two-test lookahead would saturate it, which the pilot measures |
+| 4. Attribution and experimental controls | `not_run` | single seat; pairing by world; prompt identity `procurement_allocation_pay_or_test_shared_source_v1` | no campaign. The plan declares its contrasts |
+| 5. Confirmatory reliability and publication | `not_run` | the [confirmatory plan](pay_or_test_v2_confirmatory_plan.md), not run | no variance pilot, no frozen identity |
+
+Exact expected loss against the best informed policy, dollars a world, from
+`pack.json` for version 2 and from the version 2 reference on version 1's 24
+worlds with the source never shared (version 1's own `pack.json` agrees on its
+five rules). The top seven rules are screened; the last three are diagnostics.
+
+| Rule | v1 | v1 worlds at $10+ | v2 | v2 smallest | v2 worlds at $10+ |
+|---|---:|---:|---:|---:|---:|
+| Pay the premium | 75.19 | 16 | 64.43 | 10.06 | 24 |
+| Test the cheapest once | 81.38 | 19 | 71.62 | 29.35 | 24 |
+| Test the best odds once | 45.72 | 14 | 56.94 | 12.94 | 24 |
+| Work up the price list | 146.11 | 21 | 349.22 | 20.94 | 24 |
+| One step ahead, updating its odds | 0.06 | 0 | 30.09 | 10.06 | 24 |
+| One step ahead, version 1's (stated odds only) | 0.06 | 0 | 30.51 | 10.06 | 24 |
+| Cheapest sample first, kinds ignored | 78.90 | 14 | 32.07 | 10.00 | 24 |
+| One step ahead, either order inside a test | 0.06 | 0 | 30.14 | 10.06 | 24 |
+| Two tests ahead | 0.00 | 0 | 5.89 | 0.00 | 3 |
+| Cheapest sample of a kind with a dearer one first | 81.19 | 16 | 7.11 | 0.01 | 10 |
+
+Mutation record (2026-10-14, rerun from clean bytecode after P-T-16): the prior
+check dies when the reference ignores the shared source; the posterior check
+dies on the same mutant; the environment-average check dies in 24 of 24 worlds
+when a quote reads the poor share as the late share; the draw-law check dies
+when the generator never shares a source; the listing-invariance check dies when
+a listing carries its type; the attribution and margin checks die when their
+thresholds are moved past the pack's values; and the scan check dies in 5 of 6
+worlds tried when admission stops screening the kind-blind shortcut.
+
 ## 9. Pack profile: `inference_v2`
 
 **Status as of 2026-10-13:** Gate 0 `passed`, Gate 1 `failed`, Gate 2
