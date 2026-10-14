@@ -76,6 +76,9 @@ def test_p2_reads_no_gap_only_when_the_strict_interval_ends_below_fifty() -> Non
     assert an.reading({**base, key: [-20.0, 49.0]}) == "no gap of 50 or more against a firm counterpart"
     assert an.reading({**base, key: [-20.0, 51.0]}) == "inconclusive"
     assert an.reading({**base, "rejected": True, key: [5.0, 51.0]}) == "a gap against the firm population is claimed"
+    # both readings hold when the gap is real and smaller than 50 (DC-T-21)
+    assert an.reading({**base, "rejected": True, key: [6.7, 46.1]}) == ("a gap against the firm population is claimed; "
+                                                                        "no gap of 50 or more against a firm counterpart")
 
 
 def test_p3_is_an_exact_mcnemar_on_the_discordant_worlds() -> None:

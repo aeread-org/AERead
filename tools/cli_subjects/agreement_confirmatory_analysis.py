@@ -207,10 +207,13 @@ def reading(r: Mapping[str, Any]) -> str:
     if r["inconclusive_by_dropout"]:
         return "inconclusive: more than 10% of its worlds dropped out"
     if r["contrast"] == "P2":
+        # the plan's two readings are not exclusive (DC-T-21): a gap can be claimed and be smaller than 50
+        readings = []
         if r["rejected"]:
-            return "a gap against the firm population is claimed"
-        hi = r[f"ci_{1 - ALPHA / FAMILY:.4f}"][1]
-        return "no gap of 50 or more against a firm counterpart" if hi < EFFECTS["P2"] else "inconclusive"
+            readings.append("a gap against the firm population is claimed")
+        if r[f"ci_{1 - ALPHA / FAMILY:.4f}"][1] < EFFECTS["P2"]:
+            readings.append("no gap of 50 or more against a firm counterpart")
+        return "; ".join(readings) or "inconclusive"
     return "rejects 0" if r["rejected"] else "does not reject 0"
 
 
