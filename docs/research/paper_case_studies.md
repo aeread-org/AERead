@@ -289,8 +289,8 @@ Five observations hold across the cases, each from the tables above.
    Housing's favourite-sound half is at the reference for both; the hard halves (favourite
    lemon, the data-center agreement against a firm counterpart, 72k to 128k below the best
    plan) still leave room.
-5. **Patterns found by looking back do not survive as results.** One of the two data-center
-   signals failed its declared test. Only declared tests enter the results above; looked-back
+5. **Patterns found by looking back are not results until tested.** One of the two
+   data-center signals failed its declared test. Only declared tests enter the results above; looked-back
    patterns are reported as hypotheses with the test that would decide them.
 
 These cases do not rank models in general. Two frontier agents at one reasoning setting
