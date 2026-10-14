@@ -139,6 +139,7 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 Directory `refund/`, package `refund`.
 
 - [Case contract](refund/case.md)
+- [QC profile](refund/qc.md)
 - [Refund V1.3 DeepSeek V4 Flash Evaluation](refund/deepseek_v4_profiles_2026-09-11.md)
 - [Refund V1.3 disclosure and negotiation state machine](refund/negotiation_state_machine_v1_3.md)
 - [Refund reasoning experiment](refund/reasoning_experiment.md)
