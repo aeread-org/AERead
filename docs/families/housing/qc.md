@@ -972,7 +972,21 @@ The three v14 identities, `housing_lemons_price_confirmatory_v14_{glm53_flash_ne
 outside demand and both scripted landlord kinds on a 300-world pack; bundle
 [`evidence/housing/housing_lemons_price_confirmatory_v14/`](../../../evidence/housing/housing_lemons_price_confirmatory_v14/)
 with the declared fill beside it. This section was written on 2026-10-13, after v14 ran and was published.
-**Status:** `v14_confirmatory_profile=partial`. No gate is `failed`; Gates 1 to 5 each have a blocker.
+**Status:** `v14_confirmatory_profile=partial`. No gate is `failed`; Gates 1 to 5 each still have a blocker. The
+same day, after this section was first written, the blockers that could be closed offline were closed: goldens for
+the price market, a declared rule for the $0-ceiling cells, the scripted controls published, a versioned measure for
+HL-D-07 with the v14 recomputation published beside the bundle, and a contract-diff test of the three identities.
+None of them changes a published v14 number or a declared verdict, and no gate became `passed`: what remains is either
+a sealed artifact that needs provider calls or a step that had to happen before the v14 freeze.
+
+| Gate | First written | Now | What still blocks it |
+|---|---|---|---|
+| 0 | `passed` | `passed` | |
+| 1 | `partial` | `partial` | no measured-headroom screen of the frozen control (one replicate); no near-duplicate clustering; the holdout is new seeds, not a held-out mechanism |
+| 2 | `partial` | `partial` | the goldens are tests, not a sealed golden-receipt bundle; the bundle holds no receipts, so a kernel replay cannot run from `evidence/` |
+| 3 | `partial` | `partial` | no beatability rule declared before v14's results; v14's frozen primary is v1 and the HL-D-07 erratum waits on #117; HL-D-09 open |
+| 4 | `partial` | `partial` | no sealed probe-based profile-admission receipts for the v14 profiles |
+| 5 | `partial` | `partial` | no sealed variance pilot or sizing record; no A/A arm; both had to precede the freeze |
 
 **Gate 0, profile admission: `passed`**, by this section: it references the standard and types each gate with its
 blocker. v14 itself ran without one.
@@ -984,10 +998,21 @@ seed's own lemon draw, so admission cannot select on quality (the HL-D-03 fix). 
 favourite-sound from seeds 300000-300441, holdout 30 and 10 from 400000-400063, disjoint from each other and from the
 development worlds 100000-100059; no two of the 300 worlds give seat 0 the same view (tested). The holdout keeps the
 main pack's difficulty: favourite-lemon share 75% against 77%, reference $280 against $292 a world, ceiling $353
-against $370. Blockers: no measured-headroom screen (the control was not run per world before the freeze, and with one
-replicate within-world variance is unmeasured); 10 pooled-arm cells (7 main, 3 holdout, all favourite-lemon) have a $0
-ceiling, no sound listing being worth its target to seat 0, and stay in under no declared rule; no near-duplicate
-clustering; the holdout is new seeds of the same generator, not a held-out mechanism.
+against $370. Each world's deterministic baseline outcomes (no-op, weak control, baseline, reference, ceiling, both
+arms) are published per world in
+[`housing_lemons_price_v14_controls`](../../../evidence/housing/housing_lemons_price_v14_controls/).
+**$0-ceiling cells, declared rule `housing_price_zero_ceiling_v1`** (`price_controls.ZERO_CEILING_RULE`, declared
+2026-10-13, after v14 ran). Ten cells have a $0 ceiling, all pooled-arm favourite-lemon (seven main: 300002, 300055,
+300073, 300308, 300346, 300357, 300409; three holdout: 400007, 400019, 400061): no listing is worth its landlord's
+lowest acceptable rent to seat 0, so the best play is to do nothing. Such a cell stays in every net measure, per-world
+mean and contrast; it is excluded from the numerator and the denominator of every share-of-ceiling ratio; and it is
+counted and listed wherever a share is reported. Tested on world 300002 and against the bundle's ten cells
+(`tests/test_housing_price_goldens.py`). No declared v14 verdict uses a share of the ceiling; under the rule the
+models' realized shares on the main pack move from the bundle's 35.8%, 36.7%, 57.1% (GLM, Luna, Gemini) to 36.4%,
+36.9%, 57.3%, the most on GLM's holdout (22.9% to 25.3%); the controls analysis reports both. Blockers: no
+measured-headroom screen (the control was not run per world before the freeze, and with one replicate within-world
+variance is unmeasured); no near-duplicate clustering; the holdout is new seeds of the same generator, not a held-out
+mechanism.
 
 **Gate 2, environment and verifier: `partial`.** `price_reference.run_world` drives the sealed market offline and
 replayed the sealed scripted reference cell for cell (120 of 120 when written; four worlds pinned in
@@ -998,29 +1023,88 @@ returns, signs the counter) realizes `price_reference.ceiling` exactly in every 
 in 295 of them and lost the declared $0 tie to seat 0. The check fails when it should: a landlord margin of $30 against
 the ceiling's $25 moves 490 of 520 main-pack cells off it (tested). Every published receipt replays from its sealed
 events (`aeread verify-replay`, 1,800 of 1,800; fill 48 of 48), and `your_history` carries no tenant id or quality
-(tested). Blockers: the §14 goldens are the bid world's and this market has no sealed golden set; the bundle binds
-receipts by digest but holds neither receipts nor trajectories (145 MB), so the replay cannot be rerun from `evidence/`.
+(tested). **Goldens for the price market** (`tests/test_housing_price_goldens.py`, closed 2026-10-13), on pack worlds,
+every expected number computed in the test from the world's values, costs and asks:
 
-**Gate 3, construct and baselines: `partial`.** The reachable reference (`inspect_lowball`, only what notice v2
-gives; deterministic and never signs blind, tested) earns $291.67 a world on the main pack; the full-information
-ceiling $370.11 ($447.82 leaky, $292.40 pooled), both verified cell by cell above. The gap between them sits where
-the design puts the difficulty: the reference reaches 73% of the ceiling in favourite-lemon worlds (94% leaky, 35%
-pooled) and 94% in favourite-sound ones, and the models separate there (60%, 27%, 22% of the reference against 97%,
-83%, 98%). Blockers: HL-D-07 (row on branch `docs/paper-case-studies-qc`), the primary measure conditions on the
-landlord's reply only below the sound floor, not on every informative reply as the case contract says; recomputed
-2026-10-13 from the sealed run roots with no declared verdict changed (Gemini minus GLM +60, minus Luna +67, GLM minus
-Luna +2), but by a script outside the repository, and the versioned measure is open. No no-op or weak control
-(sign-anything, inspect-then-sign) is published for the v14 pack.
+- *successful*: the reference in 300000 and 300003 (leaky) signs at its landlord's rule target, a sound listing at its
+  floor and a verified lemon at the lemon's own floor; seat 0's net is value less rent less the $25 fee, the landlord's
+  payoff is $25, the ceiling is the same lease without the fee, and the endpoint's decomposition has no residual;
+- *valid but poor*: `sign_anything` in 300002 (leaky) signs a lemon blind at $1 over the ask for -$695.61; the
+  trajectory stays valid, the tenant's IR violation is recorded, and the stated-odds components (-$500 lemon draw,
+  -$195.61 bet) are kept under v1 and v2;
+- *invalid or unauthorized*: unknown, boolean and negative listing ids, negative, NaN and infinite rents, signing
+  another seat's hold, inspecting a leased listing, a repeat inspection and a stale hold each get a typed verdict;
+  the market's protected state ends identical to a seat that passed, with $0 credit;
+- *malformed or operational failure*: malformed market actions become typed passes; through the kernel with a v14
+  contract, a plain-text commit and GLM's own v14 commit `{"decision": "walk", "hold_id": null}` are sealed as
+  `malformed_json` and `malformed_commit`, the cell completes, the hold lapses as a walk would, and seat 0 nets minus
+  its fees, neither the lease nor $0; a failed cell is published with its typed condition and no primary, its world
+  leaves the paired measure, and the failure is counted;
+- *degenerate reference*: the $0-ceiling world 300002 pooled under the rule above.
+
+Each kind has a counterexample that fails it: a landlord countering $1 over its rule, a market without its rent guard,
+a share that keeps the $0 cell. Blockers: the goldens are tests over the real market and kernel, not a sealed
+golden-receipt bundle as §14 publishes for the bid world; the bundle binds receipts by digest but holds neither
+receipts nor trajectories (145 MB), so a kernel replay cannot be rerun from `evidence/`. Narrowed: seat 0's trajectory
+facts for all 1,812 completed cells (v14 and the fill), each bound to its verified receipt and sealed event root, are
+now in `evidence/housing/housing_lemons_price_v14_reply_conditioned/tables/seat0_trajectories.jsonl`, so the primary
+measure (v1 and v2) is recomputed from `evidence/` alone.
+
+**Gate 3, construct and baselines: `partial`.** The scripted controls are published
+([`housing_lemons_price_v14_controls`](../../../evidence/housing/housing_lemons_price_v14_controls/),
+`python -m aeread_families.housing.price_controls --check`; closed 2026-10-13). Main pack, per world, realized and
+primary (v1):
+
+| Seat 0 | Realized | Primary | Favourite lemon, realized | Favourite sound, realized |
+|---|---|---|---|---|
+| `pass` (no-op) | $0 | $0 | $0 | $0 |
+| `sign_anything` (weak) | -$349 | -$80 | -$577 | +$410 |
+| `inspect_then_sign` (baseline) | +$145 | +$145 | +$72 | +$385 |
+| `inspect_lowball` (reachable reference) | +$292 | +$292 | +$255 | +$414 |
+| GLM, Luna, Gemini (published) | +$132, +$136, +$211 | +$137, +$130, +$211 | +$69, +$55, +$153 | +$345, +$405, +$397 |
+| full-information ceiling | +$370 | | +$349 | +$440 |
+
+The controls are ordered by what they know, and the measure separates them: each model beats `pass` and
+`sign_anything` on the primary, paired by world (GLM +$137 [+111, +162] and +$216 [+188, +244]; Luna +$130 and +$210;
+Gemini +$211 and +$292). GLM and Luna do not separate from the simple baseline `inspect_then_sign` (-$8 [-30, +14] and
+-$15 [-32, +2]); Gemini is above it (+$64 [+48, +80]); all three are below the reference. The gap between the
+reference and the ceiling sits where the design puts the difficulty: under the $0-ceiling rule the reference reaches 73%
+of the ceiling in favourite-lemon worlds (94% leaky, 35% pooled) and 94% in favourite-sound ones. The weak control's
+realized -$349 against its primary -$80 is the stratification: seat 0's favourite is a lemon in 77% of main-pack worlds,
+while its stated odds, and the measure, price every unverified listing at 2 in 4.
+**HL-D-07, the versioned measure** (closed for later identities 2026-10-13): `price_reply_posterior`
+(`housing_price_reply_conditioned_v2`) values a blind signing at its lemon probability given every inspection and every
+informative reply up to its round, with the evaluator's knowledge of the true arm (leaky arm, offer below the sound
+floor: a reply below the floor proves a lemon, a counter at the floor proves sound; an acceptance at or above the floor
+and every pooled reply say nothing); hand-built cases, a property test of the landlord rule on every pack world and a
+counterexample are in `tests/test_housing_price_reply_posterior.py`. The recomputation is the derived analysis
+[`housing_lemons_price_v14_reply_conditioned`](../../../evidence/housing/housing_lemons_price_v14_reply_conditioned/)
+(`python -m aeread_families.housing.price_reply_conditioned --check`, `--from-runs` to re-extract from the run
+roots). Its v1 reproduces every published cell, `analysis.json` and the fill's `sensitivity.json` exactly; under v2,
+main pack: Gemini +$212.81 [190.28, 235.35], GLM +$149.40 [123.77, 175.03], Luna +$147.34 [121.15, 173.54];
+Gemini−GLM +$59.64 [38.52, 80.75], Gemini−Luna +$66.54 [49.37, 83.70], GLM−Luna +$2.06 [−20.03, 24.14] (HL-D-07's row
+rounds the first lower bound to +38). 21, 33 and 3 blind signings are repriced (GLM, Luna, Gemini), all of sound
+listings and all by a counter on the signed listing itself, so gap (2) changes nothing in v14; no declared verdict
+changes. The same analysis counts seat 0's invalid actions: 16 GLM cells (15 on a leased listing, one malformed commit),
+none for Luna or Gemini (HL-D-08). Blockers: no beatability or sensitivity rule was declared before v14's results,
+which cannot be added after them; v14's frozen primary is v1, and the HL-D-07 erratum waits on the errata layer
+(#117); the best-informed tenant (`price_best_informed`) is on branch `codex/housing-best-informed`, not here, so it is
+not among the published controls; HL-D-09 (the receipts' scores are six-seat figures, not seat 0's) is open.
 
 **Gate 4, attribution and controls: `partial`.** One focal subject against fixed scripted counterparts. Counterpart
 scope: two landlord kinds, leaky (`true_cost`) and pooled, both played in every world and paired by world; outside
 demand at 0.5 a round on a schedule fixed by the world and blind to quality (tested). The world is the independent
 unit. Notice v4, retry policy v2, the limits and the pack are common to the three (`price_campaign._V14`, tested per
-identity). The treatment is the model profile, not the model: by contract diff the identities differ in route,
-reasoning tier (GLM and Luna `low`, Gemini `minimal`), sampling (Luna takes no temperature) and cost ceiling.
-Blockers: no test asserts that diff; no sealed profile-admission receipts for the v14 profiles (the full-trajectory
-gate is each run's first world); the result is conditional on scripted counterparts and says nothing about adaptive
-landlords.
+identity). The treatment is the model profile, not the model (HL-J-12). **Contract diff, tested**
+(`tests/test_housing_price_v14_contract_diff.py`, closed 2026-10-13): it loads the three contracts and builds the six
+plans that ran (each run-plan id equals the bundle's), and the fields that differ are exactly, in the contracts, the
+identity, the route (eight fields), the reasoning tier (GLM and Luna `low`, Gemini `minimal`), `temperature` and
+`top_p` (Luna sends neither) and the run's cost ceiling ($1.50, $1.50, $7.00); in the plans, the tenant profile's model
+and revision, route pricing and provider metadata, reasoning effort, `top_p` and Luna's `temperature: unavailable`,
+plus only the identifiers derived from them (run-plan id, plan digest, input digests, cell ids, admission id). An
+undeclared difference fails it (tested). Blockers: no sealed probe-based profile-admission receipts for the v14
+profiles (the plans' capability admissions are not probes, and the full-trajectory gate is each run's first world);
+the result is conditional on scripted counterparts and says nothing about adaptive landlords.
 
 **Gate 5, confirmatory reliability and publication: `partial`.** The analysis (`price_campaign.CONFIRMATORY_ANALYSIS`:
 the primary measure, Holm over the three pairs, a $50 band, the main pack with the holdout reported apart, strata
@@ -1028,6 +1112,23 @@ beside) is in each v14 contract (commit `9441abca`, 2026-10-06 08:26 UTC) and is
 (tested); the bundle has no cell timestamps, so "before any cell" rests on the case contract. Every planned cell is a
 receipt digest or typed missingness: 1,764 completed, 36 Gemini cells refused for credits (HL-O-21). The fill ran
 those 36 under its own identity as a declared exception, published beside v14 with v14 unchanged; its 12 overlapping
-cells repeated v14's outcome. Blockers: no sealed variance pilot or sizing record (the world count is the declared quotas
-within the $10 budget); no A/A arm, so the $50 band is not calibrated against
-run-to-run noise; the HL-D-07 erratum waits on the errata layer (#117).
+cells repeated v14's outcome. Blockers, none fixable for v14 because each had to be sealed before the freeze: no
+sealed variance pilot or sizing record (the world count is the declared quotas within the $10 budget); no A/A arm, so
+the $50 band is not calibrated against run-to-run noise; the HL-D-07 erratum waits on the errata layer (#117).
+
+**What a v15 identity would need** (not run): a new identity per model profile, frozen only after
+
+1. a sealed variance pilot on its own pilot pack (not the confirmatory worlds), every profile at two or more
+   replicates per world, giving the paired world-level variance of each contrast and the within-world replicate
+   variance, and the frozen control's per-world outcomes for the Gate 1 headroom screen;
+2. a sealed sizing record: minimum meaningful difference ($50 a world), target power, Holm over the pairs, attrition
+   from the pilot's failure rate, and the world count it implies within the declared budget;
+3. an A/A arm: one profile run twice under two identities that differ only in the inference seed base, on the same
+   worlds, to calibrate the band against run-to-run noise;
+4. in the contract: measure v2 (`housing_price_reply_conditioned_v2`) as the primary, the $0-ceiling rule, a
+   beatability rule (each model against `pass`, `sign_anything` and `inspect_then_sign`, paired by world), and the
+   count of invalid actions in the publication;
+5. sealed probe-based profile admission for every profile, and the account balance and key limit checked against the
+   projected cost (HL-O-21);
+6. a seat-0 scorer under a new scorer id in a new module (HL-D-09), and a holdout that changes a mechanism (the outside
+   demand rate or the landlord margin) rather than only the seeds.

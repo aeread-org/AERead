@@ -255,6 +255,16 @@ Includes the preserved case-selection bundle at the evidence root.
 - [housing_lemons_refusal_v2_gap](housing/housing_lemons_refusal_v2_gap/): derived analysis, why the two v2 routes
   differ: an exact split of the payoff gap (luck, bets, fees) and the lemons decision classes of the Housing
   failure taxonomy, every instance with its deciding step (`python -m aeread_families.housing.lemons_gap --check`);
+- [housing_lemons_price_confirmatory_v14](housing/housing_lemons_price_confirmatory_v14/): the confirmatory price
+  panel, one deciding tenant against outside demand, three models on the 260-world pack and 40-world holdout, both
+  landlord arms; [housing_lemons_price_confirmatory_v14_gemini_fill](housing/housing_lemons_price_confirmatory_v14_gemini_fill/)
+  is the declared fill of Gemini's 36 refused cells, beside it (HL-O-21); see the Housing QC profile §22;
+- [housing_lemons_price_v14_controls](housing/housing_lemons_price_v14_controls/): derived analysis, the scripted
+  seat-0 controls (no-op, weak, baseline, reference) and the ceiling on every v14 pack world, and the $0-ceiling rule
+  (`python -m aeread_families.housing.price_controls --check`);
+- [housing_lemons_price_v14_reply_conditioned](housing/housing_lemons_price_v14_reply_conditioned/): derived analysis,
+  the v14 panel under measure v2 (HL-D-07) from seat 0's sealed trajectory facts, with v1 reproduced exactly
+  (`python -m aeread_families.housing.price_reply_conditioned --check`);
 - [housing_model_sensitivity_openrouter_alt_v4](housing/housing_model_sensitivity_openrouter_alt_v4/),
   [housing_model_sensitivity_openrouter_alt_v5](housing/housing_model_sensitivity_openrouter_alt_v5/),
   [housing_model_sensitivity_openrouter_alt_v6](housing/housing_model_sensitivity_openrouter_alt_v6/),
