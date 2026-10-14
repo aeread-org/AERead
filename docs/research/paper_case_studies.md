@@ -218,6 +218,7 @@ reference policy as a recursion and Appendix D each measure.
 | Housing | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
 | Housing, CLI agents | first 20 of the main pack | 10 and 10 | Opus 5.5, Sol 6.1 | 40 cells each | $4.72 | development |
 | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
+| Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused, P-O-06) | 24 cells each, second brief | $0.21 | development |
 | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
 | Data center | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.13 | development; one declared test |
 | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
@@ -283,12 +284,12 @@ judgment. This tenant is development work on an unmerged branch.
 
 **Table 5.6. Procurement pay-or-test, 24 worlds, one play a world; dollars given up per world.**
 
-| | Sol 6.1 (Codex CLI) | Opus 5.5 (Claude Code) |
-|---|---:|---:|
-| First brief | 12.2 [4.3, 23.6] | 19.4 [6.0, 38.2] |
-| Brief stating that a quote is final and that the buyer is judged on its average | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] |
-| The same, the 16 worlds where a test is the best plan | 1.5 [0.3, 3.1] | 8.1 [1.9, 15.6] |
-| Worlds with nothing given up (second brief) | 20 of 24 | 17 of 24 |
+| | Sol 6.1 (Codex CLI) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
+|---|---:|---:|---:|---:|
+| First brief | 12.2 [4.3, 23.6] | 19.4 [6.0, 38.2] | | |
+| Brief stating that a quote is final and that the buyer is judged on its average | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
+| Share of the best policy's value (second brief) | 99.8% | 98.8% | 83.3% | 83.5% |
+| Worlds with nothing given up (second brief) | 20 of 24 | 17 of 24 | 8 of 24 | 7 of 24 |
 
 Fixed rules, scored exactly over the same 24 worlds: comparing each untested newcomer with
 paying, one test ahead and keeping the recorded supplier reachable, gives up $0.06 a world;
@@ -301,9 +302,17 @@ right one in 15 (Sol) and 14 (Opus) of 16 worlds. All 96 cells completed and rep
 recorded margins. The case is at its ceiling for these two subjects: its best policy is a
 one-step comparison, and both make it. Stating two rules in the brief cut the loss by $11.1
 [3.6, 22.3] and $14.0 [0.4, 33.5] (§5.7). The record pack is saturated the same way: Opus solves
-18 worlds and Sol 16. No flash-tier model has played either pack. Because the reference is exact
-per action, saturation is stated as about a dollar a world given up rather than inferred from a
-high pass rate.
+18 worlds and Sol 16.
+
+Two flash-tier models played the same 24 worlds under the second brief, through the same
+environment and an OpenRouter route (all 48 cells valid and replayed, $0.21 in all). They give up
+about $75 a world: Gemini $75.2 [48.7, 101.4], exactly what always paying the premium gives up,
+because it never tested a newcomer; Luna $74.4 [46.7, 102.7], having tested in two worlds. The two
+are indistinguishable (+$0.8 [−3.7, +6.3]). Almost the whole loss is in the 16 worlds where a test
+is the best plan ($112.8 and $111.0 a world there, against $0.0 and $1.0 where paying is). GLM 5.3
+Flash did not play: its route changed price before any call (P-O-06). So the case separates the
+flash tier from the frontier but not frontier agents from each other. Because the reference is
+exact per action, both statements are dollars given up rather than pass rates.
 
 #### Data center
 
@@ -404,7 +413,9 @@ which cannot succeed in this pack, at $7.3 of its $12.2 a world. Opus made cauti
 without a test and stopping after one bad newcomer where another test paid, which are defensible
 for a buyer who weighs a bad outcome above the average; the first brief never said the average
 was the criterion. Under the second brief neither countered, and Opus still paid without a test
-in 2 test worlds and stopped early in 2.
+in 2 test worlds and stopped early in 2. The flash models' loss is a different behaviour: they
+pay the premium almost everywhere, Gemini in every world, so they give up the value of the test
+in every world where a newcomer was worth testing.
 
 **Data center: signing below the walk-away point, and pressing past the deal.** As client Opus
 signed below its own walk-away point in 12 of 52 worlds against Sol, 23 of 52 against the
@@ -470,23 +481,26 @@ Table 5.10 states the evidence case by case.
 | Housing, CLI agents | favourite is a lemon (10 worlds) | Sol 6.1, $200 | the same, $235 | −35, no interval at 10 worlds | suggested, not tested |
 | Data center | every deal world, head to head (52) | the pair with Opus as integrator | the best of 600 agreements, computed exactly | joint value lost 79 [70, 88] of about 410 available; best agreement signed in 19 of 52 worlds | shown |
 | Data center | overreaching counterpart, client seat (52) | Sol 6.1 | refusing every deal below the walk-away point | Sol signs none; Opus signs 23 | shown for Opus only |
-| Procurement | worlds where a test is the best plan (16) | Sol 6.1 | the best informed policy, exact | 1.5 [0.3, 3.1] per world given up | not shown: at the ceiling for both frontier agents |
+| Procurement, frontier agents | every world (24) | Sol 6.1 | the best informed policy, exact | 1.0 [0.2, 2.1] per world given up | not shown: at the ceiling for both frontier agents |
+| Procurement, flash models | every world (24) | GPT-6 Luna | the same | 74.4 [46.7, 102.7] per world given up | shown for the flash tier |
 | Refund V2.1 | six cases, policy seat | GPT-5.6 Luna | the answer key | resolved as scored 79.2% against 100%; right outcome 94.2% | suggested for procedure, near the ceiling for outcome; six cases, no interval |
 
-Headroom is shown in Housing and Data center, suggested in Refund, and not shown in Procurement.
-For procurement the two agents that played are frontier agents at the ceiling; no flash-tier
-model has played the pack, and its harder variants (odds left for the buyer to infer, noisy
-tests that may need a second batch) are designed, not run. The data-center stand-in that knows
+Headroom is shown in Housing and Data center, shown in Procurement for the flash tier only, and
+suggested in Refund. In Procurement the frontier agents are at the ceiling while both flash
+models give up about $75 a world, so the pack separates the tiers and cannot separate frontier
+agents; its harder variants (odds left for the buyer to infer, noisy tests that may need a
+second batch) are designed, not run. The data-center stand-in that knows
 both sides' costs earns 72k to 128k more than either model against the firm population, but it
 is a ceiling rather than a reachable reference, so it is not used as evidence here.
 
 ### 5.9 Limitations, and what a contributed case adds
 
 These cases do not rank models in general. Two frontier agents at one reasoning setting played
-three of them; flash-tier models played only Housing and Refund V2.1; no human played any; the
+three of them; flash-tier models played Housing, Procurement's pay-or-test pack and Refund V2.1;
+no human played any; the
 prices, fees and odds are the designers' assumptions, not calibrated by a practitioner; and only
-Housing ran a declared confirmatory campaign. Headroom is shown in two of the four cases
-(§5.8).
+Housing ran a declared confirmatory campaign. Headroom is shown in three of the four cases, in
+Procurement for the flash tier only (§5.8).
 
 The four cases measure four decisions: whether to pay to verify when quality is hidden and
 adversely selected; whether to pay a premium for a known supplier or buy information about a
@@ -550,6 +564,7 @@ case states its class and seat, and the suite reports each class on its own.
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
 | Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
 | Table 5.6, pay-or-test | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
+| Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
 | Table 5.7, adversarial counterparts, declared test, §5.7 data-center counts | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |

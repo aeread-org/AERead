@@ -114,6 +114,15 @@ The checks below run without calling a model.
   development worlds, 120 of 120 to the cent. In the data-center case a pair of reference
   players loses nothing on all 58 worlds, and a pair that signs the draft loses $318k a world
   over the same 58.
+- **Reference run on every admitted world.** Before a pack is frozen, its reference is played
+  on every admitted world through the real environment and verifier, with no model, and must
+  reach its declared result; a test on the committed pack enforces it. In the four cases: the
+  Housing reference and a full-information tenant play all 600 v14 cells and reproduce the
+  published per-cell values, the tenant reaching the ceiling in every cell; Procurement's best
+  policy equals the environment's average over the 27 type profiles in all 24 worlds; the
+  data-center oracle pair loses nothing in all 116 worlds of both packs, checked against an
+  optimum the test computes on its own; Refund's release requires full credit on every case.
+  Mutation tests show each check fails when the reference or the grade is wrong.
 - **Replay.** Every published receipt is rebuilt from its sealed events with no provider call
   and must reproduce its state and score; for Housing v14 that is 1,800 of 1,800. Refund V2.5
   qualifies its whole public release this way, with deterministic profiles in every seat: 816 of
@@ -259,10 +268,10 @@ in two registers that are not interchangeable.
 
 | Case (row prefix) | Design | Operational | Tooling | Judgment | Total |
 |---|---:|---:|---:|---:|---:|
-| Housing lemons and price line (HL) | 7 | 21 | 8 | 11 | 47 |
-| Procurement (P) | 22 | 4 | 13 | 5 | 44 |
-| Data center (DC) | 33 | 21 | 20 | 7 | 81 |
-| Refund (RF) | 6 | 0 | 1 | 1 | 8 |
+| Housing lemons and price line (HL) | 7 | 21 | 8 | 12 | 48 |
+| Procurement (P) | 23 | 6 | 15 | 5 | 49 |
+| Data center (DC) | 33 | 21 | 20 | 8 | 82 |
+| Refund (RF, RV25) | 6 | 0 | 2 | 1 | 9 |
 
 The counts cover each family's earlier designs as well as the current one. Operational rows are
 where a measurement was lost and not rerun (a provider account out of credit, a CLI outage, an
@@ -301,8 +310,9 @@ Changes to the shared runner need an approving review from someone other than th
 | RF-D-03 | A correct denial written with method `null` failed: the prompt says "none", the schema allows null, the verifier compares strings | yes, by reading one proposal against the verifier | building the gap decomposition | recorded; reported as format, not outcome |
 | RF-T-01 | The human-QC approval was minted by the runner from two status-only stubs, so it bound whatever the runner produced | yes, by reading the runner's code | the Refund audit | V2.5 names a reviewer, but the runner still binds the approval to its own output (RF-D-06, open) |
 | RF-D-05 | Refund's payment leaf checks that payments executed what the proposal asked, so a proposal with an aliased mutation moves no money where the reference refunds $185.22 and still scores 1.0 | yes, by tracing one case | writing the formal appendix of this paper | open; report the leaf as binding and add a check against the reference |
+| P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Twelve of the eighteen were invisible in any single world, and the six that were visible were
+Twelve of the nineteen were invisible in any single world, and the seven that were visible were
 found by reading code or sealed bytes, or by tracing one case, not by playing a panel. That is the main reason quality control
 is organised around populations of worlds, declared analyses, code reading and recorded
 failures rather than around reviewing instances.
@@ -324,10 +334,10 @@ string matching, unit tests or a judge model.
 | T.4 Residual state cleared between runs | met | each cell is a fresh episode from a sealed plan; the CLI agents run one ephemeral subprocess per action |
 | T.5 Agent isolated from ground truth | partly | observations are audited for evaluator-only state; one leak was fixed (HL-D-01) and one is open in noisy-sample packs (P-D-17) |
 | T.6 Setup does not change over time | met | the environments are deterministic and sealed; hosted model routes are pinned and snapshotted |
-| T.7 Ground truth verified | met | each reference is checked against the environment (§6.2) |
+| T.7 Ground truth verified | met | each reference is played on every admitted world through the environment and reaches its declared result, enforced by a test (§6.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | shortcut policies, trivial-world screens and brief audits (§6.4); eighteen defects found (Table 6.5); a wrong refund can still pass Refund's payment leaf (RF-D-05); no model-driven exploit agent |
+| T.10 Free of exploitable shortcuts | partly | shortcut policies, trivial-world screens and brief audits (§6.4); nineteen defects found (Table 6.5); a wrong refund can still pass Refund's payment leaf (RF-D-05); a model-driven exploit agent is designed, not built |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
@@ -345,28 +355,40 @@ string matching, unit tests or a judge model.
 
 ### 6.9 Where quality control falls short today
 
-- **The current designs are not yet in their QC profiles.** Each family has a profile, and each
-  profile covers that family's earlier designs: Housing `partial`; Procurement `partial` with
-  its V1 construct gate `failed`; Data center `failed` at its 2026-09-19 audit and `partial`
-  since. None of the three current designs (Housing's price case, pay-or-test, the agreement)
-  has its own section yet, so their results are campaign evidence under the family's status,
-  not a qualified construct.
+Each item is stated with what has been done about it.
+
+- **The current designs are recorded, and not yet qualified.** Each of the four current designs
+  now has its own section in its family's QC profile, with a typed status and a blocker per
+  gate. Housing v14 is `partial` throughout. Procurement's pay-or-test pack fails Gates 1 and 3:
+  a rule that reads only what the buyer sees, comparing each newcomer with paying one test ahead,
+  reaches the best policy to within $0.06 a world. The data-center agreement fails Gate 1: its
+  packs are not admitted by the case's own rules, and the hidden type is tied to the pack cell.
+  Refund fails Gate 3 for want of any lower control. Their results remain campaign evidence, not
+  qualified constructs.
 - **Only Housing ran a declared confirmatory campaign.** Procurement and the data-center
-  agreement have not passed a variance pilot and a confirmatory freeze; the agreement runs
-  were not sized from a declared minimum effect.
+  agreement have not passed a variance pilot and a confirmatory freeze; the agreement runs were
+  not sized from a declared minimum effect.
 - **Qualification is not discrimination.** Refund V2.5's release shows that its environment,
   scripted seats and verifiers agree on every case; with no lower control it does not show that
   the panel separates strong from weak play (RF-D-06).
 - **No practitioner has set or reviewed the numbers.** Every price, fee, odds figure and clause
   cost is the designers' assumption.
-- **No model-driven exploit agent and no human baseline.**
-- **The checklist is noisy.** 612 of 670 flagged lines needed no reviewer; the rules themselves
-  are an open issue (#287).
-- **Contributed families cannot yet be admitted on their own.** Trusted execution of
-  contributed conformance reports, runtime enforcement of declared resource ceilings, and
-  authenticated human approval remain open.
+- **The exploit agent is designed, not built, and there is no human baseline.** The design has
+  a player mode and an auditor mode, turns every claimed exploit into a scripted policy scored
+  on the pack, and is itself tested on five past exploits.
+- **The checklist is less noisy, and the fix is not yet live.** The rules of #287 (inheritance
+  by row kind, state from a declared word, a stated limit as a pass, one line per case for what a
+  sealed bundle cannot change, no lines for hidden cases) cut flagged lines on the same catalog
+  from 670 to 254; lines needing a reviewer go from 58 to 55, because those are real. The
+  publishing template that would stop new bundles producing gaps is still open.
+- **A branch without a pull request runs no continuous integration.** The data-center
+  agreement's Gate 0 test failed on its branch for four days without anyone seeing it (DC-J-08).
+- **Contributed families cannot yet be admitted on their own.** Trusted execution of contributed
+  conformance reports, runtime enforcement of declared resource ceilings, and authenticated
+  human approval remain open; Refund's contribution record still passes on placeholder schemas
+  (RV25-T-06).
 - **Two CLIs expose no seed or temperature,** so their repeat plays are fresh draws and their
-  determinism cannot be set.
+  determinism cannot be set. This is a property of the tools and stays a stated limit.
 
 ### References
 
