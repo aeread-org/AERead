@@ -80,6 +80,7 @@ which does not exist yet (CC-O-01).
 ## Run and test
 
 ```sh
+npm ci --prefix ui                  # once: React, assistant-ui and esbuild, pinned in ui/package-lock.json
 node build.mjs                      # dist/index.html (published) and dist/standalone.html
 node serve.mjs                      # local page with voice; --port, --data, --model, --readback-model
 node --test test/core.test.mjs      # 11 tests of the interview logic
@@ -87,8 +88,14 @@ node test/simulate.mjs              # a full interview against a simulated exper
 node test/score.mjs test/simulated/sim-6xyy7b6n5l.json
 ```
 
-Node 22, no dependencies. `serve.mjs` binds to 127.0.0.1 and rejects any other
-Host header, because its endpoint spends the owner's model usage.
+Node 22. The interview logic (`src/core.js`), the server and the tests have no
+dependencies. The screen (`ui/src/`) is a chat in the style of ChatGPT and Claude:
+React on [assistant-ui](https://github.com/assistant-ui/assistant-ui) primitives
+with this folder's own stylesheet, bundled by esbuild into the single page, about
+650 KB. `ui/src/controller.js` runs the interview, saves it and calls the model;
+`ui/src/app.jsx` only draws it. Versions are pinned to releases at least two
+weeks old (`npm install --before`). `serve.mjs` binds to 127.0.0.1 and rejects
+any other Host header, because its endpoint spends the owner's model usage.
 
 ## What the simulated interview showed
 

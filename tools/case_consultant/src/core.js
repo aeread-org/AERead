@@ -471,12 +471,12 @@
     var stage = STAGES[S.stage];
     if (S.followups === 0 && stage.cover.length > 1) {
       S.followups = 1;
-      S.transcript.push(msg("consultant", "Before we go on, check that you covered each of these. Add what is missing, or choose Move on.", { kind: "check", stage: S.stage, cover: stage.cover }));
+      S.transcript.push(msg("consultant", "Before we go on, check that you covered each of these. Add what is missing, or press Skip.", { kind: "check", stage: S.stage, cover: stage.cover }));
     } else {
       S.stage += 1;
       S.followups = 0;
       var next = STAGES[S.stage];
-      S.transcript.push(msg("consultant", S.stage === READBACK ? "That is all the questions. Download the answers and send them back." : next.opening, { kind: "open", stage: S.stage }));
+      S.transcript.push(msg("consultant", S.stage === READBACK ? "That is all the questions. Thank you. Download your answers below." : next.opening, { kind: "open", stage: S.stage }));
     }
     S.updatedAt = now();
   }
@@ -503,7 +503,7 @@
   }
   function approve(S) {
     S.approved = now();
-    S.transcript.push(msg("consultant", "Thank you. The case file is the finished document. Use Copy or Download to send it.", { kind: "note", stage: READBACK }));
+    S.transcript.push(msg("consultant", "Thank you. That is the finished case.", { kind: "note", stage: READBACK }));
     S.updatedAt = now();
   }
 

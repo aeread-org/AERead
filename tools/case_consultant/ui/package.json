@@ -1,0 +1,13 @@
+{
+  "name": "case-consultant-ui",
+  "private": true,
+  "description": "Chat interface for the Case Consultant, bundled into the single page by ../build.mjs",
+  "dependencies": {
+    "@assistant-ui/react": "0.15.22",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
