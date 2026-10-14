@@ -433,7 +433,9 @@ blind one, less c·k; per world, Y_w = ½(N_leaky + N_pooled), a world missing e
 dropped. Reported: the mean of Y_w over the main pack with a 95% Student-t interval; model pairs
 paired by world, Holm-adjusted over three; each model minus the reachable reference; $50 as the
 smallest meaningful difference. A counter at the sound floor proves a listing sound but is still
-valued at p_d, and a lemon revealed on one listing does not update p_d on another (HL-D-07, open).
+valued at p_d, and a lemon revealed on one listing does not update p_d on another (HL-D-07). Valuing every blind
+signing at the posterior given inspections and informative replies moves 57 signings in v14 and no
+declared verdict; the second gap has no effect on these data.
 
 **D.2 Procurement.** For each action taken, ℓₜ = V(sₜ) − Q(sₜ, aₜ), and a play's decision loss is
 DL = Σₜ ℓₜ. For inquire, counter and check, Q = −c + V(σ, n − 1, t + d); for defer or an invalid

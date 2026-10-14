@@ -186,8 +186,8 @@ reference policy as a recursion and Appendix D each measure.
   against the pooled one). Realized payoff is dominated by which blind bet happened to be a
   lemon, so a blind signing is scored at its expected value under the stated odds, except that
   a hold the leaky landlord priced below that listing's sound floor is scored as a lemon. A
-  counter that proves a listing sound is still scored at the stated odds; that gap is recorded
-  as open (HL-D-07). The tenant's net per world is averaged over the two landlord kinds.
+  counter that proves a listing sound is still scored at the stated odds; correcting that moves
+  no declared verdict (HL-D-07, §5.6). The tenant's net per world is averaged over the two landlord kinds.
 - **Procurement.** The best informed policy knows the stated odds and nothing else about a
   newcomer. It is solved exactly by working back from the deadline over everything a quote or a
   sample could show, and earns $451 a world in expectation, equal to the environment's average
@@ -252,10 +252,14 @@ differ by +7 [−16, +29], inside the $50 band. The 40-world holdout points the 
 [+44, +168], +55 [+12, +98], −40 [−106, +26]). All 1,800 published receipts replay to the same
 score. Thirty-six Gemini cells were refused when the provider account ran out of credit; they
 stay missing in the declared bundle, and a separately identified fill run moves nothing (+74,
-+81). A reading of the measure's code for this paper found that signings of listings the reply
-had proved sound are scored at the stated odds; by a first count this overstates Gemini's lead
-by roughly $11 to $15 a world, which leaves both point estimates past the $50 band. It is recorded as open
-(HL-D-07) and has not yet been recomputed from the published bundle.
++81). A reading of the measure's code for this paper found that a blind signing of a listing the
+leaky landlord's reply had proved sound is valued at the stated odds rather than as sound
+(HL-D-07). Recomputed from the sealed run roots with every blind signing valued at the
+posterior given inspections and informative replies, the correction moves 21 (GLM), 33 (Luna)
+and 3 (Gemini) signings and no declared verdict: Gemini leads GLM by +60 [+38, +81] and Luna by
++67 [+49, +84] (Holm p < 10⁻⁶), still past the $50 band, though the lower bounds now fall below
+it; GLM and Luna differ by +2 [−20, +24]; each model minus the reference becomes −79, −142 and
+−144. The published bundle is not edited; an erratum is owed once the errata layer lands.
 
 None of the three reaches the reference, and almost the whole shortfall sits in the
 favourite-lemon stratum, where the models keep 60%, 27% and 22% of what the reference earns,
@@ -461,7 +465,7 @@ Table 5.10 states the evidence case by case.
 
 | Case | Hardest declared stratum | Best subject | Reference | Best subject minus reference | Headroom |
 |---|---|---|---|---|---|
-| Housing v14 | favourite is a lemon (200 worlds) | Gemini 3.8 Flash | the reachable scripted tenant | −102 [−122, −82] per world | shown, in a confirmatory panel |
+| Housing v14 | favourite is a lemon (200 worlds) | Gemini 3.8 Flash | the reachable scripted tenant | −102 [−122, −82] per world; −99 [−119, −80] with HL-D-07 corrected | shown, in a confirmatory panel |
 | Housing, CLI agents | favourite is a lemon (10 worlds) | Sol 6.1, $200 | the same, $235 | −35, no interval at 10 worlds | suggested, not tested |
 | Data center | every deal world, head to head (52) | the pair with Opus as integrator | the best of 600 agreements, computed exactly | joint value lost 79 [70, 88] of about 410 available; best agreement signed in 19 of 52 worlds | shown |
 | Data center | overreaching counterpart, client seat (52) | Sol 6.1 | refusing every deal below the walk-away point | Sol signs none; Opus signs 23 | shown for Opus only |
@@ -539,7 +543,8 @@ case states its class and seat, and the suite reports each class on its own.
 
 | Table or claim | Source | Status |
 |---|---|---|
-| Table 5.5, Housing v14 | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory; HL-D-07 open |
+| Table 5.5, Housing v14 | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
+| HL-D-07 recomputation | the sealed v14 run roots; script and results `~/analysis/housing/hl_d_07/` (outside the repository) | derived |
 | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
 | Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
