@@ -1,7 +1,11 @@
 # Pay or test v2: confirmatory campaign plan
 
-**Status:** plan only, 2026-10-14. Nothing here has been run, frozen or paid
-for. No provider was called to write it. The pack it plays is
+**Status:** stopped at sizing, 2026-10-14. The gate and the variance pilot ran
+(results in [`pay_or_test_v2_results.md`](pay_or_test_v2_results.md)); the
+pilot's sizing passed the 96-world cap, so by the sizing rule below no
+confirmatory run was frozen or played. The revision the rule asks for is the
+last section, [Pilot outcome](#pilot-outcome-2026-10-14). Everything above it is
+as committed before any play (699e3943). The pack it plays is
 [`cases/procurement_allocation_v1/pay_or_test_v2/`](../../../cases/procurement_allocation_v1/pay_or_test_v2/),
 whose gates are in the [QC profile, section 8.1](qc.md). The campaign rules are
 the [experiment campaign SOP](../../operations/experiment_campaign_sop.md); this
@@ -154,3 +158,23 @@ worlds once. Generating a larger confirmatory pack costs CPU only: the
 5. Freeze: pack digests, prompt digest, driver digest, sizing record, this
    plan's contrasts, under a new confirmatory identity per subject.
 6. Run; verify every receipt offline; report the declared contrasts first.
+
+## Pilot outcome (2026-10-14)
+
+The pilot's per-world SDs at two plays were $54.10 (P1, Gemini 3.8 Flash),
+$177.18 (P1, GPT-6 Luna) and $136.17 (P2). Sized on the largest, as declared,
+the confirmatory run needs 3,464 worlds; the smallest SD alone needs 326. Both
+are past the 96-world cap, so there is no confirmatory run under this plan.
+
+The smallest effect 96 worlds detect, at power 0.8 and alpha 0.05/3, with these
+SDs: **$18.1** for Gemini against the one-step rule, **$59.3** for Luna against
+it, **$45.6** for Gemini against Luna. The declared minimum meaningful effect
+stays $10.
+
+The pilot also showed why: neither subject reaches the decision the pack is
+built around. Gemini never quoted or sampled a newcomer and played exactly the
+pay-the-premium rule; Luna tested a newcomer once in 24 plays. A contrast
+against the one-step rule then measures whether a subject tests at all
+(incident row P-D-27). A revised plan needs subjects that test newcomers
+before it can read the planning-past-one-test contrast; that is a design
+decision for the owner, not a change made here.

@@ -133,7 +133,7 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Approved recovery: complete 36-row confirmation](procurement-allocation/unified_recovery_results.md)
 - [Unified continuous procurement execution plan](procurement-allocation/unified_run_plan.md)
 - [Unified regret campaign: observed execution](procurement-allocation/unified_run_results.md)
-- [Pay or test v2: confirmatory campaign plan](procurement-allocation/pay_or_test_v2_confirmatory_plan.md) (running)
+- [Pay or test v2: confirmatory campaign plan](procurement-allocation/pay_or_test_v2_confirmatory_plan.md) (stopped at sizing: no confirmatory run)
 - [Pay or test v2: results](procurement-allocation/pay_or_test_v2_results.md)
 
 ## Refund
