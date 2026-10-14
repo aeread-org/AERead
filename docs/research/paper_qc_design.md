@@ -46,7 +46,7 @@ decide the outcome. Uncertainty is computed over worlds, claims name their count
 analyses (Housing v14's and the data-center signalling test) were declared before their runs.
 
 **What it found.** Every failure is written into the incident log when it happens, in design,
-operational, tooling and judgment rows that are never deleted (50, 43, 85 and 23 rows about the four
+operational, tooling and judgment rows that are never deleted (50, 46, 85 and 23 rows about the four
 cases and their predecessors). Of 23 defects quality control found, 14 were invisible in any single
 world; the 9 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
 single gate cell (Table F.4). Seven are still open. The same checks corrected statements of our own
@@ -61,11 +61,12 @@ while this paper was written (P-J-05, HL-J-12).
 | Claim | Source |
 |---|---|
 | Gates and their vocabulary | the benchmark QC standard on the main branch |
+| Procurement pay-or-test v2 (Appendix F.4) | `pay_or_test_v2_case_matrix.py`, `tests/test_procurement_pay_or_test_v2.py`, QC profile §8.1 and `pay_or_test_v2_confirmatory_plan.md` on branch `codex/procurement-pay-or-test` (1f281ea4, 699e3943); rows P-D-24, P-D-25, P-T-16 |
 | Data-center admitted pack (Appendix F.2) | `agreement_admitted_pack.py`, `tests/test_datacenter_agreement_admitted_pack.py` and `cases/datacenter_agreement_v1/agreement_admitted_v1/` on branch `codex/datacenter-agreement` (cce96138); rows DC-D-34 to DC-D-36 (ac28de38) |
 | Refund lower controls (Appendix F.4) | `src/aeread_families/refund/v2_5_controls.py`, record `cases/refund_v25/qc/lower_controls.json` and rule `refund_v25_beatability/1` (committed 1ededca5 before the controls ran) on branch `docs/refund-qc-profile` (b73722a5) |
 | Profiles and statuses (Appendix F.1) | the v14 section of the Housing profile, the pay-or-test section of the procurement profile, section 11 of the data-center profile (each on its case branch), and the Refund profile on branch `docs/refund-qc-profile` |
 | Reference runs | tests `test_housing_price_oracle_run.py` (Housing branch, 50f8dbed), `test_procurement_pay_or_test.py` (procurement branch, 1fdc3eb5), `test_datacenter_agreement_oracle_run.py` (data-center branch, 3320fd51); Refund's release command (`v2_5_release.py`) |
-| Defects and row counts (Tables F.3, F.4) | the incident logs on the case branches; the rows HL-D-07, HL-J-12, P-D-23, P-J-05, RF-D-05 and RF-D-06 are on the paper branch `docs/paper-case-studies-qc`; counts collected 2026-10-13 |
+| Defects and row counts (Tables F.3, F.4) | the incident logs on the case branches; the rows HL-D-07, HL-J-12, P-D-23, P-J-05, RF-D-05 and RF-D-06 are on the paper branch `docs/paper-case-studies-qc`; counts collected 2026-10-14 |
 | Data-center measurement facts (Appendix F.5) | `agreement_results_2026-10.md` on branch `codex/datacenter-agreement`, section "What the runs showed about measurement" |
 | Summary-setting check (Appendix F.5) | one-pager `housing_summary_on_off_experiment.pdf`, run root `summary_experiment_20261009_v2` |
 | Examiner checklist counts (Appendix F.3) | the Examiner's triage build of 2026-10-13 (private repository, branch `qc-triage`) |

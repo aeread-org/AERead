@@ -269,8 +269,9 @@ applied to these cases are not described here.
 The QC standard defines six gates and the rule that a changed bound input reopens them; a test on
 the main branch rejects a registered family without a profile. Each of the four current designs
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
-and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test pack
-fails Gates 1 and 3; the data-center agreement's development packs, which all its runs used,
+and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test v1 pack,
+which all its runs used, fails Gates 1 and 3, and a v2 pack built after the runs passes Gate 3 for
+scripted policies and is `partial` at Gate 1 (Appendix F.4); the data-center agreement's development packs, which all its runs used,
 fail Gate 1, because they were not admitted by the case's own rules and the hidden type is tied to
 the pack cell, and the admitted pack built after the runs is `partial` (Appendix F.2); Refund V2.5 fails Gate 3 on its
 lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
@@ -281,9 +282,9 @@ identity, and Procurement's corrected schema ran under new identities.
 | Gate | Question | Stops when | In the four cases |
 |---|---|---|---|
 | 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The four current profiles were written after their runs |
-| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test fails: a rule reading only public information solves 23 of 24 worlds |
+| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2 is `partial`: no simple rule solves any world, but no model has played it |
 | 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | 1,800 of 1,800 Housing v14 receipts replay from sealed events with no provider call |
-| 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
+| 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test v1 fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; v2, built after the runs, passes for scripted policies: every screened rule, the one-step rule included, gives up at least $10 in every world; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
 | 4. Attribution and controls | Does the result support the attribution it claims? | an undeclared control changes, the matrix is incomplete, the block cannot carry the claim | the three v14 identities differ in model and route and also in reasoning tier, sampling and cost ceiling, a declared choice the contract did not state (HL-J-12); data-center claims name their counterparts |
 | 5. Confirmatory reliability and publication | Was the comparison sized, frozen and executed without tuning on outcomes? | incomplete pilot, a frozen control changed, selective missingness, a guardrail no behaviour can fail | Housing v14's analysis was declared before any cell and 36 refused cells stayed missing, but no sizing record was sealed; no other case reached this gate |
 
@@ -348,7 +349,14 @@ an earlier data-center design was traced the same way on 2026-09-14.
   inspecting −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
   beat (Table 5.2).
 - **Fixed rules** are scored exactly against Procurement's best policy; the one-step rule's $0.06
-  is the finding that fails Gates 1 and 3.
+  is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
+  listings of one seller kind share a source with a stated chance, so a cheap test of one listing
+  tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
+  worlds (from 5,798 seeds) make the one-step rule give up $30.09 a world and at least $10 in each,
+  as do the four fixed rules and a shortcut that ignores seller kinds; with the source never
+  shared, the one-step rule comes within $0.33 of the best policy, so the gap is the shared
+  source. Tests check every value against the environment's average over the 27 type profiles.
+  No model has played it.
 - **Brief audits** found instructions that decided outcomes in Procurement (P-D-15, P-D-19, P-D-21)
   and a schema that contradicts its verifier in Refund (RF-D-03).
 - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
@@ -387,12 +395,12 @@ review by verification (digests, replay, prohibited-text scan) was done for the 
 bundle. The agreement family's registry change has had no review by anyone other than its author,
 and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-01).
 
-**Table F.3. Judgment-log rows about each case and its predecessors, by category (all branches, 2026-10-13).**
+**Table F.3. Judgment-log rows about each case and its predecessors, by category (all branches, 2026-10-14).**
 
 | Case (row prefix) | Design | Operational | Tooling | Judgment | Total |
 |---|---:|---:|---:|---:|---:|
 | Housing lemons and price line (HL) | 9 | 21 | 8 | 12 | 50 |
-| Procurement (P) | 23 | 6 | 10 | 4 | 43 |
+| Procurement (P) | 25 | 6 | 11 | 4 | 46 |
 | Data center (DC) | 36 | 21 | 20 | 8 | 85 |
 | Refund (RF, RV25) | 12 | 0 | 8 | 3 | 23 |
 
