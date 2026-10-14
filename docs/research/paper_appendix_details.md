@@ -143,7 +143,7 @@ counterpart; Appendix B gives each style's rule and parameters.
 | Overreach | +32 [+10, +53] | +108 [+72, +144] |
 
 Against the firm population both models earn about what signing its first offer earns (a stand-in
-that does so earns 122 as integrator and 114 as client), by the opposite routes in Appendix E.5.
+that does so earns 122 as integrator and 114 as client), by opposite routes: Opus signs its first offer, Sol bargains to the last move and loses deals.
 Two copies of Sol split the value evenly (integrator minus client −6 [−94, +81]).
 
 **Adversarial counterparts.**
@@ -179,36 +179,70 @@ Of 2,456 negotiations, 2,417 are valid. Every failure is a CLI service error; th
 bundles keep them as missing, and 16 were played again under separate identities by the owner's
 ruling.
 
-### E.5 Error analysis
+### E.5 Failure classes: rules and full tables
 
-The losses concentrate in a few behaviours, each counted from the sealed trajectories.
+**Table E.4. The shared classes.**
 
-**Housing: signing what the reply has revealed, and ending unverified.** GLM and Luna sign most
-holds that only a lemon's landlord would offer (54 of 73 and 80 of 88; Gemini 7 of 38). The
-prompt says a counteroffer can carry information about quality but not how landlords price, so
-reading a reply that way takes an inference. The models end on a listing they inspected in 75%
-(Gemini), 66% (GLM) and 56% (Luna) of the cells where they sign. Each CLI agent still signs four
-uninspected holds whose rent reveals a lemon.
+| Class | What happened |
+|---|---|
+| Information not acquired | acted without information worth acquiring: signed an uninspected listing whose quality nothing it knew had settled; paid the premium or awarded the recorded supplier where the best policy tested a newcomer; decided before a required fact |
+| Information misread | had the information, or was shown it, and acted against it: signed a hold only a lemon's landlord offers, at a rent above a lemon's value; awarded a supplier its own test showed bad; stopped after one bad newcomer where another test was worth it; tested the wrong newcomer or in the wrong order; a decision the answer key contradicts |
+| Worse terms | agreed to a worse deal than one available, with no protocol error: a verified listing worth less net of rent than the reference's; a worse award on a qualified supplier; a clause set worth less to the pair than the best one |
+| Commitment error | signed what it should have refused or refused what it should have signed: no lease where the reference leased; deferred where an award or a test was worth more; no deal where one was available |
+| Bargaining cost | moves that cost and could not gain: redline fees after the opening; inquiries, counter-offers and checks that can change nothing; inspection spend above the reference's on a lease of the same value |
+| Procedure and format | an action the environment rejected or could not parse; a fact request the case rejects; a format the verifier rejects |
+| Operational | a cell with no measurement; counted, never scored |
 
-**Procurement: moves the brief did not rule out.** On the first brief Sol made 43 counter-offers,
-which cannot succeed in this pack, at $7.3 of its $12.2 a world. Opus made cautious moves, paying
-without a test and stopping after one bad newcomer where another test paid, which are defensible
-for a buyer who weighs a bad outcome above the average; the first brief never said the average
-was the criterion. Under the second brief neither countered, and Opus still paid without a test
-in 2 test worlds and stopped early in 2. The flash models' loss is a different behaviour: they
-pay the premium almost everywhere, Gemini in every world, so they give up the value of the test
-in every world where a newcomer was worth testing.
+**Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
+the reachable reference's net minus the tenant's at the published measure, and the rules apply in
+the order procedure, misread, not acquired, commitment, worse terms, bargaining. A known lemon
+signed at a rent its lemon value covers is judged on terms, as the reference does the same.
+Revealed-lemon signings count as misread although the v14 prompt did not state how landlords
+price; counted as not acquired instead, GLM's not-acquired loss would be about $102. *Procurement:*
+the unit is the action, and each action's loss against the best policy (which sums to the decision
+loss) goes to a class by what the action did; a request to the recorded supplier counts as not
+acquired only when the episode never tests a newcomer, and as misread otherwise. *Data center:* the
+unit is each part of a negotiation's grade: no deal is a commitment error (labelled by the side that
+walked), a worse clause set is worse terms, and redline fees are bargaining cost; signing below
+one's own walk-away point is counted separately because it moves value between the sides and never
+appears in joint value. *Refund:* the published gap decomposition's parts map onto the classes
+(deciding before a required fact to not acquired, a wrong decision to misread, re-asked or unknown
+facts and the null-method format to procedure).
 
-**Data center: signing below the walk-away point, and pressing past the deal.** As client Opus
-signed below its own walk-away point in 12 of 52 worlds against Sol, 23 of 52 against the
-overreaching script, and, against a copy of itself, made the losing offer unprompted in 5 of 20.
-Every case is a world where the client's better outside option is managing the deployment
-itself, which the brief gave as ingredients rather than as a number; one added line stating that
-number cut such signatures from 15 of 60 plays to 1 of 60. Against the firm population Opus signs
-the first offer in 36 of 52 worlds as client, while Sol bargains to the last move, pays for
-redlines and loses seven deals to the script's floor.
+**Table E.5. Housing and Procurement, every subject ($ per world; Housing with the HL-D-07 measure in brackets).**
 
-**Table E.4. Opus 5.5 and Sol 6.1 on the three cases both played.**
+| Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Information not acquired | 6.6 (3.9) | 28.1 (9.2) | 32.4 (10.1) | 0 | 2.6 | 75.2 | 71.8 |
+| Information misread | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
+| Worse terms | 54.6 (55.1) | 36.1 (42.2) | 39.1 (44.0) | 0 | 0 | 0 | 0.7 |
+| Commitment error | 8.5 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
+| Bargaining cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
+| Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
+| Total | 81.0 (78.9) | 155.1 (142.3) | 161.6 (144.3) | 1.0 | 5.4 | 75.2 | 74.4 |
+
+Thirty Gemini cells of the main pack are operational missingness and are not scored.
+
+**Table E.6. Data center ($k joint value lost per deal world) and Refund (points of cells unresolved).**
+
+| Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Information not acquired | — | — | — | — | 44.2 | 0 | 15.0 | 29.2 |
+| Information misread | — | — | — | — | 0 | 0 | 0 | 0.8 |
+| Worse terms | 35.4 | 12.2 | 9.1 | 4.8 | 0 | 0 | 0 | 0 |
+| Commitment error | 0 | 0 | 32.0 | 6.9 | — | — | — | — |
+| Bargaining cost | 46.2 | 66.3 | 80.2 | 29.8 | — | — | — | — |
+| Procedure and format | 0 | 0 | 0 | 0 | 5.8 | 98.3 | 5.8 | 17.5 |
+| Total | 81.5 | 78.6 | 121.3 | 41.5 | 50.0 | 98.3 | 20.8 | 47.5 |
+
+Against the firm script, 7 of Sol's 8 lost deals were the script walking from Sol's last offer.
+Signing below one's own walk-away point, not in the table: Opus as client 12 of 52 worlds against Sol
+(it proposed the losing terms itself in 4) and 2 against the firm script; Sol as client 1 against the
+firm script; neither as integrator.
+
+### E.6 Two frontier agents across three cases
+
+**Table E.7. Opus 5.5 and Sol 6.1 on the three cases both played.**
 
 | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
 |---|---|---:|---:|---:|---|
@@ -387,7 +421,7 @@ tests or a judge model.
 | R.5 Capability related to construct | met | each case states the decision it measures (Table 5.1) |
 | R.6 Evaluation subject stated | met | the subject is a profile (model, harness, prompt, tools, reasoning, retries); CLI agents are named with their harness |
 | R.7 Steps to prevent, find and correct flaws | partly | the gates and the incident log (Appendix F.1, F.6) |
-| R.8 Qualitative discussion of unavoidable flaws | met | the end of §5.1 |
+| R.8 Qualitative discussion of unavoidable flaws | met | the end of §5.2 |
 | R.9 Quantitative analysis of flaw impact | partly | measured for the brief change, the refused cells and missingness bounds; not for every open row |
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |

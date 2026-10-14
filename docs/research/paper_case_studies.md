@@ -98,6 +98,38 @@ number in that range. Against an overreaching script Opus signs below its own wa
 model leaks a confidential item. A test declared before its runs supported one of two
 looked-back signals and rejected the other.
 
+### 5.2 Where the shortfall comes from
+
+Each case's shortfall against its reference splits into a small set of shared classes, named by
+what happened in the sealed trajectory rather than by an inferred cause, and computed rather than
+judged. Each unit of shortfall (a cell, or in Procurement an action) is assigned to the first
+thing that went wrong, by a declared priority, so the classes sum exactly to the shortfall.
+Appendix E.5 gives the rules for each case and the full tables.
+
+**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units).**
+
+| Class (what happened) | Housing $: Gemini / Luna | Procurement $: Opus / Gemini | Data center $k joint: Opus / Sol vs firm | Refund points: GPT-5.6 Luna / Gemini 2.5 FL |
+|---|---|---|---|---|
+| Information not acquired | 6.6 / 32.4 | 2.6 / 75.2 | — | 15.0 / 0 |
+| Information misread | 11.2 / 86.4 | 2.8 / 0 | — | 0 / 0 |
+| Worse terms | 54.6 / 39.1 | 0 / 0 | 4.8 / 9.1 | 0 / 0 |
+| Commitment error | 8.5 / 2.9 | 0 / 0 | 6.9 / 32.0 | — |
+| Bargaining cost | 0.2 / 1.0 | 0 / 0 | 29.8 / 80.2 | — |
+| Procedure and format | 0 / 0 | 0 / 0 | 0 / 0 | 5.8 / 98.3 |
+| **Total shortfall** | **81.0 / 161.6** | **5.4 / 75.2** | **41.5 / 121.3** | **20.8 / 98.3** |
+
+The classes separate failures that one score would merge. The flash models in Procurement lose
+almost everything by not acquiring information: they pay the premium where a test was worth it.
+In Housing, GLM and Luna lose most by misreading what they were shown, signing holds only a lemon's
+landlord would offer (about half of their shortfall), while Gemini's smaller loss is mostly worse
+terms. In the agreement the joint loss is mostly bargaining cost, and Sol's walks against the firm
+script are commitment errors; Opus's characteristic error does not appear in joint value at all,
+because signing below one's own walk-away point is a transfer: as client it did so in 12 of 52
+worlds against Sol and 2 against the firm script. In Refund the loss is procedure: deciding before a
+required fact, or, for Gemini 2.5 Flash Lite, asking again for facts it already had. A class records
+what happened, not why; a cause stays a hypothesis until a probe holds the world fixed, as the
+data-center signalling test did.
+
 **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
 case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
 names the counterparts it covers. What the brief states moves the score as much as the subject
@@ -125,7 +157,8 @@ no human has played them.
 | Pay-or-test (Tables 5.3, E.4) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
 | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
-| Data center (Tables 5.4, E.5), adversarial counterparts, declared test, Appendix E.5 counts | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
+| Data center (Tables 5.4, E.3), adversarial counterparts, declared test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
-| Refund V2.1 rows of Tables 5.4 and 5.9, and §5.1 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+| Refund rows of Tables 5.1 and 5.5 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+| Failure classes (Table 5.5, Appendix E.5) | scripts and results in `~/analysis/paper/failure_taxonomy/` (outside the repository), built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
