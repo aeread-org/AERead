@@ -86,7 +86,7 @@ the environment by a test, and the brief states what the side is judged on and w
 price is final. And the simplest one-step rule is run first: if it matches the best policy,
 the case is arithmetic and is not run. Procurement's pay-or-test pack is where this last check
 was learned; a one-step comparison matches its best policy to within $0.06 a world, and both
-frontier agents found that comparison (§5.5).
+frontier agents found that comparison (§5.6).
 
 ### 6.2 Check tools
 
@@ -187,7 +187,7 @@ try to score well without making the decision the case is about.
   came within $11k to $46k of the right contract and asking for every protection within $26k
   to $88k (DC-D-27); since then each named shortcut (sign the draft, haggle only the price, ask
   for every protection, walk) must cost $75k more than the best contract before a world is
-  admitted. Procurement's fixed rules are scored exactly against the best policy (§5.3).
+  admitted. Procurement's fixed rules are scored exactly against the best policy (§5.6).
 - **Trivial agents are reported.** Signing the draft unchanged (14% of the value available) and
   always paying the premium ($75.2 a world given up) are reported beside the subjects; Housing
   v14 reports no do-nothing tenant.
