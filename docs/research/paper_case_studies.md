@@ -228,7 +228,8 @@ reasoning effort, one subprocess per action; neither CLI exposes a seed or tempe
 both are recorded as unavailable rather than assumed. Refund V2.5 makes no paid model call: its
 release qualifies the environment with deterministic profiles in every seat and replays every
 trajectory, so it measures the environment's conformance, not a model; with every seat scripted, its 816
-trajectories are 180 distinct action sequences.
+trajectories are 174 distinct action sequences (four payments cases share one reference
+trajectory).
 
 ### 5.6 Results
 
