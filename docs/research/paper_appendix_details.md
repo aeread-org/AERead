@@ -91,8 +91,8 @@ Over all 260 main-pack worlds the models fall short of the reachable reference b
 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
 is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
 [+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same score.
-Scripted tenants played offline on every cell give the floor: passing earns $0, signing the
-first listing offered −$80 a world (it signs lemons), and inspecting when the stated odds make it
+Scripted tenants played offline on every cell give the floor: passing earns $0, never inspecting and signing any
+hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
 pay then signing $145; the models beat the first two by $130 to $292 a world. Sixteen GLM cells
 contain invalid tenant actions, almost all offers on a listing already leased; the bundle did not
 report them (HL-D-08) and no number moves. Thirty-six Gemini cells were refused when the provider account ran out of credit; they stay
@@ -335,8 +335,8 @@ an earlier data-center design was traced the same way on 2026-09-14.
 
 - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
   the value available in the agreement case; always paying the premium gives up $75.2 a world in
-  Procurement; in Housing, scored after the runs, passing earns $0, signing the first listing
-  offered −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
+  Procurement; in Housing, scored after the runs, passing earns $0, signing without
+  inspecting −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
   beat (Table 5.2).
 - **Fixed rules** are scored exactly against Procurement's best policy; the one-step rule's $0.06
   is the finding that fails Gates 1 and 3.
