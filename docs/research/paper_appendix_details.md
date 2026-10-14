@@ -271,8 +271,8 @@ the main branch rejects a registered family without a profile. Each of the four 
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
 and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test pack
 fails Gates 1 and 3; the data-center agreement fails Gate 1, because its packs were not admitted
-by its own rules and its hidden type is tied to the pack cell; Refund fails Gate 3 for want of a
-lower control. The identity rule was applied: Housing's 36 refused cells ran later under their own
+by its own rules and its hidden type is tied to the pack cell; Refund V2.5 fails Gate 3 on its
+lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
 identity, and Procurement's corrected schema ran under new identities.
 
 **Table F.1. Benchmark QC gates.**
@@ -282,7 +282,7 @@ identity, and Procurement's corrected schema ran under new identities.
 | 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The four current profiles were written after their runs |
 | 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test fails: a rule reading only public information solves 23 of 24 worlds |
 | 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | 1,800 of 1,800 Housing v14 receipts replay from sealed events with no provider call |
-| 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06 |
+| 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
 | 4. Attribution and controls | Does the result support the attribution it claims? | an undeclared control changes, the matrix is incomplete, the block cannot carry the claim | the three v14 identities differ in model and route and also in reasoning tier, sampling and cost ceiling, a declared choice the contract did not state (HL-J-12); data-center claims name their counterparts |
 | 5. Confirmatory reliability and publication | Was the comparison sized, frozen and executed without tuning on outcomes? | incomplete pilot, a frozen control changed, selective missingness, a guardrail no behaviour can fail | Housing v14's analysis was declared before any cell and 36 refused cells stayed missing, but no sizing record was sealed; no other case reached this gate |
 
@@ -342,6 +342,17 @@ an earlier data-center design was traced the same way on 2026-09-14.
   is the finding that fails Gates 1 and 3.
 - **Brief audits** found instructions that decided outcomes in Procurement (P-D-15, P-D-19, P-D-21)
   and a schema that contradicts its verifier in Refund (RF-D-03).
+- **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
+  control ran: per seat and cohort, the reference must beat each control by at least 0.50 in
+  end-to-end score (0.25 on policy meaning in the policy seat), and a control may match the
+  reference on at most 10% of cases. Nine controls (empty, null, full-refund and random legal
+  policies; an over-disclosing and a first-record customer; a first-sorted intake; a payments seat
+  that moves nothing) played every public case, 3,468 trajectories with no model. The reference
+  fails the rule on all 11 public cohorts in the policy, customer and payments seats: a full refund
+  that collects nothing is fully right on 38 of 180 policy-seat cases (RV25-D-03), the evidence
+  leaf scores any legal path as complete (RV25-D-04), the customer seat reduces to copying
+  (RV25-D-05) and the payments seat to how often the answer is no payment (RV25-D-06). Only intake
+  passes.
 - **A placebo outcome** was run after the agreement's look-back price signal: the same regression
   on the opening price of a scripted integrator that is never told the hidden type gave 0.38 [0.23,
   0.52] where the answer must be 0, which exposed DC-D-33; a random relabelling of types had not
@@ -374,7 +385,7 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | Housing lemons and price line (HL) | 9 | 21 | 8 | 12 | 50 |
 | Procurement (P) | 23 | 6 | 10 | 4 | 43 |
 | Data center (DC) | 33 | 21 | 20 | 8 | 82 |
-| Refund (RF, RV25) | 8 | 0 | 7 | 1 | 16 |
+| Refund (RF, RV25) | 12 | 0 | 8 | 3 | 23 |
 
 ### F.7 What quality control found
 
@@ -401,11 +412,12 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
 | RF-T-01 | The human-QC approval was minted by the runner from two status-only stubs, so it bound whatever the runner produced | yes, by reading the runner's code | the Refund audit | V2.5 names a reviewer, but the runner still binds the approval to its own output (RF-D-06, open) |
 | RF-D-05 | Refund's payment leaf checks that payments executed what the proposal asked, so a proposal with an aliased mutation moves no money where the reference refunds $185.22 and still scores 1.0 | yes, by tracing one case | writing the formal appendix of this paper | open; report the leaf as binding and add a check against the reference |
 | HL-D-09 | The v14 receipts' own scores total all six tenant seats against baselines from a market without outside demand, so they are not the deciding tenant's | yes, by reading the receipts | building the seat-0 controls | open; the published primary is computed separately and is unaffected; a seat-0 scorer needs a module outside the hashed runner |
+| RV25-D-03 to D-06 | In three of Refund V2.5's four seats a naive control comes close to the reference: a full refund that collects nothing is fully right on 38 of 180 policy cases, the evidence leaf passes any legal path, the customer seat reduces to copying and the payments seat to the base rate of no payment | no: a rate across cases | lower controls under a rule committed before they ran | open; Gate 3 recorded `failed`; scoring pairs of cases would stop the full-refund control (0 of 38 pairs), a rule not yet declared |
 | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
 
-Twelve of the twenty were invisible in any single world; the eight visible ones were found by
-reading code or sealed bytes, by tracing a case, or in a single gate cell. Five are still open
-(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01).
+Thirteen of the twenty-one were invisible in any single world; the eight visible ones were found
+by reading code or sealed bytes, by tracing a case, or in a single gate cell. Six are still open
+(P-D-17, HL-D-07, HL-D-09, RF-D-05, RF-T-01, RV25-D-03 to D-06).
 
 ### F.8 Assessment against the Agentic Benchmark Checklist
 
@@ -426,7 +438,7 @@ tests or a judge model.
 | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, by tests added after the runs (Appendix F.2) |
 | T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
+| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-one defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
 | O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |
@@ -440,7 +452,7 @@ tests or a judge model.
 | R.10 Statistical significance | met | paired world-level intervals; Holm correction across declared primaries |
 | R.11 Guidance on interpreting flawed results | met | every result is labelled confirmatory, declared or development |
 | R.12 Non-AI baselines | partly | scripted policies in every case; no human |
-| R.13 Trivial agents | partly | always paying (Procurement), signing the draft (Data center) and passing, signing anything and inspect-then-sign (Housing, scored after the runs) are reported; Refund V2.1 has no lower anchor (RF-D-04) |
+| R.13 Trivial agents | partly | always paying (Procurement), signing the draft (Data center) and passing, signing anything and inspect-then-sign (Housing, scored after the runs) are reported; Refund V2.5 has nine lower controls, which come too close to the reference in three of four seats, and the V2.1 results reported here have none (RF-D-04) |
 
 ## Appendix G. Artifacts
 

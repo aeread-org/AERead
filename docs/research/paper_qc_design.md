@@ -46,10 +46,10 @@ decide the outcome. Uncertainty is computed over worlds, claims name their count
 analyses (Housing v14's and the data-center signalling test) were declared before their runs.
 
 **What it found.** Every failure is written into the incident log when it happens, in design,
-operational, tooling and judgment rows that are never deleted (50, 43, 82 and 16 rows about the four
-cases and their predecessors). Of 20 defects quality control found, 12 were invisible in any single
+operational, tooling and judgment rows that are never deleted (50, 43, 82 and 23 rows about the four
+cases and their predecessors). Of 21 defects quality control found, 13 were invisible in any single
 world; the 8 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
-single gate cell (Table F.4). Five are still open. The same checks corrected statements of our own
+single gate cell (Table F.4). Six are still open. The same checks corrected statements of our own
 while this paper was written (P-J-05, HL-J-12).
 
 ### References
@@ -61,6 +61,7 @@ while this paper was written (P-J-05, HL-J-12).
 | Claim | Source |
 |---|---|
 | Gates and their vocabulary | the benchmark QC standard on the main branch |
+| Refund lower controls (Appendix F.4) | `src/aeread_families/refund/v2_5_controls.py`, record `cases/refund_v25/qc/lower_controls.json` and rule `refund_v25_beatability/1` (committed 1ededca5 before the controls ran) on branch `docs/refund-qc-profile` (b73722a5) |
 | Profiles and statuses (Appendix F.1) | the v14 section of the Housing profile, the pay-or-test section of the procurement profile, section 11 of the data-center profile (each on its case branch), and the Refund profile on branch `docs/refund-qc-profile` |
 | Reference runs | tests `test_housing_price_oracle_run.py` (Housing branch, 50f8dbed), `test_procurement_pay_or_test.py` (procurement branch, 1fdc3eb5), `test_datacenter_agreement_oracle_run.py` (data-center branch, 3320fd51); Refund's release command (`v2_5_release.py`) |
 | Defects and row counts (Tables F.3, F.4) | the incident logs on the case branches; the rows HL-D-07, HL-J-12, P-D-23, P-J-05, RF-D-05 and RF-D-06 are on the paper branch `docs/paper-case-studies-qc`; counts collected 2026-10-13 |
