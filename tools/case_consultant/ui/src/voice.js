@@ -36,7 +36,8 @@ export function createVoice(cfg) {
     muted: false,
     hearing: "",          // the words being heard right now, not yet final
     heard: [],            // final pieces of the expert's current answer, spoken
-    typed: [],            // typed during the call
+    typed: [],            // typed (or dictated into the box) during the call
+    typedSpoken: false,   // some of the typed text was dictated
     saying: "",           // the interviewer's reply as the model writes it
     afterStart: null,     // "readback" or a typed answer to send once the call is up
     readbackDue: false,
@@ -104,11 +105,11 @@ export function createVoice(cfg) {
   };
   const answerSoFar = () => {
     const spoken = v.heard.join(" ").trim(), typed = v.typed.join("\n").trim();
-    return { text: [spoken, typed].filter(Boolean).join("\n"), spoken: !!spoken };
+    return { text: [spoken, typed].filter(Boolean).join("\n"), spoken: !!spoken || (!!typed && v.typedSpoken) };
   };
   function takeAnswer() {
     const a = answerSoFar();
-    v.heard = []; v.typed = [];
+    v.heard = []; v.typed = []; v.typedSpoken = false;
     if (a.text) C.addExpert(ctl.S, a.text, { spoken: a.spoken });
   }
   // The model replied without filing (Vapi cannot require a tool call): keep the exchange in the
@@ -348,7 +349,8 @@ export function createVoice(cfg) {
       v.vapi.setMuted(v.muted);
       refresh();
     },
-    sendTyped(text) {
+    sendTyped(text, o = {}) {
+      if (o.spoken) v.typedSpoken = true;
       if (v.state === "idle") { api.start({ typed: text }); return; }
       if (v.state !== "live") { v.afterStart = { typed: text }; return; }
       if (v.saying.trim() && !v.speaking) keepAside();

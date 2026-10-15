@@ -211,6 +211,7 @@ function Composer({ runtime, mic }) {
   const dictating = useAuiState((s) => !!s.composer.dictation);
   const text = useAuiState((s) => s.composer.text);
   const [example, setExample] = useState(false);
+  const [dictHelp, setDictHelp] = useState(false);
   const S = ctl.S;
   const st = C.STAGES[S.stage];
   const hasExample = !!st.example && S.stage < C.READBACK;
@@ -219,19 +220,27 @@ function Composer({ runtime, mic }) {
   const V = ctl.voice;
   const idle = !V || V.state === "idle";
   const placeholder = S.stage >= C.READBACK && S.readback ? (V && idle ? "Press Talk, or type what to change" : "Reply with what to change")
-    : V ? (idle ? "Press Talk to answer out loud, or type" : "Type instead of speaking, if you like") : "Reply";
+    : V ? (idle ? "Press Talk for a call, or type or dictate your answer" : "Type instead of speaking, if you like") : "Reply";
   return (
     <div className="dock">
       <CallBar />
       <NextStep runtime={runtime} />
       {example && hasExample && <aside className="example"><b>An answer at a useful level of detail, from a buyer of electronic parts</b>{st.example}</aside>}
+      {dictHelp && !mic && idle && (
+        <aside className="example" role="note">
+          <b>{ctl.inViewer ? "This page cannot use the microphone here" : "This browser cannot turn speech into text"}</b>
+          Use your keyboard's dictation instead: on a Mac press Fn twice, on Windows press the Windows key and H, on a phone tap the microphone on the keyboard.{V ? " Or press Talk to answer out loud." : ""}
+        </aside>
+      )}
       <ComposerPrimitive.Root className={"composer" + (dictating ? " hearing" : "")}>
         <ComposerPrimitive.Input className="input" rows={1} placeholder={placeholder} submitOnEnter={!coarse} autoFocus={!coarse && !V} aria-label="Your reply" />
         <div className="tools">
-          {V && idle && !S.approved && <button type="button" className="talk" onClick={() => V.start()}>{Icon.phone}<span>Talk</span></button>}
-          {!V && mic && (dictating
-            ? <ComposerPrimitive.StopDictation className="iconBtn mic on" aria-label="Stop listening">{Icon.mic}</ComposerPrimitive.StopDictation>
-            : <ComposerPrimitive.Dictate className="iconBtn mic" aria-label="Speak" onClick={() => { ctl.spokenSinceSend = true; }}>{Icon.mic}</ComposerPrimitive.Dictate>)}
+          {/* Dictation: speech into the reply box, to check before sending. Not during a call, which already listens. */}
+          {idle && mic && (dictating
+            ? <ComposerPrimitive.StopDictation className="iconBtn mic on" aria-label="Stop dictating">{Icon.mic}</ComposerPrimitive.StopDictation>
+            : <ComposerPrimitive.Dictate className="iconBtn mic" aria-label="Dictate your answer" title="Dictate your answer" onClick={() => { ctl.spokenSinceSend = true; }}>{Icon.mic}</ComposerPrimitive.Dictate>)}
+          {idle && !mic && <button type="button" className={"iconBtn mic" + (dictHelp ? " on" : "")} aria-label="Dictate your answer" aria-expanded={dictHelp} title="Dictate your answer" onClick={() => setDictHelp(!dictHelp)}>{Icon.mic}</button>}
+          {V && idle && !S.approved && <button type="button" className="talk" onClick={() => { if (dictating) runtime.thread.composer.stopDictation(); V.start(); }}>{Icon.phone}<span>Talk</span></button>}
           {running
             ? <ComposerPrimitive.Cancel className="send" aria-label="Stop">{Icon.stop}</ComposerPrimitive.Cancel>
             : <ComposerPrimitive.Send className="send" aria-label="Send">{Icon.up}</ComposerPrimitive.Send>}
@@ -240,7 +249,7 @@ function Composer({ runtime, mic }) {
       <div className="below">
         {hasExample && <button type="button" className="link" aria-expanded={example} onClick={() => setExample(!example)}>{example ? "Hide the example" : "See an example answer"}</button>}
         {S.stage < C.READBACK && !running && <button type="button" className="link" onClick={V ? V.skip : K.skip}>Skip this question</button>}
-        <span className="hint">{coarse ? "" : V && !idle ? "Speak, or type and press Enter" : dictating ? "Listening. Check the numbers before you send." : "Enter to send · Shift+Enter for a new line"}</span>
+        <span className="hint">{coarse ? "" : V && !idle ? "Speak, or type and press Enter" : dictating ? "Listening. Check the numbers before you send." : V ? "Sending starts the call · the interviewer answers out loud" : "Enter to send · Shift+Enter for a new line"}</span>
       </div>
     </div>
   );

@@ -72,7 +72,10 @@ Words appear under the answer box as they are heard and move into the box when
 the browser finalises them. Nothing is sent until the expert presses Send, and
 a spoken answer is marked so the consultant confirms numbers that look misheard.
 
-The claude.ai artifact viewer refuses microphone access to pages, so inside it
+On aeread.org/interview the same button sits beside Talk and works whenever no
+call is running: the words land in the reply box to be checked, and sending
+them starts the call, since the interviewer only runs inside a call. The
+claude.ai artifact viewer refuses microphone access to pages, so inside it
 the button explains keyboard dictation instead (Mac: Fn twice; phones: the
 keyboard microphone; Windows: Win+H). In-page voice together with a model
 therefore needs the local server, or the hosted copy below.

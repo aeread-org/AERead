@@ -196,7 +196,7 @@ export function runReadback() {
 }
 export function send(text) {
   text = String(text || "").trim();
-  if (text && ctl.voice) { lsSet(LS_DRAFT, ""); ctl.voice.sendTyped(text); return Promise.resolve(); }
+  if (text && ctl.voice) { lsSet(LS_DRAFT, ""); ctl.voice.sendTyped(text, { spoken: ctl.spokenSinceSend }); ctl.spokenSinceSend = false; return Promise.resolve(); }
   if (!text || ctl.busy) return Promise.resolve();
   C.addExpert(ctl.S, text, { spoken: ctl.spokenSinceSend });
   ctl.spokenSinceSend = false;
