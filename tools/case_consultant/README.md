@@ -85,19 +85,45 @@ during the call. Vapi carries speech to text (Deepgram), the model (Claude, on
 the Vapi account) and the voice. `ui/src/voice.js` drives the call; the page
 still owns the interview:
 
-- The model keeps the conversation itself. It speaks each question, then calls
-  the tool `file_turn` with what the answer added. The page applies that with
-  the same `applyTurn` as a typed turn, then sends a `NOW` note: the part, what
-  it still needs, how many clarifying questions are left and the next part's
-  opening question (`voiceStatus` in `src/core.js`).
+- The model keeps the conversation itself. Each turn is one call of the tool
+  `file_turn`: the reply, which the page speaks, and what the answer added. The
+  page applies it with the same `applyTurn` as a typed turn, then sends a `NOW`
+  note: the part, what it still needs, what to ask next, how many clarifying
+  questions are left and the next part's opening question (`voiceStatus` in
+  `src/core.js`).
 - Vapi starts speaking only once the tool call is fully written (measured: a
   2,500-character filing cost Sonnet 5 ten seconds), so a voice turn files only
   what is new, and lists and tables are merged by entry instead of replaced.
 - Both tools carry an empty `request-complete` message; without it Vapi asks
   the model to answer the tool's result, and it speaks a second time.
-- After the last part the page asks for the summary (`write_readback`); it
-  appears on screen, the expert corrects it by voice, and approves it with the
-  button.
+- After the last part the call ends and a new one writes the summary
+  (`write_readback`): late in a long call Haiku would not call the tool. The
+  summary appears on screen, the expert corrects it by voice, and approves it
+  with the button. A rewrite also gets a call of its own.
+- Vapi's Anthropic settings cannot require a tool call, so a reply spoken
+  without one is kept, counted as a clarifying question, and the model is told
+  to file the missed answer next time.
+- The model is Claude Haiku 5.5. Vapi offers no Sonnet 5.5, and Sonnet 5 took
+  a median 6 s from answer to speech against about 2 to 4 s for Haiku. The
+  incident log's CC rows hold what each test call found.
+
+`test/simulate_voice.mjs` runs the scripted expert of the next section against
+the page in headless Chrome: the expert types each answer into a live call
+(billed to the Vapi account). The final run, `test/simulated/sim-voice-n4n80lhq1a.*`,
+against the typed interview's rerun:
+
+| | Typed (Sonnet 5.5) | Voice (Haiku 5.5) |
+|---|---|---|
+| Turns, stalls | 35, 0 | 50, 0 |
+| Parts complete | 11 of 11 | 10 of 11 |
+| Scripted facts the expert stated, of those filed | 25, 25 | 24, 24 |
+| Numbers filed, without a range | 36, 10 | 54, 41 (31 after counts of ten are read as such) |
+| Figures filed that the expert never gave | 0 | 1, a carrying cost the model worked out from the stated 9% a year |
+| Summary written, corrected, approved | yes | yes, four rounds |
+| From answer to speech, median | | 1.9 s |
+
+The voice interview files what is said as well as the typed one, but files more
+single figures without a range, and Haiku still sometimes thanks the expert.
 
 Audio is not recorded (`artifactPlan.recordingEnabled: false`). The words pass
 through Vapi and stay in its call log, and in the expert's browser. Cases are
@@ -116,7 +142,7 @@ VAPI_PUBLIC_KEY=... node build.mjs   # also VAPI_MODEL (default claude-haiku-5-5
 npm ci --prefix ui                  # once: React, assistant-ui and esbuild, pinned in ui/package-lock.json
 node build.mjs                      # dist/index.html (published) and dist/standalone.html
 node serve.mjs                      # local page with voice; --port, --data, --model, --readback-model
-node --test test/core.test.mjs      # 15 tests of the interview logic
+node --test test/core.test.mjs      # 16 tests of the interview logic
 PLAYWRIGHT_CORE=<path> node test/simulate_voice.mjs   # the same simulated expert, typing into a live call (billed to Vapi)
 node test/simulate.mjs              # a full interview against a simulated expert, about 15 minutes
 node test/score.mjs test/simulated/sim-6xyy7b6n5l.json

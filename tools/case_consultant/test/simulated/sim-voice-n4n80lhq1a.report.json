@@ -1,0 +1,162 @@
+{
+  "channel": "voice (typed answers into a live Vapi call)",
+  "turns": 50,
+  "stalls": 0,
+  "asides": 0,
+  "secondsToSpeech": {
+    "median": 1.933,
+    "max": 3.681
+  },
+  "secondsToFiled": {
+    "median": 2.783
+  },
+  "readbackSeconds": 0.01,
+  "turnsPerPart": {
+    "meta": 3,
+    "decision": 5,
+    "parties": 5,
+    "information": 5,
+    "moves": 2,
+    "reveals": 3,
+    "accounting": 5,
+    "tension": 3,
+    "variation": 4,
+    "yardsticks": 5,
+    "worked": 5,
+    "numbers": 2,
+    "missed": 3
+  },
+  "clarifying": {
+    "missing": 10,
+    "scope": 1,
+    "cost": 2,
+    "error_rate": 1,
+    "aim": 1,
+    "money": 2,
+    "vague": 3,
+    "flip": 4,
+    "rule": 6,
+    "source": 2,
+    "heard": 2,
+    "contradiction": 1,
+    "range": 2
+  },
+  "partsFiled": [
+    "decision",
+    "parties",
+    "information",
+    "moves",
+    "reveals",
+    "accounting",
+    "tension",
+    "yardsticks",
+    "worked",
+    "missed"
+  ],
+  "numbers": {
+    "filed": 54,
+    "withoutRange": 41,
+    "withoutSource": 4,
+    "bySource": {
+      "data": 4,
+      "experience": 40,
+      "guess": 6
+    }
+  },
+  "facts": {
+    "total": 28,
+    "saidByExpert": 24,
+    "filedOfSaid": 24,
+    "saidNotFiled": [],
+    "neverSaid": [
+      "comes up 3 times a month",
+      "at most 2 inspections a week",
+      "inventory cap $400,000",
+      "newcomer vs professional $4,000"
+    ],
+    "filedButNeverSaid": [
+      "at most 2 inspections a week"
+    ]
+  },
+  "figuresFiledButNeverSaid": [
+    "2000",
+    "80"
+  ],
+  "looseClaimChallenged": true,
+  "leadingNumbers": [
+    {
+      "n": "50",
+      "text": "Five checks and costs. The auction rep is free and twenty minutes; service records are free, a day, half the time; inspector around five fifty, four fifty to seven hundred, two working days; oil sample ninety more, three extra days, catches one more fault in ten.One question: when you add the oil sample, does the one in ten it catches come from the lab's results or from your own experience?"
+    },
+    {
+      "n": "50",
+      "text": "Five checks and costs. The auction rep is free and twenty minutes; service records are free, a day, half the time; inspector around five fifty, four fifty to seven hundred, two working days; oil sample ninety more, three extra days, catches one more fault in ten.One question: when you add the oil sample, does the one in ten it catches come from the lab's results or from your own experience?"
+    },
+    {
+      "n": "10.1",
+      "text": "Five checks and costs. The auction rep is free and twenty minutes; service records are free, a day, half the time; inspector around five fifty, four fifty to seven hundred, two working days; oil sample ninety more, three extra days, catches one more fault in ten.One question: when you add the oil sample, does the one in ten it catches come from the lab's results or from your own experience?"
+    },
+    {
+      "n": "15",
+      "text": "Repairs fifteen to thirty thousand, the loss eight to ten thousand, from your own numbers."
+    },
+    {
+      "n": "8",
+      "text": "Repairs fifteen to thirty thousand, the loss eight to ten thousand, from your own numbers."
+    },
+    {
+      "n": "17",
+      "text": "The twenty seventeen excavator you won at sixty thousand five hundred, expected resale seventy eight thousand, clean inspection, and you have not got the final margin yet. What did the cleanup end up costing?"
+    },
+    {
+      "n": "3002",
+      "text": "I don't have the final cleanup figure. Expected around three thousand, two to five, which is an expectation. The margin will be resale minus hammer, premium, freight, repairs and inspection.Next I'll ask about a second machine. Tell me about a recent one you passed on that was a good price, and why you passed."
+    },
+    {
+      "n": "95009",
+      "text": "You passed on a seventy thousand unknown-seller machine with no records, book value near ninety five thousand, nine thousand hours, fresh paint and a pump whine in the listing, with five days left.Did you not inspect it because the pump whine settled it, or because the seller gave you no way to check?"
+    }
+  ],
+  "clarifyingByKind": {
+    "missing": 10,
+    "scope": 1,
+    "cost": 2,
+    "error_rate": 1,
+    "aim": 1,
+    "money": 2,
+    "vague": 3,
+    "flip": 4,
+    "rule": 10,
+    "source": 2,
+    "heard": 2,
+    "contradiction": 1,
+    "range": 2
+  },
+  "openQuestions": 9,
+  "firstAudit": {
+    "contradictions": 1,
+    "wouldBeInvented": 6
+  },
+  "readbackRounds": 4,
+  "approved": true,
+  "finalAudit": {
+    "contradictions": 2,
+    "wouldBeInvented": 6,
+    "workedAgree": [
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "readiness": [
+    "open Every element has a value or a range | Still open: How cases differ",
+    "ok   The tension names something that flips the best choice | Fleet seller with proper records under about 45000: bid without inspecting. Over 50000 or with no records: inspect or pass, never bid blind. Between 45000 and 50000 is the gray zone, the close calls.",
+    "ok   Newcomer and professional are each written as a rule",
+    "ok   The outcome can be computed in money",
+    "open Every number has a range and a source | 54 numbers: 41 without a range, 4 without a source, 6 marked as a guess.",
+    "open Three worked situations, one of them where the obvious choice is wrong | 6 with a choice and a reason.",
+    "open No two answers disagree | 2 found by the audit, 1 worked situations where the stated rule and the stated choice differ.",
+    "ok   The expert has approved the read-back | Approved 2026-10-15."
+  ]
+}

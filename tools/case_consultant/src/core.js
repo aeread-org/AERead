@@ -467,6 +467,9 @@
         });
         var src = str(n.source, 20).toLowerCase();
         if (SOURCES.indexOf(src) >= 0) cur.source = src;
+        // A voice turn often writes "7 in 10" as the usual value; it is a count of ten.
+        var ten = opts && opts.additive && !filled(cur.of_ten) && /^\s*(?:about |roughly |around )?(\d{1,2}) ?(?:in|of|out of) ?(?:10|ten)\s*$/i.exec(cur.typical);
+        if (ten) { cur.of_ten = ten[1] + " of 10"; cur.typical = ""; }
       });
     }
     if (Array.isArray(out.closed_gaps)) {

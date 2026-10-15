@@ -4,6 +4,7 @@
 // The call is billed to the Vapi account behind the key built into the page.
 //   PLAYWRIGHT_CORE=<path to node_modules/playwright-core> node test/simulate_voice.mjs [persona.md] [--port 8796] [--minutes 50]
 //   --from cases/<id>.json starts from a saved interview; one saved after the last part runs only the read-back.
+//   --url <address> runs against a deployed copy instead of dist/interview.html.
 import http from "node:http";
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync } from "node:fs";
@@ -57,7 +58,7 @@ await page.addInitScript((st) => {
 const consoleLines = [];
 page.on("console", (m) => consoleLines.push(m.type() + " " + m.text()));
 page.on("pageerror", (e) => { consoleLines.push("PAGEERROR " + e.message); say("PAGEERROR " + e.message); });
-await page.goto("http://localhost:" + PORT + "/");
+await page.goto(arg("url", "http://localhost:" + PORT + "/"));   // --url https://aeread.org/interview tests the live page
 
 const state = () => page.evaluate(() => JSON.parse(localStorage.getItem("case-consultant:state:v1") || "null"));
 const callStatus = () => page.evaluate(() => { const el = document.querySelector(".call .txt"); return el ? el.textContent : null; });
@@ -67,7 +68,7 @@ const log = { turns: 0, stalls: 0, latency: [], filing: [], perStage: {}, clarif
 // The page speaks the reply once it is filed, so wait for speech after filing, then a short silence.
 async function waitForTurn(count, maxMs = 90000) {
   const t0 = Date.now();
-  let spokeAt = 0, filedAt = 0, quietSince = 0;
+  let spokeAt = 0, filedAt = 0, quietSince = 0, downSince = 0;
   while (Date.now() - t0 < maxMs) {
     const [S, st] = [await state(), await callStatus()];
     const now = Date.now();
@@ -76,7 +77,11 @@ async function waitForTurn(count, maxMs = 90000) {
     else if (st === "Listening") { if (!quietSince) quietSince = now; }
     else quietSince = 0;
     if (filedAt && quietSince && now - quietSince > 1200 && ((spokeAt && spokeAt >= filedAt - 3000) || now - filedAt > 12000)) return { S, spoke: spokeAt ? (spokeAt - t0) / 1000 : null, filed: (filedAt - t0) / 1000 };
-    if (st === null && S && S.transcript.length > count) return { S, ended: true };
+    if (st === null) {
+      // The page reconnects after a dropped line; only a call that stays down has ended.
+      if (!downSince) downSince = now;
+      if (now - downSince > 20000 && S && S.transcript.length > count) return { S, ended: true };
+    } else downSince = 0;
     await sleep(300);
   }
   log.stalls += 1;

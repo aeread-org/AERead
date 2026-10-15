@@ -212,3 +212,13 @@ test("the NOW note names what to ask next, and says to move on once a part's nee
   C.applyTurn(S, turn({ sections: { meta: { field: "Electronics", role: "Buyer" } } }), { additive: true });
   assert.match(C.voiceStatus(S), /This part's needs are met\. .*move on now/);
 });
+
+test("a voice turn's '7 in 10' as the usual value is filed as a count of ten", () => {
+  const S = C.newState();
+  C.addExpert(S, "It catches about seven in ten.");
+  C.applyTurn(S, turn({ numbers: [{ id: "catch_rate", name: "Catch rate", typical: "about 7 in 10" }, { id: "fee", name: "Fee", typical: "550" }] }), { additive: true });
+  assert.equal(S.numbers[0].of_ten, "7 of 10");
+  assert.equal(S.numbers[0].typical, "");
+  assert.deepEqual(C.numberIssues(S.numbers[0]).includes("range"), false);
+  assert.equal(S.numbers[1].typical, "550");
+});

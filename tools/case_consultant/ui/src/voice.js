@@ -43,6 +43,7 @@ export function createVoice(cfg) {
     readbackAsked: false, // the summary was asked for in this call and has not arrived
     readbackRestarts: 0,
     readbackTimer: 0,
+    resumes: 0,           // calls restarted after an unexpected end, this page load
     summaryCall: false,   // end this call and start a fresh one that writes the summary
     quietTimer: 0,
     thinking: false,      // the expert has finished; the interviewer's turn has not arrived
@@ -53,7 +54,7 @@ export function createVoice(cfg) {
     vapi: null,
   };
   const DEBUG = (() => { try { return localStorage.getItem("case-consultant:debug") === "1"; } catch { return false; } })();
-  const trace = (...a) => { if (DEBUG) console.debug("[voice] " + a.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")); };
+  const trace = (...a) => { if (DEBUG) console.debug("[voice] " + a.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ").replace(/\n/g, " / ")); };
   // Speak a line for the interviewer; the expert can talk over it.
   const speak = (text) => { if (v.vapi && text) { trace("say", text); v.echo = text; v.vapi.say(text, false, true); } };
   const squash = (t) => String(t || "").replace(/\s+/g, "");
@@ -76,7 +77,9 @@ export function createVoice(cfg) {
       firstMessageInterruptionsEnabled: true,
       backgroundSound: "off",
       maxDurationSeconds: 3600,
-      silenceTimeoutSeconds: 900,
+      // Typed answers do not count as speech, so a typing expert would be cut off by a shorter limit
+      // (a simulated run that only typed ended at fifteen minutes with 900).
+      silenceTimeoutSeconds: 3600,
       artifactPlan: { recordingEnabled: false },
       clientMessages: ["transcript", "tool-calls", "model-output", "speech-update", "status-update", "user-interrupted"],
       startSpeakingPlan: { waitSeconds: 0.8 },
@@ -235,6 +238,7 @@ export function createVoice(cfg) {
     clearTimeout(v.quietTimer);
     // A call that drops while the summary is due is started again for the summary alone, once.
     const S = ctl.S;
+    const wasLive = v.state === "live";
     const retry = v.state !== "ending" && S.stage === C.READBACK && !S.readback && (v.readbackDue || v.readbackAsked) && v.readbackRestarts < 1;
     v.readbackAsked = false;
     if (v.vapi) { try { v.vapi.removeAllListeners(); } catch { /* gone */ } }
@@ -258,6 +262,15 @@ export function createVoice(cfg) {
       return;
     }
     if (retry) { v.readbackRestarts += 1; save(); trace("restart for the summary"); setTimeout(() => api.start({ readback: true }), 800); return; }
+    // Any other unexpected end of a live call: carry on in a new call, a few times at most.
+    if (message && wasLive && !S.approved && v.resumes < 3) {
+      v.resumes += 1;
+      ctl.notice = { text: "The line dropped. Reconnecting where we stopped." };
+      save();
+      trace("resume after an unexpected end");
+      setTimeout(() => api.start({ resume: true }), 800);
+      return;
+    }
     if (message) ctl.notice = { text: message };
     save();
   }
@@ -271,8 +284,13 @@ export function createVoice(cfg) {
     start(opts = {}) {
       if (v.state !== "idle") return;
       const S = ctl.S;
-      // An answer left unfiled by an earlier call goes back to the reply box instead of being lost.
-      if (C.awaiting(S)) { const t = C.dropLastExpert(S); if (t) { setDraft(t); ctl.restoreDraft = t; } }
+      // An answer left unfiled by an earlier call: after a dropped line it is sent on to the new call;
+      // otherwise it goes back to the reply box instead of being lost.
+      if (C.awaiting(S)) {
+        const t = C.dropLastExpert(S);
+        if (t && opts.resume) opts = Object.assign({}, opts, { typed: t });
+        else if (t) { setDraft(t); ctl.restoreDraft = t; }
+      }
       ctl.notice = null;
       v.state = "connecting";
       v.afterStart = opts.typed ? { typed: opts.typed } : opts.readback ? "readback" : null;
