@@ -461,17 +461,18 @@ def _run_episode(picks, *, evidence_root: Path):
             harnesses=setup.harnesses,
         )
     )
+    cell = next(item for item in setup.plan.cells if item.cell_id == execution.cell_id)
     case = setup.plan.cases[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
-    return execution, plugin, family_case
+    return execution, plugin, family_case, cell
 
 
 def test_sequential_phase_produces_two_transitions_in_one_instance(tmp_path) -> None:
     """Sanity-check the fixture itself before trusting it to test replay."""
 
-    execution, _plugin, _family_case = _run_episode((3, 4), evidence_root=tmp_path)
+    execution, _plugin, _family_case, _cell = _run_episode((3, 4), evidence_root=tmp_path)
     (phase_instance,) = execution.episode_result.phase_instances
     assert phase_instance.mode == "sequential"
     assert len(phase_instance.transitions) == 2
@@ -487,13 +488,14 @@ def test_replay_reproduces_a_sequential_phase_instance_exactly(tmp_path) -> None
     genuine ``mode="sequential"`` phase with more than one actor.
     """
 
-    execution, plugin, family_case = _run_episode((3, 4), evidence_root=tmp_path)
+    execution, plugin, family_case, cell = _run_episode((3, 4), evidence_root=tmp_path)
 
     scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=execution.evidence,
         seat_context=SeatContext((), {}),
+        cell=cell,
     )
 
     assert canonical_json_bytes(scoring_input.phase_instances) == canonical_json_bytes(
@@ -514,7 +516,7 @@ def test_replay_rejects_a_phase_completion_boundary_that_understates_the_actors(
     actor who actually acted must fail replay, not be silently ignored.
     """
 
-    execution, plugin, family_case = _run_episode((3, 4), evidence_root=tmp_path)
+    execution, plugin, family_case, cell = _run_episode((3, 4), evidence_root=tmp_path)
 
     events_path = execution.evidence.root / "events.jsonl"
     lines = events_path.read_text(encoding="utf-8").splitlines()
@@ -540,4 +542,5 @@ def test_replay_rejects_a_phase_completion_boundary_that_understates_the_actors(
             family_case=family_case,
             evidence=execution.evidence,
             seat_context=SeatContext((), {}),
+            cell=cell,
         )
