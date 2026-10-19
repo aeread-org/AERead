@@ -447,7 +447,7 @@ under it since they last ran, before merging.
 
 The first live path for a family whose counterpart is not a model. The
 kernel gained a scripted-seat capability for it (#150,
-`docs/kernel_scripted_seats_design.md`); the family's live setup, campaign
+`docs/architecture/kernel_scripted_seats_design.md`); the family's live setup, campaign
 and publisher were built against it offline, every corpus case run through
 the real kernel with a fake route, before any provider call.
 

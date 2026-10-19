@@ -335,6 +335,36 @@ def _replay_family_trajectory(
             request = DecisionRequest(**_freeze(dict(request_value)))
             observations[seat_id] = request.observation
             _use(start)
+            if start_payload.get("source") == "scripted_policy":
+                # A scripted seat has no model to re-ask, so ruling R2's
+                # cross-check takes the only form it can: recompute the
+                # policy's response from the sealed request and seed, and
+                # require it to equal the response that was sealed.
+                scripted_events = tuple(
+                    event
+                    for event in events
+                    if event.event_type == "scripted_action"
+                    and event.logical_action_id == start.logical_action_id
+                )
+                if len(scripted_events) != 1:
+                    raise ValueError("family replay scripted action lacks one sealed response")
+                scripted_payload = evidence.read_event_payload(scripted_events[0])
+                hook = getattr(plugin, "scripted_response", None)
+                if not callable(hook):
+                    raise ValueError("family replay cannot recompute a scripted seat without the hook")
+                recomputed = hook(
+                    scripted_payload["policy_id"],
+                    request,
+                    world_seed=scripted_payload["world_seed"],
+                )
+                if canonical_json_bytes(recomputed) != canonical_json_bytes(
+                    scripted_payload["response"]
+                ):
+                    raise ValueError(
+                        f"family replay scripted response mismatch for seat {seat_id!r}: "
+                        "the policy no longer reproduces the sealed response"
+                    )
+                _use(scripted_events[0])
             parsed_events = tuple(
                 event
                 for event in events
@@ -1043,6 +1073,7 @@ def finalize_family_execution(
             replicate_index=cell.replicate_index,
             panel_mode=cell.panel_mode,
             agent_profile_sha256_by_seat=_agent_profile_digests(setup.plan, cell),
+            scripted_seats=cell.scripted_seats,
             implementation_refs=_receipt_implementations(score_set),
             plan_implementation_pins=setup.plan.implementation_pins,
             evidence=evidence_seal,
@@ -1170,6 +1201,7 @@ def finalize_family_failure(
             replicate_index=cell.replicate_index,
             panel_mode=cell.panel_mode,
             agent_profile_sha256_by_seat=_agent_profile_digests(setup.plan, cell),
+            scripted_seats=cell.scripted_seats,
             implementation_refs=(
                 leaf.estimand.validity_domain.predicate,
                 leaf.verifier.reference.implementation,
@@ -1229,6 +1261,10 @@ def replay_family_receipt(
         _agent_profile_digests(setup.plan, cell)
     ):
         raise ValueError("receipt agent profile digests do not match the plan")
+    if canonical_json_bytes(dict(receipt.scripted_seats)) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted seats do not match the plan")
     evidence_path = RunLayout(
         Path(evidence_root), receipt.run_plan_id
     ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)
@@ -1411,6 +1447,11 @@ def audit_family_receipt(
     for key, value in expected.items():
         if canonical_json_bytes(receipt.get(key)) != canonical_json_bytes(value):
             raise ValueError(f"receipt {key} does not match the sealed plan")
+    # Omitted from the serialized receipt when empty, so absent reads as none.
+    if canonical_json_bytes(dict(receipt.get("scripted_seats") or {})) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted_seats does not match the sealed plan")
     root = receipt_path.parent
     canonical_identity = (
         root.name == receipt.get("episode_attempt_id")

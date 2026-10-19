@@ -124,6 +124,7 @@ When you move a document, add its row here in the same pull request.
 | `docs/termsbench_review_claude.md` | [`docs/families/termsbench/reviews/termsbench_review_claude.md`](../families/termsbench/reviews/termsbench_review_claude.md) | #123 |
 | `docs/termsbench_review_codex.md` | [`docs/families/termsbench/reviews/termsbench_review_codex.md`](../families/termsbench/reviews/termsbench_review_codex.md) | #123 |
 | `docs/termsbench_review_disposition.md` | [`docs/families/termsbench/reviews/termsbench_review_disposition.md`](../families/termsbench/reviews/termsbench_review_disposition.md) | #123 |
+| `docs/kernel_scripted_seats_design.md` | [`docs/architecture/kernel_scripted_seats_design.md`](../architecture/kernel_scripted_seats_design.md) | #150, on merge |
 
 ## Cited but not in this repository
 
@@ -142,6 +143,5 @@ so the guard fails on a new dangling citation rather than on these.
 | `docs/experiments/2026-07-06_oracle_carveout_spec.md` | private development repository |
 | `docs/govsim_migration_plan.md` | branch `zeyu/govsim-contract-migration` (35cf3d73), never merged to `main` |
 | `docs/govsim_migration_review.md` | branch `zeyu/govsim-contract-migration` (35cf3d73), never merged to `main` |
-| `docs/kernel_scripted_seats_design.md` | open pull request #150; its home on merge is `docs/architecture/` |
 | `docs/operations/errata.md` | open pull request #117 |
 | `docs/superpowers/specs/2026-09-07-issue-135-repair-design.md` | a session-local design note for #135; the ruling is on the issue |
