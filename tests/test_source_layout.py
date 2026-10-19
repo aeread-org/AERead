@@ -86,6 +86,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "price_reference.py",
         "price_reply_conditioned.py",
         "price_reply_posterior.py",
+        "price_seat0.py",
         "provider_pacing.py",
         "qc.py",
         "qc_bundle.py",

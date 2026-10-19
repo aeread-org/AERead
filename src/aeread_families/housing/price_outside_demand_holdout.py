@@ -95,6 +95,13 @@ def run_recorded(seed: int, arm: str, policy: price_reference.Policy) -> tuple[h
     return market, recorder.trajectory
 
 
+def rival_rewrite(request: Any) -> Any:
+    """Address an outside seat's request to this module's provider (``price_campaign.SeatRouterClient``'s ``rewrite``)."""
+    import dataclasses
+
+    return dataclasses.replace(request, provider=PROVIDER, model=MODEL, revision=REVISION)
+
+
 class HoldoutOutsideDemandProvider:
     """Answers the outside seats of a holdout cell at this module's rate. Costs nothing and calls nobody."""
 
@@ -109,4 +116,4 @@ class HoldoutOutsideDemandProvider:
 
 
 __all__ = ["HoldoutOutsideDemandProvider", "MODEL", "PROVIDER", "RATE", "REVISION", "block", "outside_demand_action",
-           "run_recorded", "run_with", "run_world"]
+           "rival_rewrite", "run_recorded", "run_with", "run_world"]
