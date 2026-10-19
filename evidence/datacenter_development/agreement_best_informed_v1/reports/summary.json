@@ -1,0 +1,290 @@
+{
+ "analysis": "agreement_best_informed_v1",
+ "pack": "agreement_admitted_v1",
+ "seats": {
+  "client": {
+   "deal_worlds": 45,
+   "one_step": {
+    "full_information": {
+     "matches": 25,
+     "mean_value_short": 29.668
+    },
+    "own_information": {
+     "matches": 15,
+     "mean_value_short": 31.063
+    }
+   },
+   "plan_all": {
+    "at_true": 93.894,
+    "expected": 94.538,
+    "told_the_type": 94.305,
+    "types_live_at_start": {
+     "1": 13,
+     "2": 28,
+     "3": 19
+    }
+   },
+   "plan_deal": {
+    "at_true": 125.192,
+    "expected": 126.05,
+    "told_the_type": 125.74,
+    "types_live_at_start": {
+     "1": 9,
+     "2": 23,
+     "3": 13
+    }
+   },
+   "subjects": {
+    "claude_opus55": {
+     "all": {
+      "beaten_by": 95.076,
+      "earned": -80.93,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 138.981,
+        "turns": 60
+       },
+       "2": {
+        "mean_loss": 94.077,
+        "turns": 22
+       },
+       "3": {
+        "mean_loss": 17.462,
+        "turns": 6
+       }
+      },
+      "loss_by_turn_total": 175.222,
+      "negotiations": 60,
+      "plan_at_true": 93.894,
+      "same_kind_of_move_as_the_policy": 36,
+      "shortfall_at_true": 174.824,
+      "turns": 88,
+      "turns_beating_the_policy": 3,
+      "turns_losing_over_1k": 77
+     },
+     "deal": {
+      "beaten_by": 95.076,
+      "earned": 28.025,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 74.652,
+        "turns": 45
+       },
+       "2": {
+        "mean_loss": 46.615,
+        "turns": 20
+       },
+       "3": {
+        "mean_loss": 17.462,
+        "turns": 6
+       }
+      },
+      "loss_by_turn_total": 97.698,
+      "negotiations": 45,
+      "plan_at_true": 125.192,
+      "same_kind_of_move_as_the_policy": 36,
+      "shortfall_at_true": 97.168,
+      "turns": 71,
+      "turns_beating_the_policy": 3,
+      "turns_losing_over_1k": 60
+     }
+    },
+    "codex_sol61": {
+     "all": {
+      "beaten_by": 22.856,
+      "earned": 30.541,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 17.959,
+        "turns": 60
+       },
+       "2": {
+        "mean_loss": 50.266,
+        "turns": 55
+       },
+       "3": {
+        "mean_loss": 0.494,
+        "turns": 40
+       }
+      },
+      "loss_by_turn_total": 64.365,
+      "negotiations": 60,
+      "plan_at_true": 93.894,
+      "same_kind_of_move_as_the_policy": 125,
+      "shortfall_at_true": 63.353,
+      "turns": 155,
+      "turns_beating_the_policy": 2,
+      "turns_losing_over_1k": 94
+     },
+     "deal": {
+      "beaten_by": 22.856,
+      "earned": 59.477,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 18.389,
+        "turns": 45
+       },
+       "2": {
+        "mean_loss": 48.236,
+        "turns": 45
+       },
+       "3": {
+        "mean_loss": 0.599,
+        "turns": 33
+       }
+      },
+      "loss_by_turn_total": 67.065,
+      "negotiations": 45,
+      "plan_at_true": 125.192,
+      "same_kind_of_move_as_the_policy": 111,
+      "shortfall_at_true": 65.715,
+      "turns": 123,
+      "turns_beating_the_policy": 2,
+      "turns_losing_over_1k": 76
+     }
+    }
+   },
+   "worlds": 60
+  },
+  "integrator": {
+   "deal_worlds": 45,
+   "one_step": {
+    "full_information": {
+     "matches": 25,
+     "mean_value_short": 29.668
+    },
+    "own_information": {
+     "matches": 19,
+     "mean_value_short": 29.965
+    }
+   },
+   "plan_all": {
+    "at_true": 138.612,
+    "expected": 148.953,
+    "told_the_type": 139.759,
+    "types_live_at_start": {
+     "3": 60
+    }
+   },
+   "plan_deal": {
+    "at_true": 184.816,
+    "expected": 164.701,
+    "told_the_type": 186.345,
+    "types_live_at_start": {
+     "3": 45
+    }
+   },
+   "subjects": {
+    "claude_opus55": {
+     "all": {
+      "beaten_by": -0.0,
+      "earned": 68.616,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 5.629,
+        "turns": 60
+       },
+       "2": {
+        "mean_loss": 75.286,
+        "turns": 43
+       },
+       "3": {
+        "mean_loss": 44.308,
+        "turns": 12
+       }
+      },
+      "loss_by_turn_total": 68.446,
+      "negotiations": 60,
+      "plan_at_true": 138.612,
+      "same_kind_of_move_as_the_policy": 76,
+      "shortfall_at_true": 69.996,
+      "turns": 115,
+      "turns_beating_the_policy": 0,
+      "turns_losing_over_1k": 61
+     },
+     "deal": {
+      "beaten_by": -0.0,
+      "earned": 92.6,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 7.506,
+        "turns": 45
+       },
+       "2": {
+        "mean_loss": 76.494,
+        "turns": 42
+       },
+       "3": {
+        "mean_loss": 46.024,
+        "turns": 11
+       }
+      },
+      "loss_by_turn_total": 90.15,
+      "negotiations": 45,
+      "plan_at_true": 184.816,
+      "same_kind_of_move_as_the_policy": 61,
+      "shortfall_at_true": 92.217,
+      "turns": 98,
+      "turns_beating_the_policy": 0,
+      "turns_losing_over_1k": 59
+     }
+    },
+    "codex_sol61": {
+     "all": {
+      "beaten_by": 118.221,
+      "earned": 84.663,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 1.699,
+        "turns": 60
+       },
+       "2": {
+        "mean_loss": 7.437,
+        "turns": 45
+       },
+       "3": {
+        "mean_loss": 76.185,
+        "turns": 37
+       }
+      },
+      "loss_by_turn_total": 54.257,
+      "negotiations": 60,
+      "plan_at_true": 138.612,
+      "same_kind_of_move_as_the_policy": 119,
+      "shortfall_at_true": 53.949,
+      "turns": 142,
+      "turns_beating_the_policy": 6,
+      "turns_losing_over_1k": 61
+     },
+     "deal": {
+      "beaten_by": 118.221,
+      "earned": 113.995,
+      "loss_by_turn_index": {
+       "1": {
+        "mean_loss": 1.895,
+        "turns": 45
+       },
+       "2": {
+        "mean_loss": 7.048,
+        "turns": 44
+       },
+       "3": {
+        "mean_loss": 77.594,
+        "turns": 36
+       }
+      },
+      "loss_by_turn_total": 70.862,
+      "negotiations": 45,
+      "plan_at_true": 184.816,
+      "same_kind_of_move_as_the_policy": 104,
+      "shortfall_at_true": 70.821,
+      "turns": 125,
+      "turns_beating_the_policy": 6,
+      "turns_losing_over_1k": 57
+     }
+    }
+   },
+   "worlds": 60
+  }
+ }
+}
