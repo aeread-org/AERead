@@ -232,3 +232,11 @@ tokens at `low`. Pinned at its listed price ($0.08, $0.012 cached, $0.50 per M; 
 `housing_lemons_price_v15_glm53_flash_nearai` and `..._admission_glm53_flash_nearai`; the Novita identities stay
 defined and their refused admission is published with the rest. Everything else in addendum A stands, and the probe
 now sends `require_parameters` as the client does.
+
+### Addendum A, amendment 2 (after GLM's admission, before its main run)
+
+GLM on Near AI passed both admission parts on 2026-10-19: the recorded one-call probe (valid JSON under the client's
+exact routing, 198 reasoning tokens at `low`) and the one-world trajectory (2 of 2 cells, $0.0033, about 126 s a
+cell). By amendment 3's rule the main identity's ceiling is twice the measured estimate plus one cell: 600 cells at
+$0.0016 is $0.98, so the ceiling is **$2.25**, replacing the $0.80 declared from v14's spend (this route reasons at
+`low`, which v14's records do not show for NextBit).
