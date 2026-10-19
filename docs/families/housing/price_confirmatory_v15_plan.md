@@ -173,3 +173,13 @@ Nothing else in Section 5 changes.
   notice 5.
 - **The goldens identity names GLM's route nominally**, because a contract requires one; it is scripted and makes no
   provider call.
+
+## Amendment 4, 2026-10-19 (before any v15 contract is frozen)
+
+**The A/A twin draws its own samples.** Built as "identical except the name", the twin resolved to the same run plan as
+the GLM confirmatory's main plan (same profile, same inference seed base 87001): its receipts would share run-plan and
+cell ids with the confirmatory's, and on a route that honours the seed it would replay the same samples, so the A/A
+difference would measure nothing but route nondeterminism. The A/A arm exists to measure what a second, independent
+run of the same model on the same worlds differs by, so the twin's tenant inference seed base is 88001; everything
+else stays identical. Only notice-5 identities may declare a seed base other than 87001, so every v14 contract is
+unchanged.
