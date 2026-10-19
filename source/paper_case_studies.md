@@ -104,11 +104,8 @@ admission: its provider now serves another quantization than the one v14 pinned.
 (addendum A) is running and is reported beside v15, outside its declared contrasts.
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
-In our own sourcing of parts for 231 hardware projects, 1688 search results showed 341 suppliers;
-236 requests went to 28 of them and 9 returned quotes, and an exact-variant screen of 51 listings
-accepted 1, left 20 conditional and rejected 30. A displayed price is not a quote, and a listing's
-quality is known only after it is checked. Two of the case's assumptions depart from that record by
-design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
+A displayed price is not a quote, and a listing's quality is known only after it is checked. Two of
+the case's assumptions depart from our own sourcing on 1688 by design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
 history was dearer than one without in only about half of comparable parts; and its quotes always
 arrive, whereas most requests went unanswered. The case's prices, failure rates and delays are set by
 the authors, not calibrated to that record. A buyer owes 50 kits by a deadline and awards one

@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 10:13:44
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 12:59:00
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1164,7 +1164,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table F.1. Benchmark QC gates.**
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 09:52:13
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 12:58:48
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1194,7 +1194,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,70 +30,102 @@
+@@ -29,70 +30,99 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1319,11 +1319,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -quote shows delivery, a sample shows yield, and both take money and days. Every action is charged
 -what it gave up against the exact best informed policy at that point.
 +**Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
-+In our own sourcing of parts for 231 hardware projects, 1688 search results showed 341 suppliers;
-+236 requests went to 28 of them and 9 returned quotes, and an exact-variant screen of 51 listings
-+accepted 1, left 20 conditional and rejected 30. A displayed price is not a quote, and a listing's
-+quality is known only after it is checked. Two of the case's assumptions depart from that record by
-+design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
++A displayed price is not a quote, and a listing's quality is known only after it is checked. Two of
++the case's assumptions depart from our own sourcing on 1688 by design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
 +history was dearer than one without in only about half of comparable parts; and its quotes always
 +arrive, whereas most requests went unanswered. The case's prices, failure rates and delays are set by
 +the authors, not calibrated to that record. A buyer owes 50 kits by a deadline and awards one
@@ -1345,7 +1342,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
  |---|---:|---:|---:|---:|
-@@ -106,28 +139,64 @@
+@@ -106,28 +136,64 @@
  the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
  the worlds where a newcomer was worth testing.
  
@@ -1423,7 +1420,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### 5.2 Where the shortfall comes from
  
  Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
-@@ -138,8 +207,9 @@
+@@ -138,8 +204,9 @@
  ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
  
  **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
@@ -1435,7 +1432,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
  are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
  
-@@ -168,20 +238,65 @@
+@@ -168,20 +235,65 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -1505,7 +1502,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
  | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
  | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
-@@ -190,12 +305,16 @@
+@@ -190,12 +302,16 @@
  | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
  | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
  | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |

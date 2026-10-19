@@ -151,3 +151,6 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
 - Layout (2026-10-19, owner: "don't need new page for each new section"): the forced page breaks before
   Sections 4, 5 and 7, the references, Appendices A and H and E.7 to E.9 are removed; headings still never end a
   page. 50 pages.
+- Section 5.1 Procurement (2026-10-19, owner: "no need to mention"): the sentence giving the sourcing counts (231
+  projects, 341 suppliers, 9 of 28 quoting, the 51-listing screen) is removed; the next sentence now refers to "our own
+  sourcing on 1688". The sources table keeps the workbook as the provenance of "most requests went unanswered".
