@@ -91,7 +91,7 @@ def world_values(model_cells: dict, stream: str, worlds: list[int], value) -> di
 def interval(values: list[float], alpha: float) -> list[float]:
     n, m = len(values), statistics.fmean(values)
     h = stats.t.ppf(1 - alpha / 2, n - 1) * statistics.stdev(values) / math.sqrt(n)
-    return [round(m - h, 2), round(m + h, 2)]
+    return [float(round(m - h, 2)), float(round(m + h, 2))]
 
 
 def contrast(name: str, a: dict[int, float | None], b: dict[int, float | None], *, strict: float | None = None) -> dict:
