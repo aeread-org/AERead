@@ -135,6 +135,9 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Unified regret campaign: observed execution](procurement-allocation/unified_run_results.md)
 - [Pay or test v2: confirmatory campaign plan](procurement-allocation/pay_or_test_v2_confirmatory_plan.md) (stopped at sizing: no confirmatory run)
 - [Pay or test v2: results](procurement-allocation/pay_or_test_v2_results.md)
+- [Pay or test v3: design note](procurement-allocation/pay_or_test_v3_design_note.md) (routes after v2, and the option-value probe)
+- [Pay or test v3: parameter specification](procurement-allocation/pay_or_test_v3_parameters.md)
+- [Pay or test v3: plan](procurement-allocation/pay_or_test_v3_plan.md) (pilot declared; live play waits on the kernel trusting the plugin)
 
 ## Refund
 

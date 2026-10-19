@@ -82,3 +82,12 @@ What follows for v3: keep v2's shared-source mechanism and add the option-value 
 condition (best first move a newcomer request, one-step best test below paying, gap at least the margin); apply the
 parameter changes of `pay_or_test_v3_parameters.md`; size a declared run on these two subjects from this probe's
 variance before any confirmatory claim.
+
+### Version 3 built (2026-10-19)
+
+At the owner's go, version 3 is built and its pilot declared in [`pay_or_test_v3_plan.md`](pay_or_test_v3_plan.md):
+v2's shared source, prices from the sourcing record, quotes a newcomer may leave unanswered, a source lookup, no
+inquiry or counter, and option-value worlds admitted only where the best policy beats paying the premium by 10%.
+Building it found that v2's one-step rule cannot price a test once quotes go unanswered (P-D-28); version 3's rule plans
+one newcomer's whole test exactly, which makes the option-value cell rarer (6 worlds took 707 seeds) and its stake
+larger (10% to 23%).
