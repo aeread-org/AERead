@@ -24,7 +24,14 @@ which misses the client script's exact signing threshold, so they are lower boun
 Codex's 144 integrator plays earn more than the grid ceiling (by up to 30.2) and 1 of Opus's; 16 and 3 earn more than
 the grid own-information value (DC-D-40). The shares of the rule-to-reference headroom (Codex 22% of the grid
 ceiling's, 25% of the grid own-information's; Opus none) are therefore upper bounds. No primary uses these references:
-P3 subtracts the `price_only` rule, which is exact. Opus is not playing the rule: 35 of its 144 plays earn exactly
+P3 subtracts the `price_only` rule, which is exact.
+
+**Corrected references** (branch `codex/datacenter-best-informed`, c12539b5,
+`evidence/datacenter_development/agreement_best_informed_v2/`): a turn-by-turn best-informed integrator whose moves add
+the client script's exact signing price at its last redline earns 196.3 a deal world at the true charge (202.8 in
+expectation over the prior) and 199.3 when told the type, against the grid values 172.3 and 186.7. Against these,
+Codex captures 19.8% of the `price_only`-to-reference headroom (19.2% against the told-the-type value) and Opus about
+none. They are still lower bounds where a play beats them: 2 of 320 integrator plays exceed the told-the-type value. Opus is not playing the rule: 35 of its 144 plays earn exactly
 the rule's amount, against Codex's 39, and both spend about half their redlines on the price alone (109 of 211, 175
 of 355).
 
