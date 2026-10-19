@@ -131,3 +131,13 @@ def test_the_one_step_agreement_is_never_better_than_the_best(world) -> None:
             assert got["best_value"] >= got["one_step_value"] - 1e-6
             assert got["best_value"] >= got["draft_value"] - 1e-6
             assert got["matches"] == (abs(got["best_value"] - got["one_step_value"]) <= 1e-6)
+
+
+def test_the_last_move_signing_prices_never_lower_the_plan_and_replay_exactly(world) -> None:
+    grid_only = bi.Seat(*world, "integrator")
+    grid_only.thresholds = False
+    with_thresholds = bi.Seat(*world, "integrator")
+    a, b = bi.plan_values(grid_only), bi.plan_values(with_thresholds)
+    assert b["expected"] >= a["expected"] - 1e-6
+    for label in with_thresholds.hyps:
+        assert bi.replay(with_thresholds, label)[0] == pytest.approx(b["by_type"][label], abs=1e-6)

@@ -159,17 +159,17 @@
     }
    },
    "plan_all": {
-    "at_true": 138.612,
-    "expected": 148.953,
-    "told_the_type": 139.759,
+    "at_true": 155.087,
+    "expected": 167.002,
+    "told_the_type": 156.798,
     "types_live_at_start": {
      "3": 60
     }
    },
    "plan_deal": {
-    "at_true": 184.816,
-    "expected": 164.701,
-    "told_the_type": 186.345,
+    "at_true": 206.782,
+    "expected": 185.019,
+    "told_the_type": 209.064,
     "types_live_at_start": {
      "3": 45
     }
@@ -181,106 +181,106 @@
       "earned": 68.616,
       "loss_by_turn_index": {
        "1": {
-        "mean_loss": 5.629,
+        "mean_loss": 5.489,
         "turns": 60
        },
        "2": {
-        "mean_loss": 75.286,
+        "mean_loss": 94.546,
         "turns": 43
        },
        "3": {
-        "mean_loss": 44.308,
+        "mean_loss": 62.458,
         "turns": 12
        }
       },
-      "loss_by_turn_total": 68.446,
+      "loss_by_turn_total": 85.738,
       "negotiations": 60,
-      "plan_at_true": 138.612,
-      "same_kind_of_move_as_the_policy": 76,
-      "shortfall_at_true": 69.996,
+      "plan_at_true": 155.087,
+      "same_kind_of_move_as_the_policy": 75,
+      "shortfall_at_true": 86.47,
       "turns": 115,
       "turns_beating_the_policy": 0,
-      "turns_losing_over_1k": 61
+      "turns_losing_over_1k": 57
      },
      "deal": {
       "beaten_by": -0.0,
       "earned": 92.6,
       "loss_by_turn_index": {
        "1": {
-        "mean_loss": 7.506,
+        "mean_loss": 7.318,
         "turns": 45
        },
        "2": {
-        "mean_loss": 76.494,
+        "mean_loss": 96.212,
         "turns": 42
        },
        "3": {
-        "mean_loss": 46.024,
+        "mean_loss": 65.823,
         "turns": 11
        }
       },
-      "loss_by_turn_total": 90.15,
+      "loss_by_turn_total": 113.206,
       "negotiations": 45,
-      "plan_at_true": 184.816,
-      "same_kind_of_move_as_the_policy": 61,
-      "shortfall_at_true": 92.217,
+      "plan_at_true": 206.782,
+      "same_kind_of_move_as_the_policy": 60,
+      "shortfall_at_true": 114.183,
       "turns": 98,
       "turns_beating_the_policy": 0,
-      "turns_losing_over_1k": 59
+      "turns_losing_over_1k": 55
      }
     },
     "codex_sol61": {
      "all": {
-      "beaten_by": 118.221,
+      "beaten_by": 14.572,
       "earned": 84.663,
       "loss_by_turn_index": {
        "1": {
-        "mean_loss": 1.699,
+        "mean_loss": 1.034,
         "turns": 60
        },
        "2": {
-        "mean_loss": 7.437,
+        "mean_loss": 8.15,
         "turns": 45
        },
        "3": {
-        "mean_loss": 76.185,
+        "mean_loss": 103.364,
         "turns": 37
        }
       },
-      "loss_by_turn_total": 54.257,
+      "loss_by_turn_total": 70.887,
       "negotiations": 60,
-      "plan_at_true": 138.612,
+      "plan_at_true": 155.087,
       "same_kind_of_move_as_the_policy": 119,
-      "shortfall_at_true": 53.949,
+      "shortfall_at_true": 70.424,
       "turns": 142,
-      "turns_beating_the_policy": 6,
-      "turns_losing_over_1k": 61
+      "turns_beating_the_policy": 1,
+      "turns_losing_over_1k": 55
      },
      "deal": {
-      "beaten_by": 118.221,
+      "beaten_by": 14.572,
       "earned": 113.995,
       "loss_by_turn_index": {
        "1": {
-        "mean_loss": 1.895,
+        "mean_loss": 1.379,
         "turns": 45
        },
        "2": {
-        "mean_loss": 7.048,
+        "mean_loss": 7.777,
         "turns": 44
        },
        "3": {
-        "mean_loss": 77.594,
+        "mean_loss": 105.528,
         "turns": 36
        }
       },
-      "loss_by_turn_total": 70.862,
+      "loss_by_turn_total": 93.405,
       "negotiations": 45,
-      "plan_at_true": 184.816,
+      "plan_at_true": 206.782,
       "same_kind_of_move_as_the_policy": 104,
-      "shortfall_at_true": 70.821,
+      "shortfall_at_true": 92.787,
       "turns": 125,
-      "turns_beating_the_policy": 6,
-      "turns_losing_over_1k": 57
+      "turns_beating_the_policy": 1,
+      "turns_losing_over_1k": 53
      }
     }
    },

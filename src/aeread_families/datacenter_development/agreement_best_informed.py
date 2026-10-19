@@ -15,7 +15,9 @@ the model's side had seen. This module computes that policy and that loss.
 - **Moves**: walk; sign the standing version when allowed; or redline to a candidate clause set at a
   candidate price. The candidate clause sets are, for every non-empty set of live types, the agreement with
   the most expected joint surplus over that set, and the standing terms (price only). The candidate prices
-  on a clause set are the seat's break-even moved toward each live type's limit by a share on :data:`GRID`.
+  on a clause set are the seat's break-even moved toward each live type's limit by a share on :data:`GRID`,
+  and, at the integrator's last redline, the highest price at which the client script still signs, read from
+  its rule and checked by asking it (DC-D-38: grid prices stopped short of that threshold).
   This class contains ``agreement_own_information``'s, so the integrator seat's value can only be higher.
 - **Choice**: backward induction over the turns and the live types, maximising expected earnings over the
   live types, ties to the earlier move. Earnings are the seat's surplus over its outside option at both
@@ -29,6 +31,7 @@ running time and leaves every decision rule to the original's code; ``check_scri
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import itertools
 import json
 import math
@@ -130,6 +133,7 @@ class Seat:
         self.floor = cw.w.terms.floor_margin
         self._costs: dict[tuple[str, rc.Contract], tuple[float, float]] = {}
         self._script_moves: dict[tuple[str, str], dict[str, Any]] = {}
+        self.thresholds = True  # add the client script's exact last-move signing prices to the candidates (DC-D-38)
         self.visited: dict[tuple[str, str], Mapping[str, Any]] = {}  # every state the script was asked to move in, for check_script
 
     # ---- money ----
@@ -182,6 +186,9 @@ class Seat:
         return s
 
     # ---- the seat's moves ----
+    def last_move_thresholds(self, label: str, state: Mapping[str, Any], k: rc.Contract) -> set[float]:
+        return _last_move_thresholds_impl(self, label, state, k) if self.thresholds else set()
+
     def candidates(self, labels: Sequence[str], state: Mapping[str, Any]) -> list[rc.Contract]:
         d = ag.draft(self.true_cw)
         out = {rc.Contract(**state["terms"])}
@@ -207,10 +214,48 @@ class Seat:
                     continue
                 for share in grid:
                     prices.add(round(mine + share * room, 3) if self.seat == "integrator" else round(mine - share * room, 3))
+                prices |= self.last_move_thresholds(x, state, k)
             for price in sorted(prices):
                 out.append({"action": "redline", "clauses": {t: (getattr(k, t) if getattr(k, t) != getattr(now, t) else None) for t in ag.TERMS},
                             "price": price, "note": None})
         return out
+
+
+def _floor3(x: float) -> float:
+    return math.floor(x * 1000.0) / 1000.0
+
+
+def _last_move_thresholds_impl(seat: "Seat", label: str, state: Mapping[str, Any], k: rc.Contract) -> set[float]:
+    """At the integrator's last redline the client script can only sign or walk next. The highest price at which it
+    still signs, for each set of integrator types its belief could keep, read from its own rule (it signs when the
+    offer is worth at least ``least`` of the surplus it believes there is) and kept only if the script, asked, signs."""
+    if seat.seat != "integrator" or state["move"] != ag.MOVES - 1 or "redline" not in ag.allowed(state):
+        return set()
+    script = seat.scripts[label]
+    before = script.belief(state)
+    floor = seat.floor
+    by_cost = sorted({rc.integrator_cost(k, script.cw.w, o.integrator, script.cw.x) + floor for o in before})
+    out: set[float] = set()
+    cuts = [-math.inf, *by_cost, math.inf]
+    for lo, hi in zip(cuts, cuts[1:]):
+        kept = [o for o in before if rc.integrator_cost(k, script.cw.w, o.integrator, script.cw.x) + floor <= lo + EPS] if lo > -math.inf else []
+        belief = kept or before
+        mass = math.fsum(o.p for o in belief)
+        belief = [dataclasses.replace(o, p=o.p / mass) for o in belief]
+        least = max(0.0, script.style.least * script.pie(belief))
+        value_at_zero = script.mine(k, 0.0, belief)  # the client's expected surplus is this less the price
+        price = _floor3(min(value_at_zero - least, hi - 1e-3))
+        if price >= (lo if lo > -math.inf else -math.inf) and price > 0:
+            out.add(price)
+    now = rc.Contract(**state["terms"])
+    kept_prices = set()
+    for price in out:
+        act = {"action": "redline", "clauses": {t: (getattr(k, t) if getattr(k, t) != getattr(now, t) else None) for t in ag.TERMS},
+               "price": price, "note": None}
+        nxt = seat.step(label, state, act)
+        if nxt["finished"] and nxt["termination"] == "signed":
+            kept_prices.add(price)
+    return kept_prices
 
 
 def _key(state: Mapping[str, Any]) -> str:
@@ -410,12 +455,34 @@ def one_step(seat: Seat, labels: Sequence[str]) -> dict[str, Any]:
 
 
 CONFIRMATORY = "evidence/datacenter_development/datacenter_agreement_confirm_firm_population_v1"
+#: The v2 confirmatory's arms against the public firm script (the head-to-head arm has no single best policy).
+V2_BUNDLES = ("evidence/datacenter_development/datacenter_agreement_v2_integrator_firm",
+              "evidence/datacenter_development/datacenter_agreement_v2_client_firm")
+#: Which pack, which sealed bundles, and the analysis id each run writes.
+PACKS: dict[str, dict[str, Any]] = {
+    "v1": {"bundles": (CONFIRMATORY,), "analysis": "agreement_best_informed_v1"},
+    "v2": {"bundles": V2_BUNDLES, "analysis": "agreement_best_informed_v2"},
+}
 
 
-def sealed_negotiations(root: Path) -> dict[tuple[str, str], list[dict[str, Any]]]:
+def load_pack(name: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    """(manifest, cases) of the v1 admitted pack or the v2 one."""
+    if name == "v1":
+        manifest, cases, _ = aap.load()
+    else:
+        from . import agreement_admitted_pack_v2 as v2
+
+        manifest, cases, _ = v2.load(v2.ADMITTED)
+    return manifest, cases
+
+
+def sealed_negotiations(root: Path, bundles: Sequence[str] = (CONFIRMATORY,)) -> dict[tuple[str, str], list[dict[str, Any]]]:
     """(world, model seat) -> each model's negotiation: subject, moves in order, the recorded outcome."""
-    rows = [json.loads(line) for line in (root / CONFIRMATORY / "trajectories/sanitized.jsonl").read_text().splitlines() if line.strip()]
-    cells = {c["receipt_sha256"]: c for c in (json.loads(line) for line in (root / CONFIRMATORY / "tables/cells.jsonl").read_text().splitlines() if line.strip())}
+    rows: list[dict[str, Any]] = []
+    cells: dict[str, dict[str, Any]] = {}
+    for bundle in bundles:
+        rows += [json.loads(line) for line in (root / bundle / "trajectories/sanitized.jsonl").read_text().splitlines() if line.strip()]
+        cells.update({c["receipt_sha256"]: c for c in (json.loads(line) for line in (root / bundle / "tables/cells.jsonl").read_text().splitlines() if line.strip())})
     by_cell: dict[str, list[dict[str, Any]]] = {}
     for r in rows:
         by_cell.setdefault(r["source_receipt_sha256"], []).append(r)
@@ -428,7 +495,7 @@ def sealed_negotiations(root: Path) -> dict[tuple[str, str], list[dict[str, Any]
             "subject": c[seat], "cell_key": c["cell_key"], "receipt_sha256": sha, "recorded_surplus": c[f"{seat}_surplus"],
             "moves": [r["action"] for r in rs]})
     for v in out.values():
-        v.sort(key=lambda n: n["subject"])
+        v.sort(key=lambda n: (n["subject"], n["cell_key"]))
     return out
 
 
@@ -454,14 +521,16 @@ def world_job(job: tuple[str, Mapping[str, Any], str, list[dict[str, Any]]]) -> 
     return row
 
 
-def run(root: Path, processes: int = 8) -> dict[str, Any]:
-    _, cases, _ = aap.load()
+def run(root: Path, processes: int = 8, pack: str = "v1") -> dict[str, Any]:
+    manifest, cases = load_pack(pack)
     payloads = {c["case_id"].rsplit(".", 1)[-1]: c["payload"] for c in cases.values()}
-    sealed = sealed_negotiations(root)
+    bundles = PACKS[pack]["bundles"]
+    sealed = sealed_negotiations(root, bundles)
     jobs = [(w, payloads[w], s, sealed.get((w, s), [])) for w in sorted(payloads) for s in ag.SEATS]
     with Pool(processes) as pool:
         rows = pool.map(world_job, jobs, chunksize=1)
-    return {"analysis": "agreement_best_informed_v1", "pack": aap.PACK, "grid": list(GRID), "sealed_campaign": CONFIRMATORY,
+    return {"analysis": PACKS[pack]["analysis"], "pack": aap.PACK if pack == "v1" else manifest["pack"],
+            "grid": list(GRID), "sealed_campaign": bundles[0] if len(bundles) == 1 else list(bundles),
             "counterpart": "scripted negotiator, public drawn style (agreement_admitted_pack.public_style)", "rows": rows}
 
 
@@ -471,7 +540,7 @@ def _mean(xs: Sequence[float]) -> float | None:
 
 def summary(result: Mapping[str, Any]) -> dict[str, Any]:
     """The tables the write-up reads, from ``rows.json`` alone (deal worlds: the pack's available surplus is positive)."""
-    manifest, _, _ = aap.load()
+    manifest, _ = load_pack("v1" if result["analysis"] == PACKS["v1"]["analysis"] else "v2")
     deal = {w["case_id"].rsplit(".", 1)[-1]: w["available_surplus"] > 0 for w in manifest["worlds"]}
     out: dict[str, Any] = {"analysis": result["analysis"], "pack": result["pack"], "seats": {}}
     for seat in ag.SEATS:
@@ -507,21 +576,37 @@ def summary(result: Mapping[str, Any]) -> dict[str, Any]:
     return out
 
 
+def per_world(result: Mapping[str, Any]) -> str:
+    """One CSV row per world and seat: the references this analysis supplies, and the best and worst play against them."""
+    lines = ["world,seat,types_live,plan_at_true,plan_expected,told_the_type,plays,best_play,worst_play,"
+             "plays_above_plan_at_true,plays_above_told_the_type"]
+    for r in result["rows"]:
+        earned = [n["earned"] for n in r["negotiations"]]
+        plan, told = r["plan"]["at_true"], r["plan"]["told_the_type"]
+        lines.append(",".join(str(v) for v in (
+            r["world"], r["seat"], r["types"], plan, r["plan"]["expected"], told, len(earned),
+            max(earned) if earned else "", min(earned) if earned else "",
+            sum(e > plan + 1e-6 for e in earned), sum(e > told + 1e-6 for e in earned))))
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - thin CLI
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", required=True)
     parser.add_argument("--root", default=".")
     parser.add_argument("--processes", type=int, default=8)
+    parser.add_argument("--pack", choices=sorted(PACKS), default="v1")
     parser.add_argument("--summary-only", action="store_true", help="recompute summary.json from the rows.json already in --out")
     args = parser.parse_args(argv)
     out = Path(args.out) / "reports"  # an evidence bundle keeps its files in the standard categories
     if args.summary_only:
         result = json.loads((out / "rows.json").read_text())
     else:
-        result = run(Path(args.root), args.processes)
+        result = run(Path(args.root), args.processes, args.pack)
         out.mkdir(parents=True, exist_ok=True)
         (out / "rows.json").write_text(json.dumps(result, indent=1, sort_keys=True) + "\n")
     (out / "summary.json").write_text(json.dumps(summary(result), indent=1, sort_keys=True) + "\n")
+    (out / "per_world.csv").write_text(per_world(result))
     print(f"{len(result['rows'])} world-seats; rows.json and summary.json in {out}")
     return 0
 
@@ -531,4 +616,4 @@ if __name__ == "__main__":  # pragma: no cover
 
 
 __all__ = ["CONFIRMATORY", "FastNegotiator", "GRID", "Hypothesis", "Seat", "Solver", "check_script", "loss_by_turn", "one_step", "opening",
-           "plan_values", "replay", "run", "sealed_negotiations", "summary", "world_job"]
+           "plan_values", "replay", "run", "sealed_negotiations", "summary", "world_job", "PACKS", "load_pack", "per_world"]
