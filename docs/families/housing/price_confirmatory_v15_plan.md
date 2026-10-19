@@ -199,3 +199,24 @@ pilot or confirmatory cell:
   base 88001 (amendment 4), total ceiling $1.40 (twice $0.55 for 520 cells, plus one cell's $0.30). The GLM twin is
   never run.
 - A GLM profile on another route or quantization is a new identity after v15, never a substitute inside it.
+
+## Addendum A, 2026-10-19: GLM 5.3 Flash on Novita fp8 (declared after v15's analysis, before any cell of its own)
+
+The owner asked for GLM on a comparable provider after v15 ran without it (amendment 5). By amendment 5 that is a new
+identity, so this addendum is reported beside v15 and never changes v15's declared results, family or readings.
+
+- **Route.** Novita, fp8 (`z-ai/glm-5.3-flash-20260826`), the same quantization v14 sealed at NextBit. Chosen on
+  2026-10-19 among the fp8 endpoints that accept a seed, structured output, reasoning and temperature, by one paid
+  call to each of three (Novita, GMICloud, Near AI) with the run's routing constraints: all three returned valid JSON;
+  at reasoning effort `low` Novita reported 51 reasoning tokens, Near AI 25 and GMICloud 0 (it ignores the setting).
+  Pinned at Novita's undiscounted list price ($0.15, $0.03 cached, $0.50 per M; the listing showed a 44% discount),
+  so a discount ending mid-run cannot refuse calls. The provider differs from v14's; that is a stated limit on any
+  comparison with v14's GLM.
+- **Identities.** `housing_lemons_price_v15_glm53_flash_novita` (main 260 and holdout 40, v15's controls, notice v5,
+  seat-0 scorer, seed base 87001) and its admission `housing_lemons_price_v15_admission_glm53_flash_novita`.
+  Ceilings: $0.80 and $0.60 (twice the estimate from v14's GLM spend at these prices, plus one cell's $0.30).
+- **Admission, both parts of Section 7 this time** (HL-J-14): a recorded one-call probe of structured output and
+  reasoning tokens through the run's route, and the one-world full trajectory.
+- **Rows, declared now, outside v15's Holm family:** B3, GLM − `inspect_then_sign`, read by Section 5's rule at
+  1 − 0.05/3 (three models now carry a B row); G3 and R3 as G and R; GLM − Gemini and GLM − Luna with 95% intervals,
+  descriptive; the holdout beside. No pilot: the addendum adds no test that needs sizing.
