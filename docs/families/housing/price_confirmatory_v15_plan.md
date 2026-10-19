@@ -143,3 +143,18 @@ Three things Sections 2, 3 and 8 left open, fixed while the offline steps were b
   change), in a new module with a fixed interface (`build_v15_setup(contract, arm, *, live, holdout_rate)`, returning
   what `build_housing_smoke` returns); the campaign's setup and its replay path call that builder for v15 identities
   only. The golden-receipt bundle (Section 6) is sealed through the same builder.
+
+## Amendment 2, 2026-10-19 (before any v15 probe or cell)
+
+The pack v2 build (`evidence/housing/housing_lemons_price_pack_v2/`, branch `codex/housing-v15-offline` 0d3b5403)
+shows, on the main pack and measure v2, a world mean of $307.4 for the best-informed tenant, $293.2 for
+`inspect_lowball`, $152.0 for `inspect_then_sign` and $370.9 for the ceiling. The screen guarantees at least $25 over
+`inspect_then_sign`, the baseline of B1 to B3, while `inspect_lowball`, the reachable reference v14 subtracted, sits
+only $14 below the best-informed tenant; a model could pass the beatability rule and remain far below v14's reference.
+So Section 5 gains a secondary row:
+
+| | Contrast | Rule |
+|---|---|---|
+| R1 to R3 | each model less `inspect_lowball` | reported with 95% intervals and intervals at 1 - 0.05/3, no test, as v14 reported its reachable reference; beside B1 to B3 wherever they are reported |
+
+Nothing else in Section 5 changes.
