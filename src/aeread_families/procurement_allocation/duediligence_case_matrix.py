@@ -292,7 +292,9 @@ def _build_case(definition: Mapping[str, Any], *, surface: str) -> dict[str, Any
         "payload": {
             "objective": {
                 "product_id": definition["product_id"],
-                "target_kits": 20,
+                # Declared by the seed-domain inference packs; every earlier
+                # generator leaves it unset, so their worlds are byte-identical.
+                "target_kits": int(knobs.get("target_kits", 20)),
                 "minimum_service_kits": knobs.get("minimum", 16),
                 "revenue_per_completed_kit_usd": knobs["revenue"],
                 "shortfall_penalty_per_kit_usd": knobs["penalty"],
