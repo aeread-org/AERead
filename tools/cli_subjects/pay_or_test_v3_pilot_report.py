@@ -74,7 +74,8 @@ def read(run_root: Path) -> dict:
             t["action"] == "request_quote" and t["supplier_id"] == s["supplier_id"] for t in steps[k + 1:]))
         gap = world["best_policy_value_usd"] - world["rule_value_usd"]["pay_premium"]
         plays.append({
-            "slug": world["slug"], "kind": world["kind"], "replicate": row["inference_seed"],
+            # An odds twin carries no cell of its own; it is its confirmatory world's, whose slug it shares.
+            "slug": world["slug"], "kind": world.get("kind", world["slug"].split("__")[0]), "replicate": row["inference_seed"],
             "trace": " ".join(f"{s['action'].replace('request_', '').replace('look_up_source', 'lookup')}:"
                               f"{(s['supplier_id'] or '').replace('driver_board_', '')}" for s in steps),
             "first_info_to_newcomer": bool(first_info) and first_info["supplier_id"] in newcomers,
