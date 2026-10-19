@@ -177,3 +177,26 @@ Codex 0.160.0; replayed now through the v1 client it uses 7,758 as v1 ran and 7,
 
 The CLI versions differ from v1's (Claude Code 2.1.292 and Codex 0.160.0 in v1). Both are recorded at the freeze as
 part of the identity, as Section 3 states.
+
+## Amendment 3, 2026-10-19: the pilot's worlds and the screen's operation (before the pack, the modules or any cell)
+
+Two things Section 2 and Section 6 leave open are fixed here, before any v2 world is drawn.
+
+- **The headroom screen is an admission rule.** For each seed that passes v1's admission and falls in an open cell,
+  the hidden types are drawn (keyed by the v2 pack id and the seed), and on a deal world the integrator's
+  full-information ceiling (`agreement_negotiator_check.best_plan` for the integrator against the client's publicly
+  drawn firm style, both types known, grid 0.1) less the `price_only` style's earnings in the integrator seat against
+  the same client must be at least 25 ($k). A world below it is logged `headroom_under_margin` and does not count
+  toward its cell's quota; the scan continues until every quota is filled. A world without a deal is admitted
+  without the screen. If the filled quotas give fewer than 56 deal worlds, the scan continues and admits only deal
+  worlds that pass the screen, logged `admitted_extension`, until 56 exist. The log records, per seed, whether the
+  drawn types give a deal and the headroom where it was computed.
+- **The pilot runs on its own pack**, `agreement_admitted_pilot_v2`: the same rules, brief and screen, seeds from
+  8,500,000, 4 worlds a cell, sharing no world with any other pack. It runs the three arms of Section 3 with their
+  plays (96 negotiations). Its cells are development evidence and never enter the analysis; it checks the v2 brief,
+  the isolation probes and the drivers end to end, and measures list price and wall time a negotiation, from which
+  the confirmatory's two ceilings are set at twice the measured estimate before its freeze.
+- **The own-information reference of Gate 3** is a committed module (`agreement_own_information.py`): the
+  integrator's ex-ante optimal contingent plan against the public firm client, knowing its own type and the
+  client's prior but not the client's charge, on the ask grid 0.2 to 1.0. It is computed on every v2 world before
+  the freeze and reported beside the ceiling and the rule; no contrast is declared on it.
