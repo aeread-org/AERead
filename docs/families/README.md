@@ -140,6 +140,7 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Pay or test v3: plan](procurement-allocation/pay_or_test_v3_plan.md) (pilot declared and run from a tree carrying the unreviewed registry row)
 - [Pay or test v3: pilot results](procurement-allocation/pay_or_test_v3_pilot_results.md) (Opus pays in 24 of 24; Sol closes 50% of the option-value gap; sizes past the cap)
 - [Pay or test v3: confirmatory plan and odds diagnostic](procurement-allocation/pay_or_test_v3_confirmatory_plan.md) (Sol's gap closed on 20 fresh option-value worlds; Opus under v1's cohort odds)
+- [Pay or test v3: confirmatory and diagnostic results](procurement-allocation/pay_or_test_v3_confirmatory_results.md) (Sol closes 35% [18, 52]; Opus pays in 84 of 84 v3 plays, odds alone do not explain it)
 
 ## Refund
 
