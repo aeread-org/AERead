@@ -316,7 +316,7 @@
     },
     "timed_out_call_cost": "unknown to the kernel and not counted; a cell with a timeout or transport failure reports a lower-bound cost",
     "halt_rule": "a failed cell is typed missingness and the run continues; the run stops after max_consecutive_operational_failures consecutive failed cells in execution order",
-    "tenant_inference_seed_base": 87001,
+    "tenant_inference_seed_base": 88001,
     "landlord_model": "housing_scripted_landlord_price_v1",
     "landlord_margin_usd": 25.0,
     "execution_order": "world_seed_ascending_then_arm_order"

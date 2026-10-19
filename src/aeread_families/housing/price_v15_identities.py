@@ -109,10 +109,11 @@ for _model in MODELS:
     IDENTITIES[f"housing_lemons_price_v15_admission_{_model}"] = _spec(
         f"housing_lemons_price_v15_admission_{_model}", _model, world_seeds=DEVELOPMENT[:1],
         claim_status="profile_admission", analysis=ADMISSION_ANALYSIS)
-#: The A/A twin: the GLM confirmatory's main pack under another name, nothing else changed.
+#: The A/A twin: the GLM confirmatory's main pack under another name and its own inference seed base, so it draws
+#: its own samples and resolves its own run plan (plan amendment 4); nothing else changed.
 IDENTITIES["housing_lemons_price_v15_glm53_flash_nextbit_aa"] = _spec(
     "housing_lemons_price_v15_glm53_flash_nextbit_aa", "glm53_flash_nextbit", world_seeds=MAIN,
-    claim_status="confirmatory", analysis=ANALYSIS)
+    claim_status="confirmatory", analysis=ANALYSIS, tenant_inference_seed_base=88001)
 IDENTITIES["housing_lemons_price_goldens_v15"] = _spec(
     "housing_lemons_price_goldens_v15", "glm53_flash_nextbit", world_seeds=DEVELOPMENT[:5],
     claim_status="qc_goldens", analysis=GOLDENS_ANALYSIS, scripted_only=True)

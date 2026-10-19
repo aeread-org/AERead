@@ -372,7 +372,9 @@ def replay_setup(receipt: Mapping[str, Any]) -> Any:
     """``aeread verify-replay --setup aeread_families.housing.price_publication:replay_setup``.
 
     Returns the sealed setup whose plan the durable receipt names: one of the six v14 plans
-    (three identities, two landlord arms), each built once from its committed contract.
+    (three identities, two landlord arms), or a v15 plan (each notice-5 identity, both arms, its main pack and its
+    holdout), each built once from its committed contract. v15 plans come from the seat-0 builder the run used
+    (``price_seat0.build_v15_setup``), so replay scores seat 0 as the receipt does.
     """
     if not _SETUPS:
         # the three v14 identities and the declared fill of Gemini's refused cells (HL-O-21)
@@ -381,9 +383,23 @@ def replay_setup(receipt: Mapping[str, Any]) -> Any:
             for arm in contract["arms"]:
                 setup = price_campaign.build_setup(contract, arm, live=True)
                 _SETUPS[setup.plan.run_plan_id] = setup
+        from aeread_families.housing import price_seat0
+
+        for campaign_id, spec in price_campaign.IDENTITIES.items():
+            if spec.get("notice_version") != 5:
+                continue
+            path = price_campaign.DEFAULT_CONTRACT.with_name(f"{campaign_id}.json")
+            if not path.exists():
+                continue
+            contract = price_campaign.load_contract(path)
+            live = not spec.get("scripted_only")
+            for holdout_rate in (False, True) if "holdout" in contract else (False,):
+                for arm in contract["arms"]:
+                    setup = price_seat0.build_v15_setup(contract, arm, live=live, holdout_rate=holdout_rate)
+                    _SETUPS[setup.plan.run_plan_id] = setup
     setup = _SETUPS.get(receipt.get("run_plan_id"))
     if setup is None:
-        raise ValueError(f"no v14 or v14 fill plan has run_plan_id {receipt.get('run_plan_id')!r}")
+        raise ValueError(f"no v14, v14 fill or v15 plan has run_plan_id {receipt.get('run_plan_id')!r}")
     return setup
 
 

@@ -620,6 +620,17 @@ def _holdout_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     return {"world_seeds": list(spec["holdout_world_seeds"]), "rivals": price_notice_v5.block_v5(holdout_rate=True)}
 
 
+def seed_base(spec: Mapping[str, Any]) -> int:
+    """The tenant's inference seed base: 87001 for every identity, except a notice-5 identity that declares its own
+    (the v15 A/A twin, plan amendment 4)."""
+    declared = spec.get("tenant_inference_seed_base")
+    if declared is None:
+        return 87001
+    if spec.get("notice_version") != 5:
+        raise ValueError("only a notice-5 identity may declare its own inference seed base")
+    return int(declared)
+
+
 def v15_contract(campaign_id: str) -> dict[str, Any]:
     """The contract ``load_contract`` accepts for a v15 identity, written from its spec."""
     spec = IDENTITIES[campaign_id]
@@ -636,7 +647,7 @@ def v15_contract(campaign_id: str) -> dict[str, Any]:
             "reasoning_effort": spec["reasoning_effort"], "temperature": spec["temperature"], "top_p": spec["top_p"],
             "max_output_tokens": 4096, "timeout_seconds": spec.get("timeout_seconds", 120.0), "sdk_retries": 0,
             "max_action_attempts": spec.get("max_action_attempts", 4), **retry_controls(spec),
-            "tenant_inference_seed_base": 87001, "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
+            "tenant_inference_seed_base": seed_base(spec), "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
             "execution_order": "world_seed_ascending_then_arm_order",
         },
         "analysis": spec["analysis"], "rivals": _rival_block(spec),
@@ -771,7 +782,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         "max_output_tokens": 4096, "timeout_seconds": spec.get("timeout_seconds", 120.0),
         "sdk_retries": 0, "max_action_attempts": spec.get("max_action_attempts", 4),
         **retry_controls(spec),
-        "tenant_inference_seed_base": 87001,
+        "tenant_inference_seed_base": seed_base(spec),
         "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
         "execution_order": "world_seed_ascending_then_arm_order",
     }:
@@ -1057,13 +1068,31 @@ async def run(
         scratch = run_root / f".contract_sha256.{os.getpid()}.tmp"
         scratch.write_text(digest + "\n")
         os.replace(scratch, identity_path)
-    setups = {arm: build_setup(contract, arm, live=live) for arm in contract["arms"]}
+    spec = identity(contract)
     if provider is None:
         provider = OpenRouterChatClient() if live else HousingScriptedTenantProvider()
-    spec = identity(contract)
     # Outside demand is part of the market, so the provider-free preflight plays it too.
-    if has_rivals(spec) and (live or spec.get("outside_demand")):
-        provider = make_seat_router(spec, contract, provider, run_root / "seat_calls.jsonl")
+    routed = has_rivals(spec) and (live or spec.get("outside_demand"))
+    if spec.get("notice_version") == 5:
+        # v15 (plan amendments 1 and 3): the main pack and the holdout are two plans of one identity, each built by the
+        # seat-0 builder (HL-D-09); the holdout's outside demand leaves at 0.3 and its prompt says so.
+        from aeread_families.housing import price_seat0
+
+        streams = [("main", contract["world_seeds"], False, "")]
+        if "holdout" in contract:
+            streams.append(("holdout", contract["holdout"]["world_seeds"], True, "holdout_"))
+        plans = []
+        for name, stream_seeds, holdout_rate, prefix in streams:
+            stream_setups = {arm: price_seat0.build_v15_setup(contract, arm, live=live, holdout_rate=holdout_rate)
+                             for arm in contract["arms"]}
+            stream_provider = (make_seat_router(spec, contract, provider, run_root / f"{prefix}seat_calls.jsonl",
+                                                holdout_rate=holdout_rate) if routed else provider)
+            plans.append((name, stream_seeds, stream_setups, stream_provider, prefix))
+    else:
+        setups = {arm: build_setup(contract, arm, live=live) for arm in contract["arms"]}
+        if routed:
+            provider = make_seat_router(spec, contract, provider, run_root / "seat_calls.jsonl")
+        plans = [(None, contract["world_seeds"], setups, provider, "")]
     results_root = run_root / ("live" if live else "preflight")
     results_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
@@ -1072,82 +1101,87 @@ async def run(
     stop_after = int(contract["max_consecutive_operational_failures"])
     consecutive = 0
     replicates = int(contract["replicates"])
-    seeds = [
-        seed for seed in contract["world_seeds"]
-        if only_worlds is None or only_worlds[0] <= seed < only_worlds[1]
-    ]
-    for seed in seeds:
-        for arm in contract["arms"]:
-            for replicate in range(replicates):
-                setup = setups[arm]
-                cell = next(
-                    item for item in setup.plan.cells
-                    if item.world_seed == seed and item.replicate_index == replicate
-                )
-                # One replicate keeps the original file names, so sealed v1 and v2 run roots read as before.
-                tag = "" if replicates == 1 else f"__r{replicate}"
-                result_path = results_root / f"world_{seed}__{arm}{tag}.json"
-                if result_path.exists():
-                    row = json.loads(result_path.read_text())
-                    consecutive = 0 if row["status"] == "completed" else consecutive + 1
-                    if consecutive >= stop_after:
-                        halted = True
-                    rows.append(row)
-                    continue
-                if halted:
-                    rows.append({"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted", "cost_usd": 0.0})
-                    continue
-                spent = sum(float(row.get("cost_usd", 0.0)) for row in rows)
-                if live and spent + contract["tenant_cost_ceiling_usd_per_cell"] > contract["total_cost_ceiling_usd"]:
-                    halted = True
-                    rows.append({"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted_budget", "cost_usd": 0.0})
-                    continue
-                evidence_root = results_root / f"world_{seed}__{arm}{tag}_evidence"
-                try:
-                    execution = await execute_plan_cell(
-                        plan=setup.plan, cell_id=cell.cell_id, registry=setup.registry,
-                        evidence_root=evidence_root, prompt_sources=setup.prompt_sources,
-                        providers={"openrouter" if live else "housing_scripted_tenant": provider,
-                                   "housing_scripted_landlord": HousingScriptedLandlordProvider()},
-                        pricing=setup.pricing, harnesses=setup.harnesses,
+    planned = 0
+    for name, stream_seeds, setups, stream_provider, prefix in plans:
+        stream_field = {} if name is None else {"stream": name}
+        seeds = [
+            seed for seed in stream_seeds
+            if only_worlds is None or only_worlds[0] <= seed < only_worlds[1]
+        ]
+        planned += len(seeds) * len(contract["arms"]) * replicates
+        provider = stream_provider
+        for seed in seeds:
+            for arm in contract["arms"]:
+                for replicate in range(replicates):
+                    setup = setups[arm]
+                    cell = next(
+                        item for item in setup.plan.cells
+                        if item.world_seed == seed and item.replicate_index == replicate
                     )
-                    receipt = finalize_housing_execution(setup=setup, execution=execution)
-                    verify_evaluation_receipt(receipt)
-                    replayed = replay_housing_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
-                    if canonical_json_bytes(replayed.scores) != canonical_json_bytes(receipt.scores):
-                        raise ValueError("score replay mismatch")
-                    row = {"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "completed",
-                           "cost_usd": execution.total_cost_usd, "receipt_sha256": receipt.receipt_sha256,
-                           "run_plan_id": setup.plan.run_plan_id, "cell_id": cell.cell_id,
-                           "tenant_net_total": execution.episode_result.outcome["tenant_net_total"],
-                           "price_rows": price_rows(execution.episode_result.outcome, seed, arm),
-                           # What the ex-ante endpoint scores from (price_endpoint.py).
-                           "outcome_facts": {
-                               key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
-                           }}
-                    consecutive = 0
-                except Exception as error:
-                    failure_receipt = None
-                    try:
-                        failure_receipt = finalize_housing_failure(
-                            setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error
-                        )
-                    except Exception:
-                        pass
-                    usage = _failure_usage(evidence_root=evidence_root, run_plan_id=setup.plan.run_plan_id, cell_id=cell.cell_id)
-                    row = {"world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "operational_failure",
-                           "failure_condition": getattr(error, "condition", type(error).__name__),
-                           "cost_usd": usage["cost_usd"],
-                           "receipt_sha256": failure_receipt.receipt_sha256 if failure_receipt else None}
-                    consecutive += 1
-                    if consecutive >= stop_after:
+                    # One replicate keeps the original file names, so sealed v1 and v2 run roots read as before.
+                    tag = "" if replicates == 1 else f"__r{replicate}"
+                    result_path = results_root / f"{prefix}world_{seed}__{arm}{tag}.json"
+                    if result_path.exists():
+                        row = json.loads(result_path.read_text())
+                        consecutive = 0 if row["status"] == "completed" else consecutive + 1
+                        if consecutive >= stop_after:
+                            halted = True
+                        rows.append(row)
+                        continue
+                    if halted:
+                        rows.append({**stream_field, "world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted", "cost_usd": 0.0})
+                        continue
+                    spent = sum(float(row.get("cost_usd", 0.0)) for row in rows)
+                    if live and spent + contract["tenant_cost_ceiling_usd_per_cell"] > contract["total_cost_ceiling_usd"]:
                         halted = True
-                if live and (not math.isfinite(float(row["cost_usd"])) or float(row["cost_usd"]) > contract["tenant_cost_ceiling_usd_per_cell"]):
-                    halted = True
-                result_path.write_bytes(canonical_json_bytes(row) + b"\n")
-                rows.append(row)
-                print(json.dumps({k: row[k] for k in ("world_seed", "arm", "status", "cost_usd")}), flush=True)
-    summary = summarize(rows, len(seeds) * len(contract["arms"]) * replicates)
+                        rows.append({**stream_field, "world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "not_attempted_budget", "cost_usd": 0.0})
+                        continue
+                    evidence_root = results_root / f"{prefix}world_{seed}__{arm}{tag}_evidence"
+                    try:
+                        execution = await execute_plan_cell(
+                            plan=setup.plan, cell_id=cell.cell_id, registry=setup.registry,
+                            evidence_root=evidence_root, prompt_sources=setup.prompt_sources,
+                            providers={"openrouter" if live else "housing_scripted_tenant": provider,
+                                       "housing_scripted_landlord": HousingScriptedLandlordProvider()},
+                            pricing=setup.pricing, harnesses=setup.harnesses,
+                        )
+                        receipt = finalize_housing_execution(setup=setup, execution=execution)
+                        verify_evaluation_receipt(receipt)
+                        replayed = replay_housing_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+                        if canonical_json_bytes(replayed.scores) != canonical_json_bytes(receipt.scores):
+                            raise ValueError("score replay mismatch")
+                        row = {**stream_field, "world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "completed",
+                               "cost_usd": execution.total_cost_usd, "receipt_sha256": receipt.receipt_sha256,
+                               "run_plan_id": setup.plan.run_plan_id, "cell_id": cell.cell_id,
+                               "tenant_net_total": execution.episode_result.outcome["tenant_net_total"],
+                               "price_rows": price_rows(execution.episode_result.outcome, seed, arm),
+                               # What the ex-ante endpoint scores from (price_endpoint.py).
+                               "outcome_facts": {
+                                   key: execution.episode_result.outcome[key] for key in OUTCOME_FACTS
+                               }}
+                        consecutive = 0
+                    except Exception as error:
+                        failure_receipt = None
+                        try:
+                            failure_receipt = finalize_housing_failure(
+                                setup=setup, cell_id=cell.cell_id, evidence_root=evidence_root, error=error
+                            )
+                        except Exception:
+                            pass
+                        usage = _failure_usage(evidence_root=evidence_root, run_plan_id=setup.plan.run_plan_id, cell_id=cell.cell_id)
+                        row = {**stream_field, "world_seed": seed, "arm": arm, "replicate_index": replicate, "status": "operational_failure",
+                               "failure_condition": getattr(error, "condition", type(error).__name__),
+                               "cost_usd": usage["cost_usd"],
+                               "receipt_sha256": failure_receipt.receipt_sha256 if failure_receipt else None}
+                        consecutive += 1
+                        if consecutive >= stop_after:
+                            halted = True
+                    if live and (not math.isfinite(float(row["cost_usd"])) or float(row["cost_usd"]) > contract["tenant_cost_ceiling_usd_per_cell"]):
+                        halted = True
+                    result_path.write_bytes(canonical_json_bytes(row) + b"\n")
+                    rows.append(row)
+                    print(json.dumps({k: row[k] for k in ("world_seed", "arm", "status", "cost_usd")}), flush=True)
+    summary = summarize(rows, planned)
     name = "summary.json" if only_worlds is None else f"summary_{only_worlds[0]}_{only_worlds[1]}.json"
     (results_root / name).write_bytes(canonical_json_bytes(summary) + b"\n")
     return summary
