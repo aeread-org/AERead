@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 13:11:19
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 14:34:40
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1165,7 +1165,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table F.1. Benchmark QC gates.**
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 13:11:05
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 14:34:35
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1195,7 +1195,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,105 +30,173 @@
+@@ -29,105 +30,186 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1362,6 +1362,20 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -each knowing its own costs. The comparison declared before its runs used 60 admitted worlds:
 -45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
 -contrasts; development results remain in Tables E.3 and E.7.
++We also piloted a harder version of the case, in which the best first move is often a test worth only
++what it reveals about another supplier. Newcomers of one kind may share an unknown source, a newcomer
++answers a quote request only a third of the time, and newcomer prices follow the price gaps in our own
++sourcing on 1688. The pilot had 12 development worlds, each played twice. Opus 5.5 paid the premium in
++all 24 plays and never tested a newcomer. Sol 6.1 tested in 20 of 24 plays. In the six worlds where
++the best first test is worth only what it reveals, a one-step rule pays the premium and leaves the
++whole gap open; there Sol closed 50% (95% CI 27–71%) of the gap between paying the premium and the
++best policy. In the six where looking one test ahead suffices, it closed 65% (46–83%); the one-step
++rule closes 70% there (both are means of each world's share). These worlds differ from Table 5.3's, where Opus closed 92.8% of the
++corresponding gap. This is a development result and does not rank the two models. The pilot's sizing
++showed that a confirmatory comparison would need about 328 worlds against the plan's cap of 96, so a
++confirmatory run needs a new declaration on fresh worlds.
+ 
+-**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
 +**Data center.** The structure follows a real AI-infrastructure engagement in which a system
 +integrator bundles hardware, data-center space, staffing and software into a working system for a
 +client. Hardware can arrive late or defective and the site may not be ready, and the contract's
@@ -1386,9 +1400,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +worlds where the integrator has room over a price-only rule. Table 5.4 reports both; development results
 +remain in Tables E.3 and E.7.
  
--**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
 +**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement: $322k a world in v1, $309k in v2); intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
- 
++
  | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
  |---|---:|---|---:|
 -| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +190.1 [148.0, 232.1] | 3.2e-11 |
@@ -1436,7 +1449,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### 5.2 Where the shortfall comes from
  
  Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
-@@ -138,23 +207,56 @@
+@@ -138,23 +220,56 @@
  ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
  
  **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
@@ -1505,7 +1518,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,20 +270,65 @@
+@@ -168,20 +283,65 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -1575,7 +1588,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
  | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
  | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
-@@ -190,12 +337,16 @@
+@@ -190,12 +350,17 @@
  | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
  | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
  | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
@@ -1593,6 +1606,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 +| Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 +| TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
++| Procurement harder-version pilot (§5.1) | `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf on `codex/procurement-pay-or-test` (48 of 48 plays; ran from a tree carrying one registry row awaiting kernel review) | development pilot; no ranking declared |
 +| Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md

@@ -170,3 +170,9 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
 - Table 5.3 floor (2026-10-19, raised by the other session): share of the best policy's value hides the decision,
   because always paying the premium already keeps 83.3%. The table now shows that floor and the share of the
   premium-to-best gap each subject closes (Sol 98.6%, Opus 92.8%, Gemini 0.0%, Luna 1.1%).
+- Section 5.1 Procurement pilot (2026-10-19, owner's go via the other session): a paragraph on the harder
+  version's 12-world development pilot (shared sources, quotes answered a third of the time, recorded price gaps).
+  Opus paid the premium in 24 of 24 plays; Sol tested in 20 of 24 and closed 50% [27, 71] of the premium-to-best
+  gap in the six option-value worlds (one-step rule 0%) and 65% [46, 83] in the six one-test-ahead worlds (one-step
+  rule 70%, same per-world basis). Labelled development; no ranking; worlds differ from Table 5.3's. Source
+  f4a69caf on codex/procurement-pay-or-test. 52 pages.
