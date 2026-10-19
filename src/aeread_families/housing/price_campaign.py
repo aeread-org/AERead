@@ -169,6 +169,27 @@ NEXTBIT_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
     output_per_million=0.55,
     pricing_id="openrouter_nextbit_2026-10-01_glm-5.3-flash-fp8",
 )
+#: v15 addendum A: GLM 5.3 Flash on Novita fp8, pinned at the undiscounted list price (the listing showed 44% off on
+#: 2026-10-19), so a discount ending mid-run cannot refuse the route.
+NOVITA_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="Novita",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.15,
+    cached_input_per_million=0.03,
+    output_per_million=0.50,
+    pricing_id="openrouter_novita_2026-10-19_glm-5.3-flash-fp8_list",
+)
+#: v15 addendum A, amendment 1: Near AI fp8 lists every parameter the client sends (Novita lacks structured_outputs).
+NEARAI_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="Near AI",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.08,
+    cached_input_per_million=0.012,
+    output_per_million=0.50,
+    pricing_id="openrouter_nearai_2026-10-19_glm-5.3-flash-fp8",
+)
 NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE = OpenRouterRoutePin(
     provider="NextBit",
     quantization="fp8",
@@ -208,6 +229,8 @@ ROUTES: dict[str, tuple[str, Any]] = {
     "streamlake_glm_53_flash": (GLM_53_FLASH_MODEL, STREAMLAKE_GLM_53_FLASH_ROUTE),
     "streamlake_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, STREAMLAKE_DEEPSEEK_V4_FLASH_0731_ROUTE),
     "nextbit_glm_53_flash": (GLM_53_FLASH_MODEL, NEXTBIT_GLM_53_FLASH_ROUTE),
+    "novita_glm_53_flash": (GLM_53_FLASH_MODEL, NOVITA_GLM_53_FLASH_ROUTE),
+    "nearai_glm_53_flash": (GLM_53_FLASH_MODEL, NEARAI_GLM_53_FLASH_ROUTE),
     "nextbit_deepseek_v4_flash_0731": (DEEPSEEK_V4_FLASH_0731_MODEL, NEXTBIT_DEEPSEEK_V4_FLASH_0731_ROUTE),
     "openai_gpt_6_luna": (GPT_6_LUNA_MODEL, OPENAI_GPT_6_LUNA_ROUTE),
 }

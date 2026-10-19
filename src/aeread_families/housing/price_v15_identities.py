@@ -73,6 +73,10 @@ MODELS: dict[str, dict[str, Any]] = {
                             "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0},
     "gpt6_luna": {"route_id": "openai_gpt_6_luna", "profile": "housing_price_gpt6_luna_tenant_v15",
                   "reasoning_effort": "low", "temperature": "unavailable", "top_p": None},
+    "glm53_flash_novita": {"route_id": "novita_glm_53_flash", "profile": "housing_price_glm53_novita_tenant_v15",
+                           "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0},
+    "glm53_flash_nearai": {"route_id": "nearai_glm_53_flash", "profile": "housing_price_glm53_nearai_tenant_v15",
+                           "reasoning_effort": "low", "temperature": 0.0, "top_p": 1.0},
     "gemini38_flash": {"route_id": "google_gemini_38_flash", "profile": "housing_price_gemini38_tenant_v15",
                        "reasoning_effort": "minimal", "temperature": 0.0, "top_p": 1.0},
 }
@@ -90,6 +94,13 @@ CEILINGS: dict[str, float] = {
     "housing_lemons_price_v15_admission_gpt6_luna": 0.60,
     "housing_lemons_price_v15_admission_gemini38_flash": 0.60,
     "housing_lemons_price_goldens_v15": 0.0,
+    # addendum A (GLM on Novita): admission declared at $0.60; the main identity's ceiling is set from the admission's
+    # measured cost by amendment 3's rule before its run
+    "housing_lemons_price_v15_admission_glm53_flash_novita": 0.60,
+    "housing_lemons_price_v15_glm53_flash_novita": 0.80,
+    # addendum A, amendment 1: Near AI replaces Novita; the main ceiling is set from the admission's measured cost
+    "housing_lemons_price_v15_admission_glm53_flash_nearai": 0.60,
+    "housing_lemons_price_v15_glm53_flash_nearai": 2.25,  # addendum A amendment 2: 2 x $0.98 measured + $0.30
 }
 BASE: dict[str, Any] = {"outside_demand": True, "notice_version": 5, "retry_policy_version": 2,
                         "max_action_attempts": 8, "timeout_seconds": 300.0}
@@ -100,7 +111,7 @@ def _spec(campaign_id: str, model: str, **fields: Any) -> dict[str, Any]:
 
 
 IDENTITIES: dict[str, dict[str, Any]] = {}
-for _model in MODELS:
+for _model in (m for m in MODELS if m not in ("glm53_flash_novita", "glm53_flash_nearai")):
     IDENTITIES[f"housing_lemons_price_v15_{_model}"] = _spec(
         f"housing_lemons_price_v15_{_model}", _model, world_seeds=MAIN, holdout_world_seeds=HOLDOUT,
         claim_status="confirmatory", analysis=ANALYSIS)
@@ -119,6 +130,19 @@ IDENTITIES["housing_lemons_price_v15_glm53_flash_nextbit_aa"] = _spec(
 IDENTITIES["housing_lemons_price_v15_gpt6_luna_aa"] = _spec(
     "housing_lemons_price_v15_gpt6_luna_aa", "gpt6_luna", world_seeds=MAIN,
     claim_status="confirmatory", analysis=ANALYSIS, tenant_inference_seed_base=88001)
+#: Addendum A: GLM 5.3 Flash on Novita fp8, reported beside v15 and never inside its declared results.
+IDENTITIES["housing_lemons_price_v15_glm53_flash_novita"] = _spec(
+    "housing_lemons_price_v15_glm53_flash_novita", "glm53_flash_novita", world_seeds=MAIN, holdout_world_seeds=HOLDOUT,
+    claim_status="confirmatory_addendum", analysis=ANALYSIS)
+IDENTITIES["housing_lemons_price_v15_admission_glm53_flash_novita"] = _spec(
+    "housing_lemons_price_v15_admission_glm53_flash_novita", "glm53_flash_novita", world_seeds=DEVELOPMENT[:1],
+    claim_status="profile_admission", analysis=ADMISSION_ANALYSIS)
+IDENTITIES["housing_lemons_price_v15_glm53_flash_nearai"] = _spec(
+    "housing_lemons_price_v15_glm53_flash_nearai", "glm53_flash_nearai", world_seeds=MAIN, holdout_world_seeds=HOLDOUT,
+    claim_status="confirmatory_addendum", analysis=ANALYSIS)
+IDENTITIES["housing_lemons_price_v15_admission_glm53_flash_nearai"] = _spec(
+    "housing_lemons_price_v15_admission_glm53_flash_nearai", "glm53_flash_nearai", world_seeds=DEVELOPMENT[:1],
+    claim_status="profile_admission", analysis=ADMISSION_ANALYSIS)
 IDENTITIES["housing_lemons_price_goldens_v15"] = _spec(
     "housing_lemons_price_goldens_v15", "glm53_flash_nextbit", world_seeds=DEVELOPMENT[:5],
     claim_status="qc_goldens", analysis=GOLDENS_ANALYSIS, scripted_only=True)
