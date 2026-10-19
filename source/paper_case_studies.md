@@ -138,18 +138,19 @@ comes within 0.01% of the best policy's value, so near-perfect play shows that t
 the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
 the worlds where a newcomer was worth testing.
 
-We also piloted a harder version of the case, in which the best first move is often a test worth only
+We also tested a harder version of the case, in which the best first move is often a test worth only
 what it reveals about another supplier. Newcomers of one kind may share an unknown source, a newcomer
 answers a quote request only a third of the time, and newcomer prices follow the price gaps in our own
-sourcing on 1688. The pilot had 12 development worlds, each played twice. Opus 5.5 paid the premium in
-all 24 plays and never tested a newcomer. Sol 6.1 tested in 20 of 24 plays. In the six worlds where
-the best first test is worth only what it reveals, a one-step rule pays the premium and leaves the
-whole gap open; there Sol closed 50% (95% CI 27–71%) of the gap between paying the premium and the
-best policy. In the six where looking one test ahead suffices, it closed 65% (46–83%); the one-step
-rule closes 70% there (both are means of each world's share). These worlds differ from Table 5.3's, where Opus closed 92.8% of the
-corresponding gap. This is a development result and does not rank the two models. The pilot's sizing
-showed that a confirmatory comparison would need about 328 worlds against the plan's cap of 96, so a
-confirmatory run needs a new declaration on fresh worlds.
+sourcing on 1688. In worlds of the hardest kind, a one-step rule pays the premium and closes none of the
+gap between paying the premium and the best policy. In a 12-world development pilot, each world played
+twice, Sol 6.1 tested a newcomer in 20 of 24 plays and closed 50% (95% CI 27–71%) of that gap in the
+six worlds of this kind. We then declared one test before any play. On 20 fresh worlds of this kind,
+each played twice, Sol closed 35% of the gap (95% CI 18–52%, p = 0.0003), where the one-step rule
+closes none; the claim holds. It concerns Sol alone. Opus 5.5 played the same worlds as a control and
+paid the premium without testing a newcomer in all 84 of its plays on this version. That includes 20
+worlds whose newcomers had the odds of Table 5.3's pack, where testing first is best in every world;
+why is untested. These worlds differ from Table 5.3's, where Opus closed 92.8% of the corresponding
+gap.
 
 **Data center.** The structure follows a real AI-infrastructure engagement in which a system
 integrator bundles hardware, data-center space, staffing and software into a working system for a
@@ -361,6 +362,6 @@ support for a scripted seat that this family uses is still in development.
 | TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 | Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
-| Procurement harder-version pilot (§5.1) | `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf on `codex/procurement-pay-or-test` (48 of 48 plays; ran from a tree carrying one registry row awaiting kernel review) | development pilot; no ranking declared |
+| Procurement harder version: pilot and confirmatory (§5.1) | pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
 | Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

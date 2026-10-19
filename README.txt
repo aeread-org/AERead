@@ -176,3 +176,8 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
   gap in the six option-value worlds (one-step rule 0%) and 65% [46, 83] in the six one-test-ahead worlds (one-step
   rule 70%, same per-world basis). Labelled development; no ranking; worlds differ from Table 5.3's. Source
   f4a69caf on codex/procurement-pay-or-test. 52 pages.
+- Section 5.1 Procurement confirmatory (2026-10-19, owner via the other session): the harder version's paragraph now
+  reports the declared test (plan e67df11d before any play, results ff65a230): on 20 fresh option-value worlds Sol
+  closed 35% [18, 52] of the premium-to-best gap, p = 0.0003, where the one-step rule closes none. The claim is Sol's
+  alone; Opus, a control, paid the premium in 84 of 84 plays on this version, including 20 twins at the reported
+  pack's odds; no cause given. Table 5.3 unchanged.
