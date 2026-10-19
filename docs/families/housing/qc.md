@@ -1151,3 +1151,11 @@ the cells it affects. Written 2026-10-19 after the run; results in
 
 Selection note: pack v2 is screened toward worlds where inspecting pays, so its levels are not comparable with v14's
 without that qualifier.
+
+Addendum A (GLM 5.3 Flash on Near AI fp8, `housing_lemons_price_v15_glm53_flash_nearai`), declared after v15's
+analysis and before any of its cells, is reported apart and leaves the table above unchanged: Section 7's admission
+ran both parts this time (the one-call probe and the one-world trajectory; Novita refused at the parameter filter,
+HL-J-15); its rows were committed before its results (c0a43f16); 600 of 600 cells; `aeread verify-replay` on
+`housing_lemons_price_v15_glm_addendum`: 600 verified, 600 scored, 0 differ, 0 missing. B3 does not beat
+`inspect_then_sign` at 1 − 0.05/3 ([−13.4, 41.0]). Results in
+[price_confirmatory_v15_results.md](price_confirmatory_v15_results.md), "Addendum A results".

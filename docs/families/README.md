@@ -109,6 +109,8 @@ Directory `housing/`, package `housing`.
 
 - [Case contract](housing/case.md)
 - [QC profile](housing/qc.md)
+- [Lemons price with outside demand: v15 confirmatory plan](housing/price_confirmatory_v15_plan.md)
+- [Lemons price with outside demand: v15 confirmatory results](housing/price_confirmatory_v15_results.md)
 
 ## NegotiationArena
 

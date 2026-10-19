@@ -44,3 +44,26 @@ score seat 0. Under those changes the v14 finding that Luna does not separate fr
 does not recur: Luna is +41 above it. Which change is responsible is not identified by this design; the told-pricing
 notice is the leading candidate, since v14's best-informed tenant analysis put part of the models' gap on
 information.
+
+## Addendum A results: GLM 5.3 Flash on Near AI fp8
+
+Addendum A (plan, "Addendum A" and its amendments 1 and 2) added GLM on a comparable route after v15 ran without it.
+Its rows were declared before any GLM cell and computed once by `tools/housing/price_v15_addendum_analysis.py`
+(c0a43f16, committed before its results). It is outside v15's Holm family and changes nothing in v15's results above.
+Bundle [`evidence/housing/housing_lemons_price_v15_glm_addendum/`](../../../evidence/housing/housing_lemons_price_v15_glm_addendum/);
+admissions (Novita's refused cells included) in `housing_lemons_price_v15_glm_addendum_admission`. Main pack, 260
+worlds, the same measure and arm mean as above, $ a world:
+
+| | Row | Estimate [95%] | Reading |
+|---|---|---|---|
+| B3 | GLM − `inspect_then_sign` | +13.8 [−8.4, 36.1] | does not beat the baseline (at 1 − 0.05/3: [−13.4, 41.0]) |
+| G3 | GLM − the best-informed tenant | −141.6 [−163.0, −120.2] | the gap to the reference |
+| R3 | GLM − `inspect_lowball` | −127.3 [−149.4, −105.2] | below v14's reachable rule |
+| | GLM − Gemini | −76.2 [−93.8, −58.5] | descriptive |
+| | GLM − Luna | −27.4 [−49.9, −5.0] | descriptive |
+
+GLM's world mean is 165.9 on the main pack (Gemini 242.0, Luna 193.3, `inspect_then_sign` 152.0) and 207.0 on the
+holdout. It signed blind 146 times in 600 cells (Luna 230, Gemini 114) and is the only model whose seat 0 took invalid
+actions (33). 600 of 600 cells completed, $0.39 at Near AI's list price; `aeread verify-replay` on the bundle: 600
+verified, 600 scored, 0 differ, 0 missing. The route differs from v14's (NextBit fp8), so nothing here compares with
+v14's GLM except descriptively.
