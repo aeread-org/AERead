@@ -65,6 +65,7 @@ CEILING_REF = "housing_seat0_ceiling_v1"
 REFERENCE_IDS = (FLOOR_REF, INSPECT_THEN_SIGN_REF, INSPECT_LOWBALL_REF, BEST_INFORMED_REF)
 SEAT = price_reference.FOCAL_SEAT
 ROUNDS_KEY = "seat0_inspection_rounds"
+INVALID_KEY = "seat0_invalid_actions"
 UNITS = "utility_points"
 
 
@@ -227,17 +228,19 @@ class Seat0PricePlugin(runner.HousingV1Plugin):
         self.rate = rate
 
     def initial_state(self, case, run):
-        return {**super().initial_state(case, run), ROUNDS_KEY: {}}
+        return {**super().initial_state(case, run), ROUNDS_KEY: {}, INVALID_KEY: {}}
 
     def step(self, case, state, phase, actions):
         result = super().step(case, state, phase, actions)
-        if phase.phase_id != "inspect":
-            return result
-        before = _inspected(state)
-        rounds = {**state.get(ROUNDS_KEY, {})}
-        for listing in sorted(_inspected(result.state) - before):
-            rounds[str(listing)] = int(state["round_index"])
-        return dataclasses.replace(result, state={**result.state, ROUNDS_KEY: rounds})
+        extra: dict[str, Any] = {ROUNDS_KEY: dict(state.get(ROUNDS_KEY, {})), INVALID_KEY: dict(state.get(INVALID_KEY, {}))}
+        if phase.phase_id == "inspect":
+            for listing in sorted(_inspected(result.state) - _inspected(state)):
+                extra[ROUNDS_KEY][str(listing)] = int(state["round_index"])
+        envelope = actions.get(f"tenant_{SEAT}")
+        if envelope is not None and not envelope.valid:  # a typed parse or legality failure, applied as a pass (HL-D-08)
+            code = envelope.parse.error_code if not envelope.parse.ok else (envelope.legality.reason if envelope.legality else "invalid")
+            extra[INVALID_KEY][code] = extra[INVALID_KEY].get(code, 0) + 1
+        return dataclasses.replace(result, state={**result.state, **extra})
 
     def terminal(self, case, state):
         terminal = super().terminal(case, state)
@@ -247,6 +250,7 @@ class Seat0PricePlugin(runner.HousingV1Plugin):
         return {**terminal, "seat0": {
             "commit_decisions": [d for d in state["commit_decisions"] if int(d["tenant_id"]) == SEAT],
             "trajectory": seat0_trajectory(state).to_row(),
+            "invalid_actions": dict(sorted(state.get(INVALID_KEY, {}).items())),
             "inspection_spend": spend.get(SEAT, 0.0),
             "net_realized": float(terminal["tenant_net_payoffs"][f"tenant_{SEAT}"]),
         }}
@@ -310,7 +314,13 @@ def build_v15_setup(contract: Mapping[str, Any], arm: str, *, live: bool, holdou
     """The v15 setup for one contract and arm: ``price_campaign.build_setup``'s, scored for seat 0 at the stream's rate."""
     from aeread_families.housing import price_campaign  # the campaign module imports this one's callers, not this one
 
-    return rescore(price_campaign.build_setup(contract, arm, live=live), holdout.RATE if holdout_rate else price_outside_demand.RATE)
+    if contract["rivals"].get("notice_version") == 5:
+        if holdout_rate and "holdout" not in contract:
+            raise ValueError(f"{contract['campaign_id']} has no holdout")
+        base = price_campaign.build_setup(contract, arm, live=live, holdout_rate=holdout_rate)
+    else:  # an earlier contract used as a test vehicle: the flag sets only the scorer's rate
+        base = price_campaign.build_setup(contract, arm, live=live)
+    return rescore(base, holdout.RATE if holdout_rate else price_outside_demand.RATE)
 
 
 def _template(plan: Any, kind: str) -> ImplementationPin:

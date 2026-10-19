@@ -24,7 +24,8 @@ from aeread.shared_runner.task import execution as kernel_execution
 from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderFailure, execute_plan_cell
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 
-from . import lemons, price_outside_demand
+from . import lemons, price_notice_v5, price_outside_demand, price_v15_identities
+from . import price_outside_demand_holdout as price_outside_demand_holdout
 from .population_campaign import _failure_usage
 from .runner import (
     GEMINI_38_FLASH_MODEL,
@@ -572,6 +573,10 @@ IDENTITIES["housing_lemons_price_confirmatory_v14_gemini38_flash_fill"] = {
     "world_seeds": sorted({seed for seed, _arm in V14_GEMINI_REFUSED_CELLS}),
     "claim_status": "confirmatory_fill_exception", "analysis": FILL_ANALYSIS, "total_cost_ceiling_usd": 1.5,
 }
+#: v15 (``price_v15_identities``, plan amendments 1 to 3): notice 5, the seat-0 scorer through
+#: ``price_seat0.build_v15_setup``, and a confirmatory holdout at outside demand 0.3. Every v15
+#: branch below is gated on ``notice_version == 5``, so no earlier identity resolves differently.
+IDENTITIES.update(price_v15_identities.IDENTITIES)
 
 
 def _route_block(route_id: str) -> dict[str, Any]:
@@ -592,6 +597,8 @@ def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
     """What the contract must declare about the rival seats of a focal-seat identity."""
     if spec.get("outside_demand"):
         version = spec.get("notice_version")
+        if version == 5:
+            return price_notice_v5.block_v5()
         if version == 4:
             return price_outside_demand.block_v4()
         if version == 3:
@@ -606,6 +613,37 @@ def _rival_block(spec: Mapping[str, Any]) -> dict[str, Any]:
         "temperature": 0.0, "top_p": 1.0, "reasoning_effort": "low",
         "rate_limit_retries": RIVAL_RATE_LIMIT_RETRIES, "backoff_seconds": RIVAL_BACKOFF_SECONDS,
     }
+
+
+def _holdout_block(spec: Mapping[str, Any]) -> dict[str, Any]:
+    """A notice-5 identity's holdout: its worlds and the rival block at outside demand 0.3 (plan amendment 1)."""
+    return {"world_seeds": list(spec["holdout_world_seeds"]), "rivals": price_notice_v5.block_v5(holdout_rate=True)}
+
+
+def v15_contract(campaign_id: str) -> dict[str, Any]:
+    """The contract ``load_contract`` accepts for a v15 identity, written from its spec."""
+    spec = IDENTITIES[campaign_id]
+    if spec.get("notice_version") != 5:
+        raise ValueError("v15_contract writes notice-5 identities only")
+    contract = {
+        "schema_version": "aeread.housing_price_pilot/1", "campaign_id": campaign_id,
+        "claim_status": spec["claim_status"], "route": _route_block(spec["route_id"]),
+        "world_seeds": list(spec["world_seeds"]), "arms": ["true_cost", "pooled"],
+        "replicates": spec.get("replicates", 1), "rounds": 3, "tenant_cost_ceiling_usd_per_cell": 0.3,
+        "total_cost_ceiling_usd": spec["total_cost_ceiling_usd"], "max_consecutive_operational_failures": halt_after(spec),
+        "controls": {
+            "harness": "minimal_chat/1.0", "tools": "disabled", "memory": "disabled",
+            "reasoning_effort": spec["reasoning_effort"], "temperature": spec["temperature"], "top_p": spec["top_p"],
+            "max_output_tokens": 4096, "timeout_seconds": spec.get("timeout_seconds", 120.0), "sdk_retries": 0,
+            "max_action_attempts": spec.get("max_action_attempts", 4), **retry_controls(spec),
+            "tenant_inference_seed_base": 87001, "landlord_model": LANDLORD_MODEL, "landlord_margin_usd": LANDLORD_MARGIN,
+            "execution_order": "world_seed_ascending_then_arm_order",
+        },
+        "analysis": spec["analysis"], "rivals": _rival_block(spec),
+    }
+    if spec.get("holdout_world_seeds"):
+        contract["holdout"] = _holdout_block(spec)
+    return contract
 
 
 def has_rivals(spec: Mapping[str, Any]) -> bool:
@@ -701,6 +739,10 @@ def load_contract(path: Path) -> dict[str, Any]:
         expected = expected | {"rivals"}
         if value.get("rivals") != _rival_block(spec):
             raise ValueError("price pilot rival seats drifted")
+    if spec.get("notice_version") == 5 and spec.get("holdout_world_seeds"):
+        expected = expected | {"holdout"}
+        if value.get("holdout") != _holdout_block(spec):
+            raise ValueError("price pilot holdout block drifted")
     if set(value) != expected:
         raise ValueError("price pilot contract fields drifted")
     if value["schema_version"] != "aeread.housing_price_pilot/1":
@@ -832,8 +874,22 @@ def scripted_rival_rewrite(block: Mapping[str, Any]) -> Any:
     return rewrite
 
 
-def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path) -> SeatRouterClient:
+def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal: Any, log_path: Path, *,
+                     holdout_rate: bool = False) -> SeatRouterClient:
     block = contract["rivals"]
+    if block.get("kind") == "outside_demand" and block.get("notice_version") == 5:
+        # Notice 5: the rules are in the sealed prompt; the holdout's outside seats leave at 0.3.
+        if holdout_rate:
+            return SeatRouterClient(
+                focal, price_outside_demand_holdout.HoldoutOutsideDemandProvider(), rival_block=contract["holdout"]["rivals"],
+                rewrite=price_outside_demand_holdout.rival_rewrite, log_path=log_path,
+            )
+        return SeatRouterClient(
+            focal, price_outside_demand.OutsideDemandProvider(), rival_block=block,
+            rewrite=price_outside_demand.rival_rewrite, log_path=log_path,
+        )
+    if holdout_rate:
+        raise ValueError("only a notice-5 identity has a holdout at another rate")
     if block.get("kind") == "outside_demand" and block.get("notice_version") == 4:
         # The rules are in the sealed prompt and the history in the observation: nothing to append.
         return SeatRouterClient(
@@ -865,10 +921,17 @@ def make_seat_router(spec: Mapping[str, Any], contract: Mapping[str, Any], focal
     )
 
 
-def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool, sealed_digests: bool = False):
+def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool, sealed_digests: bool = False,
+                holdout_rate: bool = False):
     if arm not in contract["arms"]:
         raise ValueError("undeclared price arm")
     spec = identity(contract)
+    v15 = spec.get("notice_version") == 5
+    if holdout_rate and not v15:
+        raise ValueError("only a notice-5 identity has a holdout at another rate")
+    if live and spec.get("scripted_only"):
+        raise ValueError(f"{contract['campaign_id']} is scripted only and never calls a provider")
+    world_seeds = contract["holdout"]["world_seeds"] if holdout_rate else contract["world_seeds"]
     model, route = ROUTES[spec["route_id"]]
     controls = contract["controls"]
     unavailable = controls["temperature"] == "unavailable"
@@ -884,7 +947,7 @@ def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool, sealed_dig
         landlord_model=controls["landlord_model"],
         world_kind="lemons",
         lemon_landlord=arm,
-        world_seeds=tuple(contract["world_seeds"]),
+        world_seeds=tuple(world_seeds),
         num_tenants=6,
         num_listings=4,
         rounds=contract["rounds"],
@@ -917,6 +980,10 @@ def build_setup(contract: Mapping[str, Any], arm: str, *, live: bool, sealed_dig
                                HOUSING_TENANT_LEMONS_PRICE_PROMPT + price_outside_demand.DISCLOSURE_V4),
              "tenant_history": True}
             if spec.get("notice_version") == 4 else {}
+        ),
+        **(
+            {"tenant_prompt": price_notice_v5.tenant_prompt(holdout_rate), "tenant_history": True}
+            if v15 else {}
         ),
         **(
             {"implementation_digest_overrides": SEALED_DIGESTS_BEFORE_MAIN_MERGE}
