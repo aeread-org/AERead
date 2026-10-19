@@ -1132,3 +1132,22 @@ the $50 band is not calibrated against run-to-run noise; the HL-D-07 erratum wai
    projected cost (HL-O-21);
 6. a seat-0 scorer under a new scorer id in a new module (HL-D-09), and a holdout that changes a mechanism (the outside
    demand rate or the landlord margin) rather than only the seeds.
+
+## 23. Lemons price with outside demand (v15 confirmatory)
+
+The v15 identities (`housing_lemons_price_v15_{gpt6_luna,gemini38_flash}` and the A/A twin `..._gpt6_luna_aa`),
+declared in [price_confirmatory_v15_plan.md](price_confirmatory_v15_plan.md) with five amendments, each made before
+the cells it affects. Written 2026-10-19 after the run; results in
+[price_confirmatory_v15_results.md](price_confirmatory_v15_results.md).
+
+| Gate | Status | What decides it |
+|---|---|---|
+| 0 | `passed` | this section, beside the plan that preceded every v15 artifact |
+| 1 | `passed` | pack v2: each admitted world's best-informed tenant beats `inspect_then_sign` by ≥ $25 on measure v2 in the arm mean, its ceiling is above $0 in both arms (119 main seeds failed the screen, 6 had a $0 ceiling); 0 near-duplicates; the holdout changes the mechanism (outside demand at 0.3, stated in its brief) |
+| 2 | `passed` | the golden-receipt bundle (`housing_lemons_price_goldens_v15`, sealed through the v15 builder); every cell replayed when written; `aeread verify-replay` on the bundle: 1,720 verified, 1,720 scored, 0 differ, 0 missing |
+| 3 | `passed` | the beatability rule declared before results: both models beat `inspect_then_sign` (lower ends 74.0 and 23.0 at 1 − 0.05/2); measure v2 primary; receipts score seat 0 (HL-D-09 closed for v15); the brief states the pricing rule; best-informed and `inspect_lowball` gaps reported |
+| 4 | `partial` | probe-based admission sealed and published for each profile (GLM refused at the route, HL-O-22); still one focal model against scripted counterparts, so nothing is said about adaptive landlords |
+| 5 | `passed` | variance pilot and committed sizing record before the freeze (20 worlds needed, 260 run); A/A arm −5.0 [−18.8, 8.9] calibrates the $50 band; the analysis was committed before any result; 1,720 of 1,720 cells, no missingness |
+
+Selection note: pack v2 is screened toward worlds where inspecting pays, so its levels are not comparable with v14's
+without that qualifier.
