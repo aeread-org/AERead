@@ -220,3 +220,15 @@ identity, so this addendum is reported beside v15 and never changes v15's declar
 - **Rows, declared now, outside v15's Holm family:** B3, GLM − `inspect_then_sign`, read by Section 5's rule at
   1 − 0.05/3 (three models now carry a B row); G3 and R3 as G and R; GLM − Gemini and GLM − Luna with 95% intervals,
   descriptive; the holdout beside. No pilot: the addendum adds no test that needs sizing.
+
+### Addendum A, amendment 1 (before any GLM cell answered)
+
+Novita cannot carry the run: the kernel's client sends `require_parameters: true` with a strict JSON-schema response
+format, which OpenRouter admits only on endpoints listing `structured_outputs`, and Novita lists only
+`response_format`. Both Novita admission cells were refused at the parameter filter before any token ($0; HL-J-15).
+The route is **Near AI, fp8**, the cheapest fp8 endpoint listing every parameter the client sends (seed,
+`structured_outputs`, reasoning, temperature, top_p); its probe on 2026-10-19 returned valid JSON with 25 reasoning
+tokens at `low`. Pinned at its listed price ($0.08, $0.012 cached, $0.50 per M; no discount). Identities
+`housing_lemons_price_v15_glm53_flash_nearai` and `..._admission_glm53_flash_nearai`; the Novita identities stay
+defined and their refused admission is published with the rest. Everything else in addendum A stands, and the probe
+now sends `require_parameters` as the client does.
