@@ -158,3 +158,18 @@ So Section 5 gains a secondary row:
 | R1 to R3 | each model less `inspect_lowball` | reported with 95% intervals and intervals at 1 - 0.05/3, no test, as v14 reported its reachable reference; beside B1 to B3 wherever they are reported |
 
 Nothing else in Section 5 changes.
+
+## Amendment 3, 2026-10-19 (before any v15 contract is frozen)
+
+- **Ceilings carry one cell's reservation.** `price_campaign.run()` starts a live cell only while the spend plus the
+  per-cell ceiling ($0.30) stays within the identity's total, so a total of twice the estimate alone would stop the
+  small identities before or soon after their first cell. Each total is therefore twice its estimate plus $0.30:
+  confirmatory GLM $1.13, Luna $1.57, Gemini $13.11; A/A twin $1.02; pilot GLM $0.41, Luna $0.47, Gemini $2.01;
+  profile admission $0.60 each (two cells); goldens $0 (scripted). In all, $21.52 of ceilings against the $48.96
+  balance checked on 2026-10-19.
+- **Main pack and holdout are two plans of one identity.** Their sealed prompts (notice v5 and its rate-0.3 text) and
+  their outside demand differ, so each confirmatory identity resolves one plan for the 260 main worlds and one for the
+  40 holdout worlds; the contract's `holdout` block names the holdout's worlds and rivals and is allowed only with
+  notice 5.
+- **The goldens identity names GLM's route nominally**, because a contract requires one; it is scripted and makes no
+  provider call.
