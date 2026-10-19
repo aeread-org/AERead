@@ -183,3 +183,19 @@ difference would measure nothing but route nondeterminism. The A/A arm exists to
 run of the same model on the same worlds differs by, so the twin's tenant inference seed base is 88001; everything
 else stays identical. Only notice-5 identities may declare a seed base other than 87001, so every v14 contract is
 unchanged.
+
+## Amendment 5, 2026-10-19 (after profile admission, before any pilot or confirmatory cell)
+
+**GLM 5.3 Flash leaves v15 (Section 7's rule; HL-O-22).** Its v14 route is gone: NextBit now serves the model at fp4
+where v14 sealed fp8, and both admission cells were refused at OpenRouter's quantization filter before any token.
+GPT-6 Luna and Gemini 3.8 Flash passed admission (two cells each, $0.035 together). Consequences, declared before any
+pilot or confirmatory cell:
+
+- **Contrasts.** P1 to P3 become one pair, Gemini − Luna, tested at α = 0.05 (no Holm family left); "larger than $50"
+  still needs the 95% interval to clear $50. B and G rows keep one row per remaining model, Holm over the two B rows;
+  R rows as amendment 2. The variance pilot and its sizing record are for the one pair.
+- **The A/A twin moves to Luna**, the cheapest remaining route ($0.63 for 600 v14 cells):
+  `housing_lemons_price_v15_gpt6_luna_aa`, the Luna confirmatory's main pack under another name with inference seed
+  base 88001 (amendment 4), total ceiling $1.40 (twice $0.55 for 520 cells, plus one cell's $0.30). The GLM twin is
+  never run.
+- A GLM profile on another route or quantization is a new identity after v15, never a substitute inside it.
