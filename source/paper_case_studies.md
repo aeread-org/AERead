@@ -39,7 +39,7 @@ counterpart, not sampled from a representative distribution.
 | Data center | AI-infrastructure contracting | which risk clauses to change, what price to name, and when to sign or walk away | the other side: a script, another model or the same model | the best agreement at both sides' true costs, which neither side knows |
 | Refund | customer refund claims | what to ask, decide and pay on a claim under a written policy | the other parties to the claim, scripted | a hand-written correct resolution |
 
-How much room each case leaves is reported in its own units: Tables 5.2 to 5.4 give each subject's gap to the reference, and Figure 5.1 splits it by action class. The cases use four of the kinds of check defined with the runner's measurement layer (§4): an
+How much room each case leaves is reported as a share of that case's own reference value: Tables 5.2 to 5.4 give each subject's result and gap that way, and Figure 5.1 splits the gap by action class in the case's units. The cases use four of the kinds of check defined with the runner's measurement layer (§4): an
 answer key, declared rules, the value of the best policy or a bound, and relative standing
 against another agent; none uses a rubric. Every score is computed by code, with
 no model in the loop; the kernel's replay recomputes each receipt's own score from its sealed
@@ -50,8 +50,8 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 
 Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
 and is partial at Gate 4. The first Data-center confirmatory is partial at every gate, chiefly because
-neither seat has much to infer (knowing the other side's type is worth at most $2.7k a world to the best
-informed policy); the second's gate review is pending. The Procurement pack reported here fails Gates 1
+neither seat has much to infer (knowing the other side's type is worth less than 1% of the value available in a
+deal to the best informed policy); the second's gate review is pending. The Procurement pack reported here fails Gates 1
 and 3, and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
 subjects on these worlds and are not qualified benchmark scores.
@@ -79,24 +79,25 @@ states how landlords price, the corrected measure is primary from the start, and
 deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
 says so.
 
-**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure, dollars per world, mean of the two landlord arms; contrasts with 95% intervals over worlds. Declared before any v15 artifact; the v14 comparison is in Table E.13.**
+**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds ($307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13.**
 
 | | Gemini 3.8 Flash | GPT-6 Luna |
 |---|---:|---:|
-| Seat-0 net | 242.0 | 193.3 |
-| Favourite is a lemon / sound | 187.8 / 422.9 | 127.8 / 411.5 |
-| Minus `inspect_then_sign` (the declared beatability baseline) | +90.0 [+76.0, +104.0] | +41.2 [+25.3, +57.1] |
-| Minus `inspect_lowball` (v14's reachable reference) | −51.1 [−64.0, −38.3] | −99.9 [−116.1, −83.8] |
-| Minus the best informed tenant | −65.4 [−77.1, −53.7] | −114.2 [−130.5, −97.9] |
-| Holdout net (40 worlds, outside demand at 0.3) | 267.0 | 205.8 |
+| Share of the best informed tenant's value | 78.7% | 62.9% |
+| Favourite is a lemon / sound | 68.8% / 100.0% | 46.8% / 97.3% |
+| Minus `inspect_then_sign` (the declared beatability baseline), points | +29.3 [+24.7, +33.8] | +13.4 [+8.2, +18.6] |
+| Minus `inspect_lowball` (v14's reachable reference), points | −16.6 [−20.8, −12.5] | −32.5 [−37.8, −27.3] |
+| Holdout (40 worlds, outside demand at 0.3) | 79.3% | 61.1% |
 
-On the main pack the references earn $370.9 (the full-information ceiling), $307.4 (the best informed
-tenant), $293.2 (`inspect_lowball`) and $152.0 (`inspect_then_sign`) a world. Under the analysis declared before
-any cell, Gemini leads Luna by +48.8 [+34.9, +62.7]: found, but not shown to exceed $50. The A/A arm, Luna run twice
-under two names with different seeds, gives −5.0 [−18.8, +8.9], inside ±$50, so that band is calibrated. Both models
-beat the declared baseline and both stay below v14's reachable rule and the best informed tenant. Almost the whole
-shortfall is in worlds where the favourite listing is a lemon, where Luna signs blind twice as often as Gemini (230
-against 114 blind signings in 600 cells). In the holdout Gemini leads by +61.2 [+19.5, +103.0]. All 1,720 cells
+Against the best informed tenant's value, the full-information ceiling is 121%, `inspect_lowball` earns 95% and
+`inspect_then_sign` 49%. Under the analysis declared before any cell, Gemini leads Luna by 15.9 points [11.3, 20.4]
+of that value: found, but not shown to exceed the declared $50 band (16.3 points). The A/A arm, Luna run twice under
+two names with different seeds, differs by −1.6 points [−6.1, +2.9], inside the band, so the band is calibrated. Both
+models beat the declared baseline and both stay below v14's reachable rule and the best informed tenant. Almost the
+whole shortfall is in worlds where the favourite listing is a lemon: there Gemini keeps 69% and Luna 47% of what the
+best informed tenant earns, against 100% and 97% where the favourite is sound. In those worlds Luna signs blind twice
+as often as Gemini (230 against 114 blind signings in 600 cells). In the holdout Gemini leads by 18.2 points [5.8,
+30.6]. All 1,720 cells
 completed and were verified by replay ($8.64). v15 differs from v14 in four ways at once (the screened pack, the
 stated pricing rule, the corrected measure as primary, and seat-0 receipts), so the levels are not comparable with
 v14's and no change between them is attributed to the models or to any one difference. GLM 5.3 Flash left at
@@ -122,17 +123,17 @@ if the quote is clean, is worth $65.90 more than paying the premium, provided a 
 time to return to the recorded supplier. Every action is charged what it gave up against the
 exact best informed policy at that point.
 
-**Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy, which earns $451 a world. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
 
 | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
 |---|---:|---:|---:|---:|
-| Given up per world | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
-| Share of the best policy's value | 99.8% | 98.8% | 83.3% | 83.5% |
+| Share of the best policy's value given up | 0.2% [0.0, 0.5] | 1.2% [0.3, 2.4] | 16.7% [10.8, 22.5] | 16.5% [10.4, 22.8] |
+| Share kept | 99.8% | 98.8% | 83.3% | 83.5% |
 
 The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
 run came from two rules the brief left unsaid, that a quote is final and that the average is the
 criterion. That ceiling shows less than it seems: on this pack a rule that looks one test ahead
-comes within $0.06 a world of the best policy, so near-perfect play shows that the agents avoid
+comes within 0.01% of the best policy's value, so near-perfect play shows that the agents avoid
 the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
 the worlds where a newcomer was worth testing.
 
@@ -160,22 +161,22 @@ deal. It isolated both command-line tools, stated the client's walk-away point i
 worlds where the integrator has room over a price-only rule. Table 5.4 reports both; development results
 remain in Tables E.3 and E.7.
 
-**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
+**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement: $322k a world in v1, $309k in v2); intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
 
 | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
 |---|---:|---|---:|
 | *v1, 14 October: the two tools not equally isolated* | | | |
-| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +190.1 [148.0, 232.1] | 3.2e-11 |
-| Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +26.4 [10.5, 42.4] | 0.0017 |
-| Client signs below its walk-away point: Opus / Sol | all 60 | 27/60 vs 3/60 (40 percentage points) | 2.4e-7 |
+| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +59.1 [46.0, 72.1] | 3.2e-11 |
+| Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +8.2 [3.3, 13.2] | 0.0017 |
+| Client signs below its walk-away point: Opus / Sol | all 60 | 45% vs 5% (27 and 3 of 60) | 2.4e-7 |
 | *v2, 19 October: both tools isolated, the walk-away point stated* | | | |
-| Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +128.8 [96.8, 160.8] | 6.1e-11 |
-| Integrator against the firm client: Sol minus Opus | 72 deal | +23.1 [5.4, 40.8] | 0.022 |
-| Sol as integrator minus the price-only rule | 72 deal | +22.6 [8.1, 37.1] | 0.008 |
-| Opus as integrator minus the price-only rule | 72 deal | −0.5 [−17.1, 16.1] | 0.95 |
+| Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +41.7 [31.3, 52.0] | 6.1e-11 |
+| Integrator against the firm client: Sol minus Opus | 72 deal | +7.5 [1.7, 13.2] | 0.022 |
+| Sol as integrator minus the price-only rule | 72 deal | +7.3 [2.6, 12.0] | 0.008 |
+| Opus as integrator minus the price-only rule | 72 deal | −0.2 [−5.5, 5.2] | 0.95 |
 
-In v1, Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum (the
-98.3% interval is [6.7, 46.1]). Head to head the opponent changes with the focal model, while the
+In v1, Sol's lead against the firm population is detectable but smaller than the plan's minimum of 15.5 points
+($50k; the 98.3% interval is [2.1, 14.3]). Head to head the opponent changes with the focal model, while the
 firm-population contrast holds the counterpart policy fixed, which supports a counterpart-specific reading of the
 larger gap. Across v1's pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price). The two
 tools were not equally isolated in v1: Codex's context listed eight of the operator's own skills, two described in
@@ -183,16 +184,17 @@ benchmark and evaluation terms, and Claude Code's listed none (Table H.1). Every
 carries that difference.
 
 v2 removes it: every freeze and run probe was clean, and all 640 negotiations are valid and replayed ($55.41 list
-price). Its head-to-head gap is $129k and its firm-client gap $23k; each is found by Holm, and neither is shown to
-reach its declared minimum (100 and 40). Sol beats the price-only rule as integrator, and Opus earns what the rule
+price). Its head-to-head gap is 41.7 points and its firm-client gap 7.5; each is found by Holm, and neither is shown
+to reach its declared minimum (32.4 and 12.9 points, $100k and $40k). Sol beats the price-only rule as integrator, and Opus earns what the rule
 earns. With the walk-away point stated, neither model signs below it as client (0 of 80 for either, against Opus's
-27 of 60 in v1), and the client seat separates nothing (+2.5 [−10.0, 15.0]).
+27 of 60 in v1), and the client seat separates nothing (+0.8 points [−3.2, 4.9]).
 
 The best informed policy turn by turn was computed after both runs, against the same scripted counterpart
-(Appendix C.3). It gives the integrator $196k a world at the true client type on v2's deal worlds, where Sol earned
-$104k and Opus $81k. Sol therefore captures about 20% of the room between the price-only rule ($82k) and that
-reference. In both seats and both campaigns, knowing the other side's type is worth only $0.1k to $2.7k a world to
-this policy: the case measures bargaining against a fixed counterpart far more than inference about it.
+(Appendix C.3). On v2's deal worlds it gives the integrator 63.5% of the value available at the true client type, where Sol
+earned 33.8% and Opus 26.3%, and the price-only rule 26.5%. Sol therefore captures about 20% of the room between
+the rule and that reference. In both seats and both campaigns, knowing the other side's type is worth less than 1%
+of the value available to this policy: the case measures bargaining against a fixed counterpart far more than
+inference about it.
 
 ### 5.2 Where the shortfall comes from
 

@@ -154,3 +154,9 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
 - Section 5.1 Procurement (2026-10-19, owner: "no need to mention"): the sentence giving the sourcing counts (231
   projects, 341 suppliers, 9 of 28 quoting, the 51-listing screen) is removed; the next sentence now refers to "our own
   sourcing on 1688". The sources table keeps the workbook as the provenance of "most requests went unanswered".
+- Results as percentages (2026-10-19, owner: dollar amounts are not immediately understandable). Tables 5.2 to 5.4 and
+  their sentences now state each result as a share of that case's own reference value: Housing against what the best
+  informed tenant earns in the same worlds ($307 a world on the main pack), Procurement against the best policy's value
+  ($451), Data center against the value available in a deal, the joint surplus of the best agreement ($322k a world in
+  v1, $309k in v2). Differences are percentage points of that value; dollar bases are in the captions. The abstract,
+  introduction and Section 7 give the counterpart example as 42% and 7% of the value available.
