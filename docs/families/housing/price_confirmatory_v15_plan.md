@@ -125,3 +125,21 @@ is not hashed into any sealed Housing plan (its docstring says so; `runner.py` h
 price-bargaining and bridge sources). The step is unchanged, for the reason that holds: editing `RATE` in place would
 change the departures every v14 identity runs on its declared pack, so the 0.3 schedule stays in a new module and v14's
 module keeps 0.5. Found by the session building steps 2 and 3, which read the module and the runner's digest code.
+
+## Amendment 1, 2026-10-19 (before any v15 pack, probe or cell is frozen)
+
+Three things Sections 2, 3 and 8 left open, fixed while the offline steps were built (branch
+`codex/housing-v15-offline`):
+
+- **The holdout's brief states the rule it runs.** Notice v5 says outside demand leaves "with probability 0.5". The
+  holdout runs 0.3, so its tenant reads `DISCLOSURE_V5_HOLDOUT`, identical to notice v5 except that number
+  (prompt id `housing_tenant_lemons_price_outside_v5_rate30`). A brief that misstated the departure rate would add a
+  second, undeclared difference to the held-out mechanism. The main pack's tenant reads notice v5.
+- **Development worlds:** 20 (15 favourite-lemon, 5 favourite-sound) from 540,000 upward, the same admission and
+  screen; they serve the profile admission (Section 7) and the variance pilot (Section 8).
+- **The seat-0 scorer's route (HL-D-09).** v14's scorer id, its pin, the manifest's scoring block and the plugin
+  instance are fixed inside `runner.build_housing_smoke`, which sealed plans hash. The seat-0 scorer therefore comes
+  with a new plan builder that rebuilds those around a plugin subclass registered under the same trusted key (no kernel
+  change), in a new module with a fixed interface (`build_v15_setup(contract, arm, *, live, holdout_rate)`, returning
+  what `build_housing_smoke` returns); the campaign's setup and its replay path call that builder for v15 identities
+  only. The golden-receipt bundle (Section 6) is sealed through the same builder.
