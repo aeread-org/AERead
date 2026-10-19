@@ -1,0 +1,166 @@
+{
+ "after_the_freeze": true,
+ "audit": {
+  "housing_lemons_price_v15_admission_gemini38_flash": {
+   "cached_share": 0.0,
+   "cached_tokens": 0,
+   "calls": 12,
+   "calls_with_reported_reasoning_count": 12,
+   "declared_reasoning_effort": [
+    "minimal"
+   ],
+   "kernel_field_null": 12,
+   "prompt_tokens": 15650,
+   "reasoning_tokens": {
+    "max": 994,
+    "median": 440.0,
+    "min": 0,
+    "zero": 1
+   }
+  },
+  "housing_lemons_price_v15_admission_gpt6_luna": {
+   "cached_share": 0.2124,
+   "cached_tokens": 2354,
+   "calls": 9,
+   "calls_with_reported_reasoning_count": 9,
+   "declared_reasoning_effort": [
+    "low"
+   ],
+   "kernel_field_null": 9,
+   "prompt_tokens": 11083,
+   "reasoning_tokens": {
+    "max": 440,
+    "median": 223,
+    "min": 0,
+    "zero": 2
+   }
+  },
+  "housing_lemons_price_v15_gemini38_flash": {
+   "cached_share": 0.0,
+   "cached_tokens": 0,
+   "calls": 3246,
+   "calls_with_reported_reasoning_count": 3246,
+   "declared_reasoning_effort": [
+    "minimal"
+   ],
+   "kernel_field_null": 3246,
+   "prompt_tokens": 4216695,
+   "reasoning_tokens": {
+    "max": 1915,
+    "median": 276.0,
+    "min": 0,
+    "zero": 287
+   }
+  },
+  "housing_lemons_price_v15_gpt6_luna": {
+   "cached_share": 0.3062,
+   "cached_tokens": 1110188,
+   "calls": 2928,
+   "calls_with_reported_reasoning_count": 2928,
+   "declared_reasoning_effort": [
+    "low"
+   ],
+   "kernel_field_null": 2928,
+   "prompt_tokens": 3625244,
+   "reasoning_tokens": {
+    "max": 793,
+    "median": 230.5,
+    "min": 0,
+    "zero": 130
+   }
+  },
+  "housing_lemons_price_v15_gpt6_luna_aa": {
+   "cached_share": 0.4001,
+   "cached_tokens": 1284271,
+   "calls": 2589,
+   "calls_with_reported_reasoning_count": 2589,
+   "declared_reasoning_effort": [
+    "low"
+   ],
+   "kernel_field_null": 2589,
+   "prompt_tokens": 3210185,
+   "reasoning_tokens": {
+    "max": 750,
+    "median": 225,
+    "min": 0,
+    "zero": 100
+   }
+  },
+  "housing_lemons_price_v15_pilot_gemini38_flash": {
+   "cached_share": 0.0,
+   "cached_tokens": 0,
+   "calls": 429,
+   "calls_with_reported_reasoning_count": 429,
+   "declared_reasoning_effort": [
+    "minimal"
+   ],
+   "kernel_field_null": 429,
+   "prompt_tokens": 556616,
+   "reasoning_tokens": {
+    "max": 1102,
+    "median": 310,
+    "min": 0,
+    "zero": 25
+   }
+  },
+  "housing_lemons_price_v15_pilot_gpt6_luna": {
+   "cached_share": 0.3722,
+   "cached_tokens": 194202,
+   "calls": 420,
+   "calls_with_reported_reasoning_count": 420,
+   "declared_reasoning_effort": [
+    "low"
+   ],
+   "kernel_field_null": 420,
+   "prompt_tokens": 521810,
+   "reasoning_tokens": {
+    "max": 685,
+    "median": 215.0,
+    "min": 0,
+    "zero": 24
+   }
+  }
+ },
+ "module_sha256": "6603efd4cff79d537dfd24595d1c386c18de53447d9298358a8c3c5b4502d519",
+ "plan": "docs/families/housing/price_confirmatory_v15_plan.md, Section 7 (HL-J-14)",
+ "probe": [
+  {
+   "cached_tokens": 0,
+   "completion_tokens": 149,
+   "cost_usd": 0.000218592,
+   "declared_reasoning_effort": "low",
+   "identity": "housing_lemons_price_v15_admission_gpt6_luna",
+   "kernel_reasoning_tokens": null,
+   "model": "openai/gpt-6-luna",
+   "output_text": "{\"decision\":\"inspect\",\"listing_id\":0}",
+   "profile": "gpt6_luna",
+   "prompt_tokens": 1171,
+   "provider_reasoning_tokens": 127,
+   "reasoning_check": "passed",
+   "response_id": "gen-1792427857-gusAhSEFv8VrJrL3Fja5",
+   "revision": "openai/gpt-6-luna-20260922",
+   "sealed_first_call_reasoning_tokens": 223,
+   "sealed_request_sha256": "a46c46a9664ed513284e6343bcda0ad19a680b5264df00c32e394aefc6c34a61",
+   "structured_output": "passed"
+  },
+  {
+   "cached_tokens": 0,
+   "completion_tokens": 220,
+   "cost_usd": 0.001727055,
+   "declared_reasoning_effort": "minimal",
+   "identity": "housing_lemons_price_v15_admission_gemini38_flash",
+   "kernel_reasoning_tokens": null,
+   "model": "google/gemini-3.8-flash",
+   "output_text": "{\"decision\":\"inspect\",\"listing_id\":0}",
+   "profile": "gemini38_flash",
+   "prompt_tokens": 1226,
+   "provider_reasoning_tokens": 209,
+   "reasoning_check": "passed",
+   "response_id": "gen-1792427860-UxXPaEjcwjW16ZkxcNk4",
+   "revision": "google/gemini-3.8-flash-20260902",
+   "sealed_first_call_reasoning_tokens": 209,
+   "sealed_request_sha256": "b8f2023f9fac6a34d4be61256b6a87fc10090f56f088050fca8396c79dfacfae",
+   "structured_output": "passed"
+  }
+ ]
+}
