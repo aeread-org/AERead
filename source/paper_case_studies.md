@@ -212,17 +212,48 @@ and is not drawn. Procurement shows all four subjects; full subject tables are i
 against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
 are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 
-Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
-mostly worse lease terms. Luna's largest Housing class is signing at a rent above a lemon's value
-when the reply identifies a lemon under the landlord policy. The v14 brief omitted that pricing
-rule, so the label does not establish that the tenant knew how to interpret the reply. In Refund,
-Gemini 2.5 Flash Lite's loss is chiefly procedure or format.
+The labels name what happened; the mechanism behind each large segment is as follows.
 
-In Data center, the $25k redline fee accounts for 69.9% of Sol's and 40.3% of Opus's joint loss
-against the firm population across all 60 worlds. Fees can accompany valuable contract
-improvements; their share alone does not establish inefficient negotiation. The full-information
-reference can agree immediately, so the gap includes costs that agents with limited information
-may need to incur. Opus also signs harmful agreements in worlds without positive available surplus.
+**Procurement, Gemini: it never tests a newcomer.** In all 24 worlds Gemini quoted, sampled and
+awarded the recorded supplier and asked no newcomer for anything. In the 8 worlds where paying the
+premium is best, that cost nothing. In the other 16 the best policy tests a cheaper newcomer first,
+because what a good newcomer saves exceeds what the test costs in money and days. There, going
+straight to the recorded supplier cost $22 to $212 a world, $113 on average: all of the 16.7% of
+the best policy's value that Gemini gives up.
+
+**Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
+against the reachable rule comes from leases whose quality it had settled, by inspecting or because
+the landlord's reply proved the listing sound. It then signed on terms worse than the rule's in
+three ways. It chose a listing worth less than the rule's choice even at the landlord's floor (52%
+of this class). It paid rent above the landlord's floor (31%): a landlord accepts any offer at or
+above its floor, so an opening offer near the ask is accepted as made, whereas the rule opens at $0,
+which always draws a counter at the floor. And it inspected more than the rule (17%). It seldom
+signs blind or against what it knows.
+
+**Housing (v14), Luna: it signs a lemon that the landlord's reply had identified.** This is 60% of
+its shortfall. Under the leaky landlord kind a lemon costs its landlord $1,000 less, so its floor
+sits about $1,000 below a sound listing's. An offer between the two floors is countered by a sound
+landlord at its floor but accepted by a lemon's landlord, so an acceptance there marks the listing
+a lemon. In Appendix A.1's example an offer of $2,000 against a sound floor of $2,375 is accepted,
+and signing it pays the lemon's value less the rent, −$400. Luna signed such a hold in 56 of its
+520 cells, losing about $800 a cell against the rule. The rule inspects first and signs a lemon only
+at a rent its lemon value covers (+$225 in the example). The v14 brief did not state how landlords
+price, so these signings show that Luna did not act on what the acceptance implied, not that it
+knew what the acceptance implied; v15's brief states the rule (Table 5.2).
+
+**Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its cells it asked
+again for a fact it had already been given; the environment rejects a repeated request and the
+case ends with no decision (80.8 of its 98.3 points). In most of the rest it denied correctly but
+wrote the refund method as null where the policy's format requires "none" (16.7 points). It
+reached the answer key's outcome in 18% of cells and a wrong outcome in none.
+
+**Data center: fees, then harmful agreements.** Every redline after the opening move costs $25k.
+The full-information reference signs the best agreement at once, so each fee counts as loss. Fees
+are 69.9% of Sol's and 40.3% of Opus's joint loss against the firm population across all 60 worlds.
+Some of those redlines buy better clauses, and a seat that does not know the other side's costs may
+need them, so their share alone does not show wasted negotiation. Opus's next largest part (29.5%)
+is harmful agreements. In 15 of the 60 worlds no agreement beats both sides' outside options, so the
+right move is to walk away, and Opus signed anyway.
 
 Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
 (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;

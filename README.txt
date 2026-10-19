@@ -160,3 +160,10 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
   ($451), Data center against the value available in a deal, the joint surplus of the best agreement ($322k a world in
   v1, $309k in v2). Differences are percentage points of that value; dollar bases are in the captions. The abstract,
   introduction and Section 7 give the counterpart example as 42% and 7% of the value available.
+- Section 5.2 mechanisms (2026-10-19, owner: "explain clearly the mechanism, label it is not enough"). Each large
+  shortfall segment now gets its causal chain in the world's terms, with numbers from analysis_evidence/shortfall_panels:
+  Procurement Gemini never tests a newcomer (recorded supplier in 24/24 worlds; $113 a world lost in the 16 where a test
+  was best); Housing v14 Gemini signs settled leases on worse terms (72% of its shortfall: listing choice 52%, rent
+  above the landlord's floor 31%, inspection 17%); Housing v14 Luna signs a lemon the landlord's acceptance identified
+  (56 of 520 cells, about $800 each, 60% of its shortfall); Refund Flash Lite re-asks a known fact and the case ends
+  (80.8 of 98.3 points) or writes method null (16.7); Data center fees and harmful agreements (Opus 29.5%). 51 pages.
