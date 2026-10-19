@@ -18,9 +18,13 @@ worlds of `agreement_admitted_v2`, earnings in $k above the seat's outside optio
 | P3a | Codex as integrator − `price_only`, same world and client | +22.6 [8.1, 37.1] | 0.008 | found; not shown to reach 40 |
 | P3b | Opus as integrator − `price_only` | −0.5 [−17.1, 16.1] | 0.95 | not found |
 
-Against the integrator's references (Section 2, published before the freeze): ceiling 186.7, own-information best
-reply 172.3, `price_only` 81.9; Codex 104.5, Opus 81.4. Codex captures 22% of the rule-to-ceiling headroom (25% of the
-rule-to-own-information headroom); Opus captures none. Opus is not playing the rule: 35 of its 144 plays earn exactly
+Against the integrator's references (Section 2, published before the freeze): grid ceiling 186.7, grid
+own-information best reply 172.3, `price_only` 81.9; Codex 104.5, Opus 81.4. Both references search asks on a grid,
+which misses the client script's exact signing threshold, so they are lower bounds on the values they name: 9 of
+Codex's 144 integrator plays earn more than the grid ceiling (by up to 30.2) and 1 of Opus's; 16 and 3 earn more than
+the grid own-information value (DC-D-40). The shares of the rule-to-reference headroom (Codex 22% of the grid
+ceiling's, 25% of the grid own-information's; Opus none) are therefore upper bounds. No primary uses these references:
+P3 subtracts the `price_only` rule, which is exact. Opus is not playing the rule: 35 of its 144 plays earn exactly
 the rule's amount, against Codex's 39, and both spend about half their redlines on the price alone (109 of 211, 175
 of 355).
 
