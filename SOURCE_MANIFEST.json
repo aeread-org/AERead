@@ -6,8 +6,8 @@
   ],
   "pdf": {
     "name": "aeread_working_draft_20261018_v15.pdf",
-    "bytes": 2032257,
-    "sha256": "96598175e9bd329b6fc2410820f6cf0607099a00c4aed9e0190dea58617e6ae2"
+    "bytes": 2035235,
+    "sha256": "6c075e9bf13f2cd713347c7c10ff388bf2c539e453b0cf4888c758d9231b1091"
   },
   "previous_working_draft": {
     "path": "aeread_working_draft_20261018_v14/aeread_working_draft_20261018_v14.pdf",
@@ -17,7 +17,7 @@
     "ABSTRACT_SOURCE_CHECKS.txt": "5142a9004eb74a63c963fe46c97c88dba4697e59e7f0b3c076b7f52b07aa58f9",
     "ARCHITECTURE_AND_COVERAGE_REVISION.patch": "0f8fc83a75d6594125fdf9788054c076b7ab0cf8567760362904158af07ff25b",
     "ARCHITECTURE_AND_COVERAGE_SOURCE_SYNC.json": "3eaeb3bf9bc20fd59a61aaaba17f381cb34fbc1346e0a6266e122593de0e5c0c",
-    "DIFFERENTIATORS_REVISION.patch": "5f77c37f243be093bcdd732176fd43729f4f06825113054907d610c5bc9099f4",
+    "DIFFERENTIATORS_REVISION.patch": "96410b6306c4207d5eb446e1bdac2a3a1b5bf1dc73c7541bec4b62265d7c6c10",
     "EXTERNAL_READING_REVISION.patch": "e93b8eedfd2eed7da9a55bb81a272ea3a2d66f44cff4d7e80878d1912719bd35",
     "EXTERNAL_READING_SOURCE_SYNC.json": "e14bf51ab6bc6d91a3d9c309fd9a4fe4b574feac32c2b4151fe608b07a4ff503",
     "FEE_SENSITIVITY_REVISION.patch": "941a976f4d77664b5783131e096ebae8fc94925120fbddaa63e20e9c1a69b78c",
@@ -32,7 +32,7 @@
     "NEGOTIATION_COST_SOURCE_SYNC.json": "2925dbd00006a0bbb47a0dd1a9871f61273a23aaebd3494432ac9f5b3dc0452b",
     "OPENING_SOURCE_CHECKS.txt": "ee310352926a675b3f39cc2870376c1c1b9c1be632f31d7634b945d16dabbf45",
     "PDF_CHECKS.json": "73ddd702a481dbffdec64f547e4eeb40aae3b81889cf1df0336b93435fc8bb6d",
-    "README.txt": "82468871ae94683253d6918a4ca9ff09d8f08d9007eff0742c46da33909fae96",
+    "README.txt": "a28f447b7aff84da5659c95b11f34ffb57534467cf7985c46006c82156226148",
     "RELATED_WORK_REVISION.txt": "144c8dd1ae788bdb594e9de747cea21dd938dfecb52c48d76b74a699ae0afff2",
     "SECTION_7_REVISION.txt": "3253ce0b66db320ecbb765346fffe97862093331743660a9b24ec97fb70872f3",
     "SHORTFALL_REVISION.patch": "a583b39334b5425e57bc834e5210949cb6f1a4fc2d55e5d47d4f4c72f8c11cf5",
@@ -47,7 +47,7 @@
     "V7_README.txt": "ed2dab4bfca9dddcf2590590c7cf039c2e018f8cfbce6ef105afc6ee76d56e79",
     "V8_README.txt": "bf67d6a33dfdf025dbd6219b23f34904e7315368ce747293b6dc4b052e6be7da",
     "V9_README.txt": "5d0821efd240d434dee210fbc189899a9d7dc42cb47783aaf83ea0e9a0b3108f",
-    "aeread_working_draft_20261018_v15.html": "58d78a3dd8b25f15526b6ada7b7b6058be395f75276e1876f808005864a7550a",
+    "aeread_working_draft_20261018_v15.html": "b0838577943f5b9032028087cb070488fca97174e36ca8e7ad26f158c2cffac2",
     "analysis_evidence/README.txt": "ba3d1e72333be6b83612ce1fcdaf9dde6a070a1f01562c15b721c9d2cb8d93f9",
     "analysis_evidence/VERIFICATION.json": "57f761643c50ac7a91e85a15f1b639a21279ef88761546a8b197be01d9faa775",
     "analysis_evidence/campaign_refresh/README.txt": "0d363b1c43b3545974e1123deada5be15d583d85a980731eb89862d70bcea748",
@@ -180,7 +180,7 @@
     "figures/plot_shortfalls.py": "5e73719ffa4a4b6022f89933c340f0f735457ef4317f990d64be52eb86eb5694",
     "figures/shortfall_by_case.png": "b67046a307b1e44b235905de1be2040ef2ac89b7ca06d8ea02230d673d751dc5",
     "figures/shortfall_by_case.svg": "8e102a676665d43d78e3e801d2d9967822a640bc0a6673957c5c05da682b35e9",
-    "paper.css": "34dd713b10edac68d998b9e7f3d744281d49da0b5b76ce23b7e9620bf8dd17a2",
+    "paper.css": "999845acb3f036cc7ed8a106a7aba1659440cd0612fba7cb79ef95046057dbaf",
     "source/abstract.tex": "8f4efcfdf44118b2912315ff1cda8abea99acc291d18e903c523b54e4b3b035f",
     "source/app_runtime.tex": "1cc7240da089cd9caf28f5024a99e186e113d26939196e95b2eb4e19427fbdf7",
     "source/authors.json": "d370611290df1116d4b5d05135d902a594f68a3a9362e4fb62794001df7294b2",
@@ -201,7 +201,7 @@
     "source/tab_cli_controls.tex": "a059a0ace7b6ab8da2d86834825e26045d48ac5f3ad3e75816dd5a8e25e43a97",
     "technical_supplement/app_runtime.tex": "456ffb7a13fc96295c9ed5bd8448dc8d89f6e0f7c73700c6790bc70c4b60b9c1",
     "technical_supplement/runtime.bib": "48bcb99d9f0f6c32ec5cc84fe6fec932432818e73c67f1e2472d265f959c18a0",
-    "technical_supplement/runtime_technical_reference.html": "066cb3100f90d4ef3f4f6d5187d2ece9f729883cc0afdb3263d4faf4ab035a1e",
+    "technical_supplement/runtime_technical_reference.html": "890c0d0904b65e3c4c00fd2a5dd26871a6e17a7e191e19467f6267af5f5862db",
     "technical_supplement/tab_case_paths.tex": "31e91146771828cd7d692e889e1e97c2a8ce66acb8a5454081fcd3947348e0ff",
     "technical_supplement/tab_families.tex": "bd03dc86934d8235ef8a29fcb5f9ebddab4a06165bdddbac7ae42845a0b710c3"
   }

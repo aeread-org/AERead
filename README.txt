@@ -148,3 +148,6 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
   knowing the type worth $0.1k-$2.7k).
 - Abstract, introduction, Sections 6 and 7, Appendices A.1, E.2, E.3 (Table E.2), E.4, F.1, H, the comparison
   table and the sources tables follow. 52 pages.
+- Layout (2026-10-19, owner: "don't need new page for each new section"): the forced page breaks before
+  Sections 4, 5 and 7, the references, Appendices A and H and E.7 to E.9 are removed; headings still never end a
+  page. 50 pages.
