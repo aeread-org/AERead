@@ -24,7 +24,7 @@ own-information reference.
   - Prices: the seat's break-even moved toward each live type's limit by shares 0.2 to 1.0.
   - At the integrator's last redline, also the highest price at which the client script still signs. It is read from
     the script's rule (sign when the offer is worth at least `least` of the surplus it believes there is) and kept
-    only if the script, asked, signs (DC-D-38).
+    only if the script, asked, signs (DC-D-41).
   This class contains `agreement_own_information`'s. Restricted to that module's moves, the search reproduces its
   values exactly.
 - **Loss by turn.** A model's turn is charged V(state) − Q(state, move): the policy's expected earnings from that
@@ -32,7 +32,7 @@ own-information reference.
 - **The one-step check.** Does setting each clause to its best position judged alone against the draft reach the
   best agreement?
 - **Speed.** The original script hashes the whole world in its cost caches: 266 ms a move, 381 s a world for one seat
-  (DC-T-23). `FastNegotiator` caches by agreement and type and leaves every rule to the original's code. A test holds
+  (DC-T-24). `FastNegotiator` caches by agreement and type and leaves every rule to the original's code. A test holds
   it to the original's moves, and every plan is replayed against the original script.
 
 ## What it shows
@@ -49,7 +49,7 @@ $k a world. The deal-world value is in brackets.
 | Plays above "told the type" | 2 of 120 | 0 of 120 | 5 of 160 | 2 of 320 |
 
 - **The losses are bargaining losses, not inference losses.** In every seat and pack, knowing the other side's type is
-  worth $0.1k to $2.7k a world at the true types (DC-D-37). v2's headroom screen admitted worlds on room over
+  worth $0.1k to $2.7k a world at the true types (DC-D-42). v2's headroom screen admitted worlds on room over
   `price_only`, not on the value of the other side's type.
 - **Where each model loses.**
   - As integrator, both models lose on their late turns: Opus on its second and third ($78k and $98k a turn in v2),
@@ -75,4 +75,4 @@ $k a world. The deal-world value is in brackets.
 - The client seat's last redline (move 4) has no exact-threshold candidate yet: the integrator script can still sign,
   redline or walk after it, so its signing price needs a search rather than a formula.
 - If the case is to measure inference, admit worlds only where the other side's type is worth a margin to this policy
-  (DC-D-37).
+  (DC-D-42).

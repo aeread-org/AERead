@@ -40,8 +40,8 @@ Sol minus Opus on the deal worlds, averaged over the two seats, is 26.4, the con
 Limits:
 - The policy is the best within its class of moves: the clause sets best for some set of live types, or the standing
   terms, at prices on a grid of each live type's room, plus the client script's exact signing price at the
-  integrator's last redline (DC-D-38).
+  integrator's last redline (DC-D-41).
 - Model moves beat it in 6 turns: Sol once as integrator ($14.6k), and in 5 client turns where no exact threshold is
   computed. Where it is beaten it is a lower bound.
-- Knowing the other side's type is worth $0.4k to $1.7k a world here (DC-D-37).
+- Knowing the other side's type is worth $0.4k to $1.7k a world here (DC-D-42).
 - `reports/per_world.csv` gives every world's references and its best and worst play.

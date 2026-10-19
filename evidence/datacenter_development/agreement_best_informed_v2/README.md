@@ -33,4 +33,4 @@ the declared analysis's: integrator Codex 104.5 and Opus 81.4; client 51.3 and 4
 Against v2's grid references on the deal worlds (own-information 172.3, ceiling 186.7, `price_only` 81.9), this
 reference is tighter: 196.3 at the true types and 199.3 told the type. Codex captures about 20% of the
 rule-to-reference headroom; Opus captures none. Knowing the other side's type is worth $0.1k (client) and $2.7k
-(integrator) a world (DC-D-37).
+(integrator) a world (DC-D-42).

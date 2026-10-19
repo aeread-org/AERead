@@ -17,7 +17,7 @@ the model's side had seen. This module computes that policy and that loss.
   the most expected joint surplus over that set, and the standing terms (price only). The candidate prices
   on a clause set are the seat's break-even moved toward each live type's limit by a share on :data:`GRID`,
   and, at the integrator's last redline, the highest price at which the client script still signs, read from
-  its rule and checked by asking it (DC-D-38: grid prices stopped short of that threshold).
+  its rule and checked by asking it (DC-D-41: grid prices stopped short of that threshold).
   This class contains ``agreement_own_information``'s, so the integrator seat's value can only be higher.
 - **Choice**: backward induction over the turns and the live types, maximising expected earnings over the
   live types, ties to the earlier move. Earnings are the seat's surplus over its outside option at both
@@ -133,7 +133,7 @@ class Seat:
         self.floor = cw.w.terms.floor_margin
         self._costs: dict[tuple[str, rc.Contract], tuple[float, float]] = {}
         self._script_moves: dict[tuple[str, str], dict[str, Any]] = {}
-        self.thresholds = True  # add the client script's exact last-move signing prices to the candidates (DC-D-38)
+        self.thresholds = True  # add the client script's exact last-move signing prices to the candidates (DC-D-41)
         self.visited: dict[tuple[str, str], Mapping[str, Any]] = {}  # every state the script was asked to move in, for check_script
 
     # ---- money ----
