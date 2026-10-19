@@ -119,3 +119,33 @@ published `analysis.json` except for P2's label string) and the one failure rece
 About 640 negotiations, about $45 at list price (charged to the CLI subscriptions) and about 3 hours, plus about 45
 minutes of offline preparation on 8 cores. The registry row for this case (03a7faef) needs a non-author kernel review
 before any bundle is published on `main`; the runs do not wait for it.
+
+## Amendment 1, 2026-10-19: subject isolation (before the pack, the modules or any cell)
+
+The owner's question of 2026-10-18 found that v1's CLI subjects were not equally isolated from the owner's
+customizations (CLI-D-01, CLI-D-02). Claude Code under `--safe-mode` loaded no CLAUDE.md, memory, skill listing,
+hook, output style or MCP server, but its context named the run's working directory
+(`.../AERead-worktrees/dc-agreement`) and the account's email. Codex, under `--ignore-user-config` with v1's
+disabled features, still listed 8 of the owner's skills beside its 4 built-in ones, two of them described in
+benchmark and evaluation terms. Every v1 Codex-versus-Opus contrast carries that asymmetry, unmeasured.
+
+v2 adds these controls to Section 3, through `tools/cli_subjects/cli_isolation.py` (no hashed module edited):
+
+- **Claude Code:** `--safe-mode` as in v1, and each call in a fresh empty directory under `/private/tmp` with a
+  name that carries no project word. The account email remains: it comes with the subscription login.
+- **Codex:** as in v1, and each call with `HOME` and `CODEX_HOME` set to a fresh directory that holds only a link
+  to the login file, so no user skill, memory or AGENTS.md can load. Codex's 4 built-in skills and its built-in
+  tool definitions remain; no switch in 0.162.1 removes them, and a call that uses a tool is refused, as in v1.
+- **Probe sealed at the freeze:** each CLI is asked, under the run's exact flags and with no brief, for the skills
+  and tools in its context and its working directory; for Claude Code the CLI's own init record supplies tools,
+  MCP servers and output style. The probes go into the campaign plan. A violation (`isolation_violations`: any tool
+  but StructuredOutput, any MCP server, a non-default output style, any skill beyond Codex's built-in four, a
+  working directory naming the repository or the home directory) refuses the freeze; the probe repeats before each
+  arm and a violation halts the run.
+
+Checked live on 2026-10-19 through the module: Claude Code reported only StructuredOutput, no MCP server, the
+default output style and a neutral working directory (1,155 input tokens with a one-line system prompt); Codex
+listed only its 4 built-in skills.
+
+v1 and v2 therefore differ in the subjects' context as well as in brief, seat and pack. A difference between a
+model's v1 and v2 behavior is not attributable to any one of these.
