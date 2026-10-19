@@ -2,8 +2,8 @@
 
 **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
 details are in [Appendix E](paper_appendix_details.md), formal specifications in
-[Appendices A–D](paper_appendix_case_specs.md). Three reported analyses were declared before their runs: Housing v14, the data-center
-signalling test and the data-center agreement confirmatory. Other results are development
+[Appendices A–D](paper_appendix_case_specs.md). Five reported analyses were declared before their runs: Housing v14 and v15, the data-center
+signalling test and the two data-center agreement confirmatories. Other results are development
 probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
 
 ---
@@ -48,10 +48,11 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 
 ### 5.1 Results
 
-Each case's gate status (§6) bounds what its results can claim. The Data-center confirmatory is
-partial at every gate, chiefly because the client seat has almost nothing to infer and the best
-informed policy turn by turn is not built; Housing v14 is partial throughout; the Procurement pack
-reported here fails Gates 1 and 3; and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
+Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
+and is partial at Gate 4. The first Data-center confirmatory is partial at every gate, chiefly because
+neither seat has much to infer (knowing the other side's type is worth at most $2.7k a world to the best
+informed policy); the second's gate review is pending. The Procurement pack reported here fails Gates 1
+and 3, and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
 subjects on these worlds and are not qualified benchmark scores.
 
@@ -69,34 +70,38 @@ signed blind at the ask, but ½·400 − 25 = +$175 if inspected first and signe
 inspecting a second listing takes another round, in which each listing not bid on may be taken. A
 landlord's reply can reveal a lemon at no cost: every world is played against one landlord kind
 whose reply to a low offer reveals a lemon and one whose reply does not. A blind signing is scored at its expected value given what
-the tenant knew, so the score follows the decision rather than the draw. The declared measure
-conditions on the landlord's reply in only one case; a corrected measure, introduced in this paper,
-conditions on every informative reply, and Table 5.2 shows both.
+the tenant knew, so the score follows the decision rather than the draw, with the odds conditioned on every
+informative landlord reply (the corrected measure, introduced in this paper; v14's declared measure conditioned
+on only one kind, Appendix E.4). The comparison reported here, v15, was declared before any of its artifacts
+and changes four things from v14: each admitted world is screened so that the best informed tenant beats a
+simple inspect-then-sign rule by at least $25 (119 of 437 candidate main worlds failed), the tenant's brief
+states how landlords price, the corrected measure is primary from the start, and each receipt scores the
+deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
+says so.
 
-**Table 5.2. Housing v14, main pack; dollars per world, 95% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.**
+**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure, dollars per world, mean of the two landlord arms; contrasts with 95% intervals over worlds. Declared before any v15 artifact; the v14 comparison is in Table E.13.**
 
-| | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
-|---|---:|---:|---:|
-| Complete worlds: all (favourite lemon / sound) | 260 (200 / 60) | 260 (200 / 60) | 260 (200 / 60) |
-| *Declared measure, as frozen* | | | |
-| Tenant net | +211 [+189, +233] | +137 [+111, +162] | +130 [+104, +156] |
-| Minus the reference, favourite is a lemon | −101 [−120, −82] | −179 [−203, −154] | −207 [−229, −186] |
-| Minus the reference, favourite is sound | −14 [−18, −9] | −76 [−116, −36] | −9 [−16, −2] |
-| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | −8 [−30, +14] | −15 [−32, +2] |
-| *Corrected measure, reanalysis* | | | |
-| Tenant net | +213 [+191, +235] | +149 [+124, +175] | +147 [+121, +174] |
-| Minus the reference, favourite is a lemon | −98 [−117, −80] | −164 [−189, −139] | −185 [−208, −162] |
-| Minus the reference, favourite is sound | −14 [−18, −9] | −70 [−108, −32] | −9 [−16, −2] |
-| Minus a rule that inspects when the odds make it pay, then signs | +68 [+52, +84] | +5 [−17, +27] | +3 [−15, +20] |
+| | Gemini 3.8 Flash | GPT-6 Luna |
+|---|---:|---:|
+| Seat-0 net | 242.0 | 193.3 |
+| Favourite is a lemon / sound | 187.8 / 422.9 | 127.8 / 411.5 |
+| Minus `inspect_then_sign` (the declared beatability baseline) | +90.0 [+76.0, +104.0] | +41.2 [+25.3, +57.1] |
+| Minus `inspect_lowball` (v14's reachable reference) | −51.1 [−64.0, −38.3] | −99.9 [−116.1, −83.8] |
+| Minus the best informed tenant | −65.4 [−77.1, −53.7] | −114.2 [−130.5, −97.9] |
+| Holdout net (40 worlds, outside demand at 0.3) | 267.0 | 205.8 |
 
-Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini leads GLM by
-+74 [+53, +95] and Luna by +81 [+63, +98], and GLM and Luna do not differ (+7 [−16, +29]); the
-40-world holdout agrees. Under the corrected measure, a reanalysis not
-declared in advance, the leads are +63 [+43, +84] and +65 [+49, +82] and GLM minus Luna is +2
-[−20, +24]: no declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
-almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
-last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
-beats it and GLM and Luna are not distinguishable from it.
+On the main pack the references earn $370.9 (the full-information ceiling), $307.4 (the best informed
+tenant), $293.2 (`inspect_lowball`) and $152.0 (`inspect_then_sign`) a world. Under the analysis declared before
+any cell, Gemini leads Luna by +48.8 [+34.9, +62.7]: found, but not shown to exceed $50. The A/A arm, Luna run twice
+under two names with different seeds, gives −5.0 [−18.8, +8.9], inside ±$50, so that band is calibrated. Both models
+beat the declared baseline and both stay below v14's reachable rule and the best informed tenant. Almost the whole
+shortfall is in worlds where the favourite listing is a lemon, where Luna signs blind twice as often as Gemini (230
+against 114 blind signings in 600 cells). In the holdout Gemini leads by +61.2 [+19.5, +103.0]. All 1,720 cells
+completed and were verified by replay ($8.64). v15 differs from v14 in four ways at once (the screened pack, the
+stated pricing rule, the corrected measure as primary, and seat-0 receipts), so the levels are not comparable with
+v14's and no change between them is attributed to the models or to any one difference. GLM 5.3 Flash left at
+admission: its provider now serves another quantization than the one v14 pinned. A GLM run on a comparable provider
+(addendum A) is running and is reported beside v15, outside its declared contrasts.
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
 In our own sourcing of parts for 231 hardware projects, 1688 search results showed 341 suppliers;
@@ -152,32 +157,45 @@ best clauses depend on what the other side hides. Burn-in, for example, costs th
 and, in one world, the client a week's delay worth $110k, and halves the chance of a $3 million
 incident the client carries; it lowers joint cost by $41k for a client with the highest risk
 charge and raises it by $19k or $64k for the other two, and the integrator cannot tell which
-client it faces. The comparison declared before its runs used 60 admitted worlds:
-45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
-contrasts; development results remain in Tables E.3 and E.7.
+client it faces. Two comparisons were declared before their runs. The first (v1) used 60
+admitted worlds, 45 with a mutually beneficial deal. The second (v2) used 80 new admitted worlds, 72 with a
+deal. It isolated both command-line tools, stated the client's walk-away point in its brief, and admitted only
+worlds where the integrator has room over a price-only rule. Table 5.4 reports both; development results
+remain in Tables E.3 and E.7.
 
-**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
+**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
 
 | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
 |---|---:|---|---:|
+| *v1, 14 October: the two tools not equally isolated* | | | |
 | Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +190.1 [148.0, 232.1] | 3.2e-11 |
 | Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +26.4 [10.5, 42.4] | 0.0017 |
 | Client signs below its walk-away point: Opus / Sol | all 60 | 27/60 vs 3/60 (40 percentage points) | 2.4e-7 |
+| *v2, 19 October: both tools isolated, the walk-away point stated* | | | |
+| Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +128.8 [96.8, 160.8] | 6.1e-11 |
+| Integrator against the firm client: Sol minus Opus | 72 deal | +23.1 [5.4, 40.8] | 0.022 |
+| Sol as integrator minus the price-only rule | 72 deal | +22.6 [8.1, 37.1] | 0.008 |
+| Opus as integrator minus the price-only rule | 72 deal | −0.5 [−17.1, 16.1] | 0.95 |
 
-Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum:
-the 98.3% interval is [6.7, 46.1]. Head to head the opponent changes with the focal model;
-the firm-population contrast holds the counterpart policy fixed. The distinction supports a
-counterpart-specific reading of the larger head-to-head gap. All primary negotiations are valid.
-Across the pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price);
-one secondary-arm CLI failure remains missing. The client seat still measures pricing and the
-walk-away decision under nearly complete clause information, because the integrator's private
-cost barely changes its best agreement.
+In v1, Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum (the
+98.3% interval is [6.7, 46.1]). Head to head the opponent changes with the focal model, while the
+firm-population contrast holds the counterpart policy fixed, which supports a counterpart-specific reading of the
+larger gap. Across v1's pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price). The two
+tools were not equally isolated in v1: Codex's context listed eight of the operator's own skills, two described in
+benchmark and evaluation terms, and Claude Code's listed none (Table H.1). Every v1 Sol-versus-Opus contrast
+carries that difference.
 
-The two CLIs were not equally isolated from the operator's machine: Codex's context listed eight of
-the operator's own skills, two described in benchmark and evaluation terms, and Claude Code's listed
-none (Table H.1). Every Sol-versus-Opus contrast in this paper carries that unmeasured difference; a
-second confirmatory, declared with both subjects isolated and their context probed before it runs,
-removes it.
+v2 removes it: every freeze and run probe was clean, and all 640 negotiations are valid and replayed ($55.41 list
+price). Its head-to-head gap is $129k and its firm-client gap $23k; each is found by Holm, and neither is shown to
+reach its declared minimum (100 and 40). Sol beats the price-only rule as integrator, and Opus earns what the rule
+earns. With the walk-away point stated, neither model signs below it as client (0 of 80 for either, against Opus's
+27 of 60 in v1), and the client seat separates nothing (+2.5 [−10.0, 15.0]).
+
+The best informed policy turn by turn was computed after both runs, against the same scripted counterpart
+(Appendix C.3). It gives the integrator $196k a world at the true client type on v2's deal worlds, where Sol earned
+$104k and Opus $81k. Sol therefore captures about 20% of the room between the price-only rule ($82k) and that
+reference. In both seats and both campaigns, knowing the other side's type is worth only $0.1k to $2.7k a world to
+this policy: the case measures bargaining against a fixed counterpart far more than inference about it.
 
 ### 5.2 Where the shortfall comes from
 
@@ -190,8 +208,8 @@ the current Data-center breakdown and uncertainty. Table E.10 retains the exact 
 
 **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
-all three models on 260 worlds; GLM's inspection cost of −0.2 a world is in Table E.10 and is not
-drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
+v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
+and is not drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports v1's joint loss
 against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
 are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 
@@ -274,7 +292,11 @@ support for a scripted seat that this family uses is still in development.
 
 | Table or claim | Source | Status |
 |---|---|---|
-| Housing v14 (Tables 5.2, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
+| Housing v15 (Table 5.2) | `docs/families/housing/price_confirmatory_v15_results.md`, QC profile §23 and the bundles `evidence/housing/housing_lemons_price_v15_confirmatory`, `..._v15_analysis`, `..._v15_admission_and_pilot`, the pack `housing_lemons_price_pack_v2` and the goldens `housing_lemons_price_goldens_v15` (branch `codex/housing-v15-offline`, 833b57d4 and later) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
+| Housing v15 profile probe (Section 5.1, Appendix F.1) | `evidence/housing/housing_lemons_price_v15_probe` (branch `codex/housing-v15-probe`, 6776937e); incident rows HL-J-14, HL-J-16, RN-T-07 | after the freeze |
+| Data center v2 (Table 5.4) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` on branch `codex/datacenter-agreement` | declared; gate review pending |
+| Best informed policy turn by turn (Section 5.1, Appendix C.3) | `agreement_best_informed.py` and the evidence `agreement_best_informed_{v1,v2}` (branch `codex/datacenter-best-informed`, 583d3de7); incident rows DC-D-40, DC-D-41, DC-D-42, DC-J-10 | derived after the runs |
+| Housing v14 (Tables E.13, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
 | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
 | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
@@ -289,8 +311,8 @@ support for a scripted seat that this family uses is still in development.
 | Refund rows of Table 5.1 and Figure 5.1d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
 | Failure classes (Figure 5.1, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
-| Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
-| Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
+| Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
+| Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 | TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 | Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |

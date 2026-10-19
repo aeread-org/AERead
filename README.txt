@@ -136,3 +136,15 @@ Circulation edits (2026-10-19, owner approved "yes go", after an external circul
 - Abstract (2026-10-19, owner asked why it was there): the TERMS-Bench clause is removed. The reimplementation
   orders two agents only, its levels differ from the paper's for reasons Section 5.3 names, and a reference paper is
   a template, not a comparison to lead with; Section 5.3 and Table 2.1 keep it. Abstract 263 words.
+
+New results (2026-10-19, owner: "update the paper"; coordinated with the branch session)
+- Housing: v15 replaces v14 as the reported comparison (Section 5.1, Table 5.2): Gemini - Luna +48.8 [34.9, 62.7],
+  A/A -5.0, both beat inspect_then_sign (+90.0, +41.2), both below inspect_lowball and the best informed tenant;
+  Gates 1, 2, 3 and 5 passed, 4 partial (probe after the freeze; reasoning tiers in effect). v14's table moves to
+  Table E.13 with its text; Figure 5.1's Housing panel stays v14 and is labelled so. GLM addendum A named as running.
+- Data center: Table 5.4 holds both confirmatories; v2 (isolated tools, walk-away stated) +128.8 head to head,
+  +23.1 firm client, P3a +22.6, P3b -0.5; gate review pending. The best informed policy turn by turn (after the runs)
+  is described in Section 5.1 and Appendix C.3 (integrator $196k on v2 deal worlds; Sol captures ~20% of headroom;
+  knowing the type worth $0.1k-$2.7k).
+- Abstract, introduction, Sections 6 and 7, Appendices A.1, E.2, E.3 (Table E.2), E.4, F.1, H, the comparison
+  table and the sources tables follow. 52 pages.

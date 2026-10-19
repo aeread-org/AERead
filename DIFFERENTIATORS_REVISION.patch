@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 01:47:42
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 09:52:29
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -20,9 +20,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -  "runtime_words": 1898,
 -  "abstract_words": 189,
 -  "discussion_words": 350
-+  "runtime_words": 1967,
-+  "abstract_words": 263,
-+  "discussion_words": 926
++  "runtime_words": 1996,
++  "abstract_words": 271,
++  "discussion_words": 947
  }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/build.py aeread_working_draft_20261018_v15/build.py
 --- aeread_working_draft_20261018_v14/build.py	2026-10-18 13:44:30
@@ -188,18 +188,22 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      page = OUT.with_suffix('.html'); page.write_text(full)
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-19 01:32:09
-@@ -2,8 +2,8 @@
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-19 09:51:43
+@@ -2,10 +2,10 @@
    "figure": "Figure 4.1",
    "scope": "Conceptual architecture; applied coverage varies by campaign",
    "sources": {
 -    "source/sec_opening.tex": "6bd555d0d125df6a28b874ef1cd11e814e545c22eb74237b3fadafe58e0ce4e6",
 -    "source/sec_runtime.tex": "7b8133564e07d66eb7ab5e300ee12576b8cfa5eab2eb863289ef0f86d022ebab",
-+    "source/sec_opening.tex": "281f9dd8033353c7b4548e0854bc4120af7f17a6796f6c3f8cc5dd6bae66154d",
+-    "source/app_runtime.tex": "fc010ddd08529976b22bda6a19ee7d9f9c4df2a4623a944313e7da4adfd57b14",
+-    "source/paper_qc_design.md": "68ab88b489f3274f447fc0776fc9b20b5df0cfa29b45f42ff2402c58325d1cbd",
++    "source/sec_opening.tex": "12bd7b38f27add96a89cd4b3806a29e9b173a5ff78ba50b453d15d0761cd5e5a",
 +    "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
-     "source/app_runtime.tex": "fc010ddd08529976b22bda6a19ee7d9f9c4df2a4623a944313e7da4adfd57b14",
-     "source/paper_qc_design.md": "68ab88b489f3274f447fc0776fc9b20b5df0cfa29b45f42ff2402c58325d1cbd",
++    "source/app_runtime.tex": "1cc7240da089cd9caf28f5024a99e186e113d26939196e95b2eb4e19427fbdf7",
++    "source/paper_qc_design.md": "90f0c991205d6920c0c75b275be579fd996c7ef9d16331fce0fc6dad21d7e5e6",
      "source/tab_case_paths.tex": "84ab99d48a11cea83d46db16ede96715012ef86525e7a4a4ebbf329529c41bb3"
+   },
+   "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json	2026-10-17 21:13:27
 +++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-18 21:30:32
@@ -584,7 +588,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +.contact a { color:#367dad; text-decoration:none; }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/abstract.tex aeread_working_draft_20261018_v15/source/abstract.tex
 --- aeread_working_draft_20261018_v14/source/abstract.tex	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-19 01:42:44
++++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-19 09:51:33
 @@ -1,22 +1,24 @@
  \section*{Abstract}
  
@@ -621,18 +625,32 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +each score from the sealed record without a model; quality control runs over
 +populations of worlds, not single tasks. We build cases in housing, procurement, data-center contracting
 +and refunds on this runtime. The counterpart is
-+part of the measurement: one agent's earnings lead over another is \$190k a
-+world head to head and \$26k against the same scripted counterpart. Shortfalls are broken down by stratum and by action
++part of the measurement: one agent's earnings lead over another is \$129k a
++world head to head and \$23k against the same scripted counterpart. Shortfalls are broken down by stratum and by action
 +class; in housing, nearly all of the gap to the reference falls in worlds
 +where the tenant's favourite listing is a lemon. Of 25 defects selected from
-+our quality-control record, 14 were invisible in any one world. No case
-+yet passes every quality-control gate, so the results compare named agents
-+on stated worlds rather than rank models. AERead's code is open source: a
++our quality-control record, 14 were invisible in any one world. Housing now
++passes four of the five quality-control gates and no case passes all five,
++so the results compare named agents on stated worlds rather than rank models. AERead's code is open source: a
 +new case supplies its economic rules, worlds and reference, and inherits
 +the runtime, replay and the quality-control standard.
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/app_runtime.tex aeread_working_draft_20261018_v15/source/app_runtime.tex
+--- aeread_working_draft_20261018_v14/source/app_runtime.tex	2026-10-18 13:45:48
++++ aeread_working_draft_20261018_v15/source/app_runtime.tex	2026-10-19 09:51:33
+@@ -102,6 +102,10 @@
+ 
+ \input{tab_cli_controls}
+ 
++Table~\ref{tab:cli-controls} describes the first agreement confirmatory. The
++second isolated both tools and probed their context before and during its
++runs, and every probe was clean (Section~\ref{sec:cases}).
++
+ Table~\ref{tab:case-paths} identifies the paths behind the reported
+ results. The October executor digest prefix is \code{607a79ce}; the September prefix is
+ \code{3cd3278c}.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/comparison_table.json aeread_working_draft_20261018_v15/source/comparison_table.json
 --- aeread_working_draft_20261018_v14/source/comparison_table.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/comparison_table.json	2026-10-18 20:34:08
++++ aeread_working_draft_20261018_v15/source/comparison_table.json	2026-10-19 09:51:43
 @@ -0,0 +1,196 @@
 +{
 + "verified": "2026-10-18",
@@ -820,7 +838,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    "Sections 3.1, 4.1; Table 5.1: reachable, information-constrained and full-information references",
 +    "Section 5.1, Table 5.4: scripted, cross-play and self-play counterparts; claims name them",
 +    "Section 5.2, Figure 5.1: components sum to each case total",
-+    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing admits on a structural condition; the reported Procurement pack had no shortcut screen",
++    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing v15's pack admits a world only if the best informed tenant beats inspect-then-sign by $25 (260 main worlds admitted from 437 scanned); the reported Procurement pack had no shortcut screen",
 +    "Section 6, Appendix F: reference on every admitted world, simple-rule ceilings, brief audits, gates",
 +    "Section 4.1: receipt replay without a model; Housing and Procurement headline measures reproduced from sealed records",
 +    "Sections 5, 5.3: four families and a TERMS-Bench reimplementation on one kernel"
@@ -828,12 +846,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +   "this_paper": true
 +  }
 + ],
-+ "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here, none of which yet passes every qualification gate (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in two of its cases, an admission rule that screens shortcuts."
++ "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here; Housing v15 passes four of the five qualification gates and none passes all five (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in three of its cases, an admission rule that screens shortcuts."
 +}
 \ No newline at end of file
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-18 19:44:26
++++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-19 09:50:47
 @@ -10,7 +10,7 @@
  
  ## Appendix A. Case specifications
@@ -843,10 +861,60 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  protocol (seats, order of play, actions, what each seat observes, termination), and fixed
  counterpart policies (Appendix B). Refund is not specified here. Symbols are local to each case;
  each case's table lists them, with the kind of quantity each is. The evaluated seat is subscript A, a counterpart B. In controlled comparisons, the
+@@ -18,8 +18,10 @@
+ the opponent as well, so they compare pairings. Agent configurations also differ in the settings
+ recorded in Appendix H. The reference policies of Appendix C are computed in the same Γ.
+ 
+-### A.1 Housing: lemons with outside demand (identity v14)
++### A.1 Housing: lemons with outside demand (identities v14 and v15)
+ 
++v15 plays the same rules. Its brief states the landlords' pricing rule, its worlds come from a screened pack (Appendix E.2), and its holdout's outside demand leaves at 0.3 a round.
++
+ **Environment.** A world seed w fixes four listings ℓ ∈ {0, 1, 2, 3} and six tenant seats.
+ Seat 0 is the evaluated tenant; seat i ∈ {1, …, 4} is outside demand for listing i − 1; seat 5
+ never acts. Exactly m = 2 listings are lemons, Λ ⊂ {0, …, 3}, drawn uniformly from a random
+@@ -447,6 +449,20 @@
+ {walk, sign, c\* at a ∈ {0.1, …, 1.0}} against the deterministic script with its declared style and
+ keeps the best for itself net of fees, an exact best reply within that grid and a ceiling, not a
+ target.
++
++**Best informed policy turn by turn** (computed after the runs). For either seat, it is the best play on what that
++seat knows: its own costs, the declared odds of the other side's types, and the script's rule and style. It is
++found by backward induction over the turns and the types still consistent with every script move so far.
++- **Its moves.** Walk, sign, or redline to the agreement worth most in expectation to some set of live types (or the
++  standing terms), at a price on a grid of each type's room. At the integrator's last redline it also tries the
++  highest price at which the client script still signs.
++- **Checks.** Every plan replays against the original script.
++- **It is a lower bound.** It is the best within that class. Of 720 model plays across both confirmatories, 2
++  integrator and 7 client plays earn more than the same search told the type.
++- **Loss by turn.** Each model move is charged its expected value against this policy, given what the model's side had
++  seen.
++- **What it shows.** Knowing the other side's type is worth $0.1k to $2.7k a world to this policy, in either seat and
++  either campaign.
+ 
+ ## Appendix D. Measures
+ 
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-18 23:48:19
-@@ -49,7 +49,12 @@
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-19 09:52:13
+@@ -42,14 +42,28 @@
+ (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
+ each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
+ holdout of 30 and 10 from a disjoint range. The quotas oversample favourite-lemon worlds,
+-where the decision is hardest.
++where the decision is hardest. This is v14's rule. v15 (Section 5.1) applies it and then screens each candidate
++world offline:
++- **The screen.** The best informed tenant and `inspect_then_sign` play both landlord arms. A world is admitted only
++  if its full-information ceiling is above $0 in both arms and the tenant beats the rule by at least $25 on the
++  corrected measure, averaged over the arms.
++- **What it admitted.** The main pack of 260 (200 and 60) came from 437 seeds: 119 failed the screen, 6 had a $0
++  ceiling and 7 failed the structure rule.
++- **The other streams.** The holdout of 40 runs outside demand at 0.3 a round from a disjoint range, and 20
++  development worlds serve the profile admission and the variance pilot.
++- **Records.** No two admitted worlds are near duplicates, and every seed's numbers are logged in the pack's scan.
+ 
+ **Procurement.** Six kinds of world, four of each: paying is right on the money; paying is
+ right because a failed test would leave no time for the recorded supplier; a test is right
  with the cheapest or with another newcomer, on a tight or a loose clock. A world is classified
  from its listings with every newcomer assumed good, and the newcomers' types are drawn
  afterwards on their own stream. The kinds are sampled evenly; drawn as they fall, a test of
@@ -860,7 +928,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  marketplace record on one component's listings, from which whom to verify can be read.
  
  **Data center.** Eleven cells, each with its own outside-option situation and the playbooks it
-@@ -59,9 +64,17 @@
+@@ -59,9 +73,17 @@
  in content to a development world, and for its type-swap experiment wrote 29 of them twice,
  identical except for the client's hidden risk charge. The admission rule implemented is the
  predecessor's (a shortcut must lose by a margin on the playbook's menu); the agreement case's
@@ -881,21 +949,66 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### E.3 What was run
  
-@@ -82,7 +95,8 @@
+@@ -69,20 +91,23 @@
+ 
+ | Case | Worlds or cases | Strata | Subjects | Plays | Cost (list) | Status |
+ |---|---|---|---|---|---|---|
+-| Housing | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
++| Housing v14 | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
++| Housing v15 | 260 main + 40 holdout (outside demand 0.3), from a screened pack | as v14 | Gemini 3.8 Flash, GPT-6 Luna, and Luna's A/A twin | 1,720 cells, all verified by replay; pilot 160 cells | $8.64 (pilot $1.08) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
+ | Housing, CLI agents | first 20 of the main pack | 10 and 10 | Opus 5.5, Sol 6.1 | 40 cells each | $4.72 | development |
+ | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
+ | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused) | 24 cells each, second brief | $0.21 | development |
+ | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
+ | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
+ | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
++| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; gate review pending |
+ | Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
+ | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
+ | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
  
  Opus 5.5 ran through Claude Code and Sol 6.1 through the Codex CLI, without tools, at low
  reasoning effort, one subprocess per action; neither CLI exposes a seed or temperature, and
 -both are recorded as unavailable rather than assumed. Refund V2.5 makes no paid model call: its
-+both are recorded as unavailable rather than assumed. They were not equally isolated from the operator's
-+machine; Table H.1 lists what each loaded. Refund V2.5 makes no paid model call: its
++both are recorded as unavailable rather than assumed. In the v1 confirmatory they were not equally isolated
++from the operator's machine (Table H.1); v2 isolated both and probed their context (Section 5.1). Refund V2.5 makes no paid model call: its
  release qualifies the environment with deterministic profiles in every seat and replays every
  trajectory, so it measures the environment's conformance, not a model; with every seat scripted, its 816
  trajectories are 174 distinct action sequences (four payments cases share one reference
-@@ -92,11 +106,11 @@
+@@ -92,23 +117,55 @@
  
  #### Housing
  
 -On each model's complete main-pack worlds (240 for Gemini; 260 for GLM and Luna), the models fall short of the reachable reference by −81 [−97, −65]
++v15, the reported comparison, is in Section 5.1 and Table 5.2. Its bundle also records 0 invalid seat-0 actions
++in either model, and realized nets of $244.0 (Gemini) and $194.2 (Luna) beside the corrected-measure values.
++The rest of this subsection is v14, the earlier comparison of three models (Table E.13).
++
++**Table E.13. Housing v14, main pack; dollars per world, 95% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.**
++
++| | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
++|---|---:|---:|---:|
++| Complete worlds: all (favourite lemon / sound) | 260 (200 / 60) | 260 (200 / 60) | 260 (200 / 60) |
++| *Declared measure, as frozen* | | | |
++| Tenant net | +211 [+189, +233] | +137 [+111, +162] | +130 [+104, +156] |
++| Minus the reference, favourite is a lemon | −101 [−120, −82] | −179 [−203, −154] | −207 [−229, −186] |
++| Minus the reference, favourite is sound | −14 [−18, −9] | −76 [−116, −36] | −9 [−16, −2] |
++| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | −8 [−30, +14] | −15 [−32, +2] |
++| *Corrected measure, reanalysis* | | | |
++| Tenant net | +213 [+191, +235] | +149 [+124, +175] | +147 [+121, +174] |
++| Minus the reference, favourite is a lemon | −98 [−117, −80] | −164 [−189, −139] | −185 [−208, −162] |
++| Minus the reference, favourite is sound | −14 [−18, −9] | −70 [−108, −32] | −9 [−16, −2] |
++| Minus a rule that inspects when the odds make it pay, then signs | +68 [+52, +84] | +5 [−17, +27] | +3 [−15, +20] |
++
++Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini leads GLM by
+++74 [+53, +95] and Luna by +81 [+63, +98], and GLM and Luna do not differ (+7 [−16, +29]); the
++40-world holdout agrees. Under the corrected measure, a reanalysis not
++declared in advance, the leads are +63 [+43, +84] and +65 [+49, +82] and GLM minus Luna is +2
++[−20, +24]: no declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
++almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
++last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
++beats it and GLM and Luna are not distinguishable from it.
++
 +On all 260 main-pack worlds, Gemini's refused cells taken from the declared fill, the models fall short of the reachable reference by −81 [−96, −66]
  (Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
  22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
@@ -904,9 +1017,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +is sound. The 40-world holdout points the same way (Gemini−GLM +105 [+46, +164], Gemini−Luna +65
 +[+23, +106], GLM−Luna −40 [−106, +26]). The original 1,800 published receipt rows comprise 1,764 scored completions and 36
  operational-failure exclusions. Replay reconstructs each completed receipt's score, which totals
- all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
+-all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
++all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table E.13 was re-derived from the sealed event logs by the
  derived analyses.
-@@ -104,11 +118,14 @@
+ Scripted tenants played offline on every cell give the floor: passing earns $0, never inspecting and signing any
  hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
  pay then signing $145; the models beat the first two by $130 to $292 a world. Sixteen GLM cells
  contain invalid tenant actions, almost all offers on a listing already leased; the bundle did not
@@ -925,7 +1039,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  becomes −79, −142 and −144. The published bundle is not edited.
  
  Two CLI agents played the first 20 worlds of the main pack (40 cells each). Sol 6.1 earns $313
-@@ -244,15 +261,15 @@
+@@ -118,8 +175,8 @@
+ 
+ The reference is reachable, not best. An exact best informed tenant (Appendix C) earns $307 a
+ world on the main pack when it knows the two landlord kinds and how each prices; the v14 subjects
+-were not told that, so part of their gap to it is information rather than judgment. This tenant is
+-still in development.
++were not told that, so part of their gap to it is information rather than judgment. v15 states that rule
++in its brief and uses this tenant as the reference of its admission screen and of its gap rows (Section 5.1).
+ 
+ #### Procurement
+ 
+@@ -244,15 +301,15 @@
  
  | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
  |---|---:|---:|---:|---:|---:|---:|---:|
@@ -947,7 +1072,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
  
-@@ -308,7 +325,7 @@
+@@ -308,7 +365,7 @@
  
  | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
  |---|---:|---|---|---|
@@ -956,7 +1081,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
  | Procurement: Opus 5.5 | 24 | 5.4 [0.2, 10.6] | 0.0 [0.0, 1.1] | 16 / 0 |
  | Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
-@@ -340,16 +357,17 @@
+@@ -340,16 +397,17 @@
  
  $ per main world below the reachable scripted reference; corrected v14.
  
@@ -983,10 +1108,51 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **(b) Procurement**
  
+@@ -468,13 +526,28 @@
+ The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
+ test rejects a registered family without a profile. Each of the four current designs
+ now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
+-and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test v1 pack,
++and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's pay-or-test v1 pack,
+ used in Table 5.3, fails Gates 1 and 3; v2 passes the scripted Gate 3 checks but remains
+ `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
+ packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
+ the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
+ incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
+-lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
++lower controls (Appendix F.4).
++
++Housing v15 was declared and run after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
++`partial` at Gate 4:
++- **Gate 1.** Its pack is screened for headroom, and its holdout changes a mechanism.
++- **Gate 2.** A golden-receipt bundle was sealed through its builder, and all 1,720 cells replay.
++- **Gate 3.** Its beatability rule was declared before results, both models pass it, and its receipts score the
++  deciding tenant.
++- **Gate 5.** Its sizing record and A/A arm preceded the freeze.
++- **Gate 4, partial.** The declared one-call profile probe ran only after the freeze. It found structured output
++  working and both reasoning tiers in effect: every sealed call's raw response carries the provider's reasoning
++  count, which the kernel's OpenRouter client does not copy into its own field.
++
++The agreement's v2 confirmatory has no gate review yet.
++
++The identity rule was applied: Housing's 36 refused cells ran later under their own
+ identity, and Procurement's corrected schema ran under new identities.
+ 
+ **Table F.1. Benchmark QC gates.**
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 01:31:54
-@@ -10,13 +10,14 @@
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 09:52:13
+@@ -2,21 +2,22 @@
+ 
+ **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
+ details are in [Appendix E](paper_appendix_details.md), formal specifications in
+-[Appendices A–D](paper_appendix_case_specs.md). Three reported analyses were declared before their runs: Housing v14, the data-center
+-signalling test and the data-center agreement confirmatory. Other results are development
++[Appendices A–D](paper_appendix_case_specs.md). Five reported analyses were declared before their runs: Housing v14 and v15, the data-center
++signalling test and the two data-center agreement confirmatories. Other results are development
+ probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
+ 
+ ---
  
  ## 5. Case studies
  
@@ -1005,7 +1171,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,32 +30,45 @@
+@@ -29,70 +30,102 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1038,10 +1204,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### 5.1 Results
  
 -None of the four cases yet passes Gates 1 to 5 of §6. "Declared" below describes how a comparison
-+Each case's gate status (§6) bounds what its results can claim. The Data-center confirmatory is
-+partial at every gate, chiefly because the client seat has almost nothing to infer and the best
-+informed policy turn by turn is not built; Housing v14 is partial throughout; the Procurement pack
-+reported here fails Gates 1 and 3; and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
++Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
++and is partial at Gate 4. The first Data-center confirmatory is partial at every gate, chiefly because
++neither seat has much to infer (knowing the other side's type is worth at most $2.7k a world to the best
++informed policy); the second's gate review is pending. The Procurement pack reported here fails Gates 1
++and 3, and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
  was run, with its analysis committed before any cell, not the case: the results compare the named
  subjects on these worlds and are not qualified benchmark scores.
  
@@ -1049,6 +1216,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -inspection costs $25, and over three rounds each listing the tenant did not bid on is taken by
 -outside demand with probability ½. Every world is played against a landlord whose reply reveals
 -a lemon and one whose reply does not. A blind signing is scored at its expected value given what
+-the tenant knew, so the score follows the decision rather than the draw. The declared measure
+-conditions on the landlord's reply in only one case; a corrected measure, introduced in this paper,
+-conditions on every informative reply, and Table 5.2 shows both.
 +**Housing.** The structure follows informal rental markets on social platforms such as RedNote:
 +listings are posted with photos a tenant cannot check before viewing, a viewing costs time, and good
 +listings are often taken while the tenant decides. Rents, the lemon share and the inspection cost
@@ -1063,33 +1233,39 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +inspecting a second listing takes another round, in which each listing not bid on may be taken. A
 +landlord's reply can reveal a lemon at no cost: every world is played against one landlord kind
 +whose reply to a low offer reveals a lemon and one whose reply does not. A blind signing is scored at its expected value given what
- the tenant knew, so the score follows the decision rather than the draw. The declared measure
- conditions on the landlord's reply in only one case; a corrected measure, introduced in this paper,
- conditions on every informative reply, and Table 5.2 shows both.
-@@ -63,36 +77,50 @@
++the tenant knew, so the score follows the decision rather than the draw, with the odds conditioned on every
++informative landlord reply (the corrected measure, introduced in this paper; v14's declared measure conditioned
++on only one kind, Appendix E.4). The comparison reported here, v15, was declared before any of its artifacts
++and changes four things from v14: each admitted world is screened so that the best informed tenant beats a
++simple inspect-then-sign rule by at least $25 (119 of 437 candidate main worlds failed), the tenant's brief
++states how landlords price, the corrected measure is primary from the start, and each receipt scores the
++deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
++says so.
  
- | | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
- |---|---:|---:|---:|
+-**Table 5.2. Housing v14, main pack; dollars per world, 95% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.**
++**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure, dollars per world, mean of the two landlord arms; contrasts with 95% intervals over worlds. Declared before any v15 artifact; the v14 comparison is in Table E.13.**
+ 
+-| | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
+-|---|---:|---:|---:|
 -| Complete worlds: all (favourite lemon / sound) | 240 (183 / 57) | 260 (200 / 60) | 260 (200 / 60) |
-+| Complete worlds: all (favourite lemon / sound) | 260 (200 / 60) | 260 (200 / 60) | 260 (200 / 60) |
- | *Declared measure, as frozen* | | | |
+-| *Declared measure, as frozen* | | | |
 -| Tenant net | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
 -| Minus the reference, favourite is a lemon | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
 -| Minus the reference, favourite is sound | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
 -| Minus a rule that inspects when the odds make it pay, then signs | +64 [+48, +80] | −8 [−30, +14] | −15 [−32, +2] |
-+| Tenant net | +211 [+189, +233] | +137 [+111, +162] | +130 [+104, +156] |
-+| Minus the reference, favourite is a lemon | −101 [−120, −82] | −179 [−203, −154] | −207 [−229, −186] |
-+| Minus the reference, favourite is sound | −14 [−18, −9] | −76 [−116, −36] | −9 [−16, −2] |
-+| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | −8 [−30, +14] | −15 [−32, +2] |
- | *Corrected measure, reanalysis* | | | |
+-| *Corrected measure, reanalysis* | | | |
 -| Tenant net | +213 [+190, +235] | +149 [+124, +175] | +147 [+121, +174] |
 -| Minus the reference, favourite is a lemon | −99 [−119, −80] | −164 [−189, −139] | −185 [−208, −162] |
 -| Minus the reference, favourite is sound | −13 [−18, −8] | −70 [−108, −32] | −9 [−16, −2] |
 -| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | +5 [−17, +27] | +3 [−15, +20] |
-+| Tenant net | +213 [+191, +235] | +149 [+124, +175] | +147 [+121, +174] |
-+| Minus the reference, favourite is a lemon | −98 [−117, −80] | −164 [−189, −139] | −185 [−208, −162] |
-+| Minus the reference, favourite is sound | −14 [−18, −9] | −70 [−108, −32] | −9 [−16, −2] |
-+| Minus a rule that inspects when the odds make it pay, then signs | +68 [+52, +84] | +5 [−17, +27] | +3 [−15, +20] |
++| | Gemini 3.8 Flash | GPT-6 Luna |
++|---|---:|---:|
++| Seat-0 net | 242.0 | 193.3 |
++| Favourite is a lemon / sound | 187.8 / 422.9 | 127.8 / 411.5 |
++| Minus `inspect_then_sign` (the declared beatability baseline) | +90.0 [+76.0, +104.0] | +41.2 [+25.3, +57.1] |
++| Minus `inspect_lowball` (v14's reachable reference) | −51.1 [−64.0, −38.3] | −99.9 [−116.1, −83.8] |
++| Minus the best informed tenant | −65.4 [−77.1, −53.7] | −114.2 [−130.5, −97.9] |
++| Holdout net (40 worlds, outside demand at 0.3) | 267.0 | 205.8 |
  
 -Thirty-six Gemini cells were refused when the provider account ran out of credit, so Gemini has
 -240 complete worlds and every contrast with Gemini is paired over those 240; differences of the
@@ -1099,14 +1275,21 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -+29]); the 40-world holdout agrees. Under the corrected measure, a reanalysis not declared in
 -advance, the leads are +60 [+39, +81] and +67 [+49, +84] and GLM minus Luna is +2 [−20, +24]: no
 -declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
-+Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini leads GLM by
-++74 [+53, +95] and Luna by +81 [+63, +98], and GLM and Luna do not differ (+7 [−16, +29]); the
-+40-world holdout agrees. Under the corrected measure, a reanalysis not
-+declared in advance, the leads are +63 [+43, +84] and +65 [+49, +82] and GLM minus Luna is +2
-+[−20, +24]: no declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
- almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
- last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
- beats it and GLM and Luna are not distinguishable from it.
+-almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
+-last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
+-beats it and GLM and Luna are not distinguishable from it.
++On the main pack the references earn $370.9 (the full-information ceiling), $307.4 (the best informed
++tenant), $293.2 (`inspect_lowball`) and $152.0 (`inspect_then_sign`) a world. Under the analysis declared before
++any cell, Gemini leads Luna by +48.8 [+34.9, +62.7]: found, but not shown to exceed $50. The A/A arm, Luna run twice
++under two names with different seeds, gives −5.0 [−18.8, +8.9], inside ±$50, so that band is calibrated. Both models
++beat the declared baseline and both stay below v14's reachable rule and the best informed tenant. Almost the whole
++shortfall is in worlds where the favourite listing is a lemon, where Luna signs blind twice as often as Gemini (230
++against 114 blind signings in 600 cells). In the holdout Gemini leads by +61.2 [+19.5, +103.0]. All 1,720 cells
++completed and were verified by replay ($8.64). v15 differs from v14 in four ways at once (the screened pack, the
++stated pricing rule, the corrected measure as primary, and seat-0 receipts), so the levels are not comparable with
++v14's and no change between them is attributed to the models or to any one difference. GLM 5.3 Flash left at
++admission: its provider now serves another quantization than the one v14 pinned. A GLM run on a comparable provider
++(addendum A) is running and is reported beside v15, outside its declared contrasts.
  
 -**Procurement.** A buyer owes 50 kits by a deadline. It may pay the most for a supplier with a
 -long record, or test a cheaper newcomer whose cohort record states how often its kind failed; a
@@ -1139,12 +1322,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
  |---|---:|---:|---:|---:|
-@@ -106,8 +134,25 @@
+@@ -106,28 +139,64 @@
  the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
  the worlds where a newcomer was worth testing.
  
 -**Data center.** Client and integrator redline eight risk clauses and a price over six moves,
 -each knowing its own costs. The comparison declared before its runs used 60 admitted worlds:
+-45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
+-contrasts; development results remain in Tables E.3 and E.7.
 +**Data center.** The structure follows a real AI-infrastructure engagement in which a system
 +integrator bundles hardware, data-center space, staffing and software into a working system for a
 +client. Hardware can arrive late or defective and the site may not be ready, and the contract's
@@ -1163,36 +1348,71 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and, in one world, the client a week's delay worth $110k, and halves the chance of a $3 million
 +incident the client carries; it lowers joint cost by $41k for a client with the highest risk
 +charge and raises it by $19k or $64k for the other two, and the integrator cannot tell which
-+client it faces. The comparison declared before its runs used 60 admitted worlds:
- 45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
- contrasts; development results remain in Tables E.3 and E.7.
++client it faces. Two comparisons were declared before their runs. The first (v1) used 60
++admitted worlds, 45 with a mutually beneficial deal. The second (v2) used 80 new admitted worlds, 72 with a
++deal. It isolated both command-line tools, stated the client's walk-away point in its brief, and admitted only
++worlds where the integrator has room over a price-only rule. Table 5.4 reports both; development results
++remain in Tables E.3 and E.7.
  
-@@ -128,6 +173,12 @@
- walk-away decision under nearly complete clause information, because the integrator's private
- cost barely changes its best agreement.
+-**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
++**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
  
-+The two CLIs were not equally isolated from the operator's machine: Codex's context listed eight of
-+the operator's own skills, two described in benchmark and evaluation terms, and Claude Code's listed
-+none (Table H.1). Every Sol-versus-Opus contrast in this paper carries that unmeasured difference; a
-+second confirmatory, declared with both subjects isolated and their context probed before it runs,
-+removes it.
+ | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
+ |---|---:|---|---:|
++| *v1, 14 October: the two tools not equally isolated* | | | |
+ | Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +190.1 [148.0, 232.1] | 3.2e-11 |
+ | Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +26.4 [10.5, 42.4] | 0.0017 |
+ | Client signs below its walk-away point: Opus / Sol | all 60 | 27/60 vs 3/60 (40 percentage points) | 2.4e-7 |
++| *v2, 19 October: both tools isolated, the walk-away point stated* | | | |
++| Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +128.8 [96.8, 160.8] | 6.1e-11 |
++| Integrator against the firm client: Sol minus Opus | 72 deal | +23.1 [5.4, 40.8] | 0.022 |
++| Sol as integrator minus the price-only rule | 72 deal | +22.6 [8.1, 37.1] | 0.008 |
++| Opus as integrator minus the price-only rule | 72 deal | −0.5 [−17.1, 16.1] | 0.95 |
+ 
+-Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum:
+-the 98.3% interval is [6.7, 46.1]. Head to head the opponent changes with the focal model;
+-the firm-population contrast holds the counterpart policy fixed. The distinction supports a
+-counterpart-specific reading of the larger head-to-head gap. All primary negotiations are valid.
+-Across the pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price);
+-one secondary-arm CLI failure remains missing. The client seat still measures pricing and the
+-walk-away decision under nearly complete clause information, because the integrator's private
+-cost barely changes its best agreement.
++In v1, Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum (the
++98.3% interval is [6.7, 46.1]). Head to head the opponent changes with the focal model, while the
++firm-population contrast holds the counterpart policy fixed, which supports a counterpart-specific reading of the
++larger gap. Across v1's pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price). The two
++tools were not equally isolated in v1: Codex's context listed eight of the operator's own skills, two described in
++benchmark and evaluation terms, and Claude Code's listed none (Table H.1). Every v1 Sol-versus-Opus contrast
++carries that difference.
+ 
++v2 removes it: every freeze and run probe was clean, and all 640 negotiations are valid and replayed ($55.41 list
++price). Its head-to-head gap is $129k and its firm-client gap $23k; each is found by Holm, and neither is shown to
++reach its declared minimum (100 and 40). Sol beats the price-only rule as integrator, and Opus earns what the rule
++earns. With the walk-away point stated, neither model signs below it as client (0 of 80 for either, against Opus's
++27 of 60 in v1), and the client seat separates nothing (+2.5 [−10.0, 15.0]).
++
++The best informed policy turn by turn was computed after both runs, against the same scripted counterpart
++(Appendix C.3). It gives the integrator $196k a world at the true client type on v2's deal worlds, where Sol earned
++$104k and Opus $81k. Sol therefore captures about 20% of the room between the price-only rule ($82k) and that
++reference. In both seats and both campaigns, knowing the other side's type is worth only $0.1k to $2.7k a world to
++this policy: the case measures bargaining against a fixed counterpart far more than inference about it.
 +
  ### 5.2 Where the shortfall comes from
  
  Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
-@@ -138,8 +189,9 @@
+@@ -138,8 +207,9 @@
  ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
  
  **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
 -labels give mean totals (lower is better within a panel). Units and scales differ. Procurement
 -shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
 +labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
-+all three models on 260 worlds; GLM's inspection cost of −0.2 a world is in Table E.10 and is not
-+drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
++v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
++and is not drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports v1's joint loss
  against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
  are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
  
-@@ -168,14 +220,55 @@
+@@ -168,20 +238,65 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -1251,7 +1471,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### Sources for the numbers in this section
  
-@@ -190,7 +283,7 @@
+ | Table or claim | Source | Status |
+ |---|---|---|
+-| Housing v14 (Tables 5.2, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
++| Housing v15 (Table 5.2) | `docs/families/housing/price_confirmatory_v15_results.md`, QC profile §23 and the bundles `evidence/housing/housing_lemons_price_v15_confirmatory`, `..._v15_analysis`, `..._v15_admission_and_pilot`, the pack `housing_lemons_price_pack_v2` and the goldens `housing_lemons_price_goldens_v15` (branch `codex/housing-v15-offline`, 833b57d4 and later) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
++| Housing v15 profile probe (Section 5.1, Appendix F.1) | `evidence/housing/housing_lemons_price_v15_probe` (branch `codex/housing-v15-probe`, 6776937e); incident rows HL-J-14, HL-J-16, RN-T-07 | after the freeze |
++| Data center v2 (Table 5.4) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` on branch `codex/datacenter-agreement` | declared; gate review pending |
++| Best informed policy turn by turn (Section 5.1, Appendix C.3) | `agreement_best_informed.py` and the evidence `agreement_best_informed_{v1,v2}` (branch `codex/datacenter-best-informed`, 583d3de7); incident rows DC-D-40, DC-D-41, DC-D-42, DC-J-10 | derived after the runs |
++| Housing v14 (Tables E.13, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
+ | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
+ | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
+ | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
+@@ -190,12 +305,16 @@
  | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
  | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
  | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
@@ -1260,15 +1491,60 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
  | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
  | Refund rows of Table 5.1 and Figure 5.1d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-@@ -198,4 +291,8 @@
+ | Failure classes (Figure 5.1, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
  | Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
- | Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
- | Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
+-| Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
+-| Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
++| Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
++| Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 +| TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 +| Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 +| TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
 +| Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md
+--- aeread_working_draft_20261018_v14/source/paper_qc_design.md	2026-10-18 13:41:03
++++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-19 09:51:33
+@@ -27,23 +27,23 @@
+ and shortcuts lose (3); the result supports the attribution it claims (4); and the comparison was
+ sized, frozen and executed without tuning on outcomes (5). Each gate is typed `passed`, `failed`,
+ `partial`, `not_run` or `not_applicable`, and only `passed` promotes. The profiles followed the initial
+-runs; the agreement confirmatory followed its profile. None of the four passes Gates 1 to 5 yet
+-(Appendix F.1).
++runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet; Housing v15
++passes all but Gate 4 (Appendix F.1).
+ 
+ **The reference is played on every world.** For each case a test plays the reference through the
+ real environment and verifier on every admitted world, with no model, and checks that it reaches
+ its declared result: the Housing reference and a full-information tenant reproduce the published
+-values in all 600 v14 cells; Procurement's best policy equals the environment's average over its
++values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; Procurement's best policy equals the environment's average over its
+ 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
+ both development packs and all 60 of the admitted confirmatory pack; Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
+ or the reference is wrong.
+ 
+ **Other checks.** Every committed pack is regenerated byte for byte from its seeds; the Housing
+-v14 receipts replay from their sealed events; trivial agents are reported beside the subjects,
++v14 and v15 receipts replay from their sealed events; trivial agents are reported beside the subjects,
+ Procurement's fixed rules are scored exactly, and the briefs were audited for instructions that
+-decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and three
+-reported analyses were declared before their runs: Housing v14, the data-center signalling
+-test and the agreement confirmatory.
++decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and five
++reported analyses were declared before their runs: Housing v14 and v15, the data-center signalling
++test and the two agreement confirmatories.
+ 
+ **What it found.** Discovered failures are recorded in an incident log in design,
+ operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct entries across
+@@ -65,7 +65,7 @@
+ | Procurement pay-or-test v2 (Appendix F.4) | `pay_or_test_v2_case_matrix.py`, `tests/test_procurement_pay_or_test_v2.py`, QC profile §8.1 and `pay_or_test_v2_confirmatory_plan.md` on branch `codex/procurement-pay-or-test` (1f281ea4, 699e3943); rows P-D-24, P-D-25, P-T-16 |
+ | Data-center admitted pack (Appendix F.2) | `agreement_admitted_pack.py`, `tests/test_datacenter_agreement_admitted_pack.py` and `cases/datacenter_agreement_v1/agreement_admitted_v1/` on branch `codex/datacenter-agreement` (cce96138); rows DC-D-34 to DC-D-36 (ac28de38) |
+ | Refund lower controls (Appendix F.4) | `src/aeread_families/refund/v2_5_controls.py`, record `cases/refund_v25/qc/lower_controls.json` and rule `refund_v25_beatability/1` (committed 1ededca5 before the controls ran) on branch `docs/refund-qc-profile` (b73722a5) |
+-| Profiles and statuses (Appendix F.1) | the v14 section of the Housing profile, the pay-or-test section of the procurement profile, section 11 of the data-center profile (each on its case branch), and the Refund profile on branch `docs/refund-qc-profile` |
++| Profiles and statuses (Appendix F.1) | the v14 and v15 (§23) sections of the Housing profile, the pay-or-test section of the procurement profile, section 11 of the data-center profile (each on its case branch), and the Refund profile on branch `docs/refund-qc-profile` |
+ | Reference runs | tests `test_housing_price_oracle_run.py` (Housing branch, 50f8dbed), `test_procurement_pay_or_test.py` (procurement branch, 1fdc3eb5), `test_datacenter_agreement_oracle_run.py` (data-center branch, 3320fd51); Refund's release command (`v2_5_release.py`) |
+ | Defects and row counts (Tables F.3, F.4) | the incident logs on the case branches; the fourteen rows written while drafting (HL-D-07, HL-J-12, HL-T-09, P-D-23, P-J-05, P-O-05, P-O-06, P-T-14, P-T-15, P-T-17, RF-D-05, RF-D-06, DC-J-09, RES-J-04) are on the paper branch `docs/paper-case-studies-qc`; counts collected 2026-10-14 |
+ | Data-center measurement facts (Appendix F.5) | `agreement_results_2026-10.md` on branch `codex/datacenter-agreement`, section "What the runs showed about measurement" |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/runtime.bib aeread_working_draft_20261018_v15/source/runtime.bib
 --- aeread_working_draft_20261018_v14/source/runtime.bib	2026-10-16 13:48:40
 +++ aeread_working_draft_20261018_v15/source/runtime.bib	2026-10-18 21:06:06
@@ -1288,8 +1564,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_discussion.tex aeread_working_draft_20261018_v15/source/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/source/sec_discussion.tex	2026-10-17 20:33:40
-+++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-19 01:34:15
-@@ -1,48 +1,105 @@
++++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-19 09:51:33
+@@ -1,48 +1,107 @@
  \section{Discussion and conclusion}
  \label{sec:discussion}
  
@@ -1377,9 +1653,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contracting, but their parameters are set by the authors; calibration to
 +field data and transfer to field settings remain to be established.
 +Coverage is limited to two transaction classes and a small set of agent
-+configurations, with no human policy baseline. No case yet passes every
-+qualification gate: several checks were added after the runs, and
-+hosted-model and CLI behavior limits attribution from declared settings.
++configurations, with no human policy baseline. Housing v15 passes four of
++the five qualification gates and no case passes all five: several checks on
++the other cases were added after their runs, and hosted-model and CLI
++behavior limits attribution from declared settings.
 +Versioned reanalyses now regenerate the corrected Housing measures and
 +Procurement decision losses from sealed records, which strengthens their
 +provenance, but full verification against original execution still
@@ -1399,7 +1676,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +different kind of contribution.
 +\begin{itemize}
 +\item \textbf{Counterpart populations.} The Data-center gap between two
-+agents is \$190k a world head to head and \$26k against a fixed script.
++agents is \$129k a world head to head and \$23k against a fixed script.
 +How far does an agent's measured skill depend on whom it faces, can
 +rankings reverse across counterpart populations (none did in our runs),
 +and which populations separate distinct strategic capabilities? The
@@ -1421,7 +1698,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +What is ready and what is not: the runtime, its sealed evidence and
 +replay, and the case layout are in use, and Housing, Procurement and Data
 +center each have a world generator, references and scripted counterparts.
-+No case is yet qualified. Section~\ref{sec:qc} gives every gate verdict and
++No case is yet fully qualified: Housing v15 passes four of the five gates.
++Section~\ref{sec:qc} gives every gate verdict and
 +Appendix~F each campaign's open checks, so a contributor can see what a
 +case still needs before its results can rank agents.
 +
@@ -1438,8 +1716,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_opening.tex aeread_working_draft_20261018_v15/source/sec_opening.tex
 --- aeread_working_draft_20261018_v14/source/sec_opening.tex	2026-10-17 19:49:36
-+++ aeread_working_draft_20261018_v15/source/sec_opening.tex	2026-10-19 01:31:54
-@@ -32,24 +32,67 @@
++++ aeread_working_draft_20261018_v15/source/sec_opening.tex	2026-10-19 09:51:33
+@@ -32,24 +32,69 @@
  under the deciding seat's information, or a labelled full-information
  upper bound. Results retain their native units and reference types.
  
@@ -1460,7 +1738,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -general model rankings and readiness for deployment left unestablished.
 +AERead combines seven properties. Prior benchmarks have some of them,
 +TERMS-Bench five in full; AERead has six in full and the seventh, a
-+shortcut-screening admission rule, in two of its cases (Table~2.1). The first three
++shortcut-screening admission rule, in three of its cases (Table~2.1). The first three
 +concern a single world, the next two a case's population of worlds, and the
 +last two the runtime (Figure~1.1). Each is built and was applied to the
 +cases reported here.
@@ -1473,8 +1751,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\item \textbf{The counterpart is part of the case.} Other parties are seats
 +with their own information and interests, played by scripted policies,
 +another model or the same model, and each claim names its counterpart. In
-+the Data-center case, one agent's earnings lead over another is \$190k a
-+world head to head and \$26k against a fixed scripted counterpart
++the Data-center case, one agent's earnings lead over another is \$129k a
++world head to head and \$23k against a fixed scripted counterpart
 +(Section~\ref{sec:cases}).
 +\item \textbf{Typed shortfall.} The gap to the reference is split into
 +observed action classes, such as tests not taken, worse terms, harmful
@@ -1485,7 +1763,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +computed before any agent plays, keeps only worlds in which simple
 +shortcuts lose a stated margin: the Data-center comparison used 60 worlds
 +admitted from 2,729 scanned, and Procurement's second pack uses the same
-+kind of screen. Housing admits on a structural condition, and the reported
++kind of screen. Housing's v15 pack admits a world only if the best informed tenant
++beats a simple inspect-then-sign rule by \$25, and the reported
 +Procurement pack had no shortcut screen (Appendix~E.2).
 +\item \textbf{Quality control over populations of worlds.} Cases are
 +qualified through typed gates; simple-rule ceilings are scored beside the
@@ -1506,7 +1785,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +with the same evidence and checks as the existing ones.
 +Sections 3 and 4 describe the case design and the runtime, Section 5 the
 +cases, and Section 6 the quality control. The cases are maintainer-built
-+worked examples and none yet passes every qualification gate; Section 7
++worked examples; Housing passes four of the five qualification gates and
++none passes all five; Section 7
 +states what their results do and do not establish.
  
  \section{Related work}
@@ -1520,7 +1800,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \paragraph{Economically valuable work.}
  GDPval selects professional tasks by occupation and evaluates deliverables
  through expert comparison \citep{patwardhan2025gdpval}. Agents' Last Exam
-@@ -73,7 +116,10 @@
+@@ -73,7 +118,10 @@
  buyer--seller bargaining under private reservation values, scoring
  agreement, surplus allocation and speed \citep{liu2026agenticpay}.
  TERMS-Bench specifies counterpart types, policies and payoffs to diagnose
@@ -1532,7 +1812,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  AERead retains case-specific payoff units and distinguishes full-information
  bounds from information-constrained policy references, with QC of world
  distributions and measurement paths.
-@@ -93,6 +139,10 @@
+@@ -93,6 +141,10 @@
  \section{Task design and construction}
  \label{sec:task-design}
  
@@ -1543,7 +1823,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \subsection{Cases, worlds and seats}
  \label{sec:task-formulation}
  
-@@ -148,10 +198,16 @@
+@@ -148,10 +200,16 @@
  
  The author then provides a world generator or fixed pack, an admission
  rule, and a reference whose information access is explicit. Admission

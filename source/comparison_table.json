@@ -184,7 +184,7 @@
     "Sections 3.1, 4.1; Table 5.1: reachable, information-constrained and full-information references",
     "Section 5.1, Table 5.4: scripted, cross-play and self-play counterparts; claims name them",
     "Section 5.2, Figure 5.1: components sum to each case total",
-    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing admits on a structural condition; the reported Procurement pack had no shortcut screen",
+    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing v15's pack admits a world only if the best informed tenant beats inspect-then-sign by $25 (260 main worlds admitted from 437 scanned); the reported Procurement pack had no shortcut screen",
     "Section 6, Appendix F: reference on every admitted world, simple-rule ceilings, brief audits, gates",
     "Section 4.1: receipt replay without a model; Housing and Procurement headline measures reproduced from sealed records",
     "Sections 5, 5.3: four families and a TERMS-Bench reimplementation on one kernel"
@@ -192,5 +192,5 @@
    "this_paper": true
   }
  ],
- "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here, none of which yet passes every qualification gate (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in two of its cases, an admission rule that screens shortcuts."
+ "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here; Housing v15 passes four of the five qualification gates and none passes all five (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in three of its cases, an admission rule that screens shortcuts."
 }

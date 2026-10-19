@@ -42,7 +42,16 @@ worth more than their asks if sound. The seed keeps its own lemon draw, and the 
 (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
 each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
 holdout of 30 and 10 from a disjoint range. The quotas oversample favourite-lemon worlds,
-where the decision is hardest.
+where the decision is hardest. This is v14's rule. v15 (Section 5.1) applies it and then screens each candidate
+world offline:
+- **The screen.** The best informed tenant and `inspect_then_sign` play both landlord arms. A world is admitted only
+  if its full-information ceiling is above $0 in both arms and the tenant beats the rule by at least $25 on the
+  corrected measure, averaged over the arms.
+- **What it admitted.** The main pack of 260 (200 and 60) came from 437 seeds: 119 failed the screen, 6 had a $0
+  ceiling and 7 failed the structure rule.
+- **The other streams.** The holdout of 40 runs outside demand at 0.3 a round from a disjoint range, and 20
+  development worlds serve the profile admission and the variance pilot.
+- **Records.** No two admitted worlds are near duplicates, and every seed's numbers are logged in the pack's scan.
 
 **Procurement.** Six kinds of world, four of each: paying is right on the money; paying is
 right because a failed test would leave no time for the recorded supplier; a test is right
@@ -82,21 +91,23 @@ confirmatory used them, with types drawn after admission and a separate 12-world
 
 | Case | Worlds or cases | Strata | Subjects | Plays | Cost (list) | Status |
 |---|---|---|---|---|---|---|
-| Housing | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
+| Housing v14 | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
+| Housing v15 | 260 main + 40 holdout (outside demand 0.3), from a screened pack | as v14 | Gemini 3.8 Flash, GPT-6 Luna, and Luna's A/A twin | 1,720 cells, all verified by replay; pilot 160 cells | $8.64 (pilot $1.08) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
 | Housing, CLI agents | first 20 of the main pack | 10 and 10 | Opus 5.5, Sol 6.1 | 40 cells each | $4.72 | development |
 | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
 | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused) | 24 cells each, second brief | $0.21 | development |
 | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
 | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
+| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; gate review pending |
 | Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
 | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
 | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
 
 Opus 5.5 ran through Claude Code and Sol 6.1 through the Codex CLI, without tools, at low
 reasoning effort, one subprocess per action; neither CLI exposes a seed or temperature, and
-both are recorded as unavailable rather than assumed. They were not equally isolated from the operator's
-machine; Table H.1 lists what each loaded. Refund V2.5 makes no paid model call: its
+both are recorded as unavailable rather than assumed. In the v1 confirmatory they were not equally isolated
+from the operator's machine (Table H.1); v2 isolated both and probed their context (Section 5.1). Refund V2.5 makes no paid model call: its
 release qualifies the environment with deterministic profiles in every seat and replays every
 trajectory, so it measures the environment's conformance, not a model; with every seat scripted, its 816
 trajectories are 174 distinct action sequences (four payments cases share one reference
@@ -106,13 +117,42 @@ trajectory).
 
 #### Housing
 
+v15, the reported comparison, is in Section 5.1 and Table 5.2. Its bundle also records 0 invalid seat-0 actions
+in either model, and realized nets of $244.0 (Gemini) and $194.2 (Luna) beside the corrected-measure values.
+The rest of this subsection is v14, the earlier comparison of three models (Table E.13).
+
+**Table E.13. Housing v14, main pack; dollars per world, 95% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.**
+
+| | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
+|---|---:|---:|---:|
+| Complete worlds: all (favourite lemon / sound) | 260 (200 / 60) | 260 (200 / 60) | 260 (200 / 60) |
+| *Declared measure, as frozen* | | | |
+| Tenant net | +211 [+189, +233] | +137 [+111, +162] | +130 [+104, +156] |
+| Minus the reference, favourite is a lemon | −101 [−120, −82] | −179 [−203, −154] | −207 [−229, −186] |
+| Minus the reference, favourite is sound | −14 [−18, −9] | −76 [−116, −36] | −9 [−16, −2] |
+| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | −8 [−30, +14] | −15 [−32, +2] |
+| *Corrected measure, reanalysis* | | | |
+| Tenant net | +213 [+191, +235] | +149 [+124, +175] | +147 [+121, +174] |
+| Minus the reference, favourite is a lemon | −98 [−117, −80] | −164 [−189, −139] | −185 [−208, −162] |
+| Minus the reference, favourite is sound | −14 [−18, −9] | −70 [−108, −32] | −9 [−16, −2] |
+| Minus a rule that inspects when the odds make it pay, then signs | +68 [+52, +84] | +5 [−17, +27] | +3 [−15, +20] |
+
+Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini leads GLM by
++74 [+53, +95] and Luna by +81 [+63, +98], and GLM and Luna do not differ (+7 [−16, +29]); the
+40-world holdout agrees. Under the corrected measure, a reanalysis not
+declared in advance, the leads are +63 [+43, +84] and +65 [+49, +82] and GLM minus Luna is +2
+[−20, +24]: no declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
+almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
+last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
+beats it and GLM and Luna are not distinguishable from it.
+
 On all 260 main-pack worlds, Gemini's refused cells taken from the declared fill, the models fall short of the reachable reference by −81 [−96, −66]
 (Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
 is sound. The 40-world holdout points the same way (Gemini−GLM +105 [+46, +164], Gemini−Luna +65
 [+23, +106], GLM−Luna −40 [−106, +26]). The original 1,800 published receipt rows comprise 1,764 scored completions and 36
 operational-failure exclusions. Replay reconstructs each completed receipt's score, which totals
-all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
+all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table E.13 was re-derived from the sealed event logs by the
 derived analyses.
 Scripted tenants played offline on every cell give the floor: passing earns $0, never inspecting and signing any
 hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
@@ -135,8 +175,8 @@ sound ($427) and fall short where it is a lemon ($200 and $155 against $235).
 
 The reference is reachable, not best. An exact best informed tenant (Appendix C) earns $307 a
 world on the main pack when it knows the two landlord kinds and how each prices; the v14 subjects
-were not told that, so part of their gap to it is information rather than judgment. This tenant is
-still in development.
+were not told that, so part of their gap to it is information rather than judgment. v15 states that rule
+in its brief and uses this tenant as the reference of its admission screen and of its gap rows (Section 5.1).
 
 #### Procurement
 
@@ -486,13 +526,28 @@ applied to these cases are not described here.
 The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
 test rejects a registered family without a profile. Each of the four current designs
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
-and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test v1 pack,
+and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's pay-or-test v1 pack,
 used in Table 5.3, fails Gates 1 and 3; v2 passes the scripted Gate 3 checks but remains
 `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
 packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
 incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
-lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
+lower controls (Appendix F.4).
+
+Housing v15 was declared and run after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
+`partial` at Gate 4:
+- **Gate 1.** Its pack is screened for headroom, and its holdout changes a mechanism.
+- **Gate 2.** A golden-receipt bundle was sealed through its builder, and all 1,720 cells replay.
+- **Gate 3.** Its beatability rule was declared before results, both models pass it, and its receipts score the
+  deciding tenant.
+- **Gate 5.** Its sizing record and A/A arm preceded the freeze.
+- **Gate 4, partial.** The declared one-call profile probe ran only after the freeze. It found structured output
+  working and both reasoning tiers in effect: every sealed call's raw response carries the provider's reasoning
+  count, which the kernel's OpenRouter client does not copy into its own field.
+
+The agreement's v2 confirmatory has no gate review yet.
+
+The identity rule was applied: Housing's 36 refused cells ran later under their own
 identity, and Procurement's corrected schema ran under new identities.
 
 **Table F.1. Benchmark QC gates.**

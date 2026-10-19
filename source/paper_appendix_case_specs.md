@@ -18,7 +18,9 @@ prior and counterpart policies are fixed across evaluated agents; head-to-head r
 the opponent as well, so they compare pairings. Agent configurations also differ in the settings
 recorded in Appendix H. The reference policies of Appendix C are computed in the same Γ.
 
-### A.1 Housing: lemons with outside demand (identity v14)
+### A.1 Housing: lemons with outside demand (identities v14 and v15)
+
+v15 plays the same rules. Its brief states the landlords' pricing rule, its worlds come from a screened pack (Appendix E.2), and its holdout's outside demand leaves at 0.3 a round.
 
 **Environment.** A world seed w fixes four listings ℓ ∈ {0, 1, 2, 3} and six tenant seats.
 Seat 0 is the evaluated tenant; seat i ∈ {1, …, 4} is outside demand for listing i − 1; seat 5
@@ -447,6 +449,20 @@ if it is worth at least walking away, and earns 114 and 122; *best plan* searche
 {walk, sign, c\* at a ∈ {0.1, …, 1.0}} against the deterministic script with its declared style and
 keeps the best for itself net of fees, an exact best reply within that grid and a ceiling, not a
 target.
+
+**Best informed policy turn by turn** (computed after the runs). For either seat, it is the best play on what that
+seat knows: its own costs, the declared odds of the other side's types, and the script's rule and style. It is
+found by backward induction over the turns and the types still consistent with every script move so far.
+- **Its moves.** Walk, sign, or redline to the agreement worth most in expectation to some set of live types (or the
+  standing terms), at a price on a grid of each type's room. At the integrator's last redline it also tries the
+  highest price at which the client script still signs.
+- **Checks.** Every plan replays against the original script.
+- **It is a lower bound.** It is the best within that class. Of 720 model plays across both confirmatories, 2
+  integrator and 7 client plays earn more than the same search told the type.
+- **Loss by turn.** Each model move is charged its expected value against this policy, given what the model's side had
+  seen.
+- **What it shows.** Knowing the other side's type is worth $0.1k to $2.7k a world to this policy, in either seat and
+  either campaign.
 
 ## Appendix D. Measures
 

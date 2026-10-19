@@ -36,7 +36,7 @@ CASEFIGUREPLACEHOLDER
 
 AERead combines seven properties. Prior benchmarks have some of them,
 TERMS-Bench five in full; AERead has six in full and the seventh, a
-shortcut-screening admission rule, in two of its cases (Table~2.1). The first three
+shortcut-screening admission rule, in three of its cases (Table~2.1). The first three
 concern a single world, the next two a case's population of worlds, and the
 last two the runtime (Figure~1.1). Each is built and was applied to the
 cases reported here.
@@ -49,8 +49,8 @@ environment on every admitted world (Section~\ref{sec:qc}).
 \item \textbf{The counterpart is part of the case.} Other parties are seats
 with their own information and interests, played by scripted policies,
 another model or the same model, and each claim names its counterpart. In
-the Data-center case, one agent's earnings lead over another is \$190k a
-world head to head and \$26k against a fixed scripted counterpart
+the Data-center case, one agent's earnings lead over another is \$129k a
+world head to head and \$23k against a fixed scripted counterpart
 (Section~\ref{sec:cases}).
 \item \textbf{Typed shortfall.} The gap to the reference is split into
 observed action classes, such as tests not taken, worse terms, harmful
@@ -61,7 +61,8 @@ worlds, and its packs regenerate from their seeds. An admission rule,
 computed before any agent plays, keeps only worlds in which simple
 shortcuts lose a stated margin: the Data-center comparison used 60 worlds
 admitted from 2,729 scanned, and Procurement's second pack uses the same
-kind of screen. Housing admits on a structural condition, and the reported
+kind of screen. Housing's v15 pack admits a world only if the best informed tenant
+beats a simple inspect-then-sign rule by \$25, and the reported
 Procurement pack had no shortcut screen (Appendix~E.2).
 \item \textbf{Quality control over populations of worlds.} Cases are
 qualified through typed gates; simple-rule ceilings are scored beside the
@@ -82,7 +83,8 @@ and the quality-control gates come with the runtime, so a new case starts
 with the same evidence and checks as the existing ones.
 Sections 3 and 4 describe the case design and the runtime, Section 5 the
 cases, and Section 6 the quality control. The cases are maintainer-built
-worked examples and none yet passes every qualification gate; Section 7
+worked examples; Housing passes four of the five qualification gates and
+none passes all five; Section 7
 states what their results do and do not establish.
 
 \section{Related work}

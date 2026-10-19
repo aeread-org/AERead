@@ -2,10 +2,10 @@
   "figure": "Figure 4.1",
   "scope": "Conceptual architecture; applied coverage varies by campaign",
   "sources": {
-    "source/sec_opening.tex": "281f9dd8033353c7b4548e0854bc4120af7f17a6796f6c3f8cc5dd6bae66154d",
+    "source/sec_opening.tex": "12bd7b38f27add96a89cd4b3806a29e9b173a5ff78ba50b453d15d0761cd5e5a",
     "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
-    "source/app_runtime.tex": "fc010ddd08529976b22bda6a19ee7d9f9c4df2a4623a944313e7da4adfd57b14",
-    "source/paper_qc_design.md": "68ab88b489f3274f447fc0776fc9b20b5df0cfa29b45f42ff2402c58325d1cbd",
+    "source/app_runtime.tex": "1cc7240da089cd9caf28f5024a99e186e113d26939196e95b2eb4e19427fbdf7",
+    "source/paper_qc_design.md": "90f0c991205d6920c0c75b275be579fd996c7ef9d16331fce0fc6dad21d7e5e6",
     "source/tab_case_paths.tex": "84ab99d48a11cea83d46db16ede96715012ef86525e7a4a4ebbf329529c41bb3"
   },
   "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
