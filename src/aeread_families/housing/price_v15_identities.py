@@ -82,6 +82,7 @@ CEILINGS: dict[str, float] = {
     "housing_lemons_price_v15_gpt6_luna": 1.57,
     "housing_lemons_price_v15_gemini38_flash": 13.11,
     "housing_lemons_price_v15_glm53_flash_nextbit_aa": 1.02,
+    "housing_lemons_price_v15_gpt6_luna_aa": 1.40,  # amendment 5: twice $0.55 for 520 cells, plus one cell's $0.30
     "housing_lemons_price_v15_pilot_glm53_flash_nextbit": 0.41,
     "housing_lemons_price_v15_pilot_gpt6_luna": 0.47,
     "housing_lemons_price_v15_pilot_gemini38_flash": 2.01,
@@ -113,6 +114,10 @@ for _model in MODELS:
 #: its own samples and resolves its own run plan (plan amendment 4); nothing else changed.
 IDENTITIES["housing_lemons_price_v15_glm53_flash_nextbit_aa"] = _spec(
     "housing_lemons_price_v15_glm53_flash_nextbit_aa", "glm53_flash_nextbit", world_seeds=MAIN,
+    claim_status="confirmatory", analysis=ANALYSIS, tenant_inference_seed_base=88001)
+#: Amendment 5: GLM's route is gone (HL-O-22), so the A/A twin is Luna's; the GLM twin above is never run.
+IDENTITIES["housing_lemons_price_v15_gpt6_luna_aa"] = _spec(
+    "housing_lemons_price_v15_gpt6_luna_aa", "gpt6_luna", world_seeds=MAIN,
     claim_status="confirmatory", analysis=ANALYSIS, tenant_inference_seed_base=88001)
 IDENTITIES["housing_lemons_price_goldens_v15"] = _spec(
     "housing_lemons_price_goldens_v15", "glm53_flash_nextbit", world_seeds=DEVELOPMENT[:5],
