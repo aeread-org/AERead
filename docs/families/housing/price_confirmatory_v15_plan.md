@@ -117,3 +117,11 @@ holds $22 of the $23.96 balance (2026-10-18), v15 needs a top-up of at least $23
 3. Notice v5, the seat-0 scorer, the golden-receipt bundle, the oracle run (offline). 4. Top-up. 5. Profile admission
 (Section 7). 6. Variance pilot, sizing record, amendment if needed. 7. Freeze the three identities and the A/A twin.
 8. Run, verify-replay, publish, analyse as Section 5 declares, QC section for v15.
+
+## Correction, 2026-10-19 (before any v15 artifact)
+
+Section 2 gave the wrong reason for putting the holdout's 0.3 departure schedule in a new module: `price_outside_demand.py`
+is not hashed into any sealed Housing plan (its docstring says so; `runner.py` hashes the housing, lemons,
+price-bargaining and bridge sources). The step is unchanged, for the reason that holds: editing `RATE` in place would
+change the departures every v14 identity runs on its declared pack, so the 0.3 schedule stays in a new module and v14's
+module keeps 0.5. Found by the session building steps 2 and 3, which read the module and the runner's digest code.
