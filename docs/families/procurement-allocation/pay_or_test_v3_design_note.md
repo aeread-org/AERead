@@ -66,3 +66,19 @@ that hold. So v2's pack already contains the design; v2 failed because its flash
 - **What it decides:** if both subjects probe in most criterion worlds, v3 builds on v2's mechanism with the
   parameter changes of `pay_or_test_v3_parameters.md` and sizes a declared run on these subjects; if they pay the
   premium there too, the first test needs a stronger prompt or design before anything else.
+
+### Probe result (2026-10-19)
+
+On all 6 criterion worlds both frontier subjects did exactly what the one-step rule does: quote the recorded supplier,
+sample it and award it, never touching a newcomer, so each lost the pay-the-premium rule's $23.61 a world to the best
+policy (whose first move in every one of these worlds is a $2 quote of a newcomer). Where one test ahead suffices,
+Sol 6.1 tests a newcomer in 5 of 6 worlds and loses $21.24 against the one-step rule's $36.26; Opus 5.5 pays the
+premium there too ($90.95). So the option-value worlds separate cleanly what a capable subject does from what the best
+policy does, and the first test is no longer the bottleneck for Codex: the subject tests when the test pays for
+itself, and does not when it pays only through what it reveals. Evidence:
+`evidence/procurement_allocation/pay_or_test_v3_probe/` (12 worlds, one play, development).
+
+What follows for v3: keep v2's shared-source mechanism and add the option-value criterion as an explicit admission
+condition (best first move a newcomer request, one-step best test below paying, gap at least the margin); apply the
+parameter changes of `pay_or_test_v3_parameters.md`; size a declared run on these two subjects from this probe's
+variance before any confirmatory claim.
