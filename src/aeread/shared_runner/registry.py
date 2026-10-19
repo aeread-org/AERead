@@ -161,6 +161,13 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "1.0.0",
             "procurement_allocation_environment",
         ),
+        # Pay or test version 3 (``pay_or_test_v3_environment``): a development pilot tree only, ahead of the
+        # kernel-lane review this row needs before it can reach main.
+        (
+            "procurement_allocation_v1",
+            "1.1.0",
+            "procurement_pay_or_test_v3_environment",
+        ),
         (
             "procurement_grounding_v1",
             "1.0.0",
