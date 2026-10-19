@@ -45,3 +45,24 @@ rule, to be declared in an amendment of the v2 plan before any CLI play:
 Work A needs: `pay_or_test_v2` support in `procurement_cli.py` (it plays the v1 pack and prompts today) through
 `cli_isolation`, with the freeze probe sealed, and v2's report reading CLI run roots. The decision-loss reference
 still cannot be a plan pin (P-D-26), so the report stays the declared measure, as in v2.
+
+## Probe, 2026-10-19: do subjects that test take a probe worth only its option value?
+
+Owner request: build out the correlated-information design ("a cheap preliminary test whose one-step value is below
+the default while its planned value is above it") and run a probe. Measured offline first, on v2's 12 pilot worlds
+(`pay_or_test_v2_pilot`), with v2's exact reference: in all 6 `myopic_pays` worlds the best first move is a $2 quote
+of a newcomer, whose planned value beats paying the premium by $10 to $47 a world, while the one-step rule's best
+test is worth less than paying (Q*(probe) > Q*(default) > Q1(best test)); in none of the 6 `myopic_tests` worlds does
+that hold. So v2's pack already contains the design; v2 failed because its flash subjects never took a first test
+(P-D-27). This probe is route A of the note above, run on the pilot worlds, development only, no claim:
+
+- **Subjects:** Opus 5.5 through Claude Code and Sol 6.1 through Codex, isolated as the data-center v2 plan's
+  amendments 1 and 2 require (`tools/cli_subjects/cli_isolation.py`, copied byte for byte), effort low, one play per
+  world, v2's prompt (`procurement_allocation_pay_or_test_shared_source_v1`).
+- **Read, in this order:** on the 6 criterion worlds, how often the subject's first information request is to a
+  newcomer, and how often it is the reference's own best first move; then each world's decision loss against the best
+  policy (v2's reference prices every action), beside the one-step rule's and the pay-the-premium rule's; the 6
+  `myopic_tests` worlds as the contrast where one test ahead suffices.
+- **What it decides:** if both subjects probe in most criterion worlds, v3 builds on v2's mechanism with the
+  parameter changes of `pay_or_test_v3_parameters.md` and sizes a declared run on these subjects; if they pay the
+  premium there too, the first test needs a stronger prompt or design before anything else.
