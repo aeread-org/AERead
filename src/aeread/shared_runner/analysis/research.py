@@ -1616,6 +1616,15 @@ def project_loss_analysis_tables(
                 raise ResearchContractError(
                     f"model calls reference seats absent from task {cell.cell_id!r}: {unknown_seats}"
                 )
+            # A scripted seat never reaches a provider; a recorded call naming
+            # one would mean the scheduler sent a scripted turn to a model.
+            scripted_calls = sorted(
+                {call.seat_id for call in calls if call.seat_id in cell.scripted_seats}
+            )
+            if scripted_calls:
+                raise ResearchContractError(
+                    f"scripted seats made provider calls in task {cell.cell_id!r}: {scripted_calls}"
+                )
         if receipt is not None and evidence is not None:
             try:
                 seal = evidence.verify_seal()

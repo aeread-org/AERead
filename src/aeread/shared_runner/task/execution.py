@@ -1437,22 +1437,41 @@ class ScriptedSeatSource:
             action_attempt_id=action_attempt_id,
             visibility=f"seat:{request.seat_id}",
         )
-        structured = self._hook(policy_id, request, world_seed=self._cell.world_seed)
-        if inspect.isawaitable(structured):
-            structured = await structured
-        if not isinstance(structured, Mapping):
-            raise SchedulerContractError(
-                f"scripted policy {policy_id!r} must return the structured response the "
-                f"family's parse_action consumes, got {type(structured).__name__}"
-            )
-        # What the scheduler receives is what a harness-driven model seat
-        # receives: the structured response the family parses. What the
-        # attempt seals is what the executor seals for such a seat: a canonical
-        # response carrying the response text, here the mapping's canonical
-        # JSON -- so parse, legality, the record and replay never distinguish
-        # the two kinds of seat. finish_reason names the source; there is no
-        # provider call to cite and nothing was billed.
-        text = canonical_json_bytes(structured).decode("utf-8")
+        try:
+            structured = self._hook(policy_id, request, world_seed=self._cell.world_seed)
+            # The hook is synchronous (the design document's signature). Replay
+            # and finalization call it synchronously too, so an awaitable is
+            # refused here, at execution, rather than surfacing at finalize.
+            if inspect.isawaitable(structured):
+                close = getattr(structured, "close", None)
+                if callable(close):
+                    close()
+                raise SchedulerContractError(
+                    f"scripted policy {policy_id!r} returned an awaitable; scripted_response "
+                    "must return the structured response synchronously"
+                )
+            if not isinstance(structured, Mapping):
+                raise SchedulerContractError(
+                    f"scripted policy {policy_id!r} must return the structured response the "
+                    f"family's parse_action consumes, got {type(structured).__name__}"
+                )
+            # What the scheduler receives is what a harness-driven model seat
+            # receives: the structured response the family parses. What the
+            # attempt seals is what the executor seals for such a seat: a
+            # canonical response carrying the response text, here the mapping's
+            # canonical JSON -- so parse, legality, the record and replay never
+            # distinguish the two kinds of seat. finish_reason names the source;
+            # there is no provider call to cite and nothing was billed.
+            text = canonical_json_bytes(structured).decode("utf-8")
+        except Exception:
+            # As the executor does for a model seat: the started attempt and
+            # logical action get terminal events before the error propagates,
+            # so the evidence stays reconcilable and auditable.
+            self._seal_terminal(request, action_attempt_id, outcome="failed")
+            raise
+        except BaseException:
+            self._seal_terminal(request, action_attempt_id, outcome="unknown")
+            raise
         response = CanonicalResponse(
             text=text,
             finish_reason="scripted",
@@ -1485,6 +1504,30 @@ class ScriptedSeatSource:
             visibility=f"seat:{request.seat_id}",
         )
         return structured
+
+    def _seal_terminal(
+        self, request: DecisionRequest, action_attempt_id: str, *, outcome: str
+    ) -> None:
+        if outcome == "failed":
+            attempt_event, logical_event = "action_attempt_failed", "logical_action_failed"
+            condition = "scripted_policy_error"
+        else:
+            attempt_event = "action_attempt_outcome_unknown"
+            logical_event = "logical_action_outcome_unknown"
+            condition = "interrupted_during_scripted_policy"
+        self.evidence.append_event(
+            attempt_event,
+            {"failure_condition": condition},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            action_attempt_id=action_attempt_id,
+        )
+        self.evidence.append_event(
+            logical_event,
+            {"failure_condition": condition},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+        )
 
     def finalize_logical_action(
         self, logical_action_id: str, *, valid: bool, failure_code: str | None

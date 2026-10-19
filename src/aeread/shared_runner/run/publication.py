@@ -91,7 +91,7 @@ def receipt_projection(
             "condition": failure.get("condition"),
             "failure_class": failure.get("failure_class"),
         }
-    return {
+    projection = {
         "source_receipt_sha256": receipt["receipt_sha256"],
         "spec_version": receipt["spec_version"],
         "status": receipt["status"],
@@ -112,11 +112,17 @@ def receipt_projection(
         "failure": safe_failure,
         "scores": receipt["scores"],
         "observability_limits": receipt["observability_limits"],
-        # Which seats were not models (seat id -> scripted policy id); absent
-        # from receipts sealed before scripted seats existed, so defaulted.
-        "scripted_seats": dict(receipt.get("scripted_seats", {})),
         "campaign_cell_key": campaign_cell_key,
     }
+    # Which seats were not models (seat id -> scripted policy id). Projected
+    # only when there is one, so a receipt without a scripted seat publishes
+    # the same bytes it did before the field existed and an earlier campaign
+    # can still be republished into its own bundle (atomic_publish refuses
+    # different bytes).
+    scripted = dict(receipt.get("scripted_seats") or {})
+    if scripted:
+        projection["scripted_seats"] = scripted
+    return projection
 
 
 #: The fields that together identify one executed episode across a whole

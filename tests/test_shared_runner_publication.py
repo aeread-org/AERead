@@ -141,9 +141,9 @@ def test_receipt_projection_whitelists_fields_and_binds_the_campaign_cell() -> N
         "failure": None,
         "scores": [{"leaf_id": "leaf-1", "value": 1.0}],
         "observability_limits": ["cost_lower_bound"],
-        "scripted_seats": {},
         "campaign_cell_key": "model__case__seed_1",
     }
+    # No scripted seat: the key is absent, as before the field existed.
     assert "raw_response" not in json.dumps(projected)
 
 

@@ -1261,6 +1261,10 @@ def replay_family_receipt(
         _agent_profile_digests(setup.plan, cell)
     ):
         raise ValueError("receipt agent profile digests do not match the plan")
+    if canonical_json_bytes(dict(receipt.scripted_seats)) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted seats do not match the plan")
     evidence_path = RunLayout(
         Path(evidence_root), receipt.run_plan_id
     ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)
@@ -1443,6 +1447,11 @@ def audit_family_receipt(
     for key, value in expected.items():
         if canonical_json_bytes(receipt.get(key)) != canonical_json_bytes(value):
             raise ValueError(f"receipt {key} does not match the sealed plan")
+    # Omitted from the serialized receipt when empty, so absent reads as none.
+    if canonical_json_bytes(dict(receipt.get("scripted_seats") or {})) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted_seats does not match the sealed plan")
     root = receipt_path.parent
     canonical_identity = (
         root.name == receipt.get("episode_attempt_id")
