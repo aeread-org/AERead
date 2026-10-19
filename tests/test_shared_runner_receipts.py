@@ -626,3 +626,67 @@ def test_preimage_kind_makes_the_compatibility_path_visible_to_an_audit() -> Non
     tampered = dataclasses.replace(with_leaf, replicate_index=1)
     with pytest.raises(MeasurementContractError, match="receipt_sha256"):
         receipt_preimage_kind(tampered)
+
+
+def test_scripted_seats_are_digest_neutral_when_empty_and_sealed_when_set(tmp_path) -> None:
+    """``scripted_seats`` joins the omit-if-default set after #151 rewrote the
+    content digest to hash the canonical serialization. An empty map leaves a
+    receipt byte for byte as it was before the field existed; a non-empty map
+    is serialized, sealed, round-trips through the durable path, and a change
+    to it is caught.
+    """
+
+    from types import MappingProxyType
+
+    plain = seal_evaluation_receipt(_receipt())
+    assert '"scripted_seats"' not in canonical_json_bytes(plain).decode("utf-8")
+    assert (
+        hashlib.sha256(canonical_json_bytes(plain)).hexdigest()
+        == _PRE_ADDITIVE_FIELDS_RECEIPT_SHA256
+    )
+
+    scripted = seal_evaluation_receipt(
+        _receipt(scripted_seats=MappingProxyType({"landlord_0": "scripted_policy_v1"}))
+    )
+    assert '"scripted_seats"' in canonical_json_bytes(scripted).decode("utf-8")
+    assert scripted.receipt_sha256 != plain.receipt_sha256
+    verify_evaluation_receipt(scripted)
+
+    path = tmp_path / "receipt.json"
+    write_evaluation_receipt(scripted, path)
+    stored = read_evaluation_receipt(path)
+    assert stored["receipt_sha256"] == scripted.receipt_sha256
+    assert dict(stored["scripted_seats"]) == {"landlord_0": "scripted_policy_v1"}
+    assert deserialize_evaluation_receipt(stored) == scripted
+
+    changed = dataclasses.replace(
+        scripted, scripted_seats=MappingProxyType({"landlord_0": "scripted_policy_v2"})
+    )
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        verify_evaluation_receipt(changed)
+
+
+def test_a_scripted_seat_receipt_sealed_before_the_merge_still_verifies(tmp_path) -> None:
+    """Receipts sealed on the scripted-seat branch before it met #151 carry
+    ``"deferred_leaf_ids":[]`` and a non-empty ``scripted_seats`` in their
+    preimage (the published TERMS-Bench pilots are such receipts). They verify
+    through the transitional preimage on both the dataclass and bytes paths.
+    """
+
+    from types import MappingProxyType
+
+    from aeread.shared_runner.task.receipts import (
+        TRANSITIONAL_PREIMAGE,
+        receipt_preimage_kind,
+    )
+
+    receipt = _receipt(scripted_seats=MappingProxyType({"landlord_0": "scripted_policy_v1"}))
+    branch_sealed = _seal_with_the_transitional_preimage(receipt)
+    verify_evaluation_receipt(branch_sealed)
+    assert receipt_preimage_kind(branch_sealed) == TRANSITIONAL_PREIMAGE
+
+    path = tmp_path / "receipt.json"
+    write_evaluation_receipt(branch_sealed, path)
+    stored = read_evaluation_receipt(path)
+    assert stored["receipt_sha256"] == branch_sealed.receipt_sha256
+    assert deserialize_evaluation_receipt(stored).scripted_seats == receipt.scripted_seats

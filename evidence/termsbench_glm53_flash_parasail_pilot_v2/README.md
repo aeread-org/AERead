@@ -1,0 +1,3 @@
+# TERMS-Bench first live pilot
+
+One unscored route canary plus the frozen 30-case pilot corpus, half Overlap and half No-deal, on the pinned OpenRouter GLM 5.3 Flash/Parasail route. The agent seat is the only model seat; the counterpart is the family's own seeded kernel, run as a kernel scripted seat and sealed as such in every receipt. Every case is the pinned corpus case, unmodified. All cases ran sequentially through the shared runner; completed cases replayed their receipts, which recompute the counterpart's every turn, and a cell that failed inside the kernel is a typed exclusion receipt, never rerun. Leaves are regime-dependent: see `reports/summary.json` `by_regime`, and the family's corpus aggregate over the Overlap half.
