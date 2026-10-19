@@ -65,10 +65,17 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 KINDS = ("myopic_pays", "myopic_tests")
 SEEDS_PER_WORLD = 4_000
 PILOT_PACK_ID = "pay_or_test_v3_pilot"
-#: Each split's seed range and size. v2 scanned 8 950 000 to 9 160 000; v3 starts above it.
-SPLITS: dict[str, dict[str, int]] = {
+CONFIRM_PACK_ID = "pay_or_test_v3_confirm"
+DIAGNOSTIC_PACK_ID = "pay_or_test_v3_odds_diagnostic"
+#: Each split's seed range, size and cells. v2 scanned 8 950 000 to 9 160 000; v3's pilot 9 300 000 to 9 348 000.
+#: The confirmatory pack holds option-value worlds only (``pay_or_test_v3_confirmatory_plan.md``).
+SPLITS: dict[str, dict[str, Any]] = {
     PILOT_PACK_ID: {"seed_start": 9_300_000, "worlds_per_cell": 6},
+    CONFIRM_PACK_ID: {"seed_start": 9_400_000, "worlds_per_cell": 20, "kinds": ("myopic_pays",)},
 }
+#: The odds diagnostic: each confirmatory world with its cohort records redrawn from version 1's ranges, where a
+#: subject that never tests here tested in 13 of 14 worlds where testing paid. Not admitted; a diagnostic, no claim.
+V1_COHORT_LATE, V1_COHORT_FAILED = (4, 8), (8, 14, 20, 24)
 
 TARGET_KITS, MINIMUM_SERVICE_KITS = 50, 40
 REVENUE_PER_KIT_USD, SHORTFALL_PENALTY_USD = 37.0, 12.0
@@ -112,7 +119,7 @@ ADMISSION_RULES = (*LOOKAHEAD_RULES, *FIXED_RULES, *SHORTCUT_RULES)
 
 
 def pack_root(split: str = PILOT_PACK_ID) -> Path:
-    if split not in SPLITS:
+    if split not in SPLITS and split != DIAGNOSTIC_PACK_ID:
         raise KeyError(f"unknown split {split!r}")
     return REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / split
 
@@ -120,7 +127,7 @@ def pack_root(split: str = PILOT_PACK_ID) -> Path:
 def world_specs(split: str = PILOT_PACK_ID) -> tuple[dict[str, Any], ...]:
     per_cell, start = SPLITS[split]["worlds_per_cell"], SPLITS[split]["seed_start"]
     specs = []
-    for cell_index, kind in enumerate(KINDS):
+    for cell_index, kind in enumerate(SPLITS[split].get("kinds", KINDS)):
         for k in range(per_cell):
             ordinal = cell_index * per_cell + k
             specs.append({"slug": f"{kind}__{k + 1}", "kind": kind, "pack_id": split, "ordinal": ordinal + 1,
@@ -482,9 +489,54 @@ def build_pack(entries: Sequence[tuple[dict[str, Any], dict[str, Any]]] | None =
         "rules": {"screened": list(ADMISSION_RULES), "diagnostic": list(DIAGNOSTIC_RULES)},
         "worlds": worlds, "world_count": len(worlds),
         "seeds_scanned": sum(w["seeds_scanned"] for w in worlds),
-        "seeds_scanned_by_cell": {kind: sum(w["seeds_scanned"] for w in worlds if w["kind"] == kind) for kind in KINDS},
+        "seeds_scanned_by_cell": {kind: sum(w["seeds_scanned"] for w in worlds if w["kind"] == kind)
+                                  for kind in SPLITS[split].get("kinds", KINDS)},
         "expected_loss_usd_by_rule": mean_loss,
     }
+    return {"manifest": manifest, "cases": cases}
+
+
+def with_version_one_odds(structure: Mapping[str, Any], seed: int) -> dict[str, Any]:
+    """The same listings, prices, clock and sharing chance, with each kind's cohort record redrawn from v1's ranges."""
+    rng = random.Random(f"{GENERATOR_ID}:{seed}:version_one_odds")
+    cohorts = {kind: {"late": rng.choice(V1_COHORT_LATE), "failed": rng.choice(V1_COHORT_FAILED)} for kind in SELLER_KINDS}
+    newcomers = [{**n, "late": cohorts[n["kind"]]["late"], "failed": cohorts[n["kind"]]["failed"]}
+                 for n in structure["newcomers"]]
+    return {**structure, "newcomers": newcomers}
+
+
+def build_diagnostic_pack(confirm: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Each confirmatory world's twin under version 1's cohort odds, valued exactly; nothing is admitted or screened."""
+    confirm = confirm or json.loads((pack_root(CONFIRM_PACK_ID) / "pack.json").read_text(encoding="utf-8"))
+    cases, worlds = [], []
+    for twin in confirm["worlds"]:
+        spec = {"slug": twin["slug"], "kind": twin["kind"], "pack_id": DIAGNOSTIC_PACK_ID}
+        seed = twin["world_seed"]
+        structure = with_version_one_odds(draw_structure(spec, seed), seed)
+        drawn = draw_types(structure, seed)
+        case = build_case(spec, seed, structure, drawn)
+        found = classify(case["payload"])
+        worlds.append({
+            "slug": twin["slug"], "twin_case_id": twin["case_id"], "world_seed": seed, "case_id": case["case_id"],
+            "content_sha256": case["content_sha256"],
+            "cohorts": {n["kind"]: {"late": n["late"], "failed": n["failed"]} for n in structure["newcomers"]},
+            "types": list(drawn["types"]), "shared_by_group": list(drawn["shared_by_group"]),
+            "newcomers": [{"supplier_id": f"{COMPONENT}_l{code}", "kind": n["kind"], "price_usd": n["price"],
+                           "stated_good_share": round(1.0 - (n["late"] + n["failed"]) / COHORT_TRACKED, 4)}
+                          for code, n in zip(structure["codes"][1:], structure["newcomers"])],
+            "one_step_kind": found["kind"],
+            **{k: found[k] for k in ("best_policy_value_usd", "rule_value_usd", "rule_loss_usd", "best_over_pay_share",
+                                     "best_first_action", "best_first_to_newcomer", "one_step_first_action",
+                                     "expected_full_information_value_usd")},
+            "realized": realized(case["payload"]),
+        })
+        cases.append(case)
+    manifest = {"schema_version": PACK_SCHEMA, "pack_id": DIAGNOSTIC_PACK_ID,
+                "generator": {"id": GENERATOR_ID, "version": GENERATOR_VERSION},
+                "family": {"id": FAMILY_ID, "version": FAMILY_VERSION},
+                "twin_of": CONFIRM_PACK_ID, "cohort_ranges": {"late": list(V1_COHORT_LATE), "failed": list(V1_COHORT_FAILED)},
+                "reads": "the confirmatory worlds' structures with cohort records redrawn; valued exactly, not admitted",
+                "worlds": worlds, "world_count": len(worlds)}
     return {"manifest": manifest, "cases": cases}
 
 
@@ -513,9 +565,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--root", type=Path)
-    parser.add_argument("--split", choices=sorted(SPLITS), default=PILOT_PACK_ID)
+    parser.add_argument("--split", choices=sorted([*SPLITS, DIAGNOSTIC_PACK_ID]), default=PILOT_PACK_ID)
     parser.add_argument("--workers", type=int, default=1, help="screen seeds in parallel; the pack is the same")
     arguments = parser.parse_args(argv)
+    if arguments.split == DIAGNOSTIC_PACK_ID:
+        for path in write_pack(arguments.root, pack=build_diagnostic_pack(), split=DIAGNOSTIC_PACK_ID):
+            print(path)
+        return 0
     if arguments.write:
         for path in write_pack(arguments.root, split=arguments.split, workers=arguments.workers):
             print(path)
@@ -531,7 +587,7 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "ADMISSION_RULES", "ANSWER_PROBABILITY", "KINDS", "MARGIN_USD", "PILOT_PACK_ID", "RECORD_DISCOUNTS", "SPLITS",
-    "STAKE_SHARE", "admit", "build_case", "build_pack", "build_world", "case_paths", "classify", "draw_structure",
+    "ADMISSION_RULES", "ANSWER_PROBABILITY", "CONFIRM_PACK_ID", "DIAGNOSTIC_PACK_ID", "KINDS", "MARGIN_USD", "PILOT_PACK_ID", "RECORD_DISCOUNTS", "SPLITS",
+    "STAKE_SHARE", "admit", "build_case", "build_diagnostic_pack", "with_version_one_odds", "build_pack", "build_world", "case_paths", "classify", "draw_structure",
     "draw_types", "expected_full_information_value", "groups_of", "pack_root", "realized", "world_specs", "write_pack",
 ]

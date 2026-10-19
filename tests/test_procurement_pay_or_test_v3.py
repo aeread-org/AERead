@@ -497,3 +497,66 @@ def test_once_trusted_an_episode_runs_through_the_kernel_scores_as_the_reference
     assert receipt.status == "ok" and receipt.scores[0].leaf.scorer.implementation_id == environment.SCORER_ID
     replayed = replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path / "ev")
     assert canonical_json_bytes(replayed) == canonical_json_bytes(receipt)
+
+
+# --- the confirmatory pack and its odds twins --------------------------------------------------
+
+
+def _confirm_manifest() -> dict:
+    return json.loads((pack_module.pack_root(pack_module.CONFIRM_PACK_ID) / "pack.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("index", range(20))
+def test_each_confirmatory_world_is_rebuilt_from_its_seed_byte_for_byte(index) -> None:
+    world = _confirm_manifest()["worlds"][index]
+    spec = next(s for s in pack_module.world_specs(pack_module.CONFIRM_PACK_ID) if s["slug"] == world["slug"])
+    assert world["world_seed"] == spec["seed_block"] + world["seeds_scanned"] - 1
+    case, entry = pack_module.world_at(spec, world["world_seed"], world["seeds_scanned"])
+    root = pack_module.pack_root(pack_module.CONFIRM_PACK_ID)
+    assert case == json.loads((root / f"{world['slug']}.json").read_text(encoding="utf-8")) and entry == world
+
+
+def test_no_earlier_seed_of_any_confirmatory_block_is_admitted() -> None:
+    from concurrent.futures import ProcessPoolExecutor
+
+    jobs = []
+    for world in _confirm_manifest()["worlds"]:
+        spec = next(s for s in pack_module.world_specs(pack_module.CONFIRM_PACK_ID) if s["slug"] == world["slug"])
+        jobs += [(spec, seed) for seed in range(spec["seed_block"], world["world_seed"])]
+    with ProcessPoolExecutor(8) as pool:
+        admitted = [job[1] for job, ok in zip(jobs, pool.map(pack_module._admits, jobs, chunksize=4)) if ok]
+    assert admitted == []
+
+
+def test_the_confirmatory_pack_is_twenty_fresh_option_value_worlds_that_pass_admission() -> None:
+    manifest = _confirm_manifest()
+    worlds = manifest["worlds"]
+    assert len(worlds) == 20 and {w["kind"] for w in worlds} == {"myopic_pays"}
+    pilot = json.loads((pack_module.pack_root() / "pack.json").read_text(encoding="utf-8"))
+    assert min(w["world_seed"] for w in worlds) > max(w["world_seed"] for w in pilot["worlds"])
+    for w in worlds:
+        for name in pack_module.ADMISSION_RULES:
+            assert w["rule_loss_usd"][name] >= pack_module.MARGIN_USD
+        assert w["best_over_pay_share"] >= pack_module.STAKE_SHARE
+        assert w["one_step_loss_without_shared_source_usd"] < pack_module.ATTRIBUTION_USD
+    entries = [(json.loads((pack_module.pack_root(pack_module.CONFIRM_PACK_ID) / f"{w['slug']}.json").read_text()), w)
+               for w in worlds]
+    assert pack_module.build_pack(entries, split=pack_module.CONFIRM_PACK_ID)["manifest"] == manifest
+
+
+def test_each_odds_twin_is_its_confirmatory_world_with_only_the_cohort_records_redrawn() -> None:
+    root = pack_module.pack_root(pack_module.DIAGNOSTIC_PACK_ID)
+    committed = json.loads((root / "pack.json").read_text(encoding="utf-8"))
+    rebuilt = pack_module.build_diagnostic_pack()
+    assert rebuilt["manifest"] == committed
+    for case in rebuilt["cases"]:
+        assert case == json.loads((root / f"{case['case_id'].rsplit('.', 1)[-1]}.json").read_text(encoding="utf-8"))
+    for twin in committed["worlds"]:
+        spec = {"slug": twin["slug"], "kind": "myopic_pays", "pack_id": pack_module.CONFIRM_PACK_ID}
+        original = pack_module.draw_structure(spec, twin["world_seed"])
+        variant = pack_module.with_version_one_odds(original, twin["world_seed"])
+        strip = lambda st: {**st, "newcomers": [{k: v for k, v in n.items() if k not in ("late", "failed")}  # noqa: E731
+                                                for n in st["newcomers"]]}
+        assert strip(original) == strip(variant)
+        for n in variant["newcomers"]:
+            assert n["late"] in pack_module.V1_COHORT_LATE and n["failed"] in pack_module.V1_COHORT_FAILED

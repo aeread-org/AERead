@@ -37,16 +37,28 @@ from aeread_families.procurement_allocation import runner as v1_runner
 from aeread_families.procurement_allocation.pay_or_test_v3_environment import action_output_schema
 
 PACK, PROMPT = v3.PILOT_PACK_ID, "v3_brief_v1"
-REPLICATES = 2
-base.PACKS[PACK] = {
-    "paths": lambda: list(v3.case_paths()),
-    "gate_world": "myopic_pays__1",
-    "prompts": (PROMPT,),
-    "total_cost_ceiling_usd": {"claude_opus55": {"gate": 1.0, "panel": 15.0}, "codex_sol61": {"gate": 1.0, "panel": 10.0}},
+#: Each pack's plays a world, claim status and scope. The pilot's are what its sealed plan records.
+ARMS = {
+    v3.PILOT_PACK_ID: {"replicates": 2, "claim_status": None, "claim_scope": (
+        "development pilot of a CLI subject on declared cases; two plays a world, sizing a later declared run, no model ranking")},
+    v3.CONFIRM_PACK_ID: {"replicates": 2, "claim_status": "confirmatory", "claim_scope": (
+        "confirmatory test declared in pay_or_test_v3_confirmatory_plan.md (arm A): whether the subject closes a positive "
+        "share of the pay-to-best gap on fresh option-value worlds, two plays a world; the same plays are arm B's control")},
+    v3.DIAGNOSTIC_PACK_ID: {"replicates": 1, "claim_status": "development_diagnostic", "claim_scope": (
+        "diagnostic declared in pay_or_test_v3_confirmatory_plan.md (arm B): the confirmatory worlds with version 1's "
+        "cohort odds; one play a world, no claim")},
 }
+for _pack, _ceiling in ((v3.PILOT_PACK_ID, {"claude_opus55": 15.0, "codex_sol61": 10.0}),
+                        (v3.CONFIRM_PACK_ID, {"claude_opus55": 10.0, "codex_sol61": 10.0}),
+                        (v3.DIAGNOSTIC_PACK_ID, {"claude_opus55": 10.0, "codex_sol61": 10.0})):
+    base.PACKS[_pack] = {
+        "paths": (lambda split=_pack: list(v3.case_paths(split=split))),
+        "gate_world": "myopic_pays__1",
+        "prompts": (PROMPT,),
+        "total_cost_ceiling_usd": {who: {"gate": 1.0, "panel": ceiling} for who, ceiling in _ceiling.items()},
+    }
 base.PROMPTS[PROMPT] = {"prompt_id": pay_or_test_v3_prompt.PROMPT_ID, "text": pay_or_test_v3_prompt.PAY_OR_TEST_V3_PROMPT,
                         "treatment_id": pay_or_test_v3_prompt.TREATMENT_ID}
-base.CONTROLS["replicates"] = REPLICATES
 
 
 def build_setup(subject: str, case_path: Path, runtime, prompt: str = PROMPT) -> v1_runner.ProcurementAllocationSetup:
@@ -114,11 +126,14 @@ _model_plan = base.model_plan
 
 
 def model_plan(subject, panel, runtime, pack=PACK, prompt=PROMPT):
-    """The base plan, with its scope stating two plays a world."""
+    """The base plan, with the arm's plays a world, claim status and scope."""
+    arm = ARMS[pack]
+    base.CONTROLS["replicates"] = arm["replicates"]
     plan = dict(_model_plan(subject, panel, runtime, pack, prompt))
     plan.pop("plan_sha256")
-    plan["claim_scope"] = ("development pilot of a CLI subject on declared cases; two plays a world, sizing a later "
-                           "declared run, no model ranking")
+    plan["claim_scope"] = arm["claim_scope"]
+    if arm["claim_status"] is not None and panel == "panel":
+        plan["claim_status"] = arm["claim_status"]
     plan["plan_sha256"] = hashlib.sha256(canonical_json_bytes(plan)).hexdigest()
     return plan
 
@@ -155,13 +170,14 @@ async def probe(subject: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--subject", choices=("claude_opus55", "codex_sol61"), required=True)
+    parser.add_argument("--pack", choices=sorted(ARMS), default=PACK)
     parser.add_argument("--panel", choices=("gate", "panel"), default="panel")
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args(argv)
     if not args.execute:
-        print(json.dumps(model_plan(args.subject, args.panel, {"runtime_version": "plan-only"}), indent=1, default=str)[:2000])
+        print(json.dumps(model_plan(args.subject, args.panel, {"runtime_version": "plan-only"}, args.pack), indent=1, default=str)[:2000])
         return 0
     found = asyncio.run(probe(args.subject))
     args.run_root.mkdir(parents=True, exist_ok=True)
@@ -169,7 +185,8 @@ def main(argv: list[str] | None = None) -> int:
     if found["violations"]:
         print(f"isolation probe refuses the run: {found['violations']}", file=sys.stderr)
         return 2
-    artifact = asyncio.run(base.run(args.subject, args.panel, args.run_root, resume=args.resume, pack=PACK, prompt=PROMPT))
+    base.CONTROLS["replicates"] = ARMS[args.pack]["replicates"]
+    artifact = asyncio.run(base.run(args.subject, args.panel, args.run_root, resume=args.resume, pack=args.pack, prompt=PROMPT))
     print(json.dumps({"halted": artifact["halted"], "summary": {k: artifact["summary"].get(k) for k in
                                                                 ("completed_trajectories", "planned_trajectory_count")}}))
     return 0

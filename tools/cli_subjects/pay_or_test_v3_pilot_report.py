@@ -45,10 +45,12 @@ def _interval(values: list[float]) -> list[float] | None:
 
 
 def read(run_root: Path) -> dict:
-    manifest = json.loads((pack_module.pack_root() / "pack.json").read_text())
-    worlds = {w["case_id"]: w for w in manifest["worlds"]}
-    payloads = {json.loads(p.read_text())["case_id"]: json.loads(p.read_text())["payload"] for p in pack_module.case_paths()}
     artifact = json.loads((run_root / "summary.json").read_text())
+    split = artifact["plan"].get("pack", pack_module.PILOT_PACK_ID)
+    manifest = json.loads((pack_module.pack_root(split) / "pack.json").read_text())
+    worlds = {w["case_id"]: w for w in manifest["worlds"]}
+    payloads = {json.loads(p.read_text())["case_id"]: json.loads(p.read_text())["payload"]
+                for p in pack_module.case_paths(split=split)}
     plays, failed = [], []
     for row in artifact["rows"]:
         world = worlds[row["case_id"]]
@@ -84,7 +86,7 @@ def read(run_root: Path) -> dict:
             "unanswered_quotes": len(unanswered), "asked_again_after_no_reply": asked_again,
             "margin_usd": round(margin, 4),
         })
-    out = {"campaign_id": artifact["plan"]["campaign_id"], "plays": len(plays), "failed": failed, "by_kind": {}}
+    out = {"campaign_id": artifact["plan"]["campaign_id"], "pack": split, "plays": len(plays), "failed": failed, "by_kind": {}}
     for kind in pack_module.KINDS:
         rows = [p for p in plays if p["kind"] == kind]
         by_world: dict[str, list[dict]] = {}
