@@ -1,4 +1,4 @@
-"""Scripted seats (docs/kernel_scripted_seats_design.md, #92), slice 1.
+"""Scripted seats (docs/architecture/kernel_scripted_seats_design.md, #92), slice 1.
 
 A scripted seat is a seat the family resolves itself rather than a model.
 These tests cover the declaration and resolution rules; the execution and
@@ -58,15 +58,29 @@ def test_a_scripted_seat_must_use_a_policy_its_role_declares() -> None:
 
 
 def test_a_testable_role_cannot_be_scripted() -> None:
-    """A scripted subject is a measurement of nothing."""
+    """A scripted subject is a measurement of nothing.
+
+    The tenant role declares the policy it is scripted with, so the
+    declared-policy check passes and the testable check is the one that
+    fires (review of #150, finding 5: with no declared policy the earlier
+    check raised first and the testable guard went untested)."""
+    from aeread.shared_runner.schemas import RoleSpec
+
     inputs = _inputs()
+    family = inputs["families"][0]
+    roles = dict(family.roles)
+    roles["tenant"] = RoleSpec(testable=True, scripted_policies=("tenant_script_v1",))
+    inputs["families"] = (
+        dataclasses.replace(family, roles=MappingProxyType(roles)),
+        *inputs["families"][1:],
+    )
     run = inputs["run_spec"]
     inputs["run_spec"] = dataclasses.replace(
         run,
         seat_assignments=MappingProxyType({"landlord_0": run.seat_assignments["landlord_0"]}),
-        scripted_seats=MappingProxyType({"tenant_0": "anything"}),
+        scripted_seats=MappingProxyType({"tenant_0": "tenant_script_v1"}),
     )
-    with pytest.raises(PlanResolutionError):
+    with pytest.raises(PlanResolutionError, match="testable"):
         resolve_run_plan(**inputs)
 
 

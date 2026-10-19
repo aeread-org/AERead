@@ -1,6 +1,6 @@
 """Provider-free coverage for the amazonbarg in-process delegation shim.
 
-See ``docs/amazonbarg_adapter_spec.md`` section 3.1 and test plan P2:
+See ``docs/families/amazonbarg/adapter_spec.md`` section 3.1 and test plan P2:
 (a) no socket/HTTP call occurs during shim install or module import; (b)
 the stub miss-counter is 0 after the full adapter test suite runs.
 """

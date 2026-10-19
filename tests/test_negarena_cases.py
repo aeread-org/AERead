@@ -1,7 +1,7 @@
 """Tests for the negarena case-authoring stage: pins, scenario grid, records.
 
 Negarena ships no upstream task bank (governing fact in
-``docs/negarena_adapter_spec.md``); AERead authors the scenario grid, so
+``docs/families/negarena/adapter_spec.md``); AERead authors the scenario grid, so
 these tests exercise the authoring module directly rather than a pinned
 upstream checkout on disk (contrast with
 ``tests/test_tau3_retail_cases.py``).

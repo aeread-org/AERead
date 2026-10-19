@@ -22,6 +22,21 @@ than one) and enforces the one rule that differs.
 | **evidence** | `evidence/**` | CI green. Review is **verification, not reading**: run the bundle's replay/digest check, the prohibited-text scan, and `aeread errata`, and paste the output as the review comment. A 70k-line bundle is reviewed in ten minutes this way, and better. |
 | **family** | everything else (`src/aeread_families/**`, `configs/`, `cases/`, `docs/`, tests) | CI green. Ask for a review when the change touches a scoring contract, a verifier declaration, or a frozen self-hashed module. |
 
+The replay check for a bundle is one command, and its output is what gets
+pasted:
+
+```bash
+aeread verify-replay evidence/<family>/<publication_id> \
+  --run-root runs/<campaign_id> --setup aeread_families.<family>.<module>:<callable>
+```
+
+It finds each published receipt's sealed attempt under the run root, re-drives
+it through the family environment, recomputes the score, and reports every row
+as `verified`, `differs` or `evidence_missing`; it exits non-zero unless every
+row verified. `--setup` names the family callable that returns the evaluation
+setup (sealed plan and registry) for a durable receipt. A `replay_verified`
+field inside a bundle is the producing run's own claim and is not this check.
+
 The kernel is small and load-bearing; a second pair of eyes there has paid
 for itself twice in one week. Evidence is large and generated; eyes on the
 diff are worth less than a script that recomputes it.
@@ -67,6 +82,28 @@ the file each person happened to put the method.
 any family module, so this particular shape cannot merge silently again. The
 rule stays anyway: the test catches duplicate definitions, not two definitions
 that were merged into one wrong one.
+
+For each conflicted registration file, run the structural checks before
+committing the resolution, from the scratch worktree:
+
+```bash
+python tools/check_registration_merge.py tests/test_shared_runner_scoring_contract.py --ours HEAD --theirs MERGE_HEAD
+python tools/check_registration_merge.py src/aeread/shared_runner/registry.py --ours HEAD --theirs MERGE_HEAD
+python tools/check_registration_merge.py conftest.py --ours HEAD --theirs MERGE_HEAD
+pytest tests/test_shared_runner_scoring_contract.py -q
+```
+
+For a rebase, pass the corresponding two parent revisions explicitly. The
+checker includes imports and aliases in the bound-name comparison, rejects
+new duplicate bindings, preserves the intersection of migration exemptions
+and the union of bridge enrollment, and flags annotated helpers that may
+return no value. Its return analysis is conservative, not a Python type
+checker; known non-returning pytest skip/fail/exit calls are recognized.
+An ambiguous result requires inspection, never deleting a parent block to
+make the check green. Scorer behavior still needs the test on the resolved
+tree. The repository-wide duplicate-binding guard also checks imports,
+while allowing ordinary sibling namespace imports such as `urllib.error`
+and `urllib.request`.
 
 ## 4. Limits
 
@@ -134,3 +171,61 @@ git commit --allow-empty -m "chore: trigger lane check" && git push
 
 The PR is labelled and checked within about a minute. Do this right before
 merging a stale PR rather than for every open PR at once.
+
+## 8. A kernel PR stays BLOCKED although it is approved and every check is green
+
+Symptom: `gh pr view N --json mergeStateStatus` says `BLOCKED`, the review
+decision is `APPROVED`, and every check reads `SUCCESS`. Looking at the rollup
+shows `kernel-review` **twice on the same head**, once `FAILURE` and once
+`SUCCESS`. That is the normal shape when the check ran before the approval
+existed and again after it: the first run failed honestly, and the failed run
+stays attached to the head.
+
+**Do not reach for section 7's empty commit here.** A push moves the head, and
+a kernel-lane approval is pinned to the head SHA — `pr-lanes.yml` selects
+reviews with `.state == "APPROVED" and .commit_id == "$HEAD_SHA"`. Pushing
+anything, empty commit included, discards the approval you just obtained and
+costs your reviewer a second round.
+
+`kernel-review-reconcile.yml` checks for this after each `pr-lanes` run
+finishes. It reads the live PR head, changed files, and formal reviews,
+then re-runs older failed or cancelled **whole workflows** on that same
+head. It does not set checks to success or merge anything. Drafts, changed
+heads, absent approvals, incomplete file listings, and failures outside
+`kernel-review` do not qualify. After three workflow attempts it stops for
+manual inspection. Review comments do not revoke a formal approval;
+changes-requested and dismissed reviews do.
+
+For inspection or recovery before that workflow is deployed, use:
+
+```bash
+python tools/ci/reconcile_kernel_review.py --repo aeread-org/AERead --sha <full-head-sha>
+# Add --apply only after inspecting the reported candidates.
+```
+
+Or re-run the failed run directly. The SHA does not change, so the approval
+survives. Use a full rerun, not `--failed`: the partial rerun on #176 left a
+cancelled gate instance attached to the head.
+
+```bash
+gh run list --repo aeread-org/AERead --branch <branch> \
+  --workflow pr-lanes.yml --json databaseId,conclusion,headSha
+gh run rerun <databaseId of the FAILURE run>
+```
+
+Observed on #158: approved and green, `BLOCKED` until the pre-approval
+`kernel-review` run was re-run in place.
+
+## 9. Repository automation and test timings
+
+Auto-merge, deletion of merged branches, and the Update branch button are
+enabled at repository level. Auto-merge is selected per PR after its scope
+and landing order are settled; it still waits for the required checks.
+Updating a kernel PR changes its head and requires a fresh non-author
+approval. Branch deletion does not replace rebase and combined-tree checks
+for dependent PRs.
+
+The provider-free CI jobs print their 30 slowest tests and retain JUnit XML
+as `test-results-python-<version>` artifacts, including on failures. The
+pytest command's exit status is preserved directly. Use these timings to
+identify long individual tests that more xdist workers cannot split.

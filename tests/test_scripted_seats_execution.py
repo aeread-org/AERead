@@ -1,4 +1,4 @@
-"""Scripted seats (docs/kernel_scripted_seats_design.md, #92), slice 2.
+"""Scripted seats (docs/architecture/kernel_scripted_seats_design.md, #92), slice 2.
 
 Execution, sealing, receipts and replay of a seat the family resolves itself.
 Built on the kernel-owned reference family: a ``counterpart`` role that is
@@ -247,3 +247,129 @@ def test_a_scripted_receipt_and_its_plan_survive_the_research_layer_round_trip(t
     loaded = research._load_run_plan(plan_path)
     assert loaded.plan_sha256 == setup.plan.plan_sha256
     assert dict(loaded.cells[0].scripted_seats) == SCRIPTED
+
+
+# Review of #150 (2026-09-09), findings 1-4, 6 and 7.
+
+
+def test_the_projection_omits_scripted_seats_when_there_are_none(tmp_path: Path) -> None:
+    """Finding 1: a receipt without a scripted seat projects the bytes it did
+    before the field existed, so an earlier campaign can be republished into
+    its own bundle (atomic_publish refuses different bytes)."""
+    from aeread.shared_runner.run.publication import atomic_publish, jsonl, receipt_projection
+    from aeread.shared_runner.task.receipts import read_evaluation_receipt
+
+    setup, execution = _run(tmp_path)
+    finalize_family_execution(setup=setup, execution=execution)
+    serialized = dict(read_evaluation_receipt(execution.evidence.root / "evaluation_receipt.json"))
+    serialized.pop("scripted_seats")
+    before = {key: value for key, value in receipt_projection(serialized, campaign_cell_key="k").items()}
+    assert "scripted_seats" not in before
+    assert "scripted_seats" not in receipt_projection(
+        {**serialized, "scripted_seats": {}}, campaign_cell_key="k"
+    )
+    path = tmp_path / "bundle" / "receipts.jsonl"
+    atomic_publish(path, jsonl([before]))
+    atomic_publish(path, jsonl([receipt_projection(serialized, campaign_cell_key="k")]))
+
+
+def _attempt_dirs(root: Path) -> list[Path]:
+    return sorted(path for path in root.rglob("*") if path.is_dir() and path.parent.name == "attempts")
+
+
+def test_an_async_hook_is_refused_at_execution_with_reconcilable_evidence(tmp_path: Path) -> None:
+    """Finding 2: replay calls the hook synchronously, so an awaitable is
+    refused where it is produced instead of breaking finalization later."""
+    from aeread.shared_runner.task.execution import EvidenceStore
+
+    class _AsyncHook(_ScriptedCounterpartPlugin):
+        async def scripted_response(self, policy_id, request, *, world_seed):
+            return {"label": "x"}
+
+    with pytest.raises(SchedulerContractError, match="awaitable"):
+        _run(tmp_path, plugin_factory=_AsyncHook)
+    attempts = _attempt_dirs(tmp_path / "run")
+    assert attempts
+    for attempt in attempts:
+        EvidenceStore.audit_existing(attempt).audit_reconciliation()
+
+
+def test_a_raising_hook_leaves_reconcilable_evidence(tmp_path: Path) -> None:
+    """Finding 3: the started attempt and logical action get terminal events,
+    as the executor seals them for a model seat, before the error propagates."""
+    from aeread.shared_runner.task.execution import EvidenceStore
+
+    class _Raising(_ScriptedCounterpartPlugin):
+        def scripted_response(self, policy_id, request, *, world_seed):
+            raise RuntimeError("scripted policy bug")
+
+    with pytest.raises(SchedulerContractError, match="scripted policy bug"):
+        _run(tmp_path, plugin_factory=_Raising)
+    attempts = _attempt_dirs(tmp_path / "run")
+    assert attempts
+    for attempt in attempts:
+        store = EvidenceStore.audit_existing(attempt)
+        store.audit_reconciliation()
+        failed = [event for event in store.read_events() if event.event_type == "action_attempt_failed"]
+        assert len(failed) == 1
+
+
+def test_replay_and_audit_refuse_scripted_seats_that_disagree_with_the_plan(tmp_path: Path) -> None:
+    """Finding 4: a self-consistent receipt that names another policy for the
+    scripted seat no longer passes replay or audit."""
+    from aeread.shared_runner.task.evaluation import audit_family_receipt
+    from aeread.shared_runner.task.receipts import seal_evaluation_receipt, write_evaluation_receipt
+
+    setup, execution = _run(tmp_path)
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    tampered = seal_evaluation_receipt(
+        dataclasses.replace(
+            receipt,
+            receipt_sha256=None,
+            scripted_seats=MappingProxyType({"counterpart_0": "some_other_policy_v9"}),
+        )
+    )
+    with pytest.raises(ValueError, match="scripted seats do not match"):
+        replay_family_receipt(setup=setup, receipt=tampered, evidence_root=tmp_path / "run")
+    path = execution.evidence.root / "evaluation_receipt.json"
+    audit_family_receipt(setup=setup, receipt_path=path)
+    path.unlink()
+    write_evaluation_receipt(tampered, path)
+    with pytest.raises(ValueError, match="scripted_seats does not match"):
+        audit_family_receipt(setup=setup, receipt_path=path)
+
+
+def test_a_cell_with_a_seat_both_scripted_and_profiled_is_refused(tmp_path: Path) -> None:
+    """Finding 6: the scheduler's cell check rejects the overlap that RunSpec
+    forbids, for a cell built outside the resolver."""
+    from aeread.shared_runner.task.scheduler import _validate_cell_case
+
+    setup, _ = _run(tmp_path)
+    cell = setup.plan.cells[0]
+    profile = next(iter(cell.profile_by_seat))
+    both = dataclasses.replace(
+        cell, scripted_seats=MappingProxyType({**cell.scripted_seats, profile: POLICY})
+    )
+    with pytest.raises(SchedulerContractError, match="both a model profile and a scripted policy"):
+        _validate_cell_case(both, _case())
+
+
+def test_the_research_layer_refuses_a_provider_call_from_a_scripted_seat(tmp_path: Path, monkeypatch) -> None:
+    """Finding 7: a scripted seat is permitted to act, never to call a model."""
+    from types import SimpleNamespace
+
+    from aeread.shared_runner.analysis import research
+
+    setup, execution = _run(tmp_path)
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    stores = {setup.plan.cells[0].cell_id: execution.evidence}
+    research.project_loss_analysis_tables(setup.plan, [receipt], stores)
+
+    real = research._extract_model_calls
+
+    def with_a_scripted_call(evidence, *, task_id):
+        return (*real(evidence, task_id=task_id), SimpleNamespace(seat_id="counterpart_0"))
+
+    monkeypatch.setattr(research, "_extract_model_calls", with_a_scripted_call)
+    with pytest.raises(research.ResearchContractError, match="scripted seats made provider calls"):
+        research.project_loss_analysis_tables(setup.plan, [receipt], stores)

@@ -58,7 +58,7 @@ PREDECESSOR_RUN_ROOT = (
     REPOSITORY_ROOT / "runs" / "datacenter_development_terms_public_integrated_v9"
 )
 PREDECESSOR_PUBLICATION_ROOT = (
-    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms_public_integrated_v9"
+    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms" / "datacenter_development_terms_public_integrated_v9"
 )
 ALTERNATE_QUALIFICATION_ROOT = (
     REPOSITORY_ROOT

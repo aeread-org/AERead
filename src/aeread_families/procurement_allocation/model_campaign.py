@@ -325,14 +325,14 @@ def _validate_operational_run_root(run_root: Path) -> None:
 def _validate_publication_root(publication_root: Path) -> None:
     resolved = publication_root.resolve()
     parts = resolved.parts
-    if resolved.parent.name != "evidence" or {
+    if "evidence" not in {parent.name for parent in resolved.parents} or {
         "output",
         "outputs",
         "runs",
         "docs",
     }.intersection(parts):
         raise ValueError(
-            "--publication-root must be one direct evidence/<publication_id> bundle"
+            "--publication-root must be a bundle inside the evidence/ tree"
         )
 
 

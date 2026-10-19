@@ -1,4 +1,4 @@
-"""End-to-end coverage for the ``steer`` adapter (docs/steer_adapter_spec.md
+"""End-to-end coverage for the ``steer`` adapter (docs/families/steer/adapter_spec.md
 section 5, "e2e"): one scripted trajectory per declared element (8 total)
 through the REAL kernel scheduler (``run_episode``) and the REAL
 ``ScriptedSteerHarness`` -- never a hand-wired shortcut around either --
@@ -170,7 +170,7 @@ def test_scripted_harness_runs_one_full_episode_per_declared_element(
     assert envelope.primary.unit == "pass"
 
     # Sealed evidence: the harness recorded one event for the submitted
-    # answer plus one for the score (finding 8, docs/steer_codex_triage.md --
+    # answer plus one for the score (finding 8, docs/families/steer/reviews/steer_codex_triage.md --
     # the seal is durable, self-verifying, and genuinely score-inclusive,
     # not merely "this raw text was served").
     harness.record_score(envelope)
@@ -190,7 +190,7 @@ def test_scripted_harness_runs_one_full_episode_per_declared_element(
 
 
 # ---------------------------------------------------------------------------
-# Finding 8 (docs/steer_codex_triage.md): ``ScriptedSteerHarness`` only ever
+# Finding 8 (docs/families/steer/reviews/steer_codex_triage.md): ``ScriptedSteerHarness`` only ever
 # sealed one evidence event -- "this raw text was served" -- and never a
 # score, so a harness-driven run's seal never certified "this outcome was
 # scored as X." ``record_score`` closes that gap, mirroring
@@ -390,7 +390,7 @@ def test_scripted_harness_raises_once_the_script_is_exhausted(tmp_path: Path) ->
 
 
 # ---------------------------------------------------------------------------
-# Finding 1 (docs/steer_codex_triage.md): the one real production
+# Finding 1 (docs/families/steer/reviews/steer_codex_triage.md): the one real production
 # finalization path, `finalize_family_execution`, calls whatever
 # `plugin.build_scorer(family_case)` returns AS A CALLABLE -- e.g.
 # `family_evaluation.py:245-248`'s
@@ -672,6 +672,15 @@ def test_finalize_family_execution_scores_a_real_steer_episode_through_the_produ
     )
 
     receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    # kernel_scoring_contract_spec.md milestone 3: the receipt must carry
+    # EXACTLY the manifest's own declared finalize-time leaf set and primary
+    # -- not merely "a receipt came back" -- checked against
+    # ``family_manifest()``'s real declaration itself, never a hand-copied
+    # string literal that could silently drift from it.
+    declared = family_manifest().measurement.finalize_time_leaf_policy()
+    assert {score.leaf.leaf_id for score in receipt.scores} == set(declared.leaf_ids)
+    assert receipt.primary_leaf_id == declared.primary_leaf_id
 
     assert receipt.status == "ok"
     assert receipt.inclusion_status == "included"

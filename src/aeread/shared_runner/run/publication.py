@@ -17,6 +17,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from .provenance import is_source_commit
 from .resolver import canonical_json_bytes
 
 PROHIBITED_PUBLIC_TEXT: tuple[str, ...] = (
@@ -90,7 +91,7 @@ def receipt_projection(
             "condition": failure.get("condition"),
             "failure_class": failure.get("failure_class"),
         }
-    return {
+    projection = {
         "source_receipt_sha256": receipt["receipt_sha256"],
         "spec_version": receipt["spec_version"],
         "status": receipt["status"],
@@ -111,11 +112,60 @@ def receipt_projection(
         "failure": safe_failure,
         "scores": receipt["scores"],
         "observability_limits": receipt["observability_limits"],
-        # Which seats were not models (seat id -> scripted policy id); absent
-        # from receipts sealed before scripted seats existed, so defaulted.
-        "scripted_seats": dict(receipt.get("scripted_seats", {})),
         "campaign_cell_key": campaign_cell_key,
     }
+    # Which seats were not models (seat id -> scripted policy id). Projected
+    # only when there is one, so a receipt without a scripted seat publishes
+    # the same bytes it did before the field existed and an earlier campaign
+    # can still be republished into its own bundle (atomic_publish refuses
+    # different bytes).
+    scripted = dict(receipt.get("scripted_seats") or {})
+    if scripted:
+        projection["scripted_seats"] = scripted
+    return projection
+
+
+#: The fields that together identify one executed episode across a whole
+#: campaign. ``cell_id``, ``episode_id`` and ``episode_attempt_id`` are derived
+#: from the plan cell, and the cell does not carry the inference seed: a
+#: campaign that gives every seed its own run plan repeats all three across
+#: seeds (DC-T-04: 24 distinct ``episode_id`` for 48 receipts). Folding the
+#: seed into those identities would change the cell id of every sealed plan,
+#: so the identities stay and the key that is unique is named here instead.
+EPISODE_KEY_FIELDS = ("run_plan_id", "cell_id", "episode_attempt_id")
+
+
+def _key_field(record: Any, name: str) -> Any:
+    return record.get(name) if isinstance(record, Mapping) else getattr(record, name, None)
+
+
+def episode_key(record: Any) -> str:
+    """One join key for an executed episode, unique across run plans and seeds.
+
+    ``record`` is a receipt, a receipt projection or a trajectory row, typed
+    or as a mapping. Joining a campaign's rows on ``episode_id`` alone merges
+    the seeds of one world (EX-T-02); join on this instead.
+    """
+
+    values = [_key_field(record, name) for name in EPISODE_KEY_FIELDS]
+    if any(not isinstance(value, str) or not value for value in values):
+        raise ValueError(f"record lacks an episode key field: {EPISODE_KEY_FIELDS}")
+    return "episode_key_" + hashlib.sha256(canonical_json_bytes(values)).hexdigest()[:24]
+
+
+def assert_unique_episode_keys(records: Sequence[Any], *, label: str = "records") -> None:
+    """Refuse a set of per-episode records in which two share an episode key."""
+
+    seen: dict[str, int] = {}
+    for record in records:
+        key = episode_key(record)
+        seen[key] = seen.get(key, 0) + 1
+    repeated = sorted(key for key, count in seen.items() if count > 1)
+    if repeated:
+        raise ValueError(
+            f"{label} repeat {len(repeated)} episode key(s); one row per "
+            f"{EPISODE_KEY_FIELDS} is required, first: {repeated[0]}"
+        )
 
 
 TRAJECTORY_ROW_SCHEMA_VERSION = "aeread.sanitized_trajectory_row/0.1"
@@ -406,6 +456,7 @@ def seal_publication_manifest(
     privacy_boundary: Mapping[str, str],
     campaign_id: str | None = None,
     source_bindings: Mapping[str, Any] | None = None,
+    source_commit: str | None = None,
     **fields: Any,
 ) -> dict[str, Any]:
     """Write a fresh kernel-standard manifest over every file in the bundle.
@@ -417,6 +468,11 @@ def seal_publication_manifest(
     the bundle was produced from), any extra family fields, and
     ``manifest_sha256`` over the rest. Refuses to overwrite an existing
     manifest; use :func:`rebuild_publication_manifest` for that.
+
+    ``source_commit`` is the commit the bundle's pinned sources came from
+    (``run.provenance.source_commit_for_pins``): with it, replaying the
+    bundle after the family has moved on is one ``git checkout`` (#161). It
+    is written only when given, and a rebuild carries it over.
     """
 
     root = Path(bundle_root)
@@ -428,6 +484,10 @@ def seal_publication_manifest(
     reserved = set(_MANIFEST_SEAL_FIELDS) | {"schema_version", "artifacts", "sanitization"}
     if reserved & set(fields):
         raise ValueError(f"reserved manifest fields: {sorted(reserved & set(fields))}")
+    if source_commit is not None:
+        if not is_source_commit(source_commit):
+            raise ValueError("source_commit must be a full 40-character commit id")
+        fields = {**fields, "source_commit": source_commit}
     core = {
         "schema_version": KERNEL_MANIFEST_SCHEMA_VERSION,
         "publication_id": publication_id,
@@ -504,7 +564,10 @@ def rebuild_publication_manifest(
 
 
 __all__ = [
+    "EPISODE_KEY_FIELDS",
     "KERNEL_MANIFEST_SCHEMA_VERSION",
+    "assert_unique_episode_keys",
+    "episode_key",
     "MANIFEST_FILENAME",
     "PROHIBITED_PUBLIC_TEXT",
     "SANITIZATION_DECLARATION",

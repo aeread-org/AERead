@@ -1,5 +1,5 @@
 """QC Gate-2 goldens and leaf-declaration coverage for termsbench's 4
-measurement leaves (docs/termsbench_adapter_spec.md sections 2 and 4).
+measurement leaves (docs/families/termsbench/adapter_spec.md sections 2 and 4).
 
 There is no upstream binary to replay against (dead repository link), so
 parity here is **formula-level** (spec section 5): every golden below is

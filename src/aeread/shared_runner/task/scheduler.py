@@ -363,6 +363,13 @@ def _validate_cell_case(cell: PlanCell, case: CaseManifest) -> Mapping[str, str]
             f"case {case.case_id!r} content hash changed after plan resolution"
         )
     role_by_seat = {seat.id: seat.role for seat in case.seats}
+    both = set(cell.profile_by_seat) & set(cell.scripted_seats)
+    if both:
+        # A cell built outside the resolver (RunSpec forbids the overlap) could
+        # otherwise route a seat with a model profile to its script silently.
+        raise SchedulerContractError(
+            f"seats {sorted(both)} have both a model profile and a scripted policy"
+        )
     filled = set(cell.profile_by_seat) | set(cell.scripted_seats)
     if set(role_by_seat) != filled:
         raise SchedulerContractError(

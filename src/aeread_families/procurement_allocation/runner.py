@@ -180,6 +180,87 @@ def replay_procurement_allocation_receipt(
     )
 
 
+def continuous_promotion_rule(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    world_ids: Sequence[str],
+    seeds: Sequence[int],
+    bootstrap_seed: int = 20260919,
+    bootstrap_resamples: int = 50_000,
+) -> dict[str, Any]:
+    """New-campaign Gate 5 rule; historical binary plans keep their identity.
+
+    The caller must replay receipts before supplying rows. Pair seeds within
+    worlds, then resample whole worlds, carrying both arms together. Regret is
+    the economic endpoint; authorization and accounting remain hard guards.
+    Missing or duplicate cells cannot silently change the planned denominator.
+    """
+    import numpy as np
+
+    if len(world_ids) < 2 or len(set(world_ids)) != len(world_ids):
+        raise ValueError("at least two distinct economic worlds are required")
+    if not seeds or len(set(seeds)) != len(seeds):
+        raise ValueError("distinct declared seeds are required")
+    if bootstrap_resamples < 100:
+        raise ValueError("bootstrap_resamples must be at least 100")
+    expected = {(w, s, a) for w in world_ids for s in seeds for a in ("control", "treatment")}
+    index = {(r["world_id"], r["environment_seed"], r["arm"]): r for r in rows}
+    checks = {
+        "complete_unique_paired_panel": len(index) == len(rows) and set(index) == expected,
+        "all_receipts_replayed": all(r.get("receipt_replayed") is True for r in rows),
+        "all_rows_completed": all(r.get("status") == "completed" for r in rows),
+        "valid_economic_accounting": True,
+        "treatment_respects_evidence_requirements": True,
+        "paired_certified_bounds": True,
+    }
+    for row in rows:
+        numbers = [row.get(k) for k in (
+            "upper_bound_usd", "contribution_margin_usd", "regret_to_upper_bound_usd"
+        )]
+        if not all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) for x in numbers):
+            checks["valid_economic_accounting"] = False
+            continue
+        bound, achieved, regret = numbers
+        if regret < -1e-8 or not math.isclose(bound - achieved, regret, abs_tol=1e-7, rel_tol=0):
+            checks["valid_economic_accounting"] = False
+        if row["arm"] == "treatment" and (
+            row.get("violations") != [] or row.get("feasible") is not True
+            or row.get("decision") not in {"award", "defer"}
+            or (row.get("decision") == "award" and row.get("feasible_award") is not True)
+        ):
+            checks["treatment_respects_evidence_requirements"] = False
+    deltas = []
+    if checks["complete_unique_paired_panel"] and checks["valid_economic_accounting"]:
+        for world in world_ids:
+            paired = [(index[world, seed, "control"], index[world, seed, "treatment"]) for seed in seeds]
+            if any(not math.isclose(c["upper_bound_usd"], t["upper_bound_usd"], abs_tol=1e-8, rel_tol=0) for c, t in paired):
+                checks["paired_certified_bounds"] = False
+            deltas.append(sum(t["regret_to_upper_bound_usd"] - c["regret_to_upper_bound_usd"] for c, t in paired) / len(seeds))
+    eligible = all(checks.values())
+    interval = None
+    if eligible:
+        samples = np.random.default_rng(bootstrap_seed).choice(
+            np.asarray(deltas), size=(bootstrap_resamples, len(deltas)), replace=True
+        ).mean(axis=1)
+        interval = np.quantile(samples, [0.025, 0.975]).tolist()
+    checks["regret_delta_upper_strictly_below_zero"] = interval is not None and interval[1] < 0
+    return {
+        "status": "ineligible" if not eligible else "supported" if all(checks.values()) else "not_supported",
+        "checks": checks,
+        "guarded_metric": "regret_to_upper_bound_usd",
+        "independent_unit": "economic_world",
+        "world_count": len(world_ids),
+        "planned_rows": len(expected),
+        "observed_rows": len(rows),
+        "per_world_treatment_minus_control_regret_usd": dict(zip(world_ids, deltas)),
+        "mean_regret_delta_usd": sum(deltas) / len(deltas) if deltas else None,
+        "world_cluster_bootstrap_95_interval": interval,
+        "bootstrap_seed": bootstrap_seed,
+        "bootstrap_resamples": bootstrap_resamples,
+        "claim_scope": "declared curated worlds; no population ranking or guaranteed power",
+    }
+
+
 def _exact_object(
     properties: Mapping[str, Any], required: Sequence[str] | None = None
 ) -> dict[str, Any]:
@@ -759,6 +840,7 @@ __all__ = [
     "SequenceResponseProvider",
     "build_offline_setup",
     "build_openrouter_setup",
+    "continuous_promotion_rule",
     "finalize_procurement_allocation_execution",
     "finalize_procurement_allocation_failure",
     "load_case",

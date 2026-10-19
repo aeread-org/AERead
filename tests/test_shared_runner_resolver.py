@@ -656,6 +656,55 @@ def test_admission_excludes_an_unregistered_harness() -> None:
     assert any("is not registered" in reason for reason in excinfo.value.admission.reasons)
 
 
+def _reasoning_profile(provider: str, *, effort: str | None, token_budget: int | None) -> AgentProfile:
+    import dataclasses
+
+    base = _profile("subject_model_v1", scripted=False)
+    return dataclasses.replace(
+        base,
+        model=dataclasses.replace(base.model, provider=provider),
+        reasoning=dataclasses.replace(base.reasoning, effort=effort, token_budget=token_budget),
+    )
+
+
+def test_admission_refuses_an_openrouter_profile_declaring_both_reasoning_controls() -> None:
+    """#133: sent, the pair is a 400 on the first provider call, after the
+    plan is frozen and the run admitted. It is refused before any plan exists."""
+
+    capabilities = {**_default_provider_capabilities(), "openrouter": _capabilities()}
+    inputs = _inputs(
+        subject_profile=_reasoning_profile("openrouter", effort="minimal", token_budget=1500),
+        provider_capabilities=capabilities,
+    )
+    with pytest.raises(CapabilityExclusionError) as excinfo:
+        resolve_run_plan(**inputs)
+    assert excinfo.value.admission.admitted is False
+    (reason,) = excinfo.value.admission.reasons
+    assert "reasoning.effort" in reason and "reasoning.token_budget" in reason
+
+
+@pytest.mark.parametrize(
+    ("provider", "effort", "token_budget"),
+    [
+        ("openrouter", "minimal", None),
+        ("openrouter", None, 1500),
+        ("openrouter", None, None),
+        # Only OpenRouter is verified to reject the pair; no other provider is
+        # refused on a guess.
+        ("openai", "low", 1500),
+    ],
+)
+def test_admission_keeps_every_sendable_reasoning_declaration(provider, effort, token_budget) -> None:
+    capabilities = {**_default_provider_capabilities(), "openrouter": _capabilities()}
+    plan = resolve_run_plan(
+        **_inputs(
+            subject_profile=_reasoning_profile(provider, effort=effort, token_budget=token_budget),
+            provider_capabilities=capabilities,
+        )
+    )
+    assert all(admission.admitted and admission.reasons == () for admission in plan.profile_admissions)
+
+
 def test_admission_seals_a_hashed_profile_admission_for_every_admitted_profile() -> None:
     plan = resolve_run_plan(**_inputs())
 

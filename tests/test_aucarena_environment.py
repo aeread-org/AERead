@@ -33,6 +33,7 @@ from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes, ca
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena import environment
+from aeread_families.aucarena import measurement
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,
     BID_ROUND_PHASE,
@@ -165,6 +166,30 @@ def test_build_scorer_returns_the_four_declared_leaves() -> None:
     assert len(scorer.leaves) == 4
 
 
+def test_family_manifest_declares_all_four_leaves_with_profit_vs_field_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See
+    docs/families/aucarena/adapter_status.md's "Leaf policy" section for why
+    ``aucarena_profit_vs_field`` is primary and why it alone gates
+    admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.BUDGET_INVARIANT_LEAF_ID,
+        measurement.BID_LEGALITY_LEAF_ID,
+        measurement.HAMMER_RULE_LEAF_ID,
+        measurement.PROFIT_VS_FIELD_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.PROFIT_VS_FIELD_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.PROFIT_VS_FIELD_LEAF_ID,)
+    # None of the four leaves waits on a judge verdict or any other
+    # not-yet-existing artifact -- every leaf here is deterministic and
+    # computable at finalize time (spec section 4); none is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
+
+
 # ---------------------------------------------------------------------------
 # Golden 1: successful_01.
 # ---------------------------------------------------------------------------
@@ -172,7 +197,7 @@ def test_build_scorer_returns_the_four_declared_leaves() -> None:
 
 def test_golden_1_agent_wins_item_1_loses_2_3_and_4() -> None:
     """Numbers below are the corrected, re-measured golden-1 outcome after
-    ``docs/aucarena_codex_triage.md`` Finding 4's fix (one continuous
+    ``docs/families/aucarena/reviews/aucarena_codex_triage.md`` Finding 4's fix (one continuous
     per-round RNG stream, not one freshly reseeded ``random.Random`` per
     bidder call, threaded through ``vendored.record_bid``'s tie-break) --
     ``budget=3200`` was never re-tuned to chase a particular win count
@@ -322,7 +347,7 @@ def test_golden_1_is_deterministic_across_repeated_runs() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Finding 4 (docs/aucarena_codex_triage.md): a fresh ``random.Random`` per
+# Finding 4 (docs/families/aucarena/reviews/aucarena_codex_triage.md): a fresh ``random.Random`` per
 # bidder call would let an already-resolved tie be silently re-flipped the
 # moment a later bidder is appended to ``round_bids`` this same round --
 # ``vendored.record_bid`` rescans the *entire* list on every call. One

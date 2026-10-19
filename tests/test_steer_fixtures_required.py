@@ -1,5 +1,5 @@
 """Regression coverage for the repo-root ``conftest.py``'s
-``AEREAD_STEER_FIXTURES_REQUIRED`` mechanism (docs/steer_codex_triage.md
+``AEREAD_STEER_FIXTURES_REQUIRED`` mechanism (docs/families/steer/reviews/steer_codex_triage.md
 finding 5: "silent module skips").
 
 Every one of the 6 steer test modules module-level-skips its entire

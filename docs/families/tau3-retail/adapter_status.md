@@ -28,7 +28,7 @@ primary leaf was chosen, because no identifier validation can catch a family tha
 name correctly and still picks the wrong leaf as headline (R8 is itself named after this
 family: its `primary_estimand`, `"retail_task_reward"`, is a third string that names neither
 leaf, and the kernel contract deliberately does not check it against either `estimand_id` --
-see `docs/kernel_contract_design_critique.md`'s R8 resolution).
+see `docs/architecture/reviews/kernel_contract_design_critique.md`'s R8 resolution).
 
 `tau3_retail_db_state` is primary because it is upstream tau2-bench's own deterministic,
 always-computed reward and the number every published tau2-bench result reports; it is what

@@ -1,0 +1,39 @@
+name: kernel-review-reconcile
+
+on:
+  workflow_run:
+    workflows: [pr-lanes]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        description: Full PR head SHA to reconcile
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+# Serialize repairs for one head without cancelling the repair in progress.
+concurrency:
+  group: review-reconcile-${{ github.event.workflow_run.head_sha || inputs.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      # workflow_run has a write token. Execute only default-branch code,
+      # never the PR checkout or artifacts supplied by the triggering run.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Re-run stale gate workflows with a verified approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || inputs.head_sha }}
+        run: python tools/ci/reconcile_kernel_review.py --repo "$REPO" --sha "$HEAD_SHA" --apply

@@ -1,6 +1,6 @@
 {
   "case_id": "aucarena.pilot.degenerate_reference_01",
-  "content_sha256": "5bbd2a1296fbb78d34e26c7f55232dd3141ac7c670c785c204a7aeba4e4778f0",
+  "content_sha256": "2e8965760b67dbccdccb322f6c56e470388c76bb2ac68d76064bf148f93b0191",
   "episode": {
     "max_logical_actions": 200,
     "termination": [
@@ -32,7 +32,8 @@
         "model_name": "scripted",
         "seat_id": "agent"
       }
-    ]
+    ],
+    "world_seed": 1005
   },
   "provenance": {
     "generator_id": "aucarena_importer",

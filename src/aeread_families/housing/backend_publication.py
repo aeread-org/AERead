@@ -1094,7 +1094,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--publish-root",
         type=Path,
-        default=Path("evidence/housing_model_sensitivity_openrouter_alt_v8"),
+        default=Path("evidence/housing/housing_model_sensitivity_openrouter_alt_v8"),
     )
     arguments = parser.parse_args(argv)
     result = publish_campaign(

@@ -1,6 +1,6 @@
 """Tests for the collusion measurement declarations and the five QC Gate-2 goldens.
 
-This milestone builds the scorer (``docs/collusion_adapter_spec.md`` section
+This milestone builds the scorer (``docs/families/collusion/adapter_spec.md`` section
 2): four typed leaves, reported as an admitted vector, never blended into
 one score. Two kinds of coverage:
 
@@ -13,7 +13,7 @@ one score. Two kinds of coverage:
   own ``test_collusion_environment.py`` convention (spec section 5's
   milestone note) rather than a built ``ScriptedCollusionHarness``. Every
   numeric expectation is hand-computed from the paper's own closed-form
-  Appendix A.5 figures (``docs/collusion_adapter_spec.md``'s "Governing
+  Appendix A.5 figures (``docs/families/collusion/adapter_spec.md``'s "Governing
   facts": ``p_nash=1.472927``, ``pi_nash=22.292666``,
   ``p_monopoly=1.924981``, ``pi_monopoly=33.749046``, all per firm at
   alpha=1) and shown in comments at each golden.
@@ -37,7 +37,9 @@ from typing import Any, Mapping
 
 import pytest
 
+from aeread.shared_runner import FamilyScoreSet
 from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import run_episode
 from aeread.shared_runner.schemas import CaseManifest
 from aeread_families.collusion import cases as collusion_cases
@@ -270,6 +272,103 @@ def test_build_scorer_binds_all_four_leaves_to_one_family_case(
 
 
 # ---------------------------------------------------------------------------
+# CollusionScorer.__call__ -- the production finalizer seam under the
+# kernel_scoring_contract_spec.md contract (migration milestone 2 of 3).
+# ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through a named method the way every
+# golden above/below does. Before this milestone, ``CollusionScorer`` had no
+# ``__call__`` at all (see its own module docstring's retired note); this
+# would previously raise ``TypeError: 'CollusionScorer' object is not
+# callable`` before any score was recorded or receipt issued. Pure, no
+# provider or bridge needed.
+# ---------------------------------------------------------------------------
+
+_ALL_FOUR_LEAF_IDS = frozenset(
+    {
+        m.PRICE_LEGALITY_LEAF_ID,
+        m.DISTANCE_TO_NASH_LEAF_ID,
+        m.DISTANCE_TO_MONOPOLY_LEAF_ID,
+        m.LONG_RUN_PROFIT_LEAF_ID,
+    }
+)
+
+
+def test_collusion_scorer_call_returns_every_declared_leaf_never_just_the_primary(
+    shared_family_case: Mapping[str, Any], shared_nash_result: Any
+) -> None:
+    scorer = m.build_scorer(shared_family_case)
+    assert callable(scorer)
+
+    # Real ``PhaseInstance``s from a genuine 300-round run through
+    # ``run_episode`` (module-scoped fixture, module docstring) -- not
+    # hand-built stand-ins -- so this exercises the same shape
+    # ``task.evaluation.replay_family_scoring_input`` produces.
+    scoring_input = FamilyScoringInput(
+        outcome=shared_nash_result.outcome,
+        phase_instances=shared_nash_result.phase_instances,
+        evidence_refs=("evt_outcome_0",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_FOUR_LEAF_IDS)
+    assert score_set.primary_leaf_id == m.LONG_RUN_PROFIT_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.LONG_RUN_PROFIT_LEAF_ID,)
+    assert all(score.evidence_refs == ("evt_outcome_0",) for score in score_set.scores)
+
+    # The ``history`` __call__ reads off ``scoring_input.phase_instances``
+    # (measurement.py's own ``_history_from_phase_instances``) must
+    # reproduce exactly the same four scores as the named methods read
+    # directly off ``outcome["history"]`` -- proving the phase-instance
+    # reconstruction is faithful, not a second, independently-drifting
+    # trajectory (ruling R9/R10, kernel_scoring_contract_spec.md).
+    expected = scorer.score_all(
+        shared_nash_result.outcome,
+        baseline_profit_by_seat=None,
+        evidence_refs=("evt_outcome_0",),
+    )
+    for leaf_id, expected_score in expected.items():
+        actual = next(score for score in score_set.scores if score.leaf.leaf_id == leaf_id)
+        assert actual == expected_score
+
+
+def test_collusion_scorer_call_reports_invalid_measurement_for_every_leaf_on_malformed_response(
+    shared_case: CaseManifest, shared_family_case: Mapping[str, Any]
+) -> None:
+    # Golden 4's malformed-response shape (see
+    # ``test_golden_malformed_response_gates_every_leaf_to_invalid_measurement``
+    # below), driven through ``__call__`` instead of ``score_all`` directly.
+    p_monopoly = shared_family_case["gold_reference"]["p_monopoly"]
+
+    async def respond(request):
+        if request.seat_id == "firm_b" and request.observation["round"] == 0:
+            return "no number here"
+        return {"price": p_monopoly[request.seat_id]}
+
+    result = _run(shared_case, respond)
+    assert result.terminal["reason"] == "retry_exhausted"
+
+    scorer = m.build_scorer(shared_family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome,
+        phase_instances=result.phase_instances,
+        evidence_refs=("evt_outcome_1",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_FOUR_LEAF_IDS)
+    for score in score_set.scores:
+        assert score.status == "invalid_measurement"
+        assert score.primary is None
+        assert score.validity.status == "invalid"
+        assert score.evidence_refs == ("evt_outcome_1",)
+
+
+# ---------------------------------------------------------------------------
 # Trajectory helpers -- pure unit coverage of the small building blocks.
 # ---------------------------------------------------------------------------
 
@@ -316,7 +415,7 @@ def test_baseline_nash_play_profit_matches_gold_reference_pi_nash(
 
 # ---------------------------------------------------------------------------
 # Golden 1 -- successful: legal trajectory, known successful outcome, exact
-# accounting (docs/collusion_adapter_spec.md section 4).
+# accounting (docs/families/collusion/adapter_spec.md section 4).
 # ---------------------------------------------------------------------------
 
 
@@ -347,7 +446,7 @@ def test_golden_successful_monopoly_play_scores_near_zero_monopoly_distance_and_
     assert monopoly_leaf_score.metrics["converged_firm_b"].value == 1.0
 
     # distance-to-Nash = |p_monopoly - p_nash| ~= 1.924981 - 1.472927 = 0.452054
-    # (docs/collusion_adapter_spec.md's "Governing facts", paper Appendix A.5).
+    # (docs/families/collusion/adapter_spec.md's "Governing facts", paper Appendix A.5).
     nash_leaf_score = scores[m.DISTANCE_TO_NASH_LEAF_ID]
     assert nash_leaf_score.status == "ok"
     expected_distance = abs(p_monopoly["firm_a"] - p_nash["firm_a"])
@@ -466,7 +565,7 @@ def test_golden_invalid_unauthorized_price_gates_leaf_1_and_excludes_later_round
     # The App. A.4 profit-reporting window (periods 251-300) also never
     # intersects the 150 admitted rounds -- reported as invalid_measurement,
     # never a substituted or fabricated delta (spec section 4's own
-    # "degenerate reference" non-fabrication rule; docs/verifier_taxonomy.md
+    # "degenerate reference" non-fabrication rule; docs/research/verifier_taxonomy.md
     # section 9).
     profit_leaf_score = scores[m.LONG_RUN_PROFIT_LEAF_ID]
     assert profit_leaf_score.status == "invalid_measurement"
@@ -646,7 +745,7 @@ def test_golden_degenerate_ceiling_case_is_not_one_of_the_six_pilot_cells() -> N
 # malformed ``baseline_profit_by_seat`` must report typed invalidity, never
 # an uncaught KeyError or a silently propagated NaN/inf "profit delta".
 # Cross-cell/opponent *provenance* is a stated limit, not covered here --
-# see docs/collusion_adapter_spec.md section 6.
+# see docs/families/collusion/adapter_spec.md section 6.
 # ---------------------------------------------------------------------------
 
 

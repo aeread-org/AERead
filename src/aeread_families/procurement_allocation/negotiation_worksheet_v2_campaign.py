@@ -890,8 +890,8 @@ def _verified_canary(path: Path) -> dict[str, Any]:
 
 
 def publish_worksheet_campaign(*, run_root: Path, publication_root: Path) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     comparison = build_worksheet_comparison(run_root=run_root)
     if not comparison["readiness"]["worksheet_treatment_qualified"]:
         raise ValueError("worksheet evidence is not qualified")

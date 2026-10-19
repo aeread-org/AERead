@@ -2,7 +2,7 @@
 
 Every upstream-gated test here runs the pinned, real ``waterAllocation``/
 ``Alympics`` checkout in-process (no bridge, no network, no LLM call --
-``docs/alympics_adapter_spec.md`` section 1's "No bridge" decision), through
+``docs/families/alympics-wac/adapter_spec.md`` section 1's "No bridge" decision), through
 the *real* ``run_episode`` scheduler path -- never a hand-wired shortcut that
 calls ``environment.py`` hooks directly. Mirrors
 ``tests/test_tau3_retail_environment.py``'s ``ScriptedTau3RetailHarness``

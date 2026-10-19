@@ -59,7 +59,7 @@ DEFAULT_RUN_ROOT = REPOSITORY_ROOT / "runs" / CAMPAIGN_ID
 BRIDGE_PUBLICATION_ROOT = (
     REPOSITORY_ROOT
     / "evidence"
-    / "datacenter_development_terms_public_candidate_screen_v1"
+    / "datacenter_development_terms" / "datacenter_development_terms_public_candidate_screen_v1"
 )
 BRIDGE_MODELS = (
     "mistral32_deepinfra",

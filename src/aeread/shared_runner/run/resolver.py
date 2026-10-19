@@ -466,6 +466,13 @@ def _capability_vector(
     )
 
 
+#: Providers that reject a request carrying both a reasoning effort and a
+#: reasoning token budget. Only OpenRouter is verified ("Only one of
+#: reasoning.effort and reasoning.max_tokens can be specified"); a provider
+#: that accepts both is simply not listed.
+_SINGLE_REASONING_CONTROL_PROVIDERS = frozenset({"openrouter"})
+
+
 def _admit_profile(
     profile: AgentProfile,
     *,
@@ -530,6 +537,20 @@ def _admit_profile(
                 f"{profile.harness.id}/{profile.harness.version} "
                 f"(allowed: {sorted(requires.memory)})"
             )
+
+    if (
+        profile.model.provider in _SINGLE_REASONING_CONTROL_PROVIDERS
+        and profile.reasoning.effort is not None
+        and profile.reasoning.token_budget is not None
+    ):
+        # Refused here, before a plan is frozen. Sent, the pair is a 400 on
+        # the first provider call, after the campaign identity is sealed and
+        # the run admitted (#133).
+        reasons.append(
+            f"profile {profile.profile_id!r} declares both reasoning.effort and "
+            f"reasoning.token_budget; provider {profile.model.provider!r} accepts "
+            "only one of them"
+        )
 
     admitted = not reasons
     capability_vector = _capability_vector(
@@ -695,6 +716,35 @@ def _plan_payload(plan: RunPlan) -> Mapping[str, Any]:
         "cells": plan.cells,
         "profile_admissions": plan.profile_admissions,
     }
+
+
+def design_plan_sha256(plan: RunPlan) -> str:
+    """Digest of a plan's *design*: everything ``plan_sha256`` covers except
+    which implementation bytes will run it.
+
+    ``plan_sha256`` deliberately includes the ``implementation:<component>``
+    pins, so a receipt names the exact kernel and family code that produced
+    it. That is right for a receipt and wrong for a design: a frozen
+    campaign design is the same design whichever kernel build executes it,
+    and pinning the build into the design's identity meant every kernel
+    commit moved every design-artifact digest in the repo (#68). This strips
+    the pins and their input digests and hashes what remains, so a design
+    digest is stable across kernel commits and changes only when the design
+    does. Receipts keep ``plan_sha256``; nothing about sealing changes.
+    """
+    digests = {
+        key: value
+        for key, value in plan.input_digests.items()
+        if not key.startswith("implementation:")
+    }
+    stripped = dataclasses.replace(
+        plan,
+        run_plan_id="",
+        plan_sha256="",
+        implementation_pins=(),
+        input_digests=MappingProxyType(dict(sorted(digests.items()))),
+    )
+    return _digest(_plan_payload(stripped))
 
 
 def _seal_plan(provisional: RunPlan) -> RunPlan:

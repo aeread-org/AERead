@@ -4,7 +4,7 @@ The govsim adapter claims one thing above all else: **it reproduces upstream
 govsim's common-pool-resource arithmetic exactly** -- the regeneration
 formula, the collapse test, and `_assign_stochastic`/`_assign_proportional`
 are upstream's, never reimplemented on this side (see
-`docs/govsim_adapter_spec.md` section 3, "adapter boundary").
+`docs/families/govsim/adapter_spec.md` section 3, "adapter boundary").
 
 ## Why a second interpreter
 

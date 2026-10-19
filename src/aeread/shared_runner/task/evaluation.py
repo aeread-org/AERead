@@ -12,7 +12,14 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
+from .execution import (
+    ACCOUNT_FAULT,
+    PROVIDER_CHOICE_ERROR,
+    CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
+    TokenPricing,
+)
 from ..run.layout import RunLayout
 from ..measurement import (
     FamilyScoreSet,
@@ -1129,12 +1136,16 @@ def finalize_family_failure(
         "length",
         "rate_limit",
         "provider_5xx",
+        PROVIDER_CHOICE_ERROR,
         "timeout",
         "transport",
     }
     if any(condition in retryable_conditions for condition in failure_conditions):
         failure_class = "retryable_infrastructure"
-    elif any(condition == "provider_contract" for condition in failure_conditions):
+    elif any(
+        condition in {"provider_contract", ACCOUNT_FAULT}
+        for condition in failure_conditions
+    ):
         failure_class = "integration_or_configuration"
     else:
         failure_class = "environment_failure"
@@ -1250,6 +1261,10 @@ def replay_family_receipt(
         _agent_profile_digests(setup.plan, cell)
     ):
         raise ValueError("receipt agent profile digests do not match the plan")
+    if canonical_json_bytes(dict(receipt.scripted_seats)) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted seats do not match the plan")
     evidence_path = RunLayout(
         Path(evidence_root), receipt.run_plan_id
     ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)
@@ -1432,6 +1447,11 @@ def audit_family_receipt(
     for key, value in expected.items():
         if canonical_json_bytes(receipt.get(key)) != canonical_json_bytes(value):
             raise ValueError(f"receipt {key} does not match the sealed plan")
+    # Omitted from the serialized receipt when empty, so absent reads as none.
+    if canonical_json_bytes(dict(receipt.get("scripted_seats") or {})) != canonical_json_bytes(
+        dict(cell.scripted_seats)
+    ):
+        raise ValueError("receipt scripted_seats does not match the sealed plan")
     root = receipt_path.parent
     canonical_identity = (
         root.name == receipt.get("episode_attempt_id")

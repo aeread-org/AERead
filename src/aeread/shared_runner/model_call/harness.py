@@ -22,6 +22,10 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
 
 from ..task.execution import (
+    TRUNCATED_FINISH_REASONS,
+    declared_provider_stream,
+    failed_call_cost,
+    failed_call_event_fields,
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
@@ -83,12 +87,25 @@ class ModelTurn:
     requested it (`ToolPort.invoke(source_provider_call_id=...)`, §5.2), and it
     arrives through the port so a harness never reaches around it into the
     provider client to recover the id."""
+    finish_reason: str | None = None
+    """Why the provider stopped, as it reported it; ``None`` when unknown.
+
+    Without it a harness cannot tell a reply cut off at the output-token
+    limit from a finished one that happens to be malformed, and the two have
+    different remedies: the first is retried with more room, the second is
+    the model's own answer (#152)."""
 
     def __post_init__(self) -> None:
         if (self.text is not None) == bool(self.tool_calls):
             raise EvidenceIntegrityError(
                 "ModelTurn must carry exactly one of text or tool_calls"
             )
+
+    @property
+    def truncated(self) -> bool:
+        """True when the provider stopped at the output-token limit."""
+
+        return self.finish_reason in TRUNCATED_FINISH_REASONS
 
 
 class ModelPort(Protocol):
@@ -198,7 +215,13 @@ class KernelModelPort:
     """Builds each `ProviderRequest` from the profile, mints and seals the
     provider call, and rejects an empty completion as a typed failure before
     any harness constructs a `ModelTurn` from it.  The harness may only
-    *lower* `max_output_tokens`; it may never widen it or touch sampling."""
+    *lower* `max_output_tokens`; it may never widen it or touch sampling.
+
+    The limit a harness may not exceed is the attempt's, not the profile's:
+    when the executor retries a truncated attempt with a larger budget, every
+    round of that attempt gets the larger budget.  Bound to the profile, the
+    widened limit reached round 0 only and a harness that owned its own loop
+    had no recovery from truncation at all (#131)."""
 
     def __init__(
         self,
@@ -251,7 +274,11 @@ class KernelModelPort:
         response_mode: Literal["native_tools", "json_dialect", "text"],
         max_output_tokens: int | None = None,
     ) -> ModelTurn:
-        ceiling = self._profile.sampling.max_output_tokens
+        ceiling = (
+            self._sealed_request.max_output_tokens
+            if self._sealed_request is not None
+            else self._profile.sampling.max_output_tokens
+        )
         if max_output_tokens is not None and max_output_tokens > ceiling:
             raise EvidenceIntegrityError(
                 "a harness may only lower max_output_tokens, never raise it"
@@ -297,6 +324,7 @@ class KernelModelPort:
                 seed=self._profile.sampling.seed,
                 messages=messages if response_mode == "native_tools" else None,
                 tools=tools if response_mode == "native_tools" and tools else None,
+                stream=declared_provider_stream(self._profile),
             ).with_computed_hash()
 
         # With emit_events=False the executor sealed round 0 and already wrote
@@ -331,7 +359,13 @@ class KernelModelPort:
                     "message": str(failure),
                     "retryable": failure.retryable,
                     "status_code": failure.status_code,
-                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                    # The executor charges this cost when it records the
+                    # failed attempt; the port only writes the event.
+                    **failed_call_event_fields(
+                        failure,
+                        failed_call_cost(failure, self._pricing),
+                        outcome_unknown=outcome_unknown,
+                    ),
                     "round": round_ordinal,
                 },
                 phase_instance_id=self._phase_instance_id,
@@ -415,6 +449,7 @@ class KernelModelPort:
             text=result.output_text if text else None,
             tool_calls=tool_calls,
             provider_call_id=provider_call_id,
+            finish_reason=result.finish_reason,
         )
 
 
@@ -783,7 +818,12 @@ class _JsonDialectCodec:
             text = payload.get("text")
             if not isinstance(text, str):
                 return _MalformedRound(raw_text=raw_text, reason="reply_missing_text")
-            return ModelTurn(text=text, tool_calls=(), provider_call_id=turn.provider_call_id)
+            return ModelTurn(
+                text=text,
+                tool_calls=(),
+                provider_call_id=turn.provider_call_id,
+                finish_reason=turn.finish_reason,
+            )
 
         if kind == "tool_calls":
             calls = payload.get("calls")
@@ -807,6 +847,7 @@ class _JsonDialectCodec:
                 text=None,
                 tool_calls=tuple(decoded_calls),
                 provider_call_id=turn.provider_call_id,
+                finish_reason=turn.finish_reason,
             )
 
         # Every other shape -- a singular `{"kind":"tool_call", ...}` among
@@ -856,6 +897,17 @@ async def _run_tool_loop(request: Any, ctx: AttemptContext, *, codec: _TurnCodec
         rounds_used += 1
 
         decoded = codec.decode(turn)
+        if isinstance(decoded, _MalformedRound) and turn.truncated:
+            # Cut off at the output-token limit, not finished: this is not
+            # the model's malformed output, and counting it as such charges
+            # the ceiling to the model (#152). The executor retries it with
+            # more room when the profile declares ``length``.
+            raise ProviderFailure(
+                "length",
+                f"provider call {turn.provider_call_id} was cut off at the "
+                "output-token limit before a complete turn",
+                retryable=True,
+            )
         if isinstance(decoded, _MalformedRound):
             # Typed and counted, never raised: the model's own malformed
             # output must not crash the attempt the way a genuine provider or
@@ -1122,7 +1174,7 @@ class AttemptExecutor(MinimalChatExecutor):
             seed=profile.sampling.seed or 0,
             budget=BudgetView(
                 rounds_left=_rounds_budget(profile),
-                tokens_left=profile.sampling.max_output_tokens,
+                tokens_left=request.max_output_tokens,
                 cost_left=profile.budgets.max_cost_usd,
             ),
             model=port,
@@ -1146,6 +1198,18 @@ class AttemptExecutor(MinimalChatExecutor):
                 and port.last_result is not None
                 and not port.last_result.output_text.strip()
                 and not port.last_result.tool_calls
+            ):
+                return port.last_result
+            # The same handoff for a round the harness found cut off at the
+            # output-token limit: the call completed and was billed, so the
+            # base executor records it and applies the declared ``length``
+            # policy. ``pending_round`` is None only when no call is in
+            # flight, i.e. the failure came from the harness, not the client.
+            if (
+                failure.condition == "length"
+                and port.pending_round is None
+                and port.last_result is not None
+                and port.last_result.finish_reason in TRUNCATED_FINISH_REASONS
             ):
                 return port.last_result
             raise

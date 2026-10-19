@@ -90,6 +90,117 @@ def _plain(value: Any) -> Any:
     return copy.deepcopy(value)
 
 
+#: Negotiated money terms. When a case opts into ``two_sided_price_bands``,
+#: any of these that a policy bounds on one side must be bounded on both, with
+#: the counterparty's own counter inside the band. One-sided bands are what let
+#: an EPC price of one cent and a 15x land overpayment both through (DC-D-01).
+PRICE_BAND_FIELDS = frozenset(
+    {
+        "purchase_price_cents",
+        "extension_price_cents",
+        "interconnection_cost_cents",
+        "monthly_demand_charge_cents_per_kw",
+        "energy_charge_cents_per_kwh",
+        "developer_security_cents",
+        "contract_price_cents",
+        "cost_overrun_cap_cents",
+        "monthly_capacity_charge_cents_per_kw",
+        "credit_support_cents",
+        "minimum_customer_credit_support_cents",
+        "spread_bps",
+        "origination_fee_bps",
+        "unused_commitment_fee_bps_annual",
+    }
+)
+
+
+#: Developer interface versions a case may opt into through
+#: ``construct_controls.developer_interface``. Every sealed case is 2. Version 3
+#: adds a ``decline`` to the land-amendment phase, which keeps the executed land
+#: agreement and proceeds to financing (DC-D-10: 22 of the first confirmatory's
+#: 72 cells died there re-proposing the executed terms or "walking" to say no
+#: amendment was needed), and lets a walk carry its reason (DC-D-08).
+DEVELOPER_INTERFACES = (2, 3)
+
+
+def developer_interface(family_case: Mapping[str, Any]) -> int:
+    """The developer interface a case opts into; 2 unless it says otherwise."""
+
+    controls = family_case.get("construct_controls") or {}
+    return int(controls.get("developer_interface", 2))
+
+
+def _construct_controls(value: Any) -> dict[str, Any] | None:
+    """Parse the optional ``construct_controls`` block, or return None."""
+
+    if value is None:
+        return None
+    fields = {
+        "baseline_must_dominate_outside_option",
+        "minimum_baseline_margin_cents",
+        "two_sided_price_bands",
+    }
+    if isinstance(value, dict) and "developer_interface" in value:
+        fields.add("developer_interface")
+    controls = _exact(value, fields, "construct_controls")
+    for flag in ("baseline_must_dominate_outside_option", "two_sided_price_bands"):
+        if not isinstance(controls[flag], bool):
+            raise ValueError(f"construct_controls.{flag} must be a boolean")
+    margin = controls["minimum_baseline_margin_cents"]
+    if isinstance(margin, bool) or not isinstance(margin, int) or margin < 0:
+        raise ValueError(
+            "construct_controls.minimum_baseline_margin_cents must be a non-negative integer"
+        )
+    interface = controls.get("developer_interface", 2)
+    if isinstance(interface, bool) or interface not in DEVELOPER_INTERFACES:
+        raise ValueError(
+            f"construct_controls.developer_interface must be one of {DEVELOPER_INTERFACES}"
+        )
+    return controls
+
+
+def _enforce_construct_controls(
+    data: Mapping[str, Any],
+    policies: Mapping[str, Mapping[str, Any]],
+    controls: Mapping[str, Any],
+) -> None:
+    """Refuse a case whose reference is beatable by not playing, or whose
+    bands let a price run off in either direction."""
+
+    if controls["baseline_must_dominate_outside_option"]:
+        baseline = int(data["baseline"]["developer_equity_npv_cents"])
+        outside = int(data["outside_option"]["developer_equity_npv_cents"])
+        margin = baseline - outside
+        if margin <= 0:
+            raise ValueError(
+                "construct_controls: scripted baseline "
+                f"({baseline}) does not strictly dominate the outside option ({outside})"
+            )
+        minimum = int(controls["minimum_baseline_margin_cents"])
+        if margin < minimum:
+            raise ValueError(
+                f"construct_controls: baseline margin over the outside option ({margin}) "
+                f"is below the declared minimum ({minimum})"
+            )
+    if controls["two_sided_price_bands"]:
+        for key, policy in policies.items():
+            minimums = policy["minimums"]
+            maximums = policy["maximums"]
+            counter = policy["counter_terms"]
+            bounded = (set(minimums) | set(maximums)) & PRICE_BAND_FIELDS
+            for field in sorted(bounded):
+                if field not in minimums or field not in maximums:
+                    raise ValueError(
+                        f"construct_controls: policies.{key}.{field} is bounded on one side only"
+                    )
+                low, high = minimums[field], maximums[field]
+                if not (low <= counter.get(field, low) <= high) or low > high:
+                    raise ValueError(
+                        f"construct_controls: policies.{key}.{field} counter {counter.get(field)} "
+                        f"is outside its band [{low}, {high}]"
+                    )
+
+
 def _exact(value: Any, fields: set[str], path: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{path} must be an object")
@@ -116,7 +227,35 @@ def _term_values(terms: AgreementTerms) -> dict[str, Any]:
     return dataclasses.asdict(terms)
 
 
+def counterparty_utility(
+    terms: AgreementTerms, policy: Mapping[str, Any]
+) -> int | None:
+    """What this package is worth to the counterparty, or None if it has no view.
+
+    A linear valuation over a few terms, measured against the counterparty's own
+    opening package, so its own counter is worth exactly zero. Weights are the
+    counterparty's, not the developer's, which is what makes a trade possible:
+    a term the developer can concede cheaply may be worth a great deal here, and
+    the reservation is what it will give up before walking. Optional per policy;
+    the sealed cases declare none and keep their band-only acceptance.
+    """
+
+    specification = policy.get("utility")
+    if specification is None:
+        return None
+    values = _term_values(terms)
+    reference = specification["reference"]
+    total = 0
+    for field, weight in specification["weights"].items():
+        if field not in values or field not in reference:
+            return None
+        total += int(weight) * (int(values[field]) - int(reference[field]))
+    return total
+
+
 def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
+    """Hard constraints first, then the counterparty's own valuation."""
+
     values = _term_values(terms)
     for field, minimum in policy["minimums"].items():
         if field not in values or values[field] < minimum:
@@ -125,7 +264,58 @@ def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
         if field not in values or values[field] > maximum:
             return False
     required = set(policy["required_conditions"])
-    return required.issubset(set(values.get("conditions_precedent", ())))
+    if not required.issubset(set(values.get("conditions_precedent", ()))):
+        return False
+    utility = counterparty_utility(terms, policy)
+    return utility is None or utility >= int(policy["utility"]["reservation"])
+
+
+def counter_reason(terms: AgreementTerms, policy: Mapping[str, Any]) -> str:
+    """Say what would make this offer acceptable.
+
+    A counterparty that only ever repeats its own package teaches nothing, and
+    a developer cannot find a trade it is never told exists. This names the
+    terms that are out of range, and when the hard bounds are all met but the
+    package is still not worth enough, names the term that could be conceded to
+    pay for the rest.
+    """
+
+    values = _term_values(terms)
+    problems: list[str] = []
+    for field, minimum in sorted(policy["minimums"].items()):
+        if field in values and values[field] < minimum:
+            problems.append(f"{field} of at least {minimum}")
+    for field, maximum in sorted(policy["maximums"].items()):
+        if field in values and values[field] > maximum:
+            problems.append(f"{field} of no more than {maximum}")
+    missing = sorted(
+        set(policy["required_conditions"]) - set(values.get("conditions_precedent", ()))
+    )
+    if missing:
+        problems.append("conditions precedent covering " + ", ".join(missing))
+    if problems:
+        return "We cannot sign this. We need " + "; ".join(problems) + "."
+    specification = policy.get("utility")
+    if specification is None:
+        return "We cannot sign this as drafted."
+    tradeable = [
+        field
+        for field, weight in sorted(specification["weights"].items())
+        if int(weight) > 0
+        and field in policy["maximums"]
+        and values.get(field, 0) < policy["maximums"][field]
+    ]
+    if tradeable:
+        field = tradeable[0]
+        return (
+            "The commercial terms are inside what we can sign, but the package "
+            f"as a whole is not worth enough to us. We will look again at them "
+            f"if {field} moves toward {policy['maximums'][field]}."
+        )
+    return (
+        "Every term is within range on its own, but the package as a whole is "
+        "not worth enough to us to sign."
+    )
 
 
 def _phase_id(agreement_key: str, kind: str) -> str:
@@ -215,11 +405,16 @@ def _make_offer(
         prior = state["executed"].get("land")
         if prior is None:
             raise ValueError("land amendment requires an executed land agreement")
+        # The amended fields are what the offer actually changes against the
+        # executed land agreement, never the scripted developer's list. Stamping
+        # the scripted list onto a live offer made any amendment that changed a
+        # different set of fields -- including one that changed nothing -- pass
+        # the landowner and then crash at commit as an environment failure
+        # (DC-D-05). The scripted path's own amendment changes exactly its
+        # declared fields, so its offers and receipts are unchanged.
         metadata = {
             "supersedes_offer_id": prior["offer_id"],
-            "amended_fields": family_case["scripted_developer"][
-                "land_amendment_fields"
-            ],
+            "amended_fields": _amended_fields(prior, terms),
             "precedence_index": int(prior.get("precedence_index", 0)) + 1,
         }
     return make_offer(
@@ -231,6 +426,15 @@ def _make_offer(
         terms=terms,
         **metadata,
     )
+
+
+def _amended_fields(prior: Mapping[str, Any], terms: AgreementTerms) -> tuple[str, ...]:
+    """Fields the offered terms change against the executed land agreement."""
+
+    prior_terms = _terms("land", prior["terms"])
+    before = _term_values(prior_terms)
+    after = _term_values(terms)
+    return tuple(sorted(field for field in before if before[field] != after.get(field)))
 
 
 def _offer_from_dict(value: Mapping[str, Any]) -> ContractOffer:
@@ -310,20 +514,25 @@ class DataCenterStackPlugin:
 
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _plain(payload)
-        _exact(
-            data,
-            {
-                "scope_version",
-                "scenario_id",
-                "project_facts",
-                "negotiation",
-                "policies",
-                "scripted_developer",
-                "outside_option",
-                "baseline",
-            },
-            "payload",
-        )
+        payload_fields = {
+            "scope_version",
+            "scenario_id",
+            "project_facts",
+            "negotiation",
+            "policies",
+            "scripted_developer",
+            "outside_option",
+            "baseline",
+        }
+        # Opt-in construct controls (DC-D-01). A case that declares the block
+        # is refused unless its scripted reference strictly dominates the
+        # outside option by the declared margin and every negotiated price is
+        # bounded on both sides. Cases without the block keep their sealed
+        # behaviour, so no published campaign moves.
+        controls = _construct_controls(data.get("construct_controls"))
+        if controls is not None:
+            payload_fields.add("construct_controls")
+        _exact(data, payload_fields, "payload")
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
@@ -337,11 +546,34 @@ class DataCenterStackPlugin:
             _positive(value, f"negotiation.max_rounds.{key}")
         policies = _exact(data["policies"], set(self.sequence), "policies")
         for key, value in policies.items():
-            policy = _exact(
-                value,
-                {"minimums", "maximums", "required_conditions", "counter_terms"},
-                f"policies.{key}",
-            )
+            if not isinstance(value, dict):
+                raise ValueError(f"policies.{key} must be an object")
+            policy_fields = {"minimums", "maximums", "required_conditions", "counter_terms"}
+            # Optional: a counterparty valuation (weights over a few terms against
+            # its own reference package, and a reservation it will not sign
+            # below) and a fixed counter message. Both are generator features of
+            # the world pack; the sealed curated cases declare neither.
+            if "utility" in value:
+                utility = _exact(
+                    value["utility"],
+                    {"weights", "reservation", "reference"},
+                    f"policies.{key}.utility",
+                )
+                if not isinstance(utility["weights"], dict) or not utility["weights"]:
+                    raise ValueError(f"policies.{key}.utility.weights must be non-empty")
+                if not isinstance(utility["reference"], dict):
+                    raise ValueError(f"policies.{key}.utility.reference must be an object")
+                missing = set(utility["weights"]) - set(utility["reference"])
+                if missing:
+                    raise ValueError(
+                        f"policies.{key}.utility.reference omits {sorted(missing)}"
+                    )
+                policy_fields.add("utility")
+            if "counter_message" in value:
+                if not isinstance(value["counter_message"], str) or not value["counter_message"]:
+                    raise ValueError(f"policies.{key}.counter_message must be non-empty")
+                policy_fields.add("counter_message")
+            policy = _exact(value, policy_fields, f"policies.{key}")
             if not isinstance(policy["minimums"], dict) or not isinstance(
                 policy["maximums"], dict
             ):
@@ -371,6 +603,8 @@ class DataCenterStackPlugin:
         }
         if data["baseline"] != expected:
             raise ValueError(f"payload.baseline differs from stack simulation: {expected}")
+        if controls is not None:
+            _enforce_construct_controls(data, policies, controls)
         return data
 
     def initial_state(self, family_case, run) -> dict[str, Any]:
@@ -390,10 +624,17 @@ class DataCenterStackPlugin:
 
     def phases(self, family_case) -> tuple[PhaseSpec, ...]:
         phases: list[PhaseSpec] = []
+        interface = developer_interface(family_case)
         for index, key in enumerate(self.sequence):
             counterpart = COUNTERPART_BY_KEY[key]
             maximum = family_case["negotiation"]["max_rounds"][key]
             next_key = self.sequence[index + 1] if index + 1 < len(self.sequence) else None
+            # A declined amendment skips the landowner and goes straight to
+            # the next agreement; the scheduler refuses any transition the
+            # phase does not declare, so the successor is declared here.
+            after_offer: tuple[str, ...] = (_phase_id(key, "response"),)
+            if key == "land_amendment" and interface >= 3 and next_key is not None:
+                after_offer += (_phase_id(next_key, "offer"),)
             phases.extend(
                 (
                     PhaseSpec(
@@ -404,7 +645,7 @@ class DataCenterStackPlugin:
                         {"developer": f"datacenter_{key}_offer_v1"},
                         maximum,
                         "family_defined",
-                        (_phase_id(key, "response"),),
+                        after_offer,
                     ),
                     PhaseSpec(
                         _phase_id(key, "response"),
@@ -498,7 +739,8 @@ class DataCenterStackPlugin:
         return observation
 
     def parse_action(self, family_case, state, seat, phase, response) -> ParseResult:
-        del family_case, state, seat
+        del state, seat
+        interface = developer_interface(family_case)
         if not isinstance(response, CanonicalResponse):
             return ParseResult.failure("noncanonical_response")
         try:
@@ -511,8 +753,22 @@ class DataCenterStackPlugin:
         try:
             if phase.phase_id.endswith("_offer"):
                 _exact(value, {"decision", "message", "terms"}, "offer_action")
-                if value["decision"] == "walk" and value["message"] is None and value["terms"] is None:
-                    return ParseResult.success({"decision": "walk"})
+                message = value["message"]
+                stated = isinstance(message, str) and bool(message.strip())
+                if value["decision"] == "walk" and value["terms"] is None:
+                    if message is None:
+                        return ParseResult.success({"decision": "walk"})
+                    if interface >= 3 and stated:
+                        # The reason enters the public record (DC-D-08): under
+                        # interface 2 a walk that explains itself is malformed.
+                        return ParseResult.success({"decision": "walk", "message": message})
+                if (
+                    interface >= 3
+                    and value["decision"] == "decline"
+                    and value["terms"] is None
+                    and (message is None or stated)
+                ):
+                    return ParseResult.success({"decision": "decline", "message": message})
                 if value["decision"] != "offer" or not isinstance(value["message"], str) or not value["message"].strip():
                     raise ValueError("malformed offer")
                 terms = _terms(key, value["terms"])
@@ -538,9 +794,23 @@ class DataCenterStackPlugin:
         key = self._phase_key(phase.phase_id)
         if action["decision"] == "walk":
             return LegalityResult.legal_action()
+        if action["decision"] == "decline":
+            # Only an amendment can be declined: every other agreement is
+            # either signed or walked from. The parser admits the decision
+            # only under interface 3, so a sealed case never reaches here.
+            if key != "land_amendment" or not phase.phase_id.endswith("_offer"):
+                return LegalityResult.illegal("decline_only_amends")
+            return LegalityResult.legal_action()
         if phase.phase_id.endswith("_offer"):
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
                 return LegalityResult.illegal("round_limit_exhausted")
+            if key == "land_amendment":
+                prior = state["executed"].get("land")
+                if prior is not None and not _amended_fields(prior, _terms("land", action["terms"])):
+                    # A re-proposal of the executed terms is not an amendment.
+                    # It is the developer's invalid action, typed and scored
+                    # as such, not an environment failure at commit.
+                    return LegalityResult.illegal("amendment_changes_nothing")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_response"):
             if action["offer_id"] != state["latest_offer_id"][key]:
@@ -572,10 +842,23 @@ class DataCenterStackPlugin:
             next_state["temporal_violations"].append(str(code))
             return TransitionResult(next_state, None, {"valid": False, "failure_code": code})
         action = envelope.action
+        if action["decision"] == "decline":
+            # The executed land agreement stands as signed; the stack moves
+            # on to the next agreement. The list is created here rather than
+            # in the initial state so that sealed interface-2 episodes keep
+            # their state bytes.
+            next_state.setdefault("declined", []).append(key)
+            next_state["pending_counter_terms"][key] = None
+            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "decline", "message": action.get("message")})
+            next_key = self.sequence[self.sequence.index(key) + 1]
+            return TransitionResult(next_state, _phase_id(next_key, "offer"), {"valid": True, "decision": "decline"})
         if action["decision"] in {"walk", "reject"}:
             next_state["finished"] = True
             next_state["termination_reason"] = f"{seat}_{action['decision']}"
-            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action.get("offer_id")})
+            entry = {"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action.get("offer_id")}
+            if "message" in action:
+                entry["message"] = action["message"]
+            next_state["public_history"].append(entry)
             return TransitionResult(next_state, None, {"valid": True, "decision": action["decision"]})
         if phase.phase_id.endswith("_offer"):
             offer = _make_offer(
@@ -645,7 +928,10 @@ class DataCenterStackPlugin:
         return _plain(state) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
-        completed = all(key in terminal["executed"] for key in self.sequence)
+        declined = tuple(terminal.get("declined") or ())
+        completed = all(
+            key in terminal["executed"] or key in declined for key in self.sequence
+        )
         result = {
             "scope_version": self.scope_version,
             "project_completed": completed,
@@ -661,6 +947,8 @@ class DataCenterStackPlugin:
             "total_project_npv_cents": family_case["outside_option"]["total_project_npv_cents"],
             "project_outcome": None,
         }
+        if declined:
+            result["declined_agreements"] = list(declined)
         if not completed:
             return result
         executed = {
@@ -668,9 +956,10 @@ class DataCenterStackPlugin:
             for key, value in terminal["executed"].items()
         }
         amendment_valid = True
-        if self.scope_version == "v2":
+        amended = self.scope_version == "v2" and "land_amendment" not in declined
+        if amended:
             apply_executed_amendment(executed["land"], executed["land_amendment"])
-        land_key = "land_amendment" if self.scope_version == "v2" else "land"
+        land_key = "land_amendment" if amended else "land"
         stack = simulate_development_stack(
             ProjectFacts.from_dict(family_case["project_facts"]),
             service_agreement=executed["service"],
@@ -707,7 +996,9 @@ class DataCenterStackPlugin:
 
 __all__ = [
     "COUNTERPART_BY_KEY",
+    "DEVELOPER_INTERFACES",
     "DataCenterStackPlugin",
+    "developer_interface",
     "FAMILY_ID",
     "SCORER_ID",
     "SCOPE_CONFIG",

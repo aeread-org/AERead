@@ -40,6 +40,7 @@ class DevelopmentStackOutcome:
     project: ProjectOutcome
     adjustments: AgreementStackAdjustments
     negotiated_constraints_satisfied: bool
+    constraint_checks: Mapping[str, bool]
     developer_equity_npv_cents: int
     lender_npv_cents: int
     customer_npv_cents: int
@@ -279,15 +280,23 @@ def simulate_development_stack(
         base_conditions,
         power.energization_month,
     )
-    constraints_ok = (
-        epc.guaranteed_capacity_kw >= service.committed_capacity_kw
-        and power.contracted_capacity_kw >= service.committed_capacity_kw
-        and epc_conditions_ok
-        and power_conditions_ok
-        and site_control_valid
-        and project.financing_succeeded
-        and not project.defaulted
-    )
+    # Reported individually as well as combined. The conjunction alone cannot
+    # tell a stack that failed on one thing from one that failed on four, and
+    # that difference is most of what a trajectory has to say.
+    constraint_checks = {
+        "epc_capacity_covers_lease": (
+            epc.guaranteed_capacity_kw >= service.committed_capacity_kw
+        ),
+        "power_capacity_covers_lease": (
+            power.contracted_capacity_kw >= service.committed_capacity_kw
+        ),
+        "epc_conditions_precedent_met": epc_conditions_ok,
+        "power_conditions_precedent_met": power_conditions_ok,
+        "site_control_holds_through_operations": site_control_valid,
+        "financing_funded": project.financing_succeeded,
+        "no_default": not project.defaulted,
+    }
+    constraints_ok = all(constraint_checks.values())
     adjustments = AgreementStackAdjustments(
         physical_epc_completion_month=physical_epc_month,
         physical_power_ready_month=physical_power_month,
@@ -304,6 +313,7 @@ def simulate_development_stack(
         project=project,
         adjustments=adjustments,
         negotiated_constraints_satisfied=constraints_ok,
+        constraint_checks=constraint_checks,
         developer_equity_npv_cents=project.developer_equity_npv_cents,
         lender_npv_cents=project.lender_npv_cents,
         customer_npv_cents=project.customer_npv_cents,

@@ -1,0 +1,72 @@
+{
+  "analysis": {
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260921,
+    "causal_condition_effect_allowed": false,
+    "condition_interpretation": {
+      "controlled_developer": "live developer against fixed scripted counterparties"
+    },
+    "execution_order": "rotate_model_order_by_world_index",
+    "independent_cluster_count": 24,
+    "inferential_model_ranking_allowed": false,
+    "missingness": "report_separately",
+    "paired_by": [
+      "case_id",
+      "inference_seed"
+    ],
+    "resampling_unit": "world",
+    "winner_claim_allowed": false
+  },
+  "campaign_id": "datacenter_development_v2_world_panel_interface3_confirmatory_v1",
+  "claim_status": "single_route_gemini_interface3_confirmatory_admission_and_reference_delta_on_held_out_worlds",
+  "conditions": [
+    "controlled_developer"
+  ],
+  "execution": {
+    "campaign_max_cost_usd": 15.0,
+    "concurrency": 1,
+    "harness": "minimal_chat/1.0",
+    "max_action_attempts": 1,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_cost_usd_per_live_profile": 0.03,
+    "max_output_tokens_per_action": 6000,
+    "provider_cooldown_seconds_after_cell": 10.0,
+    "provider_fallbacks": false,
+    "response_cache": false,
+    "sdk_retries": 0,
+    "timeout_seconds_per_action": 180.0
+  },
+  "expected_pack_sha256": "58537dfe5e773b2c2dcf27e5bbbaafb591fc4f276ffd9abc7a7402858220ca7f",
+  "family_id": "datacenter_development_v1",
+  "inference_seeds": [
+    51211,
+    51212,
+    51213
+  ],
+  "models": {
+    "gemini38_flash_aistudio": {
+      "access_class": "proprietary",
+      "canonical_model": "google/gemini-3.8-flash-20260902",
+      "license_id": "proprietary",
+      "max_completion_price_per_million": "6.75",
+      "max_cost_usd_per_live_profile": 0.2,
+      "max_prompt_price_per_million": "1.35",
+      "pricing": {
+        "cached_input_per_million": 0.075,
+        "input_per_million": 0.75,
+        "output_per_million": 3.75,
+        "pricing_id": "openrouter_2026-09-03_gemini38_flash_aistudio_world_panel_interface3_confirmatory_v1"
+      },
+      "profile_id": "datacenter_v2_gemini38_flash_aistudio_world_panel_interface3_confirmatory_v1",
+      "provider": "Google AI Studio",
+      "quantization": "unknown",
+      "reasoning_effort": "low",
+      "requested_model": "google/gemini-3.8-flash",
+      "temperature_supported": true
+    }
+  },
+  "pack_id": "datacenter_development_v2_worlds_v3_holdout_v1",
+  "pack_split": "worlds_v3_holdout",
+  "schema_version": "aeread.datacenter_world_campaign_contract/0.2",
+  "scope_version": "v2"
+}

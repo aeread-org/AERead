@@ -88,6 +88,20 @@ V12_CONTRACT_PATH = (
 )
 
 
+
+def _table_in_bundle(bundle_root: Path, recorded_path: str) -> Path:
+    """Locate a manifest's table inside its own bundle.
+
+    A fact manifest records the table's path as it stood when the manifest was
+    sealed, which is a historical record and not where the bundle lives now
+    (campaigns are filed per family; see evidence/README.md). Resolve the tail
+    after the campaign id against the bundle root, which no relayout changes.
+    """
+
+    parts = Path(recorded_path).parts
+    tail = parts[2:] if parts[:1] == ("evidence",) else parts
+    return bundle_root.joinpath(*tail)
+
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
     contract = load_contract(CONTRACT_PATH)
     routes = route_table(contract)
@@ -295,7 +309,11 @@ def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
     design = design_artifact(contract, routes=routes)
     provider_free = provider_free_artifact(contract)
     assert design["artifact_sha256"] == (
-        "5ead3480740ef7105a8c94d486c2f0e896c0682d15974a8eae1780ebdde04ea8"
+        # Re-pinned once when design identity stopped including the kernel
+        # implementation pins (#68): the artifact now seals design_sha256, the
+        # pin-free digest, instead of run_plan_id/plan_sha256, so this value
+        # changes only when the v11 design changes -- not on every kernel commit.
+        "eb8119be8f07aa2662fdcb108cb2a88fc2965391e85ff65d1bfabd95d8870b9c"
     )
     assert design["planned_trajectories"] == 4
     assert design["configuration_count"] == 1
@@ -341,7 +359,8 @@ def test_v12_changes_only_campaign_identity_profiles_and_call_pacing() -> None:
         == pytest.approx(0.14)
     )
     assert design_artifact(v12, routes=routes)["artifact_sha256"] == (
-        "e26b9f1e43ce5976f5e17c53749880f1f4512e5f3442f386edcffc176d8c08c5"
+        # Re-pinned once with the design-identity change (#68); see the v11 note.
+        "4447c1f1c93b79cd1c67c84d6bc56af0d05d20be4a326fb670a675bfd35d107b"
     )
     assert provider_free_artifact(v12)["artifact_sha256"] == (
         "a0e032b4f6a8131845879addbc9a837e47b77d64eac15a9742a41d8eca246203"
@@ -414,7 +433,7 @@ def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_deepinfra_v12"
+        /"housing" / "housing_model_sensitivity_openrouter_deepinfra_v12"
     )
     qualification = json.loads(
         (evidence_root / "reports" / "qualification.json").read_bytes()
@@ -558,16 +577,26 @@ def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
         (
             V8_CONTRACT_PATH.parents[1]
             / "evidence"
-            / contract["campaign_id"]
+            / "housing" / contract["campaign_id"]
             / "reports"
             / "qualification.json"
         ).read_bytes()
     )
     gates = {row["gate_id"]: row for row in qualification["gate_status"]}
 
+    # The published v8 design gate was sealed when design identity still
+    # included the kernel implementation pins (schema 0.1). Under the #68
+    # ruling a design's identity excludes them, so today's artifact cannot
+    # and should not reproduce that digest: the published one is sealed
+    # history and is asserted as such. What is asserted about today's code is
+    # the property the ruling defines -- the v8 design digest is stable across
+    # kernel commits -- pinned once, here. If it moves, the v8 design changed.
+    assert gates["design"]["artifact_sha256"] == (
+        "b1b14d848e613e4665da94517ab7f92ddf4b102b7a15d4e39bb830d1d7e4c1da"
+    )
     assert design_artifact(contract, routes=route_table(contract))[
         "artifact_sha256"
-    ] == gates["design"]["artifact_sha256"]
+    ] == "1628ee9d8ffe29ddf455831f549eb12535a40139a85597f060682807b6b5815d"
     assert provider_free_artifact(contract)["artifact_sha256"] == gates[
         "provider_free"
     ]["artifact_sha256"]
@@ -919,7 +948,7 @@ def test_published_backend_qualification_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v2"
+        / "housing" / "housing_model_sensitivity_openrouter_alt_v2"
         / "reports"
         / "qualification.json"
     )
@@ -942,7 +971,7 @@ def test_published_v3_qualification_is_digest_bound_and_has_no_scores() -> None:
     path = (
         V3_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v3"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v3"
         / "reports"
         / "qualification.json"
     )
@@ -963,7 +992,7 @@ def test_published_v4_qualification_is_digest_bound_and_blocks_live() -> None:
     path = (
         V4_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v4"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v4"
         / "reports"
         / "qualification.json"
     )
@@ -1008,7 +1037,7 @@ def test_published_recent_qualifications_are_digest_bound(
     path = (
         contract_path.parents[1]
         / "evidence"
-        / campaign_id
+        / "housing" / campaign_id
         / "reports"
         / "qualification.json"
     )
@@ -1031,7 +1060,7 @@ def test_published_v7_trajectories_are_digest_bound_and_non_rankable() -> None:
     path = (
         V7_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v7"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v7"
         / "trajectories"
         / "selected.json"
     )
@@ -1060,7 +1089,7 @@ def test_published_v8_qualification_and_attempts_are_digest_bound() -> None:
     root = (
         V8_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v8"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v8"
     )
     qualification = json.loads(
         (root / "reports" / "qualification.json").read_bytes()
@@ -1111,7 +1140,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
     root = (
         V9_CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v9"
+        /"housing" / "housing_model_sensitivity_openrouter_alt_v9"
     )
     qualification = json.loads(
         (root / "reports" / "qualification.json").read_bytes()
@@ -1149,7 +1178,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
     assert trajectories["trajectories"] == []
 
     for table in manifest["artifacts"].values():
-        path = V9_CONTRACT_PATH.parents[1] / table["path"]
+        path = _table_in_bundle(root, table["path"])
         assert hashlib.sha256(path.read_bytes()).hexdigest() == table["sha256"]
         with path.open(newline="", encoding="utf-8") as handle:
             assert len(list(csv.DictReader(handle))) == table["row_count"]
@@ -1163,7 +1192,7 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
 
 def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
     repository_root = V10_CONTRACT_PATH.parents[1]
-    root = repository_root / "evidence" / (
+    root = repository_root / "evidence" / "housing" / (
         "housing_model_sensitivity_openrouter_morph_v10"
     )
     qualification = json.loads(
@@ -1248,7 +1277,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
     assert len(index["runs"]) == 12
     assert all(row["receipt_count"] == 4 for row in index["runs"])
     for run in index["runs"]:
-        manifest_path = repository_root / run["fact_manifest_path"]
+        manifest_path = _table_in_bundle(root, run["fact_manifest_path"])
         manifest_bytes = manifest_path.read_bytes()
         assert hashlib.sha256(manifest_bytes).hexdigest() == run[
             "fact_manifest_file_sha256"
@@ -1270,7 +1299,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
                 assert len(list(csv.DictReader(handle))) == table["row_count"]
 
     contrast = index["paired_world_contrasts"]
-    contrast_path = repository_root / contrast["path"]
+    contrast_path = _table_in_bundle(root, contrast["path"])
     assert hashlib.sha256(contrast_path.read_bytes()).hexdigest() == contrast[
         "sha256"
     ]
@@ -1290,7 +1319,7 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
 
 def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     repository_root = V11_CONTRACT_PATH.parents[1]
-    root = repository_root / "evidence" / (
+    root = repository_root / "evidence" / "housing" / (
         "housing_model_sensitivity_openrouter_deepinfra_v11"
     )
     qualification = json.loads(
@@ -1347,7 +1376,7 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert trajectories["trajectories"] == []
 
     for table in manifest["artifacts"].values():
-        table_path = repository_root / table["path"]
+        table_path = _table_in_bundle(root, table["path"])
         assert hashlib.sha256(table_path.read_bytes()).hexdigest() == table["sha256"]
         with table_path.open(newline="", encoding="utf-8") as handle:
             assert len(list(csv.DictReader(handle))) == table["row_count"]
@@ -1357,3 +1386,26 @@ def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_design_identity_is_stable_across_kernel_commits() -> None:
+    """The property behind design_sha256 (#68): re-pinning a plan to different
+    implementation bytes moves plan_sha256 -- a receipt must name the build
+    that produced it -- and must NOT move the design digest, because a frozen
+    design is the same design under any build. Before this, every kernel
+    commit moved every design-artifact digest in the repo."""
+    import dataclasses
+
+    from aeread.shared_runner.run.resolver import design_plan_sha256, plan_with_pins
+
+    v11 = load_contract(V11_CONTRACT_PATH)
+    setups = build_setups(v11, routes=route_table(v11))
+    plan = setups[sorted(setups)[0]].plan
+    assert plan.implementation_pins, "fixture plan carries implementation pins"
+    other_build = tuple(
+        dataclasses.replace(pin, sha256="0" * 64) if index == 0 else pin
+        for index, pin in enumerate(plan.implementation_pins)
+    )
+    repinned = plan_with_pins(plan, other_build)
+    assert repinned.plan_sha256 != plan.plan_sha256, "a receipt identity follows the build"
+    assert design_plan_sha256(repinned) == design_plan_sha256(plan), "a design identity does not"

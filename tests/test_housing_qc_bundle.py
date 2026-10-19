@@ -80,7 +80,7 @@ def test_housing_qc_bundle_publishes_distinct_digest_bound_receipts(
 
 
 def test_checked_in_housing_qc_bundle_is_digest_bound() -> None:
-    root = CONTRACT_PATH.parents[1] / "evidence" / "housing_qc_goldens_v1"
+    root = CONTRACT_PATH.parents[1] / "evidence" /"housing" / "housing_qc_goldens_v1"
     report = json.loads((root / "reports" / "qc_bundle.json").read_bytes())
     core = {key: value for key, value in report.items() if key != "artifact_sha256"}
 
