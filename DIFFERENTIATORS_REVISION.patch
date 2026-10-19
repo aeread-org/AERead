@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 13:09:11
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 13:11:19
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1165,7 +1165,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table F.1. Benchmark QC gates.**
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 13:09:02
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 13:11:05
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1195,7 +1195,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,105 +30,172 @@
+@@ -29,105 +30,173 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1340,14 +1340,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +exact best informed policy at that point.
  
 -**Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
-+**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
++**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3% (it gives up $75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
  
  | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
  |---|---:|---:|---:|---:|
 -| Given up per world | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
 -| Share of the best policy's value | 99.8% | 98.8% | 83.3% | 83.5% |
 +| Share of the best policy's value given up | 0.2% [0.0, 0.5] | 1.2% [0.3, 2.4] | 16.7% [10.8, 22.5] | 16.5% [10.4, 22.8] |
-+| Share kept | 99.8% | 98.8% | 83.3% | 83.5% |
++| Share kept (always paying the premium: 83.3%) | 99.8% | 98.8% | 83.3% | 83.5% |
++| Share of the premium-to-best gap closed | 98.6% [97.2, 99.7] | 92.8% [85.9, 98.4] | 0.0% [−34.9, 35.2] | 1.1% [−36.6, 37.9] |
  
  The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
  run came from two rules the brief left unsaid, that a quote is final and that the average is the
@@ -1435,7 +1436,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### 5.2 Where the shortfall comes from
  
  Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
-@@ -138,23 +206,55 @@
+@@ -138,23 +207,56 @@
  ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
  
  **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
@@ -1464,7 +1465,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +premium is best, that cost nothing. In the other 16 the best policy tests a cheaper newcomer first,
 +because what a good newcomer saves exceeds what the test costs in money and days. There, going
 +straight to the recorded supplier cost $22 to $212 a world, $113 on average: all of the 16.7% of
-+the best policy's value that Gemini gives up.
++the best policy's value that Gemini gives up. Its 83.3% is exactly what always paying the premium
++keeps, so it closes none of the gap the case measures.
  
 +**Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
 +against the reachable rule comes from leases whose quality it had settled, by inspecting or because
@@ -1503,7 +1505,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,20 +268,65 @@
+@@ -168,20 +270,65 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -1573,7 +1575,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
  | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
  | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
-@@ -190,12 +335,16 @@
+@@ -190,12 +337,16 @@
  | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
  | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
  | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |

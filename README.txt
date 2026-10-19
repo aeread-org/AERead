@@ -167,3 +167,6 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
   above the landlord's floor 31%, inspection 17%); Housing v14 Luna signs a lemon the landlord's acceptance identified
   (56 of 520 cells, about $800 each, 60% of its shortfall); Refund Flash Lite re-asks a known fact and the case ends
   (80.8 of 98.3 points) or writes method null (16.7); Data center fees and harmful agreements (Opus 29.5%). 51 pages.
+- Table 5.3 floor (2026-10-19, raised by the other session): share of the best policy's value hides the decision,
+  because always paying the premium already keeps 83.3%. The table now shows that floor and the share of the
+  premium-to-best gap each subject closes (Sol 98.6%, Opus 92.8%, Gemini 0.0%, Luna 1.1%).

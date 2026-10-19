@@ -123,12 +123,13 @@ if the quote is clean, is worth $65.90 more than paying the premium, provided a 
 time to return to the recorded supplier. Every action is charged what it gave up against the
 exact best informed policy at that point.
 
-**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3% (it gives up $75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
 
 | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
 |---|---:|---:|---:|---:|
 | Share of the best policy's value given up | 0.2% [0.0, 0.5] | 1.2% [0.3, 2.4] | 16.7% [10.8, 22.5] | 16.5% [10.4, 22.8] |
-| Share kept | 99.8% | 98.8% | 83.3% | 83.5% |
+| Share kept (always paying the premium: 83.3%) | 99.8% | 98.8% | 83.3% | 83.5% |
+| Share of the premium-to-best gap closed | 98.6% [97.2, 99.7] | 92.8% [85.9, 98.4] | 0.0% [−34.9, 35.2] | 1.1% [−36.6, 37.9] |
 
 The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
 run came from two rules the brief left unsaid, that a quote is final and that the average is the
@@ -219,7 +220,8 @@ awarded the recorded supplier and asked no newcomer for anything. In the 8 world
 premium is best, that cost nothing. In the other 16 the best policy tests a cheaper newcomer first,
 because what a good newcomer saves exceeds what the test costs in money and days. There, going
 straight to the recorded supplier cost $22 to $212 a world, $113 on average: all of the 16.7% of
-the best policy's value that Gemini gives up.
+the best policy's value that Gemini gives up. Its 83.3% is exactly what always paying the premium
+keeps, so it closes none of the gap the case measures.
 
 **Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
 against the reachable rule comes from leases whose quality it had settled, by inspecting or because
