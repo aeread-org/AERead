@@ -2409,6 +2409,7 @@ def test_a_round_that_answered_proves_the_route_before_the_attempt_completes(tmp
     from aeread.shared_runner.task.execution import (
         POST_ADMISSION_REJECTION,
         EvidenceStore,
+        PendingRound,
         ProviderCallRecord,
     )
 
@@ -2448,7 +2449,16 @@ def test_a_round_that_answered_proves_the_route_before_the_attempt_completes(tmp
     failure = ProviderFailure("provider_rejected", "404 not found", retryable=False, status_code=404)
     should_retry, condition = executor._record_provider_failure(
         _decision(), profile, request, "attempt_multi", 0, None, [], failure,
-        prior_rounds=(settled_round,), pending=None,
+        prior_rounds=(settled_round,),
+        # Round 2 is in flight when its 404 arrives. With no pending round the
+        # failure would be a post-success one and attach to the attempt only
+        # (#249), so the state this test models must carry the open round.
+        pending=PendingRound(
+            round=1,
+            provider_call_id=request.provider_call_id,
+            request=request,
+            terminalized=False,
+        ),
     )
     assert should_retry is True
     assert condition == POST_ADMISSION_REJECTION
