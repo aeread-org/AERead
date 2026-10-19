@@ -1,0 +1,149 @@
+--- a/docs/operations/incident_log.md
++++ b/docs/operations/incident_log.md
+@@ -630,4 +630,4 @@
+ | DC-T-21 | the agreement confirmatory's analysis module (`tools/cli_subjects/agreement_confirmatory_analysis.py`, committed a42466bb before any pilot cell was read) labels P2 with one reading only: `reading()` returns "a gap against the firm population is claimed" as soon as the Holm test rejects 0 and never checks the second reading the plan declares, "no gap of 50 or more" when the upper end of the 1 - 0.05/3 interval is below 50. The plan's two readings are not exclusive, and on the confirmatory data both hold (gap 26.4, Holm p 0.0017; 98.3% interval [6.7, 46.1]) | 2026-10-14, reading the first P1 to P3 output against the plan's "Primary contrasts" text, before the results note was written | none: a label, no number moves; caught before any result was reported | fixed: `reading()` returns every declared reading that holds, and a test covers a P2 that rejects 0 with its strict interval below 50; the results note states both readings and lists this as a departure |
+ | DC-O-22 | in `datacenter_agreement_confirm_adversarial_v1` (arm A, plan 50d4b80177f0, 720 cells) the negotiation `codex_integrator__negotiator_collapse_client__747a604a__r0` failed on its first move after 19.7 s: `Codex exited with 1 and no completed turn`, the CLI's own five reconnects ending in `503 Service Unavailable` from the service. Sealed by the driver as `invalid_measurement` with the error | 2026-10-14 13:2x PDT, the arm A monitor's failed-cell count moved from 0 to 1 at 533 of 720 cells | one negotiation of the secondary arm, typed missing; the halt rule (five consecutive operational failures) did not fire | open, by rule: never rerun or replaced; arm A's per-style contrast for collapse drops this world; the results note lists it under missingness |
+ | DC-T-22 | the agreement confirmatory driver's `verify` (`tools/cli_subjects/agreement_confirmatory_cli.py`) sends a sealed failure receipt to the kernel's score replay, which has no score to recompute and raises `sealed family evidence has incomplete score boundaries`; `verify` then lists the receipt under `failed`, so arm A reads "719 replayed, 1 failed" when the one receipt is a correctly sealed exclusion (DC-O-22). Kernel #239 counts failure receipts as exclusions; this driver predates it and was not told | 2026-10-14, the offline verification of `datacenter_agreement_confirm_adversarial_v1` after its run | none: the receipt was checked by hand instead, digest and canonical bytes (`read_evaluation_receipt`) and evidence seal (`EvidenceStore.audit_existing(...).verify_seal()`) both match, status `invalid_measurement`, inclusion `excluded`, failure `environment_failure` / `provider_rejected` | open: not fixed in the driver, because the driver's bytes are pinned in all five frozen plans and `verify` refuses a changed source; a later driver identity should verify a failure receipt's digest and seal and count it as an exclusion |
+-| DC-D-34 | the reading counterparts' rules (`FITTED` in `agreement_reader.py`) were fitted across worlds on the development pack, from the same look-back analysis DC-D-33 shows is confounded. The Opus price rule's slope, 0.521, is the withdrawn 0.52. So the price reader faced Opus with a wrong model of it, and its 7 correct type readings in 16 are a test of that model, not of what a reader that had studied Opus properly could take. Found when the owner asked whether scripts fitted to model-against-model play could stand in for it: the readers are such scripts, and they inherited the confound of the data they were fitted on | `agreement_reader.py` docstring and `FITTED`, 2026-10-15 | P3a's verdict stands: Opus's price does not move with its type inside a world (-0.07 [-0.18, 0.05]), so no price reader could have read it there. The clause reader's Sol rule (3.05 to 5.13 clauses from the lowest to the highest charge) is close to the within-world shift the test found (+1.82 from low to high) | open: a counterpart fitted to a model is fitted on worlds that hold the world fixed (the swap packs) and is checked on held-out worlds before it is used as evidence |
++| DC-D-37 | the reading counterparts' rules (`FITTED` in `agreement_reader.py`) were fitted across worlds on the development pack, from the same look-back analysis DC-D-33 shows is confounded. The Opus price rule's slope, 0.521, is the withdrawn 0.52. So the price reader faced Opus with a wrong model of it, and its 7 correct type readings in 16 are a test of that model, not of what a reader that had studied Opus properly could take. Found when the owner asked whether scripts fitted to model-against-model play could stand in for it: the readers are such scripts, and they inherited the confound of the data they were fitted on | `agreement_reader.py` docstring and `FITTED`, 2026-10-15 | P3a's verdict stands: Opus's price does not move with its type inside a world (-0.07 [-0.18, 0.05]), so no price reader could have read it there. The clause reader's Sol rule (3.05 to 5.13 clauses from the lowest to the highest charge) is close to the within-world shift the test found (+1.82 from low to high) | open: a counterpart fitted to a model is fitted on worlds that hold the world fixed (the swap packs) and is checked on held-out worlds before it is used as evidence |
+--- a/docs/families/datacenter/qc.md
++++ b/docs/families/datacenter/qc.md
+@@ -687,16 +687,19 @@
+ 
+ ## 11. Negotiating into an agreement (`datacenter_agreement_v1`)
+ 
+-The case of `docs/families/datacenter/agreement_case.md`, results in
+-`agreement_results_2026-10.md`: an integrator and a client redline one services
++The case of `docs/families/datacenter/agreement_case.md`, development results in
++`agreement_results_2026-10.md` and confirmatory results in
++`agreement_confirmatory_results_2026-10.md` (12516caf): an integrator and a client redline one services
+ agreement of eight clauses and an all-in price (600 agreements) over six alternating
+ moves, both seats open, graded exactly at both sides' true costs (`agreement.grade`).
+ Its campaigns are the 18 `datacenter_agreement_cli_*` bundles: 2,456 negotiations of
+ Codex (Sol 6.1) and Opus 5.5 against each other, themselves and scripted counterparts,
+ 2,417 valid, every one of them on a development pack. **Normative status: failed** for
+ those campaigns, on Gate 1. The admitted pack `agreement_admitted_v1` (2026-10-13) is
+-`partial` at Gate 1; no model has played it, and the confirmatory plan that would is
+-`agreement_confirmatory_plan.md`.
++`partial` at Gate 1. The plan `agreement_confirmatory_plan.md` (ca9d5cac) was executed
++on 14 October: 96 pilot and 1,080 confirmatory negotiations, 1,175 valid, plus 120
++provider-free dry-run negotiations. This 16 October documentation review records Gate 5
++as `partial`, with the remaining checks below; it does not relabel the development campaigns.
+ 
+ **Gate 0, profile admission: partial.** This section is the profile. From the registry
+ row of 2026-10-09 (03a7faef) until it, the family was trusted with neither a profile nor
+@@ -704,8 +707,8 @@
+ agreement campaign (DC-J-08); that test now maps the family here. The registry row is
+ kernel lane, on a branch with no PR, and needs a non-author review.
+ 
+-**Gate 1, task-distribution admission: failed for the development packs, which every
+-published campaign used; partial for `agreement_admitted_v1`, which no model has played.**
++**Gate 1, task-distribution admission: failed for the development packs; partial for
++`agreement_admitted_v1`, now used by the confirmatory.**
+ 
+ *The development packs.* Both regenerate to the committed digests and share no world, but
+ neither was admitted for this case. `agreement_dev_v1` (58 worlds, 6 with no deal worth
+@@ -763,7 +766,7 @@
+ - **Counterpart style.** `agreement_admitted_pack.public_style` draws the `drawn` population
+   from the public world and the seat: the same under all three charges in every world,
+   where `drawn_style` changes in all 120 world-seats (DC-D-32). `Negotiator` takes a
+-  `Style`, so no hashed module is edited; no driver uses it yet.
++  `Style`, so no hashed module is edited; the confirmatory driver uses it for arm F.
+ 
+ Blockers:
+ 
+@@ -775,11 +778,11 @@
+    result on it measures price and the walk-away decision under nearly complete clause
+    information. Clearing it needs a world family in which the integrator's risk charge is
+    private.
+-2. **No measured-headroom screen.** Nothing has played the pack, so the control's per-world
+-   rate at several plays and the trivial and degenerate grounds are not measured. The
+-   shortcuts are deterministic public-information policies and each loses a margin in every
+-   world, which is necessary and not sufficient. The confirmatory plan's variance pilot on a
+-   separate admitted draw supplies the screen.
++2. **Measured-headroom qualification remains incomplete.** The 12-world pilot and
++   60-world confirmatory have run, and the pilot supplied a sealed variance/sizing record.
++   The deterministic shortcut margins and published first-offer/best-plan baselines are
++   available. A full per-world, repeated-control headroom verdict is not recorded, and
++   pilot variance alone does not establish it.
+ 
+ **Gate 2, environment and verifier: partial.** `tests/test_datacenter_agreement_oracle_run.py`
+ plays every world of both packs through the plugin's own hooks (parse, legality, step,
+@@ -787,7 +790,7 @@
+ two cost functions. The full-information pair loses 0 (to 1e-6) in 116 of 116 worlds,
+ signs c* in the 104 deal worlds and walks in the 12 others; the draft pair loses exactly
+ what signing the draft at its midpoint predicts in all 116, $317.64k a world on dev and
+-$289.02k on confirm. The grade is the outcome hook's, computed from the terminal state,
++$289.02k on confirm. On the development checks, the grade is the outcome hook's, computed from the terminal state,
+ and the terminal is reproduced from its own moves; the kernel's replay re-executes the
+ steps and recomputes the outcome, and the CLI driver replays every receipt to the same
+ digest before a cell counts. Three mutations kill the checks: a benchmark that names the
+@@ -795,10 +798,14 @@
+ the midpoint. Partial because no test exercises the invalid, malformed or truncated
+ goldens the parser and legality codes define; the leak check compares briefs on the swap
+ packs, not whole observations; and the run drives the plugin, not the kernel scheduler
+-(the 116-cell scripted dry run of 9d7429e0 is in gitignored `runs/`).
++(the 116-cell scripted dry run of 9d7429e0 is in gitignored `runs/`). The later
++120-negotiation admitted-pack dry run used the kernel scheduler before model confirmation.
++Offline verification reports replay all 1,295 scored receipts of that dry run, pilot and
++three arms; one failure receipt has separately checked digest/seal (DC-T-22), rather than
++a successful score replay.
+ 
+ **Gate 3, construct validity and baselines: partial.** Lower control: the draft pair,
+-which signs in only 15 of the 52 dev deal worlds. Counterparts: the scripted negotiator
++which signs in only 15 of the 52 dev deal worlds. Development counterparts: the scripted negotiator
+ in seven fixed styles and a `drawn` population; the Codex-Opus gap runs from 17 and 23
+ against `firm` to 148 against `collapse`, so a result is a result for that counterpart.
+ Stand-ins with both types known (`agreement_negotiator_check.py`) give a sign-the-first-
+@@ -807,24 +814,38 @@
+ primary measure, loss by turn against a best informed policy, and its one-step check
+ that the case is not arithmetic are not built; on the development packs the `drawn`
+ style's draw hashes the client's hidden charge (DC-D-32) and no shortcut is screened at
+-admission. The admitted pack screens every shortcut and has a public style, which no
+-driver uses yet.
++admission. The admitted pack screens every shortcut and has a public style, now used by the
++confirmatory driver. Its primary P2 gap is 26.4 [10.5, 42.4] ($k), Holm p 0.0017; its
++98.3% interval [6.7, 46.1] lies below the predeclared minimum of 50.
+ 
+ **Gate 4, attribution and experimental controls: partial.** Pairings are compared on the
+ same worlds; same-model pairings are declared self-play with their estimand. An A/A
+ check on repeat plays flagged 0 of 48, and the counterpart carries 25 to 33% of the spread
+ in earnings (shuffled labels 2% or less); both come from notebooks outside the
+-repository. All 39 failed negotiations were CLI or service errors, typed missingness; 16
++repository. Across development and confirmatory, all 40 failed negotiations were CLI or service errors, typed missingness; 16
+ were played again as three new campaigns by owner ruling (DC-O-17 to DC-O-19), the other
+-23 stay missing (DC-O-20, DC-O-21). Partial because a CLI takes no seed or temperature,
+-each model has one route and one reasoning setting, 36 of the 39 failures are Codex's,
++24 stay missing (DC-O-20, DC-O-21, DC-O-22). Partial because a CLI takes no seed or temperature,
++each model has one route and one reasoning setting, 37 of the 40 failures are Codex's,
+ and no plan-level test shows that only the treatment differs between paired plans.
+ 
+-**Gate 5, confirmatory reliability and publication: not_run.** No variance pilot, no run
+-sized from a declared minimum effect, no confirmatory freeze. The one declared test, of
+-what an offer gives away, committed its plan (`agreement_signalling_plan_2026-10.md`,
+-e69b6cff) before its runs, on fresh worlds with six predictions corrected by Holm; it
+-did not pass the campaign SOP's variance-pilot or freeze gates. An admitted panel now
+-exists, and `agreement_confirmatory_plan.md`, committed before any run, declares the
+-pilot, the sizing from the development spread, the contrasts and the freeze. Blocker: none
+-of it has run.
++**Gate 5, confirmatory reliability and publication: partial (16 October review).**
++The earlier `not_run` verdict is superseded. The plan was committed before its runs;
++a 12-world, two-play pilot supplied the P2 variance; the sealed sizing record
++`7511fc9f` calls for 18 deal worlds at the declared effect, against 45 available
++(42 after the planned attrition allowance). It uses the permitted byte-for-byte copy of
++`aeread.design.sizing` at 159cba3c. Frozen plans specify the three primary contrasts,
++missingness, a five-consecutive-operational-failure halt, price ceilings and wall-time
++ceilings. All 360 primary negotiations are valid, and the one secondary-arm failure is
++retained without replacement. The analysis uses paired worlds and Holm correction;
++its published output regenerated exactly from sealed receipt leaves in this review.
++
++The results note records eight departures: CLI versions; an added wall-time stop;
++run-plan labels; the admitted-pack module change to generate the pilot; the permitted
++sizing-code copy; the post-data P2 reading-label correction (DC-T-21); one missing
++secondary-arm negotiation (DC-O-22); and pilot pairing by play index. DC-T-21 changes
++no estimate, but the current analysis digest differs from the sizing record. The pinned
++verifier still reports the excluded receipt as a failed replay; its digest and seal were
++checked separately (DC-T-22). These analysis-identity and automated exclusion-verification
++checks remain open for promotion, so this review does not mark Gate 5 `passed`.
++The frozen campaign files and source bytes are preserved. Gate 1's client-seat limit
++and Gate 3's unimplemented best-informed turn policy remain separate blockers.

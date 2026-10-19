@@ -1,0 +1,196 @@
+{
+ "verified": "2026-10-18",
+ "rows": [
+  {
+   "name": "Terminal-Bench",
+   "marks": [
+    "no",
+    "no",
+    "partial",
+    "partial",
+    "full",
+    "partial",
+    "partial"
+   ],
+   "evidence": [
+    "p3: score is task resolution rate; the oracle solution checks solvability only",
+    "p29: single-agent setting; no counterpart",
+    "p9: share of failures by category (LLM-labelled sample); no gap decomposition",
+    "p3: 89 of 229 hand-written tasks selected by difficulty and quality review; no generator",
+    "p4-5: oracle solution run on every task, no-op agent must fail, exploit agent, auditors",
+    "p2: deterministic tests on final container state; no stated recomputation from records",
+    "p2: many domains on one harness, not economic decisions"
+   ]
+  },
+  {
+   "name": "τ²-bench",
+   "marks": [
+    "no",
+    "partial",
+    "partial",
+    "partial",
+    "partial",
+    "partial",
+    "partial"
+   ],
+   "evidence": [
+    "p4: reward in [0,1] signalling task success; pass^k",
+    "p6: one user simulator model; personas assigned at random in telecom only",
+    "p3, 7-8: mode comparison attributes part of the drop; no taxonomy of agent failures",
+    "p6: telecom tasks generated and subsampled (114 of 279 tasks); other domains hand-written",
+    "p6, p20: programmatic verification in telecom; human review in retail and airline",
+    "p6: assertion functions compute success; no stated recomputation from logs",
+    "p20: three customer-service domains under one tool formalism, not economic decisions"
+   ]
+  },
+  {
+   "name": "GDPval",
+   "marks": [
+    "no",
+    "no",
+    "partial",
+    "no",
+    "partial",
+    "no",
+    "partial"
+   ],
+   "evidence": [
+    "p2: primary metric is win rate against a human expert deliverable",
+    "p9: one-shot, non-interactive tasks",
+    "p7: counts of reasons for lost comparisons; no gap decomposition",
+    "p1: tasks built from actual expert work product; no generator",
+    "p4, 21: model screening and multi-stage expert review of every task; no reference run",
+    "p1: head-to-head human expert comparison is the primary evaluation",
+    "p2, 9: 1,320 tasks across 44 occupations without a shared interactive runtime"
+   ]
+  },
+  {
+   "name": "Agents' Last Exam",
+   "marks": [
+    "no",
+    "no",
+    "partial",
+    "partial",
+    "partial",
+    "partial",
+    "partial"
+   ],
+   "evidence": [
+    "p8: mean task score and full pass rate against expert ground truth",
+    "p6: the agent acts alone against software; no counterpart",
+    "p36: LLM-classified counts of failed tasks for one configuration",
+    "p3-4: expert-contributed projects admitted or rejected by reviewers; no generator",
+    "p21, 29: expert and engineer review and dry runs of each admitted task; no oracle scored",
+    "p30-31: deterministic judges re-run offline on saved trajectories; 6.8% LLM-judged",
+    "p6: one runtime over 55 subdomains of deliverable work, not economic decisions"
+   ]
+  },
+  {
+   "name": "EconEvals",
+   "marks": [
+    "full",
+    "no",
+    "partial",
+    "partial",
+    "partial",
+    "partial",
+    "full"
+   ],
+   "evidence": [
+    "p13: score relative to the utility-maximizing plan computed from parameters the agent does not see",
+    "p4: single-agent contexts; a two-agent litmus test is not a main focus",
+    "p17: behaviour metrics linked to score by correlation; gap not decomposed",
+    "p13, 22: 12 generated instances per environment and level; a budget constraint, no stated admission rule",
+    "p58: a rule baseline for scheduling only; difficulty-scaling check",
+    "p35: scores computed by formula; no stated recomputation from records",
+    "p6-7: procurement, scheduling and pricing through one tool interface"
+   ]
+  },
+  {
+   "name": "NegotiationArena",
+   "marks": [
+    "partial",
+    "full",
+    "partial",
+    "no",
+    "no",
+    "partial",
+    "partial"
+   ],
+   "evidence": [
+    "p3: win rate and average payoff; no computed reference policy",
+    "p3: private values; opponent model, order and persona varied, results by pair",
+    "p4: named failure modes with some counts; no gap decomposition",
+    "p4: fixed hand-set game configurations",
+    "no population-level validity checks reported",
+    "p3: payoffs computed from parsed trades; logs reloadable but scores not stated as recomputed",
+    "p1: ultimatum, trading and price negotiation: one activity with variants"
+   ]
+  },
+  {
+   "name": "AgenticPay",
+   "marks": [
+    "partial",
+    "full",
+    "partial",
+    "no",
+    "no",
+    "partial",
+    "partial"
+   ],
+   "evidence": [
+    "p5: GlobalScore in points from surplus shares, peaking at an equal split; no reference policy",
+    "p4, 7: private reservation prices; buyer and seller personalities crossed",
+    "p8: timeout, overflow and near-miss counts; no gap decomposition",
+    "p6: 111 fixed tasks, each run once per model",
+    "no population-level validity checks reported",
+    "p4-5: deterministic scoring from parsed actions; no stated recomputation from logs",
+    "p5: price negotiation under eight market structures"
+   ]
+  },
+  {
+   "name": "TERMS-Bench",
+   "marks": [
+    "full",
+    "full",
+    "full",
+    "partial",
+    "full",
+    "full",
+    "partial"
+   ],
+   "evidence": [
+    "p5-6, 31: surplus efficiency and attainment of a Bayes-optimal oracle with stated information",
+    "p3-4, 23, 53: six scripted counterpart families with private types; metrics reported by family",
+    "p6, 9: inference, uncertainty and control components sum to the base-to-oracle gap",
+    "p6, 51, 54: seeded parameterized generator; a resample rule only in the catalog variant",
+    "p2, 8, 71, 74-76: oracle and fixed-concession rules on all 1,800 episodes; full-information anchor; saturation test",
+    "p4, 53: metrics are formulas over logged traces and simulator ground truth",
+    "p3, 75: bilateral price negotiation; extensions reuse the same kernel"
+   ]
+  },
+  {
+   "name": "AERead (this paper)",
+   "marks": [
+    "full",
+    "full",
+    "full",
+    "partial",
+    "full",
+    "full",
+    "full"
+   ],
+   "evidence": [
+    "Sections 3.1, 4.1; Table 5.1: reachable, information-constrained and full-information references",
+    "Section 5.1, Table 5.4: scripted, cross-play and self-play counterparts; claims name them",
+    "Section 5.2, Figure 5.1: components sum to each case total",
+    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing admits on a structural condition; the reported Procurement pack had no shortcut screen",
+    "Section 6, Appendix F: reference on every admitted world, simple-rule ceilings, brief audits, gates",
+    "Section 4.1: receipt replay without a model; Housing and Procurement headline measures reproduced from sealed records",
+    "Sections 5, 5.3: four families and a TERMS-Bench reimplementation on one kernel"
+   ],
+   "this_paper": true
+  }
+ ],
+ "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here, none of which yet passes every qualification gate (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in two of its cases, an admission rule that screens shortcuts."
+}

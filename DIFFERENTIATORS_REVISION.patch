@@ -1,0 +1,1625 @@
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
+--- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 01:36:04
+@@ -1,14 +1,16 @@
+ {
++  "case_figures": 1,
++  "comparison_rows": 9,
+   "architecture_figures": 1,
+   "shortfall_panels": 4,
+-  "shortfall_figure_bars_verified": 10,
+-  "shortfall_displayed_means_verified": 44,
++  "shortfall_figure_bars_verified": 11,
++  "shortfall_displayed_means_verified": 53,
+   "runtime_tables": 2,
+   "runtime_subsections": 4,
+-  "references": 15,
++  "references": 17,
+   "missing_internal_links": [],
+   "duplicate_ids": [],
+-  "runtime_words": 1898,
+-  "abstract_words": 189,
+-  "discussion_words": 350
++  "runtime_words": 1967,
++  "abstract_words": 280,
++  "discussion_words": 926
+ }
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/build.py aeread_working_draft_20261018_v15/build.py
+--- aeread_working_draft_20261018_v14/build.py	2026-10-18 13:44:30
++++ aeread_working_draft_20261018_v15/build.py	2026-10-19 01:31:54
+@@ -18,7 +18,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ SOURCE = ROOT / "source"
+-OUT = ROOT / "aeread_working_draft_20261018_v14.pdf"
++OUT = ROOT / "aeread_working_draft_20261018_v15.pdf"
+ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+ 
+ 
+@@ -122,6 +122,50 @@
+     return '<figure id="fig:architecture" class="architecture-figure"><img src="figures/architecture_overview.svg" alt="AERead architecture: case design, runtime interaction, evidence and measurement, with campaign QC across the workflow."><figcaption><strong>Figure 4.1. AERead architecture.</strong> Families define the economic world and reference; the runtime coordinates seat policies and retains execution evidence. Agents receive only their seat observations, while scoring uses explicitly declared reference access. Replay checks receipt consistency; separate headline derivations require their own verification. Applied coverage and QC verdicts vary by campaign (Appendices F and H).</figcaption></figure>'
+ 
+ 
++PROPERTIES = ['Value against a reference with stated information', 'Counterpart is part of the case',
++              'Typed shortfall', 'World generator with admission',
++              'Quality control over populations of worlds', 'Scores recomputed from sealed evidence',
++              'Several economic activities on one runtime']
++
++
++def case_figure():
++    checks = json.loads((ROOT/'figures/LEVELS_FIGURE_CHECKS.json').read_text())
++    assert hashlib.sha256((ROOT/'figures/plot_evaluation_levels.py').read_bytes()).hexdigest() == checks['script_sha256']
++    asset = ROOT/'figures/evaluation_levels.svg'
++    assert hashlib.sha256(asset.read_bytes()).hexdigest() == checks['svg_sha256']
++    assert (SOURCE/'figures'/asset.name).read_bytes() == asset.read_bytes()
++    return ('<figure id="fig:case" class="case-figure"><img src="figures/evaluation_levels.svg" alt="The three levels of an AERead '
++            'evaluation: the runtime hosting case families; one case and its population of admitted worlds; one world, '
++            'with an agent seat, a counterpart seat and the score against the reference split by shortfall class.">'
++            '<figcaption><strong>Figure 1.1. The three levels of an AERead evaluation,</strong> with the Data-center agreement '
++            'as the example. The runtime hosts several case families (left). A case draws a population of worlds and admits '
++            'those where the decision matters; quality control runs over that population (centre). In one world, the agent '
++            'holds a seat, a counterpart holds another, and the score is compared with the case reference and split into '
++            'shortfall classes (right). Dashed lines mean "contains", not a sequence. Each panel lists the properties of '
++            'Section 1 that belong to its level. The dot pattern and the score bar are schematic.</figcaption></figure>')
++
++
++def comparison_table():
++    spec = json.loads((SOURCE/'comparison_table.json').read_text())
++    symbols = {'full': '<span class="mark mark-full"></span>', 'partial': '<span class="mark mark-partial"></span>', 'no': '<span class="mark-no">–</span>'}
++    rows = []
++    for row in spec['rows']:
++        assert len(row['marks']) == len(PROPERTIES), row['name']
++        cells = []
++        for mark, evidence in zip(row['marks'], row['evidence'], strict=True):
++            assert mark in symbols, (row['name'], mark)
++            assert evidence.strip(), (row['name'], 'evidence required for every cell')
++            cells.append(f'<td title="{html.escape(evidence)}">{symbols[mark]}</td>')
++        name = html.escape(row['name'])
++        if row.get('this_paper'): name = f'<strong>{name}</strong>'
++        rows.append(f'<tr><td>{name}</td>' + ''.join(cells) + '</tr>')
++    head = '<tr><th>Benchmark</th>' + ''.join(f'<th>{i}. {html.escape(n)}</th>' for i, n in enumerate(PROPERTIES, 1)) + '</tr>'
++    caption = ('<p class="caption" id="table-2.1"><strong>Table 2.1. The seven properties in related benchmarks,</strong> '
++               'read from each paper\'s description of its own method: <span class="mark mark-full"></span> present, <span class="mark mark-partial"></span> partly present, – absent. '
++               + html.escape(spec['note']) + '</p>')
++    return '<div class="comparison-table">' + caption + '<table class="table-2-1"><thead>' + head + '</thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
++
++
+ def number_sections(soup, first, appendix=False):
+     section, subsection = first - 1, 0
+     for heading in soup.find_all(['h1', 'h2']):
+@@ -148,6 +192,7 @@
+     author_text = ' · '.join(authors)
+     author_meta = f'<meta name="author" content="{html.escape(author_text, quote=True)}">' if authors else ''
+     byline = f'<div class="authors">{html.escape(author_text)}</div>' if authors else ''
++    byline += '<div class="contact"><a href="mailto:contact@aeread.org">contact@aeread.org</a></div>'
+     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+             f'{author_meta}<title>{html.escape(title)}</title><style>{styles}</style></head><body>'
+             f'<div class="title">{html.escape(title)}</div>'
+@@ -162,11 +207,11 @@
+     app = re.sub(r'\\begin\{figure\}.*?\\end\{figure\}', 'RUNTIMEFIGUREPLACEHOLDER', app, flags=re.S)
+     main_tex = '\n'.join((SOURCE / name).read_text() for name in
+                          ('abstract.tex', 'sec_opening.tex', 'sec_runtime.tex', 'sec_discussion.tex'))
+-    markers = r'\section{CITATIONMARKERS} CITEAV \citep{li2026activities} CITEABC \citep{zhu2025abc}'
++    markers = r'\section{CITATIONMARKERS} CITEAV \citep{li2026activities} CITEABC \citep{zhu2025abc} CITETB \citep{zhang2026termsbench}'
+     converted = BeautifulSoup(pandoc(prepare_tex(main_tex + '\n' + app + '\n' + markers), 'latex', True), 'html.parser')
+     bibliography = converted.find(id='refs').extract()
+     marker = converted.find(id='citationmarkers'); paragraph = marker.find_next('p')
+-    av, abc = map(str, paragraph.select('span.citation'))
++    av, abc, tb = map(str, paragraph.select('span.citation'))
+     marker.extract(); paragraph.extract()
+     blocks = {name: [] for name in ('abstract', 'opening', 'runtime', 'discussion', 'appendix')}
+     starts = {'abstract':'abstract', 'sec:introduction':'opening', 'sec:runtime':'runtime',
+@@ -178,6 +223,7 @@
+         blocks[target].append(str(node))
+     parts = {name: BeautifulSoup(''.join(nodes), 'html.parser') for name, nodes in blocks.items()}
+     heading = parts['abstract'].find('h1'); heading.name = 'h2'; heading['class'] = ['abstract-heading']
++    parts['opening'] = BeautifulSoup(str(parts['opening']).replace('<p>CASEFIGUREPLACEHOLDER</p>', case_figure()).replace('<p>COMPARISONTABLEPLACEHOLDER</p>', comparison_table()), 'html.parser')
+     number_sections(parts['opening'], 1)
+     parts['runtime'] = BeautifulSoup(str(parts['runtime']).replace('<p>ARCHITECTUREFIGUREPLACEHOLDER</p>', architecture_figure()), 'html.parser')
+     number_sections(parts['runtime'], 4)
+@@ -196,7 +242,7 @@
+     body += user_html(markdown_body('paper_case_studies.md')) + user_html(markdown_body('paper_qc_design.md'))
+     body += str(parts['discussion']) + '<h2 id="references" class="references-heading">References</h2>' + str(bibliography)
+     body += '<div class="appendices">' + user_html(markdown_body('paper_appendix_case_specs.md') + '\n\n' + markdown_body('paper_appendix_details.md')) + str(parts['appendix']) + '</div>'
+-    soup = BeautifulSoup(body.replace('[AV]', av).replace('[ABC]', abc), 'html.parser')
++    soup = BeautifulSoup(body.replace('[AV]', av).replace('[ABC]', abc).replace('[TB]', tb), 'html.parser')
+     for link in soup.find_all('a', attrs={'data-reference':True}):
+         key = link['data-reference']; link.clear(); link.append(labels[key]); link['href'] = '#' + key
+     for heading in soup.find_all(['h2','h3','h4']):
+@@ -208,7 +254,7 @@
+             if letter != 'H': heading['id'] = 'appendix-' + letter
+         elif re.match(r'^[A-G]\.\d+\b',title): heading['id'] = 'appendix-' + title.split()[0]
+     for paragraph in soup.find_all('p'):
+-        title = paragraph.get_text(' ',strip=True); match = re.match(r'^Table ([A-G5]\.[0-9]+)\.',title)
++        title = paragraph.get_text(' ',strip=True); match = re.match(r'^Table ([A-G1-9]\.[0-9]+)\.',title)
+         if match:
+             paragraph['class'] = ['caption']; paragraph['id'] = 'table-' + match[1]
+             table = paragraph.find_next_sibling('table')
+@@ -231,7 +277,7 @@
+     assert hashlib.sha256((ROOT/figure_checks['source']).read_bytes()).hexdigest() == figure_checks['source_sha256']
+     assert hashlib.sha256((ROOT/'figures/shortfall_by_case.svg').read_bytes()).hexdigest() == figure_checks['svg_sha256']
+     assert (SOURCE/'figures/shortfall_by_case.svg').read_bytes() == (ROOT/'figures/shortfall_by_case.svg').read_bytes()
+-    assert len(figure_checks['bars']) == 10
++    assert len(figure_checks['bars']) == 11
+     # One numbered appendix table, four panels in the same order as the figure.
+     caption = soup.find(id='table-E.10')
+     panel_names = ['(a) Housing', '(b) Procurement', '(c) Data center', '(d) Refund']
+@@ -267,9 +313,9 @@
+         for component in bar['components']:
+             assert abs(component['value']-values[component['key']]['mean']) < 1e-9
+     displayed_panels = [
+-        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna'],
++        ('housing', ['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
+          ['information_not_acquired','contrary_to_information_held','worse_terms',
+-          'commitment_error','interaction_cost','total']),
++          'commitment_error','procedure_and_format','interaction_cost','total']),
+         ('procurement', ['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
+                          'GPT-6 Luna','Gemini 3.8 Flash'],
+          ['information_not_acquired','contrary_to_information_held','worse_terms','total']),
+@@ -283,7 +329,7 @@
+         for row, key in zip(panel.select('tbody tr'), keys, strict=True):
+             for cell, name in zip(row.find_all('td')[1:], names, strict=True):
+                 expected = decomposition[case][name]['summary'][key]['mean']
+-                assert cell.get_text(strip=True) == f'{expected:.1f}', (case,name,key)
++                assert cell.get_text(strip=True).replace('−', '-') == f'{expected:.1f}', (case,name,key)
+                 displayed_means += 1
+     runtime_notes = 0
+     for heading in soup.find_all('h4'):
+@@ -303,7 +349,10 @@
+     assert not missing, missing
+     assert len(parts['appendix'].find_all('h3')) == 4
+     assert not re.search(r'\bH\.(?:[5-9]|1[0-2])\b', soup.get_text())
+-    checks = {'architecture_figures':len(soup.find_all(id='fig:architecture')),
++    assert len(soup.find_all(id='fig:case')) == 1 and len(soup.select('table.table-2-1')) == 1
++    assert 'PLACEHOLDER' not in soup.get_text()
++    checks = {'case_figures':len(soup.find_all(id='fig:case')), 'comparison_rows':len(soup.select('table.table-2-1 tbody tr')),
++              'architecture_figures':len(soup.find_all(id='fig:architecture')),
+               'shortfall_panels':len(grid.select('.shortfall-panel')),
+               'shortfall_figure_bars_verified':len(figure_checks['bars']),
+               'shortfall_displayed_means_verified':displayed_means,
+@@ -315,7 +364,7 @@
+               'discussion_words':len(parts['discussion'].get_text(' ',strip=True).split())}
+     assert checks['runtime_tables'] == 2
+     title = 'AERead: Evaluating Economic Decisions in Interactive Environments'
+-    subtitle = 'Working draft · 18 October 2026 · Not for circulation'
++    subtitle = 'Research working paper · 18 October 2026 · Preliminary results; feedback and contributions welcome'
+     authors = json.loads((SOURCE / 'authors.json').read_text())
+     full = document(title, subtitle, str(soup), styles, authors=authors)
+     page = OUT.with_suffix('.html'); page.write_text(full)
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
+--- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-19 01:32:09
+@@ -2,8 +2,8 @@
+   "figure": "Figure 4.1",
+   "scope": "Conceptual architecture; applied coverage varies by campaign",
+   "sources": {
+-    "source/sec_opening.tex": "6bd555d0d125df6a28b874ef1cd11e814e545c22eb74237b3fadafe58e0ce4e6",
+-    "source/sec_runtime.tex": "7b8133564e07d66eb7ab5e300ee12576b8cfa5eab2eb863289ef0f86d022ebab",
++    "source/sec_opening.tex": "281f9dd8033353c7b4548e0854bc4120af7f17a6796f6c3f8cc5dd6bae66154d",
++    "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
+     "source/app_runtime.tex": "fc010ddd08529976b22bda6a19ee7d9f9c4df2a4623a944313e7da4adfd57b14",
+     "source/paper_qc_design.md": "68ab88b489f3274f447fc0776fc9b20b5df0cfa29b45f42ff2402c58325d1cbd",
+     "source/tab_case_paths.tex": "84ab99d48a11cea83d46db16ede96715012ef86525e7a4a4ebbf329529c41bb3"
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json
+--- aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json	2026-10-17 21:13:27
++++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-18 21:30:32
+@@ -1,40 +1,76 @@
+ {
+   "source": "analysis_evidence/shortfall_panels/panels.json",
+-  "source_sha256": "dd9d769ad4f8071d82cdf2bbdab45a637249153b8f5aee645e4d685971de1786",
++  "source_sha256": "6340621dcd81de69bd1eac621f4fb17f5887c9310712d4105ff7997af3b6106a",
+   "figure": "Figure 5.1",
+   "table": "Table E.10",
+-  "component_sums_checked": 10,
++  "component_sums_checked": 11,
+   "bars": [
+     {
+       "case": "housing",
+       "subject": "Gemini 3.8 Flash",
+-      "total": 78.91066666666667,
++      "total": 78.87017307692307,
+       "components": [
+         {
+           "key": "information_not_acquired",
+-          "value": 3.9423958333333338
++          "value": 3.6391346153846156
+         },
+         {
+           "key": "contrary_to_information_held",
+-          "value": 11.171812499999998
++          "value": 10.312442307692306
+         },
+         {
+           "key": "worse_terms",
+-          "value": 55.112625
++          "value": 56.435346153846154
+         },
+         {
+           "key": "commitment_error",
+-          "value": 8.4755
++          "value": 8.242865384615385
+         },
+         {
++          "key": "procedure_and_format",
++          "value": 0.0
++        },
++        {
+           "key": "interaction_cost",
+-          "value": 0.20833333333333334
++          "value": 0.2403846153846154
+         }
+       ],
+       "axis_limit": 180
+     },
+     {
+       "case": "housing",
++      "subject": "GLM 5.3 Flash",
++      "total": 142.2703269230769,
++      "components": [
++        {
++          "key": "information_not_acquired",
++          "value": 9.222576923076923
++        },
++        {
++          "key": "contrary_to_information_held",
++          "value": 73.60886538461538
++        },
++        {
++          "key": "worse_terms",
++          "value": 42.206346153846155
++        },
++        {
++          "key": "commitment_error",
++          "value": 12.389057692307693
++        },
++        {
++          "key": "procedure_and_format",
++          "value": 5.083865384615385
++        },
++        {
++          "key": "interaction_cost",
++          "value": -0.2403846153846154
++        }
++      ],
++      "axis_limit": 180
++    },
++    {
++      "case": "housing",
+       "subject": "GPT-6 Luna",
+       "total": 144.32753846153844,
+       "components": [
+@@ -55,6 +91,10 @@
+           "value": 2.852269230769231
+         },
+         {
++          "key": "procedure_and_format",
++          "value": 0.0
++        },
++        {
+           "key": "interaction_cost",
+           "value": 0.9615384615384616
+         }
+@@ -222,8 +262,8 @@
+       "axis_limit": 115
+     }
+   ],
+-  "negative_component_policy": "reject; a signed decomposition would require a diverging chart",
++  "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero",
+   "uncertainty": "Point estimates; descriptive intervals in Table E.9",
+-  "svg_sha256": "2476cb155f4599ab7e8b1823036c828789f3649786690421e060bb1390897c9f",
+-  "png_sha256": "09f339598a6a6842d4906a66b54d96d566142567255d3553a1dcaa191dd3fc46"
++  "svg_sha256": "8e102a676665d43d78e3e801d2d9967822a640bc0a6673957c5c05da682b35e9",
++  "png_sha256": "b67046a307b1e44b235905de1be2040ef2ac89b7ca06d8ea02230d673d751dc5"
+ }
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/LEVELS_FIGURE_CHECKS.json
+--- aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json	1969-12-31 16:00:00
++++ aeread_working_draft_20261018_v15/figures/LEVELS_FIGURE_CHECKS.json	2026-10-18 19:56:24
+@@ -0,0 +1,11 @@
++{
++  "figure": "Figure 1.1",
++  "scope": "Levels of an evaluation with the Data-center agreement as the example; dot pattern and score bar schematic",
++  "script_sha256": "fb89ca13b6062975470d49087f3d7150cdded7ba74579ff702695a75c2ef2a76",
++  "example_sources": [
++    "source/paper_case_studies.md (Table 5.1, Section 5.1)",
++    "source/paper_appendix_details.md (F.2, admission before types)"
++  ],
++  "svg_sha256": "156c33b14d8c15011fabc1a5362e971742a164eec93e3711592a4d1cf79bea80",
++  "png_sha256": "110f3d0fd1a62a803db1af02ac9c6167dd27c828afcd77d5181603ab3dd8b4ac"
++}
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/plot_evaluation_levels.py aeread_working_draft_20261018_v15/figures/plot_evaluation_levels.py
+--- aeread_working_draft_20261018_v14/figures/plot_evaluation_levels.py	1969-12-31 16:00:00
++++ aeread_working_draft_20261018_v15/figures/plot_evaluation_levels.py	2026-10-18 19:56:08
+@@ -0,0 +1,150 @@
++"""Draw Figure 1.1: the three levels of an AERead evaluation, labelled with the properties of Section 1.
++
++Run: uv run --with matplotlib python figures/plot_evaluation_levels.py
++Levels, left to right: the runtime hosting case families; one case's population of admitted worlds;
++one world. Zoom lines mean "contains", not a sequence. Example values are the Data-center agreement's
++(Table 5.1, Section 5.1, Appendix F.2). The admitted/rejected dot pattern and the score bar are schematic.
++"""
++from pathlib import Path
++import hashlib
++import json
++
++import matplotlib
++matplotlib.use('Agg')
++import matplotlib.pyplot as plt
++from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle, Rectangle
++
++ROOT = Path(__file__).resolve().parent
++plt.rcParams.update({'font.family': 'DejaVu Sans', 'svg.fonttype': 'path',
++                     'svg.hashsalt': 'aeread-evaluation-levels-v15'})
++INK = '#172A3A'
++MUTED = '#405366'
++TEAL = '#38968A'
++BLUE = '#367DAD'
++GOLD = '#A77A23'
++ZOOM = '#9AA7B2'
++
++
++def main():
++    fig = plt.figure(figsize=(7.8, 3.25), facecolor='white')
++    ax = fig.add_axes([0, 0, 1, 1])
++    ax.set_xlim(0, 1000)
++    ax.set_ylim(416, 0)
++    ax.axis('off')
++
++    def box(x, y, w, h, color, fill, radius=6, lw=.8):
++        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle=f'round,pad=0,rounding_size={radius}',
++                                    linewidth=lw, edgecolor=color, facecolor=fill))
++
++    def label(x, y, s, size=7.6, bold=False, color=INK, align='left', rotation=0):
++        ax.text(x, y, s, fontsize=size, color=color, weight='bold' if bold else 'normal',
++                ha=align, va='center', rotation=rotation)
++
++    def arrow(start, end, color=MUTED):
++        ax.add_patch(FancyArrowPatch(start, end, arrowstyle='-|>', mutation_scale=6,
++                                     linewidth=.7, color=color, shrinkA=0, shrinkB=0))
++
++    def properties(x, y, color, lines):
++        row = 0
++        for line in lines:
++            parts = line.split('\n')
++            ax.add_patch(Rectangle((x, y + 17 * row - 3.5), 7, 7, facecolor=color, edgecolor='none'))
++            for part in parts:
++                label(x + 13, y + 17 * row, part, 6.9, True, color)
++                row += 1
++            row += 0.35
++
++    top, bottom = 44, 396
++    panels = [(12, 296, TEAL, '#F3F9F7', 'RUNTIME'),
++              (352, 292, BLUE, '#F2F7FB', 'ONE CASE: ITS WORLDS'),
++              (690, 298, GOLD, '#FBF8EF', 'ONE WORLD')]
++    for x, w, color, fill, title in panels:
++        box(x, top, w, bottom - top, color, fill)
++        label(x + 2, 25, title, 7.6, True, color)
++
++    # Runtime: one kernel hosting several families.
++    box(26, 62, 36, 240, TEAL, 'white', 4)
++    label(44, 182, 'Kernel: plan, play, seal, replay', 6.2, True, TEAL, 'center', 90)
++    families = ['Housing', 'Procurement', 'Data center', 'Refund', 'TERMS-Bench, reimplemented']
++    for i, name in enumerate(families):
++        y = 62 + 49 * i
++        highlight = name == 'Data center'
++        box(76, y, 216, 42, BLUE if highlight else '#B9D5CE', '#F2F7FB' if highlight else 'white', 4,
++            1.2 if highlight else .8)
++        label(90, y + 21, name, 6.9, highlight)
++        ax.plot([62, 76], [y + 21, y + 21], color='#B9D5CE', linewidth=.8)
++    properties(26, 330, TEAL, ['One runtime, several activities', 'Scores recomputed from\nsealed evidence'])
++
++    # One case: candidate worlds from the generator, admitted ones filled.
++    rejected = {(0, 1), (1, 3), (2, 0), (2, 6), (3, 4), (4, 2), (4, 8), (1, 7), (3, 9), (0, 5)}
++    chosen = (1, 9)
++    for r in range(5):
++        for c in range(10):
++            cx, cy = 378 + 26 * c, 80 + 26 * r
++            if (r, c) in rejected:
++                ax.add_patch(Circle((cx, cy), 6.5, facecolor='white', edgecolor=ZOOM, linewidth=.8))
++            else:
++                ax.add_patch(Circle((cx, cy), 6.5, facecolor=BLUE, edgecolor='none'))
++    ccx, ccy = 378 + 26 * chosen[1], 80 + 26 * chosen[0]
++    ax.add_patch(Circle((ccx, ccy), 10.5, facecolor='none', edgecolor=GOLD, linewidth=1.4))
++    ax.add_patch(Circle((374, 208), 5.5, facecolor=BLUE, edgecolor='none'))
++    label(385, 208, 'admitted world', 6.6, color=MUTED)
++    ax.add_patch(Circle((374, 226), 5.5, facecolor='white', edgecolor=ZOOM, linewidth=.8))
++    label(385, 226, 'rejected by the admission rule', 6.6, color=MUTED)
++    for i, line in enumerate(['Data center: 60 worlds admitted of', '2,729 scanned. The reference is',
++                              'played on every admitted world.']):
++        label(368, 254 + 15 * i, line, 6.6, color=MUTED)
++    properties(368, 330, BLUE, ['World generator with admission', 'Quality control over the\npopulation of worlds'])
++
++    # One world: the agent's seat against a counterpart seat, then the score against the reference.
++    box(704, 58, 270, 46, GOLD, 'white', 4)
++    label(716, 72, 'Agent seat', 7.0, True)
++    label(716, 90, 'client or integrator; its own costs only', 6.5, color=MUTED)
++    arrow((826, 106), (826, 122))
++    arrow((852, 122), (852, 106))
++    box(704, 124, 270, 46, GOLD, 'white', 4)
++    label(716, 138, 'Counterpart seat', 7.0, True)
++    label(716, 156, 'a script, another model or the same model', 6.5, color=MUTED)
++    label(704, 186, 'Eight clauses and a price: redline, sign or walk', 6.5, color=MUTED)
++    label(704, 208, 'Score against the full-information reference', 6.5, color=MUTED)
++    segments = [(0.56, GOLD, 1.0), (0.14, '#8C6A2C', .55), (0.10, '#8C6A2C', .4), (0.08, '#8C6A2C', .28),
++                (0.12, '#8C6A2C', .16)]
++    x0, width = 704, 268
++    for share, color, alpha in segments:
++        ax.add_patch(Rectangle((x0, 220), width * share, 16, facecolor=color, alpha=alpha, edgecolor='white', linewidth=.6))
++        x0 += width * share
++    ax.plot([972, 972], [215, 241], color=INK, linewidth=1)
++    label(704, 252, 'kept', 6.4, color=MUTED)
++    label(856, 252, 'shortfall by class', 6.4, color=MUTED)
++    label(704, 270, 'clauses, harm, missed deal, fees', 6.4, color=MUTED)
++    properties(704, 306, GOLD, ['Counterpart is part of the case', 'Reference with stated\ninformation',
++                                'Typed shortfall'])
++
++    # Zoom lines: a family contains a population; a world is one member of it.
++    tile_y = 62 + 49 * 2
++    for ya, yb in ((tile_y, top), (tile_y + 42, bottom)):
++        ax.plot([292, 352], [ya, yb], color=ZOOM, linewidth=.7, linestyle=(0, (3, 2)))
++    for ya, yb in ((ccy - 10.5, top), (ccy + 10.5, bottom)):
++        ax.plot([ccx + 8, 690], [ya, yb], color=ZOOM, linewidth=.7, linestyle=(0, (3, 2)))
++
++    svg = ROOT / 'evaluation_levels.svg'
++    png = ROOT / 'evaluation_levels.png'
++    fig.savefig(svg, metadata={'Date': None, 'Creator': 'AERead evaluation levels'})
++    fig.savefig(png, dpi=240)
++    plt.close(fig)
++    (ROOT.parent / 'source/figures' / svg.name).write_bytes(svg.read_bytes())
++    checks = {
++        'figure': 'Figure 1.1',
++        'scope': 'Levels of an evaluation with the Data-center agreement as the example; dot pattern and score bar schematic',
++        'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
++        'example_sources': ['source/paper_case_studies.md (Table 5.1, Section 5.1)',
++                            'source/paper_appendix_details.md (F.2, admission before types)'],
++        'svg_sha256': hashlib.sha256(svg.read_bytes()).hexdigest(),
++        'png_sha256': hashlib.sha256(png.read_bytes()).hexdigest(),
++    }
++    (ROOT / 'LEVELS_FIGURE_CHECKS.json').write_text(json.dumps(checks, indent=2) + '\n')
++    print('Figure 1.1 SVG and PNG generated')
++
++
++if __name__ == '__main__':
++    main()
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/plot_shortfalls.py aeread_working_draft_20261018_v15/figures/plot_shortfalls.py
+--- aeread_working_draft_20261018_v14/figures/plot_shortfalls.py	2026-10-17 21:13:26
++++ aeread_working_draft_20261018_v15/figures/plot_shortfalls.py	2026-10-18 21:30:32
+@@ -34,14 +34,15 @@
+ PROCEDURE = '#7B899B'
+ PANELS = [
+     dict(case='housing', title='(a) Housing', subtitle='Corrected v14 · reachable scripted reference',
+-         names=['Gemini 3.8 Flash','GPT-6 Luna'],
+-         labels=['Gemini 3.8\nFlash','GPT-6 Luna'],
+-         sample='240 / 260 complete worlds', unit='Shortfall ($ / world)',
++         names=['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
++         labels=['Gemini 3.8\nFlash','GLM 5.3\nFlash','GPT-6 Luna'],
++         sample='260 complete worlds each', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
+          limit=180, ticks=[0,50,100,150],
+          parts=[('information_not_acquired','Info not acquired',INFO,''),
+                 ('contrary_to_information_held','Contrary to info',CONTRARY,''),
+                 ('worse_terms','Worse terms',TERMS,''),
+                 ('commitment_error','Commitment error',COMMIT,''),
++                ('procedure_and_format','Procedure / format',PROCEDURE,''),
+                 ('interaction_cost','Inspection cost',COST,'')]),
+     dict(case='procurement', title='(b) Procurement', subtitle='Development · best policy with available info',
+          names=['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
+@@ -91,13 +92,16 @@
+         ax.set_axisbelow(True)
+         ax.grid(axis='x',color='#DEE4E8',linewidth=.6)
+         for j,name in enumerate(panel['names']):
+-            values=DATA[panel['case']][name]['summary'];left=0.
++            values=DATA[panel['case']][name]['summary'];left=0.;drawn=0.
+             components=[]
+             for key,label,color,hatch in panel['parts']:
+-                value=values[key]['mean'];assert value>=0
++                value=values[key]['mean']
++                # A negative component is not drawn; the caption and Table E.10 report it.
++                assert value>-1.0,(panel['case'],name,key,value)
+                 if value>0:
+-                    ax.barh(n-1-j,value,left=left,height=.5,color=color,
++                    ax.barh(n-1-j,value,left=drawn,height=.5,color=color,
+                             edgecolor='white',linewidth=.45,hatch=hatch,zorder=3)
++                    drawn+=value
+                 components.append(dict(key=key,value=value))
+                 left+=value
+             total=values['total']['mean']
+@@ -110,9 +114,9 @@
+                  for _,l,c,h in panel['parts']]
+         # Legends align to the panel's left edge, independently of model labels.
+         fig.legend(handles=handles,loc='upper left',
+-                   bbox_to_anchor=(x0,ytop-.412),ncol=2,frameon=False,
++                   bbox_to_anchor=(x0,ytop-.412),ncol=panel.get('legend_columns',2),frameon=False,
+                    fontsize=7.9,handlelength=1.35,handleheight=.9,
+-                   handletextpad=.55,columnspacing=1.25,labelspacing=.55,
++                   handletextpad=.55,columnspacing=panel.get('legend_spacing',1.25),labelspacing=.55,
+                    borderaxespad=0)
+     svg=ROOT/'shortfall_by_case.svg'
+     png=ROOT/'shortfall_by_case.png'
+@@ -127,7 +131,7 @@
+                 source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
+                 figure='Figure 5.1', table='Table E.10',
+                 component_sums_checked=len(checks), bars=checks,
+-                negative_component_policy='reject; a signed decomposition would require a diverging chart',
++                negative_component_policy='a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero',
+                 uncertainty='Point estimates; descriptive intervals in Table E.9',
+                 svg_sha256=hashlib.sha256(svg.read_bytes()).hexdigest(),
+                 png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/paper.css aeread_working_draft_20261018_v15/paper.css
+--- aeread_working_draft_20261018_v14/paper.css	2026-10-17 22:20:42
++++ aeread_working_draft_20261018_v15/paper.css	2026-10-18 21:37:28
+@@ -36,13 +36,11 @@
+ #refs { column-count:2; column-gap:20pt; }
+ .csl-entry { font-size:9pt; line-height:1.3; margin:0 0 7pt; break-inside:avoid; }
+ .table-5-1 { font-size:7.5pt; }
+-.table-5-1 th:nth-child(1) { width:8%; }
++.table-5-1 th:nth-child(1) { width:11%; }
+ .table-5-1 th:nth-child(2) { width:16%; }
+-.table-5-1 th:nth-child(3) { width:16%; }
+-.table-5-1 th:nth-child(4) { width:19%; }
+-.table-5-1 th:nth-child(5) { width:9%; }
+-.table-5-1 th:nth-child(6) { width:12%; }
+-.table-5-1 th:nth-child(7) { width:20%; }
++.table-5-1 th:nth-child(3) { width:28%; }
++.table-5-1 th:nth-child(4) { width:21%; }
++.table-5-1 th:nth-child(5) { width:24%; }
+ .table-5-2 th:first-child { width:42%; }
+ .table-5-3 th:first-child { width:28%; }
+ .table-5-3 { break-inside:avoid; }
+@@ -129,3 +127,17 @@
+ 
+ [id="appendix-E.9"] { break-before:page; }
+ .table-E-11, .table-E-12 { break-inside:avoid; }
++.case-figure img { display:block; width:100%; }
++.table-2-1 { font-size:7.4pt; }
++.table-2-1 th:first-child { width:16%; text-align:left; }
++.table-2-1 th:not(:first-child) { font-weight:normal; vertical-align:bottom; }
++.table-2-1 td:not(:first-child) { text-align:center; font-size:9pt; }
++.table-2-1 tr:last-child td { border-top:1px solid #172a3a; }
++.table-5-5 th:first-child { width:40%; }
++.comparison-table { break-inside:avoid; }
++.mark { display:inline-block; width:7.5pt; height:7.5pt; border-radius:50%; border:0.8pt solid #172a3a; vertical-align:-0.5pt; box-sizing:border-box; }
++.mark-full { background:#172a3a; }
++.mark-partial { background:linear-gradient(90deg, #172a3a 50%, #ffffff 50%); }
++.mark-no { color:#405366; }
++.contact { font:9.5pt/1.3 Arial,sans-serif; color:#367dad; margin:0 0 6pt; }
++.contact a { color:#367dad; text-decoration:none; }
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/abstract.tex aeread_working_draft_20261018_v15/source/abstract.tex
+--- aeread_working_draft_20261018_v14/source/abstract.tex	2026-10-18 13:40:55
++++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-19 01:31:54
+@@ -1,22 +1,25 @@
+ \section*{Abstract}
+ 
+-AI agents can deliver economic value by improving decisions within
+-activities such as procurement, contracting and negotiation. The stakes
+-of deciding whom to trade with, what to learn and when to commit can
+-greatly exceed the cost of performing the task. This motivates evaluating
+-agents by the economic outcomes they achieve with information, resources
+-and delegated authority. We present AERead, a framework organized around
+-economic activities and the parties participating in them. Each case
+-specifies a world distribution, seat-specific information, counterpart
+-policies and computable references. A shared runtime records execution and
+-supports replay of receipt-level scores. References distinguish feasible
+-policies, optimal policies under the deciding seat's information and
+-full-information bounds, retaining each case's units. Worked examples in
+-Housing, Procurement and Data center, with Refund in the cross-case
+-analysis, examine information acquisition, bargaining and commitment.
+-Quality-control checks reveal how briefs, counterparts and simple-policy
+-ceilings change the interpretation of results. Separate verified
+-reanalyses reconstruct the Housing and Procurement headline measures from
+-sealed records. No case has yet passed every quality-control gate, so the
+-contribution is a framework and an evidence-based account of constructing and
+-diagnosing evaluations of economic value delivery.
++AI agents are increasingly asked to make economic decisions for a
++principal, such as whom to trade with, what to verify and when to commit. Here a completed
++transaction can destroy value and a refusal can be correct, so
++task-completion or agreement scores cannot tell whether an agent served its
++principal. We present AERead, an environment that scores
++these decisions by the value an agent obtains. Each case defines a
++distribution of economic worlds, seats with private information,
++counterparts with their own interests, and a reference policy whose access
++to information is stated, so that a shortfall separates poor decisions from
++information the agent never had. One runtime executes every case and recomputes
++each score from the sealed record without a model; quality control runs over
++populations of worlds, not single tasks. We build cases in housing, procurement, data-center contracting
++and refunds, and reimplement part of TERMS-Bench on the same runtime, where
++two of that paper's agents are ordered as it reports. The counterpart is
++part of the measurement: one agent's earnings lead over another is \$190k a
++world head to head and \$26k against the same scripted counterpart. Shortfalls are broken down by stratum and by action
++class; in housing, nearly all of the gap to the reference falls in worlds
++where the tenant's favourite listing is a lemon. Of 25 defects selected from
++our quality-control record, 14 were invisible in any one world. No case
++yet passes every quality-control gate, so the results compare named agents
++on stated worlds rather than rank models. AERead's code is open source: a
++new case supplies its economic rules, worlds and reference, and inherits
++the runtime, replay and the quality-control standard.
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/comparison_table.json aeread_working_draft_20261018_v15/source/comparison_table.json
+--- aeread_working_draft_20261018_v14/source/comparison_table.json	1969-12-31 16:00:00
++++ aeread_working_draft_20261018_v15/source/comparison_table.json	2026-10-18 20:34:08
+@@ -0,0 +1,196 @@
++{
++ "verified": "2026-10-18",
++ "rows": [
++  {
++   "name": "Terminal-Bench",
++   "marks": [
++    "no",
++    "no",
++    "partial",
++    "partial",
++    "full",
++    "partial",
++    "partial"
++   ],
++   "evidence": [
++    "p3: score is task resolution rate; the oracle solution checks solvability only",
++    "p29: single-agent setting; no counterpart",
++    "p9: share of failures by category (LLM-labelled sample); no gap decomposition",
++    "p3: 89 of 229 hand-written tasks selected by difficulty and quality review; no generator",
++    "p4-5: oracle solution run on every task, no-op agent must fail, exploit agent, auditors",
++    "p2: deterministic tests on final container state; no stated recomputation from records",
++    "p2: many domains on one harness, not economic decisions"
++   ]
++  },
++  {
++   "name": "τ²-bench",
++   "marks": [
++    "no",
++    "partial",
++    "partial",
++    "partial",
++    "partial",
++    "partial",
++    "partial"
++   ],
++   "evidence": [
++    "p4: reward in [0,1] signalling task success; pass^k",
++    "p6: one user simulator model; personas assigned at random in telecom only",
++    "p3, 7-8: mode comparison attributes part of the drop; no taxonomy of agent failures",
++    "p6: telecom tasks generated and subsampled (114 of 279 tasks); other domains hand-written",
++    "p6, p20: programmatic verification in telecom; human review in retail and airline",
++    "p6: assertion functions compute success; no stated recomputation from logs",
++    "p20: three customer-service domains under one tool formalism, not economic decisions"
++   ]
++  },
++  {
++   "name": "GDPval",
++   "marks": [
++    "no",
++    "no",
++    "partial",
++    "no",
++    "partial",
++    "no",
++    "partial"
++   ],
++   "evidence": [
++    "p2: primary metric is win rate against a human expert deliverable",
++    "p9: one-shot, non-interactive tasks",
++    "p7: counts of reasons for lost comparisons; no gap decomposition",
++    "p1: tasks built from actual expert work product; no generator",
++    "p4, 21: model screening and multi-stage expert review of every task; no reference run",
++    "p1: head-to-head human expert comparison is the primary evaluation",
++    "p2, 9: 1,320 tasks across 44 occupations without a shared interactive runtime"
++   ]
++  },
++  {
++   "name": "Agents' Last Exam",
++   "marks": [
++    "no",
++    "no",
++    "partial",
++    "partial",
++    "partial",
++    "partial",
++    "partial"
++   ],
++   "evidence": [
++    "p8: mean task score and full pass rate against expert ground truth",
++    "p6: the agent acts alone against software; no counterpart",
++    "p36: LLM-classified counts of failed tasks for one configuration",
++    "p3-4: expert-contributed projects admitted or rejected by reviewers; no generator",
++    "p21, 29: expert and engineer review and dry runs of each admitted task; no oracle scored",
++    "p30-31: deterministic judges re-run offline on saved trajectories; 6.8% LLM-judged",
++    "p6: one runtime over 55 subdomains of deliverable work, not economic decisions"
++   ]
++  },
++  {
++   "name": "EconEvals",
++   "marks": [
++    "full",
++    "no",
++    "partial",
++    "partial",
++    "partial",
++    "partial",
++    "full"
++   ],
++   "evidence": [
++    "p13: score relative to the utility-maximizing plan computed from parameters the agent does not see",
++    "p4: single-agent contexts; a two-agent litmus test is not a main focus",
++    "p17: behaviour metrics linked to score by correlation; gap not decomposed",
++    "p13, 22: 12 generated instances per environment and level; a budget constraint, no stated admission rule",
++    "p58: a rule baseline for scheduling only; difficulty-scaling check",
++    "p35: scores computed by formula; no stated recomputation from records",
++    "p6-7: procurement, scheduling and pricing through one tool interface"
++   ]
++  },
++  {
++   "name": "NegotiationArena",
++   "marks": [
++    "partial",
++    "full",
++    "partial",
++    "no",
++    "no",
++    "partial",
++    "partial"
++   ],
++   "evidence": [
++    "p3: win rate and average payoff; no computed reference policy",
++    "p3: private values; opponent model, order and persona varied, results by pair",
++    "p4: named failure modes with some counts; no gap decomposition",
++    "p4: fixed hand-set game configurations",
++    "no population-level validity checks reported",
++    "p3: payoffs computed from parsed trades; logs reloadable but scores not stated as recomputed",
++    "p1: ultimatum, trading and price negotiation: one activity with variants"
++   ]
++  },
++  {
++   "name": "AgenticPay",
++   "marks": [
++    "partial",
++    "full",
++    "partial",
++    "no",
++    "no",
++    "partial",
++    "partial"
++   ],
++   "evidence": [
++    "p5: GlobalScore in points from surplus shares, peaking at an equal split; no reference policy",
++    "p4, 7: private reservation prices; buyer and seller personalities crossed",
++    "p8: timeout, overflow and near-miss counts; no gap decomposition",
++    "p6: 111 fixed tasks, each run once per model",
++    "no population-level validity checks reported",
++    "p4-5: deterministic scoring from parsed actions; no stated recomputation from logs",
++    "p5: price negotiation under eight market structures"
++   ]
++  },
++  {
++   "name": "TERMS-Bench",
++   "marks": [
++    "full",
++    "full",
++    "full",
++    "partial",
++    "full",
++    "full",
++    "partial"
++   ],
++   "evidence": [
++    "p5-6, 31: surplus efficiency and attainment of a Bayes-optimal oracle with stated information",
++    "p3-4, 23, 53: six scripted counterpart families with private types; metrics reported by family",
++    "p6, 9: inference, uncertainty and control components sum to the base-to-oracle gap",
++    "p6, 51, 54: seeded parameterized generator; a resample rule only in the catalog variant",
++    "p2, 8, 71, 74-76: oracle and fixed-concession rules on all 1,800 episodes; full-information anchor; saturation test",
++    "p4, 53: metrics are formulas over logged traces and simulator ground truth",
++    "p3, 75: bilateral price negotiation; extensions reuse the same kernel"
++   ]
++  },
++  {
++   "name": "AERead (this paper)",
++   "marks": [
++    "full",
++    "full",
++    "full",
++    "partial",
++    "full",
++    "full",
++    "full"
++   ],
++   "evidence": [
++    "Sections 3.1, 4.1; Table 5.1: reachable, information-constrained and full-information references",
++    "Section 5.1, Table 5.4: scripted, cross-play and self-play counterparts; claims name them",
++    "Section 5.2, Figure 5.1: components sum to each case total",
++    "Appendix E.2: shortcut-margin admission in the Data-center confirmatory pack (60 of 2,729) and Procurement v2 (24 of 5,798); Housing admits on a structural condition; the reported Procurement pack had no shortcut screen",
++    "Section 6, Appendix F: reference on every admitted world, simple-rule ceilings, brief audits, gates",
++    "Section 4.1: receipt replay without a model; Housing and Procurement headline measures reproduced from sealed records",
++    "Sections 5, 5.3: four families and a TERMS-Bench reimplementation on one kernel"
++   ],
++   "this_paper": true
++  }
++ ],
++ "note": "Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here, none of which yet passes every qualification gate (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in two of its cases, an admission rule that screens shortcuts."
++}
+\ No newline at end of file
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md
+--- aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md	2026-10-18 13:40:55
++++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-18 19:44:26
+@@ -10,7 +10,7 @@
+ 
+ ## Appendix A. Case specifications
+ 
+-Each case is written as an environment Γ (outcomes, private types and their prior, payoffs), a
++Following TERMS-Bench [TB], each case is written as an environment Γ (outcomes, private types and their prior, payoffs), a
+ protocol (seats, order of play, actions, what each seat observes, termination), and fixed
+ counterpart policies (Appendix B). Refund is not specified here. Symbols are local to each case;
+ each case's table lists them, with the kind of quantity each is. The evaluated seat is subscript A, a counterpart B. In controlled comparisons, the
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
+--- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-18 23:48:19
+@@ -49,7 +49,12 @@
+ with the cheapest or with another newcomer, on a tight or a loose clock. A world is classified
+ from its listings with every newcomer assumed good, and the newcomers' types are drawn
+ afterwards on their own stream. The kinds are sampled evenly; drawn as they fall, a test of
+-the cheapest newcomer would be right in most worlds. A sibling pack of 18 worlds puts a
++the cheapest newcomer would be right in most worlds. This classification screens no shortcut,
++which is why a one-step rule nearly solves the pack (Appendix F.4). The second pack's admission
++does: computed from what a buyer sees and the stated law, it keeps a world only if each screened
++shortcut, the one-step rule and four fixed rules included, gives up at least $10 against the best
++policy, and the admitted pack's mean one-step loss must reach $15; 24 worlds were admitted from
++5,798 seeds. A sibling pack of 18 worlds puts a
+ marketplace record on one component's listings, from which whom to verify can be read.
+ 
+ **Data center.** Eleven cells, each with its own outside-option situation and the playbooks it
+@@ -59,9 +64,17 @@
+ in content to a development world, and for its type-swap experiment wrote 29 of them twice,
+ identical except for the client's hidden risk charge. The admission rule implemented is the
+ predecessor's (a shortcut must lose by a margin on the playbook's menu); the agreement case's
+-own admission rules were not used for these runs. A later admitted pack is described in
+-Appendix F.2. The later confirmatory used its 60 worlds (45 deal, 15 no-deal),
+-with types drawn after admission and a separate 12-world variance pilot.
++own admission rules were not used for these runs. The confirmatory pack is admitted by
++the agreement case's own rule, computed from the public world and the declared prior before any
++hidden type is drawn. In expectation over the prior, a world is admitted only if the best
++agreement beats the draft by at least $75k; knowing the client's hidden charge is worth at least
++$25k to the integrator's choice of agreement, and for every integrator type the best outcome
++changes with that charge; signing the draft as it stands, moving only the price, or either side
++demanding every protection each lose at least $75k against the best agreement; and walking away
++loses at least $150k. Redline fees are left out of every shortcut, which favours the shortcut, so
++each margin is a lower bound. Of 2,729 seeds scanned, 60 were admitted (45 deal, 15 no-deal); the
++confirmatory used them, with types drawn after admission and a separate 12-world variance pilot
++(Appendix F.2).
+ 
+ ### E.3 What was run
+ 
+@@ -82,7 +95,8 @@
+ 
+ Opus 5.5 ran through Claude Code and Sol 6.1 through the Codex CLI, without tools, at low
+ reasoning effort, one subprocess per action; neither CLI exposes a seed or temperature, and
+-both are recorded as unavailable rather than assumed. Refund V2.5 makes no paid model call: its
++both are recorded as unavailable rather than assumed. They were not equally isolated from the operator's
++machine; Table H.1 lists what each loaded. Refund V2.5 makes no paid model call: its
+ release qualifies the environment with deterministic profiles in every seat and replays every
+ trajectory, so it measures the environment's conformance, not a model; with every seat scripted, its 816
+ trajectories are 174 distinct action sequences (four payments cases share one reference
+@@ -92,11 +106,11 @@
+ 
+ #### Housing
+ 
+-On each model's complete main-pack worlds (240 for Gemini; 260 for GLM and Luna), the models fall short of the reachable reference by −81 [−97, −65]
++On all 260 main-pack worlds, Gemini's refused cells taken from the declared fill, the models fall short of the reachable reference by −81 [−96, −66]
+ (Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
+ 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
+-is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
+-[+12, +98], GLM−Luna −40 [−106, +26]). The original 1,800 published receipt rows comprise 1,764 scored completions and 36
++is sound. The 40-world holdout points the same way (Gemini−GLM +105 [+46, +164], Gemini−Luna +65
++[+23, +106], GLM−Luna −40 [−106, +26]). The original 1,800 published receipt rows comprise 1,764 scored completions and 36
+ operational-failure exclusions. Replay reconstructs each completed receipt's score, which totals
+ all six tenants; failure rows are verified as exclusions, not rescored (Appendix H.3). The seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
+ derived analyses.
+@@ -104,11 +118,14 @@
+ hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
+ pay then signing $145; the models beat the first two by $130 to $292 a world. Sixteen GLM cells
+ contain invalid tenant actions, almost all offers on a listing already leased; the bundle did not
+-report them, and no number moves. Thirty-six Gemini cells were refused when the provider account ran out of credit; they stay
+-missing in the declared bundle, and a separately identified fill moves nothing (+74, +81). Under
++report them, and no number moves. Thirty-six Gemini cells were refused when the provider account ran out of credit; the declared
++bundle keeps them as typed missingness, and the tables use a fill run under its own identity, whose
++twelve reruns of completed cells reproduced their outcomes. On the declared bundle alone (240 Gemini
++worlds) the leads are +70 [+48, +92] and +80 [+62, +99] under the declared measure and +60 [+39, +81]
++and +67 [+49, +84] under the corrected one. Under
+ the corrected measure (a blind signing valued at the posterior given inspections and informative
+-replies) 21 (GLM), 33 (Luna) and 3 (Gemini) signings change value: Gemini leads by +60 [+39, +81]
+-and +67 [+49, +84] (Holm p < 10⁻⁶), GLM−Luna is +2 [−20, +24], and each model minus the reference
++replies) 21 (GLM), 33 (Luna) and 3 (Gemini) signings change value: Gemini leads by +63 [+43, +84]
++and +65 [+49, +82] (Holm p < 10⁻⁸), GLM−Luna is +2 [−20, +24], and each model minus the reference
+ becomes −79, −142 and −144. The published bundle is not edited.
+ 
+ Two CLI agents played the first 20 worlds of the main pack (40 cells each). Sol 6.1 earns $313
+@@ -244,15 +261,15 @@
+ 
+ | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+ |---|---:|---:|---:|---:|---:|---:|---:|
+-| Information not acquired | 3.9 (6.6) | 9.2 (28.1) | 10.1 (32.4) | 0 | 2.6 | 75.2 | 71.8 |
+-| Acted contrary to information held | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
+-| Worse terms | 55.1 (54.6) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.7 |
+-| Commitment error | 8.5 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
++| Information not acquired | 3.6 (6.1) | 9.2 (28.1) | 10.1 (32.4) | 0 | 2.6 | 75.2 | 71.8 |
++| Acted contrary to information held | 10.3 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
++| Worse terms | 56.4 (55.9) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.7 |
++| Commitment error | 8.2 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
+ | Interaction cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
+ | Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
+-| Total | 78.9 (81.0) | 142.3 (155.1) | 144.3 (161.6) | 1.0 | 5.4 | 75.2 | 74.4 |
++| Total | 78.9 (80.8) | 142.3 (155.1) | 144.3 (161.6) | 1.0 | 5.4 | 75.2 | 74.4 |
+ 
+-Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: Gemini has 240 complete worlds, GLM and Luna 260 each. Gemini's 30 missing main-pack cells remove 20 worlds, including 10 completed cells whose paired arm is missing. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
++Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: every subject has 260 complete worlds. Gemini's 36 refused cells, 30 of them in the main pack, where they would have removed 20 worlds, come from the declared fill. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
+ 
+ **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
+ 
+@@ -308,7 +325,7 @@
+ 
+ | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
+ |---|---:|---|---|---|
+-| Housing: Gemini 3.8 Flash | 240 | 78.9 [63.3, 94.6] | 48.5 [0.0, 155.2] | 34 / 44 |
++| Housing: Gemini 3.8 Flash | 260 | 78.9 [63.7, 94.0] | 50.5 [0.0, 155.1] | 34 / 48 |
+ | Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
+ | Procurement: Opus 5.5 | 24 | 5.4 [0.2, 10.6] | 0.0 [0.0, 1.1] | 16 / 0 |
+ | Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
+@@ -340,16 +357,17 @@
+ 
+ $ per main world below the reachable scripted reference; corrected v14.
+ 
+-| Component | Gemini 3.8 Flash | GPT-6 Luna |
+-|---|---:|---:|
+-| Information not acquired | 3.9 | 10.1 |
+-| Contrary to held information | 11.2 | 86.4 |
+-| Worse lease terms | 55.1 | 44.0 |
+-| Lease commitment error | 8.5 | 2.9 |
+-| Inspection cost | 0.2 | 1.0 |
+-| **Total shortfall** | **78.9** | **144.3** |
++| Component | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
++|---|---:|---:|---:|
++| Information not acquired | 3.6 | 9.2 | 10.1 |
++| Contrary to held information | 10.3 | 73.6 | 86.4 |
++| Worse lease terms | 56.4 | 42.2 | 44.0 |
++| Lease commitment error | 8.2 | 12.4 | 2.9 |
++| Procedure or format | 0.0 | 5.1 | 0.0 |
++| Inspection cost | 0.2 | −0.2 | 1.0 |
++| **Total shortfall** | **78.9** | **142.3** | **144.3** |
+ 
+-Two landlord arms averaged within each complete world: 240 worlds for Gemini, 260 for Luna.
++Two landlord arms averaged within each complete world: 260 worlds for each; Gemini's refused cells come from the declared fill. GLM's procedure losses are offers on listings already taken and one malformed commit; its inspection cost is negative because it spent $0.2 a world less on inspection than the reference.
+ 
+ **(b) Procurement**
+ 
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
+--- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 01:31:54
+@@ -10,13 +10,14 @@
+ 
+ ## 5. Case studies
+ 
+-AERead is meant to grow through cases contributed by a wider community. We present four cases
+-built by the maintainers as worked examples of what a contributed case can look like (Table
+-5.1). Housing, Procurement and Data center are described here and specified in Appendices A–D;
++We present four cases built by the maintainers (Table 5.1). They are worked examples of the
++framework rather than a fixed benchmark: each is a starting point for questions about the decision
++it models, and Section 7.2 lists the questions we consider open. The cases show how the counterpart changes measured value and how a shortfall
++splits into typed action classes; Section 5.3 runs an external benchmark on the same runtime. Housing, Procurement and Data center are described here and specified in Appendices A–D;
+ Refund appears only in the cross-case comparison. Each case is a family rather than a fixed task
+ set: a generator of worlds, a case-specific reference (a policy that uses only what the deciding
+ side may know, or an explicitly labelled full-information upper bound), an admission rule that
+-keeps only worlds where the decision matters, and a set of verifiers. The references differ in
++keeps worlds where the decision matters (its form varies by case; Appendix E.2), and a set of verifiers. The references differ in
+ what a shortfall means: against a reachable policy it is value a feasible strategy would have
+ kept; against the best policy given the decider's information it is the whole cost of the
+ decisions; against a full-information bound it also includes the value of information no seat
+@@ -29,32 +30,45 @@
+ (business and household purchases); they were chosen to span the kinds of verifier and
+ counterpart, not sampled from a representative distribution.
+ 
+-**Table 5.1. The four examples.**
++**Table 5.1. The four cases. Each is scored in its own units against the reference in the last column.**
+ 
+-| Case | Decision under test | Model's seat; counterpart | Reference | Verifiers | Status | Headroom (hardest stratum) |
+-|---|---|---|---|---|---|---|
+-| Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | reachable policy: a scripted tenant using only the tenant's information ($292 a world); full-information upper bound ($370) | value; rule | comparison declared before the runs; case not qualified | shown: Gemini −99 [−119, −80] a world against the reference where the favourite is a lemon (corrected measure; −102 as declared) |
+-| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | best policy given the buyer's information, solved exactly ($451 a world) | value, priced per action | v1 development; v2 stopped at pilot sizing | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
+-| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | declared confirmatory with departures; case not qualified | shown: head-to-head joint loss 126.8 (Sol integrator) / 77.5 (Opus integrator), $k per world over all 60 |
+-| Refund (V2.1 results; V2.5 QC) | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
++| Case | Real setting | What the agent decides | Who it faces | Scored against |
++|---|---|---|---|---|
++| Housing | informal rental listings | which listing to inspect, what to offer, and whether to sign when some listings are lemons | scripted landlords; other tenants take listings it leaves | a scripted tenant that uses only what the tenant knows |
++| Procurement | wholesale sourcing | pay more for an established supplier, or test a cheaper newcomer, before a deadline | scripted suppliers | the best plan given what the buyer knows, solved exactly |
++| Data center | AI-infrastructure contracting | which risk clauses to change, what price to name, and when to sign or walk away | the other side: a script, another model or the same model | the best agreement at both sides' true costs, which neither side knows |
++| Refund | customer refund claims | what to ask, decide and pay on a claim under a written policy | the other parties to the claim, scripted | a hand-written correct resolution |
+ 
+-The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
+-an answer key, declared rules, the value of the best policy or a bound, relative standing
+-against another agent, or a rubric. The four cases use the first four and no rubric. Every score is computed by code, with
++How much room each case leaves is reported in its own units: Tables 5.2 to 5.4 give each subject's gap to the reference, and Figure 5.1 splits it by action class. The cases use four of the kinds of check defined with the runner's measurement layer (§4): an
++answer key, declared rules, the value of the best policy or a bound, and relative standing
++against another agent; none uses a rubric. Every score is computed by code, with
+ no model in the loop; the kernel's replay recomputes each receipt's own score from its sealed
+ events, while the headline measures of Housing and Procurement are computed by case code outside
+ that certificate (Appendix F.2). Table E.1 lists every check.
+ 
+ ### 5.1 Results
+ 
+-None of the four cases yet passes Gates 1 to 5 of §6. "Declared" below describes how a comparison
++Each case's gate status (§6) bounds what its results can claim. The Data-center confirmatory is
++partial at every gate, chiefly because the client seat has almost nothing to infer and the best
++informed policy turn by turn is not built; Housing v14 is partial throughout; the Procurement pack
++reported here fails Gates 1 and 3; and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
+ was run, with its analysis committed before any cell, not the case: the results compare the named
+ subjects on these worlds and are not qualified benchmark scores.
+ 
+-**Housing.** A tenant faces four landlords; two listings are lemons worth $1,000 less, an
+-inspection costs $25, and over three rounds each listing the tenant did not bid on is taken by
+-outside demand with probability ½. Every world is played against a landlord whose reply reveals
+-a lemon and one whose reply does not. A blind signing is scored at its expected value given what
++**Housing.** The structure follows informal rental markets on social platforms such as RedNote:
++listings are posted with photos a tenant cannot check before viewing, a viewing costs time, and good
++listings are often taken while the tenant decides. Rents, the lemon share and the inspection cost
++are set by the authors, not drawn from platform data. A tenant chooses among four listings, two of
++which are lemons. It knows its own value v_ℓ for each listing if sound, but not which two are
++lemons; each of the six pairs is equally likely. In each of three rounds it may pay $25 to inspect
++one listing, make one offer, and sign or walk from a lease it is offered, while each listing it
++did not bid on is taken by outside demand with probability ½. Signing listing ℓ at rent x after k
++inspections pays v_ℓ − 1,000·𝟙[ℓ is a lemon] − x − 25k; signing nothing pays −25k. The hard part
++is information. A listing worth $400 more than its ask if sound is worth 400 − ½·1,000 = −$100 if
++signed blind at the ask, but ½·400 − 25 = +$175 if inspected first and signed only when sound;
++inspecting a second listing takes another round, in which each listing not bid on may be taken. A
++landlord's reply can reveal a lemon at no cost: every world is played against one landlord kind
++whose reply to a low offer reveals a lemon and one whose reply does not. A blind signing is scored at its expected value given what
+ the tenant knew, so the score follows the decision rather than the draw. The declared measure
+ conditions on the landlord's reply in only one case; a corrected measure, introduced in this paper,
+ conditions on every informative reply, and Table 5.2 shows both.
+@@ -63,36 +77,50 @@
+ 
+ | | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
+ |---|---:|---:|---:|
+-| Complete worlds: all (favourite lemon / sound) | 240 (183 / 57) | 260 (200 / 60) | 260 (200 / 60) |
++| Complete worlds: all (favourite lemon / sound) | 260 (200 / 60) | 260 (200 / 60) | 260 (200 / 60) |
+ | *Declared measure, as frozen* | | | |
+-| Tenant net | +211 [+188, +233] | +137 [+111, +162] | +130 [+104, +156] |
+-| Minus the reference, favourite is a lemon | −102 [−122, −82] | −179 [−203, −154] | −207 [−229, −186] |
+-| Minus the reference, favourite is sound | −13 [−18, −8] | −76 [−116, −36] | −9 [−16, −2] |
+-| Minus a rule that inspects when the odds make it pay, then signs | +64 [+48, +80] | −8 [−30, +14] | −15 [−32, +2] |
++| Tenant net | +211 [+189, +233] | +137 [+111, +162] | +130 [+104, +156] |
++| Minus the reference, favourite is a lemon | −101 [−120, −82] | −179 [−203, −154] | −207 [−229, −186] |
++| Minus the reference, favourite is sound | −14 [−18, −9] | −76 [−116, −36] | −9 [−16, −2] |
++| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | −8 [−30, +14] | −15 [−32, +2] |
+ | *Corrected measure, reanalysis* | | | |
+-| Tenant net | +213 [+190, +235] | +149 [+124, +175] | +147 [+121, +174] |
+-| Minus the reference, favourite is a lemon | −99 [−119, −80] | −164 [−189, −139] | −185 [−208, −162] |
+-| Minus the reference, favourite is sound | −13 [−18, −8] | −70 [−108, −32] | −9 [−16, −2] |
+-| Minus a rule that inspects when the odds make it pay, then signs | +66 [+50, +82] | +5 [−17, +27] | +3 [−15, +20] |
++| Tenant net | +213 [+191, +235] | +149 [+124, +175] | +147 [+121, +174] |
++| Minus the reference, favourite is a lemon | −98 [−117, −80] | −164 [−189, −139] | −185 [−208, −162] |
++| Minus the reference, favourite is sound | −14 [−18, −9] | −70 [−108, −32] | −9 [−16, −2] |
++| Minus a rule that inspects when the odds make it pay, then signs | +68 [+52, +84] | +5 [−17, +27] | +3 [−15, +20] |
+ 
+-Thirty-six Gemini cells were refused when the provider account ran out of credit, so Gemini has
+-240 complete worlds and every contrast with Gemini is paired over those 240; differences of the
+-displayed means, which use each model's own worlds, therefore do not reproduce the paired
+-contrasts. Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini
+-leads GLM by +70 [+48, +92] and Luna by +80 [+62, +99], and GLM and Luna do not differ (+7 [−16,
+-+29]); the 40-world holdout agrees. Under the corrected measure, a reanalysis not declared in
+-advance, the leads are +60 [+39, +81] and +67 [+49, +84] and GLM minus Luna is +2 [−20, +24]: no
+-declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
++Under the analysis declared before any cell (three pairs, Holm; $50 minimum) Gemini leads GLM by
+++74 [+53, +95] and Luna by +81 [+63, +98], and GLM and Luna do not differ (+7 [−16, +29]); the
++40-world holdout agrees. Under the corrected measure, a reanalysis not
++declared in advance, the leads are +63 [+43, +84] and +65 [+49, +82] and GLM minus Luna is +2
++[−20, +24]: no declared verdict changes, but both lower bounds fall below $50. None reaches the reference, and
+ almost the whole shortfall is in worlds where the favourite listing is a lemon. The rule in the
+ last row of each block, scored after the runs, earns $145 a world; under either measure Gemini
+ beats it and GLM and Luna are not distinguishable from it.
+ 
+-**Procurement.** A buyer owes 50 kits by a deadline. It may pay the most for a supplier with a
+-long record, or test a cheaper newcomer whose cohort record states how often its kind failed; a
+-quote shows delivery, a sample shows yield, and both take money and days. Every action is charged
+-what it gave up against the exact best informed policy at that point.
++**Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
++In our own sourcing of parts for 231 hardware projects, 1688 search results showed 341 suppliers;
++236 requests went to 28 of them and 9 returned quotes, and an exact-variant screen of 51 listings
++accepted 1, left 20 conditional and rejected 30. A displayed price is not a quote, and a listing's
++quality is known only after it is checked. Two of the case's assumptions depart from that record by
++design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
++history was dearer than one without in only about half of comparable parts; and its quotes always
++arrive, whereas most requests went unanswered. The case's prices, failure rates and delays are set by
++the authors, not calibrated to that record. A buyer owes 50 kits by a deadline and awards one
++supplier: a recorded supplier with a long clean record, or one of three cheaper newcomers. Each newcomer is
++good, late or poor, and the buyer knows only the odds, read from the record of its seller kind.
++Among up to ten actions it may request a quote ($2 and a day, which exposes a late supplier),
++request a sample ($30 to $80 and two or three days, which exposes a poor one), award, or defer. An award
++that delivers k kits on time earns 37k − 12(50 − k) less the order's cost and the information
++bought; one that delivers fewer than 40, as a late or poor supplier does, is worth −$600 less the
++information bought (Appendix A.2). The hard part is whether information is worth its price and its
++days. In one world the recorded supplier's award earns $418 and a newcomer 15% cheaper earns $628
++if good, with odds of 0.45 good, 0.20 late and 0.35 poor; quoting it, then sampling it ($50) only
++if the quote is clean, is worth $65.90 more than paying the premium, provided a failed test leaves
++time to return to the recorded supplier. Every action is charged what it gave up against the
++exact best informed policy at that point.
+ 
+-**Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
++**Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy, which earns $451 a world. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+ 
+ | | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
+ |---|---:|---:|---:|---:|
+@@ -106,8 +134,25 @@
+ the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
+ the worlds where a newcomer was worth testing.
+ 
+-**Data center.** Client and integrator redline eight risk clauses and a price over six moves,
+-each knowing its own costs. The comparison declared before its runs used 60 admitted worlds:
++**Data center.** The structure follows a real AI-infrastructure engagement in which a system
++integrator bundles hardware, data-center space, staffing and software into a working system for a
++client. Hardware can arrive late or defective and the site may not be ready, and the contract's
++warranty, delay-damages, liability-cap, site-readiness, deposit and burn-in clauses decide who
++bears each cost. Costs, probabilities and prices are set by the authors. Client and integrator
++negotiate one agreement: a position on each of the eight clauses (600 distinct agreements) and an
++all-in price p. Each side knows its own cost of carrying risk and only the odds of the other's: the
++integrator's pre-staging cost and risk charge, the client's risk charge. Over six alternating
++moves a side may redline any clauses and name a price, sign the standing version, or walk, and
++each redline after the first move costs $25k. A signed agreement c pays the integrator
++p − C_I(c) − 500 and the client O_C − p − C_C(c), in $ thousands and less redline fees, where 500
++is the integrator's outside option, O_C the client's, and C_I and C_C each side's expected cost of
++the risks the clauses leave with it, marked up by its risk charge; no deal pays only the fees. The
++hard part is that price only divides the value while the clauses decide how much there is, and the
++best clauses depend on what the other side hides. Burn-in, for example, costs the integrator $40k
++and, in one world, the client a week's delay worth $110k, and halves the chance of a $3 million
++incident the client carries; it lowers joint cost by $41k for a client with the highest risk
++charge and raises it by $19k or $64k for the other two, and the integrator cannot tell which
++client it faces. The comparison declared before its runs used 60 admitted worlds:
+ 45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
+ contrasts; development results remain in Tables E.3 and E.7.
+ 
+@@ -128,6 +173,12 @@
+ walk-away decision under nearly complete clause information, because the integrator's private
+ cost barely changes its best agreement.
+ 
++The two CLIs were not equally isolated from the operator's machine: Codex's context listed eight of
++the operator's own skills, two described in benchmark and evaluation terms, and Claude Code's listed
++none (Table H.1). Every Sol-versus-Opus contrast in this paper carries that unmeasured difference; a
++second confirmatory, declared with both subjects isolated and their context probed before it runs,
++removes it.
++
+ ### 5.2 Where the shortfall comes from
+ 
+ Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
+@@ -138,8 +189,9 @@
+ ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
+ 
+ **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
+-labels give mean totals (lower is better within a panel). Units and scales differ. Procurement
+-shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
++labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
++all three models on 260 worlds; GLM's inspection cost of −0.2 a world is in Table E.10 and is not
++drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
+ against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
+ are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+ 
+@@ -168,14 +220,55 @@
+ signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
+ found by looking back is a hypothesis until a declared test confirms it.
+ 
+-Procurement and Data center are grounded in realistic purchasing and contracting decisions:
+-supplier verification under deadlines and negotiation over liability, deposits and risk allocation.
+-The experiments use controlled scenarios and a small set of agent configurations, with no human
++Housing, Procurement and Data center take their decision structure from real settings (Section
++5.1): informal rentals, wholesale sourcing and AI-infrastructure contracting. Their parameters are
++set by the authors, not calibrated to field data. The experiments use controlled scenarios and a small set of agent configurations, with no human
+ policy baseline; they do not establish general model rankings.
+ 
++### 5.3 An external benchmark on the same runtime
++
++TERMS-Bench evaluates bilateral price negotiation against counterparts whose type is hidden [TB].
++We reimplemented, from the paper's description, its alternating-offer environment, three of its
++six counterpart families (Candid, Taciturn and Expressive) and four of its measures as one AERead
++family. The counterpart runs as a scripted seat, and its random draws are sealed each turn, so
++replay recomputes the counterpart's moves as well as the scores. Not implemented: the Oracle-Cue
++reference and the gap measures built on it, the urgency regime, type-belief error and the other
++three families; counterpart messages are templates. The corpus has 30 cases, 15 with a zone of
++agreement and 15 without, each played once.
++
++**Table 5.5. TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases, scripted
++counterpart and settings. Agreement and surplus are over the cases with a zone of agreement: 15 for
++GPT-4o-mini and 12 for GLM-5.1, whose three malformed moves removed those episodes. Paper values:
++surplus efficiency from its Table 16 (overlap regime, mean of the three families played here);
++agreement and conditional surplus efficiency from its Table 2, which pools six families and three
++regimes.**
++
++| | GPT-4o-mini | GLM-5.1 | Paper: GPT-4o-mini | Paper: GLM-5.1 |
++|---|---:|---:|---:|---:|
++| Agreement rate where a deal exists (AGR+) | 0.80 | 1.00 | 0.522 | 0.951 |
++| Surplus efficiency (SE+) | 0.035 | 0.458 | 0.196 | 0.668 |
++| Conditional surplus efficiency (CSE+) | 0.044 | 0.458 | 0.363 | 0.721 |
++
++The reimplementation orders the two agents as the paper does on all three measures, but absolute
++levels are lower for both, and for a third model. A review of the port after these runs traced the
++shift to four departures from the paper's protocol, not to the agent, whose interface in the paper
++is also one stateless call per round. Our prompt does not state the agent's payoff or the rule
++against accepting above its reservation value; its observation differs from the paper's; a malformed
++move removes the episode where the paper applies a fallback, under which GLM-5.1's surplus efficiency
++would be 0.520 over all 15 cases; and our price range and zone widths are wider than the paper's. A
++declared reproduction will follow those fixes. The paper reports critical violations by GLM-5.1 in
++5% of cases without a zone of agreement for these three families; at that rate 15 such cases would
++show none about half the time, and ours showed none. The port also exposed a harness effect. On one provider route, any declared
++reasoning budget suppressed deliberation, and GLM 5.3 Flash breached its own reservation value in
++13 of 30 cases against the paper's band of 0 to 2.06%. With no reasoning declaration it breached in
++2 of 30 and its surplus efficiency rose from 0.40 to 0.53; the comparison above uses that setting.
++This is why the reasoning condition is part of each run's declared configuration. The runtime
++support for a scripted seat that this family uses is still in development.
++
+ ### References
+ 
+ - [AV] Li, C. *Activities, not occupations.* AERead blog, 8 October 2026. https://aeread.org/blog/activities-not-occupations.html
++- [TB] Zhang, E. et al. *TERMS-Bench: Diagnosing LLM Negotiation Agents Beyond Deal Rate.* arXiv:2605.13909, 2026.
+ 
+ ### Sources for the numbers in this section
+ 
+@@ -190,7 +283,7 @@
+ | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
+ | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
+ | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
+-| Data center confirmatory (Tables 5.1, 5.4, E.8; Figure 5.1c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
++| Data center confirmatory (Tables 5.4, E.8; Figure 5.1c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
+ | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
+ | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
+ | Refund rows of Table 5.1 and Figure 5.1d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+@@ -198,4 +291,8 @@
+ | Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
+ | Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
+ | Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
++| TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
++| Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
++| TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
++| Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
+ | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/runtime.bib aeread_working_draft_20261018_v15/source/runtime.bib
+--- aeread_working_draft_20261018_v14/source/runtime.bib	2026-10-16 13:48:40
++++ aeread_working_draft_20261018_v15/source/runtime.bib	2026-10-18 21:06:06
+@@ -200,3 +200,13 @@
+   year = {2026},
+   url = {https://arxiv.org/abs/2606.05405}
+ }
++@misc{gartner2025agentic,
++  author = {{Gartner}}, title = {Gartner Predicts Over 40\% of Agentic {AI} Projects Will Be Canceled by End of 2027},
++  year = {2025}, note = {Press release, 25 June 2025},
++  url = {https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027}
++}
++@misc{nfib2026jobs,
++  author = {{National Federation of Independent Business}}, title = {{NFIB} Jobs Report: Small Business Hiring Slows in September},
++  year = {2026}, note = {Press release, 1 October 2026},
++  url = {https://www.nfib.com/news/press-release/nfib-jobs-report-small-business-hiring-slows-in-september/}
++}
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_discussion.tex aeread_working_draft_20261018_v15/source/sec_discussion.tex
+--- aeread_working_draft_20261018_v14/source/sec_discussion.tex	2026-10-17 20:33:40
++++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-19 01:34:15
+@@ -1,48 +1,105 @@
+ \section{Discussion and conclusion}
+ \label{sec:discussion}
+ 
+-AERead evaluates economic activities through the value an agent can
+-deliver for a principal using the information, resources and authority
+-available to its seat. The worked examples connect information
+-acquisition, bargaining and commitment to economic outcomes. References
+-distinguish value attainable by feasible policies, optimal decisions
+-under available information, and full-information bounds. Their units
+-and counterpart conditions remain explicit so that each reported
+-shortfall has a defined interpretation.
++\subsection{What the cases show}
++\label{sec:discussion-findings}
+ 
+-The cases also show why task construction and quality control belong in
+-the evaluation method. Briefs can disclose decisive rules, simple
+-policies can exhaust a pack's difficulty, and counterparts can determine
+-which opportunities a subject encounters. The checks in Section 6
+-changed the interpretation of our own results. Trajectory-based loss
+-categories locate observed shortfalls; explaining their causes requires
+-controlled follow-up comparisons. Replay establishes consistency with
+-recorded play, while construct validity requires evidence about the
+-worlds, information and controls.
++AERead evaluates an agent's economic decisions by the value it obtains for
++a principal, given the information, resources and authority of its seat.
++Each score is measured against a reference whose access to information is
++stated, whether a feasible policy, the best policy under the seat's
++information or a full-information bound, and it keeps its own units and
++names the counterparts it was measured against, so that every shortfall
++has a defined interpretation. The worked examples apply this to
++information acquisition, bargaining and commitment in housing, procurement
++and contracting, and a reimplementation of part of TERMS-Bench runs on the
++same runtime.
+ 
+-Separate, versioned reanalyses now regenerate the corrected Housing
+-measures and Procurement decision losses from sealed records. The
+-accompanying projections support score regeneration; full verification
+-against original execution still requires retained logs (Appendix G).
+-These post-run checks strengthen the results' provenance. They do not
+-retroactively qualify the campaigns or resolve Housing's historical
+-seat attribution (Appendix H).
++The cases teach three lessons that bear on any evaluation of this kind.
++The counterpart is part of the measurement: the same two agents differ by
++far more when they negotiate with each other than when each faces a fixed
++counterpart. The brief is part of the case: stating a rule it had left
++implicit moved scores as much as changing the agent did. And the defects
++that matter are often properties of the population of worlds, the brief or
++the analysis rather than of any single world, which is why construction
++and quality control belong in the method; the checks of Section 6 changed
++the interpretation of our own results. Loss categories locate a shortfall
++but do not explain it, and explaining it requires controlled follow-up
++comparisons. Replay establishes consistency with recorded play; construct
++validity requires evidence about the worlds, the information and the
++controls.
+ 
+-Procurement and Data center are grounded in realistic purchasing and
+-contracting decisions. The present experiments use controlled scenarios;
+-empirical calibration of their parameter distributions and transfer to
+-field settings remain to be established. Coverage is limited to two
+-transaction classes and a small set of agent configurations, with no
+-human policy baseline. Several qualification checks were added after
+-the runs, and hosted-model and CLI behavior limits attribution from
+-declared settings. These examples do not establish general model
+-rankings or deployment readiness.
++These properties matter most where agents are deployed. Organizations that
++pilot agents often stop because the business value is unclear and the
++risks are hard to control \citep{gartner2025agentic}; a value score against
++a stated reference and a typed account of losses address both. Small firms
++face a different problem: short of staff \citep{nfib2026jobs}, they often
++leave decisions like those our cases model to one person, without
++specialized expertise and with no review before a commitment. Delegating
++such a decision to an agent is attractive there, and trusting it requires
++evidence that the agent keeps value against the counterparts it will meet.
+ 
+-Future campaigns should bind actual seat assignments and headline
+-scorers into frozen evaluation identities and run the required controls
+-before comparisons. Practitioner review, human baselines and externally
+-contributed cases would test relevance and usability beyond the
+-maintainers' examples. AERead's present contribution is a common
+-structure for constructing these evaluations and an evidence-based
+-account of the checks needed to interpret their measures of economic
+-value delivery.
++The present evidence has clear limits. The cases take their decision
++structure from informal rentals, wholesale sourcing and AI-infrastructure
++contracting, but their parameters are set by the authors; calibration to
++field data and transfer to field settings remain to be established.
++Coverage is limited to two transaction classes and a small set of agent
++configurations, with no human policy baseline. No case yet passes every
++qualification gate: several checks were added after the runs, and
++hosted-model and CLI behavior limits attribution from declared settings.
++Versioned reanalyses now regenerate the corrected Housing measures and
++Procurement decision losses from sealed records, which strengthens their
++provenance, but full verification against original execution still
++requires retained logs (Appendix~G), and the reanalyses neither qualify the
++campaigns retroactively nor resolve Housing's historical seat attribution
++(Appendix~H). The results therefore compare named agents on stated worlds;
++they do not establish general model rankings or deployment readiness.
++
++\subsection{Open research directions and contributions}
++\label{sec:open-directions}
++
++AERead is shared infrastructure for studying how agents make economic
++decisions. Its code is open source under the Apache-2.0 license
++(github.com/aeread-org/AERead; contact@aeread.org), and contributors can
++pursue their own questions with the existing cases, counterparts and
++evidence. The results above leave four questions open, each suited to a
++different kind of contribution.
++\begin{itemize}
++\item \textbf{Counterpart populations.} The Data-center gap between two
++agents is \$190k a world head to head and \$26k against a fixed script.
++How far does an agent's measured skill depend on whom it faces, can
++rankings reverse across counterpart populations (none did in our runs),
++and which populations separate distinct strategic capabilities? The
++scripted styles, head-to-head pairings and counterpart seats are in place.
++\item \textbf{Validity of populations of worlds.} Of 25 defects selected
++from our record, 14 were invisible in any single world. Which checks find
++such defects before a campaign runs, and what should qualify a case? The
++quality-control gates, the incident record and the failed campaigns are
++available for study.
++\item \textbf{Information and judgment.} Stating a rule the brief had left
++implicit moved scores as much as changing the agent. Separating what an
++agent was told from how it decided, and computing best-informed references
++for richer cases, are open methodological problems.
++\item \textbf{New economic decisions.} A case for another activity
++supplies its rules, worlds and reference; execution, replay, counterpart
++seats and the quality-control standard come with the runtime.
++\end{itemize}
++
++What is ready and what is not: the runtime, its sealed evidence and
++replay, and the case layout are in use, and Housing, Procurement and Data
++center each have a world generator, references and scripted counterparts.
++No case is yet qualified. Section~\ref{sec:qc} gives every gate verdict and
++Appendix~F each campaign's open checks, so a contributor can see what a
++case still needs before its results can rank agents.
++
++The next steps follow from the limits in Section 7.1. Future campaigns should bind
++actual seat assignments and headline scorers into frozen evaluation
++identities and run the required controls before any comparison, and the
++TERMS-Bench reimplementation needs the protocol fixes described in
++Section 5.3 before a declared reproduction. Practitioner review would
++calibrate the cases' parameters, human baselines would show where agents
++stand against people, and externally contributed cases would test whether
++the structure serves authors other than its maintainers. AERead's present
++contribution is that structure, a common way to construct evaluations of
++economic decisions, together with an evidence-based account of the checks
++needed to interpret what they measure.
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_opening.tex aeread_working_draft_20261018_v15/source/sec_opening.tex
+--- aeread_working_draft_20261018_v14/source/sec_opening.tex	2026-10-17 19:49:36
++++ aeread_working_draft_20261018_v15/source/sec_opening.tex	2026-10-19 01:31:54
+@@ -32,24 +32,67 @@
+ under the deciding seat's information, or a labelled full-information
+ upper bound. Results retain their native units and reference types.
+ 
+-This paper makes three contributions. First, we describe a common case
+-design and execution framework connecting information, actions and
+-measurement (Sections 3--4). Second, we instantiate it in Housing,
+-Procurement and Data center, with Refund included in the cross-case
+-analysis, to show how information acquisition, counterpart behavior and
+-commitment affect value (Section 5). Third, we document quality-control
+-checks and the defects they exposed, including misleading briefs,
+-uninformative controls and incomplete measurement paths (Section 6).
++CASEFIGUREPLACEHOLDER
+ 
+-These are maintainer-built worked examples. At the review snapshot, none
+-fully passes the paper's qualification gates; their results support
+-comparisons within the stated worlds and configurations. The paper's
+-evidence concerns constructing and diagnosing economic evaluations, with
+-general model rankings and readiness for deployment left unestablished.
++AERead combines seven properties. Prior benchmarks have some of them,
++TERMS-Bench five in full; AERead has six in full and the seventh, a
++shortcut-screening admission rule, in two of its cases (Table~2.1). The first three
++concern a single world, the next two a case's population of worlds, and the
++last two the runtime (Figure~1.1). Each is built and was applied to the
++cases reported here.
++\begin{enumerate}
++\item \textbf{Value against a reference with stated information.} Scores
++are economic values in each case's own units, measured against a feasible
++policy, the best policy given the deciding seat's information, or a
++labelled full-information bound. Each reference is played through the
++environment on every admitted world (Section~\ref{sec:qc}).
++\item \textbf{The counterpart is part of the case.} Other parties are seats
++with their own information and interests, played by scripted policies,
++another model or the same model, and each claim names its counterpart. In
++the Data-center case, one agent's earnings lead over another is \$190k a
++world head to head and \$26k against a fixed scripted counterpart
++(Section~\ref{sec:cases}).
++\item \textbf{Typed shortfall.} The gap to the reference is split into
++observed action classes, such as tests not taken, worse terms, harmful
++agreements and negotiation fees, so a result states where value was lost
++as well as how much (Section~\ref{sec:cases}).
++\item \textbf{World generators with admission.} A case is a generator of
++worlds, and its packs regenerate from their seeds. An admission rule,
++computed before any agent plays, keeps only worlds in which simple
++shortcuts lose a stated margin: the Data-center comparison used 60 worlds
++admitted from 2,729 scanned, and Procurement's second pack uses the same
++kind of screen. Housing admits on a structural condition, and the reported
++Procurement pack had no shortcut screen (Appendix~E.2).
++\item \textbf{Quality control over populations of worlds.} Cases are
++qualified through typed gates; simple-rule ceilings are scored beside the
++agents and briefs are audited. Of 25 defects selected from our record, 14
++were invisible in any single world (Section~\ref{sec:qc}).
++\item \textbf{Scores recomputed from sealed evidence.} The kernel hashes a
++plan before execution, seals the events, and replays each receipt to
++recompute its scores without calling a model; no model judges a score
++(Section~\ref{sec:runtime}).
++\item \textbf{One runtime for several activities.} Families supply only the
++economic rules. Four maintainer-built cases and a reimplementation of three
++TERMS-Bench counterpart families run on the same kernel
++(Section 5.3).
++\end{enumerate}
++A researcher studying another economic decision therefore writes only its
++rules, worlds and reference: execution, sealing, replay, counterpart seats
++and the quality-control gates come with the runtime, so a new case starts
++with the same evidence and checks as the existing ones.
++Sections 3 and 4 describe the case design and the runtime, Section 5 the
++cases, and Section 6 the quality control. The cases are maintainer-built
++worked examples and none yet passes every qualification gate; Section 7
++states what their results do and do not establish.
+ 
+ \section{Related work}
+ \label{sec:related-work}
+ 
++Table~2.1 compares the closest benchmarks on the seven properties of
++Section~\ref{sec:introduction}; the paragraphs below discuss them by theme.
++
++COMPARISONTABLEPLACEHOLDER
++
+ \paragraph{Economically valuable work.}
+ GDPval selects professional tasks by occupation and evaluates deliverables
+ through expert comparison \citep{patwardhan2025gdpval}. Agents' Last Exam
+@@ -73,7 +116,10 @@
+ buyer--seller bargaining under private reservation values, scoring
+ agreement, surplus allocation and speed \citep{liu2026agenticpay}.
+ TERMS-Bench specifies counterpart types, policies and payoffs to diagnose
+-negotiation through oracle-reference gaps \citep{zhang2026termsbench}.
++negotiation through oracle-reference gaps \citep{zhang2026termsbench}; our
++case specifications follow its decomposition into environment, protocol
++and counterpart policy (Appendix~A), and Section 5.3 reimplements three of
++its counterpart families on AERead's runtime.
+ AERead retains case-specific payoff units and distinguishes full-information
+ bounds from information-constrained policy references, with QC of world
+ distributions and measurement paths.
+@@ -93,6 +139,10 @@
+ \section{Task design and construction}
+ \label{sec:task-design}
+ 
++Three of AERead's properties are fixed when a case is designed: the
++reference and the information it may use, the counterpart seats, and the
++world generator with its admission rule.
++
+ \subsection{Cases, worlds and seats}
+ \label{sec:task-formulation}
+ 
+@@ -148,10 +198,16 @@
+ 
+ The author then provides a world generator or fixed pack, an admission
+ rule, and a reference whose information access is explicit. Admission
+-checks validity, diversity, split separation and measured headroom.
+-Executable controls test the reference through the actual environment
+-and verifier, alongside simple policies that reveal shortcuts or ceiling
+-effects. A full-information bound is labelled separately from a policy
++screens each candidate world before any agent plays and before hidden
++types are drawn. Computing exactly from the public world and the declared
++prior, it keeps a world only if simple shortcuts, such as accepting the
++default terms or ignoring private information, fall short of the reference
++by a stated margin. Whether the reference can be reached is a separate
++check: executable controls play it through the actual environment and
++verifier on every admitted world, alongside simple policies that reveal
++shortcuts or ceiling effects that admission missed. The pack must also be
++valid, free of duplicates, and split into disjoint development and holdout
++ranges. A full-information bound is labelled separately from a policy
+ the evaluated seat could execute. The case declares score units,
+ direction and treatment of invalid actions and incomplete episodes.
+ 
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_runtime.tex aeread_working_draft_20261018_v15/source/sec_runtime.tex
+--- aeread_working_draft_20261018_v14/source/sec_runtime.tex	2026-10-17 21:12:12
++++ aeread_working_draft_20261018_v15/source/sec_runtime.tex	2026-10-18 23:49:54
+@@ -4,7 +4,9 @@
+ \label{sec:runtime}
+ \label{sec:measurement}
+ 
+-The shared runtime, or \emph{kernel}, executes the case designs in
++The runtime provides two of AERead's properties: one kernel executes every
++family, and every score is recomputed by code from sealed evidence. The
++shared runtime, or \emph{kernel}, executes the case designs in
+ Section~\ref{sec:task-design}. Families supply the economic rules;
+ the kernel schedules play and records the evidence used for evaluation
+ (Figure~\ref{fig:architecture}).
+@@ -40,8 +42,28 @@
+ tool interfaces are logged with typed outcomes. Finalization seals the
+ evidence and produces a receipt binding the plan, world and scores.
+ 
+-Experiments use API clients and CLI subjects through case-specific
+-drivers. Applied controls and replay coverage vary by execution path;
+-a recorded declaration alone does not establish provider compliance.
+-Appendix~\ref{app:runtime} gives the runtime contract, CLI limitations,
+-replay access and the versions used by each reported panel.
++A seat is played in one of three ways. Most models run through AERead's
++own harness: each action is a single call through a pinned provider route,
++with the seat's instructions and its current observation in and one action
++in the case's schema out, no tools, and no memory beyond what the
++observation shows. The route is checked against its pin, a seed is
++requested, and the reasoning setting and output limit are declared.
++Gemini 3.8 Flash, GLM 5.3 Flash and GPT-6 Luna in Housing (Gemini and Luna
++in Procurement), the Refund models and the TERMS-Bench agents are run this
++way. The two frontier agents, Opus 5.5 and Sol 6.1, run instead through
++their vendors' command-line tools, Claude Code and Codex: one fresh process
++per action at low effort, with the same instructions and schema, tools
++disabled or refused, and no session carried over. Neither tool was fully
++isolated from the operator's machine (Table~\ref{tab:cli-controls}):
++Claude Code ran in safe mode, with none of the operator's instructions,
++memory or skills but with its working directory in context, and Codex
++still listed eight of the operator's own skills. Only the tool's version
++and binary are checked, and the tool exposes no seed, temperature or output
++limit. Through the harness the subject is the model; through a
++command-line tool it is the product, including its own instructions and
++internal turns. A comparison across the two paths therefore compares agent
++configurations rather than models, and each result names its path.
++Counterparts, references and simple-rule baselines are scripted, call no
++model and replay exactly. A recorded declaration does not establish that a
++provider honoured it; Appendix~\ref{app:runtime} gives the controls each
++path applied and the versions behind each reported panel.
+diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/tab_cli_controls.tex aeread_working_draft_20261018_v15/source/tab_cli_controls.tex
+--- aeread_working_draft_20261018_v14/source/tab_cli_controls.tex	2026-10-16 12:42:26
++++ aeread_working_draft_20261018_v15/source/tab_cli_controls.tex	2026-10-18 23:49:03
+@@ -11,5 +11,6 @@
+ Tools and session & Tools disabled; no persistent session. & Tool definitions retained; a call using a tool is refused.\\
+ Observed identity & Version 2.1.292; binary digest \code{97a01e5b}, rechecked before calls. & Version 0.160.0; binary digest \code{112fae7a}; no served-model identity.\\
+ Accounting limits & Two internal model turns observed per kernel call; internal retries are not separate kernel attempts. & Adapter digest \code{3f254873}; CLI internal execution is not independently certified.\\
++User customizations & \verb|--safe-mode|: no CLAUDE.md, memory, skill, plugin, hook, output style or MCP server reached the model. The run's working directory, a repository checkout, and the account's email address were in context. & \verb|--ignore-user-config| did not remove the operator's skills: eight were listed beside Codex's four built-in ones (about 500 input tokens a call), two described in benchmark and evaluation terms. The working directory's name contained the project's name.\\
+ Shared limits & Working directory and environment unsealed; costs estimated at list prices. & Working directory and environment unsealed; costs estimated at list prices.\\
+ \end{longtable}

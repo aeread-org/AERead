@@ -1,0 +1,22 @@
+{
+  "branch": "docs/paper-case-studies-qc",
+  "base_commit": "2ce8221c9861c22679c18e883ecf720253d72704",
+  "files": [
+    {
+      "path": "docs/research/paper_case_studies.md",
+      "before_sha256": "798337c04c6d059ebef1fcd36ccc92c6a2ab7091f3fa830039fb5445e1fb6d86",
+      "after_sha256": "a8ef02600f636ad24b9f190d2a897b650415f358fbe62ba595ad994595cec6a9"
+    },
+    {
+      "path": "docs/research/paper_qc_design.md",
+      "before_sha256": "2b72e70656f3a7f10b533510b2169a67b743789303581573b7a926864d469f65",
+      "after_sha256": "f473e42511dcaf28996be7746b1284d0fc0cf7744fb691cc5dc95e3179153d75"
+    },
+    {
+      "path": "docs/research/paper_appendix_details.md",
+      "before_sha256": "d878956d4bc0bd10eef723a5ab3f0b1256be88eb1cffe4767ffabaaa7acad271",
+      "after_sha256": "60fcd6d5c7174f40d584bb009969ec31bdb9a308d8305617f4e0224103056bb3"
+    }
+  ],
+  "status": "local uncommitted edits"
+}

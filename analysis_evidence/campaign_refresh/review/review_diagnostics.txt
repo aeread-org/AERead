@@ -1,0 +1,2 @@
+Excluded-receipt check initially used the cell parent as EvidenceStore root, which correctly failed because its event log is in a nested evidence generation. The next check locates the unique events.jsonl directory and verifies that generation. No source evidence changed.
+The corrected evidence-root seal check passed; serializing the review summary then failed on an assumed inclusion field. Receipt schema keys were inspected before retrying the summary.

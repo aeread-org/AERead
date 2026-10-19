@@ -1,0 +1,16 @@
+--- v6/docs/research/paper_case_studies.md
++++ v7/docs/research/paper_case_studies.md
+@@ -174,9 +174,10 @@
+ signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
+ found by looking back is a hypothesis until a declared test confirms it.
+ 
+-These cases do not rank models in general: two frontier agents at one reasoning setting and a few
+-flash-tier models played them. No practitioner has set or reviewed the prices, fees and odds, and
+-no human has played them.
++Procurement and Data center are grounded in realistic purchasing and contracting decisions:
++supplier verification under deadlines and negotiation over liability, deposits and risk allocation.
++The experiments use controlled scenarios and a small set of agent configurations, with no human
++policy baseline; they do not establish general model rankings.
+ 
+ ### References
+ 

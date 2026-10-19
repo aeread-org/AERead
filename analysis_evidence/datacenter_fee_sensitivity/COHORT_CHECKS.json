@@ -1,0 +1,42 @@
+{
+  "cells": 240,
+  "fee_replays": 1440,
+  "event_stream_hashes_verified": 240,
+  "tables_verified": [
+    "E.11",
+    "E.12"
+  ],
+  "table_cells_verified": 42,
+  "equal_seat_weighting_verified": true,
+  "worlds_all": 60,
+  "worlds_deal_feasible": 45,
+  "fixed_behavior_thresholds_usd": {
+    "all": {
+      "joint_loss_usd": 6378.08438095238,
+      "earnings_usd": 90957.31499999999
+    },
+    "deal": {
+      "joint_loss_usd": -5144.351933701658,
+      "earnings_usd": 48315.15686274509
+    }
+  },
+  "concrete_redline": {
+    "cell": "negotiator_drawn_public_v1_integrator__codex_client__cd6b12a1__r0",
+    "model": "codex",
+    "focal_seat": "client",
+    "author": "client",
+    "move": 2,
+    "paid": true,
+    "delta_usd": 87500.0,
+    "fee_usd": 25000.0,
+    "price_only": false,
+    "signed": true,
+    "deal": true
+  },
+  "all_world_fee_shares": {
+    "codex": 0.6989950420567712,
+    "claude": 0.4029377491294986
+  },
+  "scope_note": "Opus lower joint loss at zero fees applies only to the 45 deal-feasible worlds; the all-60 ranking reverses.",
+  "new_model_calls": 0
+}

@@ -1,0 +1,96 @@
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.13}
+\begin{longtable}{@{}P{1.44in}P{1.77in}P{2.64in}P{0.55in}@{}}
+\caption{Family-package inventory at \code{dec1a40f}. Check names match
+Section~\ref{sec:measurement}; the primary is listed first. Static
+world counts describe the package snapshot, not the later panels in
+Table~\ref{tab:case-paths}.}\label{tab:families}\\
+\toprule
+\textbf{Family} & \textbf{Origin and seats} & \textbf{Checks and instances} & \textbf{Test}\\
+\midrule\endfirsthead
+\multicolumn{4}{@{}l}{\textit{Table \thetable\ continued: family inventory}}\\
+\toprule
+\textbf{Family} & \textbf{Origin and seats} & \textbf{Checks and instances} & \textbf{Test}\\
+\midrule\endhead
+\midrule\multicolumn{4}{r}{\textit{Continued on the next page}}\\\endfoot
+\bottomrule\endlastfoot
+\multicolumn{4}{@{}l}{\textit{Wrapped upstream benchmarks}}\\[2pt]
+AgenticPay & Wrapped; 2 seats & Value, rule; 28 static worlds & $\checkmark$\\
+Alympics WAC & Wrapped; 5 seats & Relative, rule; 7 worlds & $\checkmark$\\
+AmazonHistoryPrice & Wrapped; 2 seats & Relative, rule, value; 45 worlds. Relative scalar primary. & $\checkmark$\\
+AucArena & Wrapped components; 1 model / 2 rule bidders & Relative, rule; 6 worlds & $\checkmark$\\
+EconAgent & Wrapped; $N=4$ or $10$ seats & Rule (accounting identity; no direction), relative; 3 scenarios & $\checkmark$\\
+EconEvals & Wrapped; 1 seat with tools & Value, rule; 28 worlds & $\checkmark$\\
+GovSim & Wrapped; 5 seats & Relative, rule; 9 worlds & $\checkmark$\\
+NegotiationArena & Wrapped; 2 seats & Relative, rule; 6 worlds & $\checkmark$\\
+STEER & Corpus import; 1 seat & Answer key; 1,595 instances & $\checkmark$\\
+$\tau$-bench retail & Wrapped; 1 seat / simulated user & Answer key; deferred rubric secondary; 114 tasks & $\circ$\\
+\addlinespace[5pt]
+\multicolumn{4}{@{}l}{\textit{Re-implemented from a paper}}\\[2pt]
+Algorithmic collusion & Re-implemented; 2 seats & Relative, rule, answer key; 6 worlds & $\checkmark$\\
+TERMS-Bench & Re-implemented; 1 seat / scripted counterpart & Rule, relative; 30 worlds & $\checkmark$\\
+\addlinespace[5pt]
+\multicolumn{4}{@{}l}{\textit{Native families and fixture}}\\[2pt]
+Housing & Native; campaign default 6 tenants / 4 landlords & Value (upper bound); generated worlds & $\checkmark$\\
+Procurement allocation & Native; 1 seat & Value (upper bound); 149 static worlds & $\checkmark$\\
+Procurement grounding & Native; 1 seat & Answer key; 1 world & $\checkmark$\\
+Commercial-state calibration & Native; 1 seat & Answer key; 9 worlds & $\checkmark$\\
+Data-center development & Native; 1 model / 1--5 scripted seats; 5 ids, 10 versions & Value / answer key; 117 worlds. Publishes receipts. & $\circ$\\
+Data-center development terms & Native; 1 seat & Answer key; 22 worlds. Publishes receipts. & $\circ$\\
+Consent / individual rationality & Native; 1 seat & Value (exact); 1 world & $\circ$\\
+Refund & Native; V1.3: 2 seats; V2.1: 3 model-eligible / 1 scripted & Value (V1.3), rule (V2.1); 18 static worlds; V2.1 generated. Produces kernel receipts. & C\\
+Single offer & Smoke fixture; 1 seat & No primary verifier; 0 static worlds & $\circ$\\
+\end{longtable}
+\endgroup
+
+{\small\textbf{Legend.} $\checkmark$: trusted built-in with the common
+scoring fixture (15 packages). $\circ$: trusted built-in without that
+fixture (five). C: contributed registration (Refund). Symbols describe
+enrollment, not receipt availability: Data center and Refund publish
+receipts. Retail has a finalizer path but no published live receipts in
+this snapshot. The separate exchange engine is excluded; package counts
+are distinct from family ids.\par}
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.13}
+\begin{longtable}{@{}P{1.34in}P{2.22in}P{2.96in}@{}}
+\caption{Pinned provenance and fidelity evidence for the inventory.
+Upstream names are repository identifiers; hashes are commit prefixes.
+Fidelity evidence concerns the adapter, not an evaluated model.}
+\label{tab:family-fidelity}\\
+\toprule
+\textbf{Family} & \textbf{Source and license} & \textbf{Fidelity evidence}\\
+\midrule\endfirsthead
+\multicolumn{3}{@{}l}{\textit{Table \thetable\ continued: provenance and fidelity}}\\
+\toprule
+\textbf{Family} & \textbf{Source and license} & \textbf{Fidelity evidence}\\
+\midrule\endhead
+\midrule\multicolumn{3}{r}{\textit{Continued on the next page}}\\\endfoot
+\bottomrule\endlastfoot
+AgenticPay \citep{liu2026agenticpay} & SafeRL-Lab/AgenticPay\newline\code{1ff4e1a2}; MIT & Byte-identical replay of five goldens through upstream; CI bridge job. No standalone parity recomputation.\\
+Alympics WAC \citep{mao2023alympics} & microsoft/Alympics\newline\code{caed7c8c}; MIT & Adapter compared with a second upstream instance.\\
+AmazonHistoryPrice \citep{xia2024bargaining} & TianXiaSJTU/\allowbreak AmazonPriceHistory\newline\code{834ad906}; Apache-2.0 & Byte-identical golden replay; CI bridge job.\\
+AucArena \citep{chen2023aucarena} & jiangjiechen/\allowbreak auction-arena\newline\code{d0f3bc85}; Apache-2.0 & Component checks and mutation tests over vendored hand-copied functions; upstream LLM bidder not executed.\\
+EconAgent \citep{li2024econagent} & tsinghua-fib-lab/\allowbreak ACL24-EconAgent\newline\code{bfada09}; no root license; embedded files BSD-3-Clause & Per-agent state parity across all three scenarios.\\
+EconEvals \citep{fish2025econevals} & sara-fish/\allowbreak econ-evals-paper\newline\code{e1f2a40f}; MIT & Byte-identical canonical replay.\\
+GovSim \citep{piatti2024govsim} & giorgiopiatti/govsim\newline\code{1d11adf0}; MIT & Adapter compared with raw upstream; CI bridge job.\\
+NegotiationArena \citep{bianchi2024negotiationarena} & vinid/NegotiationArena\newline\code{c447fafd}; MIT & Byte-identical upstream-direct replay.\\
+STEER \citep{raman2024steer} & narunraman/STEER\newline\code{d66673c8}; no license file & Adapter-owned deterministic answer-key suite; pinned upstream had removed its scorer.\\
+$\tau$-bench retail \citep{barres2025tau2} & sierra-research/tau2-bench\newline\code{fc0055dc} (v1.0.1); MIT & Static parity receipt over 114/114 tasks and 18/18 pilot gold trajectories; not rerun in CI.\\
+Algorithmic collusion \citep{fish2024collusion} & arXiv:2404.00806v6; HTML and PDF digests pinned; no code & Closed-form calculations compared with the paper appendix.\\
+TERMS-Bench \citep{zhang2026termsbench} & arXiv:2605.13909v2; paper digest pinned; upstream link unavailable & Replay on two scripted episodes.\\
+Housing & Native & Closed-form assignment oracle for the inventory's family baseline; the v14 reference is described in the case studies.\\
+Procurement allocation & Native & Optimal script attains the bound for the inventory baseline; the pay-or-test information-constrained policy is separately identified.\\
+Procurement grounding & 231-project snapshot & No additional fidelity evidence listed.\\
+Commercial-state calibration & Sanitized archive & No additional fidelity evidence listed.\\
+Data-center development & Native & No additional inventory-level fidelity evidence listed; agreement panel replay is in Table~\ref{tab:case-paths}.\\
+Data-center development terms & Pinned SEC EDGAR filings & Provenance-pinning test.\\
+Consent / individual rationality & Native & No additional fidelity evidence listed.\\
+Refund & Native & Internal tests; contributed kernel path. V2.5 is a later provider-free release, outside this inventory snapshot.\\
+Single offer & Native smoke fixture & No fidelity claim.\\
+\end{longtable}
+\endgroup

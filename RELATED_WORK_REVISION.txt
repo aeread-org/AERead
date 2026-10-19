@@ -1,0 +1,8 @@
+V6 Related Work revision — 17 October 2026
+Added AgenticPay (Liu, Gu and Song, 2026), arXiv:2602.06008v1, to the economic
+benchmark comparison. It was already in the source bibliography but uncited.
+The new text recognizes private reservation values and metrics of agreement,
+surplus allocation and speed, then explains AERead's native payoff units,
+reference information sets and applied QC. Primary-source checks are recorded
+in OPENING_SOURCE_CHECKS.txt. Surrounding prose was shortened; the paper remains
+40 pages and only pages 2 and 11 changed. All existing references are retained.

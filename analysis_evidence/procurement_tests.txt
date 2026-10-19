@@ -1,0 +1,7 @@
+Using CPython 3.13.5
+Creating virtual environment at: .venv
+   Building aeread @ file://<analysis-checkout>
+      Built aeread @ file://<analysis-checkout>
+Installed 17 packages in 157ms
+..........................................................               [100%]
+58 passed in 34.02s

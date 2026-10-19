@@ -1,0 +1,16 @@
+{
+  "case_figures": 1,
+  "comparison_rows": 9,
+  "architecture_figures": 1,
+  "shortfall_panels": 4,
+  "shortfall_figure_bars_verified": 11,
+  "shortfall_displayed_means_verified": 53,
+  "runtime_tables": 2,
+  "runtime_subsections": 4,
+  "references": 17,
+  "missing_internal_links": [],
+  "duplicate_ids": [],
+  "runtime_words": 1967,
+  "abstract_words": 280,
+  "discussion_words": 926
+}

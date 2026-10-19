@@ -1,0 +1,14 @@
+{
+ "by_status": {
+  "invalid_measurement": 1,
+  "ok": 719
+ },
+ "failed": [
+  {
+   "cell_key": "codex_integrator__negotiator_collapse_client__747a604a__r0",
+   "error": "ValueError: sealed family evidence has incomplete score boundaries"
+  }
+ ],
+ "replayed": 719,
+ "without_receipt": []
+}

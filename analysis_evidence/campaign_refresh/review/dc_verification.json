@@ -1,0 +1,27 @@
+{
+  "analysis_regenerated_equal": true,
+  "bundle_artifact_hashes_verified": [
+    {
+      "bundle": "datacenter_agreement_confirm_adversarial_v1",
+      "artifacts": 5
+    },
+    {
+      "bundle": "datacenter_agreement_confirm_firm_population_v1",
+      "artifacts": 5
+    },
+    {
+      "bundle": "datacenter_agreement_confirm_head_to_head_v1",
+      "artifacts": 5
+    },
+    {
+      "bundle": "datacenter_agreement_confirm_pilot_v1",
+      "artifacts": 5
+    },
+    {
+      "bundle": "datacenter_agreement_confirm_scripted_dry_run_v1",
+      "artifacts": 5
+    }
+  ],
+  "verification_scope": "analysis recomputed from sealed receipt leaves; five public bundle artifact maps checked; historical offline replay reports inspected",
+  "excluded_receipt_fresh_check": "dc_exclusion_check.json"
+}

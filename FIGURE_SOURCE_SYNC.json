@@ -1,0 +1,19 @@
+{
+  "worktree": "/Users/chenyusu/AERead-worktrees/paper-sections",
+  "branch": "docs/paper-case-studies-qc",
+  "files": {
+    "docs/research/paper_case_studies.md": {
+      "before_sha256": "e84da9ab169fa22b9d4782d9f87d84a408b2437cad1b53950c2a5a7378d9bd0f",
+      "after_sha256": "a2e762e1b858621471784dd1ecb432606a5e5e1801955b5ae026f34a9ed25822"
+    },
+    "docs/research/paper_appendix_details.md": {
+      "before_sha256": "8357066d48fbd5d3d80115497da75d886ec710edbc17f1cfa71e18072f045a18",
+      "after_sha256": "b0475718850e6483eeff6ed771832afebd66ab63a849b790309c905c2c61e62e"
+    },
+    "docs/research/figures/shortfall_by_case.svg": {
+      "before_sha256": null,
+      "after_sha256": "2050d40d07e0a33f78b33f4dfdef71c5c5dd16aa81ce67ef2c58c4968f114e1f"
+    }
+  },
+  "local_only": true
+}

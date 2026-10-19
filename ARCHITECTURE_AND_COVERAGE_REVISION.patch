@@ -1,0 +1,376 @@
+--- v10/source/paper_case_studies.md
++++ v11/source/paper_case_studies.md
+@@ -94,7 +94,7 @@
+ 
+ **Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+ 
+-| | Sol 6.1 | Opus 5.5 | Gemini 3.8 Flash | GPT-6 Luna |
++| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
+ |---|---:|---:|---:|---:|
+ | Given up per world | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
+ | Share of the best policy's value | 99.8% | 98.8% | 83.3% | 83.5% |
+@@ -135,14 +135,13 @@
+ uses its own reference and units. Appendix E.5 gives the rules and full subject tables; E.7 gives
+ the current Data-center breakdown and uncertainty. Table E.10 retains the exact panel values.
+ 
+-![Shortfall components for two agent configurations in each of four cases, with separate units and axes.](figures/shortfall_by_case.svg)
++![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
+ 
+-**Figure 5.1. Shortfall to each case's reference.** Colored segments account for observed actions;
+-bar-end labels give mean totals (lower is better within a panel). Units and scales differ across
+-panels. Data center measures joint outcomes with the firm population against a full-information
+-bound; individual below-walk-away
+-signings are separate (Table 5.4). Point estimates are shown; descriptive intervals and exact
+-values are in Tables E.9 and E.10.
++**Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
++labels give mean totals (lower is better within a panel). Units and scales differ. Procurement
++shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
++against the full-information bound with firm counterparts; individual below-walk-away signings
++are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+ 
+ Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
+ mostly worse lease terms. Luna's largest Housing class is signing at a rent above a lemon's value
+--- v10/source/paper_appendix_details.md
++++ v11/source/paper_appendix_details.md
+@@ -354,13 +354,14 @@
+ 
+ $ per world below the best policy given available information; pay-or-test v1, final brief.
+ 
+-| Component | Opus 5.5 | Gemini 3.8 Flash |
+-|---|---:|---:|
+-| Information not acquired | 2.6 | 75.2 |
+-| Contrary to held information | 2.8 | 0.0 |
+-| **Total shortfall** | **5.4** | **75.2** |
+-
+-24 worlds each. Decision loss independently re-derived from sealed events (Appendix F.4).
++| Component | Sol 6.1 | Opus 5.5 | GPT-6 Luna | Gemini 3.8 Flash |
++|---|---:|---:|---:|---:|
++| Information not acquired | 0.0 | 2.6 | 71.8 | 75.2 |
++| Contrary to held information | 1.0 | 2.8 | 1.9 | 0.0 |
++| Worse terms | 0.0 | 0.0 | 0.7 | 0.0 |
++| **Total shortfall** | **1.0** | **5.4** | **74.4** | **75.2** |
++
++All four subjects, 24 worlds each. Sol uses Codex; Opus uses Claude Code. Decision loss independently re-derived from sealed events (Appendix F.4).
+ 
+ **(c) Data center**
+ 
+@@ -388,7 +389,7 @@
+ 
+ 120 cells per model, averaged within each of six fixed cases and then across cases.
+ 
+-Rows that are zero for both displayed subjects are omitted; rounded components may not add to
++Rows that are zero for every displayed subject are omitted; rounded components may not add to
+ rounded totals. Below-walk-away signings are a separate individual outcome: against the firm
+ population, Opus and Sol as clients signed below their own walk-away values in 23/60 and 1/60
+ worlds, respectively (head-to-head: 27/60 and 3/60; Table 5.4).
+--- v10/source/sec_runtime.tex
++++ v11/source/sec_runtime.tex
+@@ -6,7 +6,10 @@
+ 
+ The shared runtime, or \emph{kernel}, executes the case designs in
+ Section~\ref{sec:task-design}. Families supply the economic rules;
+-the kernel schedules play and records the evidence used for evaluation.
++the kernel schedules play and records the evidence used for evaluation
++(Figure~\ref{fig:architecture}).
++
++ARCHITECTUREFIGUREPLACEHOLDER
+ 
+ \subsection{Verification}
+ Checks compare behavior or outcomes against five kinds of reference:
+--- v10/figures/plot_shortfalls.py
++++ v11/figures/plot_shortfalls.py
+@@ -17,7 +17,7 @@
+ DATA = json.loads(SOURCE.read_text())
+ plt.rcParams.update({
+     'font.family':'DejaVu Sans', 'font.size':9,
+-    'svg.fonttype':'path', 'svg.hashsalt':'aeread-shortfalls-v9',
++    'svg.fonttype':'path', 'svg.hashsalt':'aeread-shortfalls-v11',
+     'axes.edgecolor':'#9BA6AE', 'axes.linewidth':.6,
+     'text.color':'#172A3A', 'axes.labelcolor':'#405366',
+     'xtick.color':'#405366', 'ytick.color':'#172A3A',
+@@ -44,14 +44,16 @@
+                 ('commitment_error','Commitment error',COMMIT,''),
+                 ('interaction_cost','Inspection cost',COST,'')]),
+     dict(case='procurement', title='(b) Procurement', subtitle='Development · best policy with available info',
+-         names=['Opus 5.5 (Claude Code, brief v2)','Gemini 3.8 Flash'],
+-         labels=['Opus 5.5','Gemini 3.8\nFlash'],
++         names=['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
++                'GPT-6 Luna','Gemini 3.8 Flash'],
++         labels=['Sol 6.1\n(Codex)','Opus 5.5\n(Claude Code)','GPT-6 Luna','Gemini 3.8\nFlash'],
+          sample='24 worlds each', unit='Shortfall ($ / world)',
+          limit=90, ticks=[0,25,50,75],
+          parts=[('information_not_acquired','Info not acquired',INFO,''),
+-                ('contrary_to_information_held','Contrary to info',CONTRARY,'')]),
++                ('contrary_to_information_held','Contrary to info',CONTRARY,''),
++                ('worse_terms','Worse terms',TERMS,'')]),
+     dict(case='datacenter', title='(c) Data center', subtitle='Confirmatory · firm population',
+-         names=['Opus 5.5','Sol 6.1'], labels=['Opus 5.5','Sol 6.1'],
++         names=['Opus 5.5','Sol 6.1'], labels=['Opus 5.5\n(Claude Code)','Sol 6.1\n(Codex)'],
+          sample='60 worlds; two focal roles averaged', unit='Joint loss ($k / world)',
+          limit=128, ticks=[0,40,80,120],
+          parts=[('inferior_clauses','Inferior clauses',TERMS,''),
+@@ -78,9 +80,10 @@
+         fig.text(x0,ytop,panel['title'],size=11,weight='bold',va='top')
+         fig.text(x0,ytop-.041,panel['subtitle'],size=8.3,va='top',color='#405366')
+         fig.text(x0,ytop-.077,panel['sample'],size=7.9,va='top',color='#596977')
+-        ax=fig.add_axes([x0+.122, ytop-.309, .342, .185])
+-        ax.set_xlim(0,panel['limit']);ax.set_ylim(-.48,1.48)
+-        ax.set_yticks([1,0],panel['labels'],fontsize=8.6)
++        n=len(panel['names'])
++        ax=fig.add_axes([x0+.122, ytop-.335, .342, .226])
++        ax.set_xlim(0,panel['limit']);ax.set_ylim(-.5,n-.5)
++        ax.set_yticks(list(reversed(range(n))),panel['labels'],fontsize=8.2)
+         ax.tick_params(axis='y',length=0,pad=7)
+         ax.set_xticks(panel['ticks']);ax.tick_params(axis='x',length=3,labelsize=8)
+         ax.set_xlabel(panel['unit'],fontsize=8.3,labelpad=5)
+@@ -93,13 +96,13 @@
+             for key,label,color,hatch in panel['parts']:
+                 value=values[key]['mean'];assert value>=0
+                 if value>0:
+-                    ax.barh(1-j,value,left=left,height=.43,color=color,
++                    ax.barh(n-1-j,value,left=left,height=.5,color=color,
+                             edgecolor='white',linewidth=.45,hatch=hatch,zorder=3)
+                 components.append(dict(key=key,value=value))
+                 left+=value
+             total=values['total']['mean']
+             assert abs(left-total)<1e-5,(panel['case'],name,left,total)
+-            ax.text(total+panel['limit']*.021,1-j,f'{total:.1f}',
++            ax.text(total+panel['limit']*.021,n-1-j,f'{total:.1f}',
+                     va='center',ha='left',fontsize=9,weight='bold')
+             checks.append(dict(case=panel['case'],subject=name,total=total,
+                                components=components,axis_limit=panel['limit']))
+@@ -107,7 +110,7 @@
+                  for _,l,c,h in panel['parts']]
+         # Legends align to the panel's left edge, independently of model labels.
+         fig.legend(handles=handles,loc='upper left',
+-                   bbox_to_anchor=(x0,ytop-.393),ncol=2,frameon=False,
++                   bbox_to_anchor=(x0,ytop-.412),ncol=2,frameon=False,
+                    fontsize=7.9,handlelength=1.35,handleheight=.9,
+                    handletextpad=.55,columnspacing=1.25,labelspacing=.55,
+                    borderaxespad=0)
+@@ -123,7 +126,7 @@
+     report=dict(source=str(SOURCE.relative_to(ROOT.parent)),
+                 source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
+                 figure='Figure 5.1', table='Table E.10',
+-                component_sums_checked=8, bars=checks,
++                component_sums_checked=len(checks), bars=checks,
+                 negative_component_policy='reject; a signed decomposition would require a diverging chart',
+                 uncertainty='Point estimates; descriptive intervals in Table E.9',
+                 svg_sha256=hashlib.sha256(svg.read_bytes()).hexdigest(),
+--- v10/figures/plot_architecture.py
++++ v11/figures/plot_architecture.py
+@@ -0,0 +1,123 @@
++"""Draw Figure 4.1 from the paper's case, runtime and measurement contracts.
++
++Run: uv run --with matplotlib python figures/plot_architecture.py
++The overview describes responsibilities; it does not certify campaign coverage.
++"""
++from pathlib import Path
++import hashlib
++import json
++
++import matplotlib
++matplotlib.use('Agg')
++import matplotlib.pyplot as plt
++from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
++
++ROOT = Path(__file__).resolve().parent
++plt.rcParams.update({'font.family': 'DejaVu Sans', 'svg.fonttype': 'path',
++                     'svg.hashsalt': 'aeread-architecture-v11'})
++INK = '#172A3A'
++MUTED = '#405366'
++BLUE = '#367DAD'
++TEAL = '#38968A'
++GOLD = '#A77A23'
++
++
++def main():
++    fig = plt.figure(figsize=(7.8, 2.55), facecolor='white')
++    ax = fig.add_axes([0, 0, 1, 1])
++    ax.set_xlim(0, 1000)
++    ax.set_ylim(326, 0)
++    ax.axis('off')
++
++    def box(x, y, w, h, color, fill, radius=7):
++        ax.add_patch(FancyBboxPatch((x, y), w, h,
++                     boxstyle=f'round,pad=0,rounding_size={radius}',
++                     linewidth=.8, edgecolor=color, facecolor=fill))
++
++    def label(x, y, s, size=8.5, bold=False, color=INK, align='left'):
++        return ax.text(x, y, s, fontsize=size, color=color,
++                       weight='bold' if bold else 'normal', ha=align, va='center')
++
++    def arrow(start, end, color=MUTED):
++        ax.add_patch(FancyArrowPatch(start, end, arrowstyle='-|>',
++                     mutation_scale=7, linewidth=.8, color=color,
++                     shrinkA=0, shrinkB=0))
++
++    label(12, 15, 'CASE DESIGN', 9, True, BLUE)
++    label(280, 15, 'SHARED EXECUTION', 9, True, TEAL)
++    label(731, 15, 'EVIDENCE + MEASUREMENT', 9, True, GOLD)
++
++    box(12, 35, 225, 230, BLUE, '#F2F7FB')
++    label(28, 61, 'Case family', 9.5, True)
++    for y, line in zip([96, 126, 156, 186], [
++            'Worlds + private types', 'Seats + information rules',
++            'Actions + transitions', 'References + verifiers']):
++        label(28, y, line)
++    ax.plot([28, 221], [209, 209], color='#BCD0DF', linewidth=.6)
++    label(28, 230, 'Admitted world pack', 7.7, color=MUTED)
++    label(28, 248, 'Reference access is explicit', 7.7, color=MUTED)
++
++    box(280, 35, 405, 230, TEAL, '#F3F9F7')
++    box(295, 49, 375, 59, '#B9D5CE', 'white', 4)
++    label(309, 68, 'Resolved run plan', 9, True)
++    label(309, 91, 'Worlds, seats, agent settings, seeds, budgets', 7.8, color=MUTED)
++    arrow((482, 110), (482, 130), TEAL)
++
++    box(295, 137, 145, 80, TEAL, 'white', 4)
++    label(367.5, 159, 'Environment', 8.7, True, align='center')
++    label(367.5, 183, 'World state', 8, align='center')
++    label(367.5, 201, 'Case transitions', 8, align='center')
++    box(526, 137, 144, 80, TEAL, 'white', 4)
++    label(598, 159, 'Seat policies', 8.7, True, align='center')
++    label(598, 183, 'Focal agent', 8, align='center')
++    label(598, 201, 'Counterparts', 8, align='center')
++    arrow((444, 165), (522, 165), TEAL)
++    label(483, 152, 'Observe', 7.2, color=MUTED, align='center')
++    arrow((522, 200), (444, 200), TEAL)
++    label(483, 186, 'Act', 7.2, color=MUTED, align='center')
++    label(482.5, 237, 'Kernel schedules and records; drivers connect agents',
++          7.4, color=MUTED, align='center')
++    label(482.5, 254, 'Policies receive only their seat observations',
++          7.4, color=MUTED, align='center')
++
++    arrow((240, 177), (276, 177), BLUE)
++    arrow((689, 177), (723, 177), TEAL)
++
++    box(728, 35, 260, 230, GOLD, '#FBF8EF')
++    label(744, 61, 'Sealed execution', 9, True)
++    label(744, 84, 'Events, actions, receipt', 8, color=MUTED)
++    arrow((858, 96), (858, 117), GOLD)
++    label(744, 133, 'Receipt replay', 9, True)
++    label(744, 156, 'Rebuild state + receipt scores', 7.8, color=MUTED)
++    ax.plot([744, 972], [176, 176], color='#DDD2B3', linewidth=.6)
++    label(744, 198, 'Headline analysis', 8.5, True)
++    label(744, 221, 'Case reference + native units', 7.8, color=MUTED)
++    label(744, 247, 'Extra derivations verified separately', 7.3, color=MUTED)
++
++    box(12, 283, 976, 37, '#BDC7CF', '#F5F7F9', 4)
++    label(27, 301, 'Campaign QC', 8.3, True)
++    label(170, 301, 'World validity and headroom  /  controls  /  frozen analysis  /  incident review',
++          8, color=MUTED)
++
++    svg = ROOT/'architecture_overview.svg'
++    png = ROOT/'architecture_overview.png'
++    fig.savefig(svg, metadata={'Date': None, 'Creator': 'AERead architecture overview'})
++    fig.savefig(png, dpi=240)
++    plt.close(fig)
++    (ROOT.parent/'source/figures'/svg.name).write_bytes(svg.read_bytes())
++    source_files = ['sec_opening.tex', 'sec_runtime.tex', 'app_runtime.tex',
++                    'paper_qc_design.md', 'tab_case_paths.tex']
++    checks = {
++        'figure': 'Figure 4.1',
++        'scope': 'Conceptual architecture; applied coverage varies by campaign',
++        'sources': {f'source/{p}': hashlib.sha256(
++            (ROOT.parent/'source'/p).read_bytes()).hexdigest() for p in source_files},
++        'svg_sha256': hashlib.sha256(svg.read_bytes()).hexdigest(),
++        'png_sha256': hashlib.sha256(png.read_bytes()).hexdigest(),
++    }
++    (ROOT/'ARCHITECTURE_CHECKS.json').write_text(json.dumps(checks, indent=2)+'\n')
++    print('Figure 4.1 SVG and PNG generated')
++
++
++if __name__ == '__main__':
++    main()
+--- v10/build.py
++++ v11/build.py
+@@ -18,7 +18,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ SOURCE = ROOT / "source"
+-OUT = ROOT / "aeread_working_draft_20261017_v10.pdf"
++OUT = ROOT / "aeread_working_draft_20261017_v11.pdf"
+ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+ 
+ 
+@@ -110,6 +110,16 @@
+         parts.append(f'<path d="{d}" fill="none" stroke="#254e70" marker-end="url(#arrow)"/>')
+     parts.append('</svg>')
+     return '<figure id="fig:runtime">'+''.join(parts)+'''<figcaption>Figure H.1. The receipt path. Replay checks recorded transitions and receipt scores. It does not rerun the provider, harness or parser, or automatically cover analyses outside a receipt. The kernel supplies no sandbox or arbitrary-crash recovery.</figcaption></figure>'''
++
++
++def architecture_figure():
++    checks = json.loads((ROOT/'figures/ARCHITECTURE_CHECKS.json').read_text())
++    for name, digest in checks['sources'].items():
++        assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest() == digest, name
++    asset = ROOT/'figures/architecture_overview.svg'
++    assert hashlib.sha256(asset.read_bytes()).hexdigest() == checks['svg_sha256']
++    assert (SOURCE/'figures'/asset.name).read_bytes() == asset.read_bytes()
++    return '<figure id="fig:architecture" class="architecture-figure"><img src="figures/architecture_overview.svg" alt="AERead architecture: case design, runtime interaction, evidence and measurement, with campaign QC across the workflow."><figcaption><strong>Figure 4.1. AERead architecture.</strong> Families define the economic world and reference; the runtime coordinates seat policies and retains execution evidence. Agents receive only their seat observations, while scoring uses explicitly declared reference access. Replay checks receipt consistency; separate headline derivations require their own verification. Applied coverage and QC verdicts vary by campaign (Appendices F and H).</figcaption></figure>'
+ 
+ 
+ def number_sections(soup, first, appendix=False):
+@@ -169,6 +179,7 @@
+     parts = {name: BeautifulSoup(''.join(nodes), 'html.parser') for name, nodes in blocks.items()}
+     heading = parts['abstract'].find('h1'); heading.name = 'h2'; heading['class'] = ['abstract-heading']
+     number_sections(parts['opening'], 1)
++    parts['runtime'] = BeautifulSoup(str(parts['runtime']).replace('<p>ARCHITECTUREFIGUREPLACEHOLDER</p>', architecture_figure()), 'html.parser')
+     number_sections(parts['runtime'], 4)
+     number_sections(parts['discussion'], 7)
+     parts['appendix'] = BeautifulSoup(str(parts['appendix']).replace('<p>RUNTIMEFIGUREPLACEHOLDER</p>', runtime_figure()), 'html.parser')
+@@ -178,7 +189,7 @@
+               'sec:task-formulation':'3.1', 'sec:case-construction':'3.3', 'sec:runtime':'4',
+               'sec:measurement':'4', 'sec:cases':'5', 'sec:qc':'6', 'sec:discussion':'7',
+               'app:runtime':'H', 'app:runtime-overview':'H.1', 'app:runtime-replay':'H.2',
+-              'app:runtime-cases':'H.3', 'app:runtime-limits':'H.4', 'fig:runtime':'H.1',
++              'app:runtime-cases':'H.3', 'app:runtime-limits':'H.4', 'fig:runtime':'H.1', 'fig:architecture':'4.1',
+               'tab:cli-controls':'H.1', 'tab:case-paths':'H.2'}
+     body = '<div class="abstract">' + str(parts['abstract']) + '</div>'
+     body += str(parts['opening']) + str(parts['runtime'])
+@@ -220,7 +231,7 @@
+     assert hashlib.sha256((ROOT/figure_checks['source']).read_bytes()).hexdigest() == figure_checks['source_sha256']
+     assert hashlib.sha256((ROOT/'figures/shortfall_by_case.svg').read_bytes()).hexdigest() == figure_checks['svg_sha256']
+     assert (SOURCE/'figures/shortfall_by_case.svg').read_bytes() == (ROOT/'figures/shortfall_by_case.svg').read_bytes()
+-    assert len(figure_checks['bars']) == 8
++    assert len(figure_checks['bars']) == 10
+     # One numbered appendix table, four panels in the same order as the figure.
+     caption = soup.find(id='table-E.10')
+     panel_names = ['(a) Housing', '(b) Procurement', '(c) Data center', '(d) Refund']
+@@ -259,8 +270,9 @@
+         ('housing', ['Gemini 3.8 Flash','GPT-6 Luna'],
+          ['information_not_acquired','contrary_to_information_held','worse_terms',
+           'commitment_error','interaction_cost','total']),
+-        ('procurement', ['Opus 5.5 (Claude Code, brief v2)','Gemini 3.8 Flash'],
+-         ['information_not_acquired','contrary_to_information_held','total']),
++        ('procurement', ['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
++                         'GPT-6 Luna','Gemini 3.8 Flash'],
++         ['information_not_acquired','contrary_to_information_held','worse_terms','total']),
+         ('datacenter', ['Opus 5.5','Sol 6.1'],
+          ['inferior_clauses','harmful_agreement','missed_deal','redline_fees','total']),
+         ('refund', ['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
+@@ -291,7 +303,8 @@
+     assert not missing, missing
+     assert len(parts['appendix'].find_all('h3')) == 4
+     assert not re.search(r'\bH\.(?:[5-9]|1[0-2])\b', soup.get_text())
+-    checks = {'shortfall_panels':len(grid.select('.shortfall-panel')),
++    checks = {'architecture_figures':len(soup.find_all(id='fig:architecture')),
++              'shortfall_panels':len(grid.select('.shortfall-panel')),
+               'shortfall_figure_bars_verified':len(figure_checks['bars']),
+               'shortfall_displayed_means_verified':displayed_means,
+               'runtime_tables':len(parts['appendix'].find_all('table')),
+--- v10/paper.css
++++ v11/paper.css
+@@ -117,3 +117,12 @@
+ .shortfall-figure img { display:block; width:100%; height:auto; }
+ .shortfall-figure figcaption { margin:5pt 0 0; font-size:8.5pt; line-height:1.3; }
+ #sec\:discussion { break-before:page; }
++
++.architecture-figure { margin:8pt 0 11pt; break-inside:avoid; }
++.architecture-figure img { display:block; width:100%; height:auto; }
++.architecture-figure figcaption { margin:4pt 0 0; font-size:8.5pt; line-height:1.3; }
++.shortfall-panel:nth-child(2) .shortfall-panel-table { font-size:7.7pt; }
++.shortfall-panel:nth-child(2) .shortfall-panel-table th:first-child { width:40%; }
++.shortfall-panel:nth-child(2) .shortfall-panel-table th:not(:first-child) { width:15%; }
++.shortfall-panel:nth-child(2) .shortfall-panel-table th,
++.shortfall-panel:nth-child(2) .shortfall-panel-table td { padding:3pt 2pt; }

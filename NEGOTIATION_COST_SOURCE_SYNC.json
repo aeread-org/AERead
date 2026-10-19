@@ -1,0 +1,15 @@
+{
+  "branch": "docs/paper-case-studies-qc",
+  "worktree": "/Users/chenyusu/AERead-worktrees/paper-sections",
+  "files": {
+    "paper_case_studies.md": {
+      "before_sha256": "a2e762e1b858621471784dd1ecb432606a5e5e1801955b5ae026f34a9ed25822",
+      "after_sha256": "c2c7c876b6909bb0042a564a56d0cac615fcc98bb0fc5dc516ce639a83ec5ca0"
+    },
+    "paper_appendix_details.md": {
+      "before_sha256": "b0475718850e6483eeff6ed771832afebd66ab63a849b790309c905c2c61e62e",
+      "after_sha256": "c048a250a9ba88a26dae71d85ae3e7950e9fb2624690617022f3db08b87de57c"
+    }
+  },
+  "local_only": true
+}

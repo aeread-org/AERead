@@ -1,0 +1,63 @@
+sol61: 24/24 receipts replayed; sealed-action headline matches prior result
+opus55: 24/24 receipts replayed; sealed-action headline matches prior result
+gemini38_flash: 24/24 receipts replayed; sealed-action headline matches prior result
+gpt6_luna: 24/24 receipts replayed; sealed-action headline matches prior result
+sol61_accounting: 24/24 receipts replayed; sealed-action headline matches prior result
+opus55_accounting: 24/24 receipts replayed; sealed-action headline matches prior result
+{
+  "sol61": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 1.0,
+      "low": 0.2,
+      "high": 2.1
+    },
+    "best_policy_share_percent": 99.8
+  },
+  "opus55": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 5.4,
+      "low": 1.2,
+      "high": 10.6
+    },
+    "best_policy_share_percent": 98.8
+  },
+  "gemini38_flash": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 75.2,
+      "low": 48.7,
+      "high": 101.4
+    },
+    "best_policy_share_percent": 83.3
+  },
+  "gpt6_luna": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 74.4,
+      "low": 46.7,
+      "high": 102.7
+    },
+    "best_policy_share_percent": 83.5
+  },
+  "sol61_accounting": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 12.2,
+      "low": 4.3,
+      "high": 23.6
+    },
+    "best_policy_share_percent": 97.3
+  },
+  "opus55_accounting": {
+    "worlds": 24,
+    "decision_loss_usd": {
+      "mean": 19.4,
+      "low": 6.0,
+      "high": 38.2
+    },
+    "best_policy_share_percent": 95.7
+  }
+}
+all 144 headlines regenerate; source pins and public-text scan passed

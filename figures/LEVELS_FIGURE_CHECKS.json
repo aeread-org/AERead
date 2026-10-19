@@ -1,0 +1,11 @@
+{
+  "figure": "Figure 1.1",
+  "scope": "Levels of an evaluation with the Data-center agreement as the example; dot pattern and score bar schematic",
+  "script_sha256": "fb89ca13b6062975470d49087f3d7150cdded7ba74579ff702695a75c2ef2a76",
+  "example_sources": [
+    "source/paper_case_studies.md (Table 5.1, Section 5.1)",
+    "source/paper_appendix_details.md (F.2, admission before types)"
+  ],
+  "svg_sha256": "156c33b14d8c15011fabc1a5362e971742a164eec93e3711592a4d1cf79bea80",
+  "png_sha256": "110f3d0fd1a62a803db1af02ac9c6167dd27c828afcd77d5181603ab3dd8b4ac"
+}

@@ -1,0 +1,6 @@
+V7 grounding clarification — 17 October 2026
+Replaced the categorical absence-of-practitioner-review claim with an explicit
+acknowledgment of realistic purchasing and contracting contexts. The remaining
+limitation concerns calibration of parameter distributions and transfer to field
+settings, alongside the existing human-baseline and campaign qualifications.
+Section 5 makes the realistic decisions concrete. No empirical results changed.

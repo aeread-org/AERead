@@ -1,0 +1,269 @@
+{
+  "source": "analysis_evidence/shortfall_panels/panels.json",
+  "source_sha256": "6340621dcd81de69bd1eac621f4fb17f5887c9310712d4105ff7997af3b6106a",
+  "figure": "Figure 5.1",
+  "table": "Table E.10",
+  "component_sums_checked": 11,
+  "bars": [
+    {
+      "case": "housing",
+      "subject": "Gemini 3.8 Flash",
+      "total": 78.87017307692307,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 3.6391346153846156
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 10.312442307692306
+        },
+        {
+          "key": "worse_terms",
+          "value": 56.435346153846154
+        },
+        {
+          "key": "commitment_error",
+          "value": 8.242865384615385
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 0.0
+        },
+        {
+          "key": "interaction_cost",
+          "value": 0.2403846153846154
+        }
+      ],
+      "axis_limit": 180
+    },
+    {
+      "case": "housing",
+      "subject": "GLM 5.3 Flash",
+      "total": 142.2703269230769,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 9.222576923076923
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 73.60886538461538
+        },
+        {
+          "key": "worse_terms",
+          "value": 42.206346153846155
+        },
+        {
+          "key": "commitment_error",
+          "value": 12.389057692307693
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 5.083865384615385
+        },
+        {
+          "key": "interaction_cost",
+          "value": -0.2403846153846154
+        }
+      ],
+      "axis_limit": 180
+    },
+    {
+      "case": "housing",
+      "subject": "GPT-6 Luna",
+      "total": 144.32753846153844,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 10.100692307692308
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 86.40713461538462
+        },
+        {
+          "key": "worse_terms",
+          "value": 44.00590384615384
+        },
+        {
+          "key": "commitment_error",
+          "value": 2.852269230769231
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 0.0
+        },
+        {
+          "key": "interaction_cost",
+          "value": 0.9615384615384616
+        }
+      ],
+      "axis_limit": 180
+    },
+    {
+      "case": "procurement",
+      "subject": "Sol 6.1 (Codex CLI)",
+      "total": 1.0226034409218936,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 0.0
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 1.0226034409218936
+        },
+        {
+          "key": "worse_terms",
+          "value": 0.0
+        }
+      ],
+      "axis_limit": 90
+    },
+    {
+      "case": "procurement",
+      "subject": "Opus 5.5 (Claude Code, brief v2)",
+      "total": 5.38899537443335,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 2.6243060440333346
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 2.764689330400015
+        },
+        {
+          "key": "worse_terms",
+          "value": 0.0
+        }
+      ],
+      "axis_limit": 90
+    },
+    {
+      "case": "procurement",
+      "subject": "GPT-6 Luna",
+      "total": 74.37530025107752,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 71.83759388387669
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 1.8766289184508314
+        },
+        {
+          "key": "worse_terms",
+          "value": 0.6610774487499995
+        }
+      ],
+      "axis_limit": 90
+    },
+    {
+      "case": "procurement",
+      "subject": "Gemini 3.8 Flash",
+      "total": 75.19089995211503,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 75.19089995211503
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 0.0
+        },
+        {
+          "key": "worse_terms",
+          "value": 0.0
+        }
+      ],
+      "axis_limit": 90
+    },
+    {
+      "case": "datacenter",
+      "subject": "Opus 5.5",
+      "total": 70.83393583333333,
+      "components": [
+        {
+          "key": "inferior_clauses",
+          "value": 8.848882333333334
+        },
+        {
+          "key": "harmful_agreement",
+          "value": 20.8962535
+        },
+        {
+          "key": "missed_deal",
+          "value": 12.547133333333333
+        },
+        {
+          "key": "redline_fees",
+          "value": 28.541666666666668
+        }
+      ],
+      "axis_limit": 128
+    },
+    {
+      "case": "datacenter",
+      "subject": "Sol 6.1",
+      "total": 103.42228816666666,
+      "components": [
+        {
+          "key": "inferior_clauses",
+          "value": 7.6974089999999995
+        },
+        {
+          "key": "harmful_agreement",
+          "value": 1.9752083333333335
+        },
+        {
+          "key": "missed_deal",
+          "value": 21.45800416666667
+        },
+        {
+          "key": "redline_fees",
+          "value": 72.29166666666667
+        }
+      ],
+      "axis_limit": 128
+    },
+    {
+      "case": "refund",
+      "subject": "GPT-5.6 Luna",
+      "total": 20.833333333333332,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 15.0
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 5.833333333333333
+        }
+      ],
+      "axis_limit": 115
+    },
+    {
+      "case": "refund",
+      "subject": "Gemini 2.5 Flash Lite",
+      "total": 98.33333333333333,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 0.0
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 98.33333333333333
+        }
+      ],
+      "axis_limit": 115
+    }
+  ],
+  "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero",
+  "uncertainty": "Point estimates; descriptive intervals in Table E.9",
+  "svg_sha256": "8e102a676665d43d78e3e801d2d9967822a640bc0a6673957c5c05da682b35e9",
+  "png_sha256": "b67046a307b1e44b235905de1be2040ef2ac89b7ca06d8ea02230d673d751dc5"
+}

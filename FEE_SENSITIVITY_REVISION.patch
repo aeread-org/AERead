@@ -1,0 +1,146 @@
+--- v11/source/paper_case_studies.md
++++ v13/source/paper_case_studies.md
+@@ -140,7 +140,7 @@
+ **Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
+ labels give mean totals (lower is better within a panel). Units and scales differ. Procurement
+ shows all four subjects; full subject tables are in Appendix E.5. Data center reports joint loss
+-against the full-information bound with firm counterparts; individual below-walk-away signings
++against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
+ are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+ 
+ Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
+@@ -149,13 +149,17 @@
+ rule, so the label does not establish that the tenant knew how to interpret the reply. In Refund,
+ Gemini 2.5 Flash Lite's loss is chiefly procedure or format.
+ 
+-In Data center, redline fees contribute about 70% of Sol's and 40% of Opus's joint loss against
+-the firm population. These costs can accompany valuable contract improvements, so their share
+-alone does not establish inefficient negotiation. The full-information reference can agree
+-immediately; the gap therefore includes negotiation costs that agents with limited information
+-may need to incur. Opus also signs harmful agreements in worlds without positive available
+-joint surplus. Appendix E.5 explains how agreement quality and the assumed fee jointly affect
+-the score.
++In Data center, the $25k redline fee accounts for 69.9% of Sol's and 40.3% of Opus's joint loss
++against the firm population across all 60 worlds. Fees can accompany valuable contract
++improvements; their share alone does not establish inefficient negotiation. The full-information
++reference can agree immediately, so the gap includes costs that agents with limited information
++may need to incur. Opus also signs harmful agreements in worlds without positive available surplus.
++
++Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
++(Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
++Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
++all 60 worlds, however, removing fees reverses the joint-loss ranking: Sol loses $31.1k versus
++Opus's $42.3k. Fee robustness therefore depends on the measure and the worlds included.
+ 
+ **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
+ case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
+@@ -191,6 +195,7 @@
+ | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
+ | Refund rows of Table 5.1 and Figure 5.1d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+ | Failure classes (Figure 5.1, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
++| Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
+ | Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
+ | Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
+ | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
+--- v11/source/paper_appendix_details.md
++++ v13/source/paper_appendix_details.md
+@@ -236,8 +236,9 @@
+ full-information reference knows both private types and can propose the best agreement in the
+ free opening move. Its advantage includes negotiation costs that agents with limited information
+ may need to incur; the decomposition does not identify which costs were avoidable. It also does
+-not establish robustness to the chosen $25k fee per additional redline. Behavioral comparisons
+-under alternative declared fee settings would test that sensitivity.
++not establish robustness to the chosen $25k fee per additional redline. Appendix E.9 tests
++scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
++adaptation would require new model runs under declared fee settings.
+ 
+ **Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed).**
+ 
+@@ -393,6 +394,67 @@
+ rounded totals. Below-walk-away signings are a separate individual outcome: against the firm
+ population, Opus and Sol as clients signed below their own walk-away values in 23/60 and 1/60
+ worlds, respectively (head-to-head: 27/60 and 3/60; Table 5.4).
++
++### E.9 Negotiation fees: fixed-action sensitivity
++
++We replayed all 240 valid firm-population negotiations (60 worlds, two models, two focal
++seats) at six fees per paid redline: $0, $5k, $12.5k, $25k, $50k and $100k. All original final
++states and six score leaves matched the saved states and receipts. The 1,440 fee-specific
++trajectories used the native transition and scoring functions, holding offers, clauses, notes,
++signatures and walks fixed. This is exploratory analysis after the runs, not another declared
++test or a model rerun. The free opening move remains free.
++
++The samples answer different questions. Figure 5.1c includes all 60 worlds; the declared
++earnings contrast in Table 5.4 uses the 45 worlds with positive available joint surplus.
++"Deal-feasible" describes those worlds, including negotiations that ended without agreement;
++it does not select only signed contracts. Means first average both focal seats within a world,
++then worlds. The independent unit is the world, not each correlated seat observation.
++
++**Table E.11. Fee sensitivity on the 45 deal-feasible worlds ($ thousands per world; fixed actions). Sol earnings lead is Sol minus Opus against the firm population. Lower joint loss is better; a positive earnings lead favors Sol.**
++
++| Fee per redline | Sol joint loss | Opus joint loss | Sol earnings lead |
++|---|---:|---:|---:|
++| 0 | 38.9 | 28.5 | +54.8 |
++| 5 | 56.0 | 35.6 | +49.1 |
++| 12.5 | 81.7 | 46.2 | +40.6 |
++| 25 | 124.4 | 63.8 | +26.4 |
++| 50 | 210.0 | 99.1 | -1.9 |
++| 100 | 381.1 | 169.6 | -58.6 |
++
++For these 45 worlds, fees amplify Sol's joint-loss disadvantage but do not create it: Opus
++retains lower loss at zero fees. Sol's own earnings lead instead grows when fees are removed.
++With behavior fixed, earnings depend linearly on the fee and are equal at approximately $48.3k
++per redline. This threshold describes the recorded actions, not an optimal fee or how either
++agent would respond to a changed fee.
++
++**Table E.12. Joint-loss sensitivity across all 60 worlds ($ thousands per world; fixed actions). This is the population used in Figure 5.1c, including 15 worlds without positive available joint surplus.**
++
++| Fee per redline | Sol joint loss | Opus joint loss |
++|---|---:|---:|
++| 0 | 31.1 | 42.3 |
++| 5 | 45.6 | 48.0 |
++| 12.5 | 67.3 | 56.6 |
++| 25 | 103.4 | 70.8 |
++| 50 | 175.7 | 99.4 |
++| 100 | 320.3 | 156.5 |
++
++Across all 60 worlds, fees contribute 69.9% of Sol's and 40.3% of Opus's total joint loss
++at $25k. Here the joint-loss ranking reverses without fees, with equality near $6.4k per
++redline. The 45-world result therefore cannot establish a fee-independent ranking for the
++full pack. On the 45-world subset, the corresponding fee shares are 68.8% and 55.3%.
++
++**Useful changes and limits.** Among model-authored paid redlines in the 45 deal-feasible
++worlds, 23 of Sol's 150 and 5 of Opus's 48 increased immediate full-information clause value
++by more than the $25k fee. One Sol redline improved clause value by $87.5k for a $62.5k net
++improvement. These are local comparisons: edits may later be undone, and negotiations may
++remain unsigned. Price concessions and the information value of negotiation are not captured
++by this clause-value count. Fee shares include both parties' fees, whereas these counts include
++only the focal model's edits. The full-information reference advantage remains, and this
++analysis neither validates the fee's empirical calibration nor measures adaptation to it.
++
++The source package retains the supplied analysis, its reproduced outputs, input hashes and
++the concrete move in `analysis_evidence/datacenter_fee_sensitivity/`. The reproduction uses
++the retained campaign logs; the compact package does not include those complete raw logs.
+ 
+ ## Appendix F. Quality control in detail
+ 
+--- v11/build.py
++++ v13/build.py
+@@ -18,7 +18,7 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ SOURCE = ROOT / "source"
+-OUT = ROOT / "aeread_working_draft_20261017_v11.pdf"
++OUT = ROOT / "aeread_working_draft_20261017_v13.pdf"
+ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+ 
+ 
+--- v11/paper.css
++++ v13/paper.css
+@@ -126,3 +126,6 @@
+ .shortfall-panel:nth-child(2) .shortfall-panel-table th:not(:first-child) { width:15%; }
+ .shortfall-panel:nth-child(2) .shortfall-panel-table th,
+ .shortfall-panel:nth-child(2) .shortfall-panel-table td { padding:3pt 2pt; }
++
++[id="appendix-E.9"] { break-before:page; }
++.table-E-11, .table-E-12 { break-inside:avoid; }

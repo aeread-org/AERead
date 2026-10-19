@@ -1,0 +1,304 @@
+{
+ "cannot_occur": [
+  "commitment_error",
+  "interaction_cost"
+ ],
+ "case": "refund_v2_1",
+ "mapping": {
+  "decided_before_required_facts": "information_not_acquired",
+  "denial_method_null": "procedure_and_format",
+  "re_requested_known_fact": "procedure_and_format",
+  "requested_unknown_fact": "procedure_and_format",
+  "transaction_error": "procedure_and_format",
+  "wrong_amount_or_method": "worse_terms",
+  "wrong_decision": "contrary_to_information_held"
+ },
+ "source": "origin/codex/refund-gap-analysis:evidence/refund/refund_v2_1_gap",
+ "subjects": {
+  "DeepSeek V4 Flash": {
+   "bundle": "refund_v2_1_deepseekv4flash_controlled_2026-09-12",
+   "cases": 6,
+   "cells": 120,
+   "model": "deepseek-v4-flash-0731",
+   "outcome_view": {
+    "no_decision_reached": 0.0,
+    "resolved_as_scored": 50.0,
+    "right_outcome": 100.0,
+    "wrong_outcome": 0.0
+   },
+   "parts_points": {
+    "decided_before_required_facts": 44.166667,
+    "denial_method_null": 5.833333,
+    "re_requested_known_fact": 0.0,
+    "requested_unknown_fact": 0.0,
+    "transaction_error": 0.0,
+    "wrong_amount_or_method": 0.0,
+    "wrong_decision": 0.0
+   },
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 44.166667,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 5.833333,
+    "worse_terms": 0.0
+   },
+   "published_classes": {
+    "no_decision_reached": {
+     "count": 0,
+     "points": -0.0
+    },
+    "right_outcome_format_only": {
+     "count": 7,
+     "points": -5.833333
+    },
+    "right_outcome_skipped_procedure": {
+     "count": 53,
+     "points": -44.166667
+    },
+    "wrong_outcome": {
+     "count": 0,
+     "points": -0.0
+    },
+    "wrong_outcome_skipped_procedure": {
+     "count": 0,
+     "points": -0.0
+    }
+   },
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.883333,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.116667,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 50.0,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 0,
+    "information_not_acquired": 53,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 7,
+    "worse_terms": 0
+   }
+  },
+  "GPT-5.6 Luna": {
+   "bundle": "refund_v2_1_gpt56luna_controlled_2026-09-12",
+   "cases": 6,
+   "cells": 120,
+   "model": "gpt-5.6-luna",
+   "outcome_view": {
+    "no_decision_reached": 5.8333,
+    "resolved_as_scored": 79.1667,
+    "right_outcome": 94.1667,
+    "wrong_outcome": 0.0
+   },
+   "parts_points": {
+    "decided_before_required_facts": 15.0,
+    "denial_method_null": 0.0,
+    "re_requested_known_fact": 0.0,
+    "requested_unknown_fact": 5.833333,
+    "transaction_error": 0.0,
+    "wrong_amount_or_method": 0.0,
+    "wrong_decision": 0.0
+   },
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 15.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 5.833333,
+    "worse_terms": 0.0
+   },
+   "published_classes": {
+    "no_decision_reached": {
+     "count": 7,
+     "points": -5.833333
+    },
+    "right_outcome_format_only": {
+     "count": 0,
+     "points": -0.0
+    },
+    "right_outcome_skipped_procedure": {
+     "count": 18,
+     "points": -15.0
+    },
+    "wrong_outcome": {
+     "count": 0,
+     "points": -0.0
+    },
+    "wrong_outcome_skipped_procedure": {
+     "count": 0,
+     "points": -0.0
+    }
+   },
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.72,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.28,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 20.833333,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 0,
+    "information_not_acquired": 18,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 7,
+    "worse_terms": 0
+   }
+  },
+  "Gemini 2.5 Flash Lite": {
+   "bundle": "refund_v2_1_gemini25flashlite_controlled_2026-09-12",
+   "cases": 6,
+   "cells": 120,
+   "model": "gemini-2.5-flash-lite",
+   "outcome_view": {
+    "no_decision_reached": 81.6667,
+    "resolved_as_scored": 1.6667,
+    "right_outcome": 18.3333,
+    "wrong_outcome": 0.0
+   },
+   "parts_points": {
+    "decided_before_required_facts": 0.0,
+    "denial_method_null": 16.666667,
+    "re_requested_known_fact": 80.833333,
+    "requested_unknown_fact": 0.833333,
+    "transaction_error": 0.0,
+    "wrong_amount_or_method": 0.0,
+    "wrong_decision": 0.0
+   },
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 98.333333,
+    "worse_terms": 0.0
+   },
+   "published_classes": {
+    "no_decision_reached": {
+     "count": 98,
+     "points": -81.666667
+    },
+    "right_outcome_format_only": {
+     "count": 20,
+     "points": -16.666667
+    },
+    "right_outcome_skipped_procedure": {
+     "count": 0,
+     "points": -0.0
+    },
+    "wrong_outcome": {
+     "count": 0,
+     "points": -0.0
+    },
+    "wrong_outcome_skipped_procedure": {
+     "count": 0,
+     "points": -0.0
+    }
+   },
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 1.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 98.333333,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 0,
+    "information_not_acquired": 0,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 118,
+    "worse_terms": 0
+   }
+  },
+  "Grok 4.3": {
+   "bundle": "refund_v2_1_grok43_controlled_2026-09-12",
+   "cases": 6,
+   "cells": 120,
+   "model": "grok-4.3",
+   "outcome_view": {
+    "no_decision_reached": 0.0,
+    "resolved_as_scored": 52.5,
+    "right_outcome": 99.1667,
+    "wrong_outcome": 0.8333
+   },
+   "parts_points": {
+    "decided_before_required_facts": 29.166667,
+    "denial_method_null": 17.5,
+    "re_requested_known_fact": 0.0,
+    "requested_unknown_fact": 0.0,
+    "transaction_error": 0.0,
+    "wrong_amount_or_method": 0.0,
+    "wrong_decision": 0.833333
+   },
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.833333,
+    "information_not_acquired": 29.166667,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 17.5,
+    "worse_terms": 0.0
+   },
+   "published_classes": {
+    "no_decision_reached": {
+     "count": 0,
+     "points": -0.0
+    },
+    "right_outcome_format_only": {
+     "count": 21,
+     "points": -17.5
+    },
+    "right_outcome_skipped_procedure": {
+     "count": 35,
+     "points": -29.166667
+    },
+    "wrong_outcome": {
+     "count": 1,
+     "points": -0.833333
+    },
+    "wrong_outcome_skipped_procedure": {
+     "count": 0,
+     "points": -0.0
+    }
+   },
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.017544,
+    "information_not_acquired": 0.614035,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.368421,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 47.5,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 1,
+    "information_not_acquired": 35,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 21,
+    "worse_terms": 0
+   }
+  }
+ },
+ "unit": "percentage points of cells unresolved, mean per case then over the six cases"
+}

@@ -1,0 +1,105 @@
+\section{Discussion and conclusion}
+\label{sec:discussion}
+
+\subsection{What the cases show}
+\label{sec:discussion-findings}
+
+AERead evaluates an agent's economic decisions by the value it obtains for
+a principal, given the information, resources and authority of its seat.
+Each score is measured against a reference whose access to information is
+stated, whether a feasible policy, the best policy under the seat's
+information or a full-information bound, and it keeps its own units and
+names the counterparts it was measured against, so that every shortfall
+has a defined interpretation. The worked examples apply this to
+information acquisition, bargaining and commitment in housing, procurement
+and contracting, and a reimplementation of part of TERMS-Bench runs on the
+same runtime.
+
+The cases teach three lessons that bear on any evaluation of this kind.
+The counterpart is part of the measurement: the same two agents differ by
+far more when they negotiate with each other than when each faces a fixed
+counterpart. The brief is part of the case: stating a rule it had left
+implicit moved scores as much as changing the agent did. And the defects
+that matter are often properties of the population of worlds, the brief or
+the analysis rather than of any single world, which is why construction
+and quality control belong in the method; the checks of Section 6 changed
+the interpretation of our own results. Loss categories locate a shortfall
+but do not explain it, and explaining it requires controlled follow-up
+comparisons. Replay establishes consistency with recorded play; construct
+validity requires evidence about the worlds, the information and the
+controls.
+
+These properties matter most where agents are deployed. Organizations that
+pilot agents often stop because the business value is unclear and the
+risks are hard to control \citep{gartner2025agentic}; a value score against
+a stated reference and a typed account of losses address both. Small firms
+face a different problem: short of staff \citep{nfib2026jobs}, they often
+leave decisions like those our cases model to one person, without
+specialized expertise and with no review before a commitment. Delegating
+such a decision to an agent is attractive there, and trusting it requires
+evidence that the agent keeps value against the counterparts it will meet.
+
+The present evidence has clear limits. The cases take their decision
+structure from informal rentals, wholesale sourcing and AI-infrastructure
+contracting, but their parameters are set by the authors; calibration to
+field data and transfer to field settings remain to be established.
+Coverage is limited to two transaction classes and a small set of agent
+configurations, with no human policy baseline. No case yet passes every
+qualification gate: several checks were added after the runs, and
+hosted-model and CLI behavior limits attribution from declared settings.
+Versioned reanalyses now regenerate the corrected Housing measures and
+Procurement decision losses from sealed records, which strengthens their
+provenance, but full verification against original execution still
+requires retained logs (Appendix~G), and the reanalyses neither qualify the
+campaigns retroactively nor resolve Housing's historical seat attribution
+(Appendix~H). The results therefore compare named agents on stated worlds;
+they do not establish general model rankings or deployment readiness.
+
+\subsection{Open research directions and contributions}
+\label{sec:open-directions}
+
+AERead is shared infrastructure for studying how agents make economic
+decisions. Its code is open source under the Apache-2.0 license
+(github.com/aeread-org/AERead; contact@aeread.org), and contributors can
+pursue their own questions with the existing cases, counterparts and
+evidence. The results above leave four questions open, each suited to a
+different kind of contribution.
+\begin{itemize}
+\item \textbf{Counterpart populations.} The Data-center gap between two
+agents is \$190k a world head to head and \$26k against a fixed script.
+How far does an agent's measured skill depend on whom it faces, can
+rankings reverse across counterpart populations (none did in our runs),
+and which populations separate distinct strategic capabilities? The
+scripted styles, head-to-head pairings and counterpart seats are in place.
+\item \textbf{Validity of populations of worlds.} Of 25 defects selected
+from our record, 14 were invisible in any single world. Which checks find
+such defects before a campaign runs, and what should qualify a case? The
+quality-control gates, the incident record and the failed campaigns are
+available for study.
+\item \textbf{Information and judgment.} Stating a rule the brief had left
+implicit moved scores as much as changing the agent. Separating what an
+agent was told from how it decided, and computing best-informed references
+for richer cases, are open methodological problems.
+\item \textbf{New economic decisions.} A case for another activity
+supplies its rules, worlds and reference; execution, replay, counterpart
+seats and the quality-control standard come with the runtime.
+\end{itemize}
+
+What is ready and what is not: the runtime, its sealed evidence and
+replay, and the case layout are in use, and Housing, Procurement and Data
+center each have a world generator, references and scripted counterparts.
+No case is yet qualified. Section~\ref{sec:qc} gives every gate verdict and
+Appendix~F each campaign's open checks, so a contributor can see what a
+case still needs before its results can rank agents.
+
+The next steps follow from the limits in Section 7.1. Future campaigns should bind
+actual seat assignments and headline scorers into frozen evaluation
+identities and run the required controls before any comparison, and the
+TERMS-Bench reimplementation needs the protocol fixes described in
+Section 5.3 before a declared reproduction. Practitioner review would
+calibrate the cases' parameters, human baselines would show where agents
+stand against people, and externally contributed cases would test whether
+the structure serves authors other than its maintainers. AERead's present
+contribution is that structure, a common way to construct evaluations of
+economic decisions, together with an evidence-based account of the checks
+needed to interpret what they measure.

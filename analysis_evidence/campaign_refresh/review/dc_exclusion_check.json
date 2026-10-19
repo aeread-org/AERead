@@ -1,0 +1,10 @@
+{
+  "cell": "codex_integrator__negotiator_collapse_client__747a604a__r0",
+  "receipt_digest_verified": true,
+  "cell_digest_binding_verified": true,
+  "event_seal_verified": true,
+  "status": "invalid_measurement",
+  "inclusion_status": "excluded",
+  "score_replay": "not applicable: excluded environment failure",
+  "scope": "fresh standalone review check; frozen campaign verifier was not changed"
+}

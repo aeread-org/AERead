@@ -1,0 +1,542 @@
+diff --git a/docs/research/paper_appendix_details.md b/docs/research/paper_appendix_details.md
+index ad7869ac..191937ca 100644
+--- a/docs/research/paper_appendix_details.md
++++ b/docs/research/paper_appendix_details.md
+@@ -59,7 +59,9 @@ case's predecessor; the declared test used 58 fresh worlds from the same generat
+ in content to a development world, and for its type-swap experiment wrote 29 of them twice,
+ identical except for the client's hidden risk charge. The admission rule implemented is the
+ predecessor's (a shortcut must lose by a margin on the playbook's menu); the agreement case's
+-own admission rules are designed but not built.
++own admission rules were not used for these runs. A later admitted pack is described in
++Appendix F.2. The later confirmatory used its 60 worlds (45 deal, 15 no-deal),
++with types drawn after admission and a separate 12-world variance pilot.
+ 
+ ### E.3 What was run
+ 
+@@ -72,7 +74,9 @@ own admission rules are designed but not built.
+ | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
+ | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused, P-O-06) | 24 cells each, second brief | $0.21 | development |
+ | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
+-| Data center | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
++| Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
++| Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
++| Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
+ | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
+ | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
+ 
+@@ -88,12 +92,13 @@ trajectory).
+ 
+ #### Housing
+ 
+-Over all 260 main-pack worlds the models fall short of the reachable reference by −81 [−97, −65]
++On each model's complete main-pack worlds (240 for Gemini; 260 for GLM and Luna), the models fall short of the reachable reference by −81 [−97, −65]
+ (Gemini), −155 [−177, −134] (GLM) and −162 [−181, −142] (Luna) a world; they keep 60%, 27% and
+ 22% of what the reference earns where the favourite is a lemon, against 97%, 83% and 98% where it
+ is sound. The 40-world holdout points the same way (Gemini−GLM +106 [+44, +168], Gemini−Luna +55
+-[+12, +98], GLM−Luna −40 [−106, +26]). All 1,800 published receipts replay to the same receipt score, which totals all six tenants
+-(HL-D-09); the seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
++[+12, +98], GLM−Luna −40 [−106, +26]). The original 1,800 published receipt rows comprise 1,764 scored completions and 36
++operational-failure exclusions. Replay reconstructs each completed receipt's score, which totals
++all six tenants; failure rows are verified as exclusions, not rescored (HL-D-09; Appendix H.3). the seat-0 measure of Table 5.2 was re-derived from the sealed event logs by the
+ derived analyses.
+ Scripted tenants played offline on every cell give the floor: passing earns $0, never inspecting and signing any
+ hold the listing's value if sound would cover −$80 a world (it signs lemons), and inspecting when the stated odds make it
+@@ -135,11 +140,11 @@ before any call (P-O-06).
+ 
+ #### Data center
+ 
+-Which model sits in which seat changes the pair's total by +3 [−11, +18] ($ thousands a world);
++The following counterpart and probing results use the development packs. Which model sits in which seat changes the pair's total by +3 [−11, +18] ($ thousands a world);
+ Sol is ahead of Opus in 51 of 52 worlds in each seat head to head. Table E.3 gives every
+ counterpart; Appendix B gives each style's rule and parameters.
+ 
+-**Table E.3. Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
++**Table E.3. Development results: Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
+ 
+ | Counterpart | As integrator | As client |
+ |---|---:|---:|
+@@ -183,9 +188,11 @@ at the true charge, the clauses Sol chose for its type are worth about +120k [+8
+ more joint value than those it chose for the other type (a secondary measure; joint value is the
+ pair's surplus, not Sol's own earnings).
+ Opus's price pass-through is −0.07 [−0.18, +0.05], not supported; the earlier 0.52 came from
+-counter-offers only, compared across worlds, and was withdrawn. Counterparts that read the first
+-offer gained nothing measurable from either model (+2k [−14k, +17k]; −8k [−42k, +26k]), which does
+-not show that being read is harmless: the intervals allow a cost of up to $42k.
++counter-offers only, compared across worlds, and was withdrawn. The fitted reading counterparts yielded +2k [−14k, +17k] and −8k [−42k, +26k], but their
++rules came from the confounded look-back data (DC-D-37). The Opus price reader used the
++withdrawn 0.52 slope, so this tests a misspecified reader, not a well-fitted reader's ability
++to exploit Opus. The within-world price result remains unsupported; reader-effect estimates
++cannot establish that disclosure is harmless.
+ 
+ Of 2,456 negotiations, 2,417 are valid. Every failure is a CLI service error; the original
+ bundles keep them as missing, and 16 were played again under separate identities by the owner's
+@@ -239,7 +246,7 @@ facts and the null-method format to procedure).
+ 
+ Thirty Gemini cells of the main pack are operational missingness and are not scored.
+ 
+-**Table E.6. Data center ($k joint value lost per deal world) and Refund (points of cells unresolved).**
++**Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
+ 
+ | Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
+ |---|---:|---:|---:|---:|---:|---:|---:|---:|
+@@ -258,7 +265,7 @@ firm script; neither as integrator.
+ 
+ ### E.6 Two frontier agents across three cases
+ 
+-**Table E.7. Opus 5.5 and Sol 6.1 on the three cases both played.**
++**Table E.7. Development comparisons of Opus 5.5 and Sol 6.1 on the three cases both played; Data-center confirmatory results are in Table 5.4.**
+ 
+ | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
+ |---|---|---:|---:|---:|---|
+@@ -266,14 +273,14 @@ firm script; neither as integrator.
+ | Housing, favourite a lemon (10) | tenant net per world | 155 | 200 | not tested | scripted reference 235 |
+ | Procurement pay-or-test (24) | given up per world | 5.4 [1.2, 10.6] | 1.0 [0.2, 2.1] | 4.4 [0.6, 9.0] less given up | best policy gives up 0 |
+ | Procurement, record pack (18) | worlds solved | 18 | 16 | regret −20 [−48, +7] (Opus lower) | informed policy 18 |
+-| Data center, firm population (52) | earns, integrator / client ($k) | 122 / 107 | 139 / 130 | +17 [−10, +44] / +23 [−2, +48] | first-offer stand-in 122 / 114 |
+-| Data center, head to head (52) | earns, integrator / client ($k) | 60 / 25 | 308 / 276 | +248 / +251 | |
++| Data center development, firm population (52) | earns, integrator / client ($k) | 122 / 107 | 139 / 130 | +17 [−10, +44] / +23 [−2, +48] | first-offer stand-in 122 / 114 |
++| Data center development, head to head (52) | earns, integrator / client ($k) | 60 / 25 | 308 / 276 | +248 / +251 | |
+ 
+ ## Appendix F. Quality control in detail
+ 
+ This appendix describes only checks that were built and applied to the four cases. Two caveats
+-apply throughout. The QC profiles of the four current designs and the reference-run tests were
+-written on 2026-10-13, after the runs they describe. And rules of the QC standard that were not
++apply throughout. The initial QC profiles and reference-run tests followed development; the
++agreement confirmatory followed its profile and provider-free dry run. And rules of the QC standard that were not
+ applied to these cases are not described here.
+ 
+ ### F.1 Profiles and gates
+@@ -282,10 +289,11 @@ The QC standard defines six gates and the rule that a changed bound input reopen
+ the main branch rejects a registered family without a profile. Each of the four current designs
+ now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
+ and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test v1 pack,
+-which all its runs used, fails Gates 1 and 3, and a v2 pack built after the runs passes Gate 3 for
+-scripted policies and is `partial` at Gate 1 (Appendix F.4); the data-center agreement's development packs, which all its runs used,
+-fail Gate 1, because they were not admitted by the case's own rules and the hidden type is tied to
+-the pack cell, and the admitted pack built after the runs is `partial` (Appendix F.2); Refund V2.5 fails Gate 3 on its
++used in Table 5.3, fails Gates 1 and 3; v2 passes the scripted Gate 3 checks but remains
++`partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
++packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
++the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
++incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
+ lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
+ identity, and Procurement's corrected schema ran under new identities.
+ 
+@@ -293,12 +301,12 @@ identity, and Procurement's corrected schema ran under new identities.
+ 
+ | Gate | Question | Stops when | In the four cases |
+ |---|---|---|---|
+-| 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The four current profiles were written after their runs |
+-| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2 is `partial`: no simple rule solves any world, but no model has played it |
+-| 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | 1,800 of 1,800 Housing v14 receipts replay from sealed events with no provider call, but the headline measure is computed outside the receipts (HL-D-09) |
++| 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The profiles followed initial development; the agreement confirmatory followed its profile |
++| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2 remains `partial`: scripted headroom is shown, but a 50-cell gate/pilot found almost no newcomer testing and stopped at sizing (P-D-27) |
++| 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | Housing v14 has 1,764 scored completions and 36 failure exclusions: completed receipt scores replay from sealed events, and failure rows are verified as exclusions; the headline measure is computed outside the receipts (HL-D-09) |
+ | 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test v1 fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; v2, built after the runs, passes for scripted policies: every screened rule, the one-step rule included, gives up at least $10 in every world; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
+ | 4. Attribution and controls | Does the result support the attribution it claims? | an undeclared control changes, the matrix is incomplete, the block cannot carry the claim | the three v14 identities differ in model and route and also in reasoning tier, sampling and cost ceiling, a declared choice the contract did not state (HL-J-12); data-center claims name their counterparts |
+-| 5. Confirmatory reliability and publication | Was the comparison sized, frozen and executed without tuning on outcomes? | incomplete pilot, a frozen control changed, selective missingness, a guardrail no behaviour can fail | Housing v14's analysis was declared before any cell and 36 refused cells stayed missing, but no sizing record was sealed; no other case reached this gate |
++| 5. Confirmatory reliability and publication | Was the comparison sized, frozen and executed without tuning on outcomes? | incomplete pilot, a frozen control changed, selective missingness, a guardrail no behaviour can fail | Housing v14 has no sealed sizing record. The agreement confirmatory completed pilot, sizing, freeze and execution; the 16 October review records `partial` pending closure of analysis-digest and exclusion-verification discrepancies (F.5) |
+ 
+ ### F.2 Checks applied to the four cases
+ 
+@@ -314,32 +322,41 @@ identity, and Procurement's corrected schema ran under new identities.
+ 
+ - **Regeneration.** In all four cases a test reproduces every committed pack byte for byte from
+   its generator and seeds.
+-- **Reference run on every world.** Tests added after the runs play each reference through the
++- **Reference run on every world.** Tests following initial development play each reference through the
+   real environment and verifier with no model: the Housing reference and a full-information tenant
+   on all 600 v14 cells, reproducing the published per-cell values and reaching the ceiling in
+   every cell (offline, against the same functions that wrote the bundle); Procurement's best policy
+   equals the environment's average over the 27 type profiles in all 24 worlds; the data-center
+   oracle pair loses nothing in all 116 worlds of both development packs, against an optimum the test computes
+-  independently; Refund V2.5's release requires the reference to take full credit on every case.
++  independently; a 120-negotiation scripted dry run covered all 60 admitted agreement worlds
++  before the confirmatory; Refund V2.5's release requires the reference to take full credit on every case.
+ - **Replay.** The kernel's replay recomputes each receipt's own score from its sealed events with
+-  no provider call: all 1,800 published Housing v14 receipts; every agreement receipt, replayed
+-  in-line by the driver (the branch predates the independent `aeread verify-replay`); the
++  no provider call: the 1,764 completed Housing v14 receipts (the other 36 rows are verified
++  operational-failure exclusions); development agreement receipts replayed in-line;
++  all 1,295 scored receipts from the agreement dry run, pilot and three confirmatory arms
++  replayed offline. One failure receipt was checked separately for digest and seal because
++  the pinned driver cannot classify exclusions (DC-T-22). The
+   procurement panels' receipts, in-line; and Refund V2.5's 816 provider-free trajectories
+   (unpublished; 174 are distinct). The certificate does not cover two headline measures.
+   Housing's seat-0 measure is case code over each cell's outcome, the receipts' own score totals
+   all six tenants (HL-D-09), and the measure was re-derived from the sealed event logs by the
+-  derived analyses of Table 5.2. Procurement's decision loss is computed from the action list kept
+-  in each result row through a reference module the plans do not pin (P-T-17). The Housing
++  derived analyses of Table 5.2, re-extracted and regenerated exactly on 16 October.
++  Procurement's original report read an unsealed action list through an unpinned reference (P-T-17).
++  The 16 October reanalysis audits all 144 receipts (96 final-brief and 48 earlier-brief), reads
++  parsed actions from their sealed logs, and pins the extraction, reference, report and case inputs.
++  Every per-world loss and the Table 5.3 intervals reproduce. This is a separately verified
++  derivation; decision loss has not been inserted into the original receipts. The Housing
+   receipts also name the model for the five tenant seats a script played; the true seat map is in
+   an unsealed log (HL-T-09).
+-- **Admission before types.** After the runs, the data-center agreement gained a pack admitted by
++- **Admission before types.** After development and before the confirmatory, the data-center agreement gained a pack admitted by
+   its own rules: 60 worlds from 2,729 scanned, each admitted on its public parameters and the type
+   prior while its hidden charge does not yet exist, then given types drawn independently of its
+   cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
+   shortcut through the environment for every type pair and confirm the loss admission assigned,
+-  and the oracle pair loses nothing in all 60 worlds. No model has played it, so headroom is
+-  unmeasured, and the client seat cannot meet the case's rule that the best agreement depends on
+-  the counterpart (DC-D-35).
++  and the oracle pair loses nothing in all 60 worlds. A separate 12-world pilot and the
++  60-world confirmatory have now run; the pilot supplied the sealed sizing record. This is
++  evidence of play and variance, not a completed headroom verdict across all controls.
++  The client seat still fails the dependence-on-counterpart-type rule (DC-D-35).
+ - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
+   Procurement and Refund; the agreement case has no such test.
+ - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
+@@ -363,7 +380,7 @@ an earlier data-center design was traced the same way on 2026-09-14.
+ ### F.4 Adversarial checks applied
+ 
+ - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
+-  the value available in the agreement case; always paying the premium gives up $75.2 a world in
++  the value available in the development agreement pack; always paying the premium gives up $75.2 a world in
+   Procurement; in Housing, scored after the runs, passing earns $0, signing without
+   inspecting −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
+   beat (Table 5.2).
+@@ -375,7 +392,10 @@ an earlier data-center design was traced the same way on 2026-09-14.
+   as do the four fixed rules and a shortcut that ignores seller kinds; with the source never
+   shared, the one-step rule comes within $0.33 of the best policy, so the gap is the shared
+   source. Tests check every value against the environment's average over the 27 type profiles.
+-  No model has played it.
++  Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
++  and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
++  reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
++  96-world cap, so no confirmatory run was frozen or played (P-D-27).
+ - **Brief audits** found instructions that decided outcomes in Procurement (P-D-15, P-D-19, P-D-21)
+   and a schema that contradicts its verifier in Refund (RF-D-03).
+ - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
+@@ -400,32 +420,48 @@ The world is the unit of uncertainty, paired across conditions. On the agreement
+ plays as independent made intervals 1.47 to 1.65 times too narrow, and more worlds beat more
+ repeats: a $50k gap needs 83 to 91 negotiations an arm at one play a world against 159 to 162 at
+ three. Counterparts are named and reported per type: in the agreement case the counterpart
+-accounts for 25% to 33% of the spread in what a model earns. Two analyses were declared before
+-their runs: Housing v14's, and the agreement's signalling test. A harness setting was tested
++accounts for 25% to 33% of the spread in what a model earns. Three reported analyses were declared before
++their runs: Housing v14, the agreement signalling test and the agreement confirmatory. A harness setting was tested
+ rather than assumed: asking the CLIs for reasoning summaries changed nothing detectable in Housing
+ (Opus +17 [−28, +62], Sol +3.5 [−46, +53]; five selected worlds, 120 episodes, the summary-off
+ plays always run first).
+ 
++**Agreement confirmatory review (16 October).** Gate 5 is `partial`, replacing the stale
++`not_run` statement in the family profile. A 12-world variance pilot, a sealed sizing record
++(`aeread.design.sizing` copied from #288), frozen plans, paired world-level intervals and Holm
++correction were applied. Eight departures are documented: CLI versions; an added wall-time stop;
++run-plan labels; the pack-module change for pilot generation; the permitted sizing-code copy;
++a post-data analysis-label fix (DC-T-21); one missing secondary-arm negotiation; and pilot
++pairing by play index. The label fix changes no estimate but leaves the analysis digest different
++from the sizing record; the pinned verifier still needs manual treatment of the excluded receipt
++(DC-T-22). These publication and identity checks are not fully closed. The client-seat construct
++limit remains separate. The 45-world P2 estimate rejects zero (Holm p 0.0017), while its 98.3%
++interval [6.7, 46.1] lies below the declared $50k minimum; both readings must be reported.
++
+ ### F.6 Failure records and review
+ 
+-Every failure is written into the incident log when it happens, in four categories (design,
++Discovered failures are recorded in the incident log in four categories (design,
+ operational, tooling, judgment), and rows are never deleted (Table F.3). Evidence
+ review by verification (digests, replay, prohibited-text scan) was done for the Housing v14
+ bundle. The agreement family's registry change has had no review by anyone other than its author,
+ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-01).
+ 
+-**Table F.3. Judgment-log rows about each case and its predecessors, by category (all branches, 2026-10-14).**
++**Table F.3. Judgment-log rows about each case and its predecessors, by category (union of IDs across available branches plus the corrected Data-center log, 16 October 2026).**
+ 
+ | Case (row prefix) | Design | Operational | Tooling | Judgment | Total |
+ |---|---:|---:|---:|---:|---:|
+ | Housing lemons and price line (HL) | 9 | 21 | 9 | 12 | 51 |
+-| Procurement (P) | 25 | 6 | 12 | 4 | 47 |
+-| Data center (DC) | 36 | 21 | 20 | 9 | 86 |
++| Procurement (P) | 27 | 6 | 19 | 5 | 57 |
++| Data center (DC) | 37 | 22 | 22 | 9 | 90 |
+ | Refund (RF, RV25) | 12 | 0 | 8 | 3 | 23 |
+ 
++The raw ID union contained 89 Data-center IDs. The 15 October reader-fit row reused
++DC-D-34, already assigned to a generator defect; renaming that row DC-D-37 makes 90 distinct
++incidents. Original historical references to the generator retain DC-D-34.
++
+ ### F.7 What quality control found
+ 
+-**Table F.4. Defects found by quality control in these cases and their predecessors, with the level at which each was visible.**
++**Table F.4. Twenty-five defects selected in the 14 October review, with dispositions updated on 16 October and the level at which each was visible.**
+ 
+ | Row | What was wrong | Visible in one world? | How it was found | What changed |
+ |---|---|---|---|---|
+@@ -452,12 +488,12 @@ and eight earlier kernel fixes merged without one under a one-time waiver (RN-O-
+ | HL-D-09 | The v14 receipts' own scores total all six tenant seats against baselines from a market without outside demand, so they are not the deciding tenant's | yes, by reading the receipts | building the seat-0 controls | open; the published primary is computed separately and is unaffected; a seat-0 scorer needs a module outside the hashed runner |
+ | RV25-D-03 to D-06 | In three of Refund V2.5's four seats a naive control comes close to the reference: a full refund that collects nothing is fully right on 38 of 180 policy cases, the evidence leaf passes any legal path, the customer seat reduces to copying and the payments seat to the base rate of no payment | no: a rate across cases | lower controls under a rule committed before they ran | open; Gate 3 recorded `failed`; scoring pairs of cases would stop the full-refund control (0 of 38 pairs), a rule not yet declared |
+ | HL-T-09 | The v14 receipts name the model for the five tenant seats a script played; the true seat map is only in an unsealed log | yes, by reading the driver's seat router | the paper's runtime review | open; record the seat map inside the seal under a new identity |
+-| P-T-17 | Procurement's decision loss is computed outside the receipts, from a copy of the actions through a reference module the plans do not pin, so replay does not certify it | yes, by reading the driver | the paper's runtime review | open; make it a receipt leaf before the panels are published |
++| P-T-17 | Procurement's original decision-loss report read an unsealed action copy through an unpinned reference; receipt replay alone did not certify it | yes, by reading the driver | the paper's runtime review | resolved for the reported panels on 16 October: source-pinned reanalysis from replay-audited sealed actions reproduces all 144 losses; prospective receipt-leaf integration is separate work |
+ | P-D-23 | The pay-or-test action schema let `message` be null while the parser requires it, so a model's first action could end its episode on format | yes, in one gate cell | the flash-model gate | the schema requires every field the parser needs, under new identities |
+ 
+-Fourteen of the twenty-five were invisible in any single world; the eleven visible ones were found
+-by reading code or sealed bytes, by tracing a case, or in a single gate cell. Nine are still open
+-(P-D-17, P-T-17, HL-D-07, HL-D-09, HL-T-09, RF-D-05, RF-T-01, RV25-D-03 to D-06, DC-D-35).
++Fourteen of 25 defects required evidence beyond one world. Following the 16 October P-T-17
++repair, eight remain open: P-D-17, HL-D-07, HL-D-09, HL-T-09, RF-D-05, RF-T-01,
++RV25-D-03 to D-06, and DC-D-35.
+ 
+ ### F.8 Assessment against the Agentic Benchmark Checklist
+ 
+@@ -470,16 +506,16 @@ tests or a judge model.
+ | Item | Status | Evidence |
+ |---|---|---|
+ | T.1 Tool versions specified | partly | routes, prompts, schemas and implementation digests are sealed in each plan; the two CLI agents expose no seed or temperature |
+-| T.2 Required APIs accessible | partly | provider outages lost cells (36 Housing cells to an empty account, 39 data-center negotiations to CLI errors), each recorded as typed missingness |
+-| T.3 Terminates or handles API errors | partly | Housing v14 and the procurement flash panels declare retries and stop after three consecutive failed cells; the agreement driver has no such halt; a failure is never scored as zero |
++| T.2 Required APIs accessible | partly | provider outages lost cells (36 Housing cells to an empty account, 40 data-center negotiations to CLI errors), each recorded as typed missingness |
++| T.3 Terminates or handles API errors | partly | Housing v14 uses worker-level failure streaks: twelve workers could still produce 36 account failures. Procurement flash panels declare retries and a consecutive-failure stop; the confirmatory agreement driver freezes a five-consecutive-failure halt plus list-price and wall-time ceilings, unlike its development predecessor. These are driver controls, not adoption of the kernel halt helper (Appendix H.4); operational failures remain exclusions |
+ | T.4 Residual state cleared between runs | met | each cell is a fresh episode from a sealed plan; the CLI agents run one ephemeral subprocess per action |
+ | T.5 Agent isolated from ground truth | partly | named hidden fields are tested absent from observations in Housing, Procurement and Refund, not in the agreement case; one leak was fixed (HL-D-01) and one is open in noisy-sample packs (P-D-17) |
+-| T.6 Setup does not change over time | met | the environments are deterministic and sealed; hosted model routes are pinned and snapshotted |
+-| T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, by tests added after the runs (Appendix F.2) |
+-| T.8 Each task verified solvable | met | the reference plays every admitted world, and admission requires that the decision matters |
++| T.6 Setup does not change over time | partly | environment inputs and declared routes are pinned; this does not attest a stable hosted deployment, provider compliance, or the unsealed CLI environment (Appendix H.2, H.3) |
++| T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
++| T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
+ | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
+-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-five defects found (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
+-| O.i.1 Quality metric resists exploitation | met | dollars against an exact or reachable reference; blind bets priced at expected value; guarded metrics must be falsifiable |
++| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-five selected defects (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf (RF-D-05) |
++| O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction (HL-D-07) and Refund has open payment and lower-control failures (RF-D-05; RV25-D-03 to D-06) |
+ | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
+ | R.2 Open evaluation harness | met | the shared runner is in the public repository |
+ | R.3 Measures against contamination | met | preventive measures, not proof of zero contamination: worlds are generated, holdouts come from a disjoint seed range, and declared tests run on fresh worlds |
+@@ -519,3 +555,18 @@ named here when it is not.
+   numbers can be checked against the run roots but not yet from `evidence/` alone.
+ - **Not in the repository.** The trajectory viewer (Examiner) is private; the one-page result
+   sheets restate numbers from the bundles above.
++
++**16 October headline verification.** The accompanying editable package includes
++`analysis_evidence/housing_reply_conditioned/` and `analysis_evidence/procurement_reanalysis/`.
++The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
++regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
++receipts, then reconstructs decision loss from their sealed parsed actions; its public projection
++regenerates Table 5.3 without private run roots. Source and case digests, extraction commands,
++tests and a patch against the analysis base are supplied with the package. Full verification of
++either projection against its original execution logs still requires the retained run roots.
++
++**Agreement confirmatory and Procurement v2 refresh.** The v4 package includes the confirmatory
++plan, results, analysis, sizing record and source-bound review from `codex/datacenter-agreement`
++(results commit `12516caf`), plus the Procurement v2 pilot report and results note. The original
++five agreement bundles retain their sealed bytes. The Data-center QC profile and incident-log
++corrections are supplied as a documentation patch; no frozen driver or analysis code was edited.
+diff --git a/docs/research/paper_case_studies.md b/docs/research/paper_case_studies.md
+index 4ebb4651..17efa01c 100644
+--- a/docs/research/paper_case_studies.md
++++ b/docs/research/paper_case_studies.md
+@@ -1,10 +1,10 @@
+ # Case studies (draft section of the AERead environment paper)
+ 
+-**Author:** Chenyu Li. **Status:** working draft, 2026-10-13. The main-text section; case
++**Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
+ details are in [Appendix E](paper_appendix_details.md), formal specifications in
+-[Appendices A–D](paper_appendix_case_specs.md). One comparison was declared before its runs (Housing v14), one is
+-a test declared before its runs (the data-center signalling test), and everything else is a
+-development probe. The companion section is [Quality control](paper_qc_design.md).
++[Appendices A–D](paper_appendix_case_specs.md). Three reported analyses were declared before their runs: Housing v14, the data-center
++signalling test and the data-center agreement confirmatory. Other results are development
++probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
+ 
+ ---
+ 
+@@ -25,17 +25,17 @@ had (Appendix C).
+ Cases are chosen by the economic value of the decision, not by occupation [AV]: an activity
+ qualifies when its value is decided rather than produced, a counterparty has its own interest and
+ private information, and the result can be scored inside a world against a computed reference.
+-The four examples sit in two of the five classes of transaction that weight the suite's target
+-distribution (business and household purchases, 49% of the weight); they were chosen to span the
+-kinds of verifier and counterpart, not sampled from that distribution.
++The four examples sit in two of the five transaction classes introduced in §3
++(business and household purchases); they were chosen to span the kinds of verifier and
++counterpart, not sampled from a representative distribution.
+ 
+ **Table 5.1. The four examples.**
+ 
+ | Case | Decision under test | Model's seat; counterpart | Reference | Verifiers | Status | Headroom (hardest stratum) |
+ |---|---|---|---|---|---|---|
+ | Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | reachable policy: a scripted tenant using only the tenant's information ($292 a world); full-information upper bound ($370) | value; rule | comparison declared before the runs; case not qualified | shown: Gemini −99 [−119, −80] a world against the reference where the favourite is a lemon (corrected measure; −102 as declared) |
+-| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | best policy given the buyer's information, solved exactly ($451 a world) | value, priced per action | development | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
+-| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | development, one declared test | shown: the pair loses 79 [70, 88] of about 410 a world head to head |
++| Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | best policy given the buyer's information, solved exactly ($451 a world) | value, priced per action | v1 development; v2 stopped at pilot sizing | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
++| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | declared confirmatory with departures; case not qualified | shown: head-to-head joint loss 126.8 / 77.5 ($k per deal world), by role assignment |
+ | Refund (V2.1 results; V2.5 QC) | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
+ 
+ The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
+@@ -59,7 +59,7 @@ the tenant knew, so the score follows the decision rather than the draw. The dec
+ conditions on the landlord's reply in only one case; a correction found while writing this paper
+ (HL-D-07) conditions on every informative reply, and Table 5.2 shows both.
+ 
+-**Table 5.2. Housing v14, main pack; dollars per world, 95% intervals over worlds.**
++**Table 5.2. Housing v14, main pack; dollars per world, 95% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.**
+ 
+ | | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
+ |---|---:|---:|---:|
+@@ -92,7 +92,7 @@ long record, or test a cheaper newcomer whose cohort record states how often its
+ quote shows delivery, a sample shows yield, and both take money and days. Every action is charged
+ what it gave up against the exact best informed policy at that point.
+ 
+-**Table 5.3. Procurement pay-or-test, 24 worlds; dollars given up per world against the best policy.**
++**Table 5.3. Procurement pay-or-test, 24 worlds per subject; dollars given up per world against the best policy. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+ 
+ | | Sol 6.1 | Opus 5.5 | Gemini 3.8 Flash | GPT-6 Luna |
+ |---|---:|---:|---:|---:|
+@@ -103,38 +103,30 @@ The frontier agents (through their CLIs) are at the ceiling; most of what they l
+ run came from two rules the brief left unsaid, that a quote is final and that the average is the
+ criterion. That ceiling shows less than it seems: on this pack a rule that looks one test ahead
+ comes within $0.06 a world of the best policy, so near-perfect play shows that the agents avoid
+-the listed mistakes, not that they plan further ahead than one test. A second pack on which that
+-rule gives up $30 a world has been built but not played (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
++the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
+ the worlds where a newcomer was worth testing.
+ 
+-**Data center.** Client and integrator redline one services agreement, eight risk clauses and a
+-price, over six moves; each knows only its own costs, and every amount is computed at both sides'
+-true costs.
+-
+-**Table 5.4. Sol 6.1 minus Opus 5.5 in the same seat ($ thousands per world, 52 deal worlds).**
+-
+-| | As integrator | As client |
+-|---|---:|---:|
+-| *Head to head: the two pairings (the opponent changes with the focal model)* | | |
+-| Sol against Opus, minus Opus against Sol | +248 [+206, +290] | +251 [+209, +293] |
+-| *Against the same scripted counterpart* | | |
+-| Soft script | +86 [+56, +116] | +95 [+74, +115] |
+-| Collapse, price-only, overreach scripts | +32 to +112 | +54 to +148 |
+-| Firm population of scripts | +17 [−10, +44] | +23 [−2, +48] |
+-
+-Head to head the pair recovers about 80% of the value available, against 14% for signing the
+-draft unchanged. The head-to-head row compares two pairings, so it describes how the pair divides
+-the surplus when the roles swap, not a model effect against a fixed counterpart; the scripted
+-rows hold the counterpart fixed. Against a script that gives way Sol keeps far more than Opus;
+-against the firm population the two are not distinguishable, so a result against one counterpart
+-could be any number in that range. Against an overreaching script Opus signs below its own walk-away point in
+-23 of 52 worlds and Sol in none; against a counterpart that asks for private information neither
+-model leaks a confidential item. A test declared before its runs supported one of two
+-looked-back signals and did not support the other. The client seat measures less than the integrator's:
+-the integrator's private cost barely moves the best agreement (knowing it is worth at most $19k to
+-the client's choice, against $25k to $77k for the integrator knowing the client's charge), so
+-client-seat results measure pricing and the decision to walk, not inference about clauses
+-(DC-D-35).
++**Data center.** Client and integrator redline eight risk clauses and a price over six moves,
++each knowing its own costs. The comparison declared before its runs used 60 admitted worlds:
++45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
++contrasts; development results remain in Tables E.3 and E.7.
++
++**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
++
++| Primary contrast | Worlds | Estimate [95% interval] | Holm p |
++|---|---:|---|---:|
++| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +190.1 [148.0, 232.1] | 3.2e-11 |
++| Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +26.4 [10.5, 42.4] | 0.0017 |
++| Client signs below its walk-away point: Opus / Sol | all 60 | 27/60 vs 3/60 (40 percentage points) | 2.4e-7 |
++
++Sol's lead against the firm population is detectable but smaller than the plan's $50k minimum:
++the 98.3% interval is [6.7, 46.1]. Head to head the opponent changes with the focal model;
++the firm-population contrast holds the counterpart policy fixed. The distinction supports a
++counterpart-specific reading of the larger head-to-head gap. All primary negotiations are valid.
++Across the pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price);
++one secondary-arm CLI failure remains missing. The client seat still measures pricing and the
++walk-away decision under nearly complete clause information, because the integrator's private
++cost barely changes its best agreement (DC-D-35).
+ 
+ ### 5.2 Where the shortfall comes from
+ 
+@@ -146,7 +138,7 @@ That makes the table an accounting decomposition under a stated order, not a cau
+ a different order would move amounts between classes. Appendix E.5 gives the rules for each case
+ and the full tables.
+ 
+-**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units; Housing on the declared measure, corrected totals in Appendix E.5; Refund V2.1).**
++**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units; Housing on the declared measure, corrected totals in Appendix E.5; Data center development; Refund V2.1).**
+ 
+ | Class (what happened) | Housing $: Gemini / Luna | Procurement $: Opus / Gemini | Data center $k joint: Opus / Sol vs firm | Refund points: GPT-5.6 Luna / Gemini 2.5 FL |
+ |---|---|---|---|---|
+@@ -163,7 +155,7 @@ almost everything by not acquiring information: they pay the premium where a tes
+ In Housing, about half of GLM's and Luna's shortfall is signing a hold that, under the landlords'
+ pricing rule, only a lemon's landlord offers, at a rent above a lemon's value. The v14 brief did
+ not state that rule, so whether the tenants could have read the reply is a hypothesis this table
+-cannot test. Gemini's smaller loss is mostly worse terms. In the agreement the joint loss is
++cannot test. Gemini's smaller loss is mostly worse terms. In the development agreement runs, the joint loss is
+ mostly interaction cost, the redline fees; a redline can also improve the agreement, and that
+ gain appears as smaller worse-terms loss, so the class prices the moves rather than judging them.
+ Against the firm script Sol also loses deals (commitment errors), though in 7 of its 8 the script
+@@ -202,7 +194,9 @@ no human has played them.
+ | Pay-or-test (Tables 5.3, E.4) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
+ | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
+ | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
+-| Data center (Tables 5.4, E.3), adversarial counterparts, declared test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
++| Data center development (Tables E.3, E.7; Table 5.5 decomposition), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
++| Data center confirmatory (Tables 5.1, 5.4) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
++| Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
+ | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
+ | Refund rows of Tables 5.1 and 5.5 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+ | Failure classes (Table 5.5, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
+diff --git a/docs/research/paper_qc_design.md b/docs/research/paper_qc_design.md
+index 983e6fe5..37329d1b 100644
+--- a/docs/research/paper_qc_design.md
++++ b/docs/research/paper_qc_design.md
+@@ -1,6 +1,6 @@
+ # Quality control (draft section of the AERead environment paper)
+ 
+-**Author:** Chenyu Li. **Status:** working draft, 2026-10-13. The main-text section; the
++**Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; the
+ checklist, tools, statistical controls, defect table and checklist assessment are in
+ [Appendix F](paper_appendix_details.md). It follows the
+ [benchmark QC standard](../operations/benchmark_qc.md), the
+@@ -26,8 +26,8 @@ check that was applied to these cases, and only those.
+ state and every score is rebuilt from sealed evidence (2); a better-informed policy does better
+ and shortcuts lose (3); the result supports the attribution it claims (4); and the comparison was
+ sized, frozen and executed without tuning on outcomes (5). Each gate is typed `passed`, `failed`,
+-`partial`, `not_run` or `not_applicable`, and only `passed` promotes. The profiles of the four
+-current designs were written after their runs, and none of the four passes Gates 1 to 5 yet
++`partial`, `not_run` or `not_applicable`, and only `passed` promotes. The profiles followed the initial
++runs; the agreement confirmatory followed its profile. None of the four passes Gates 1 to 5 yet
+ (Appendix F.1).
+ 
+ **The reference is played on every world.** For each case a test plays the reference through the
+@@ -35,21 +35,23 @@ real environment and verifier on every admitted world, with no model, and checks
+ its declared result: the Housing reference and a full-information tenant reproduce the published
+ values in all 600 v14 cells; Procurement's best policy equals the environment's average over its
+ 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
+-both development packs and all 60 of the pack admitted after the runs; Refund V2.5's release requires full credit on every case. The tests were added after the
+-runs; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
++both development packs and all 60 of the admitted confirmatory pack; Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
+ or the reference is wrong.
+ 
+ **Other checks.** Every committed pack is regenerated byte for byte from its seeds; the Housing
+ v14 receipts replay from their sealed events; trivial agents are reported beside the subjects,
+ Procurement's fixed rules are scored exactly, and the briefs were audited for instructions that
+-decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and two
+-analyses (Housing v14's and the data-center signalling test) were declared before their runs.
++decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and three
++reported analyses were declared before their runs: Housing v14, the data-center signalling
++test and the agreement confirmatory.
+ 
+-**What it found.** Every failure is written into the incident log when it happens, in design,
+-operational, tooling and judgment rows that are never deleted (51, 47, 86 and 23 rows about the four
+-cases and their predecessors). Of 25 defects quality control found, 14 were invisible in any single
++**What it found.** Discovered failures are recorded in the incident log in design,
++operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct IDs across the available branches and the corrected
++Data-center log at the 16 October review). Of 25 defects selected for Table F.4, 14 were invisible in any single
+ world; the 11 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
+-single gate cell (Table F.4). Nine are still open. The same checks corrected statements of our own
++single gate cell (Table F.4). Nine were open at the 14 October review; the 16 October
++sealed-action reanalysis resolves P-T-17 for the reported panels, leaving eight of those rows open.
++The same checks corrected statements of our own
+ while this paper was written (P-J-05, HL-J-12, RES-J-04).
+ 
+ ### References
+@@ -71,4 +73,5 @@ while this paper was written (P-J-05, HL-J-12, RES-J-04).
+ | Summary-setting check (Appendix F.5) | one-pager `housing_summary_on_off_experiment.pdf`, run root `summary_experiment_20261009_v2` |
+ | Examiner checklist counts (Appendix F.3) | the Examiner's triage build of 2026-10-13 (private repository, branch `qc-triage`) |
+ | Checklist items (Table F.5) | [ABC], Figures 2 to 4 |
++| 16 October campaign refresh | `agreement_confirmatory_results_2026-10.md` at `12516caf`, replay records and the corrected QC profile on `codex/datacenter-agreement`; `pay_or_test_v2_results.md` at `29c00d83`; v4 `analysis_evidence/campaign_refresh/` |
+ | Audit of what was built and applied | `~/analysis/paper/qc_tool_audit.md` (outside the repository), 2026-10-13 |

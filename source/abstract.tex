@@ -1,0 +1,25 @@
+\section*{Abstract}
+
+AI agents are increasingly asked to make economic decisions for a
+principal, such as whom to trade with, what to verify and when to commit. Here a completed
+transaction can destroy value and a refusal can be correct, so
+task-completion or agreement scores cannot tell whether an agent served its
+principal. We present AERead, an environment that scores
+these decisions by the value an agent obtains. Each case defines a
+distribution of economic worlds, seats with private information,
+counterparts with their own interests, and a reference policy whose access
+to information is stated, so that a shortfall separates poor decisions from
+information the agent never had. One runtime executes every case and recomputes
+each score from the sealed record without a model; quality control runs over
+populations of worlds, not single tasks. We build cases in housing, procurement, data-center contracting
+and refunds, and reimplement part of TERMS-Bench on the same runtime, where
+two of that paper's agents are ordered as it reports. The counterpart is
+part of the measurement: one agent's earnings lead over another is \$190k a
+world head to head and \$26k against the same scripted counterpart. Shortfalls are broken down by stratum and by action
+class; in housing, nearly all of the gap to the reference falls in worlds
+where the tenant's favourite listing is a lemon. Of 25 defects selected from
+our quality-control record, 14 were invisible in any one world. No case
+yet passes every quality-control gate, so the results compare named agents
+on stated worlds rather than rank models. AERead's code is open source: a
+new case supplies its economic rules, worlds and reference, and inherits
+the runtime, replay and the quality-control standard.

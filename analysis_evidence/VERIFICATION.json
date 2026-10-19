@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-16",
+  "python": "3.13.5",
+  "procurement_commit": "15f5ff3b2ca6bf8a6e031028b368e6b10b2d23ae",
+  "procurement_patch_base": "29c00d8344b3b94e86ca4d83f78dceeaab7e49c8",
+  "procurement_trajectories": 144,
+  "procurement_final_brief": 96,
+  "procurement_earlier_brief": 48,
+  "procurement_original_values_reproduced": true,
+  "procurement_tests": 58,
+  "procurement_final_regressions": 9,
+  "housing_commit": "10a95651b7a2f9fa2e3d0c13ca3b7c432a90f65f",
+  "housing_trajectory_rows": 1812,
+  "housing_full_extraction_check": "trajectory table re-extracts from the run roots to the committed bytes; reply-conditioned analysis regenerates to the committed bytes",
+  "housing_tests": 24,
+  "model_calls": 0,
+  "publication": "local working draft and local commit; not pushed or posted"
+}

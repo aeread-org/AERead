@@ -1,0 +1,568 @@
+% Revision 10. Runtime baseline dec1a40f; experiment-specific exceptions
+% and the dated review boundary are retained explicitly.
+\section{Runtime contract and experimental coverage}
+\label{app:runtime}
+
+This appendix describes the runtime at \code{dec1a40f} (8 October 2026),
+using the source and run-record review dated 14 October. It does not
+assert that every reported experiment ran this revision. Housing and
+Procurement used the October executor; Data center used an earlier
+executor with a branch-local registry edit; Refund V2.1 used the
+September executor. Appendix~\ref{app:runtime-cases} records those paths.
+Issue and review statuses below refer to that dated review, not to a
+fresh audit of the repository on the date of this revision.
+
+\subsection{Runtime overview}
+\label{app:runtime-overview}
+
+Figure~\ref{fig:runtime} shows the execution and receipt path. Families
+supply the environment and verifier; the kernel supplies phase
+scheduling, evidence records and receipt finalization. Family-specific
+drivers still choose entry points, route seats to players and compute
+some headline measures. These responsibilities are not yet standardized
+(Appendix~\ref{app:runtime-cases}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 7mm,
+  box/.style={draw=ink!70, rounded corners=2pt, align=center,
+    font=\small, text width=42mm, minimum height=12mm, inner sep=3pt},
+  arr/.style={-{Latex[length=2mm]}, thick, draw=ink!85}]
+\node[box] (plan) {World, block, profiles, seeds\\\textbf{resolved plan}};
+\node[box,right=of plan] (phase) {Freeze observations\\act, then transition};
+\node[box,right=of phase] (log) {Provider/tool events\\and action envelopes};
+\node[box,below=of log] (seal) {Reconstruct state, score\\then seal evidence};
+\node[box,left=of seal] (receipt) {Receipt with typed scores\\and reference values};
+\node[box,left=of receipt] (replay) {Replay state and score\\no model call};
+\draw[arr] (plan)--(phase);
+\draw[arr] (phase)--(log);
+\draw[arr] (log)--(seal);
+\draw[arr] (seal)--(receipt);
+\draw[arr] (receipt)--(replay);
+\end{tikzpicture}
+\caption{The receipt path. Replay checks recorded transitions and receipt
+scores, not a fresh provider execution, the harness or parsing. It does
+not automatically cover a headline analysis computed outside the
+receipt. The kernel supplies no sandbox or arbitrary-crash recovery.}
+\label{fig:runtime}
+\end{figure}
+
+\subsection{Records and identity}
+\label{app:runtime-records}
+
+A world is one instance of a case design, represented by a kernel
+\code{CaseManifest}. The case studies use \emph{case} for the design as
+a whole. Authoring records are immutable dataclasses that reject unknown fields.
+Portable case, metric, cluster and cell identifiers follow a lowercase
+alphanumeric grammar with internal underscores, periods and hyphens;
+colons and whitespace are excluded. This avoids ambiguity with rLLM's
+task/rollout separator. A wrapper may normalize an upstream identifier,
+retaining the raw identifier in provenance; the kernel itself never
+rewrites it.
+
+\paragraph{Canonical bytes.}
+Structured records use JSON with sorted keys, compact separators, raw
+UTF-8 and no non-finite floats. Artifacts and published files are hashed
+as exact bytes. The serializer distinguishes $-0.0$ from $0.0$.
+Default-valued optional fields may be omitted from canonical form, so
+adding the deferred and inapplicable metric lists did not change older
+receipt digests. Digests establish consistency with the bound bytes;
+they do not independently attest that a provider's report is true.
+
+\paragraph{Plan resolution.}
+A \code{RunSpec} names the suite, evaluation blocks, profiles and seat
+assignments. Resolution produces a \code{RunPlan} containing the world
+records, sampling plan, blocks, profiles, implementation pins, input
+digests and cells, and writes its digest before provider execution.
+An implementation pin names a component, kind, version and digest.
+A cell includes the world content hash, family and version, block,
+world and sampling seeds, cluster identifier and level, optional pair
+identifier and seat-to-profile map. A block declares subject seats,
+controlled profiles, repetitions, one of controlled, cross-play,
+self-play, reference or human comparison, and a paired, independent or
+fixed seed policy.
+
+Admission compares declared harness requirements with declared provider
+capabilities before spending. At this baseline it also rejects an
+OpenRouter profile that combines reasoning effort and reasoning token
+budget, a pair the provider refuses. A separate unscored canary probes
+live compatibility. Neither check guarantees that a route will remain
+available or implement a requested control faithfully.
+
+\paragraph{Profiles and keys.}
+An \code{AgentProfile} records the declared model, harness and version,
+prompt, tools, memory, runtime settings, reasoning condition, effort and
+budget, rationale visibility, sampling, action/time/cost budgets and
+retry policy. The reasoning declaration enters the plan and per-seat
+profile hashes. It can therefore be checked for an in-place change,
+but not for provider compliance. A provider request seed lives in the
+profile and is not part of the cell identifier. Identifiers may repeat
+across plans; the publication key is the triple (run-plan identifier,
+cell identifier, episode-attempt identifier).
+
+\subsection{Phase scheduling}
+\label{app:runtime-phases}
+
+A \code{PhaseSpec} names actors, mode (single, sequential or
+simultaneous), action cap, successor phases and invalid-action policy.
+Under \code{reject}, an invalid action stops the episode with a
+scheduler contract error. Under \code{family_defined}, the family
+receives an invalid envelope and determines the consequence, such as a
+forfeited turn. An exception inside a family hook is a family defect,
+not a verdict about the subject.
+
+For a single or simultaneous phase, all observations are computed
+before actions are requested, and the transition receives the complete
+set of action envelopes. This prevents observation order from revealing
+a peer's action within the phase. It does not remove order effects
+inside a family's transition. Parsing and legality have typed results;
+both an unparsable action and a parseable illegal action retain their
+reason in an invalid envelope. The scheduler enforces phase and world
+action caps and retains the world seed for seeded transitions and
+scoring. The scheduler is provider-free and obtains actions through an
+abstract response source.
+
+\subsection{Harnesses, provider calls and retry policy}
+\label{app:runtime-harness}
+
+A harness turns observations into actions through an
+\code{AttemptContext}, which offers model and tool ports, fixed budget
+values, and the attempt identity and seed. The model port seals a
+request before sending it and supports native tools, a JSON dialect or
+text. An undeclared, ungranted or over-budget tool is stopped before
+dispatch and logged as \code{tool_dispatch_rejected}, with reason
+\code{undeclared_tool}, \code{tool_not_granted} or
+\code{tool_budget_exceeded}. \code{tools_not_admitted} instead means
+that a harness received tool calls without any granted tool port.
+The budget view supplies the attempt's round allowance, output-token
+limit and profile cost cap as fixed values, not continuously updated
+remaining spend. Wall-clock timeouts are applied outside the
+replayable path and become typed failures.
+
+The default \code{minimal_chat/1.0} harness makes one model call without
+tools or memory. Explicit registration is required for
+\code{native_tool_chat/1.0}, which supports multiple native tool calls,
+and \code{json_dialect/1.0}, which requests a schema-constrained JSON
+object. Only the native-tool harness is used for the stated upstream
+$\tau^2$-bench comparability claim \citep{barres2025tau2}; the JSON
+fallback is labelled non-comparable. Optional LangChain and LangGraph
+adapters run behind the same ports for harness comparisons. Each
+harness registers open, act, close and failure-classification hooks,
+with replayability, blocking and sub-agent requirements.
+
+\paragraph{Request and response records.}
+Requests bind the provider, model, instructions, input or native
+messages, tool definitions, sampling and reasoning controls, output
+limit, timeout, cost limit, output schema and declared seed. A stream
+flag enters the digest when set. Only the OpenRouter client streams;
+it reassembles chunks into the non-streamed response shape and treats
+a stream without a terminal finish reason as a transport failure.
+Responses record the reported model, finish reason, empty/truncated
+status, input/cached/output tokens and reported cost. Failed calls can
+also carry billed tokens and cost. The OpenAI Responses and Arena
+clients reject streamed requests at this baseline. Arena is an
+OpenAI-compatible client used by Refund, not only an admission probe.
+
+The OpenRouter client checks the reported provider, canonical model and
+routing information against the sealed pin, failing on a mismatch. It
+cannot verify the report independently or identify an unreported
+deployment change. It requires a declared seed; whether the endpoint
+honors it is recorded rather than enforced.
+
+\paragraph{Retries and truncation.}
+The API clients disable SDK retries. An action condition is retried
+only if the profile names it, subject to kernel limits. Configuration,
+authentication and account faults (HTTP 402) are never retried.
+\code{provider_choice_error} identifies an upstream generation error
+and is retryable only by name. An HTTP 404 after a route has succeeded
+in the same cell is \code{provider_rejected_after_route_proven}; it is
+also retried only when declared. Other route rejections do not acquire
+retryability merely because admission succeeded.
+
+A length retry doubles the output budget up to the profile's
+\code{max_output_tokens_ceiling}, or eight times the declared budget by
+default. No further length retry is issued at the ceiling, and the
+widened limit applies to every round of the harness attempt. Empty
+completions are rejected. An answer cut off before completion is a
+typed \code{length} failure before family parsing; a truncated response
+whose answer had already closed is retained. This differs from the
+September executor, which could pass an incomplete truncated reply to
+the parser after retries were exhausted.
+
+\subsection{The CLI subjects used in the case studies}
+\label{app:runtime-cli}
+
+Opus~5.5 runs through the kernel's \code{ClaudeCodePrintClient}; Sol~6.1
+runs through \code{CodexExecClient} in \code{tools/cli_subjects}, outside
+the kernel package. They are experimental subjects, not merely
+diagnostics. In the reviewed panels each action launches one ephemeral
+subprocess at low effort. The clients record executable version and
+binary digest, not the path, working directory or environment. Claude
+Code's binary is re-hashed before each call. Its client defaults to
+medium effort if a request omits the control; the reported panels
+explicitly set low.
+
+These subjects do not apply seed, temperature or output-token controls.
+An output budget present in a profile is therefore a declaration, not
+an applied CLI limit. Claude Code runs with tools disabled and no
+persistent session. The reviewed calls contain two internal model turns
+within one kernel provider call; internal CLI retries are not separate
+kernel attempts. Codex retains its tool definitions, and a call that
+uses a tool is refused. It reports no served-model identity. Costs are
+list-price estimates for subscription logins, not billed charges.
+
+The reviewed executables were Claude Code~2.1.292 and Codex~0.160.0,
+with recorded binary digest prefixes \code{97a01e5b} and
+\code{112fae7a}; the Codex adapter's digest prefix was \code{3f254873}.
+Version and digest pins limit executable drift, but do not certify the
+CLI's internal execution or hosted model deployment.
+
+\subsection{Evidence, interruption and publication}
+\label{app:runtime-evidence}
+
+Each attempt owns an append-only JSON-lines log and a content-addressed
+artifact directory. File locks, exclusive creation and device/inode
+checks guard the log. An event records its sequence, type, plan, cell,
+episode and attempt identities, phase/action/call identities,
+visibility label, payload digest, previous hash and own hash. Calls and
+tool invocations have start and terminal events; logical actions also
+have an \code{agent_action_failure} terminal. Other events record
+dispatch intents and rejections, retry back-off, phases, parse and
+legality results, transitions, termination, outcomes and scores. A
+bookkeeping failure is an outcome-unknown tool event with the
+corresponding condition, not a separate event type.
+
+The start is flushed before the side effect. Finalization reconciles
+identities, reconstructs scoring input, runs the scorer, appends the
+score and seals event and artifact roots before writing the receipt.
+A sealed store rejects later writes. Resume verifies and continues the
+chain; it is not arbitrary-crash recovery. An interruption caught by the
+running executor records \code{outcome_unknown}. A hard kill may leave
+a start without a terminal, which resume does not repair and
+reconciliation refuses to finalize. A timeout can also be
+outcome-unknown; a declared retry creates a new attempt with the same
+request bytes. The log does not prove whether an uncertain external
+side effect happened.
+
+\paragraph{Publication and access.}
+The hierarchy is campaign, run, task, attempt and event, with the sealed
+plan at the run root. Publication selects fields rather than copying
+the store wholesale. A manifest binds published file digests and can
+record a full \code{source_commit}; a provenance helper locates a
+commit containing the pinned source bytes. The commit is manifest
+metadata, not an added receipt field.
+
+The baseline publication policy excludes raw responses, full prompts,
+model reasoning, complete live receipts and failure messages. Live
+bundles carry sanitized receipt projections with source-receipt, world
+and plan digests; provider-free golden receipts may be published in
+full. A named-field token scan checks the declared publication policy,
+but is not a semantic secret detector. Public bundles alone therefore
+do not expose all evidence needed for replay. A reader with the
+unpublished run root can perform the audit in
+Appendix~\ref{app:runtime-replay}; a public reader can check the published
+files and their bindings, but cannot reconstruct omitted evidence from
+a digest.
+
+\subsection{Receipts and the measurement contract}
+\label{app:runtime-receipts}
+
+Each declared metric is a \emph{leaf}. Its \code{EvaluationReceipt}
+records a measurement status, either \code{ok} or
+\code{invalid_measurement}, and a separate inclusion status. It also
+binds plan/world/cell/block/episode/attempt identities,
+sampling and pairing information, declared per-seat profile hashes,
+implementation pins, evidence seal, primary metric, score envelopes,
+optional failure, observability limits and replay level. At most one
+receipt is included per planned cell. This cardinality check cannot
+prove that the attempt was selected before seeing its outcome; that is
+a campaign procedure.
+
+A \code{ScoreEnvelope} identifies the metric, verifier kind, reference
+kind, input scope and direction (maximize, minimize or none), and
+contains its value, further metrics, reference values, validity report
+and evidence references. Multi-seat scores may include utility and
+capture by seat. The five verifier names in Section~\ref{sec:measurement} map to
+\emph{answer key} (\code{canonical_reference}), a declared correct
+resolution; \emph{rule} (\code{rule_constraint}), an outcome or path
+constraint; \emph{value} (\code{objective_reference}), economic value
+against a policy or bound; \emph{relative} (\code{comparative}), standing
+against named agents or populations; and \emph{rubric}
+(\code{rater_judge}), an artifact rated against a rubric. The paper additionally states
+each check's output and outcome/path scope; these labels do not imply
+that every legacy family stores the same fields in the same way.
+Outputs are pass/fail, counts or amounts. Checks remain in their native
+units; rubric results are reported beside computed checks.
+
+Value references distinguish a reachable policy, the best policy given
+the decider's information, and a full-information upper bound. A
+feasible policy is a witness, not a guaranteed outcome floor. An
+information-privileged planner is not the attainable policy of a seat
+that lacks that information. Relative checks must name the counterpart
+population. Answer keys, rules and rubric raters require their own
+validity checks; recording a typed envelope does not supply them.
+
+\paragraph{Declared metric policy.}
+The measurement manifest assigns each leaf a finalize-time or deferred
+scope, a cell or subject-seat scope, an explicit reduction where
+multiple subject seats are combined, and case-conditional applicability.
+Deferral names the awaited artifact before the run. At finalization,
+applicable finalize-time metrics must be returned, deferred metrics
+must be listed, and inapplicable conditional metrics must be listed
+separately. Undeclared, omitted applicable or returned inapplicable
+metrics are violations. Deferred and case-conditional metrics cannot
+be the primary or an admission metric. These checks run at
+finalization, replay and audit.
+
+The common scoring-contract test exercises enrolled scorers on witness
+fixtures, including a mutation that changes each trajectory-derived
+metric. Bridge-gated fixtures run only when the pinned upstream bridge
+is provisioned; continuous integration provisions three of eight such
+families. A passing local suite with skipped bridge assertions is not
+upstream validation. Registration, fixture enrollment and actual
+receipt production are reported separately below.
+
+\subsection{Replay and reproducibility}
+\label{app:runtime-replay}
+
+Replay invokes the family's phase, initial-state, actor, transition,
+termination, outcome and scoring hooks. For each action it reads the
+recorded observation, request, canonical response, parse result and
+legality result. It compares state boundaries and scores, stopping on
+divergence. It does not rerun the harness, parser or provider. The
+caller supplies the sealed plan and registry through an evaluation
+setup; subject seats and profiles are read from that plan.
+
+The finalizer assigns \code{state_and_score} to every completed scored
+execution it seals, including one excluded as
+\code{invalid_measurement}. Operational-failure receipts have replay
+level \code{none}. The schema reserves \code{score_only}, which the
+current finalizer does not emit. A replayed exclusion is not a newly
+scored successful episode.
+
+\begin{samepage}
+At the October baseline, the reviewer command
+\begin{quote}\small
+\begin{verbatim}
+aeread verify-replay BUNDLE --run-root R
+  --setup MODULE:CALLABLE
+\end{verbatim}
+\end{quote}
+\end{samepage}
+rechecks published receipt bindings using the retained run evidence.
+It reports verified, differing or missing-evidence rows and exits
+unsuccessfully unless its checks pass. Coverage is
+\code{every_published_episode} only when the bundle includes the
+trajectory grain identifying those episodes; otherwise it is limited
+to receipts found under the run root. Operational-failure receipts are
+verified as exclusions. This command replaces reliance on a campaign's
+self-reported replay boolean; its existence does not show that it ran
+on every panel. The Housing v14 reports are local, Procurement's panels
+were checked inline, and the Data center branch predates the command.
+
+Seeds, request digests and evidence roots support reconstruction of a
+recorded execution, not deterministic regeneration by a model.
+Provider serving can vary across batches and deployments
+\citep{he2025nondeterminism}. The OpenRouter routing check binds the
+provider's report to the declared route, not to an independently
+attested deployment. The five \code{execution_mode} values are
+validated metadata; the invoked entry point and retained evidence,
+not that field alone, determine whether execution is live or replayed.
+
+\subsection{Family plugins, adapters and enrollment}
+\label{app:runtime-families}
+
+A family registers an exact identifier and version. Duplicate
+registration and missing required hooks are rejected. Thirteen hooks
+cover validation, initial state, phases, actors, observation, parsing,
+legality, transition, termination, outcome, scorer/reference
+construction and generation; optional hooks cover teardown and
+case-conditional metrics. The registry has no entry-point discovery or
+dynamic import, and the kernel has no static family-package dependency.
+The reviewer command is an explicit exception: its
+\code{--setup MODULE:CALLABLE} imports the caller-named family setup.
+
+The inventory has ten wrappers of upstream code, two paper-based
+re-implementations and nine native/fixture packages. Eight wrappers
+execute upstream code in fidelity tests. AucArena instead tests
+hand-copied functions; STEER's answer-key suite is adapter-owned
+because the pinned upstream removed its scorer. AgenticPay runs the
+upstream bridge and replays goldens but lacks a standalone parity
+recomputation. Algorithmic collusion and TERMS-Bench are explicitly
+labelled re-implementations. A parity check measures wrapper fidelity,
+not model performance or construct validity.
+
+Fifteen packages have the common scoring-contract fixture. Five
+built-ins do not: retail, the two data-center packages, consent and the
+smoke fixture. The data-center packages nevertheless finalize and
+publish receipts. Refund V2.1 runs through contributed registration,
+calls the same executor and finalizer, and publishes kernel receipts;
+it is outside the trusted list and lacks the common fixture. At the
+September snapshot the reviewed Refund bundles already contained
+1,320 receipt rows across seven bundles, and data-center bundles held
+476 rows, 405 fully replayed. The 19 legacy summaries carrying both
+replay flags were data-center-terms campaigns, not evidence of their
+exclusion from the receipt path.
+
+For retail, the static parity check compares the initial database,
+ordered tool calls and results, final database and diff, database reward,
+communication check, judge inputs and recorded verdict, and total
+reward against upstream gold trajectories: 114 tasks and an 18-task
+pilot. That check is not yet rerun by CI and is not a live-model result.
+Three bridge fidelity jobs (AgenticPay, AmazonHistoryPrice and GovSim)
+run in CI; a flag makes a skipped required bridge test fail.
+
+Existing evaluation tools provide trajectory logging and multi-agent
+interfaces \citep{ukaisi2024inspect,terry2021pettingzoo,
+lanctot2019openspiel,agapiou2022meltingpot}. We describe AERead's
+integration of seat assignments, economic references and replay
+obligations without claiming those individual capabilities are absent
+elsewhere. Harbor export is planned, not implemented. The experimental
+rLLM integration wraps the separate exchange-economy engine, not this
+kernel \citep{laude2026harbor,agentica2025rllm}.
+
+\input{tab_families}
+
+\subsection{Execution paths behind the case-study results}
+\label{app:runtime-cases}
+
+Table~\ref{tab:case-paths} separates the executor from case-specific
+drivers and headline analysis. Hashes are abbreviated digest prefixes,
+not interchangeable with source commit identifiers. The October
+\code{execution.py} prefix is \code{607a79ce}, shared by
+\code{6aaf46bb} and \code{dec1a40f}; the September prefix is
+\code{3cd3278c}. A later baseline description does not retrospectively
+upgrade an older run's behavior or evidence.
+
+\input{tab_case_paths}
+
+\paragraph{Housing attribution and headline scoring.}
+Housing v14's plan assigns the subject profile to all six tenant seats,
+but a driver-side \code{SeatRouterClient} supplies scripts for seats
+1--5. Request and receipt profile hashes therefore name a model for
+seats it never played; the actual routing map is in an unsealed side
+log (HL-T-09). The original receipt's primary score is the six-tenant
+sum, not the headline deciding-tenant measure (HL-D-09). For example,
+world 300000, pooled landlord, GLM has a receipt sum of
+$-1{,}405.86$ and a seat-0 value of $+235.24$. The original headline
+analysis reads outcome facts copied to a separate unsealed result file.
+The later \code{price_reply_posterior} measure (\code{765e99a7}) derives
+the corrected measure from sealed events; that derived analysis must
+be identified separately from the original receipt certificate.
+
+\paragraph{Procurement's reference calculation.}
+The receipt scores contribution margin and regret against a
+full-information bound. The headline decision loss against the best
+policy given the buyer's information instead replays an
+\code{action_trace} copied to an unsealed result row, through
+\code{pay_or_test_reference}, which the original plans do not pin
+(P-T-17). This projection drops message fields. The numerical
+calculation can be reproduced from those inputs, but the receipt audit
+does not certify it. The cross-case replay claim was corrected in
+RES-J-04. Standardizing the case-to-runtime interface,
+including the subject-seat map and headline metric, is the proposal in
+issue~\#289; it is not an implemented guarantee of these runs.
+
+\subsection{Campaign procedure, review and implementation scope}
+\label{app:runtime-qc}
+
+The runtime enforces the declared record and measurement contract for
+the path it executes. It does not prove that every headline number is
+a receipt metric, that a driver routed the declared player, or that a
+selected attempt was chosen before its outcome. \qcref{} reports the
+checks actually applied: Gate~0, profile; Gate~1, task distribution;
+Gate~2, environment and verifier; Gate~3, construct and baselines;
+Gate~4, attribution and controls; Gate~5, confirmatory reliability and
+publication. The four current designs do not fully pass Gates~1--5;
+several profiles and reference-run checks were written after execution.
+This is a qualification boundary, not something that a receipt hash
+resolves.
+
+A frozen control changed in place must receive a new campaign identity.
+The incident log's 8 September 2026 judgment entry, ``a frozen control
+edited in place under a published campaign'' (PR~\#98), documents a
+digest mismatch after the primary-outcome list changed. The sealed
+bundle remained unchanged and the old declaration was restored through
+an explicit parameter. Separately, P-J-02 records parent bundles
+re-sealed in place and restored after CI detected their changed pinned
+digests. These are specific checks and incidents, not evidence that
+every campaign satisfied the full procedure.
+
+Eight kernel-lane PRs (\#232--\#239, tracked by \#226) merged without a
+non-author approval under a one-time waiver (RN-O-01). The post-merge
+review \#266 was still open in the dated review. Passing tests do not
+substitute for that missing review. At \code{dec1a40f}, the source count
+is 20,747 kernel lines in 31 Python modules, 155,481 family-package
+lines, 279 test files and 3,156 test functions. Parametrized collection
+counts are omitted because they depend on the checkout and optional
+dependencies. These are implementation-size counts, not measures of
+benchmark validity or fresh test results for this revision.
+
+\subsection{Limitations and mechanisms motivated by incidents}
+\label{app:runtime-limits}
+
+\begin{itemize}
+\item \textbf{No sandbox or complete mediation.} Families and tools run
+  in-process or through bridge interpreters. The kernel supplies no
+  container and does not prevent code from touching resources outside
+  its ports. Its logging guarantees cover the instrumented path, not
+  all possible external activity.
+\item \textbf{Declarations do not verify reasoning.} The OpenRouter and
+  Claude Code clients do not populate the typed
+  \code{reasoning_tokens} field; such counts occur only in retained raw
+  responses. In the first 100 cells per Housing v14 model, the reviewed
+  counts averaged 287 for Gemini at minimal, 60 for GLM at low, and 186
+  for Luna at low (HL-J-12). Effort labels do not order deliberation
+  across models. An earlier route returned about 13 reasoning tokens
+  under several declared limits versus 259 with the block omitted;
+  that historical incident does not characterize every October route.
+\item \textbf{Empty and truncated answers.} Empty completions once
+  passed as no-ops and silently dropped about 40\% of a candidate's
+  turns, leading to a retracted effect. The port now rejects them.
+  October's incomplete-answer handling differs from September's;
+  issue~\#265 tracks an erratum for eight earlier procurement rows
+  (TB-D-03). Current behavior does not repair those rows retrospectively.
+\item \textbf{Run halting is opt-in.} The kernel offers
+  \code{max_consecutive_operational_failures}: an adopting sequential
+  driver stops after the declared streak or immediately on an account
+  fault and marks unreached cells \code{not_attempted}. No family
+  driver had adopted that helper at \code{dec1a40f} (\#264). Housing
+  used driver-level rules; twelve workers each reaching three failures
+  account for its 36 refused cells. There is no kernel campaign-wide
+  cost circuit breaker.
+\item \textbf{Spend is qualified, not uniformly a lower bound.}
+  Provider-reported cost or profile pricing on reported tokens costs a
+  call. The October executor charges a billed call even when it later
+  fails. The spend reader labels an event-log total \code{exact} or
+  \code{lower_bound}, the latter when some cost is unknown; family
+  drivers had not adopted that reader at the baseline. CLI list-price
+  estimates are a separate quantity. Earlier totals could omit billed
+  failed calls.
+\item \textbf{Receipt integrity depends on its checker.} An earlier
+  compatibility reader coerced falsy values to empty lists, and a writer
+  accepted pretty-printed bytes its reader rejected. Fixes and
+  regression tests landed before the September snapshot. The incident
+  motivates testing the verifier itself; a digest alone is not a
+  correctness argument.
+\item \textbf{Driver and selection gaps remain.} Headline-metric and
+  seat-routing differences are documented above. A critical-failure
+  classifier based on exception-message substrings can change stopping
+  behavior when wording changes. The pre-outcome attempt-selection
+  rule is recorded but not proven by the one-receipt cardinality check.
+\item \textbf{Missingness can depend on the subject.} In ten earlier
+  Housing campaigns, 47 of 48 trajectory failures involved one model
+  family across four providers. That historical concentration limits
+  a missing-at-random interpretation; it is not the denominator of
+  Housing v14's separate account-fault incident.
+\item \textbf{Replay access and recovery are partial.} Independent
+  bundle replay requires retained run roots, and some panels have only
+  inline checks. A hard-killed attempt may not reconcile. Neither
+  arbitrary-crash continuation nor fresh-model determinism is claimed.
+\item \textbf{Coverage is version-specific.} The September inventory's
+  live evidence does not describe all October panels, which used
+  several OpenRouter routes and two CLI subjects. Wrapper parity,
+  fixture enrollment, receipts and live-model evidence remain separate
+  claims. The original exchange-economy engine runs outside this kernel;
+  Refund does not.
+\end{itemize}

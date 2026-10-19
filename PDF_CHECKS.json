@@ -1,0 +1,67 @@
+{
+  "pages": 44,
+  "main_text_pages": [
+    1,
+    10
+  ],
+  "figure_4_1_page": 4,
+  "figure_5_1_page": 8,
+  "table_e_10_page": 30,
+  "visual_review_pages": [
+    1,
+    36,
+    38,
+    39,
+    43
+  ],
+  "no_out_of_bounds_text_blocks": true,
+  "base_version": "v13",
+  "native_cells_replayed": 240,
+  "native_fee_trajectories_replayed": 1440,
+  "new_sensitivity_table_cells_verified": 42,
+  "prior_figure_bars_verified": 10,
+  "prior_exact_value_means_verified": 44,
+  "references": 15,
+  "authors": [
+    "Chenyu Li",
+    "Zeyu Sun"
+  ],
+  "new_model_calls": 0,
+  "main_text_page_starts_identical_to_v13": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+  ],
+  "incident_codes_in_pdf_text": 0,
+  "branch_issue_owner_viewer_mentions_in_pdf_text": 0,
+  "hex_ids_kept": [
+    "607a79ce executor",
+    "3cd3278c executor",
+    "f5ec607c driver file",
+    "97a01e5b binary",
+    "112fae7a binary",
+    "3f254873 adapter"
+  ],
+  "data_values_changed": 0
+}

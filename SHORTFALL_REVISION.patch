@@ -1,0 +1,251 @@
+--- v7/source/paper_case_studies.md
++++ v8/source/paper_case_studies.md
+@@ -35,7 +35,7 @@
+ |---|---|---|---|---|---|---|
+ | Housing | which listing to verify, what to offer, whether to sign when two of four listings are lemons | one tenant; scripted landlords of two kinds, outside demand | reachable policy: a scripted tenant using only the tenant's information ($292 a world); full-information upper bound ($370) | value; rule | comparison declared before the runs; case not qualified | shown: Gemini −99 [−119, −80] a world against the reference where the favourite is a lemon (corrected measure; −102 as declared) |
+ | Procurement | pay a premium for a recorded supplier, or test a cheaper newcomer, before a deadline | one buyer; scripted suppliers | best policy given the buyer's information, solved exactly ($451 a world) | value, priced per action | v1 development; v2 stopped at pilot sizing | flash tier only: Luna gives up 74.4 [46.7, 102.7] a world, the frontier agents 1 to 5 |
+-| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | declared confirmatory with departures; case not qualified | shown: head-to-head joint loss 126.8 / 77.5 ($k per deal world), by role assignment |
++| Data center | which of eight risk clauses to move, what price to name, when to sign or walk | client or integrator; the other model, itself, or a scripted negotiator | full-information upper bound: the best of 600 agreements at both sides' true costs, which neither side knows | value; relative; rule | declared confirmatory with departures; case not qualified | shown: head-to-head joint loss 126.8 (Sol integrator) / 77.5 (Opus integrator), $k per world over all 60 |
+ | Refund (V2.1 results; V2.5 QC) | what to ask, decide and pay on a claim under a written policy | one of four seats; the rest scripted | a hand-written reference resolution | answer; rule | developmental | suggested: the best model resolves 79% of cases as scored, against 100% (six cases) |
+ 
+ The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
+@@ -130,42 +130,78 @@
+ 
+ ### 5.2 Where the shortfall comes from
+ 
+-Each case's shortfall against its reference splits into a small set of shared classes, named by
+-the action observed in the sealed trajectory rather than by an inferred cause, and computed rather
+-than judged. Each unit of shortfall (a cell, or in Procurement an action) is assigned to the first
+-class whose rule fires, in a declared priority order, so the classes sum exactly to the shortfall.
+-That makes the table an accounting decomposition under a stated order, not a causal attribution:
+-a different order would move amounts between classes. Appendix E.5 gives the rules for each case
+-and the full tables.
+-
+-**Table 5.5. The shortfall to each case's reference, by class (per world, each case in its own units; Housing on the declared measure, corrected totals in Appendix E.5; Data center development; Refund V2.1).**
+-
+-| Class (what happened) | Housing $: Gemini / Luna | Procurement $: Opus / Gemini | Data center $k joint: Opus / Sol vs firm | Refund points: GPT-5.6 Luna / Gemini 2.5 FL |
+-|---|---|---|---|---|
+-| Information not acquired | 6.6 / 32.4 | 2.6 / 75.2 | — | 15.0 / 0 |
+-| Acted contrary to information held | 11.2 / 86.4 | 2.8 / 0 | — | 0 / 0 |
+-| Worse terms | 54.6 / 39.1 | 0 / 0 | 4.8 / 9.1 | 0 / 0 |
+-| Commitment error | 8.5 / 2.9 | 0 / 0 | 6.9 / 32.0 | — |
+-| Interaction cost | 0.2 / 1.0 | 0 / 0 | 29.8 / 80.2 | — |
+-| Procedure and format | 0 / 0 | 0 / 0 | 0 / 0 | 5.8 / 98.3 |
+-| **Total shortfall** | **81.0 / 161.6** | **5.4 / 75.2** | **41.5 / 121.3** | **20.8 / 98.3** |
+-
+-The classes separate failures that one score would merge. The flash models in Procurement lose
+-almost everything by not acquiring information: they pay the premium where a test was worth it.
+-In Housing, about half of GLM's and Luna's shortfall is signing a hold that, under the landlords'
+-pricing rule, only a lemon's landlord offers, at a rent above a lemon's value. The v14 brief did
+-not state that rule, so whether the tenants could have read the reply is a hypothesis this table
+-cannot test. Gemini's smaller loss is mostly worse terms. In the development agreement runs, the joint loss is
+-mostly interaction cost, the redline fees; a redline can also improve the agreement, and that
+-gain appears as smaller worse-terms loss, so the class prices the moves rather than judging them.
+-Against the firm script Sol also loses deals (commitment errors), though in 7 of its 8 the script
+-walked away from Sol's last offer. Opus's characteristic error does not appear in joint value at all,
+-because signing below one's own walk-away point is a transfer: as client it did so in 12 of 52
+-worlds against Sol and 2 against the firm script. In Refund most models lose by deciding before a
+-required fact (information not acquired), while Gemini 2.5 Flash Lite loses almost everything to
+-procedure, asking again for facts it already had. A class records
+-what happened, not why; a cause stays a hypothesis until a probe holds the world fixed, as the
+-data-center signalling test did.
++Table 5.5 separates each case's shortfall into observed action classes. The components sum to
++the total under a stated priority order; they describe what happened, not its cause. Each panel
++uses its own reference and units. Appendix E.5 gives the rules and full subject tables; E.7 gives
++the current Data-center breakdown and uncertainty.
++
++**Table 5.5. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack. Procurement and Refund retain their development panels.**
++
++**(a) Housing**
++
++$ per main world below the reachable scripted reference; corrected v14.
++
++| Component | Gemini 3.8 Flash | GPT-6 Luna |
++|---|---:|---:|
++| Information not acquired | 3.9 | 10.1 |
++| Contrary to held information | 11.2 | 86.4 |
++| Worse lease terms | 55.1 | 44.0 |
++| Lease commitment error | 8.5 | 2.9 |
++| Inspection cost | 0.2 | 1.0 |
++| **Total shortfall** | **78.9** | **144.3** |
++
++Two landlord arms averaged within each complete world: 240 worlds for Gemini, 260 for Luna.
++
++**(b) Procurement**
++
++$ per world below the best policy given available information; pay-or-test v1, final brief.
++
++| Component | Opus 5.5 | Gemini 3.8 Flash |
++|---|---:|---:|
++| Information not acquired | 2.6 | 75.2 |
++| Contrary to held information | 2.8 | 0.0 |
++| **Total shortfall** | **5.4** | **75.2** |
++
++24 worlds each. Decision loss independently re-derived from sealed events (Appendix F.4).
++
++**(c) Data center**
++
++$ thousands of joint value lost to the full-information bound; against the firm population.
++
++| Component | Opus 5.5 | Sol 6.1 |
++|---|---:|---:|
++| Inferior contract clauses | 8.8 | 7.7 |
++| Harmful agreement | 20.9 | 2.0 |
++| Missed beneficial deal | 12.5 | 21.5 |
++| Redline fees | 28.5 | 72.3 |
++| **Total shortfall** | **70.8** | **103.4** |
++
++All 60 worlds; both focal roles averaged within world. Joint outcomes include both parties' actions.
++
++**(d) Refund**
++
++Percentage points below full resolution under the verifier; V2.1.
++
++| Component | GPT-5.6 Luna | Gemini 2.5 Flash Lite |
++|---|---:|---:|
++| Required facts skipped | 15.0 | 0.0 |
++| Procedure or format | 5.8 | 98.3 |
++| **Total shortfall** | **20.8** | **98.3** |
++
++120 cells per model, averaged within each of six fixed cases and then across cases.
++
++Rows that are zero for both displayed subjects are omitted; rounded components may not add to
++rounded totals. Below-walk-away signings are a separate individual outcome: against the firm
++population, Opus and Sol as clients signed below their own walk-away values in 23/60 and 1/60
++worlds, respectively (head-to-head: 27/60 and 3/60; Table 5.4).
++
++Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
++mostly worse lease terms. Luna's largest Housing class is signing at a rent above a lemon's value
++when the reply identifies a lemon under the landlord policy. The v14 brief omitted that pricing
++rule, so the label does not establish that the tenant knew how to interpret the reply. In Data
++center, Sol's largest joint-loss component is redline fees; Opus also signs harmful agreements in
++worlds without positive available joint surplus. In Refund, Gemini 2.5 Flash Lite's loss is chiefly
++procedure or format. These are descriptive patterns under the stated classifications.
+ 
+ **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
+ case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
+@@ -195,12 +231,12 @@
+ | Pay-or-test (Tables 5.3, E.4) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
+ | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
+ | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
+-| Data center development (Tables E.3, E.7; Table 5.5 decomposition), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
+-| Data center confirmatory (Tables 5.1, 5.4) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
++| Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
++| Data center confirmatory (Tables 5.1, 5.4, 5.5c, E.8) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
+ | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
+ | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
+ | Refund rows of Tables 5.1 and 5.5 | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+-| Failure classes (Table 5.5, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; each case's classes sum to its published shortfall (checked to 1e-9) | derived |
++| Failure classes (Table 5.5, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; v8 `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
+ | Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
+ | Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
+ | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
+--- v7/source/paper_appendix_details.md
++++ v8/source/paper_appendix_details.md
+@@ -215,36 +215,34 @@
+ The priority order makes the decomposition an accounting identity, not a causal attribution.
+ 
+ **Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
+-the reachable reference's net minus the tenant's at the published measure, and the rules apply in
++the reachable reference's net minus the tenant's at the corrected reply-conditioned measure (the original measure is retained in Table E.5), and the rules apply in
+ the order procedure, contrary to information held, not acquired, commitment, worse terms,
+ interaction cost. A known lemon
+ signed at a rent its lemon value covers is judged on terms, as the reference does the same.
+ Revealed-lemon signings count as contrary to information held although the v14 prompt did not
+-state how landlords price; counted as not acquired instead, GLM's not-acquired loss would be about $102. *Procurement:*
++state how landlords price; moving that class to not acquired instead would move $73.6 per world for GLM, without changing its total. *Procurement:*
+ the unit is the action, and each action's loss against the best policy (which sums to the decision
+ loss) goes to a class by what the action did; a request to the recorded supplier counts as not
+ acquired only when the episode never tests a newcomer, and as contrary to information held
+ otherwise. *Data center:* the
+ unit is each part of a negotiation's grade: no deal is a commitment error (labelled by the side that
+-walked), a worse clause set is worse terms, and redline fees are interaction cost; signing below
+-one's own walk-away point is counted separately because it moves value between the sides and never
+-appears in joint value. *Refund:* the published gap decomposition's parts map onto the classes
++walked); allocation loss in a world with positive available surplus is worse terms, while allocation loss in a world without positive available surplus is a harmful agreement (commitment error). Redline fees are interaction cost. Table 5.5c separates harmful agreements from missed beneficial deals. Signing below one's own walk-away value is counted separately: the individual loss is not an additive joint-loss component, although the same agreement may also destroy joint value. *Refund:* the published gap decomposition's parts map onto the classes
+ (deciding before a required fact to not acquired, a wrong decision to contrary to information held, re-asked or unknown
+ facts and the null-method format to procedure).
+ 
+-**Table E.5. Housing and Procurement, every subject ($ per world; Housing with the HL-D-07 measure in brackets).**
++**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed).**
+ 
+ | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+ |---|---:|---:|---:|---:|---:|---:|---:|
+-| Information not acquired | 6.6 (3.9) | 28.1 (9.2) | 32.4 (10.1) | 0 | 2.6 | 75.2 | 71.8 |
++| Information not acquired | 3.9 (6.6) | 9.2 (28.1) | 10.1 (32.4) | 0 | 2.6 | 75.2 | 71.8 |
+ | Acted contrary to information held | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
+-| Worse terms | 54.6 (55.1) | 36.1 (42.2) | 39.1 (44.0) | 0 | 0 | 0 | 0.7 |
++| Worse terms | 55.1 (54.6) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.7 |
+ | Commitment error | 8.5 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
+ | Interaction cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
+ | Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
+-| Total | 81.0 (78.9) | 155.1 (142.3) | 161.6 (144.3) | 1.0 | 5.4 | 75.2 | 74.4 |
+-
+-Thirty Gemini cells of the main pack are operational missingness and are not scored.
++| Total | 78.9 (81.0) | 142.3 (155.1) | 144.3 (161.6) | 1.0 | 5.4 | 75.2 | 74.4 |
++
++Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: Gemini has 240 complete worlds, GLM and Luna 260 each. Gemini's 30 missing main-pack cells remove 20 worlds, including 10 completed cells whose paired arm is missing. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
+ 
+ **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
+ 
+@@ -258,7 +256,7 @@
+ | Procedure and format | 0 | 0 | 0 | 0 | 5.8 | 98.3 | 5.8 | 17.5 |
+ | Total | 81.5 | 78.6 | 121.3 | 41.5 | 50.0 | 98.3 | 20.8 | 47.5 |
+ 
+-Against the firm script, 7 of Sol's 8 lost deals were the script walking from Sol's last offer.
++In these development runs, 7 of Sol's 8 lost deals against the firm script were the script walking from Sol's last offer.
+ Signing below one's own walk-away point, not in the table: Opus as client 12 of 52 worlds against Sol
+ (it proposed the losing terms itself in 4) and 2 against the firm script; Sol as client 1 against the
+ firm script; neither as integrator.
+@@ -275,6 +273,51 @@
+ | Procurement, record pack (18) | worlds solved | 18 | 16 | regret −20 [−48, +7] (Opus lower) | informed policy 18 |
+ | Data center development, firm population (52) | earns, integrator / client ($k) | 122 / 107 | 139 / 130 | +17 [−10, +44] / +23 [−2, +48] | first-offer stand-in 122 / 114 |
+ | Data center development, head to head (52) | earns, integrator / client ($k) | 60 / 25 | 308 / 276 | +248 / +251 | |
++
++### E.7 Current shortfall panels: scope and uncertainty
++
++Table 5.5 is descriptive accounting after the runs, not an additional declared test. Its
++Data-center panel uses all 60 admitted worlds, including 15 with no positive available surplus;
++Table 5.4's earnings contrasts use the 45 deal worlds. Both focal roles receive equal weight
++within each world. Individual below-walk-away signings are not added to joint loss. As integrator
++against the firm population, Opus has 1/60 such signings and Sol 0/60; the client counts are
++23/60 and 1/60. Table E.6 preserves the earlier development decomposition on its 52 deal worlds.
++
++**Table E.8. Confirmatory Data-center joint loss by pairing ($ thousands per world, all 60 worlds).**
++
++| Integrator / client | Inferior clauses | Harmful agreement | Missed deal | Redline fees | Total |
++|---|---:|---:|---:|---:|---:|
++| Opus / Sol | 9.3 | 1.2 | 3.7 | 63.3 | 77.5 |
++| Sol / Opus | 22.6 | 34.8 | 25.2 | 44.2 | 126.8 |
++| Opus / firm | 2.2 | 0.0 | 12.2 | 30.0 | 44.4 |
++| Sol / firm | 1.1 | 0.0 | 29.1 | 60.8 | 91.0 |
++| Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
++| Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
++
++**Table E.9. Distribution of total shortfall for the subjects in Table 5.5 (each case's own units).**
++
++| Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
++|---|---:|---|---|---|
++| Housing: Gemini 3.8 Flash | 240 | 78.9 [63.3, 94.6] | 48.5 [0.0, 155.2] | 34 / 44 |
++| Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
++| Procurement: Opus 5.5 | 24 | 5.4 [0.2, 10.6] | 0.0 [0.0, 1.1] | 16 / 0 |
++| Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
++| Data center: Opus 5.5 | 60 | 70.8 [55.3, 86.4] | 53.0 [36.6, 95.1] | 0 / 0 |
++| Data center: Sol 6.1 | 60 | 103.4 [84.2, 122.6] | 87.5 [61.2, 129.4] | 5 / 0 |
++| Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
++| Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
++
++Intervals here are Student t intervals over independent worlds (Housing after averaging arms;
++Data center after averaging focal roles), or over the six fixed Refund cases after averaging
++20 cells per case. They describe variation in these panels and do not establish a model ranking
++or field-population coverage. They are newly derived descriptive intervals, not replacements
++for the campaigns' declared analyses. A Refund interval can exceed the score's 0–100 bounds;
++it is left untruncated to expose the weakness of an approximation with six fixed cases.
++Housing, Procurement and Data center have one retained run per world and condition, so
++run-to-run variance is unmeasured. Refund has repeated cells within fixed cases; its per-case
++outcome distributions are retained in the derived evidence. The source package includes
++component-level intervals, distributions, per-world amounts and input digests in
++`analysis_evidence/shortfall_panels/panels.json`, with a provider-free reproduction script.
+ 
+ ## Appendix F. Quality control in detail
+ 

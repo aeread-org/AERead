@@ -1,0 +1,6 @@
+Fetched 2026-10-18 from aeread-org/AERead at 8f820c5b (branch codex/termsbench-scripted-counterpart, draft PR #153):
+  evidence/<bundle>/reports/summary.json for the four bundles named in the file names;
+  docs/families/termsbench/campaign_scoping.md (violation counts, reasoning probe, the paper-agent check).
+Paper values in Table 5.5 are from TERMS-Bench Table 2 (arXiv 2605.13909v2): GPT-4o-mini SE+ 0.189, AGR+ 52.2%, CSE+ 0.363;
+GLM-5.1 SE+ 0.686, AGR+ 95.1%, CSE+ 0.721. Note: campaign_scoping.md quotes GPT-4o-mini CSE+ as ~0.296 and GLM-5.1 SE+ as "-";
+Table 5.5 uses the paper table directly.

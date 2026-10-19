@@ -1,0 +1,5180 @@
+{
+ "case": "procurement_pay_or_test_v1",
+ "subjects": {
+  "GPT-6 Luna": {
+   "actions_total": 76,
+   "actions_with_negative_loss": 0,
+   "actions_with_no_loss": 29,
+   "award_actions_with_both_timing_and_terms_loss": 3,
+   "by_rule_count": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 4,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 1,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 12,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 28,
+    "worse_terms: awarded a qualified supplier at a worse supplier choice or quantity": 2
+   },
+   "by_rule_per_world": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 1.236,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.6406,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 46.0765,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 25.7611,
+    "worse_terms: awarded a qualified supplier at a worse supplier choice or quantity": 0.6611
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v1_finalquotes_openrouter_gpt6_luna_v2",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 1.876629,
+    "information_not_acquired": 71.837594,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.661077
+   },
+   "report_parts_per_world": {
+    "award_terms": 2.4219,
+    "award_timing": 44.3157,
+    "requests": 27.6377,
+    "strays": 0.0,
+    "walk_away": 0.0
+   },
+   "reproduced_published_decision_loss": 74.4,
+   "run_root": "/Users/chenyusu/AERead-worktrees/procurement-pay-or-test/runs/procurement_allocation/pay_or_test_v1_finalquotes_openrouter_gpt6_luna_v2",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.025232,
+    "information_not_acquired": 0.96588,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.008888
+   },
+   "total_shortfall_per_world": 74.3753,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 5,
+    "information_not_acquired": 40,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 0,
+    "worse_terms": 2
+   },
+   "worlds": 24,
+   "worlds_detail": [
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l932",
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l932 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l943",
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l943 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l228",
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l228 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l752",
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l752 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l674",
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l674 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 8.299686989999998,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 8.299686989999998
+     },
+     "slug": "pay_time__none__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l401",
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l401 x55"
+       ],
+       "class": "worse_terms",
+       "loss_usd": 8.299686989999998,
+       "rule": "awarded a qualified supplier at a worse supplier choice or quantity",
+       "supplier_id": "driver_board_l401"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l835",
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l835 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l312",
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l312 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 79.8608813678,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 79.8608813678,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.0200000000000387,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l937"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 20.523168596999994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l937"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 58.31771277079997,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l937"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 179.30863269210005,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 179.30863269210005,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.82000000000005,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l303"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 27.299999999999955,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l303"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 150.18863269210004,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l303"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 138.1578903116,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 138.1578903116,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.6800000000000068,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 19.686518633600087,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 116.7913716779999,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l989"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 232.45400478431998,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 232.45400478431998,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.8240000000000691,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l180"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 38.29404018263995,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l180"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 192.33596460167996,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l180"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 9.599999999999966,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 9.599999999999966,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.5999999999999659,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 9.0,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l546"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l546"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l546"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l369 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l369"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 21.706967258799978,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 21.706967258799978,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 0.8799999999999955,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 12.13627937879994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 8.690687880000041,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l370"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 103.44305040000017,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 103.44305040000017,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.0800000000001546,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 16.199999999999932,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 86.16305040000009,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l541"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 129.74519162820002,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 129.74519162820002,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.080000000000041,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l792"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 128.66519162819998,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l792"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l792 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l792"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 147.6391069117201,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 147.6391069117201,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.608000000000061,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 39.53192129542015,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l504"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 106.49918561629988,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l251"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 136.84623638879998,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 136.84623638879998,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.519999999999925,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l810"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 22.800000000000068,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l810"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 112.52623638879999,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l810"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 35.43909404281999,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 35.43909404281999,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__3",
+     "trace": [
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 18.81000000000006,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.254000000000019,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 15.37509404281991,
+       "rule": "tested a newcomer the stated odds and prices made the worse test",
+       "supplier_id": "driver_board_l599"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l599"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l599"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l599 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l599"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 94.52894953639998,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 94.52894953639998,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.3600000000000136,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 20.399999999999977,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 72.76894953639999,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l220"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 153.9881501280001,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 146.4219783480001,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 7.566171779999991
+     },
+     "slug": "test_other__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.400000000000091,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 145.021978348,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l921 x55"
+       ],
+       "class": "worse_terms",
+       "loss_usd": 7.566171779999991,
+       "rule": "awarded a qualified supplier at a worse supplier choice or quantity",
+       "supplier_id": "driver_board_l921"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 82.07653387619996,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 82.07653387619996,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.32000000000005,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l661"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 71.07243497519994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l661"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l404"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 9.68409890099997,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l661"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 118.35418131850008,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 118.35418131850008,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.1000000000000796,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 16.499999999999943,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 100.75418131850006,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l952"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 113.55864839060007,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 113.55864839060007,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.4399999999999977,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 21.003088441599914,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 91.11555994900016,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l827"
+      }
+     ]
+    }
+   ]
+  },
+  "Gemini 3.8 Flash": {
+   "actions_total": 72,
+   "actions_with_negative_loss": 0,
+   "actions_with_no_loss": 26,
+   "award_actions_with_both_timing_and_terms_loss": 0,
+   "by_rule_count": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 14,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 32
+   },
+   "by_rule_per_world": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 48.1938,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 26.9971
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v1_finalquotes_openrouter_gemini38_flash_v2",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 75.1909,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "report_parts_per_world": {
+    "award_terms": 0.0,
+    "award_timing": 48.1938,
+    "requests": 26.9971,
+    "strays": 0.0,
+    "walk_away": 0.0
+   },
+   "reproduced_published_decision_loss": 75.2,
+   "run_root": "/Users/chenyusu/AERead-worktrees/procurement-pay-or-test/runs/procurement_allocation/pay_or_test_v1_finalquotes_openrouter_gemini38_flash_v2",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 1.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 75.1909,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 0,
+    "information_not_acquired": 46,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 0,
+    "worse_terms": 0
+   },
+   "worlds": 24,
+   "worlds_detail": [
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l932",
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l932 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l943",
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l943 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l228",
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l228 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l752",
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l752 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l674",
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l674 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__2",
+     "trace": [
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l401",
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l401 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__3",
+     "trace": [
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l835",
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l835 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l312",
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l312 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 68.3826284978,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 68.3826284978,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.0200000000000387,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l937"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 20.523168596999994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l937"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 46.839459900799966,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l937"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 179.30863269210005,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 179.30863269210005,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.82000000000005,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l303"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 27.299999999999955,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l303"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 150.18863269210004,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l303"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 138.1578903116,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 138.1578903116,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__3",
+     "trace": [
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 20.16651863360005,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.2000000000000455,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 116.7913716779999,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l989"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 211.92906437431998,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 211.92906437431998,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.8240000000000691,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l180"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 38.29404018263995,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l180"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 171.81102419167996,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l180"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 41.276377798000055,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 41.276377798000055,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 0.5999999999999659,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 9.0,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 31.67637779800009,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l369"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 21.706967258799978,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 21.706967258799978,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 0.8799999999999955,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 12.13627937879994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 8.690687880000041,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l370"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 103.44305040000017,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 103.44305040000017,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.0800000000001546,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 16.199999999999932,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 86.16305040000009,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l541"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 129.74519162820002,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 129.74519162820002,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.080000000000041,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l792"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 128.66519162819998,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l792"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l792 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l792"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 147.6391069117201,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 147.6391069117201,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.608000000000061,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 39.53192129542015,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l504"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 106.49918561629988,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l251"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 126.59050884879997,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 126.59050884879997,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.519999999999925,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l810"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 22.800000000000068,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l810"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 102.27050884879998,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l810"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 81.46188865972005,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 81.46188865972005,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.254000000000019,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 18.81000000000006,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 61.39788865971997,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l867"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 94.52894953639998,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 94.52894953639998,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.3600000000000136,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 20.399999999999977,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 72.76894953639999,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l220"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 146.4219783480001,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 146.4219783480001,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.400000000000091,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 145.021978348,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l921 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 82.07653387619996,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 82.07653387619996,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__2",
+     "trace": [
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 19.80000000000001,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l661"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 52.59243497519998,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l661"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l404"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 9.68409890099997,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l661"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 118.35418131850008,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 118.35418131850008,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.1000000000000796,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 16.499999999999943,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 100.75418131850006,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l952"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 113.55864839060007,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 113.55864839060007,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 1.4399999999999977,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 21.003088441599914,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 91.11555994900016,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l827"
+      }
+     ]
+    }
+   ]
+  },
+  "Opus 5.5 (Claude Code, brief v2)": {
+   "actions_total": 87,
+   "actions_with_negative_loss": 0,
+   "actions_with_no_loss": 70,
+   "award_actions_with_both_timing_and_terms_loss": 0,
+   "by_rule_count": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 4,
+    "contrary_to_information_held: stopped after a bad newcomer where another test was worth it": 2,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 1,
+    "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 4,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 2,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 4
+   },
+   "by_rule_per_world": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 0.2114,
+    "contrary_to_information_held: stopped after a bad newcomer where another test was worth it": 1.5901,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.0375,
+    "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 0.9257,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 1.682,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 0.9423
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v1_finalquotes_claude_code_opus55_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 2.764689,
+    "information_not_acquired": 2.624306,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "report_parts_per_world": {
+    "award_terms": 0.0,
+    "award_timing": 3.2721,
+    "requests": 2.1169,
+    "strays": 0.0,
+    "walk_away": 0.0
+   },
+   "reproduced_published_decision_loss": 5.4,
+   "run_root": "/Users/chenyusu/AERead/runs/procurement_allocation/pay_or_test_v1_finalquotes_claude_code_opus55_v1",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.513025,
+    "information_not_acquired": 0.486975,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 5.388995,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 11,
+    "information_not_acquired": 6,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 0,
+    "worse_terms": 0
+   },
+   "worlds": 24,
+   "worlds_detail": [
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l932",
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l932 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l943",
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l943 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l228",
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l228 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l752",
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l752 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l674",
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l674 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l401",
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l401 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l835",
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l835 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l312",
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l312 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 1.0200000000000387,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 1.0200000000000387,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.0200000000000387,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l937"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l298"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l298 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l214"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l313"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l313"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l313 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 5.416296584000008,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 5.416296584000008,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l516"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l200"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.2000000000000455,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l200"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 4.216296583999963,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l989 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l989"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l111"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l111 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 41.276377798000055,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 41.276377798000055,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 0.5999999999999659,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 9.0,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 31.67637779800009,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l369"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 21.706967258799978,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 21.706967258799978,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 0.8799999999999955,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 12.13627937879994,
+       "rule": "worked toward the recorded supplier and never tested a newcomer where a test was worth it",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": "information_not_acquired",
+       "loss_usd": 8.690687880000041,
+       "rule": "awarded the recorded supplier where the best policy tested a newcomer first",
+       "supplier_id": "driver_board_l370"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l899"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l899"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l899"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l541",
+        "request_sample driver_board_l541"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l541"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l541 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l547"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l547 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0.9000000000002046,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.9000000000002046,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.9000000000002046,
+       "rule": "tested a newcomer the stated odds and prices made the worse test",
+       "supplier_id": "driver_board_l504"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l575"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l575"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l575"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l251",
+        "request_sample driver_board_l251"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l251"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l251 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l427"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l427 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 40.68435910960005,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 40.68435910960005,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.254000000000019,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l395"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l599"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 10.800000000000011,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l867"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l599"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 28.630359109600022,
+       "rule": "stopped after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l867"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 16.891888236000057,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 16.891888236000057,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.3600000000000136,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l440"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l801"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 6.000000000000114,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "request_quote driver_board_l801"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 9.53188823599993,
+       "rule": "stopped after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l220"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l650"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l650"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l650"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l921",
+        "request_sample driver_board_l921"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l921"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l921 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l364"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l364 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l558"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l952",
+        "request_sample driver_board_l952"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l952"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l952 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 1.4399999999999977,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 1.4399999999999977,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.4399999999999977,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l677"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l677"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l677"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l827"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l827 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l827"
+      }
+     ]
+    }
+   ]
+  },
+  "Sol 6.1 (Codex CLI)": {
+   "actions_total": 91,
+   "actions_with_negative_loss": 0,
+   "actions_with_no_loss": 82,
+   "award_actions_with_both_timing_and_terms_loss": 0,
+   "by_rule_count": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 2,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 3,
+    "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 4
+   },
+   "by_rule_per_world": {
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 0.4,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 0.1303,
+    "contrary_to_information_held: went to the recorded supplier after a bad newcomer where another test was worth it": 0.4923
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v1_finalquotes_codex_cli_sol61_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 1.022603,
+    "information_not_acquired": 0.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "report_parts_per_world": {
+    "award_terms": 0.0,
+    "award_timing": 0.0,
+    "requests": 1.0226,
+    "strays": 0.0,
+    "walk_away": 0.0
+   },
+   "reproduced_published_decision_loss": 1.0,
+   "run_root": "/Users/chenyusu/AERead/runs/procurement_allocation/pay_or_test_v1_finalquotes_codex_cli_sol61_v1",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 1.0,
+    "information_not_acquired": 0.0,
+    "interaction_cost": 0.0,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 1.022603,
+   "units": {
+    "commitment_error": 0,
+    "contrary_to_information_held": 9,
+    "information_not_acquired": 0,
+    "interaction_cost": 0,
+    "operational": 0,
+    "procedure_and_format": 0,
+    "worse_terms": 0
+   },
+   "worlds": 24,
+   "worlds_detail": [
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l932",
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l932"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l932 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l932"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l943",
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l943"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l943 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l943"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l228",
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l228"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l228 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l228"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "pay_money",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_money__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l752",
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l752"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l752 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l752"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l674",
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l674"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l674 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l674"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l401",
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l401"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l401 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l401"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l835",
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l835"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l835 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l835"
+      }
+     ]
+    },
+    {
+     "clock": "none",
+     "decision_loss_usd": 0,
+     "move": "pay_time",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "pay_time__none__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l312",
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l312"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l312 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l312"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l298"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l298"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l298 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l298"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l214"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l214"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l313"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l313"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l313 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l313"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 5.416296584000008,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 5.416296584000008,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l516"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l516"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l200"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.2000000000000455,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l200"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 4.216296583999963,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l989"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l989 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l989"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l111"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l111"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l111 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l111"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 9.599999999999966,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 9.599999999999966,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.5999999999999659,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 9.0,
+       "rule": "secured the recorded supplier before a newcomer test the odds and clock made best first",
+       "supplier_id": "driver_board_l369"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l546"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l546"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l546"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l546"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l369 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l369"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l815"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l815"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l815"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l815"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l370",
+        "request_sample driver_board_l370"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l370"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l370"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l370 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l370"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l899"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l899"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l899"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l899"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l541",
+        "request_sample driver_board_l541"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l541"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l541 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l541"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_cheapest",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_cheapest__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l547"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l547"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l547 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l547"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0.9000000000002046,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.9000000000002046,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.9000000000002046,
+       "rule": "tested a newcomer the stated odds and prices made the worse test",
+       "supplier_id": "driver_board_l504"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l575"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l575"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l575"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l575"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l251",
+        "request_sample driver_board_l251"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l251"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l251 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l251"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l427"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l427"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l427 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l427"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 2.2261859981251746,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 2.2261859981251746,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.900000000000091,
+       "rule": "tested a newcomer the stated odds and prices made the worse test",
+       "supplier_id": "driver_board_l599"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l395"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 1.3261859981250836,
+       "rule": "tested a newcomer the stated odds and prices made the worse test",
+       "supplier_id": "driver_board_l599"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l599 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l599"
+      }
+     ]
+    },
+    {
+     "clock": "loose",
+     "decision_loss_usd": 6.400000000000091,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 6.400000000000091,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__loose__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l440"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l440"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l801"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 0.39999999999997726,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_quote driver_board_l801"
+       ],
+       "class": "contrary_to_information_held",
+       "loss_usd": 6.000000000000114,
+       "rule": "went to the recorded supplier after a bad newcomer where another test was worth it",
+       "supplier_id": "driver_board_l220"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l801"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l801"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l801"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l801"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l801 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l801"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__1",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l650"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l650"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l650"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l650"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l921",
+        "request_sample driver_board_l921"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l921"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l921 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l921"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__2",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l364"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l364"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l364 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l364"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__3",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l558"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l558"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l952",
+        "request_sample driver_board_l952"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l952"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l952 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l952"
+      }
+     ]
+    },
+    {
+     "clock": "tight",
+     "decision_loss_usd": 0,
+     "move": "test_other",
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "test_other__tight__4",
+     "trace": [
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l677"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l677"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l677"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l677"
+      },
+      {
+       "action": "request_quote",
+       "best": [
+        "request_quote driver_board_l827",
+        "request_sample driver_board_l827"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "request_sample",
+       "best": [
+        "request_sample driver_board_l827"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l827"
+      },
+      {
+       "action": "submit_award",
+       "best": [
+        "submit_award driver_board_l827 x55"
+       ],
+       "class": null,
+       "loss_usd": 0.0,
+       "rule": "no loss",
+       "supplier_id": "driver_board_l827"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "unit": "USD of decision loss per world"
+}
