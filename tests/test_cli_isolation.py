@@ -125,3 +125,19 @@ def test_probe_request_is_hashed_and_asks_for_the_four_items() -> None:
     assert request.request_sha256 and request.output_schema["required"] == [
         "skills", "tools", "working_directory", "other_context_blocks"]
     assert request.revision == request.model == "m"
+
+
+def test_the_input_is_on_stdin_before_the_cli_starts_even_when_the_loop_is_busy() -> None:
+    """CLI-T-01: a CLI that gives up on stdin after a short wait still gets its input while the loop is blocked."""
+    impatient = ("import select, sys; r, _, _ = select.select([sys.stdin], [], [], 0.5); "
+                 "data = sys.stdin.buffer.read() if r else b''; sys.stdout.write(str(len(data))); sys.exit(0 if data else 1)")
+
+    async def main():
+        task = asyncio.ensure_future(iso.isolated_command_runner((sys.executable, "-c", impatient), b"x" * 50_000))
+        await asyncio.sleep(0)
+        import time
+        time.sleep(1.5)  # the driver's synchronous sealing and replay, holding the loop
+        return await task
+
+    code, out, _ = asyncio.run(main())
+    assert code == 0 and out == b"50000"

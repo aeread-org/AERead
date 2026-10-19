@@ -52,8 +52,8 @@ from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, Provi
 from aeread.shared_runner.run.resolver import ImplementationPin, canonical_json_bytes, resolve_run_plan
 from aeread.shared_runner.schemas import AgentProfile, AnalysisPlan, CaseManifest, EvaluationBlock, RunSpec, SamplingPlan, SuiteManifest
 from aeread.shared_runner.task.evaluation import replay_family_receipt
-from aeread.shared_runner.task.execution import ClaudeCodePrintClient
-from aeread.shared_runner.task.receipts import read_evaluation_receipt
+from aeread.shared_runner.task.execution import ClaudeCodePrintClient, EvidenceStore
+from aeread.shared_runner.task.receipts import read_evaluation_receipt, verify_evaluation_receipt
 from aeread_families.datacenter_development import agreement as ag
 from aeread_families.datacenter_development import agreement_admitted_pack_v2 as pv2
 from aeread_families.datacenter_development import agreement_negotiator as an
@@ -412,8 +412,9 @@ async def run(directory: Path) -> dict[str, Any]:
 
 
 def verify(directory: Path) -> dict[str, Any]:
-    """Every sealed receipt replayed offline from its evidence; a sealed failure receipt is counted as such, not as a
-    failed replay (DC-T-22). No provider is called."""
+    """Every sealed receipt replayed offline from its evidence. A sealed failure receipt has no score to replay; its digest
+    and its evidence seal are checked and it is counted as an exclusion, not as a failed replay (DC-T-22). No provider
+    is called."""
     plan = json.loads((directory / "campaign_plan.json").read_text())
     v1._check_sources(plan)
     setups = _setups(plan, plan["provider_runtimes"])
@@ -433,6 +434,8 @@ def verify(directory: Path) -> dict[str, Any]:
             if record.get("error"):
                 if receipt.status == "ok":
                     raise ValueError("a failed cell carries an ok receipt")
+                verify_evaluation_receipt(receipt)
+                EvidenceStore.audit_existing(receipt_path.parent).verify_seal()
                 out["sealed_failure_receipts"].append(record["cell_key"])
                 continue
             replayed = replay_family_receipt(setup=setups[record["pairing"]], receipt=receipt, evidence_root=evidence_root)

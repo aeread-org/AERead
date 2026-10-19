@@ -12,6 +12,8 @@ tool definitions remain; no switch removes them, and the client refuses any call
 the model its working directory, which the hashed client names ``<tmp>/aeread_codex_call_<random>/cwd`` through
 ``-C`` (CLI-D-03); the isolated run replaces that one argument with a fresh neutral directory.
 
+Both runners hand the CLI its input as a file opened on stdin, never a pipe written later (CLI-T-01).
+
 ``probe_codex`` and ``probe_claude`` ask each CLI, under the run's exact flags and isolation, for the skills, tools,
 working directory and other context it was given (Claude Code's own init record supplies its tools, MCP servers,
 output style and working directory). ``isolation_violations`` turns a probe into the reasons a freeze must refuse.
@@ -54,16 +56,25 @@ CLAUDE_PROBE_CONTEXT_LIMIT = 3000
 
 
 async def _communicate(arguments: tuple[str, ...], standard_input: bytes, **options: Any) -> tuple[int, bytes, bytes]:
-    process = await asyncio.create_subprocess_exec(
-        *arguments, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        **options,
-    )
-    try:
-        stdout, stderr = await process.communicate(standard_input)
-    except asyncio.CancelledError:
-        process.kill()
-        await process.wait()
-        raise
+    """Run the CLI with its input as a file opened on stdin (CLI-T-01).
+
+    Claude Code waits 3 s for stdin and then gives up. A pipe written from the event loop arrives late whenever the
+    loop is busy (the driver seals and replays finished negotiations on the same loop), so the input is written to a
+    file first and the CLI reads it from the start; the CLI sees the same bytes on stdin either way.
+    """
+    with tempfile.TemporaryFile(dir=NEUTRAL_TMP) as handle:
+        handle.write(standard_input)
+        handle.flush()
+        handle.seek(0)
+        process = await asyncio.create_subprocess_exec(
+            *arguments, stdin=handle, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, **options,
+        )
+        try:
+            stdout, stderr = await process.communicate()
+        except asyncio.CancelledError:
+            process.kill()
+            await process.wait()
+            raise
     return process.returncode, stdout, stderr
 
 
