@@ -58,6 +58,11 @@ something true by construction; three defects fixed on 2026-09-05 passed every
 existing suite for exactly that reason. Where a mutation does not kill a check,
 record that rather than glossing it.
 
+This standard's task and outcome validity checks align with the
+[Agentic Benchmark Checklist (Zhu et al., 2025)](https://arxiv.org/abs/2507.02825).
+The mutation requirement above is AERead's concrete check that a claimed guard
+can detect the defect it is meant to catch.
+
 Every machine-consumed evidence reference records the artifact type, path,
 SHA-256 digest, family ID and version, profile ID, and explicit required and
 observed coverage IDs. At admission, the path is resolved inside an explicitly
@@ -172,7 +177,18 @@ Establish this by measurement, not by inspecting world definitions:
    world, and reported a fabricated unanimous admission. A screen is evidence and
    is owed the scepticism owed to a run; a unanimous verdict is a reason to check
    the instrument.
-6. A holdout must additionally preserve the difficulty of the panel it holds out
+6. **Screen on the quantity the family actually scores.** If the reported metric
+   is continuous, admission is decided on dispersion in that metric, not on a
+   binary derived from it. A threshold discards exactly the information the panel
+   needs, and it does so silently: procurement's noisy panel was 100% feasible at
+   every seed of every world with zero variance, and the same 23 rows carried
+   regret from $8.04 to $64.82 varying within four of six worlds. Read one way it
+   was uninformative, read the other it discriminated. For a continuous score the
+   grounds become *degenerate*, meaning the control scores identically at every
+   seed, which subsumes floored and saturated, and *trivial*, meaning a
+   deterministic policy already matches the control's best.
+
+7. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
 
 If a family cannot produce worlds that pass all three grounds, the finding is
@@ -410,6 +426,7 @@ Published profiles:
 |---|---|---|
 | Housing V1 | [housing/qc.md](../families/housing/qc.md) | `partial` |
 | Procurement allocation V1 | [procurement-allocation/qc.md](../families/procurement-allocation/qc.md) | `partial`, construct gate `failed` |
+| Data-center development (six family ids) | [datacenter/qc.md](../families/datacenter/qc.md) | `failed`; task-distribution and construct gates `failed`, confirmatory `not_run` |
 
 A family may run development campaigns while carrying a dated Gate 0 exemption,
 but no family may publish a result described as measuring its declared construct

@@ -1,13 +1,13 @@
 """Tests for the amazonbarg.bilateral scripted harness (harness.py, milestone 3).
 
-Drives all five QC Gate-2 goldens (docs/amazonbarg_adapter_spec.md section 4)
+Drives all five QC Gate-2 goldens (docs/families/amazonbarg/adapter_spec.md section 4)
 through the REAL shared-runner path (``run_episode`` with the genuine
 ``AmazonbargPlugin``/registry, never a hand-wired shortcut) using
 ``ScriptedAmazonbargHarness``, and proves the sealed ``EvidenceStore`` this
 harness produces is a genuine, verifiable, hash-chained record -- not merely
 an in-memory transcript. Originally only goldens 1 and 5 ran through this
 sealed path (the milestone's own "at least 2 full episodes" acceptance bar);
-goldens 2, 3, and 4 were added per docs/amazonbarg_review_claude.md finding
+goldens 2, 3, and 4 were added per docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding
 W1, since golden 4 in particular is the golden whose whole point is "no
 protected state changed on invalid input" and had never been proven at the
 sealed-evidence/replay level before. See ``tests/test_amazonbarg_replay.py``
@@ -119,12 +119,12 @@ def _registry_plugin() -> tuple[PluginRegistry, AmazonbargPlugin]:
     return registry, registry.resolve_manifest(family_manifest())
 
 
-# All five QC Gate-2 goldens (docs/amazonbarg_adapter_spec.md section 4), run
+# All five QC Gate-2 goldens (docs/families/amazonbarg/adapter_spec.md section 4), run
 # end to end through the real scheduler and sealed through the same
 # hash-chained EvidenceStore -- including golden 4 (the malformed-action
 # case), which previously only ran through the plain, in-memory run_episode
 # call in test_amazonbarg_environment.py/test_amazonbarg_measurement.py and
-# never through this sealed-evidence path (docs/amazonbarg_review_claude.md
+# never through this sealed-evidence path (docs/families/amazonbarg/reviews/amazonbarg_review_claude.md
 # finding W1).
 GOLDEN_1_SCRIPT = [
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: hi\nAction: [BUY] $120 (1x home-kitchen_2)"}),
@@ -236,7 +236,7 @@ def test_golden_2_runs_end_to_end_through_the_real_scheduler_and_seals_evidence(
 
 # ---------------------------------------------------------------------------
 # Episode 3: golden 3, an authenticated deal below cost (state layer lets it
-# through; only scoring catches it -- see docs/amazonbarg_review_claude.md
+# through; only scoring catches it -- see docs/families/amazonbarg/reviews/amazonbarg_review_claude.md
 # finding M1).
 # ---------------------------------------------------------------------------
 
@@ -275,7 +275,7 @@ def test_golden_3_runs_end_to_end_through_the_real_scheduler_and_seals_evidence(
 # now proven through the same sealed hash-chained EvidenceStore as every
 # other golden, not merely the plain in-memory run_episode call in
 # test_amazonbarg_environment.py/test_amazonbarg_measurement.py
-# (docs/amazonbarg_review_claude.md finding W1).
+# (docs/families/amazonbarg/reviews/amazonbarg_review_claude.md finding W1).
 # ---------------------------------------------------------------------------
 
 

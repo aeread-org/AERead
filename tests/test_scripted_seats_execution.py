@@ -1,4 +1,4 @@
-"""Scripted seats (docs/kernel_scripted_seats_design.md, #92), slice 2.
+"""Scripted seats (docs/architecture/kernel_scripted_seats_design.md, #92), slice 2.
 
 Execution, sealing, receipts and replay of a seat the family resolves itself.
 Built on the kernel-owned reference family: a ``counterpart`` role that is

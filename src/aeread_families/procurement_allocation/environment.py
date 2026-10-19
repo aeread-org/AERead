@@ -13,6 +13,7 @@ import itertools
 import json
 import math
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -208,6 +209,36 @@ def _supplier_by_id(family_case: Mapping[str, Any]) -> dict[str, dict[str, Any]]
     }
 
 
+#: Sampling noise models a case may declare. Kept as a set so an unknown model
+#: is a validation error rather than a silent fallback to perfect verification.
+SAMPLE_NOISE_MODELS = frozenset({"binomial"})
+
+
+def _binomial_defects(
+    *,
+    seed: int,
+    supplier_id: str,
+    draw_index: int,
+    sample_size: int,
+    defect_rate: float,
+) -> int:
+    """Defects seen in one inspected batch, drawn deterministically.
+
+    Counter-based rather than stateful: the draw is a pure function of the
+    declared seed, the supplier, which draw this is, and the unit within it. A
+    replay therefore reproduces every sample exactly without carrying an RNG
+    through the state, which is what lets a receipt be verified offline.
+    """
+    defects = 0
+    for unit in range(sample_size):
+        digest = hashlib.sha256(
+            f"{seed}:{supplier_id}:{draw_index}:{unit}".encode()
+        ).digest()
+        if int.from_bytes(digest[:8], "big") / 2.0**64 < defect_rate:
+            defects += 1
+    return defects
+
+
 def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     data = _plain(payload)
     if set(data) != {"objective", "interaction", "policy", "suppliers"}:
@@ -262,6 +293,35 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         _positive_int(interaction.get(field), f"interaction.{field}")
     for field in ("inquiry_cost_usd", "quote_cost_usd", "counter_cost_usd"):
         _finite_number(interaction.get(field), f"interaction.{field}", minimum=0.0)
+    if interaction.get("counter_feedback", "legacy") not in {"legacy", "field_specific"}:
+        raise ValueError("interaction.counter_feedback must be legacy or field_specific")
+
+    # Sampling noise is opt-in and declared, never implicit. A case that omits
+    # the block keeps perfect verification, which is what every sealed panel was
+    # run under, so this cannot silently re-date existing evidence. The seed
+    # lives in the contract for the same reason a budget does: a source of
+    # randomness that exists only in code is invisible to anyone reading the
+    # experiment definition and silently changes what was measured.
+    noise = interaction.get("sample_noise")
+    if noise is not None:
+        if not isinstance(noise, Mapping):
+            raise ValueError("interaction.sample_noise must be an object")
+        if not {"model", "seed"} <= set(noise) or not set(noise) <= {
+            "model",
+            "seed",
+            "inquiry_batch",
+        }:
+            raise ValueError(
+                "interaction.sample_noise requires 'model' and 'seed' and permits "
+                "only 'inquiry_batch' besides"
+            )
+        if "inquiry_batch" in noise:
+            _positive_int(noise.get("inquiry_batch"), "interaction.sample_noise.inquiry_batch")
+        if noise.get("model") not in SAMPLE_NOISE_MODELS:
+            raise ValueError(
+                f"unsupported interaction.sample_noise.model: {noise.get('model')!r}"
+            )
+        _positive_int(noise.get("seed"), "interaction.sample_noise.seed")
 
     required_variants = policy.get("required_variant_by_component")
     inquiry_fields = policy.get("inquiry_fields")
@@ -451,33 +511,41 @@ def _best_offer(supplier: Mapping[str, Any], *, version: int, issued_day: int) -
 def _counter_is_accepted(
     supplier: Mapping[str, Any], offer: Mapping[str, Any], proposal: Mapping[str, Any]
 ) -> bool:
+    return not _counter_rejection_fields(supplier, offer, proposal)
+
+
+def _counter_rejection_fields(
+    supplier: Mapping[str, Any], offer: Mapping[str, Any], proposal: Mapping[str, Any]
+) -> list[str]:
+    """Name rejected terms without exposing private reservation values."""
     limits = supplier["private_terms"]["negotiation"]
+    rejected = []
     if "unit_price_usd" in proposal and not (
         limits["floor_unit_price_usd"] <= proposal["unit_price_usd"] <= offer["unit_price_usd"]
     ):
-        return False
+        rejected.append("unit_price_usd")
     if "moq" in proposal and not (
         limits["minimum_moq"] <= proposal["moq"] <= offer["moq"]
     ):
-        return False
+        rejected.append("moq")
     if "payment_terms_days" in proposal and not (
         offer["payment_terms_days"]
         <= proposal["payment_terms_days"]
         <= limits["maximum_payment_terms_days"]
     ):
-        return False
+        rejected.append("payment_terms_days")
     current_window = offer["return_policy"]["refund_window_days"]
     if "refund_window_days" in proposal and not (
         current_window
         <= proposal["refund_window_days"]
         <= limits["maximum_refund_window_days"]
     ):
-        return False
+        rejected.append("refund_window_days")
     if proposal.get("return_freight_payer") == "supplier" and not limits[
         "supplier_paid_return_freight_available"
     ]:
-        return False
-    return True
+        rejected.append("return_freight_payer")
+    return rejected
 
 
 def _apply_counter(
@@ -580,7 +648,13 @@ def evaluate_award(
             line_purchase * objective["annual_financing_rate"] * early_days / 365.0
         )
 
-        yield_rate = float(quality["verified_yield_rate"])
+        # Ground truth, taken from the supplier rather than from the buyer's
+        # evidence record. Under noisy sampling the record holds an estimate, and
+        # scoring an award against the buyer's own estimate would make a lucky
+        # draw profitable rather than merely encouraging.
+        yield_rate = float(
+            supplier["private_terms"]["quality"]["verified_yield_rate"]
+        )
         arrives_in_time = elapsed_days + offer["lead_time_days"] <= objective["deadline_days"]
         on_time_probability = float(offer["on_time_probability"]) if arrives_in_time else 0.0
         expected_units[component] += quantity * yield_rate * on_time_probability
@@ -682,6 +756,25 @@ class UpperBoundResult:
 
 
 def solve_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperBoundResult:
+    # Neither observation noise nor rejection wording changes a full-information
+    # optimum. Screening many seeds otherwise repeats the same enumeration four
+    # times per policy/seed (validation and scoring). Copy the cached result so
+    # callers cannot corrupt a later certificate through its nested award plan.
+    economic = _plain(family_case)
+    economic["interaction"].pop("sample_noise", None)
+    economic["interaction"].pop("counter_feedback", None)
+    return copy.deepcopy(_cached_full_information_upper_bound(
+        canonical_json_bytes(economic), UPPER_BOUND_ENUMERATION_LIMIT
+    ))
+
+
+@lru_cache(maxsize=128)
+def _cached_full_information_upper_bound(payload: bytes, enumeration_limit: int) -> UpperBoundResult:
+    del enumeration_limit  # Part of the key: changing the guard invalidates cache entries.
+    return _enumerate_full_information_upper_bound(json.loads(payload))
+
+
+def _enumerate_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperBoundResult:
     """Enumerate the small curated world under full information.
 
     The bound charges every quote, sample, and counter action needed to make its
@@ -1231,6 +1324,34 @@ class ProcurementAllocationPlugin:
                         "claimed_yield_rate": terms["quality"]["verified_yield_rate"],
                         "sample_required_for_verification": True,
                     }
+                    # A cheap, weak reading when the case declares one. It costs
+                    # one action against a sample's two and inspects a far
+                    # smaller batch, so it narrows the field without settling
+                    # anything. It is deliberately still a verbal claim: only a
+                    # sample authorises an award, so the evidence hierarchy is
+                    # unchanged and what moves is the cost of looking.
+                    noise = family_case["interaction"].get("sample_noise")
+                    batch = (noise or {}).get("inquiry_batch")
+                    if batch:
+                        supplier_id = str(action["supplier_id"])
+                        prior = claims.get(field, {}).get("value", {})
+                        drawn = int(prior.get("screened_units", 0))
+                        defects = _binomial_defects(
+                            seed=int(noise["seed"]),
+                            supplier_id=f"inquiry:{supplier_id}",
+                            draw_index=drawn // int(batch),
+                            sample_size=int(batch),
+                            defect_rate=1.0
+                            - float(supplier["private_terms"]["quality"]["verified_yield_rate"]),
+                        )
+                        screened = drawn + int(batch)
+                        observed = int(prior.get("screened_defects", 0)) + defects
+                        value = {
+                            **value,
+                            "screened_units": screened,
+                            "screened_defects": observed,
+                            "screened_yield_rate": 1.0 - observed / screened,
+                        }
                 elif field == "sample_logistics":
                     value = {
                         key: terms["quality"][key]
@@ -1306,34 +1427,82 @@ class ProcurementAllocationPlugin:
                     f"Counter rejected; {current['offer_id']} remains available "
                     f"until day {current['expires_day']}."
                 )
+                if interaction.get("counter_feedback") == "field_specific":
+                    rejected = _counter_rejection_fields(supplier, current, action["proposal"])
+                    consequences["rejected_fields"] = rejected
+                    reply += " Rejected terms: " + ", ".join(rejected) + "."
             next_state["conversation"].append(
                 {"role": "supplier", "supplier_id": action["supplier_id"], "content": reply}
             )
             consequences["accepted"] = accepted
         elif action_type == "request_sample":
             quality = supplier["private_terms"]["quality"]
+            supplier_id = action["supplier_id"]
             next_state["elapsed_days"] += quality["sample_lead_time_days"]
             next_state["information_cost_usd"] += quality["sample_cost_usd"]
-            record = {
-                "supplier_id": action["supplier_id"],
-                "component": supplier["component"],
-                "variant_id": supplier["private_terms"]["variant_id"],
-                "evidence_status": "verified_sample",
-                "verified_day": next_state["elapsed_days"],
-                **_plain(quality),
-            }
-            next_state["quality_evidence"][action["supplier_id"]] = record
+            noise = family_case["interaction"].get("sample_noise")
+            previous = next_state["quality_evidence"].get(supplier_id)
+            if noise is None:
+                # Perfect verification: one draw settles the supplier, and a
+                # second buys nothing. Preserved exactly for sealed panels.
+                record = {
+                    "supplier_id": supplier_id,
+                    "component": supplier["component"],
+                    "variant_id": supplier["private_terms"]["variant_id"],
+                    "evidence_status": "verified_sample",
+                    "verified_day": next_state["elapsed_days"],
+                    **_plain(quality),
+                }
+                reply = (
+                    f"Sample verified: {record['observed_defects']} defects in "
+                    f"{record['sample_size']}; qualified yield "
+                    f"{record['verified_yield_rate']:.3f}."
+                )
+            else:
+                # Noisy verification: each draw inspects a fresh batch, and
+                # evidence accumulates across draws. The buyer never sees the
+                # true rate, only its own running estimate, so when to stop
+                # sampling becomes a decision rather than a formality.
+                draw_index = int(previous["draws"]) if previous else 0
+                batch = int(quality["sample_size"])
+                defects = _binomial_defects(
+                    seed=int(noise["seed"]),
+                    supplier_id=str(supplier_id),
+                    draw_index=draw_index,
+                    sample_size=batch,
+                    defect_rate=1.0 - float(quality["verified_yield_rate"]),
+                )
+                inspected = batch + (int(previous["sample_size"]) if previous else 0)
+                observed = defects + (
+                    int(previous["observed_defects"]) if previous else 0
+                )
+                record = {
+                    "supplier_id": supplier_id,
+                    "component": supplier["component"],
+                    "variant_id": supplier["private_terms"]["variant_id"],
+                    "evidence_status": "verified_sample",
+                    "verified_day": next_state["elapsed_days"],
+                    "draws": draw_index + 1,
+                    "sample_size": inspected,
+                    "observed_defects": observed,
+                    "observed_yield_rate": 1.0 - observed / inspected,
+                    "sample_lead_time_days": quality["sample_lead_time_days"],
+                    "sample_cost_usd": quality["sample_cost_usd"],
+                }
+                reply = (
+                    f"Batch inspected: {defects} defects in {batch}. Cumulative "
+                    f"{observed} in {inspected} across {record['draws']} "
+                    f"batches; observed yield "
+                    f"{record['observed_yield_rate']:.3f}."
+                )
+            next_state["quality_evidence"][supplier_id] = record
             next_state["conversation"].extend(
                 [
                     {"role": "buyer", "content": action["message"]},
                     {
                         "role": "supplier",
-                        "supplier_id": action["supplier_id"],
-                        "content": (
-                            f"Sample verified: {record['observed_defects']} defects in "
-                            f"{record['sample_size']}; qualified yield "
-                            f"{record['verified_yield_rate']:.3f}."
-                        ),
+                        "supplier_id": supplier_id,
+                        "content": reply,
                     },
                 ]
             )

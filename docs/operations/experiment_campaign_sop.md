@@ -44,6 +44,37 @@ Classify every knob in the campaign contract:
 - **diagnostic:** recorded for interpretation, never used to pick the winner or
   retune a completed confirmatory campaign.
 
+### Strata: declare only the splits you will report
+
+A stratum is a slice the design fixes before any model acts: world type, seat,
+reasoning arm, opponent, difficulty. Declare each one in the design contract as
+either a **reported split** or **coverage**, and pay only for the first.
+
+- **A reported split names its estimand and is sized to be tested.** At least 5
+  independent units (worlds, or clusters of twins) per stratum. Seeds are not
+  units: a seed re-draws the noise inside one world, so two worlds with five
+  seeds each are two units, not ten. Before any
+  stratum row is read, the split is tested against shuffled stratum labels, and
+  a split within noise is reported pooled with its stratum rows marked
+  descriptive. Test the part of the outcome the stratum is meant to move, not
+  only the total: a part can separate while the total does not.
+- **Coverage is assigned, not crossed.** A label that sorts worlds costs
+  nothing. A factor every world is re-run under multiplies the cells by its
+  number of values; if it will not be reported, give each world one value,
+  balanced across the pack. Both models still meet the same world under the
+  same value, so the paired contrast is unchanged, at 1x instead of kx.
+- **Within noise is not "does not matter".** The test reads an average shift of
+  the gap between strata. A stratum that moves both sides alike, or moves the
+  gap in opposite directions in different worlds, passes as noise (EX-D-08).
+- **One world per stratum is not a split.** Stratum and world cannot be told
+  apart; those rows describe cases.
+- Changing the strata of a sealed pack is a new campaign identity.
+
+The [strata audit](../research/strata_audit_2026-09.md) records which
+published splits carried signal, which did not, and what trimming the rest
+saves; the Examiner prints the test under every split
+(`tools/examiner/strata_noise.py` is its offline twin).
+
 ## 2. Run the mandatory gates in order
 
 | Order | Gate ID | Exit evidence |
@@ -60,6 +91,14 @@ Classify every knob in the campaign contract:
 Do not infer a winner from the full-trajectory gate or variance pilot. Their job
 is to expose integration failures and size the confirmatory run from the
 predeclared minimum meaningful effect and paired cluster-level variance.
+This follows [Miller's evaluation guidance](https://arxiv.org/abs/2411.00640)
+on paired comparisons, clustered questions, repeated answers, and power analysis:
+worlds or twin clusters carry independent information, while seeds characterize
+variation within a world.
+
+The frozen analysis and stopping rule at `confirmatory_freeze`, followed by
+complete reporting at `confirmatory_execution`, implement the prospective
+commitment described by [Nosek et al. (2018)](https://doi.org/10.1073/pnas.1708274114).
 
 ## 3. Enforce promotion in campaign drivers
 
@@ -167,6 +206,49 @@ fields, and raw-response retention. The service must execute the same AERead
 cases and produce AERead-verifiable receipts; an external arena score is not a
 substitute for the Housing scorer or canonical fact tables.
 
+### Spend of a failed cell
+
+A cell that fails after paid calls still spent money, and a total that omits
+it understates what the failures consumed. Read every cell's spend, completed
+or failed, from its event log with the kernel reader instead of from a
+checkpoint or a receipt:
+
+```python
+from aeread.shared_runner import attempt_spend, total_spend
+
+spend = attempt_spend(attempt_dir)          # works on a failed or interrupted attempt
+run_total = total_spend(attempt_spend(path) for path in attempt_dirs)
+```
+
+`cost_accounting` is `exact` or `lower_bound`. It is a lower bound whenever a
+call has no known cost: its outcome is unknown (timeout, dropped connection),
+the attempt was interrupted before the call closed, or the provider answered
+without usable usage. Report the qualifier with the figure. A call that failed
+after the provider answered is charged against the profile's cost budget and
+carries its usage on the `provider_call_failed` event.
+
+### Long calls
+
+A reasoning-heavy profile can spend minutes on one call. Two controls keep
+that call alive, and both are declared in the profile so a reader of the
+experiment definition sees them:
+
+- `harness.config.provider_stream: true` asks the provider to stream the
+  reply. A call sent whole holds a connection that carries no bytes until the
+  answer, and 76 such calls lost their connection 76 s after starting
+  (DC-T-14). The streamed reply is reassembled to the same result, with the
+  same usage, cost and route verification. Only the OpenRouter client streams;
+  the Arena and OpenAI Responses clients refuse a streamed request instead of
+  ignoring the declaration. Absent means not streamed.
+- `budgets.timeout_seconds` is sized from the sealed full-trajectory gate, not
+  from a smoke: take the longest completed call the gate recorded for that
+  profile and leave room above it. Limits sized from a six-prompt smoke cost
+  one model 25 cells (DC-O-09).
+
+A connection that dies mid-reply is `transport` and a stalled one is
+`timeout`. Both are retried only when the profile lists them in
+`retry_policy.retryable_conditions`.
+
 ## 4. Publish canonical fact-table projections
 
 The benchmark export writes four reportable artifacts in addition to the
@@ -226,6 +308,13 @@ a tool. Use `model_calls.csv`, trajectories, and receipts for observed behavior.
   samples when the sampled unit is a world or case cluster.
 - Report fact-table coverage, exclusions, invalid measurements, missing cells,
   and telemetry completeness alongside aggregate outcomes.
+- With few independent worlds, describe the interval as the method actually
+  computed. [Cameron, Gelbach, and Miller (2008)](https://doi.org/10.1162/rest.90.3.414)
+  show that some standard cluster inference can over-reject with 5–30 clusters
+  and study cluster bootstrap-t methods for regression. AERead currently uses
+  percentile resampling of whole worlds for several paired effects; whether
+  those intervals attain nominal coverage for each AERead estimand remains to
+  be checked by simulation before treating a method change as validated.
 - Never overwrite a different fact export in place. Create a new run or output
   directory when its sealed inputs change.
 
@@ -236,6 +325,46 @@ incomplete, a score is invalid, paired worlds are selectively missing, or a
 control differs across treatment cells. Preserve the failure as evidence, and
 record it in the [incident log](incident_log.md) with its detection, its cost,
 and its disposition.
+
+### Halt rule
+
+A run also stops itself when the next cell cannot succeed. Declare the limit in
+the contract's execution block and let the kernel enforce it:
+
+```python
+from aeread.shared_runner import (
+    CellOutcome,
+    OperationalHaltGuard,
+    require_halt_rule,
+    run_cells_under_halt_rule,
+)
+
+limit = require_halt_rule(contract["execution"])  # max_consecutive_operational_failures
+run = await run_cells_under_halt_rule(
+    cell_keys,
+    execute_cell,
+    guard=OperationalHaltGuard(limit),
+    outcome=lambda result: CellOutcome(
+        operational_failure=result["status"] != "completed",
+        failure_condition=(result.get("failure") or {}).get("failure_condition"),
+        attempted_now=result["status"] != "resumed",
+    ),
+)
+raise SystemExit(run.exit_code)  # 2 when the run halted
+```
+
+- The run halts after `max_consecutive_operational_failures` cells in a row
+  fail operationally, and at once on `account_fault` (HTTP 402): an exhausted
+  balance fails every remaining cell the same way.
+- A cell the run never reached is `not_attempted`. It has no receipt and is not
+  a failure of the cell; write `run.not_attempted` as typed missingness and
+  report `run.halt` in the summary.
+- Only cells executed now count. A resumed result describes an earlier run.
+- A contract schema that predates the control passes `required=False` and keeps
+  running to the end; a sealed contract never acquires a stop rule.
+- A driver that interleaves cells across routes holds the
+  `OperationalHaltGuard` itself: check `guard.halted` before each cell and call
+  `guard.observe(...)` after it.
 
 Before `confirmatory_freeze`, a design change starts a new gate attempt and must
 be documented. After the freeze, any change to treatment, controls, cases,

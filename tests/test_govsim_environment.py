@@ -1,6 +1,6 @@
 """Structural tests for the govsim kernel family plugin.
 
-No bridge needed (mirrors ``docs/govsim_adapter_spec.md`` section 5's test
+No bridge needed (mirrors ``docs/families/govsim/adapter_spec.md`` section 5's test
 classification): every test here drives ``GovsimPlugin`` against an
 in-process fake bridge, never the real subprocess bridge. This exercises the
 phase graph, seat eligibility, and the kernel-facing mechanics of QC Gate
@@ -24,6 +24,7 @@ from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import environment
+from aeread_families.govsim import measurement
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
@@ -119,10 +120,15 @@ class FakeGovsimBridge:
         }
 
 
-def _plugin(*, bridge: FakeGovsimBridge | None = None) -> GovsimPlugin:
+def _plugin(
+    *,
+    bridge: FakeGovsimBridge | None = None,
+    reveal_sustainability_threshold: bool | None = None,
+) -> GovsimPlugin:
     return GovsimPlugin(
         upstream_root=_UNUSED_UPSTREAM_ROOT,
         bridge=bridge if bridge is not None else FakeGovsimBridge(),
+        reveal_sustainability_threshold=reveal_sustainability_threshold,
     )
 
 
@@ -155,11 +161,24 @@ def test_family_manifest_round_trips_through_the_strict_grammar() -> None:
         "greedy_v1",
         "mixed_v1",
     )
-    # Per docs/problem_bound_case_audit.md row P06: comparative-only, no
+    # Per docs/research/problem_bound_case_audit.md row P06: comparative-only, no
     # certified upper bound declared.
     assert manifest.measurement.measurement_kind == "comparative_or_human_judged"
     assert manifest.measurement.bound_status == "baseline_only"
     assert manifest.measurement.optimum_upper_bound is None
+    # Ruling on issue #141 ("govsim: declare the five-leaf policy"): the
+    # manifest declares the full finalize-time leaf policy, not just
+    # primary_estimand -- matching measurement.py's build_leaves() exactly.
+    declared = manifest.measurement.finalize_time_leaf_policy()
+    assert set(declared.leaf_ids) == {
+        measurement.NO_COLLAPSE_LEAF_ID,
+        measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+        measurement.SURVIVAL_MONTHS_LEAF_ID,
+        measurement.TOTAL_HARVEST_LEAF_ID,
+        measurement.EQUALITY_GINI_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.SURVIVAL_MONTHS_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.SURVIVAL_MONTHS_LEAF_ID,)
 
 
 def test_register_plugin_succeeds_with_every_required_hook() -> None:
@@ -371,7 +390,7 @@ def test_verify_source_and_dependency_pins_rejects_a_runtime_dependency_mismatch
 
 def test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_production_call_site() -> None:
     """Closes the coverage gap the independent verification pass flagged
-    against triage Finding 4 (``docs/govsim_fix_verification.md``): the two
+    against triage Finding 4 (``docs/families/govsim/reviews/govsim_fix_verification.md``): the two
     tests directly above drive ``_verify_source_and_dependency_pins``
     directly, and the sole ``validate_payload`` acceptance test
     (``test_validate_payload_accepts_a_generated_case_at_the_pinned_
@@ -388,7 +407,7 @@ def test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_produ
     a caller would configure it -- never the private helper called by
     hand. It would fail to raise if the production call were ever removed
     (see this file's mutation-verification note in
-    ``docs/govsim_review_disposition.md``)."""
+    ``docs/families/govsim/reviews/govsim_review_disposition.md``)."""
     if not _REAL_UPSTREAM_ROOT.is_dir():
         pytest.skip(f"pinned upstream govsim checkout not found at {_REAL_UPSTREAM_ROOT}")
     plugin = GovsimPlugin(upstream_root=_REAL_UPSTREAM_ROOT, bridge=_WrongVersionBridge())
@@ -445,16 +464,37 @@ def test_observe_rejects_an_ineligible_seat() -> None:
         plugin.observe(family_case, state, "persona_1", phases[DISCUSS_PHASE])
 
 
-def test_observe_harvest_exposes_pool_and_threshold() -> None:
+def test_observe_harvest_exposes_the_pool_and_follows_the_declared_arm() -> None:
+    """The sustainability threshold is upstream's universalization
+    intervention, not part of the baseline observation: upstream adds it to
+    the agent's context only under `inject_universalization`, and the paper's
+    headline (survival below 54%) is the arm without it. This test used to
+    assert the threshold unconditionally, which is how two published panels
+    ran the intervention while their cases declared the baseline (G-D-03)."""
     plugin = _plugin()
-    family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
-    phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
-    observation = plugin.observe(family_case, state, "persona_0", phases[HARVEST_PHASE])
+    phases = {phase.phase_id: phase for phase in plugin.phases(_family_case(num_agents=5))}
+
+    baseline_case = _family_case(num_agents=5)
+    assert baseline_case["env_cfg"]["inject_universalization"] is False
+    state = plugin.initial_state(baseline_case, cell=None)
+    observation = plugin.observe(baseline_case, state, "persona_0", phases[HARVEST_PHASE])
     assert observation["resource_in_pool"] == 100
-    assert observation["sustainability_threshold"] == 10
     assert observation["num_round"] == 0
     assert observation["num_agents"] == 5
+    assert "sustainability_threshold" not in observation
+
+    universalized = dict(baseline_case)
+    universalized["env_cfg"] = {**baseline_case["env_cfg"], "inject_universalization": True}
+    state = plugin.initial_state(universalized, cell=None)
+    observation = plugin.observe(universalized, state, "persona_0", phases[HARVEST_PHASE])
+    assert observation["sustainability_threshold"] == 10
+
+    # A control -- the scripted reference policy -- is defined as harvesting
+    # the threshold and sees it whatever the arm.
+    control = _plugin(reveal_sustainability_threshold=True)
+    state = control.initial_state(baseline_case, cell=None)
+    observation = control.observe(baseline_case, state, "persona_0", phases[HARVEST_PHASE])
+    assert observation["sustainability_threshold"] == 10
 
 
 def test_parse_action_harvest_requires_a_nonnegative_integer_quantity() -> None:

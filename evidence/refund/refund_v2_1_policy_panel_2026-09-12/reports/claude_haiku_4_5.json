@@ -1,0 +1,55 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "revision": "claude-haiku-4-5-20251001",
+  "family_id": "refund_v2",
+  "family_version": "2.1.0",
+  "topology": "1:N",
+  "active_agents": [
+    "policy"
+  ],
+  "scripted_agents": [
+    "intake",
+    "customer",
+    "payments"
+  ],
+  "seeds": [
+    0,
+    9,
+    17,
+    24,
+    27,
+    1,
+    4,
+    8,
+    15,
+    20,
+    2,
+    10,
+    14,
+    19,
+    28,
+    5,
+    7,
+    13,
+    16,
+    23
+  ],
+  "scenarios": [
+    "boundary_window",
+    "conflicting_claim",
+    "full_refund",
+    "liquid_damage_denial",
+    "missing_evidence",
+    "partial_software"
+  ],
+  "planned_cases": 120,
+  "completed_cases": 120,
+  "operational_failures": 0,
+  "means": {
+    "coordination_score": 1.0,
+    "transaction_score": 1.0,
+    "utility_score": -6.0
+  },
+  "policy_compliance_rate": 0.3333333333333333,
+  "source_summary_sha256": "31848fb53a96b06e734ccac8058f183fb4492a0d5c9eb38de3f8b79d2b56311a"
+}

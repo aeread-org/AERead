@@ -190,7 +190,7 @@ termination, and outcome all succeeded. The runner recorded 2,000 input tokens, 
 tokens, and $0.005975 cost under a $0.01 ceiling. Recomputing the cost from the pinned $1/M input
 and $5/M output prices produces the same $0.005975. All 13 event links and payload artifacts
 verified and every started entity reconciled exactly once. The non-secret durable admission
-summary is [`claude.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/claude.json).
+summary is [`claude.json`](../../evidence/shared_runner/shared_runner_r4_smoke_2026-08-26/reports/claude.json).
 
 The pinned OpenRouter command also completed one sealed cell on 2026-08-26. OpenRouter selected
 DeepInfra on the canonical `deepseek/deepseek-v4-flash-20260731` endpoint with routing attempt
@@ -200,7 +200,7 @@ recomputation is $0.00003498, equal to OpenRouter's reported upstream inference 
 charged cost is exactly 99% of that amount, so the admission retains both rather than claiming
 equality. All 13 event links and payload artifacts verified and every started entity reconciled
 exactly once. The non-secret durable admission summary is
-[`openrouter_deepseek.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/openrouter_deepseek.json).
+[`openrouter_deepseek.json`](../../evidence/shared_runner/shared_runner_r4_smoke_2026-08-26/reports/openrouter_deepseek.json).
 
 OpenRouter reported 172 reasoning tokens while reporting 165 completion tokens. Because those
 fields are internally inconsistent, reasoning usage is retained only as provider diagnostic

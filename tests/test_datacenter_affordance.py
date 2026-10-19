@@ -203,7 +203,7 @@ def test_affordance_pair_summary_keeps_provider_failure_as_missing() -> None:
 
 def test_published_affordance_campaign_is_sealed_complete_and_sanitized() -> None:
     root = Path(__file__).resolve().parents[1]
-    publication = root / "evidence/datacenter_counteroffer_affordance_v1"
+    publication = root / "evidence/datacenter_development/datacenter_counteroffer_affordance_v1"
     publisher_hash = hashlib.sha256(
         (
             root
@@ -233,7 +233,7 @@ def test_published_affordance_campaign_is_sealed_complete_and_sanitized() -> Non
 def test_published_affordance_results_preserve_mechanism_pattern() -> None:
     publication = (
         Path(__file__).resolve().parents[1]
-        / "evidence/datacenter_counteroffer_affordance_v1"
+        / "evidence/datacenter_development/datacenter_counteroffer_affordance_v1"
     )
     summary = json.loads((publication / "reports/summary.json").read_text())
     trajectories = [

@@ -484,7 +484,7 @@ def test_objective_campaign_publication_is_digest_bound_and_sanitized(
     root = (
         OBJECTIVE_CASE_PATH.parents[3]
         / "evidence"
-        / f"datacenter_development_v2_objective_grounding_{version}"
+        / "datacenter_development" / f"datacenter_development_v2_objective_grounding_{version}"
     )
     manifest = json.loads((root / "publication_manifest.json").read_text())
     core = {key: value for key, value in manifest.items() if key != "artifact_sha256"}
@@ -519,7 +519,7 @@ def test_objective_campaign_v3_reports_model_outcomes_and_missingness_separately
     root = (
         OBJECTIVE_CASE_PATH.parents[3]
         / "evidence"
-        / "datacenter_development_v2_objective_grounding_v3"
+        /"datacenter_development" / "datacenter_development_v2_objective_grounding_v3"
     )
     summary = json.loads((root / "reports" / "summary.json").read_text())
     trajectories = [

@@ -39,7 +39,7 @@ def test_the_register_only_counts_rows_that_actually_executed(register: dict) ->
 def test_every_failure_names_a_source_and_a_kind(register: dict) -> None:
     for failure in register["failures"]:
         assert failure["source"].startswith("evidence/")
-        assert failure["kind"] in {"operational", "measured_violation"}
+        assert failure["kind"] in {"operational", "measured_violation", "not_attempted"}
         if failure["kind"] == "measured_violation":
             assert failure["violations"], failure["case_id"]
             assert failure["status"] == "completed"
@@ -75,3 +75,35 @@ def test_publish_writes_a_bound_manifest(tmp_path: Path, register: dict) -> None
     ).hexdigest()
     with pytest.raises(ValueError):
         publish_register(register, publication_root=tmp_path / "runs" / REGISTER_ID)
+
+
+def test_register_discovers_nested_publications_and_excludes_its_own_output(tmp_path):
+    source = tmp_path / 'evidence' / 'procurement_allocation' / 'procurement_allocation_new' / 'reports' / 'rows.json'
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps({'rows': [{'status': 'operational_failure', 'case_id': 'x', 'failure_condition': 'timeout'}]}))
+    register = build_register(repository_root=tmp_path)
+    assert register['summary']['operational_failures'] == 1
+    target = tmp_path / 'evidence' / 'procurement_allocation' / REGISTER_ID
+    publish_register(register, publication_root=target)
+    assert build_register(repository_root=tmp_path) == register
+
+
+def test_bundle_coverage_counts_nested_publications_including_clean_reports(tmp_path):
+    for name, rows in (
+        ('procurement_allocation_failed', [{'status': 'operational_failure'}]),
+        ('procurement_allocation_clean', [{'status': 'completed', 'violations': []}]),
+        ('procurement_allocation_unattempted', [{'status': 'not_attempted', 'cost_usd': None}]),
+    ):
+        report = tmp_path / 'evidence' / 'procurement_allocation' / name / 'reports' / 'rows.json'
+        report.parent.mkdir(parents=True)
+        report.write_text(json.dumps({'rows': rows}))
+    summary = build_register(repository_root=tmp_path)['summary']
+    assert summary['bundles_scanned'] == 3
+    assert summary['reports_scanned'] == 3
+    assert summary['rows_scanned'] == 3
+    assert summary['executed_rows_scanned'] == 2
+    assert summary['unattempted_rows'] == 1
+    assert summary['operational_failures'] == 1
+    assert summary['operational_cost_usd'] is None
+    assert summary['known_operational_cost_usd'] == 0.
+    assert summary['operational_failures_with_unknown_cost'] == 1

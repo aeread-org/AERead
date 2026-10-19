@@ -464,7 +464,7 @@ def test_pricing_period_reports_profits_at_submitted_prices() -> None:
 # additionally prove ``_submit_*`` actually PRODUCES that attempt (and
 # leaves ``family_case["generated_instance"]`` untouched) for the exact
 # scripted scenario spec section 4 names -- see
-# ``docs/econevals_review_disposition.md`` finding 2.
+# ``docs/families/econevals/reviews/econevals_review_disposition.md`` finding 2.
 # ---------------------------------------------------------------------------
 
 

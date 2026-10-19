@@ -1,4 +1,4 @@
-"""Scripted seats (docs/kernel_scripted_seats_design.md, #92), slice 1.
+"""Scripted seats (docs/architecture/kernel_scripted_seats_design.md, #92), slice 1.
 
 A scripted seat is a seat the family resolves itself rather than a model.
 These tests cover the declaration and resolution rules; the execution and

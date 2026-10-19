@@ -900,8 +900,8 @@ def _sanitized_arm(*, run_root: Path, name: str) -> dict[str, Any]:
 
 
 def publish_campaign(*, run_root: Path, publication_root: Path) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     comparison = build_comparison(run_root=run_root)
     if not comparison["readiness"]["holdout_diagnostic_qualified"]:
         raise ValueError("holdout diagnostic is not integrity-qualified")

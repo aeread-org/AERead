@@ -1,7 +1,7 @@
 """Hand-derived formula parity for the termsbench counterpart kernel.
 
 Every assertion here is independently re-derived from the cited paper
-equation (docs/termsbench_adapter_spec.md sections 3-4), never validated
+equation (docs/families/termsbench/adapter_spec.md sections 3-4), never validated
 against an upstream implementation -- none exists (dead repository link).
 """
 from __future__ import annotations

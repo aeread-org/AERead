@@ -13,12 +13,14 @@ family state.
 """
 from __future__ import annotations
 
+import collections
 import copy
+import hashlib
 import subprocess
-import uuid
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from aeread.shared_runner import canonical_json_bytes
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.task.scheduler import (
@@ -127,8 +129,53 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "property_or_answer",
                 "direction": "none",
                 "outcome_support": "pass_fail",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # ``build_scorer`` or a test fixture. All three are
+                # ``scope="finalize_time"``: every leaf in measurement.py is
+                # ``evaluation_class="deterministic"`` with no judge, rater,
+                # or other not-yet-existing artifact dependency (spec
+                # section 4), so none is ``deferred``. See
+                # docs/econagent_adapter_status.md's "Leaf policy" section
+                # for why ``econagent_budget_identity`` is primary and why it
+                # and ``econagent_tax_bracket_arithmetic`` alone gate
+                # admission.
+                "leaves": [
+                    {"leaf_id": measurement.BUDGET_IDENTITY_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.TAX_BRACKET_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.MACRO_TRAJECTORY_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": measurement.BUDGET_IDENTITY_LEAF_ID,
+                "admission_leaf_ids": [
+                    measurement.BUDGET_IDENTITY_LEAF_ID,
+                    measurement.TAX_BRACKET_LEAF_ID,
+                ],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # `measurement.py` gives each leaf's validity-domain predicate
+            # and verifier-reference implementation a component id distinct
+            # from that leaf's own scorer id (unlike, e.g.,
+            # procurement_grounding's single leaf, which reuses `scorer_id`
+            # itself for both) -- `resolve_run_plan`'s own pin bookkeeping
+            # only requires and admits a pin for a component named here or
+            # as `scorer_id` (`_required_pin_kinds`), and
+            # `EvaluationReceipt._validate_and_freeze_plan_pins` requires
+            # every leaf-declared implementation ref to match one, so every
+            # one of these seven must be declared as a reference provider
+            # (mirrors govsim's identically-motivated `reference_provider_ids`).
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    measurement.DOMAIN_PREDICATE_ID,
+                    measurement.BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID,
+                    measurement.TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID,
+                    measurement.MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID,
+                    measurement.BUDGET_IDENTITY_SCORER_ID,
+                    measurement.TAX_BRACKET_SCORER_ID,
+                    measurement.MACRO_TRAJECTORY_SCORER_ID,
+                ],
+            },
         }
     )
 
@@ -167,6 +214,29 @@ class EconAgentV1Plugin:
     and its own offline replay (``replay.py``), both driven through the same
     ``cell`` -- produce byte-identical canonical state, not merely
     semantically equivalent content.
+
+    kernel_scoring_contract_spec.md milestone 3 finding: the KERNEL's own
+    generic replay (``task.evaluation._replay_family_trajectory``, driving
+    ``replay_family_scoring_input``/``finalize_family_execution``) has no
+    ``PlanCell`` to give ``initial_state`` at all -- it always calls
+    ``plugin.initial_state(family_case, run=None)``, unlike the real
+    scheduler (which always passes the genuine ``PlanCell`` positionally).
+    A ``cell``-derived id can therefore never be reproduced by that replay
+    path from ``family_case`` alone. ``_mint_session_id`` closes this gap the
+    only way possible without weakening cell-level collision safety or
+    touching shared kernel code: it remembers, per distinct ``family_case``,
+    a FIFO queue of the ids REAL cells minted for it, and the no-``cell``
+    fallback (used by kernel replay, and by the handful of tests that call
+    ``initial_state`` directly) consumes the OLDEST still-queued id instead of
+    minting a random one. FIFO order matters: it is what lets several
+    independent live episodes of the identical ``family_case`` -- e.g. the
+    scoring-contract protocol test's own same-case sensitivity-witness pair
+    (kernel_scoring_contract_spec.md ruling R9(b)) -- each be replayed
+    correctly by ``_assert_family_obeys_the_scoring_contract``'s single
+    shared registration, one call to ``replay_family_scoring_input`` per
+    fixture, in the same order the fixtures were minted. See
+    ``_mint_session_id``'s own docstring for the full reasoning and its
+    stated limit.
     """
 
     def __init__(
@@ -180,6 +250,18 @@ class EconAgentV1Plugin:
             lambda: EconAgentBridge.discover(self.upstream_root)
         )
         self._sessions: dict[str, EconAgentBridge] = {}
+        # Populated only by a REAL cell's mint (see `_mint_session_id`);
+        # consulted only by the no-cell fallback, so kernel replay -- which
+        # never supplies a cell -- can reproduce the id the corresponding
+        # live run actually used. Keyed by the validated `family_case`'s own
+        # canonical digest, never by anything cell-derived. A FIFO queue, not
+        # a single slot: several independent live episodes of the identical
+        # `family_case` each get their OWN entry, consumed in mint order by
+        # the fallback, so each is later replayed against its own id rather
+        # than the most recent one.
+        self._live_session_ids_by_case_digest: dict[str, collections.deque[str]] = (
+            collections.defaultdict(collections.deque)
+        )
 
     def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = _plain(payload)
@@ -288,7 +370,20 @@ class EconAgentV1Plugin:
             )
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here (see ``_mint_session_id``'s own docstring,
+        which still calls this parameter ``cell`` -- it is the same value,
+        renamed only at this call boundary).
+        """
         scenario = family_case["scenario"]
         bridge = self._bridge_factory()
         bridge.start_episode(
@@ -299,7 +394,7 @@ class EconAgentV1Plugin:
             gamma=scenario["gamma"],
             h=scenario["h"],
         )
-        session_id = self._mint_session_id(cell)
+        session_id = self._mint_session_id(run, family_case)
         self._sessions[session_id] = bridge
         snapshot = bridge.agent_snapshot()
         return {
@@ -518,17 +613,26 @@ class EconAgentV1Plugin:
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
         """Return the one ``EconAgentV1Scorer`` declaring this case's leaves.
 
-        Built in milestone 2 (measurement.py) -- the two ``rule_constraint``
-        accounting leaves and the ``baseline_only`` macro diagnostics (spec
-        section 2). Only the leaves are declared here; scoring itself
-        happens against a terminated episode's ``terminal()`` output (see
-        ``measurement.score_budget_identity``/``score_tax_bracket_arithmetic``/
-        ``score_macro_trajectory``, mirroring ``tau3_retail``'s identical
-        split between "declare the leaves" and "score a specific episode").
+        The two ``rule_constraint`` accounting leaves and the
+        ``baseline_only`` macro diagnostic (spec section 2) are declared in
+        ``measurement.py``. ``task.evaluation.finalize_family_execution``
+        calls the returned ``EconAgentV1Scorer`` directly
+        (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1);
+        ``EconAgentV1Scorer.__call__`` is the seam that satisfies that call
+        and returns every one of this family's three declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        ``score_*`` method is still exercised directly by
+        ``tests/test_econagent_measurement.py``'s goldens today.
+        ``bridge_factory=self._bridge_factory`` gives ``__call__`` the same
+        live, stateless bridge handle a real episode's own scoring already
+        uses for ``econagent_tax_bracket_arithmetic``'s
+        ``recompute_tax`` re-invocation.
         """
         scenario = family_case["scenario"]
         pins = family_case["pins"]
-        return measurement.build_scorer(scenario, pins)
+        return measurement.build_scorer(scenario, pins, bridge_factory=self._bridge_factory)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
@@ -538,9 +642,10 @@ class EconAgentV1Plugin:
         del family_case
         return None
 
-    def _mint_session_id(self, cell: Any) -> str:
+    def _mint_session_id(self, cell: Any, family_case: Mapping[str, Any]) -> str:
         """Choose this episode's ``bridge_session_id`` (docs/econagent_codex_triage.md
-        finding 6).
+        finding 6, extended by a kernel_scoring_contract_spec.md milestone-3
+        finding -- see this class's own docstring for the second half).
 
         Deterministic whenever the real scheduler supplies a ``cell``: its
         own ``cell_id`` already uniquely identifies one case x block x seed
@@ -553,23 +658,62 @@ class EconAgentV1Plugin:
         merely semantically equivalent content. Raises if that same cell
         already has an active session -- the same plan cell must never be
         started twice concurrently in one plugin instance, since sessions
-        are looked up by this id alone (``_require_session``).
+        are looked up by this id alone (``_require_session``). Enqueues the
+        minted id against ``family_case``'s own canonical digest so the
+        no-``cell`` fallback below can reproduce it later, in the same order.
 
-        Falls back to a fresh random id only when ``cell`` is ``None`` --
-        a handful of tests call ``initial_state`` directly, bypassing the
-        real scheduler entirely, and never feed the result into a cross-run
-        canonical-state comparison.
+        Falls back to the OLDEST still-queued id minted from a REAL cell for
+        this EXACT ``family_case`` when ``cell`` is ``None`` (or lacks a
+        ``cell_id``) -- required because
+        ``task.evaluation._replay_family_trajectory`` (kernel replay, driving
+        ``finalize_family_execution``/the scoring-contract protocol test's
+        own fixtures for the first time this milestone) always calls
+        ``initial_state(family_case, run=None)`` and has no ``PlanCell`` to
+        give it at all; a cell-derived id could never be reproduced there
+        otherwise, and every phase's ``pre_state_sha256``/
+        ``post_state_sha256`` cross-check would fail on the very first phase
+        boundary. FIFO, not "most recent": when SEVERAL independent live
+        episodes share the identical ``family_case`` (e.g. the protocol
+        test's own same-case sensitivity-witness pair, ruling R9(b)) and are
+        later each replayed exactly once, in the same order they were
+        minted, each replay consumes its OWN corresponding id, never
+        another episode's. When no live mint is queued at all for this
+        ``family_case`` (a handful of tests that call ``initial_state``
+        directly, bypassing the real scheduler entirely, and never feed the
+        result into a cross-run canonical-state comparison), falls back to
+        an id derived from ``family_case``'s own digest -- deterministic,
+        but only ever compared for INEQUALITY against another distinct
+        case's id in those tests, never for equality against a specific live
+        run's id.
+
+        **Stated limit.** This assumes every live-minted id for a given
+        ``family_case`` is eventually consumed by replay/audit AT MOST ONCE,
+        in mint order -- true for one finalize-then-forget pass per episode
+        (every path exercised by this family's own tests today), but a
+        SECOND, later re-replay of an already-consumed episode (e.g. a
+        repeated ``audit_family_receipt`` call) would find its queue entry
+        already gone and fall through to the case-digest-derived id instead,
+        which would then disagree with that episode's own sealed evidence. A
+        future need for repeatable, idempotent re-replay of the same episode
+        would need a kernel-level fix (e.g. ``_replay_family_trajectory``
+        threading the sealed evidence's own ``cell_id`` through as ``run``)
+        rather than this family-local one.
         """
+        case_digest = hashlib.sha256(canonical_json_bytes(family_case)).hexdigest()
         cell_id = getattr(cell, "cell_id", None)
-        if cell_id is None:
-            return uuid.uuid4().hex
-        session_id = f"econagent_v1:{cell_id}"
-        if session_id in self._sessions:
-            raise RuntimeError(
-                f"a bridge session for cell {cell_id!r} is already active; "
-                "the same plan cell must never be started twice concurrently"
-            )
-        return session_id
+        if cell_id is not None:
+            session_id = f"econagent_v1:{cell_id}"
+            if session_id in self._sessions:
+                raise RuntimeError(
+                    f"a bridge session for cell {cell_id!r} is already active; "
+                    "the same plan cell must never be started twice concurrently"
+                )
+            self._live_session_ids_by_case_digest[case_digest].append(session_id)
+            return session_id
+        queued = self._live_session_ids_by_case_digest.get(case_digest)
+        if queued:
+            return queued.popleft()
+        return f"econagent_v1:case:{case_digest}"
 
     def _require_session(self, session_id: str) -> EconAgentBridge:
         bridge = self._sessions.get(session_id)

@@ -1,6 +1,6 @@
 """Runtime enforcement of a declared manifest leaf policy at finalize time.
 
-kernel_contract_impl_review.md findings 5, 6, 12, and 13. These use Housing's
+docs/architecture/reviews/kernel_contract_impl_review.md findings 5, 6, 12, and 13. These use Housing's
 real, already-migrated plugin and scorer end to end -- the finalizer's
 call site is exactly production's, only the *manifest* attached to a fresh
 registry differs from the one the run-plan happens to carry, exercising

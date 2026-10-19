@@ -39,6 +39,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--source-bindings",
         help="--new: JSON object recording what the bundle was produced from",
     )
+    parser.add_argument(
+        "--source-commit",
+        help="--new: the commit the bundle's pinned sources came from (see `aeread source-commit`)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -51,6 +55,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 campaign_id=args.campaign_id,
                 privacy_boundary={"included": args.included, "excluded": args.excluded},
                 source_bindings=json.loads(args.source_bindings) if args.source_bindings else None,
+                source_commit=args.source_commit,
             )
         else:
             if not (args.bundle / MANIFEST_FILENAME).exists():

@@ -328,8 +328,14 @@ start and terminal events, result/error artifact, and any declared state-diff re
 `retried_for_length` and the prior/new output-token limit live on the retrying action attempt
 and the affected provider-call records.
 
-If a successful final provider response is empty and `finish_reason == "length"`, the
-default paper policy may create one new `ActionAttempt` with a declared higher output limit.
+A provider response that stopped at the output-token limit (`finish_reason` `length` or
+`max_output_tokens`) was interrupted, not finished. Unless it still holds a complete answer
+-- a harness built an action from it, or its text is a complete JSON value -- it is a typed
+`length` failure and never reaches a family parser, on every client; the call is recorded as
+completed, with its usage and cost. A profile that declares `length` retryable gets a new
+`ActionAttempt` with double the output limit, applied to every round of a harness-driven
+attempt, up to `harness.config["max_output_tokens_ceiling"]` (default: eight times the
+declared limit). When the limit can grow no further the retry is not issued.
 The first attempt and every child side effect remain in evidence. Provider transport retries
 within an action attempt are separate `ProviderCall` records. SDK-level automatic retries
 MUST be disabled where possible; otherwise the adapter must expose every request or declare
@@ -342,7 +348,7 @@ Failures are classified at the layer that owns them:
 
 | Class | Examples | Measurement consequence |
 |---|---|---|
-| `retryable_infrastructure` | timeout, rate limit, transient transport/provider 5xx | Retry only under the declared policy. Exhaustion is `invalid_measurement`. |
+| `retryable_infrastructure` | timeout, rate limit, transient transport/provider 5xx, a choice that finished with an upstream error (`provider_choice_error`) | Retry only under the declared policy. Exhaustion is `invalid_measurement`. |
 | `agent_action_failure` | missing, malformed, or illegal action after a successful response | Apply the family-declared no-op, penalty, or forfeit. The economic episode can remain valid. |
 | `integration_or_configuration` | missing plugin, incompatible schema, unpinned implementation, failed preflight | Invalid cell; normally reject before paid calls. |
 | `environment_failure` | hook exception or inconsistent transition | `invalid_measurement`; never turn into economic zero. |

@@ -60,6 +60,24 @@ attempt count, a timeout or a route policy that lives only in code is
 invisible to anyone reading the experiment definition and silently changes
 what the experiment measured.
 
+## Analysing results
+
+Before a result is read as a claim about a model, report:
+
+- **Evaluation-result distributions.** The spread across cases and the share
+  at each outcome, beside any average, and how many cases are missing and why.
+- **Run-to-run variance.** How much one case varies between runs. With one run
+  per case, say that this is unmeasured.
+- **Confidence intervals of performance.** For every score and every
+  difference between models or conditions. The case is the resampling unit,
+  cases that share their facts are one cluster, and conditions run on the
+  same cases are compared as paired differences.
+- **Agreement between judge models.** When a model grades, how often judges
+  agree and where they differ. An exact grader cites its replay verification
+  instead.
+- **Anything else worth a look.** What the numbers suggest beyond the
+  headline, labelled as exploratory.
+
 ## Pull requests
 
 Follow [`docs/operations/pr_lanes.md`](docs/operations/pr_lanes.md). The
@@ -145,10 +163,12 @@ as work to verify.
   literals, and keep every removal from `_NOT_YET_MIGRATED_TRUSTED_KEYS`.
   Never drop another family's block to resolve a conflict.
 - **Prove nothing was dropped, then run the fast test.** After each conflicted
-  merge, with the merge still in progress, check that the resolved file's
-  module-level bound names (imports and aliases, defs, classes, assignments,
-  parsed with `ast`) are a superset of both parents' — a `grep` for `def`
-  cannot see dropped imports, which is exactly what got dropped. Then run
+  merge, with the merge still in progress, run
+  `python tools/check_registration_merge.py <resolved-file> --ours HEAD --theirs MERGE_HEAD`
+  for each registration file. It checks imports/aliases, definitions,
+  duplicate bindings, migration-exemption intersection, bridge-enrollment
+  union, and helper returns. A `grep` for `def` cannot see dropped imports,
+  which is exactly what got dropped. Then run
   `pytest tests/test_shared_runner_scoring_contract.py -q` with no bridges
   exported (under a minute; bridge-gated tests skip). Both green, then merge.
 - **Any other conflict is a stop, not a resolve.** A conflict in
@@ -163,6 +183,21 @@ as work to verify.
   checking the merge happened** (`gh pr view N --json state` must say
   `MERGED`). Required checks, protections and labels are not undoable by
   reverting a commit.
+
+## Reporting results
+
+Show only what solves the problem or explains it. Lead with the answer, give
+the deciding numbers or the one trace that makes it clear, then stop.
+
+- Leave out process narration, recaps of earlier turns and side findings that
+  do not change the conclusion.
+- For "why" questions, give the causal chain in the world's own terms (days,
+  prices, budgets), not code vocabulary.
+- One table, not several; state a result once.
+- Verify a claim before stating it. If an earlier one was wrong, correct it in
+  a line.
+- No closing summary paragraph. This overrides the global closing-summary rule
+  for this project.
 
 ## Why these rules exist
 
@@ -195,3 +230,7 @@ this repository, with where it is written down.
   adapter and kernel-review documents at the root of `docs/`, unindexed, with
   ninety-two stale cross-references. Hence the placement rule in
   `docs/README.md` and the deferred move in #123.
+- **Point estimates from one run.** The risk-allocation probes of
+  2026-09-24/25 compared arms on one run per world with no interval, and
+  counted provider failures as the model's moves (DC-O-08, DC-T-12; rows on
+  `codex/datacenter-risk-allocation` until it merges). Hence the analysis rules.

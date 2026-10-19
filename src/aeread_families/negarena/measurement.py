@@ -52,6 +52,7 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -62,6 +63,8 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import PhaseInstance
 
 from .cases import BLUE, RED
 from .negarena_bridge import NegarenaBridge
@@ -87,6 +90,24 @@ AGREEMENT_SCORER_ID = "negarena_agreement_reached_scorer"
 # tonight's pairing rule (spec section 2's verifier YAML): one declared
 # opponent per case, not a field/panel.
 PAIRING_RULE = "fixed_pairing_v0"
+
+# Ruling R12 (kernel_scoring_contract_spec.md rule 3): an agent profile id
+# (``SeatContext.profile_by_seat``, a kernel/plan concept) is not
+# automatically an upstream policy id (``score_seat_outcome``'s
+# ``opponent_policy_id`` -- descriptive score-time metadata only, never
+# consumed by ``bridge.settle``'s arithmetic; see that function's own
+# ``metadata=`` construction). Pinned here, deterministic, never guessed:
+# every profile this corpus has ever paired an opponent under is the one
+# scripted profile every existing call site already hardcodes
+# (``opponent_policy_id="scripted"`` in ``replay.py``, ``parity.py``, and
+# ``tests/test_negarena_harness.py``; ``profile_id="negarena_scripted_v1"``
+# in ``tests/test_negarena_kernel_finalizer.py``'s ``AgentProfile``). A
+# profile id absent from this mapping is ``invalid_measurement
+# ("unknown_opponent_profile")`` in ``NegarenaScorer.__call__`` below, never
+# a fabricated policy id.
+OPPONENT_PROFILE_TO_POLICY_ID: Mapping[str, str] = {
+    "negarena_scripted_v1": "scripted",
+}
 
 # The two admission-gate failures environment.py already catches
 # (parse_action/legal); neither leaf is ever scored for these -- see this
@@ -331,6 +352,16 @@ def score_seat_outcome(
     circuits to an ``invalid_measurement`` envelope before any bridge call
     is made (spec section 4 goldens 3/4: "no negarena_seat_outcome leaf is
     emitted for either").
+
+    Ruling R12: ``utility_by_seat`` carries BOTH seats' own realized value,
+    not only ``seat_id``'s -- the settlement call above already computes
+    ``opponent_value`` for the ``metrics["counterparty_outcome"]``
+    diagnostic, so exposing it a second time here, keyed by the opponent's
+    own seat id, is not new arithmetic. This is what lets
+    ``NegarenaScorer.__call__`` return ONE envelope per ``score_seat_outcome``
+    call whose ``utility_by_seat`` still carries every seat's own value, as
+    the ruling requires, rather than needing a second bridge call for the
+    other seat's perspective.
     """
     reason = terminal["reason"]
     if reason in INVALID_TERMINATION_REASONS:
@@ -365,7 +396,10 @@ def score_seat_outcome(
         },
     )
     metrics = {"counterparty_outcome": MetricValue(opponent_value, "native_valuation")}
-    utility = {seat_id: MetricValue(own_value, "native_valuation")}
+    utility = {
+        seat_id: MetricValue(own_value, "native_valuation"),
+        opponent_seat_id: MetricValue(opponent_value, "native_valuation"),
+    }
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
@@ -415,16 +449,53 @@ def score_agreement_reached(
     )
 
 
+def _final_state_from_phase_instances(
+    phase_instances: tuple[PhaseInstance, ...],
+) -> Mapping[str, Any]:
+    """Read the terminal family state off the last replayed phase transition.
+
+    ``scoring_input.outcome`` never carries ``state["history"]``
+    (``environment.py``'s ``outcome()`` reports only
+    ``{termination_reason, iteration_count, last_answer, last_trade}`` -- a
+    terminal summary, never the trajectory); ``score_seat_outcome``'s
+    ``_accepted_trade_give`` needs the full ``history`` list to find the
+    turn proposed immediately before an ``ACCEPT`` (``state["history"][-2]``).
+
+    ``environment.py``'s ``step()`` appends to ``state["history"]`` every
+    turn and never resets it, so by the LAST phase instance's LAST
+    transition, that state carries the complete history for the whole
+    episode. Ruling R2 (kernel_scoring_contract_spec.md): reading it here is
+    safe because every phase boundary's post-state hash is cross-checked
+    against sealed evidence during the verified re-execution that produces
+    ``FamilyScoringInput``, so a history that diverged from the real run
+    would already have failed finalization before this scorer is ever
+    called -- this only reads what that re-execution produced, never
+    re-derives it independently (mirrors ``govsim/measurement.py``'s
+    identical ``_round_trace_from_phase_instances``).
+    """
+    if not phase_instances:
+        return {}
+    last_state = phase_instances[-1].transitions[-1].state
+    if not isinstance(last_state, Mapping):
+        return {}
+    return last_state
+
+
 @dataclass(frozen=True, slots=True)
 class NegarenaScorer:
     """One case's fixed set of declared leaves, plus the scorers for them.
 
     ``environment.py``'s ``build_scorer`` hook returns one of these,
-    mirroring ``tau3_retail``'s identical ``Tau3RetailScorer`` convention.
+    mirroring ``tau3_retail``'s identical ``Tau3RetailScorer`` convention --
+    including carrying its own ``bridge`` (``Tau3RetailScorer.bridge``'s
+    identical shape), since kernel_scoring_contract_spec.md section 1's
+    production call site (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=...)``) passes no bridge parameter of its own.
     """
 
     family_case: Mapping[str, Any]
     leaves: tuple[MeasurementLeafSpec, MeasurementLeafSpec]
+    bridge: NegarenaBridge | None = None
 
     @property
     def seat_outcome_leaf(self) -> MeasurementLeafSpec:
@@ -435,47 +506,108 @@ class NegarenaScorer:
         return self.leaves[1]
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
-    ) -> ScoreEnvelope:
-        """Conform to the shared kernel's single-outcome scorer call.
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
 
-        ``family_evaluation.py``'s ``finalize_family_execution``/
-        ``replay_family_receipt``/``audit_family_receipt`` all call
-        ``plugin.build_scorer(family_case)(outcome, evidence_refs=...)``
-        directly -- before this method existed, any completed negarena
-        ``CellExecution`` reaching that call site raised
-        ``TypeError: 'NegarenaScorer' object is not callable`` before
-        ``score_recorded`` was ever appended, before evidence was ever
-        sealed, and before a receipt was ever written
-        (docs/negarena_codex_triage.md Finding 1).
+        Returns both of this family's declared finalize-time leaves (spec
+        section 5) -- never only the primary, which is what this method did
+        before this migration (``docs/negarena_codex_triage.md`` Finding 1
+        forced a callable ``__call__`` to exist at all; it always reported
+        ``negarena_seat_outcome`` as an ``invalid_measurement`` and never
+        returned ``negarena_agreement_reached`` at all). Composes the
+        existing named ``score_seat_outcome``/``score_agreement_reached``
+        methods -- no new scoring logic is written here.
 
-        That generic call site passes only the plugin's own ``outcome()``
-        dict and a tuple of evidence refs -- never the ``NegarenaBridge``,
-        never which seat is the tested subject, never the fixed opponent's
-        policy id. Real per-seat scoring (``score_seat_outcome``) needs all
-        three: which seat is realizing a value depends on a RunPlan cell's
-        ``profile_by_seat``/``EvaluationBlock.subject_seats`` -- context this
-        single-outcome call site does not carry and this method must not
-        guess at (spec section 2: "never a computed zero payoff ... An
-        invalid or missing observation must not be scored as an economic
-        zero"). So this always reports the declared primary leaf
-        (``negarena_seat_outcome``) as ``invalid_measurement`` here, with a
-        typed reason rather than a fabricated score -- ``finalize_family_execution``
-        already has a well-formed ``invalid_measurement`` receipt path (score
-        recorded, evidence sealed, receipt written, ``inclusion_status="excluded"``)
-        that this now reaches instead of crashing. A caller that needs the
-        real per-seat/agreement scores must call
-        ``score_seat_outcome``/``score_agreement_reached`` directly, exactly
-        as ``tests/test_negarena_harness.py`` already does (mirroring
-        ``tau3_retail``'s identical ``Tau3RetailScorer`` convention, whose own
-        docstring notes the kernel does not yet invoke ``build_scorer`` with
-        per-seat context either).
+        ``negarena_agreement_reached`` needs only ``scoring_input.outcome``
+        and is unaffected by seat context. ``negarena_seat_outcome`` is
+        declared ``seat_scope="subject_seat"`` (ruling R12): it is scored
+        for the plan's sole subject seat via
+        ``_score_seat_outcome_for_subject`` below, which is where every
+        zero/ambiguous/unknown-opponent case is handled.
         """
-        del outcome
-        return _invalid_envelope(
-            self.seat_outcome_leaf,
-            "negarena_kernel_finalizer_lacks_seat_pairing_context",
-            evidence_refs,
+        outcome = scoring_input.outcome
+        terminal_like: dict[str, Any] = {
+            "reason": outcome["termination_reason"],
+            "iteration_count": outcome["iteration_count"],
+            "last_answer": outcome["last_answer"],
+        }
+        seat_outcome_score = self._score_seat_outcome_for_subject(
+            scoring_input=scoring_input, terminal=terminal_like, evidence_refs=evidence_refs
+        )
+        agreement_score = self.score_agreement_reached(
+            terminal=terminal_like, evidence_refs=evidence_refs
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.seat_outcome_leaf.leaf_id,
+            scores=(seat_outcome_score, agreement_score),
+            admission_leaf_ids=(self.seat_outcome_leaf.leaf_id,),
+        )
+
+    def _score_seat_outcome_for_subject(
+        self,
+        *,
+        scoring_input: FamilyScoringInput,
+        terminal: Mapping[str, Any],
+        evidence_refs: tuple[str, ...],
+    ) -> ScoreEnvelope:
+        """Score leaf 1 for the plan's tested subject seat (ruling R12 rule 2).
+
+        Checked in this order, all before any bridge call: which seat is
+        the subject, then whether the opponent's profile id maps to a real
+        upstream policy id. Both are "can this leaf even be attempted for
+        this seat pairing" questions, independent of whether the episode's
+        own termination was itself valid -- ``score_seat_outcome`` (called
+        last, only once both resolve) still applies its own
+        ``INVALID_TERMINATION_REASONS`` short-circuit exactly as before.
+
+        - Zero subject seats: no seat to report a value for --
+          ``invalid_measurement("no_subject_seat")``.
+        - More than one subject seat: this family declares no
+          ``subject_reduction`` (``environment.py``'s ``family_manifest`` --
+          no case in today's corpus pairs the tested seat against itself),
+          so a scalar over several subject seats is never permitted here --
+          ``invalid_measurement("ambiguous_subject_seat")``.
+        - Exactly one subject seat: its opponent's identity is
+          ``scoring_input.seat_context.profile_by_seat[opponent_seat]``, an
+          agent profile id. ``score_seat_outcome`` needs an upstream POLICY
+          id instead (``opponent_policy_id``); an unmapped profile id is
+          ``invalid_measurement("unknown_opponent_profile")`` rather than a
+          guessed one (``OPPONENT_PROFILE_TO_POLICY_ID``, ruling R12 rule 3).
+        """
+        subject_seats = scoring_input.seat_context.subject_seats
+        if len(subject_seats) == 0:
+            return _invalid_envelope(self.seat_outcome_leaf, "no_subject_seat", evidence_refs)
+        if len(subject_seats) > 1:
+            return _invalid_envelope(
+                self.seat_outcome_leaf, "ambiguous_subject_seat", evidence_refs
+            )
+        subject = subject_seats[0]
+        opponent_seat = BLUE if subject == RED else RED
+        opponent_profile_id = scoring_input.seat_context.profile_by_seat.get(opponent_seat)
+        opponent_policy_id = (
+            OPPONENT_PROFILE_TO_POLICY_ID.get(opponent_profile_id)
+            if opponent_profile_id is not None
+            else None
+        )
+        if opponent_policy_id is None:
+            return _invalid_envelope(
+                self.seat_outcome_leaf, "unknown_opponent_profile", evidence_refs
+            )
+        if self.bridge is None:
+            raise ValueError("negarena scoring requires the pinned NegarenaBridge")
+        state = _final_state_from_phase_instances(scoring_input.phase_instances)
+        return self.score_seat_outcome(
+            bridge=self.bridge,
+            state=state,
+            terminal=terminal,
+            seat_id=subject,
+            opponent_policy_id=opponent_policy_id,
+            evidence_refs=evidence_refs,
         )
 
     def score_seat_outcome(
@@ -507,9 +639,11 @@ class NegarenaScorer:
         )
 
 
-def build_scorer(family_case: Mapping[str, Any]) -> NegarenaScorer:
+def build_scorer(
+    family_case: Mapping[str, Any], *, bridge: NegarenaBridge | None = None
+) -> NegarenaScorer:
     """Build the one ``NegarenaScorer`` for a case's ``family_case``."""
-    return NegarenaScorer(family_case=family_case, leaves=build_leaves())
+    return NegarenaScorer(family_case=family_case, leaves=build_leaves(), bridge=bridge)
 
 
 __all__ = [
@@ -520,6 +654,7 @@ __all__ = [
     "HEAD_TO_HEAD_REFERENCE_ID",
     "INVALID_TERMINATION_REASONS",
     "NegarenaScorer",
+    "OPPONENT_PROFILE_TO_POLICY_ID",
     "PAIRING_RULE",
     "SEAT_OUTCOME_ESTIMAND_ID",
     "SEAT_OUTCOME_LEAF_ID",

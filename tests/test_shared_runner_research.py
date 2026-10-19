@@ -208,7 +208,7 @@ def test_research_ledger_preserves_complete_plan_grid_and_receipt_attempts() -> 
 
 
 def test_deserialize_evaluation_receipt_round_trips_deferred_leaf_ids() -> None:
-    """A receipt's ``deferred_leaf_ids`` (kernel_contract_impl_review.md
+    """A receipt's ``deferred_leaf_ids`` (docs/architecture/reviews/kernel_contract_impl_review.md
     finding 12) must survive research.py's own serialize/deserialize round
     trip, not just kernel-level ``write_evaluation_receipt``/
     ``read_evaluation_receipt``: ``_deserialize_receipt`` reconstructs an

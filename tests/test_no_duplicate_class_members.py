@@ -30,8 +30,18 @@ from pathlib import Path
 
 import pytest
 
+from tools.check_registration_merge import module_bindings
+
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_ROOTS = (ROOT / "src" / "aeread_families", ROOT / "src" / "aeread")
+# ``tests`` is in scope deliberately. The file two family branches conflict in
+# on every single merge is tests/test_shared_runner_scoring_contract.py, and the
+# two duplicate-binding incidents this module records both happened there, not
+# under src/.
+SOURCE_ROOTS = (
+    ROOT / "src" / "aeread_families",
+    ROOT / "src" / "aeread",
+    ROOT / "tests",
+)
 
 # A property and its setter legitimately repeat the name, as do
 # ``functools.singledispatchmethod`` and ``typing.overload`` registrations.
@@ -159,3 +169,134 @@ def test_the_guard_ignores_a_property_and_its_setter() -> None:
 
 def test_the_guard_ignores_typing_overloads() -> None:
     assert duplicate_methods(_OVERLOADS) == []
+
+
+# --- Module level, not just class bodies -----------------------------------
+#
+# The same silent-shadowing shape happens one indent level out, and the class
+# check cannot see it. Both of these are real:
+#
+#   * A family branch produced two module-level definitions of the same
+#     constant in tests/test_shared_runner_scoring_contract.py after a
+#     hand-resolved registration conflict. Git saw no conflict, Python did not
+#     error, the later one won, and the class check above does not look at
+#     module bodies.
+#   * PR #154 added six module-level test functions whose names already existed
+#     on ``main``. Six tests became unreachable and the suite still reported
+#     them as collected, because the later definition is the one pytest sees.
+#
+# Only DIRECT children of the module body are examined. A name defined twice
+# under ``if TYPE_CHECKING:`` or in a ``try``/``except ImportError`` fallback is
+# the normal way to write a conditional import and is not a duplicate binding.
+
+# A module-level assignment is flagged only when the name reads as a constant:
+# ALL_CAPS or a dunder such as ``__all__``. Rebinding a lower-case module
+# variable on purpose is legal and occasionally deliberate, while rebinding a
+# constant is the shape that silently drops whatever the first one declared.
+def duplicate_module_bindings(source: str, filename: str = "<memory>") -> list[str]:
+    """Repeated module-level imports, definitions, and constants."""
+    definitions = module_bindings(source, mutable=False, allow_star_imports=True)
+    offences: list[str] = []
+    for name, statements in definitions.items():
+        if len(statements) < 2:
+            continue
+        if any(
+            _decorator_names(statement) & _LEGITIMATE_REDEFINITION_DECORATORS
+            for statement in statements[1:]
+        ):
+            continue
+        lines = ", ".join(str(statement.lineno) for statement in statements)
+        offences.append(
+            f"{name} bound {len(statements)} times at module level "
+            f"(lines {lines}); the last one silently wins"
+        )
+    return offences
+
+
+@pytest.mark.parametrize(
+    "path", FILES, ids=[str(p.relative_to(ROOT)) for p in FILES]
+)
+def test_no_module_binds_the_same_name_twice(path: Path) -> None:
+    offences = duplicate_module_bindings(path.read_text(), str(path))
+    assert not offences, (
+        f"{path.relative_to(ROOT)} binds a module-level name more than once -- "
+        "this is what a hand-resolved merge of two branches that both added to "
+        "the same file looks like, and everything the earlier binding declared "
+        "is silently discarded. " + "; ".join(offences)
+    )
+
+
+_MERGED_REGISTRATION = """
+_BRIDGE_GATED = {("steer", "0.1.0")}
+
+_BRIDGE_GATED = {("negarena", "0.1.0")}
+"""
+
+_MERGED_TEST_FUNCTIONS = """
+def test_receipt_round_trips():
+    assert True
+
+def test_receipt_round_trips():
+    assert False
+"""
+
+_SHADOWED_EXPORTS = """
+__all__ = ["PROHIBITED_PUBLIC_TEXT", "main"]
+
+__all__ = ["publish_campaign_evidence"]
+"""
+
+_CONDITIONAL_IMPORT = """
+import typing
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Mapping
+else:
+    Mapping = dict
+
+try:
+    import orjson as _json
+except ImportError:
+    import json as _json
+"""
+
+_REBOUND_LOWER_CASE = """
+seen = []
+seen = sorted(seen)
+"""
+
+
+def test_the_module_guard_fires_on_a_hand_merged_registration_constant() -> None:
+    offences = duplicate_module_bindings(_MERGED_REGISTRATION)
+    assert offences and "_BRIDGE_GATED bound 2 times" in offences[0]
+
+
+def test_the_module_guard_fires_on_two_test_functions_of_one_name() -> None:
+    offences = duplicate_module_bindings(_MERGED_TEST_FUNCTIONS)
+    assert offences and "test_receipt_round_trips bound 2 times" in offences[0]
+
+
+def test_the_module_guard_fires_on_a_shadowed_export_list() -> None:
+    offences = duplicate_module_bindings(_SHADOWED_EXPORTS)
+    assert offences and "__all__ bound 2 times" in offences[0]
+
+
+def test_the_module_guard_ignores_conditional_imports() -> None:
+    assert duplicate_module_bindings(_CONDITIONAL_IMPORT) == []
+
+
+def test_the_module_guard_ignores_a_rebound_lower_case_variable() -> None:
+    assert duplicate_module_bindings(_REBOUND_LOWER_CASE) == []
+
+
+def test_the_module_guard_catches_import_aliases_that_shadow_each_other() -> None:
+    offences = duplicate_module_bindings("from first import value as alias\nfrom second import value as alias\n")
+    assert offences and "alias bound 2 times" in offences[0]
+
+
+def test_the_module_guard_catches_repeated_identical_imports() -> None:
+    assert duplicate_module_bindings("import hashlib\nimport hashlib\n")
+
+
+def test_the_module_guard_allows_sibling_namespace_imports() -> None:
+    assert duplicate_module_bindings("import urllib.error\nimport urllib.request\n") == []

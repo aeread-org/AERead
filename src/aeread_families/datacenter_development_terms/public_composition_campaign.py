@@ -56,7 +56,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONTRACT_PATH = REPOSITORY_ROOT / "configs" / f"{CAMPAIGN_ID}.json"
 DEFAULT_RUN_ROOT = REPOSITORY_ROOT / "runs" / CAMPAIGN_ID
 MECHANISM_PUBLICATION_ROOT = (
-    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms_public_mechanism_v1"
+    REPOSITORY_ROOT / "evidence" / "datacenter_development_terms" / "datacenter_development_terms_public_mechanism_v1"
 )
 MODEL_ORDER = (
     "mistral32_deepinfra",

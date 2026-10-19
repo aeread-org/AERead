@@ -1,7 +1,7 @@
 """Tests for the repo-root ``conftest.py``'s upstream-required skip-to-
 failure gate, scoped to alympics.wac's own policy entry.
 
-Codex triage finding 9 (docs/alympics_codex_triage.md): every one of this
+Codex triage finding 9 (docs/families/alympics-wac/reviews/alympics_codex_triage.md): every one of this
 family's environment/measurement/harness/parity/replay test modules skips,
 module-level, whenever the pinned upstream Alympics checkout is absent
 (``tests/test_alympics_wac_*.py``'s own ``_upstream_root()`` helper), and

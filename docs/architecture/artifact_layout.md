@@ -47,10 +47,15 @@ call and its terminal event into one row of `model_calls.csv`.
 
 ## Canonical publication hierarchy
 
-Each selected campaign or run publishes one self-contained bundle:
+Each selected campaign or run publishes one self-contained bundle under its
+benchmark family. Use the owning package name from `src/aeread_families/` as
+`family_id`; kernel smoke and infrastructure evidence use `shared_runner`.
+Keep the complete publication ID as the final directory name. The
+[benchmark-grouped evidence index](../../evidence/README.md#benchmark-index)
+links to the current bundles, including the preserved legacy locations.
 
 ```text
-evidence/<publication_id>/
+evidence/<family_id>/<publication_id>/
   README.md
   publication_manifest.json
   tables/
@@ -75,9 +80,30 @@ uses the same directory names for the artifacts it does contain. It must not
 fabricate empty tables to look complete.
 
 The publication is a digest-bound projection, not a replacement for the local
-`RunPlan`, sealed event chain, or `EvaluationReceipt`. Paths recorded in its
+`RunPlan`, sealed event chain, or `EvaluationReceipt`. Artifact paths in a new
 manifest are relative to the publication root, and operational failures remain
-visible rather than becoming zero scores.
+visible rather than becoming zero scores. Source bindings may refer to other
+bundles by their preserved paths and digests.
+
+### Publication path compatibility
+
+Seventeen historical campaign directories remain at `evidence/<publication_id>/`:
+`housing_case_config_sweep_v1` and sixteen procurement-allocation bundles.
+The evidence index marks every one as **preserved path** under its benchmark.
+The Housing path is read from frozen campaign contracts. The procurement
+paths appear in other sealed artifacts alongside their source digests.
+
+Preserve these locations. Moving a referenced bundle and updating its frozen
+consumer would change the control and require a new campaign identity.
+Browse and cross-link them through the index; do not rewrite sealed paths or
+digests to make the directory tree uniform. The other 59 campaign directories
+were moved under their families with their artifact bytes unchanged.
+
+Bundle-local artifact paths resolve against the bundle root. Historical
+repository-relative paths recorded in frozen contracts and sealed artifacts
+remain part of that record; the compatibility exceptions above keep the
+referenced locations available. New publications use the family hierarchy,
+and their links belong in the evidence index.
 
 ## Relational contract
 
@@ -94,6 +120,42 @@ Profiles and model-feature facts join through `profile_id`; typed benchmark
 results join through `(run_id, task_id, episode_attempt_id)`. A campaign may
 contain multiple runs, but no table silently promotes campaign, run, task,
 attempt, or call rows to interchangeable statistical units.
+
+### Identities across run plans
+
+`task_id` (`cell_id`), `episode_id` and `episode_attempt_id` are derived from
+the plan cell, and the cell does not carry the inference seed. They are unique
+within one run plan. A campaign that gives each inference seed its own run
+plan repeats all three across the seeds of one world, so a join on
+`episode_id` alone merges those seeds (DC-T-04, EX-T-02).
+
+The key that is unique across a whole campaign is
+`(run_plan_id, cell_id, episode_attempt_id)`.
+`aeread.shared_runner.episode_key(record)` turns it into one join column for
+a receipt, a receipt projection or a trajectory row, and
+`assert_unique_episode_keys(rows)` refuses a per-episode table that repeats
+it. The seed is not folded into the identities themselves: `cell_id` is a
+digest of the cell that `verify_run_plan` recomputes, so that would change
+the identity of every sealed plan.
+
+### Source commit
+
+A plan pins its family sources by digest, so a bundle replays from the commit
+whose source it pinned and from no later one once the family has changed. A
+publisher records that commit as the manifest's `source_commit`:
+
+```python
+from aeread.shared_runner import source_commit_for_pins
+
+commit = source_commit_for_pins(repository_root, {"src/aeread_families/<family>/runner.py": sha256, ...})
+seal_publication_manifest(bundle, ..., source_commit=commit)
+```
+
+The commit is the one that produced the pinned state, not `HEAD`, so
+publishing the same bundle again from a later checkout writes the same bytes.
+Uncommitted content is never matched. For a bundle published before this
+field existed, `aeread source-commit --pin PATH=SHA256 ...` finds the commit
+from the bundle's recorded digests.
 
 ## Compatibility boundary
 

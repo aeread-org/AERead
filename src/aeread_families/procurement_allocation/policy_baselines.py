@@ -155,9 +155,21 @@ def _expected_capacity(
         return 0.0
     return (
         int(offer["capacity"])
-        * float(sample["verified_yield_rate"])
+        * _evidenced_yield(sample)
         * float(offer["on_time_probability"])
     )
+
+
+def _evidenced_yield(sample: Mapping[str, Any]) -> float:
+    """The best yield estimate a buyer actually holds for a sampled supplier.
+
+    Under perfect verification the evidence record carries the true rate. Under
+    declared sampling noise it carries only a running estimate, and a policy that
+    reached for the true rate there would be reading a number no buyer can see.
+    """
+    if "verified_yield_rate" in sample:
+        return float(sample["verified_yield_rate"])
+    return float(sample["observed_yield_rate"])
 
 
 def _valid_quantity(offer: Mapping[str, Any], needed_raw_units: float) -> int:
@@ -239,7 +251,7 @@ def choose_public_policy_action(
         accumulated = 0.0
         for offer, sample in qualified[component]:
             efficiency = (
-                float(sample["verified_yield_rate"])
+                _evidenced_yield(sample)
                 * float(offer["on_time_probability"])
                 if observation["elapsed_days"] + int(offer["lead_time_days"])
                 <= objective["deadline_days"]
@@ -864,8 +876,8 @@ def publish_policy_baselines(
     publication_root: Path,
     model_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     raw_bytes = (run_root / "summary.json").read_bytes()
     raw = json.loads(raw_bytes)
     recorded_sha = raw.get("artifact_sha256")

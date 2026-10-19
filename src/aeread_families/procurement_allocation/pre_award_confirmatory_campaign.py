@@ -1085,8 +1085,8 @@ def _verified_canary(path: Path, *, condition: str) -> dict[str, Any]:
 def publish_confirmatory_campaign(
     *, run_root: Path, publication_root: Path
 ) -> dict[str, Any]:
-    if publication_root.resolve().parent.name != "evidence":
-        raise ValueError("publication_root must be one direct evidence/ bundle")
+    if "evidence" not in {parent.name for parent in publication_root.resolve().parents}:
+        raise ValueError("publication_root must be a bundle inside the evidence/ tree")
     comparison = build_confirmatory_comparison(run_root=run_root)
     if not comparison["readiness"]["confirmatory_evidence_qualified"]:
         raise ValueError("confirmatory evidence is not qualified")

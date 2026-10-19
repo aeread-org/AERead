@@ -1,6 +1,6 @@
 """Provider-free scheduler coverage for the termsbench environment plugin.
 
-Covers docs/termsbench_adapter_spec.md section 5's environment test plan:
+Covers docs/families/termsbench/adapter_spec.md section 5's environment test plan:
 phase graph under both opener orders, all 5 App. B.3 termination cases plus
 the adapter-defined AgreementViolation case, and constraint checks mapping to
 the right critical/secondary violation component. The scorer (leaves 1-4) is

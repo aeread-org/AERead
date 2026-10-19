@@ -19,6 +19,8 @@ from .run.campaign import (
 )
 
 from .task.execution import (
+    ACCOUNT_FAULT,
+    PROVIDER_CHOICE_ERROR,
     ActionAttemptRecord,
     ArtifactRef,
     CanonicalResponse,
@@ -44,6 +46,7 @@ from .task.execution import (
     ToolInvocationRecord,
     execute_plan_cell,
 )
+from .task.spend import AttemptSpend, attempt_spend, total_spend
 from .model_call.harness import (
     AttemptContext,
     BudgetView,
@@ -87,10 +90,27 @@ from .run.contract import (
     sha256_bytes,
     sha256_json,
 )
+from .run.halt import (
+    HALT_CONDITIONS,
+    HALT_EXIT_CODE,
+    HALT_RULE_FIELD,
+    HALTED_AFTER_CONSECUTIVE_FAILURES,
+    HALTED_ON_ACCOUNT_FAULT,
+    NOT_ATTEMPTED,
+    CellOutcome,
+    HaltedRun,
+    OperationalHaltGuard,
+    require_halt_rule,
+    run_cells_under_halt_rule,
+)
+from .run.provenance import ProvenanceError, source_commit_for_pins
 from .run.publication import (
+    EPISODE_KEY_FIELDS,
     PROHIBITED_PUBLIC_TEXT,
     SANITIZATION_DECLARATION,
     assert_public_payload,
+    assert_unique_episode_keys,
+    episode_key,
     atomic_publish,
     jsonl,
     receipt_projection,
@@ -313,6 +333,27 @@ __all__ = [
     "ResourceLimits",
     "RunPlan",
     "RunLayout",
+    "ACCOUNT_FAULT",
+    "AttemptSpend",
+    "EPISODE_KEY_FIELDS",
+    "ProvenanceError",
+    "assert_unique_episode_keys",
+    "episode_key",
+    "source_commit_for_pins",
+    "PROVIDER_CHOICE_ERROR",
+    "attempt_spend",
+    "total_spend",
+    "CellOutcome",
+    "HALT_CONDITIONS",
+    "HALT_EXIT_CODE",
+    "HALT_RULE_FIELD",
+    "HALTED_AFTER_CONSECUTIVE_FAILURES",
+    "HALTED_ON_ACCOUNT_FAULT",
+    "HaltedRun",
+    "NOT_ATTEMPTED",
+    "OperationalHaltGuard",
+    "require_halt_rule",
+    "run_cells_under_halt_rule",
     "ContractError",
     "load_contract",
     "read_sealed",

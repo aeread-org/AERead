@@ -1,4 +1,4 @@
-"""Parity tests for the govsim adapter (docs/govsim_adapter_spec.md section 5's
+"""Parity tests for the govsim adapter (docs/families/govsim/adapter_spec.md section 5's
 "Parity (needs the bridge): tests/test_govsim_parity.py" -- the file that
 file names but, before this pass, did not exist).
 
@@ -146,7 +146,7 @@ def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
 
 
 def _resolved_plugin(bridge_instance: GovsimBridge) -> Any:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge_instance)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge_instance, reveal_sustainability_threshold=True)
     registry = PluginRegistry()
     register_plugin(registry, plugin=plugin)
     return registry.resolve_manifest(family_manifest())
@@ -191,7 +191,7 @@ def _independent_raw_action_sequence(
     quantity each seat actually chose (``result.phase_instances``) -- never
     by calling ``GovsimPlugin.step()`` (this is the "no kernel involved"
     half of P2: the per-round protocol below is transcribed independently
-    from ``docs/govsim_adapter_spec.md`` section 3.1/``environment.py``'s
+    from ``docs/families/govsim/adapter_spec.md`` section 3.1/``environment.py``'s
     own module docstring, not by importing that module's translation code).
 
     Also returns, per round, the action-count checkpoint immediately AFTER

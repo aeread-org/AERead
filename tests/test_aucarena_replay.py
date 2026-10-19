@@ -3,7 +3,7 @@
 Unlike ``tests/test_tau3_retail_replay.py`` (which gates its live/replay
 tests on a pinned upstream Python interpreter that may not be provisioned),
 every test in this module runs unconditionally: this family has no external
-process to bridge to at all (``docs/aucarena_adapter_spec.md`` section 3,
+process to bridge to at all (``docs/families/aucarena/adapter_spec.md`` section 3,
 "Not delegated, and why that's safe here") -- the pinned item data is
 materialized into the case payload at import time, and every rule the
 environment applies is a vendored pure function. There is nothing to skip.
@@ -44,20 +44,53 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import hashlib
 from pathlib import Path
+from typing import Any, Callable
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import canonical_json_bytes
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import (
+    CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
+)
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    RunPlan,
+    canonical_json_bytes,
+    case_content_sha256,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import (
+    finalize_family_execution,
+    replay_family_receipt,
+)
 from aeread.shared_runner.task.scheduler import (
     EpisodeResult,
     SchedulerContractError,
     run_episode,
 )
+from aeread_families.aucarena import cases as ac_cases
+from aeread_families.aucarena import environment as ac_environment
+from aeread_families.aucarena import measurement as m
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,
+    PLUGIN_ID,
+    SCORER_ID,
     family_manifest,
     register_plugin,
 )
@@ -418,7 +451,7 @@ def test_tampering_decision_order_is_caught_by_the_response_source_itself(
 def test_tampering_a_legal_withdraw_into_a_malformed_response_is_caught_even_though_state_is_unchanged(
     tmp_path: Path,
 ) -> None:
-    """``docs/aucarena_codex_triage.md`` Finding 3: golden 5
+    """``docs/families/aucarena/reviews/aucarena_codex_triage.md`` Finding 3: golden 5
     (``degenerate_reference``, one seat, one item) legally withdraws
     (response ``"-1"``). Replaying that one recorded decision as a
     malformed string instead (``"uh, I'll think about it"`` -- golden 4's
@@ -485,3 +518,771 @@ def test_compare_episode_results_would_report_a_genuine_divergence(
     assert comparison.final_state_matches is False
     with pytest.raises(ReplayError, match="replay diverged"):
         assert_replay_matches(comparison)
+
+
+# ---------------------------------------------------------------------------
+# Evidence-complete episode driving (kernel_scoring_contract_spec.md
+# milestone 3): a response source that ALSO writes the full generic evidence
+# trail ``task.evaluation.replay_family_scoring_input`` needs to replay, plus
+# a real, ``resolve_run_plan``-resolved ``RunPlan`` -- both required to drive
+# ``task.evaluation.finalize_family_execution`` for this family for the
+# first time, and reused by ``tests/test_shared_runner_scoring_contract.py``
+# for its own paired-history fixtures.
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingAucArenaHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery, since every aucarena decision is a plain scripted
+    string, never a provider completion. Mirrors govsim's identically-named,
+    identically-purposed ``EvidenceRecordingGovsimHarness``
+    (``tests/test_govsim_replay.py``) field-for-field, except ``__call__``
+    returns and records a raw string decision rather than a dict one:
+    ``CanonicalResponse.action`` is a ``Mapping | None`` (that class's own
+    docstring: "a harness-driven executor carries HarnessOutput.action
+    here... A text harness (minimal_chat) leaves it None and a family keeps
+    reading .text exactly as before") -- aucarena's raw text response is a
+    ``minimal_chat``-shaped decision, not a harness-mediated mapping one, so
+    this records ``text=response, action=None``, never ``action=response``.
+
+    ``ScriptedAucArenaHarness`` (this family's existing scripted response
+    source, ``harness.py``) writes only its own convenience event
+    (``bid_decision_served``) and has never produced evidence
+    ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
+    replay -- ``finalize_family_execution`` calls that replay internally, so
+    this class is what makes driving THAT finalizer for this family possible
+    at all. ``answer`` supplies the raw scripted bid text for one request (a
+    policy function keyed off the request itself); this class owns only the
+    evidence-recording seam around it, mirroring ``AttemptExecutor``'s own
+    event shapes field-for-field.
+    """
+
+    def __init__(self, *, answer: Callable[[Any], str], evidence: EvidenceStore) -> None:
+        self._answer = answer
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> str:
+        response = self._answer(request)
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        canonical = CanonicalResponse(
+            text=response,
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=None,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+def kernel_contract_fixture_case(*, world_seed: int = 0) -> CaseManifest:
+    """A small, fast, fully-controlled single-item/two-seat aucarena case.
+
+    Distinct from the checked-in five-golden pilot corpus: this fixture
+    case exists only so ``tests/test_shared_runner_scoring_contract.py``'s
+    paired-history fixtures and this module's own
+    ``finalize_family_execution`` receipt test can drive real episodes
+    quickly and deterministically, with full control over how many rounds
+    each item takes to sell (``docs/families/aucarena/migration_plan.md``'s own
+    constructibility finding: a seat jumping straight to the eventual
+    hammer price in round 0 instead of via intermediate rounds is still
+    legal). Never written to the on-disk corpus. ``payload.item_pool_sha256``
+    is the real pinned constant (``cases.ITEM_POOL_SHA256``) even though this
+    item is not drawn from the pinned pool -- ``validate_payload`` only
+    checks the hash literally matches, never the item content against a
+    loaded pool file.
+    """
+    raw: dict[str, Any] = {
+        "spec_version": CaseManifest.SPEC_VERSION,
+        "case_id": "aucarena.kernel_contract_fixture.single_item.0",
+        "family_id": ac_cases.FAMILY_ID,
+        "family_version": ac_cases.FAMILY_VERSION,
+        "split": "dev",
+        "world_seed": world_seed,
+        "seats": [{"id": "agent", "role": "bidder"}, {"id": "field", "role": "bidder"}],
+        "episode": {"max_logical_actions": 20, "termination": list(ac_cases.TERMINATION_REASONS)},
+        "visibility_policy": "aucarena_full_observation_v1",
+        "payload": {
+            "enable_discount": False,
+            "item_ids": [1],
+            "item_pool_sha256": ac_cases.ITEM_POOL_SHA256,
+            "items": [
+                {"id": 1, "name": "Widget", "price": 1000, "desc": "d", "true_value": 5000}
+            ],
+            "min_markup_pct": 0.1,
+            "world_seed": world_seed,
+            "roster": [
+                {"seat_id": "agent", "model_name": "scripted", "budget": 5000, "max_bid_cnt": 10},
+                {"seat_id": "field", "model_name": "scripted", "budget": 5000, "max_bid_cnt": 10},
+            ],
+        },
+        "provenance": {
+            "generator_id": "aucarena_kernel_contract_fixture_generator_v1",
+            "generator_version": "1.0.0",
+            "review_status": "curated",
+        },
+        "upstream_task_id": None,
+        "content_sha256": "0" * 64,
+    }
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
+def short_path_answer(request: Any) -> str:
+    """One round: ``agent`` jumps straight to the eventual hammer price,
+    ``field`` withdraws immediately -- legal (``bid_sanity_check`` only
+    requires clearing ``highest_bid + min_markup_pct * price``, not a fixed
+    increment). Sold at ``1300`` in round 0."""
+    if request.seat_id == "agent":
+        return "1300"
+    return "-1"
+
+
+def long_path_answer(request: Any) -> str:
+    """Three rounds to the SAME winner and SAME hammer price (``1300``) as
+    ``short_path_answer`` -- round 0 both bid, round 1 ``agent`` alone raises
+    to the final price, round 2 ``field`` alone withdraws (the round the
+    hammer actually falls, since nobody contests further). Verified against
+    the real scheduler before being wired in here (byte-identical outcome,
+    genuinely differing ``phase_instances``)."""
+    round_ = int(request.observation["bid_round"])
+    if request.seat_id == "agent":
+        if round_ == 0:
+            return "1000"
+        if round_ == 1:
+            return "1300"
+        raise RuntimeError(f"agent should not be asked in round {round_}")
+    if round_ == 0:
+        return "1100"
+    if round_ == 2:
+        return "-1"
+    raise RuntimeError(f"field should not be asked in round {round_}")
+
+
+def illegal_bid_answer(request: Any) -> str:
+    """Same case as ``short_path_answer``/``long_path_answer`` (same-case
+    witness pair for ``aucarena_bid_legality_leaf``): ``agent`` bids below
+    the item's starting price (illegal, recorded and rejected, never
+    applied -- golden 3's own scenario), ``field`` then wins uncontested at
+    the item price in the same round."""
+    if request.seat_id == "agent":
+        return "500"
+    return "1000"
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class AucArenaSetup:
+    """A resolved, provider-free ``RunPlan`` for one aucarena case.
+
+    Unlike every LLM-harness-backed family's own setup (housing,
+    procurement_*, commercial_state_calibration), this family's real
+    runtime never goes through ``execute_plan_cell``'s harness/provider
+    stack at all -- every seat is answered directly through
+    ``run_episode``'s ``response_source``
+    (``ScriptedAucArenaHarness``/``EvidenceRecordingAucArenaHarness``
+    above), matching this module's own ``_run_live``. The declared
+    ``minimal_chat`` harness and fixture provider below exist purely to
+    satisfy ``resolve_run_plan``'s structural pin/capability checks and are
+    never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: dict[str, str]
+    pricing: dict[str, Any]
+
+
+_FIXTURE_PROFILE_ID = "aucarena_unused_fixture_profile_v1"
+_FIXTURE_PROVIDER_ID = "aucarena_unused_fixture_provider"
+_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_aucarena_setup(case: CaseManifest, *, suffix: str) -> AucArenaSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every bidder seat shares one placeholder agent profile: this family's
+    real runtime never invokes it (see ``AucArenaSetup``'s own docstring),
+    so the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+    """
+    family = family_manifest()
+    seat_ids = [seat.id for seat in case.seats]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"aucarena_{suffix}_sample_v1",
+            "estimand": "fixed_aucarena_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"aucarena_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": list(seat_ids),
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"aucarena_{suffix}_analysis_v1",
+            "estimands": [m.PROFIT_VS_FIELD_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"aucarena_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _FIXTURE_PROVIDER_ID,
+                "model": "aucarena_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {"id": "minimal_chat", "version": "1.0", "config": {}},
+            "prompt": {
+                "prompt_id": f"aucarena_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"aucarena scripted bidder: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "aucarena_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"aucarena_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(ac_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+    vendored_path = environment_path.with_name("_vendored_upstream.py")
+    pins = (
+        _pin(PLUGIN_ID, "family_plugin", environment_path),
+        _pin(SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        # measurement.py declares each leaf's validity-domain predicate,
+        # verifier reference, and scorer implementation under its own
+        # distinct component id (see environment.py's family_manifest()
+        # docstring on scoring.reference_provider_ids); every one of those
+        # nine must also be pinned here, or
+        # EvaluationReceipt._validate_and_freeze_plan_pins rejects the
+        # sealed receipt as missing implementations.
+        _pin(m.BASE_DOMAIN_PREDICATE_ID, "reference", environment_path),
+        _pin(m.BUDGET_INVARIANT_CHECK_ID, "reference", vendored_path),
+        _pin(m.BUDGET_INVARIANT_SCORER_ID, "reference", measurement_path),
+        _pin(m.BID_LEGALITY_CHECK_ID, "reference", vendored_path),
+        _pin(m.BID_LEGALITY_SCORER_ID, "reference", measurement_path),
+        _pin(m.HAMMER_RULE_CHECK_ID, "reference", vendored_path),
+        _pin(m.HAMMER_RULE_SCORER_ID, "reference", measurement_path),
+        _pin(m.PROFIT_VS_FIELD_CHECK_ID, "reference", measurement_path),
+        _pin(m.PROFIT_VS_FIELD_SCORER_ID, "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return AucArenaSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
+
+
+def test_finalize_wires_aucarena_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+
+    Every other already-migrated family has at least one test driving a
+    real episode through ``task.evaluation.finalize_family_execution`` (see
+    ``tests/test_govsim_replay.py``'s identically-purposed
+    ``test_finalize_wires_govsim_to_the_shared_family_finalizer``); aucarena
+    had none, because its existing scripted response source
+    (``ScriptedAucArenaHarness``) writes only its own convenience event and
+    has never produced evidence ``finalize_family_execution``'s internal
+    ``replay_family_scoring_input`` call can replay --
+    ``EvidenceRecordingAucArenaHarness`` (this module, above) is what makes
+    this reachable. Drives one small, real, provider-free episode (this
+    module's own ``kernel_contract_fixture_case``, ``short_path_answer``)
+    end to end through the real finalizer and asserts a receipt comes back
+    carrying EXACTLY the declared finalize-time leaf ids and the declared
+    primary_leaf_id -- not merely that a receipt came back.
+    """
+    case = kernel_contract_fixture_case(world_seed=0)
+    setup = build_aucarena_setup(case, suffix="finalize_receipt")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAucArenaHarness(answer=short_path_answer, evidence=evidence)
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    declared_leaf_ids = {
+        m.BUDGET_INVARIANT_LEAF_ID,
+        m.BID_LEGALITY_LEAF_ID,
+        m.HAMMER_RULE_LEAF_ID,
+        m.PROFIT_VS_FIELD_LEAF_ID,
+    }
+    assert {score.leaf.leaf_id for score in receipt.scores} == declared_leaf_ids
+    assert receipt.primary_leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    profit = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    )
+    assert profit.status == "ok"
+
+
+# ---------------------------------------------------------------------------
+# Issue #135 Workstream C (spec section 7): the legacy QC case through the
+# real finalizer/replay must stay invalid/excluded/null, and the new
+# frozen-field measurement case must be included with the declared relative-
+# profit estimate, through the SAME production path
+# (``run_episode -> finalize_family_execution -> replay_family_receipt``)
+# this family actually uses -- not ``execute_plan_cell``'s harness/provider
+# stack, which ``AucArenaSetup``'s own docstring (above) says this family
+# never goes through.
+# ---------------------------------------------------------------------------
+
+
+def withdraw_answer(request: Any) -> str:
+    """Provider-free scripted withdrawal (spec section 7.3): ``agent``
+    always withdraws; ``field_low``/``field_high`` are ``rule`` seats whose
+    raw text is accepted but never inspected (``ScriptedAucArenaHarness``'s
+    own contract, ``harness.py``) -- their real bid is computed internally
+    by the vendored ``bid_rule``."""
+    return "-1" if request.seat_id == "agent" else ""
+
+
+def _run_and_finalize_through_evidence_root(
+    case: CaseManifest, *, suffix: str, evidence_root: Path
+) -> tuple[AucArenaSetup, Any]:
+    """``finalize_family_execution`` + a later ``replay_family_receipt`` need
+    the SAME sealed evidence directory, resolved the same way
+    ``replay_family_receipt`` itself resolves it
+    (``RunLayout(evidence_root, run_plan_id).resolve_attempt_dir(cell_id,
+    attempt_id)``) -- ``execute_plan_cell`` does this internally for every
+    harness/provider-backed family; this family drives ``run_episode``
+    directly, so the attempt directory is built here instead.
+    """
+    setup = build_aucarena_setup(case, suffix=suffix)
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    attempt_dir = RunLayout(evidence_root, setup.plan.run_plan_id).attempt_dir(
+        cell.cell_id, "attempt_1"
+    )
+    evidence = EvidenceStore(
+        attempt_dir,
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAucArenaHarness(answer=withdraw_answer, evidence=evidence)
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    return setup, receipt
+
+
+def test_frozen_field_case_is_included_with_the_declared_relative_profit(
+    tmp_path: Path,
+) -> None:
+    """New measurement case (spec section 7.3): a provider-free scripted
+    withdrawal leaves ``agent`` and ``field_low`` at zero profit and
+    ``field_high`` (the only seat that bids) winning item 5 at its $5000
+    price against a $10000 true value, for a $5000 profit -- giving the
+    declared primary of ``tested_profit - mean_field_profit`` ==
+    ``0 - 2500`` == ``-2500`` and comparator deltas ``0``/``-5000`` against
+    ``score_profit_vs_field``'s own arithmetic, not a hard-coded number."""
+    case = _case("frozen_field_item5")
+    assert case.case_id == "aucarena.pilot.frozen_field_item5_01"
+    evidence_root = tmp_path / "measurement"
+
+    # Derive the expected per-seat profits from this case's own declared
+    # inputs (``payload["items"][0]``) and the fixed, scripted behavior of
+    # this test's harness (spec section 7.3) -- never from the receipt
+    # under test:
+    #
+    # - ``agent`` (the tested seat) is scripted by ``withdraw_answer`` to
+    #   bid ``-1`` on every request, i.e. always withdraw
+    #   (``vendored.set_withdraw``: a negative bid means withdrawn), so it
+    #   never wins item 5 and its profit stays at the environment's
+    #   zero-initialized value (``environment.py``: every seat starts with
+    #   ``"profit": 0``, mutated only by a *winning* ``win_bid`` call).
+    # - ``field_low`` is a ``rule`` seat with ``max_bid_cnt`` 0 in this
+    #   case's roster, so its vendored ``bid_rule`` never submits a bid
+    #   either, and it also never wins -- profit stays 0.
+    # - ``field_high`` is therefore the auction's only active bidder, so
+    #   the hammer falls on its own opening bid at item 5's starting
+    #   ``price`` (no competing bid ever arrives to raise it). Its profit
+    #   follows the vendored ``win_bid`` formula
+    #   (``_vendored_upstream.py``): ``new_profit = profit + true_value -
+    #   bid``, i.e. ``0 + true_value - price``.
+    item = case.payload["items"][0]
+    tested_profit = 0.0
+    field_low_profit = 0.0
+    field_high_profit = float(item["true_value"] - item["price"])
+
+    # ``score_profit_vs_field``'s own arithmetic (measurement.py:758-775):
+    # ``primary`` is the tested seat's profit minus the *mean* field
+    # profit; each ``delta_vs_<seat_id>`` metric is the tested seat's
+    # profit minus that one seat's own profit.
+    mean_field_profit = (field_low_profit + field_high_profit) / len(
+        (field_low_profit, field_high_profit)
+    )
+    expected_primary = tested_profit - mean_field_profit
+    expected_delta_low = tested_profit - field_low_profit
+    expected_delta_high = tested_profit - field_high_profit
+
+    # Regression pin: with this case's frozen numbers (item 5's price
+    # $5000 vs. true_value $10000, agent scripted to withdraw, field_low's
+    # max_bid_cnt 0) the derivation above always resolves to these
+    # literals. Pinned alongside the derivation so a change to either the
+    # case or the formula shows up as a diff here, not a silent drift.
+    assert expected_primary == -2500.0
+    assert expected_delta_low == 0.0
+    assert expected_delta_high == -5000.0
+
+    setup, receipt = _run_and_finalize_through_evidence_root(
+        case, suffix="frozen_field_receipt", evidence_root=evidence_root
+    )
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.case_id == case.case_id
+    assert receipt.case_sha256 == case.content_sha256
+    assert receipt.primary_leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == receipt.primary_leaf_id
+    )
+    assert primary.status == "ok"
+    assert primary.primary is not None
+    assert primary.primary.unit == "usd"
+    assert primary.primary.value == expected_primary
+    assert primary.reference_values["field_low_profit"].value == field_low_profit
+    assert primary.reference_values["field_high_profit"].value == field_high_profit
+    assert primary.metrics["delta_vs_field_low"].value == expected_delta_low
+    assert primary.metrics["delta_vs_field_high"].value == expected_delta_high
+    assert primary.evidence_refs
+
+    replayed = replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+    assert replayed.status == "ok"
+    assert replayed.inclusion_status == "included"
+    replayed_primary = next(
+        score for score in replayed.scores if score.leaf.leaf_id == replayed.primary_leaf_id
+    )
+    assert replayed_primary.primary.value == expected_primary
+
+
+def test_degenerate_qc_case_through_the_real_finalizer_stays_invalid_excluded_and_null(
+    tmp_path: Path,
+) -> None:
+    """Regression (spec section 7.5): the legacy QC case
+    (``aucarena.pilot.degenerate_reference_01``, kept byte-identical to
+    #111) through the SAME real finalizer/replay path as above must still
+    produce ``invalid_measurement``/``excluded``/a null primary -- an empty
+    comparator population (no frozen field seat in this case's roster) can
+    never silently become a numeric relative score, whether scored directly
+    (``tests/test_aucarena_environment.py``) or through the shared
+    finalizer/replay machinery exercised here for the first time."""
+    case = _case("degenerate_reference")
+    assert case.case_id == "aucarena.pilot.degenerate_reference_01"
+    evidence_root = tmp_path / "qc"
+
+    setup, receipt = _run_and_finalize_through_evidence_root(
+        case, suffix="qc_receipt", evidence_root=evidence_root
+    )
+
+    assert receipt.status == "invalid_measurement"
+    assert receipt.inclusion_status == "excluded"
+    assert receipt.primary_leaf_id == m.PROFIT_VS_FIELD_LEAF_ID
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == receipt.primary_leaf_id
+    )
+    assert primary.status == "invalid_measurement"
+    assert primary.primary is None
+    assert primary.reference_values == {}
+    assert "empty comparator population" in "; ".join(primary.validity.reasons)
+
+    replayed = replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
+    assert replayed.status == "invalid_measurement"
+    assert replayed.inclusion_status == "excluded"
+    replayed_primary = next(
+        score for score in replayed.scores if score.leaf.leaf_id == replayed.primary_leaf_id
+    )
+    assert replayed_primary.primary is None

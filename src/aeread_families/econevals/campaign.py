@@ -56,7 +56,8 @@ from .live import (
     PROMPT,
     PROVIDER,
     QUANTIZATION,
-    REASONING_DECLARATION,
+    MAX_OUTPUT_TOKENS_UNCONSTRAINED,
+    REASONING_UNCONSTRAINED_V1,
     REVISION,
     ROUTE_PROVIDER,
     build_live_setup,
@@ -127,7 +128,20 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v10"
+# v11 is v10's panel with one control changed and therefore a new identity:
+# the reasoning condition. v10 declared `reasoning_capped_1500_v1`, measured
+# on 2026-09-10 to suppress reasoning to ~13 tokens whatever its value, so it
+# measured a GLM 5.3 Flash that did not deliberate -- which is not the agent
+# the EconEvals paper's table describes.
+#
+# The unconstrained arm was tried here before and failed three times, at the
+# 4,000-token completion ceiling; the rationale is emitted inside that
+# budget, so the ceiling is what makes the retry a different experiment
+# rather than a repeat. TERMS-Bench ran the same condition at 12,000 over 30
+# cases with no truncation, which is the evidence for trying it here.
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_panel_v11"
+REASONING_DECLARATION = REASONING_UNCONSTRAINED_V1
+MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS_UNCONSTRAINED
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
@@ -173,8 +187,12 @@ CANARY_RETRY_BASE_SECONDS = 15.0
 # issue #130; our own request is flat at ~1.1KB, verified with a stub over
 # 100 periods). The ceiling is raised to fit the measurement rather than the
 # estimate, and the panel ceiling with it.
-MAX_TRAJECTORY_COST_USD = 0.20
-HARD_TOTAL_COST_CEILING_USD = 1.30
+# Deliberation is emitted inside the completion budget, so a 100-period case
+# costs several times what v10's suppressed arm did. Both limits are raised
+# to leave the cap above the worst case rather than have the ceiling stop
+# the run.
+MAX_TRAJECTORY_COST_USD = 0.80
+HARD_TOTAL_COST_CEILING_USD = 5.00
 
 
 def _digest(value: Any) -> str:
@@ -447,7 +465,18 @@ async def run_canary(*, run_root: Path, plan_sha256: str) -> dict[str, Any]:
     return record
 
 
-async def execute_campaign(*, run_root: Path) -> None:
+async def execute_campaign(*, run_root: Path, max_cases: int | None = None) -> None:
+    """Run the canary, then the panel.
+
+    `max_cases` is an operator's pause, not a frozen control: it stops after
+    that many complete checkpoints so the first case can be read before the
+    rest of the panel spends. It matters here because the unconstrained arm
+    failed three times at the old ceiling, and a panel is not the place to
+    discover that again. The plan is unchanged by it and the run resumes
+    from its checkpoints without it.
+    """
+    if max_cases is not None and max_cases < 1:
+        raise ValueError("max_cases must be at least 1")
     plan_path = run_root / "campaign_plan.json"
     plan = build_campaign_plan()
     _write_once_json(plan_path, plan)
@@ -458,7 +487,10 @@ async def execute_campaign(*, run_root: Path) -> None:
         raise RuntimeError("econevals canary was rejected; campaign stopped")
     total_cost = float(canary["cost_usd"])
     provider = OpenRouterChatClient()
+    completed = 0
     for ordinal, case_id in enumerate(PANEL_CASE_IDS):
+        if max_cases is not None and completed >= max_cases:
+            return
         checkpoint_path = run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json"
         if checkpoint_path.exists():
             checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -471,6 +503,7 @@ async def execute_campaign(*, run_root: Path) -> None:
             ):
                 raise RuntimeError("campaign cannot resume from a failed checkpoint")
             total_cost += float(checkpoint["cost_usd"])
+            completed += 1
             continue
         if total_cost + MAX_TRAJECTORY_COST_USD > HARD_TOTAL_COST_CEILING_USD:
             raise RuntimeError("insufficient campaign budget reserve for the next case")
@@ -479,6 +512,8 @@ async def execute_campaign(*, run_root: Path) -> None:
             bridge=bridge,
             seed=SEED,
             max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
+            reasoning=REASONING_DECLARATION,
+            max_output_tokens=MAX_OUTPUT_TOKENS,
         )
         execution_root = run_root / "executions" / case_id
         if execution_root.exists():
@@ -551,6 +586,7 @@ async def execute_campaign(*, run_root: Path) -> None:
             }
             checkpoint["record_sha256"] = _digest(checkpoint)
             _write_once_json(checkpoint_path, checkpoint)
+            completed += 1
         except Exception as error:
             failure = {
                 "schema_version": "aeread.econevals_checkpoint/0.1",
@@ -716,6 +752,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--publish-to", type=Path, default=None)
+    parser.add_argument(
+        "--max-cases",
+        type=int,
+        default=None,
+        help="stop once this many panel cases are complete (an operator's pause; resumable)",
+    )
     args = parser.parse_args(argv)
     # Publish is checked BEFORE the plan-digest branch. It used to come after,
     # so `--publish-to` without `--execute` -- which is exactly how a
@@ -732,7 +774,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"plan_sha256": plan["plan_sha256"], "campaign_id": CAMPAIGN_ID}))
         return 0
         return 0
-    asyncio.run(execute_campaign(run_root=args.run_root))
+    asyncio.run(execute_campaign(run_root=args.run_root, max_cases=args.max_cases))
     return 0
 
 

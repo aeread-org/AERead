@@ -255,7 +255,7 @@ def test_build_leaves_returns_exactly_five_leaves_matching_the_spec_table() -> N
 
 
 def test_no_objective_reference_leaf_is_declared_per_p06() -> None:
-    """docs/problem_bound_case_audit.md row P06: no certified policy upper
+    """docs/research/problem_bound_case_audit.md row P06: no certified policy upper
     bound exists for any of these estimands -- never framed as an approach
     to a bound."""
     for leaf in m.build_leaves():
@@ -266,7 +266,7 @@ def test_no_objective_reference_leaf_is_declared_per_p06() -> None:
 def test_build_scorer_hook_returns_the_same_five_leaves_as_measurement_py() -> None:
     # upstream_root/bridge are never touched by build_scorer (it delegates
     # straight to measurement.py) -- a real checkout is not needed here.
-    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None)
+    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     scorer = plugin.build_scorer(family_case)
@@ -281,7 +281,7 @@ def test_build_scorer_hook_returns_the_same_five_leaves_as_measurement_py() -> N
 
 
 def test_build_scorer_scales_with_num_agents_for_the_degenerate_case() -> None:
-    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None)
+    plugin = GovsimPlugin(upstream_root=Path("/nonexistent/not-needed"), bridge=None, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
     scorer = plugin.build_scorer(family_case)
     assert scorer.num_agents == 1
@@ -344,6 +344,50 @@ def test_every_scorer_returns_invalid_measurement_never_a_zero_on_operational_fa
     assert envelope.validity.status == "invalid"
     assert envelope.validity.reasons
     assert "operational_failure" in envelope.validity.reasons[0]
+
+
+# ---------------------------------------------------------------------------
+# A comparative leaf with no baseline is unmeasured, never fabricated --
+# ruling on issue #141 ("govsim: declare the five-leaf policy").
+# ---------------------------------------------------------------------------
+
+
+_MISSING_BASELINE_CASES = [
+    pytest.param(
+        m.build_total_harvest_leaf,
+        m.score_total_harvest,
+        "baseline_total_harvest",
+        {"num_agents": 5},
+        id="total_harvest",
+    ),
+    pytest.param(
+        m.build_equality_gini_leaf,
+        m.score_equality_gini,
+        "baseline_gini",
+        {"num_agents": 5},
+        id="equality_gini",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "build_leaf, score_fn, baseline_kwarg, extra_kwargs", _MISSING_BASELINE_CASES
+)
+def test_comparative_scorer_returns_invalid_measurement_never_omitted_with_no_baseline(
+    build_leaf, score_fn, baseline_kwarg, extra_kwargs
+) -> None:
+    leaf = build_leaf()
+    terminal = _terminal_stub("max_num_rounds")
+
+    envelope = score_fn(
+        leaf, terminal=terminal, **{baseline_kwarg: None}, **extra_kwargs
+    )
+
+    assert envelope.status == "invalid_measurement"
+    assert envelope.primary is None
+    assert envelope.validity.status == "invalid"
+    assert envelope.validity.reasons
+    assert "baseline" in envelope.validity.reasons[0]
 
 
 # ---------------------------------------------------------------------------
@@ -449,7 +493,7 @@ def test_vendored_gini_single_element_is_zero_the_degenerate_case() -> None:
 
 @pytest.fixture(scope="module")
 def baseline_5_agent_fishing(bridge: GovsimBridge) -> dict[str, Any]:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
     return _drive_episode(plugin, family_case)
 
@@ -457,7 +501,7 @@ def baseline_5_agent_fishing(bridge: GovsimBridge) -> dict[str, Any]:
 def test_golden_successful_fishing_sustainable_survives_the_full_horizon(
     bridge: GovsimBridge, baseline_5_agent_fishing: dict[str, Any]
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     terminal = _drive_episode(plugin, family_case)
@@ -488,7 +532,7 @@ def test_golden_successful_fishing_sustainable_survives_the_full_horizon(
 def test_golden_valid_but_poor_fishing_greedy_collapses_before_the_horizon(
     bridge: GovsimBridge, baseline_5_agent_fishing: dict[str, Any]
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "greedy_v1", num_agents=5)
 
     terminal = _drive_episode(plugin, family_case)
@@ -524,7 +568,7 @@ def test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit(
     bridge: GovsimBridge,
 ) -> None:
     counting_bridge = _CountingBridge(bridge)
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
     state = plugin.initial_state(family_case, cell=None)
@@ -566,7 +610,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
     bridge: GovsimBridge,
 ) -> None:
     corrupting_bridge = _LocationCorruptingBridge(bridge)
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge, reveal_sustainability_threshold=True)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
 
     state = plugin.initial_state(family_case, cell=None)
@@ -597,7 +641,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
         scorer.score_equality_gini(terminal=terminal, baseline_gini=0.0),
     )
     for envelope in envelopes:
-        # Never a silently promoted scored zero (docs/verifier_taxonomy.md
+        # Never a silently promoted scored zero (docs/research/verifier_taxonomy.md
         # section 9); never a crash either -- we got this far.
         assert envelope.status == "invalid_measurement"
         assert envelope.primary is None
@@ -606,7 +650,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
 def test_golden_degenerate_reference_num_agents_1_flags_the_comparison(
     bridge: GovsimBridge,
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
 
     baseline_case = _family_case("fishing", "sustainable_v1", num_agents=1)
     baseline_terminal = _drive_episode(plugin, baseline_case)
@@ -662,7 +706,7 @@ def test_golden_degenerate_reference_num_agents_1_flags_the_comparison(
 def test_sheep_and_pollution_match_fishings_terminal_state_exactly_for_the_same_seed_and_policy(
     bridge: GovsimBridge, scenario: str
 ) -> None:
-    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge, reveal_sustainability_threshold=True)
 
     fishing_sustainable = _drive_episode(
         plugin, _family_case("fishing", "sustainable_v1", num_agents=5)
@@ -786,8 +830,12 @@ def test_call_surfaces_every_leaf_when_baselines_are_present() -> None:
     assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
 
 
-def test_call_omits_the_comparative_leaves_rather_than_inventing_a_baseline() -> None:
-    """Without reference values, report less -- never fabricate a comparison."""
+def test_call_reports_the_comparatives_as_invalid_measurement_rather_than_omitting_them() -> None:
+    """Per the benchmark owner's ruling on issue #141: a baseline-free run
+    still returns all five declared leaves. The two comparatives that need a
+    baseline (``govsim_total_harvest``/``govsim_equality_gini``) come back
+    present, typed ``invalid_measurement``, with a reason naming the absent
+    baseline -- never silently dropped from the returned set."""
     import aeread_families.govsim.measurement as m
 
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
@@ -796,12 +844,27 @@ def test_call_omits_the_comparative_leaves_rather_than_inventing_a_baseline() ->
         family_case, terminal_builder=lambda state: terminal, baselines=None
     )
     result = scorer(_scoring_input({"any": "state"}))
-    leaf_ids = {score.leaf.leaf_id for score in result.scores}
-    assert m.TOTAL_HARVEST_LEAF_ID not in leaf_ids
-    assert m.EQUALITY_GINI_LEAF_ID not in leaf_ids
-    # The family's declared primary estimand is always present, so an
-    # included receipt always carries the leaf the family is defined by.
+    assert len(result.scores) == 5
+    by_leaf_id = {score.leaf.leaf_id: score for score in result.scores}
+    assert set(by_leaf_id) == {
+        m.NO_COLLAPSE_LEAF_ID,
+        m.THRESHOLD_ADHERENCE_LEAF_ID,
+        m.SURVIVAL_MONTHS_LEAF_ID,
+        m.TOTAL_HARVEST_LEAF_ID,
+        m.EQUALITY_GINI_LEAF_ID,
+    }
+    for leaf_id in (m.TOTAL_HARVEST_LEAF_ID, m.EQUALITY_GINI_LEAF_ID):
+        comparative = by_leaf_id[leaf_id]
+        assert comparative.status == "invalid_measurement"
+        assert comparative.primary is None
+        assert comparative.validity.status == "invalid"
+        assert comparative.validity.reasons
+        assert "baseline" in comparative.validity.reasons[0]
+    # The family's declared primary estimand is always present and scored,
+    # so an included receipt always carries the leaf the family is defined
+    # by, regardless of whether a baseline was supplied.
     assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert by_leaf_id[m.SURVIVAL_MONTHS_LEAF_ID].status == "ok"
 
 
 def test_call_refuses_a_scoring_input_with_no_replayed_state() -> None:

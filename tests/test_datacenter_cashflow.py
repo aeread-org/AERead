@@ -40,12 +40,12 @@ def _service(*, take_or_pay_bps: int = 10_000, price: int = 100) -> ServiceAgree
     )
 
 
-def _loan(*, minimum_dscr_bps: int = 8_000) -> LoanAgreement:
+def _loan(*, minimum_dscr_bps: int = 8_000, spread_bps: int = 0) -> LoanAgreement:
     return LoanAgreement(
         maximum_commitment_cents=200_000,
         advance_rate_bps=5_000,
         base_rate_curve_id="base_curve_v1",
-        spread_bps=0,
+        spread_bps=spread_bps,
         unused_commitment_fee_bps_annual=0,
         origination_fee_bps=0,
         interest_reserve_cents=0,
@@ -134,7 +134,10 @@ def test_monthly_ledger_reconciles_and_couples_service_terms_to_loan_draws() -> 
     assert outcome.lender_npv_cents == 0
     assert outcome.customer_npv_cents == 200_000
     assert outcome.total_project_npv_cents == 180_000
-    assert outcome.minimum_dscr_bps == 9_000
+    # Coverage is reported on scheduled debt service only. This facility is
+    # interest-free and repays a bullet at maturity, so no month carries
+    # scheduled service and coverage is undefined throughout.
+    assert outcome.minimum_dscr_bps is None
     for row in outcome.rows:
         assert row.sources_cents == row.uses_cents
         assert (
@@ -175,16 +178,43 @@ def test_service_price_changes_developer_value_without_changing_project_physics(
 
 
 def test_dscr_threshold_is_a_separate_financing_failure() -> None:
+    """A covenant breach needs real scheduled debt service to measure against."""
+    outcome = simulate_project(
+        _facts(),
+        service_agreement=_execute("service", _service()),
+        # Interest makes coverage measurable; the threshold is set above the
+        # coverage this toy fixture can achieve so the covenant fires
+        # deterministically.
+        loan_agreement=_execute(
+            "loan", _loan(minimum_dscr_bps=100_000, spread_bps=20_000)
+        ),
+    )
+
+    assert outcome.minimum_dscr_bps == 53_999
+    assert outcome.minimum_dscr_bps < 100_000
+    assert outcome.defaulted is True
+    assert outcome.financing_succeeded is False
+    assert "minimum_dscr_breach" in outcome.default_reasons
+
+
+def test_a_bullet_repayment_at_maturity_is_not_a_coverage_breach() -> None:
+    """The balloon is refinancing risk, not a coverage failure.
+
+    Including it in the denominator would make every realistic bullet facility
+    breach its covenant in its final month purely because principal comes due.
+    """
     outcome = simulate_project(
         _facts(),
         service_agreement=_execute("service", _service()),
         loan_agreement=_execute("loan", _loan(minimum_dscr_bps=10_000)),
     )
+    final = outcome.rows[-1]
 
-    assert outcome.minimum_dscr_bps == 9_000
-    assert outcome.defaulted is True
-    assert outcome.financing_succeeded is False
-    assert "minimum_dscr_breach" in outcome.default_reasons
+    assert final.principal_repayment_cents > 0
+    assert "minimum_dscr_breach" not in outcome.default_reasons
+    # Repayment ability is still tested, separately.
+    assert final.closing_principal_cents == 0
+    assert "maturity_nonpayment" not in outcome.default_reasons
 
 
 def test_simulator_rejects_a_different_base_rate_curve() -> None:

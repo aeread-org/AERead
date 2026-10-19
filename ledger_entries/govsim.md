@@ -10,9 +10,9 @@ committed
 **What:** the milestone-1 commit (`feat(govsim): add case corpus and kernel environment
 adapter`) says in its own message: "`ledger_entries/govsim.md`: three new entries
 (benchmark_qc.md location, a scheduler.py phase-budget documentation gap, and a
-forward-looking plugin-teardown-hook design note)." `docs/govsim_adapter_spec.md` itself
+forward-looking plugin-teardown-hook design note)." `docs/families/govsim/adapter_spec.md` itself
 cites this file by name in three places (the "governing facts" list, section 7's
-phase-budget note, and section 7's "docs/benchmark_qc.md" note) as if it already existed.
+phase-budget note, and section 7's "docs/operations/benchmark_qc.md" note) as if it already existed.
 
 **Evidence:** `git ls-tree -r 45573c3 --name-only | grep -i ledger` returns nothing; `git
 show --stat 45573c3` lists 26 changed files, none under `ledger_entries/`. The directory did
@@ -24,21 +24,21 @@ the current repository state rather than from the commit message's prose alone. 
 recurs, a pre-commit check that a commit message referencing `ledger_entries/<family>.md`
 actually touches that path would catch it mechanically.
 
-## 2. low | docs/benchmark_qc.md | `docs/govsim_adapter_spec.md` cites QC Gate 1/2 terminology
+## 2. low | docs/operations/benchmark_qc.md | `docs/families/govsim/adapter_spec.md` cites QC Gate 1/2 terminology
 from a doc that does not exist on this branch or on `main`
 
 **What:** the spec's section 1/4 headings ("QC Gate 1", "QC Gate 2") are described as
-referencing `docs/benchmark_qc.md`, but that file is not present in this checkout. The spec
+referencing `docs/operations/benchmark_qc.md`, but that file is not present in this checkout. The spec
 itself self-defines the two gate terms inline (section 1 and section 4) rather than depending
 on the missing file's contents, so nothing in this milestone's work is blocked by the gap --
 but a future reader following the citation will hit a dead reference.
 
-**Evidence:** `ls docs/benchmark_qc.md` -> "No such file or directory" (verified directly, not
-merely asserted); `git log --all --oneline -- docs/benchmark_qc.md` (not checked further here,
+**Evidence:** `ls docs/operations/benchmark_qc.md` -> "No such file or directory" (verified directly, not
+merely asserted); `git log --all --oneline -- docs/operations/benchmark_qc.md` (not checked further here,
 per the milestone-1 commit message this exists only on an unmerged sibling branch/commit).
 
-**Suggested fix:** either land `docs/benchmark_qc.md` on `main` (if the sibling branch that
-has it is still live) or drop the citation from `docs/govsim_adapter_spec.md` in favor of the
+**Suggested fix:** either land `docs/operations/benchmark_qc.md` on `main` (if the sibling branch that
+has it is still live) or drop the citation from `docs/families/govsim/adapter_spec.md` in favor of the
 already-inline gate definitions, so the doc is self-contained.
 
 ## 3. medium | src/aeread/shared_runner/scheduler.py | `phase_action_counts` accumulates
@@ -68,7 +68,7 @@ carried over from the milestone-1 commit message.
 **Suggested fix:** add a one-line note on `PhaseSpec.max_logical_actions` (and/or
 `run_episode`'s own docstring) stating explicitly that the budget is a whole-episode total per
 phase id, not per visit/round -- this is exactly the distinction
-`docs/govsim_adapter_spec.md` section 7 had to work out empirically and record itself.
+`docs/families/govsim/adapter_spec.md` section 7 had to work out empirically and record itself.
 
 ## 4. low | src/aeread/shared_runner/registry.py, scheduler.py | no plugin-level teardown/close
 hook exists for a family plugin
@@ -84,7 +84,7 @@ construct, not something a family plugin itself can hook into.
 subprocess (mirroring `tau2_bridge.py`) specifically because there is no way for a family
 plugin to be notified "this episode/run is over, release your resources" -- a daemon-shaped
 alternative (one long-lived bridge subprocess reused across calls, avoiding the O(n)
-action-replay cost documented in `docs/govsim_adapter_spec.md` section 7) would need exactly
+action-replay cost documented in `docs/families/govsim/adapter_spec.md` section 7) would need exactly
 such a hook to know when to terminate the subprocess. This is a forward-looking note, not a
 blocker for this milestone: the per-call design works and was verified end-to-end (spec
 section 7).
@@ -140,7 +140,7 @@ of its five leaves are `verifier_family="comparative"`/`reference_kind="baseline
 fully deterministic (every leaf in `measurement.py` declares
 `evaluation_class="deterministic"`, none references a rater/judge/rubric), yet must pick the
 "...or_human_judged" bucket anyway because it is the only legal value close to "comparative".
-This was flagged during independent review (`docs/govsim_review_claude.md`'s S1) as a
+This was flagged during independent review (`docs/families/govsim/reviews/govsim_review_claude.md`'s S1) as a
 pre-existing kernel schema limitation, not something introduced by that adapter's diff.
 
 **Evidence:** `src/aeread/shared_runner/schemas.py:279-282`'s `_enum(data["measurement_kind"],
@@ -155,5 +155,5 @@ module.
 `"human_judged"` (or add a separate boolean/field such as `requires_rater_provenance`), so a
 downstream consumer branching on family-level `measurement_kind` to decide whether
 rater-provenance fields (rubric hash, rater identity, replicate count -- per
-`docs/verifier_taxonomy.md` section 7) are required does not have to also read every leaf's own
+`docs/research/verifier_taxonomy.md` section 7) are required does not have to also read every leaf's own
 `evaluation_class` to avoid a false positive for deterministic-only families like this one.

@@ -6,6 +6,8 @@
 
 **Design review:** [procurement design review](design_review.md)
 
+**Continuous replacement:** [unified run plan](unified_run_plan.md); a new campaign identity, with provider-free admission and conditional live gates.
+
 **Status:** case-specific profile;
 `development_case_qualification=passed` and
 `environment_and_verifier_qc=passed`, while
@@ -38,7 +40,7 @@ The independent unit is the **economic world**: one BOM, objective, and supplier
 panel. Presentation surfaces (`labeled`, `opaque`, `blinded_v3`) are paired
 mirrors of the same world and are never independent observations of it.
 
-Admitted panels:
+Panel inventory (admission status is stated separately from generation):
 
 | Panel | Worlds | Surfaces | Purpose |
 |---|---:|---|---|
@@ -50,13 +52,12 @@ Admitted panels:
 | `confirmatory_v2/` | 12 | labeled + opaque | held-out panel for the pre-award check; **inadmissible**, control saturates 7 of 12 worlds |
 | `duediligence_v1/` | 6 | labeled + opaque | first information panel; **inadmissible**, 1 of 6 worlds can express a difference. Retained as the screen's regression fixture |
 | due-diligence recalibration | 6 | not committed | one trap per component so a single recovery fits the budget; **inadmissible**, control saturates 6 of 6 at four seeds while all baselines lose. Not written to `cases/`; its measurement is defect 17 |
+| `information_v1/` | 8 | labeled + opaque | information worlds; **inadmissible**, control saturates 7 of 7 measured worlds and the biased channel is unread |
 
 Admission is decided by `headroom_screen.classify_world`, which rejects a world
 on three separate grounds -- trivial, floored, saturated -- measured over at
 least three seeds. No panel has yet passed it. That is the current state of the
 family and is reported as such rather than worked around.
-| `information_v1/` | 8 | labeled + opaque | information worlds; **inadmissible**, control saturates 7 of 7 and the biased channel is unread |
-| `duediligence_v1/` | 6 | labeled + opaque | verification-scarce worlds; **admitted** on a measured control failure rate of 3 of 6 |
 
 Validate for every world:
 
@@ -238,8 +239,9 @@ evidence. Those that bound what this family can currently claim:
    ten-action budget.
 3. Two of 147 supplier records have any MOQ headroom and price floors sit 3.10%
    below quote, so four of five counterable terms are decorative.
-4. A rejected counter names no field, so negotiation limits cannot be learned
-   inside one episode.
+4. Historical counters named no rejected field. New cases can declare
+   `counter_feedback=field_specific`; replies identify failed terms without
+   revealing private limits. Legacy receipt behavior remains unchanged.
 6. Replaying every prefix of the fifteen pre-award deferrals shows no point at
    which a feasible award was constructible, so the family measures irreversible
    early commitment without giving feedback until the end.

@@ -17,6 +17,13 @@ Milestone note: milestone 1 built cases + environment only, with
 Milestone 2 (this update) wires ``build_scorer`` to
 ``measurement.build_scorer`` -- see that module for the five leaves
 themselves, each delegated to upstream's own ``eval.py:Metrics``.
+
+Separately, kernel_scoring_contract_spec.md migration milestone 2 of 3
+(a later change) declares this family's finalize-time leaf policy in
+``family_manifest()`` and gives ``measurement.AmazonbargScorer`` a
+``__call__`` seam for ``task.evaluation.finalize_family_execution`` -- see
+``measurement.py``'s module docstring and
+``docs/amazonbarg_adapter_status.md``'s "Leaf policy" section.
 """
 from __future__ import annotations
 
@@ -108,8 +115,76 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
                 "outcome_support": "ratio",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # `build_scorer` or a test fixture. All five are
+                # `scope="finalize_time"`: every leaf in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater, or
+                # other not-yet-existing artifact dependency (spec section
+                # 4), so none is `deferred`. See
+                # docs/amazonbarg_adapter_status.md's "Leaf policy" section
+                # for why `amazonbarg_bargained_ratio` is primary and why it
+                # alone gates admission.
+                "leaves": [
+                    {
+                        "leaf_id": measurement.DEAL_AUTHENTICITY_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.ZOPA_MEMBERSHIP_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.DEAL_LOWER_BOUND_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.DEAL_UPPER_BOUND_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.BARGAINED_RATIO_LEAF_ID,
+                        "scope": "finalize_time",
+                        # Ruling R12 (kernel_scoring_contract_spec.md): this
+                        # leaf's own claim is inherently per seat -- the
+                        # tested seat's own bargained ratio, never a
+                        # blended one (measurement.py's own module
+                        # docstring) -- so no ``subject_reduction`` is
+                        # declared; two or more subject seats is reported
+                        # invalid_measurement("ambiguous_subject_seat"),
+                        # never a guessed mean.
+                        "seat_scope": "subject_seat",
+                    },
+                ],
+                "primary_leaf_id": measurement.BARGAINED_RATIO_LEAF_ID,
+                "admission_leaf_ids": [measurement.BARGAINED_RATIO_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # measurement.py declares each of its five leaves' validity-domain
+            # predicate and scorer implementation under its own distinct
+            # component id (never reusing the family-level scorer_id, unlike,
+            # e.g., procurement_grounding's single leaf) -- resolve_run_plan's
+            # own pin bookkeeping (_required_pin_kinds) only requires and
+            # admits a pin for a component named here or as `scorer_id`, and
+            # EvaluationReceipt._validate_and_freeze_plan_pins requires every
+            # leaf-declared implementation ref to match one, so all seven
+            # (the shared upstream-metrics-bridge reference, the shared base
+            # domain predicate, and each of the five leaves' own scorer id)
+            # must be declared as reference providers. Mirrors govsim's
+            # identical fix for the identical gap.
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    "amazonbarg_upstream_metrics_bridge",
+                    "amazonbarg_base_domain_predicate",
+                    measurement.DEAL_AUTHENTICITY_SCORER_ID,
+                    measurement.ZOPA_MEMBERSHIP_SCORER_ID,
+                    measurement.DEAL_LOWER_BOUND_SCORER_ID,
+                    measurement.DEAL_UPPER_BOUND_SCORER_ID,
+                    measurement.BARGAINED_RATIO_SCORER_ID,
+                ],
+            },
         }
     )
 
@@ -256,8 +331,19 @@ class AmazonbargPlugin:
 
     # -- episode lifecycle ---------------------------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here.
+        """
+        del run
         derived = family_case["derived"]
         # Cross-check the payload's derived fields against a fresh delegated
         # recomputation (upstream's own product.CamelAmazon loader), never a
@@ -557,15 +643,18 @@ class AmazonbargPlugin:
         """Return the five declared measurement leaves plus their scorers.
 
         See ``measurement.py`` (spec section 2): every leaf is declared for
-        every case (unlike ``tau3_retail``, none are conditional). The
-        actual delegated ``eval.py:Metrics`` call
-        (``measurement.compute_upstream_metrics``, which needs
-        ``upstream_root`` and a recorded transcript) happens separately, at
-        score time -- mirroring ``Tau3RetailScorer``'s own
-        bridge-passed-at-call-time pattern rather than binding
-        ``upstream_root`` into the scorer object itself.
+        every case (unlike ``tau3_retail``, none are conditional).
+        ``task.evaluation.finalize_family_execution`` calls the returned
+        object directly (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``self.upstream_root``
+        is threaded through here -- mirroring ``Tau3RetailScorer.bridge``'s
+        identical build-time binding -- because ``AmazonbargScorer.__call__``
+        needs the pinned upstream checkout to delegate to
+        ``eval.py:Metrics`` and no other seam in the kernel's fixed
+        ``__call__`` signature could carry it in.
         """
-        return measurement.build_scorer(family_case)
+        return measurement.build_scorer(family_case, upstream_root=self.upstream_root)
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]

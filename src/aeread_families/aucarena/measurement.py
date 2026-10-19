@@ -63,6 +63,7 @@ from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -73,6 +74,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import EpisodeResult, PhaseInstance
 
 from . import _vendored_upstream as vendored
@@ -85,25 +87,62 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "aucarena_base_v1"
 DOMAIN_VERSION = "1.0.0"
 
+# Named, exported component ids for every distinct implementation this
+# family's four leaves pin (``ReferenceSpec.implementation``/
+# ``MeasurementLeafSpec.scorer``) -- previously bare string literals inline
+# in each ``build_*_leaf`` below. A caller resolving a real ``RunPlan``
+# (``resolve_run_plan``) needs every one of these named here, not just
+# inline, to declare ``family_manifest()``'s own ``scoring.
+# reference_provider_ids`` (kernel_scoring_contract_spec.md milestone 3) --
+# mirrors ``govsim.measurement``'s identical ``BASE_DOMAIN_PREDICATE_ID``/
+# ``*_SCORER_ID`` exports, except aucarena's ``reference.implementation``
+# genuinely differs from its ``scorer`` per leaf (the independent-recompute
+# vendored-rule check and the ``measurement.py``-side scorer are two
+# distinct pinned files), so each leaf needs its own distinct reference-check
+# id in addition to its already-exported ``*_SCORER_ID``.
+BASE_DOMAIN_PREDICATE_ID = "aucarena_base_domain_predicate"
+
 BUDGET_INVARIANT_ESTIMAND_ID = "aucarena_budget_invariant"
 BUDGET_INVARIANT_LEAF_ID = "aucarena_budget_invariant_leaf"
 BUDGET_INVARIANT_REFERENCE_ID = "aucarena_budget_invariant_rule"
+BUDGET_INVARIANT_CHECK_ID = "aucarena_budget_invariant_state_check"
 BUDGET_INVARIANT_SCORER_ID = "aucarena_budget_invariant_scorer"
 
 BID_LEGALITY_ESTIMAND_ID = "aucarena_bid_legality"
 BID_LEGALITY_LEAF_ID = "aucarena_bid_legality_leaf"
 BID_LEGALITY_REFERENCE_ID = "aucarena_bid_legality_rule"
+BID_LEGALITY_CHECK_ID = "aucarena_bid_legality_independent_check"
 BID_LEGALITY_SCORER_ID = "aucarena_bid_legality_scorer"
 
 HAMMER_RULE_ESTIMAND_ID = "aucarena_hammer_rule"
 HAMMER_RULE_LEAF_ID = "aucarena_hammer_rule_leaf"
 HAMMER_RULE_REFERENCE_ID = "aucarena_hammer_rule_trace"
+HAMMER_RULE_CHECK_ID = "aucarena_hammer_rule_independent_replay"
 HAMMER_RULE_SCORER_ID = "aucarena_hammer_rule_scorer"
 
 PROFIT_VS_FIELD_ESTIMAND_ID = "aucarena_profit_vs_field"
 PROFIT_VS_FIELD_LEAF_ID = "aucarena_profit_vs_field_leaf"
 PROFIT_VS_FIELD_REFERENCE_ID = "aucarena_frozen_field_v1"
+PROFIT_VS_FIELD_CHECK_ID = "aucarena_profit_vs_field_delta"
 PROFIT_VS_FIELD_SCORER_ID = "aucarena_profit_vs_field_scorer"
+
+# Every distinct component id ``family_manifest()`` must list under
+# ``scoring.reference_provider_ids`` for ``resolve_run_plan`` to accept a
+# pin for it (``resolver.py``'s ``_required_pin_kinds``/``_check_pins``) --
+# the exact set ``_receipt_implementations`` collects from this family's
+# ``FamilyScoreSet`` at finalize time (the domain predicate, reused by all
+# four leaves, plus each leaf's own distinct reference-check and scorer).
+REFERENCE_PROVIDER_IDS = (
+    BASE_DOMAIN_PREDICATE_ID,
+    BUDGET_INVARIANT_CHECK_ID,
+    BUDGET_INVARIANT_SCORER_ID,
+    BID_LEGALITY_CHECK_ID,
+    BID_LEGALITY_SCORER_ID,
+    HAMMER_RULE_CHECK_ID,
+    HAMMER_RULE_SCORER_ID,
+    PROFIT_VS_FIELD_CHECK_ID,
+    PROFIT_VS_FIELD_SCORER_ID,
+)
 
 DEFAULT_TESTED_SEAT_ID = "agent"
 
@@ -145,7 +184,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="aucarena_base_v1/case_payload",
-        predicate=_implementation("aucarena_base_domain_predicate", "environment.py"),
+        predicate=_implementation(BASE_DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -179,7 +218,7 @@ def build_budget_invariant_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_budget_invariant_state_check", "_vendored_upstream.py"
+            BUDGET_INVARIANT_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -215,7 +254,7 @@ def build_bid_legality_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_bid_legality_independent_check", "_vendored_upstream.py"
+            BID_LEGALITY_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -251,7 +290,7 @@ def build_hammer_rule_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_hammer_rule_independent_replay", "_vendored_upstream.py"
+            HAMMER_RULE_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -330,7 +369,7 @@ def build_profit_vs_field_leaf(
         units="usd",
         source_sha256=_field_roster_sha256(field_seats, item_ids),
         implementation=_implementation(
-            "aucarena_profit_vs_field_delta", "measurement.py"
+            PROFIT_VS_FIELD_CHECK_ID, "measurement.py"
         ),
     )
     verifier = VerifierSpec(
@@ -380,10 +419,27 @@ def score_budget_invariant(
     Checked directly against every ``TransitionResult.state`` the scheduler
     already recorded (one per bidding round) -- never a re-derivation of the
     auction policy, only a read of already-computed state.
+
+    ``checked_transitions_count`` is a diagnostic, not a violation-detection
+    input: it records how many recorded states this check actually examined
+    (``kernel_scoring_contract_spec.md`` ruling R9(b), the sensitivity
+    witness -- this leaf's only violation path, ``budget < 0``, is
+    structurally unreachable through this environment's own legality gate,
+    since ``environment.py``'s ``step()`` never applies a bid that fails
+    ``bid_sanity_check`` in the first place, so ``violations`` is always
+    empty on any legitimately-scripted episode; without a diagnostic that
+    genuinely varies with the recorded trajectory, no fixture pair could
+    ever show this leaf reading its declared ``trajectory`` input at all).
+    Always present, present even when a violation is also recorded, and
+    never folded into ``primary`` -- purely "how much was checked," the same
+    role ``score_bid_legality``'s own ``malformed_action_count`` already
+    plays alongside its violations.
     """
     violations: dict[str, MetricValue] = {}
+    checked_transitions_count = 0
     for phase_instance in result.phase_instances:
         for transition in phase_instance.transitions:
+            checked_transitions_count += 1
             seats = transition.state.get("seats", {})
             for seat_id, seat in seats.items():
                 budget = seat["budget"]
@@ -397,11 +453,15 @@ def score_budget_invariant(
                             "phase_instance_id": phase_instance.phase_instance_id,
                         },
                     )
+    metrics: dict[str, MetricValue] = dict(violations)
+    metrics["checked_transitions_count"] = MetricValue(
+        float(checked_transitions_count), "count"
+    )
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
         primary=MetricValue(0.0 if violations else 1.0, "pass"),
-        metrics=violations,
+        metrics=metrics,
         reference_values={},
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
@@ -566,6 +626,18 @@ def score_hammer_rule(
     on ``environment.py``'s own legality gate having already run correctly;
     it recomputes both *which* bids counted and *what they resolved to*
     from nothing but the sealed episode evidence.
+
+    ``replayed_rounds_count`` is a diagnostic, not a parity-check input: it
+    records how many recorded rounds this replay actually walked
+    (``kernel_scoring_contract_spec.md`` ruling R9(b), the sensitivity
+    witness -- this leaf's only disagreement path raises
+    ``AucArenaMeasurementError`` rather than producing a differing score, so
+    on any successful replay ``primary``/``metrics`` are otherwise identical
+    regardless of how the auction actually played out; without a diagnostic
+    that genuinely varies with the recorded trajectory, no fixture pair
+    could ever show this leaf reading its declared ``trajectory`` input at
+    all). Never folded into ``primary``, and never itself compared against
+    the environment's own record -- purely "how much was replayed."
     """
     world_seed = result.final_state["world_seed"]
     enable_discount = result.final_state["enable_discount"]
@@ -575,7 +647,9 @@ def score_hammer_rule(
     prev_round_max_bid = -1
     current_item_id: Any = object()  # sentinel: never equals a real item id
 
+    replayed_rounds_count = 0
     for phase_instance in result.phase_instances:
+        replayed_rounds_count += 1
         transition = phase_instance.transitions[0]
         consequences = transition.consequences
         item_id = consequences["item_id"]
@@ -638,7 +712,9 @@ def score_hammer_rule(
         status="ok",
         leaf=leaf,
         primary=MetricValue(1.0, "pass"),
-        metrics={},
+        metrics={
+            "replayed_rounds_count": MetricValue(float(replayed_rounds_count), "count")
+        },
         reference_values={},
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
@@ -705,17 +781,45 @@ def score_profit_vs_field(
 
 
 @dataclass(frozen=True, slots=True)
-class _OutcomeOnlyResult:
-    """Adapt a bare terminal ``outcome`` mapping to look like the one
-    ``EpisodeResult`` attribute :func:`score_profit_vs_field` actually reads
-    (``result.outcome["seats"]``) -- nothing else. Lets ``AucArenaScorer.
-    __call__`` accept exactly the argument the shared kernel's real calling
-    convention supplies (see that method's docstring) without changing
-    ``score_profit_vs_field``'s own signature or any of its existing
-    ``EpisodeResult``-taking call sites.
+class _ScoringInputResult:
+    """Adapt a ``FamilyScoringInput`` to look like the ``EpisodeResult``
+    attributes this family's four named ``score_*`` methods actually read --
+    ``phase_instances`` (all three trajectory-scoped leaves),
+    ``outcome["seats"]`` (:func:`score_profit_vs_field`), and
+    ``final_state["world_seed"]``/``["enable_discount"]``
+    (:func:`score_hammer_rule`) -- nothing else. Lets ``AucArenaScorer.
+    __call__`` compose the existing named methods unchanged (spec section 5:
+    no new scoring logic) over exactly the argument the shared kernel's real
+    calling convention supplies.
+
+    ``FamilyScoringInput`` carries no ``final_state`` field at all
+    (kernel_scoring_contract_spec.md section 1). ``world_seed``/
+    ``enable_discount`` are never carried by ``scoring_input.outcome``
+    either (``environment.py``'s ``outcome()`` omits both), but both are
+    static: set once in ``initial_state`` and never mutated by ``step()``
+    (that method's own body never assigns either key), so every recorded
+    ``TransitionResult.state`` -- including the LAST one -- carries them
+    unchanged. Reading them off the last replayed phase instance's last
+    transition is therefore the same value ``EpisodeResult.final_state``
+    itself would have carried. Ruling R3 (kernel_scoring_contract_spec.md)
+    makes this safe: it is the verified re-execution's own cross-checked
+    state, never independently re-derived -- a state that diverged from the
+    sealed run would already have failed finalization before this scorer
+    is ever called.
     """
 
     outcome: Mapping[str, Any]
+    phase_instances: tuple[PhaseInstance, ...]
+    final_state: Mapping[str, Any]
+
+    @classmethod
+    def from_scoring_input(cls, scoring_input: FamilyScoringInput) -> "_ScoringInputResult":
+        last_state = scoring_input.phase_instances[-1].transitions[-1].state
+        return cls(
+            outcome=scoring_input.outcome,
+            phase_instances=scoring_input.phase_instances,
+            final_state=last_state,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -725,14 +829,11 @@ class AucArenaScorer:
     Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s shape (four named
     methods, one per declared leaf), each still callable directly by any
     caller holding a full ``EpisodeResult`` -- every test in this family
-    does exactly that. ``__call__`` (below) is the *additional* surface the
-    real kernel calling convention needs (spec `docs/aucarena_codex_triage.md`
-    Finding 1): unlike the false claim this class's docstring used to make
-    ("the current kernel does not yet call ``build_scorer`` itself"),
-    ``finalize_family_execution`` (``aeread/shared_runner/family_evaluation.py``)
-    already calls whatever ``build_scorer(family_case)`` returns *as a
-    function* of ``(outcome, evidence_refs=...)`` -- see ``housing.py``'s
-    identical, already-exercised convention.
+    does exactly that. ``__call__`` (below) is the seam
+    ``task.evaluation.finalize_family_execution`` calls directly
+    (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``, per
+    kernel_scoring_contract_spec.md section 1).
     """
 
     field_seats: tuple[Mapping[str, Any], ...]
@@ -740,30 +841,34 @@ class AucArenaScorer:
     leaves: tuple[MeasurementLeafSpec, ...]
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
-    ) -> ScoreEnvelope:
-        """The one ``ScoreEnvelope`` the shared kernel's real calling
-        convention can obtain from this family: ``finalize_family_execution``
-        passes only the terminal ``outcome`` mapping (never a full
-        ``EpisodeResult`` -- it has none to give), so only this family's one
-        *terminal-state-scoped* leaf, ``aucarena_profit_vs_field`` (the
-        family manifest's own declared ``primary_estimand``), is computable
-        from it. The other three declared leaves are *trajectory-scoped*
-        (spec section 2): they independently recompute vendored bid/hammer
-        rules from every recorded action's own frozen pre-round observation
-        (``EpisodeResult.phase_instances``), data this single-argument
-        convention does not carry -- exactly the same terminal-state-only
-        shape ``housing.py``'s own one declared leaf uses. Those three
-        remain available as named methods below for any caller holding a
-        full ``EpisodeResult`` (every test in this family, and ``replay.py``,
-        already are such callers).
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Returns every one of this family's four declared finalize-time
+        leaves (spec section 5) -- this family has no ``score_all``, so
+        this composes the four existing named ``score_*`` methods directly;
+        no new scoring logic is written here.
+        ``_ScoringInputResult.from_scoring_input`` adapts ``scoring_input``
+        to the one shape all four already accept (see that class's own
+        docstring for exactly what each field is read for and why that is
+        safe with no ``EpisodeResult`` reachable from this signature).
         """
-        return score_profit_vs_field(
-            self.profit_vs_field_leaf,
-            result=_OutcomeOnlyResult(outcome),
-            field_seats=self.field_seats,
-            tested_seat_id=self.tested_seat_id,
-            evidence_refs=evidence_refs,
+        result = _ScoringInputResult.from_scoring_input(scoring_input)
+        scores = (
+            self.score_budget_invariant(result=result, evidence_refs=evidence_refs),
+            self.score_bid_legality(result=result, evidence_refs=evidence_refs),
+            self.score_hammer_rule(result=result, evidence_refs=evidence_refs),
+            self.score_profit_vs_field(result=result, evidence_refs=evidence_refs),
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.profit_vs_field_leaf.leaf_id,
+            scores=scores,
+            admission_leaf_ids=(self.profit_vs_field_leaf.leaf_id,),
         )
 
     @property
@@ -838,15 +943,25 @@ def build_scorer(
 __all__ = [
     "AucArenaMeasurementError",
     "AucArenaScorer",
+    "BASE_DOMAIN_PREDICATE_ID",
+    "BID_LEGALITY_CHECK_ID",
     "BID_LEGALITY_ESTIMAND_ID",
     "BID_LEGALITY_LEAF_ID",
+    "BID_LEGALITY_SCORER_ID",
+    "BUDGET_INVARIANT_CHECK_ID",
     "BUDGET_INVARIANT_ESTIMAND_ID",
     "BUDGET_INVARIANT_LEAF_ID",
+    "BUDGET_INVARIANT_SCORER_ID",
     "DEFAULT_TESTED_SEAT_ID",
+    "HAMMER_RULE_CHECK_ID",
     "HAMMER_RULE_ESTIMAND_ID",
     "HAMMER_RULE_LEAF_ID",
+    "HAMMER_RULE_SCORER_ID",
+    "PROFIT_VS_FIELD_CHECK_ID",
     "PROFIT_VS_FIELD_ESTIMAND_ID",
     "PROFIT_VS_FIELD_LEAF_ID",
+    "PROFIT_VS_FIELD_SCORER_ID",
+    "REFERENCE_PROVIDER_IDS",
     "build_bid_legality_leaf",
     "build_budget_invariant_leaf",
     "build_hammer_rule_leaf",

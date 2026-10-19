@@ -1,6 +1,6 @@
 {
   "case_id": "aucarena.pilot.invalid_unauthorized_01",
-  "content_sha256": "68209f8107e95477da02b0320503c176a15aa1abecc9a0ab1e03de084ca6b318",
+  "content_sha256": "363a6cd2864f8ecca94b762a6584efa0265240056d45fdc26848f0527788b7fc",
   "episode": {
     "max_logical_actions": 200,
     "termination": [
@@ -44,7 +44,8 @@
         "model_name": "rule",
         "seat_id": "field_high"
       }
-    ]
+    ],
+    "world_seed": 1003
   },
   "provenance": {
     "generator_id": "aucarena_importer",

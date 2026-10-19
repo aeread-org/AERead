@@ -11,7 +11,7 @@ AERead side.
 means importing `simulate.py` itself (`from simulate import complex_actions`), which
 executes that module's full body — `matplotlib`/`yaml`/`fire`/`pandas`/`seaborn`/
 `python-dateutil` at module scope. None of this may be installed into the project's own
-venv (see `docs/econagent_adapter_spec.md`'s "Governing facts" and milestone-1
+venv (see `docs/families/econagent/adapter_spec.md`'s "Governing facts" and milestone-1
 corrections), so the adapter delegates across a subprocess:
 `src/aeread_families/econagent_v1/econagent_bridge.py` spawns
 `econagent_bridge_driver.py` under a separate, already-provisioned interpreter.
@@ -27,7 +27,7 @@ per-agent order every month. None of that is a clean JSON round-trip target with
 either reimplementing upstream's own RNG-driven formula selection (forbidden) or
 replaying every prior month from scratch on every call. So the driver is spawned once
 per episode, held open over stdin/stdout for `episode_length` months, and closed at the
-end — see `docs/econagent_adapter_spec.md`'s milestone-1 correction 3 for the full
+end — see `docs/families/econagent/adapter_spec.md`'s milestone-1 correction 3 for the full
 reasoning.
 
 ## cwd matters

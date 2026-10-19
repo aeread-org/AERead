@@ -302,7 +302,7 @@ def test_published_trajectory_examples_are_digest_bound_and_unranked() -> None:
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_population_crossplay_v0"
+        /"housing" / "housing_population_crossplay_v0"
         / "trajectories"
         / "selected_2026-09-02.json"
     )
@@ -327,7 +327,7 @@ def test_published_population_qualification_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_population_crossplay_v0"
+        /"housing" / "housing_population_crossplay_v0"
         / "reports"
         / "qualification_2026-09-01.json"
     )
@@ -346,7 +346,7 @@ def test_published_population_requalification_is_digest_bound_and_blocked() -> N
     path = (
         CONTRACT_PATH.parents[1]
         / "evidence"
-        / "housing_population_crossplay_v0"
+        /"housing" / "housing_population_crossplay_v0"
         / "reports"
         / "requalification_2026-09-02.json"
     )

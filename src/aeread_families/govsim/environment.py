@@ -218,8 +218,7 @@ def family_manifest() -> FamilyManifest:
                 # per-leaf declarations (govsim_no_collapse,
                 # govsim_threshold_adherence, govsim_survival_months,
                 # govsim_total_harvest, govsim_equality_gini) are
-                # measurement.py's job, deferred to a later milestone (see
-                # `build_scorer` below).
+                # measurement.py's job (see `build_scorer` below).
                 "primary_estimand": "govsim_survival_months",
                 # "comparative_or_human_judged" is the closest legal value in
                 # schemas.py's MeasurementDeclaration enum
@@ -238,6 +237,59 @@ def family_manifest() -> FamilyManifest:
                 "comparison_baseline": "govsim_sustainable_v1",
                 "bound_status": "baseline_only",
                 "outcome_support": "bounded_by_max_num_rounds",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # `build_scorer` or a test fixture. All five are
+                # `scope="finalize_time"`: every scorer in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater, or
+                # other not-yet-existing artifact dependency, so none is
+                # `deferred`. None uses `seat_scope="subject_seat"` either --
+                # unlike negarena's per-seat outcome leaf, all five of these
+                # leaves are whole-episode quantities (upstream's own
+                # recorded round_trace/terminal state across every persona),
+                # never a reduction over which seat is the tested subject --
+                # so all five keep the default `seat_scope="cell"`.
+                #
+                # Per the benchmark owner's ruling on issue #141 (govsim:
+                # declare the five-leaf policy): the comparative leaves are
+                # the point of this family, and both published panels
+                # (first_light_v1, dialogue_v3) already carry all five
+                # leaves with baseline reference values, so this declaration
+                # makes the manifest say what every receipt already does. A
+                # baseline-free run still returns all five leaves --
+                # `govsim_total_harvest`/`govsim_equality_gini` as
+                # `invalid_measurement` (a comparative without its baseline
+                # is unmeasured, not silently dropped) -- see
+                # `measurement.py`'s `GovsimScorer.__call__` and
+                # `_missing_baseline_envelope`. None of the five is declared
+                # `case_conditional`: a comparative with no baseline is
+                # present-but-unmeasured, never inapplicable.
+                "leaves": [
+                    {
+                        "leaf_id": measurement.NO_COLLAPSE_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.SURVIVAL_MONTHS_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.TOTAL_HARVEST_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.EQUALITY_GINI_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                ],
+                "primary_leaf_id": measurement.SURVIVAL_MONTHS_LEAF_ID,
+                "admission_leaf_ids": [measurement.SURVIVAL_MONTHS_LEAF_ID],
             },
             "scoring": {
                 "scorer_id": SCORER_ID,
@@ -282,17 +334,27 @@ class GovsimPlugin:
         upstream_root: Path | str,
         bridge: GovsimBridge | None,
         baselines: Mapping[str, float] | None = None,
+        reveal_sustainability_threshold: bool | None = None,
     ) -> None:
         self.upstream_root = Path(upstream_root)
         self.bridge = bridge
-        # This family is comparative (`bound_status: baseline_only`), so three
-        # of its five leaves need reference values. They are produced by
+        # Who may see the sustainability threshold. `None` follows the case's
+        # own declared arm (`env_cfg.inject_universalization`), which is what
+        # a tested agent gets. The scripted reference policy
+        # (`govsim_sustainable_v1`) is a control, not a subject, and is
+        # *defined* as harvesting that threshold, so the provider-free
+        # baseline episode passes True here. A subject seat never does.
+        self.reveal_sustainability_threshold = reveal_sustainability_threshold
+        # This family is comparative (`bound_status: baseline_only`), so its
+        # comparative leaves need reference values. They are produced by
         # running the declared scripted policy (`govsim_sustainable_v1`)
         # through this same environment, provider-free, and frozen into the
         # campaign plan -- so a reader can see which policy, at which digest,
         # produced the numbers every comparative claim is measured against.
-        # A plugin built without them scores the three baseline-free leaves
-        # rather than inventing a reference.
+        # A plugin built without them still declares all five leaves (the
+        # manifest's leaf policy, per the ruling on issue #141): the scorer
+        # reports `govsim_total_harvest`/`govsim_equality_gini` as
+        # `invalid_measurement` rather than inventing a reference.
         self.baselines = dict(baselines) if baselines is not None else None
 
     # ------------------------------------------------------------------
@@ -507,7 +569,25 @@ class GovsimPlugin:
             "num_agents": int(family_case["env_cfg"]["num_agents"]),
             "num_round": projection["num_round"],
             "resource_in_pool": projection["resource_in_pool"],
-            "sustainability_threshold": projection["sustainability_threshold"],
+            # Upstream hands the agent the sustainability threshold ONLY in
+            # the universalization arm (`inject_universalization`, upstream's
+            # `get_universalization_prompt`: "if everyone fishes more than N
+            # every month, the lake will eventually be empty"). That arm is
+            # the paper's moral-reasoning intervention, and the paper's
+            # headline -- highest survival below 54% -- is the baseline arm,
+            # where the agent must infer the threshold from the dynamics.
+            # Every case in this corpus declares `inject_universalization:
+            # false`, so serving the number unconditionally ran the
+            # intervention while the contract said baseline (G-D-03).
+            **(
+                {"sustainability_threshold": projection["sustainability_threshold"]}
+                if (
+                    self.reveal_sustainability_threshold
+                    if self.reveal_sustainability_threshold is not None
+                    else bool(family_case["env_cfg"].get("inject_universalization"))
+                )
+                else {}
+            ),
             # What everyone heard, and what this agent alone remembers.
             "recent_utterances": [
                 dict(entry) for entry in state.get("transcript", [])[-TRANSCRIPT_WINDOW:]
@@ -781,8 +861,10 @@ class GovsimPlugin:
             terminal_builder=lambda state: self.terminal(family_case, state),
             # Comparative reference values, produced by a scripted policy run
             # and frozen by the campaign that constructed this plugin. Absent
-            # outside a campaign, in which case the scorer emits the three
-            # baseline-free leaves rather than fabricating a reference.
+            # outside a campaign, in which case the scorer still declares all
+            # five leaves -- `govsim_total_harvest`/`govsim_equality_gini`
+            # come back `invalid_measurement` rather than a fabricated
+            # reference (ruling on issue #141).
             baselines=self.baselines,
         )
 

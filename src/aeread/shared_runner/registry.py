@@ -116,6 +116,11 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "datacenter_development_environment_v2",
         ),
         (
+            "datacenter_risk_allocation_v1",
+            "0.1.0",
+            "datacenter_risk_allocation_environment_v1",
+        ),
+        (
             "datacenter_development_v1",
             "2.1.0",
             "datacenter_development_objective_environment_v1",

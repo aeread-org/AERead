@@ -1,4 +1,4 @@
-"""Regression coverage for ``docs/aucarena_codex_triage.md`` Finding 8:
+"""Regression coverage for ``docs/families/aucarena/reviews/aucarena_codex_triage.md`` Finding 8:
 ``tests/test_aucarena_cases.py``'s own module-level
 ``pytest.skip(..., allow_module_level=True)`` collapses 19 QC-Gate-1 tests
 into one silent ``1 skipped`` line the moment the pinned upstream
@@ -66,7 +66,7 @@ def test_missing_upstream_checkout_fails_loudly_when_the_gate_is_required() -> N
 
 def test_missing_upstream_checkout_prints_a_visible_note_even_when_the_gate_is_not_required() -> None:
     """Finding 8's residual gap (independent cross-model verification,
-    ``docs/aucarena_fix_verification.md``): the opt-in gate only removes
+    ``docs/families/aucarena/reviews/aucarena_fix_verification.md``): the opt-in gate only removes
     the silence *if* someone remembers to set
     ``$AEREAD_AUCARENA_QC_GATE_REQUIRED``. Nothing in this repo's own CI
     (``.github/workflows/ci.yml``) sets it, so an ordinary default run --
