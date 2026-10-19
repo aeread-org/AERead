@@ -133,3 +133,6 @@ Circulation edits (2026-10-19, owner approved "yes go", after an external circul
   and contributions": four open questions (counterpart populations, with "none reversed in our runs"; validity
   of populations of worlds; information and judgment; new economic decisions), a ready-vs-not paragraph, then
   the earlier next-steps and conclusion paragraph. No disclosure removed. 51 pages.
+- Abstract (2026-10-19, owner asked why it was there): the TERMS-Bench clause is removed. The reimplementation
+  orders two agents only, its levels differ from the paper's for reasons Section 5.3 names, and a reference paper is
+  a template, not a comparison to lead with; Section 5.3 and Table 2.1 keep it. Abstract 263 words.
