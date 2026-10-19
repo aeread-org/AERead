@@ -149,3 +149,31 @@ listed only its 4 built-in skills.
 
 v1 and v2 therefore differ in the subjects' context as well as in brief, seat and pack. A difference between a
 model's v1 and v2 behavior is not attributable to any one of these.
+
+## Amendment 2, 2026-10-19: Codex's working directory, and what the freeze probe reads (before any v2 artifact)
+
+Amendment 1's Codex control left one project word in the subject's context (CLI-D-03). The hashed v1 client runs
+Codex with `-C <tmp>/aeread_codex_call_<random>/cwd`, and Codex shows the model that path as its `<cwd>` and
+workspace root; the clean subprocess directory of amendment 1 does not reach it, because `-C` overrides it.
+Amendment 1's live check read Codex's skill list, not its working directory.
+
+- **Codex:** the isolated call replaces the `-C` value with a fresh empty directory under `/private/tmp` with a
+  neutral name, removed after the call. The client is not edited.
+- **The freeze probe** (`probe_codex`, `probe_claude` in `tools/cli_subjects/cli_isolation.py`) asks each subject,
+  through the client exactly as a run calls it, for its skills, tools, working directory and every other context
+  block, quoted; for Claude Code it also reads the CLI's init record under the client's flags. A freeze is refused
+  when the working directory or any reported context block names the repository or the home directory, when Codex
+  lists a skill beyond its built-in four or the probe did not run through the isolated call, or when Claude Code
+  reports a skill in context, a tool other than StructuredOutput, an MCP server, a non-default output style, or a
+  probe context above 3,000 tokens. Claude Code's init record lists the installed plugins and skills even under
+  `--safe-mode`; that list is an inventory, not context, and is sealed without refusing.
+
+Checked live on 2026-10-19: Codex 0.162.1 listed its 4 built-in skills and the working directory
+`/private/tmp/w_<random>`; Claude Code 2.1.303 reported StructuredOutput only, no MCP server, the default output style,
+no skill in context and a 1,287-token context holding only the account email block and the environment block.
+
+The same check settles that v1 carried CLI-D-01: the sealed v1 request `06e544a5` used 7,735 input tokens under
+Codex 0.160.0; replayed now through the v1 client it uses 7,758 as v1 ran and 7,244 isolated.
+
+The CLI versions differ from v1's (Claude Code 2.1.292 and Codex 0.160.0 in v1). Both are recorded at the freeze as
+part of the identity, as Section 3 states.

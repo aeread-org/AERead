@@ -79,3 +79,49 @@ def test_a_probe_that_shows_customizations_refuses_the_freeze(probe, expected) -
     assert len(found) == len(expected)
     for text, fragment in zip(found, expected):
         assert fragment in text
+
+
+def test_the_codex_working_directory_the_model_sees_is_replaced(tmp_path, monkeypatch) -> None:
+    """CLI-D-03: the hashed client names ``-C <tmp>/aeread_codex_call_<random>/cwd``; the isolated call replaces it."""
+    auth = tmp_path / "auth.json"
+    auth.write_text("{}")
+    monkeypatch.setattr(iso, "CODEX_AUTH", auth)
+    named = tmp_path / "aeread_codex_call_x" / "cwd"
+    named.mkdir(parents=True)
+    show = "import json, sys, os; print(json.dumps({'argv': sys.argv[1:], 'cwd': os.getcwd()}))"
+    code, out, _ = asyncio.run(iso.codex_run_isolated((sys.executable, "-c", show, "exec", "-C", str(named), "-"), b""))
+    assert code == 0
+    seen = json.loads(out)
+    given = seen["argv"][seen["argv"].index("-C") + 1]
+    assert given == seen["cwd"]
+    assert "aeread" not in given.lower() and str(iso.REAL_HOME) not in given
+    assert not Path(given).exists()
+
+
+def test_neutral_workdir_leaves_arguments_without_a_directory_alone() -> None:
+    assert iso._neutral_workdir(("codex", "--version"), Path("/x")) == ("codex", "--version")
+    assert iso._neutral_workdir(("codex", "--cd", "/a", "-"), Path("/x")) == ("codex", "--cd", "/x", "-")
+
+
+@pytest.mark.parametrize(
+    ("probe", "fragment"),
+    [
+        ({"cli": "codex_cli", "skills": [], "working_directory": "/private/tmp/w_a",
+          "other_context_blocks": ["<environment_context><cwd>/var/T/aeread_codex_call_1/cwd</cwd>"]}, "context the subject reports"),
+        ({"cli": "codex_cli", "skills": [], "working_directory": "/private/tmp/w_a", "isolated_run": False}, "without the isolated"),
+        ({"cli": "claude_code", "tools": ["StructuredOutput"], "mcp_servers": [], "working_directory": "/private/tmp/w_a",
+          "context_tokens": 67906}, "probe context 67906"),
+        ({"cli": "claude_code", "tools": ["StructuredOutput"], "mcp_servers": [], "working_directory": "/private/tmp/w_a",
+          "skills_in_context": ["superpowers"]}, "skills in context"),
+    ],
+)
+def test_context_blocks_and_unisolated_probes_refuse_the_freeze(probe, fragment) -> None:
+    found = iso.isolation_violations(probe)
+    assert len(found) == 1 and fragment in found[0]
+
+
+def test_probe_request_is_hashed_and_asks_for_the_four_items() -> None:
+    request = iso.probe_request(provider="codex_cli", model="m", reasoning_effort="low", provider_metadata={"a": "b"})
+    assert request.request_sha256 and request.output_schema["required"] == [
+        "skills", "tools", "working_directory", "other_context_blocks"]
+    assert request.revision == request.model == "m"
