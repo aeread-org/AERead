@@ -1,0 +1,74 @@
+{
+ "case": "procurement_pay_or_test_v3_confirm",
+ "subjects": {
+  "Opus 5.5 (Claude Code)": {
+   "by_rule_count": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 34,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 80,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 4
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_claude_code_opus55_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 51.010792,
+    "interaction_cost": 0.234998,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_cli_claude_opus55",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.995414,
+    "interaction_cost": 0.004586,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 51.245789,
+   "worlds": 20
+  },
+  "Sol 6.1 (Codex)": {
+   "by_rule_count": {
+    "contrary_to_information_held: awarded while a newcomer test begun was still worth finishing": 5,
+    "contrary_to_information_held: looked a source up where the stated odds made another move better": 3,
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 40,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 7,
+    "contrary_to_information_held: tested a newcomer where the stated odds and clock made paying best": 8,
+    "contrary_to_information_held: worked a newcomer's test in an order its stated fees and days made worse": 8,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 12,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 28,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 13
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_codex_cli_sol61_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 13.937006,
+    "information_not_acquired": 17.474162,
+    "interaction_cost": 1.103195,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_cli_codex_sol61",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.428642,
+    "information_not_acquired": 0.537429,
+    "interaction_cost": 0.033929,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 32.514363,
+   "worlds": 20
+  }
+ },
+ "unit": "USD of decision loss per world"
+}
