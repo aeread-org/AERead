@@ -57,10 +57,27 @@ def _touched(play: dict, newcomers: set[str]) -> set[str]:
 
 
 def _reasons(run_root: Path) -> list[list[str]]:
-    """Each completed play's stated reasons and messages, turn by turn, from the run's own rows."""
-    artifact = json.loads((run_root / "summary.json").read_text())
-    return [[f"{step.get('reason') or ''} {step.get('message') or ''}".strip() for step in row["action_trace"]]
-            for row in artifact["rows"] if row.get("status") == "completed"]
+    """Each play's stated reasons and messages, turn by turn, from the subject's own replies in the sealed events.
+
+    The run's summary rows keep only each action's type, supplier and award lines, so the reasons are read where they
+    were sealed: every ``provider_call_succeeded`` reply (incident P-T-21; the first version read the rows and found
+    none in any run).
+    """
+    plays = []
+    for events in sorted(run_root.glob("executions/*/seed_*/*/tasks/*/attempts/*/events.jsonl")):
+        turns = []
+        for line in events.read_text().splitlines():
+            event = json.loads(line) if line.strip() else {}
+            if event.get("event_type") != "provider_call_succeeded":
+                continue
+            payload = json.loads((events.parent / event["payload_ref"]).read_text())
+            try:
+                reply = json.loads((payload.get("provider_result") or {}).get("output_text") or "")
+            except ValueError:
+                continue
+            turns.append(f"{reply.get('reason') or ''} {reply.get('message') or ''}".strip())
+        plays.append(turns)
+    return plays
 
 
 def _reason_counts(run_root: Path) -> dict:
