@@ -211,7 +211,7 @@ development pilot and three diagnostics, each declared before its plays; none te
 | Development pilot | 6 worlds, two plays each | 50% [27, 71] (bootstrap) | 0% in all 12 plays | one-newcomer rule 0%, shortcut 8%, two newcomers 84% |
 | The declared worlds at the earlier pack's cohort odds (diagnostic) | 20 worlds, one play each | 59% [19, 100], median 83%; one play deferred and bought nothing | 0% in all 20 plays | one-newcomer rule 58%, shortcut 62%, two newcomers 90% |
 | A brief corrected for four wording defects (diagnostic) | the 20 declared worlds, two plays each | no change shown: +7.8 points [−5.6, +21.2] | touched no newcomer in 40 plays | as Table 5.3 |
-| What one newcomer's quote or sample says about another of its kind, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; an earlier attempt, whose schema asked for the model's working, was refused in full | |
+| How likely a newcomer is to be sound once another of its kind has passed or failed a sample, with and without a clean quote of its own first, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; an earlier attempt, whose schema asked for the model's working, was refused in full | |
 
 The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
@@ -458,7 +458,7 @@ $ per world below the best policy given available information; the 20 declared w
 | Award checks | 1.1 | 0.2 | 1.9 | 2.2 |
 | **Total shortfall** | **32.5** | **51.2** | **51.2** | **58.1** |
 
-All four subjects, each world the mean of its two plays. Sol uses Codex; Opus uses Claude Code; Gemini and Luna use OpenRouter. Decision loss re-derived from every play's replayed trace, and every world matched against the read-outs.
+All four subjects, each world the mean of its two plays. Sol uses Codex; Opus uses Claude Code; Gemini and Luna use OpenRouter. Decision loss re-derived from every play's replayed trace, and every world matched against the read-outs. The declared rules file an award's whole loss under information not acquired when the award came before a worthwhile newcomer test, including the part from a worse quantity. For Luna, which ordered 50 units where 55 was best in 15 of 40 plays, that is $6.33 a world; split into its timing and terms parts, Luna's worse terms would be $6.85, its whole loss beyond paying the premium. The other three subjects have no such awards.
 
 **(c) Data center**
 

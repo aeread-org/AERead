@@ -240,4 +240,8 @@ current one saturated"):
   failure taxonomy fixed before the flash plays (51e9bfd3, ea9dcfdc), copied to
   analysis_evidence/shortfall_panels/ with derive_panels.py checking every world. The pilot, the odds twins, the
   corrected brief and the comprehension check move to Appendix E.4, Table E.15.
-
+- Appendices A-D: every symbol and constant a NotebookLM audit (notebook d526c1f3) found undefined is now defined
+  where it first appears, each checked against the code: a notation key before A.1 (indicator, U(a,b), expectation,
+  D per case); A.2's 0.6, 15/365, 10/365 and A(p)'s 1817 and 53.79 (derived); A.3's B, 40, 1.5, 0.14, 13/52 and 10;
+  C.1's p (now p_d) and 1050; C.2's f_i and c_E; D's v_true, second gap, strays, walking away, surplus before fees;
+  MOQ, E, playbook, the 58 development worlds and the cell. No number changed.

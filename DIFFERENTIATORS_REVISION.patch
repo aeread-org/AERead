@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 16:18:06
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 16:33:02
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1477,7 +1477,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 \ No newline at end of file
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-19 17:02:16
++++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-20 16:32:37
 @@ -10,7 +10,7 @@
  
  ## Appendix A. Case specifications
@@ -1487,28 +1487,96 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  protocol (seats, order of play, actions, what each seat observes, termination), and fixed
  counterpart policies (Appendix B). Refund is not specified here. Symbols are local to each case;
  each case's table lists them, with the kind of quantity each is. The evaluated seat is subscript A, a counterpart B. In controlled comparisons, the
-@@ -18,8 +18,10 @@
+@@ -18,16 +18,25 @@
  the opponent as well, so they compare pairings. Agent configurations also differ in the settings
  recorded in Appendix H. The reference policies of Appendix C are computed in the same Γ.
  
 -### A.1 Housing: lemons with outside demand (identity v14)
-+### A.1 Housing: lemons with outside demand (identities v14 and v15)
++**Notation used across cases.** 𝟙[·] (or 𝟙(·)) is 1 when the condition inside holds and 0 otherwise. U(a, b) is a
++uniform draw between a and b. 𝔼 is an expectation over the outcomes the case lists, and ⌊x⌋ rounds x down. D is each
++case's loss symbol: the lemon loss ($1,000) in Housing, the value of supplying nothing (−$600) in Procurement.
++Each case's table defines its other symbols, and Appendices C and D point back to it when they reuse one.
  
++### A.1 Housing: lemons with outside demand (identities v14 and v15)
++
 +v15 plays the same rules. Its brief states the landlords' pricing rule, its worlds come from a screened pack (Appendix E.2), and its holdout's outside demand leaves at 0.3 a round.
 +
  **Environment.** A world seed w fixes four listings ℓ ∈ {0, 1, 2, 3} and six tenant seats.
  Seat 0 is the evaluated tenant; seat i ∈ {1, …, 4} is outside demand for listing i − 1; seat 5
  never acts. Exactly m = 2 listings are lemons, Λ ⊂ {0, …, 3}, drawn uniformly from a random
-@@ -78,7 +80,7 @@
+ stream separate from the one that sets values, asks and costs. Seat 0 signs at most one lease
+ (ℓ, rent), or none. Its payoff after signing ℓ with k inspections is
+ 
+-u_A = v_ℓ − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u_A = −c·k if it signs nothing.
++u_A = v_ℓ − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u_A = −c·k if it signs nothing,
+ 
++where D is the lemon loss and c the inspection fee (Table A.1).
++
+ Seat 0 privately knows v_ℓ, its value for each listing if sound. Each landlord privately knows
+ its listing's quality and cost. The prior is uniform over the six possible lemon pairs. The
+ landlord kind is not drawn: both kinds are played on every world.
+@@ -41,11 +50,11 @@
+ | D | lemon loss (cuts the tenant's value and the landlord's cost alike) | $1,000 |
+ | c | inspection fee | $25 |
+ | a_ℓ | ask | ⌊U(1500, 3200)⌋ |
+-| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6κ_ℓ + 0.4ι_ℓ) − 30 and κ, ι ~ U(0, 1) |
++| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6κ_ℓ + 0.4ι_ℓ) − 30 and κ, ι ~ U(0, 1); κ_ℓ and ι_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality |
+ | c^S_ℓ | a sound listing's cost | max(0, a_ℓ − U(20, 80)) |
+ | c^L_ℓ | a lemon's cost | max(0, c^S_ℓ − 1000) |
+-| μ | landlord margin | $25 |
+-| β | outside-demand rate per round | ½ |
++| μ | landlord margin: a landlord's target is its reservation plus μ, capped at the ask (B.1) | $25 |
++| β | outside-demand rate per round | ½ (v15's holdout: 0.3) |
+ 
+ On the main pack asks run from $1,501 to $3,198, and seat 0's gain v − a from −$275 to +$676.
+ 
+@@ -78,9 +87,9 @@
  seat 0 offered $0, the leaky lemon landlord would have countered at $1,375, which also marks the
  lemon, and signing there pays +$225.
  
 -### A.2 Procurement: pay or test (`pay_or_test_v1`)
 +### A.2 Procurement: pay or test (`pay_or_test_v1`, the earlier pack)
  
- **Environment.** One buyer and one component. The suppliers are one recorded supplier E and
+-**Environment.** One buyer and one component. The suppliers are one recorded supplier E and
++**Environment.** One buyer and one component. The suppliers are one recorded supplier E (established: it has a sales record) and
  three newcomers N₁–N₃. Each supplier has a type θ ∈ {G, L, P} = {(on-time 0.97, yield 0.97),
-@@ -139,6 +141,34 @@
+ (0.55, 0.97), (0.97, 0.55)}; E is always G. Newcomer types are independent with prior
+ πᵢ = (γᵢ, λᵢ, ρᵢ) = ((40 − aᵢ − bᵢ)/40, aᵢ/40, bᵢ/40), read from the cohort record of Nᵢ's seller
+@@ -97,7 +106,7 @@
+ | Cash budget | $2,500 (never binds) |
+ | Deadline T | 10–12 days (clock "none"), 13–14 (tight), 17–18 (loose) |
+ | Action budget | 10 |
+-| Order sizes | 50, 55 or 60 units (MOQ 50, step 5, capacity 60); shipping $0.60 a unit |
++| Order sizes | 50, 55 or 60 units (minimum order quantity, MOQ, 50; step 5; capacity 60); shipping $0.60 a unit |
+ | E | price U[24, 28] rounded to $0.05; lead 6 days; sample $30 and 2 days; a record of 48–96 orders, 3% late, 3% defective |
+ | Newcomer i | price p_E(1 − δᵢ), δ drawn without replacement from {3, 5, 7, 9, 12, 15, 18, 21}%; lead 6–8 days; sample $30–80 in $10 steps and 3 days |
+ | Cohort record | aᵢ ∈ {4, 8}, bᵢ ∈ {8, 14, 20, 24} of 40 |
+@@ -105,9 +114,12 @@
+ **Payoff.** For an award line of q units at price p, yield y, on-time rate r and lead ℓ, made on
+ day t with information spend I: units = q·y·r if t + ℓ ≤ T and 0 otherwise; kits k = min(⌊units⌋,
+ 50); recovery R = 0.9·q(1 − y)·p; cost C = qp + 0.6q + qp·0.12·15/365 − R + R·0.12·10/365 + I; and
+-the margin is M = 37k − 12(50 − k) − C if k ≥ 40 and the line is valid, otherwise D − I. For a good
+-supplier q = 55 is optimal at every pack price and gives A(p) = 1817 − 53.79p before information
+-cost.
++the margin is M = 37k − 12(50 − k) − C if k ≥ 40 and the line is valid, otherwise D − I. In C, 0.6 is the
++shipping fee per unit; the order is financed at 12% a year for 15 days (the 45-day working-capital horizon less
++the 30-day payment terms); and a defect refund arrives 10 days after the claim, financed at the same rate. For a
++good supplier q = 55 is optimal at every pack price and gives A(p) = 1817 − 53.79p before information cost:
++55 units at y = r = 0.97 complete all 50 kits, so 1817 = 37·50 − 0.6·55 and
++53.79 = 55(1 + 0.12·15/365) − 1.485(1 − 0.12·10/365), where 1.485p = 0.9·55·0.03·p is the recovery.
+ 
+ **Protocol.** One action at a time until a terminal action, the action budget, or an invalid
+ action; the last three are worth D − I.
+@@ -121,7 +133,7 @@
+ | inquire | $1, 1 day | verbal claims; every seller claims 0.97 and 0.97 |
+ | counter-offer | $1, 1 day | nothing in this pack (B.2) |
+ | check an award | $0, 0 days, one action | a dry run of the award; nothing beyond what quotes and samples showed |
+-| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant |
++| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires) |
+ | defer | terminal | worth D − I |
+ 
+ Every listing shows a claimed yield of 0.97 whatever the supplier's type. The two briefs differ
+@@ -139,6 +151,34 @@
  supplier's sample the buyer no longer needs, provided a failed test still leaves time to return to
  the recorded supplier before the deadline.
  
@@ -1543,11 +1611,71 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### A.3 Data center: negotiating into an agreement
  
  **Outcomes.** X = (C × ℝ₊) ∪ {∅}: a clause vector c with an all-in price p, or no deal.
-@@ -447,6 +477,20 @@
- {walk, sign, c\* at a ∈ {0.1, …, 1.0}} against the deterministic script with its declared style and
+@@ -158,14 +198,14 @@
+ 
+ Positions without effect are normalised away, leaving |C| = 5·3·2·2·5·2 = 600 distinct
+ agreements, all reachable by redlining. The document opens on the integrator's standard draft
+-c⁰, set by its playbook (coordination, managed or turnkey).
++c⁰, set by its playbook (coordination, managed or turnkey), a default its private type fixes (below).
+ 
+ **Private types.** The integrator θ_I = (t, ρ_I) has a pre-staging cost t ∈ {40, 120, 200} and a
+ risk charge ρ_I ∈ {0.3, 1.2}, six types equally likely; the type fixes the playbook (ρ_I ≥ 1 gives
+ coordination, otherwise t ≤ 40 gives turnkey, otherwise managed), so the draft narrows the
+-client's prior and in 22 of 58 worlds reveals the type. The client has a risk charge
++client's prior and in 22 of the 58 development worlds (Appendix E.2) reveals the type. The client has a risk charge
+ ρ_C ∈ {0.15, 0.75, 1.55}, declared prior one third each; in the packs ρ_C is fixed by the world's
+-cell rather than drawn.
++cell (one of eleven outside-option situations, Appendix E.2) rather than drawn.
+ 
+ **Table A.5. Data-center symbols.** Money in $ thousands; ranges are the generator's uniform draws
+ on the base pack (some cells widen them), public to both sides unless marked private.
+@@ -214,6 +254,11 @@
+ 
+ CC(c) = (1 + ρ_C)·𝔼[L − Y | a\*, s\*] + 𝟙(deposit)·r_C·δH·13/52 + 10·𝟙(escrow) + v·𝟙(burn-in).
+ 
++In these, B is 1 when the contract includes burn-in (Table A.4), whose crew costs the integrator 40; 1.5 is the
++integrator's surcharge on expected standby it cannot control, paid when it carries site readiness; 0.14 is its
++capital rate per year on a deposit it holds without escrow; 13/52 is the thirteen weeks between signing and
++delivery, as a share of a year; and 10 is the client's escrow fee.
++
+ **Outside options and payoffs.** The client's outside option is O_C = min(T, M), the cheaper of a
+ rival turnkey offer T and managing the deployment itself, M = H + team + (1 + ρ_C)[q₀(F + w_def·v) +
+ u(S + w_late·v) + ιΦ]; the integrator's is m = 500. With n_i side i's redlines after the first move,
+@@ -342,10 +387,10 @@
+ and its known value (v, or v − D for a lemon) covers the rent. It never signs blind and never
+ weighs the fee. It earns $291.67 a world on the main pack.
+ 
+-**Ceiling.** C(w, kind) = max(0, max_ℓ [v_ℓ − D·𝟙[ℓ ∈ Λ] − τ_ℓ^kind]): known quality, no fee,
++**Ceiling.** C(w, kind) = max(0, max_ℓ [v_ℓ − D·𝟙[ℓ ∈ Λ] − τ_ℓ^kind]), with τ_ℓ^kind the landlord's target under that kind (B.1): known quality, no fee,
+ reachable in round 0. $447.82 (leaky), $292.40 (pooled), mean $370.11.
+ 
+-**Scripted baselines.** `inspect_then_sign` inspects when (1 − p)(v − a) > c, offers min(v, a + 1) on
++**Scripted baselines.** `inspect_then_sign` inspects when (1 − p_d)(v − a) > c, where p_d = (2 − lemons found)/(4 − listings inspected) is the stated chance that a listing not yet inspected is a lemon (D.1), offers min(v, a + 1) on
+ the best verified-sound listing and signs it ($144.70). `sign_anything` never inspects,
+ offers the ask on its favourite listing if sound, and signs any hold covered by its value if
+ sound: −$79.53 under either decision-value measure, but −$348.76 in realised net. `pass`
+@@ -375,7 +420,7 @@
+ | h = (θ, Λ) | hypothesis | the landlord kind and the lemon pair; the belief is uniform over those consistent with q and z, and z_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ) |
+ | λ_ℓ | probability | P(ℓ ∈ Λ) under the belief |
+ | ψ_ℓ | probability | P(θ = leaky ∧ ℓ ∈ Λ), the chance that ℓ's reply will be low |
+-| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L |
++| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L. A sound landlord's cost is on average $50 under the ask and a lemon's $1,000 lower still, and +25 is the margin μ, so these are the average lowest rents |
+ | B, G | sets | listings protected this round (bid on); listings taken by outside demand |
+ 
+ The `pricing` tenant puts ½ on each landlord kind; the `stated` tenant assumes the pooled kind, so
+@@ -423,7 +468,7 @@
+ 
+ | Rule | Definition | Expected loss per world |
+ |---|---|---:|
+-| one step ahead | finish any newcomer test begun; otherwise quote the untouched newcomer with the largest gain γ(Aᵢ − A_E + c_E) − 2 − (1 − λ)fᵢ if positive and if a failure would still leave the recorded supplier time to deliver; otherwise qualify and award E | 0.06 |
++| one step ahead | finish any newcomer test begun; otherwise quote the untouched newcomer with the largest gain γ(Aᵢ − A_E + c_E) − 2 − (1 − λ)fᵢ (fᵢ newcomer i's sample fee, c_E the recorded supplier's, which a qualified newcomer saves) if positive and if a failure would still leave the recorded supplier time to deliver; otherwise qualify and award E | 0.06 |
+ | test the best odds once | quote then sample the newcomer with the highest γ; award it if qualified, else go to E | 45.72 |
+ | always pay | quote, sample and award E only | 75.19 |
+ | test the cheapest once | as above, for the cheapest newcomer | 81.38 |
+@@ -448,6 +493,20 @@
  keeps the best for itself net of fees, an exact best reply within that grid and a ceiling, not a
  target.
-+
+ 
 +**Best informed policy turn by turn** (computed after the runs). For either seat, it is the best play on what that
 +seat knows: its own costs, the declared odds of the other side's types, and the script's rule and style. It is
 +found by backward induction over the turns and the types still consistent with every script move so far.
@@ -1561,12 +1689,52 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  seen.
 +- **What it shows.** Knowing the other side's type is worth $0.1k to $2.7k a world to this policy, in either seat and
 +  either campaign.
- 
++
  ## Appendix D. Measures
+ 
+ Each measure answers one question in the case's own units.
+@@ -458,7 +517,7 @@
+ *blind* if the listing was not inspected when seat 0 committed; its
+ stated lemon probability is p_d = (2 − lemons found)/(4 − listings inspected). A blind signing is
+ valued at v − D when the landlord is leaky and the rent is below the listing's sound floor, and at
+-v − D·p_d otherwise. Per cell, N = (v_true − rent) for an informed signing or (value − rent) for a
++v − D·p_d otherwise. Per cell, N = (v_true − rent) for an informed signing (v_true is v − D for a lemon and v for a sound listing) or (value − rent) for a
+ blind one, less c·k; per world, Y_w = ½(N_leaky + N_pooled), a world missing either kind being
+ dropped. Reported: the mean of Y_w over the main pack with a 95% Student-t interval; model pairs
+ paired by world, Holm-adjusted over three; each model minus the reachable reference; $50 as the
+@@ -466,16 +525,16 @@
+ valued at p_d, and a lemon revealed on one listing does not update p_d on another. The
+ *corrected measure* (`price_reply_posterior`) values every blind signing at v − D·P(ℓ ∈ Λ | the
+ inspections and every informative reply); in the v14 cells it moves 57 signings and no declared
+-verdict, and the second gap has no effect on these data. Table 5.2 reports both.
++verdict, and the second gap (a lemon revealed on one listing) has no effect on these data. Table 5.2 reports both.
+ 
+ **D.2 Procurement.** *Where in the episode was value lost, and how much?* Each action is charged
+ what it gave up against the best action available at that point, given what the buyer had
+ learned; the charges add up to the play's shortfall in expected value, so the measure says both
+ how much was lost and at which step. For each action taken, ℓₜ = V(sₜ) − Q(sₜ, aₜ), and a play's decision loss is
+ DL = Σₜ ℓₜ. For inquire, counter and check, Q = −c + V(σ, n − 1, t + d); for defer or an invalid
+-action Q = D; for an award, Q is its margin at I = 0, or D if infeasible. Because every Q is an
+-expectation, E[DL(π)] = V\*(s₀) − V^π(s₀). DL is reported in five parts: requests, strays, walking
+-away, award timing (V less the best award available) and award terms (the best award available less
++action Q = D, the value of supplying nothing (−$600, Table A.2); for an award, Q is its margin at I = 0, or D if infeasible. Because every Q is an
++expectation, E[DL(π)] = V\*(s₀) − V^π(s₀). DL is reported in five parts: requests, strays (inquiries, counters and award checks), walking
++away (defer or an invalid action), award timing (V less the best award available) and award terms (the best award available less
+ the award taken).
+ 
+ **D.3 Data center.** *How much of what the best agreement makes available did the pair fail to
+@@ -484,7 +543,7 @@
+ surplus. Joint value lost = A − (U_I + U_C), the sum of three parts: allocation
+ J(c) − min(J(c\*), O_C − m) if signed; no deal, A, if nothing is signed (an invalid move counts as no
+ deal); and delay, 25·(n_I + n_C). Each side's surplus is U_I or U_C. A side signs below its walk-away
+-point if its surplus before fees is negative.
++point if its surplus before redline fees (its U plus 25 times its own redlines) is negative.
+ 
+ ---
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 16:17:50
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 16:31:33
 @@ -42,14 +42,28 @@
  (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
  each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
@@ -1751,7 +1919,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Development pilot | 6 worlds, two plays each | 50% [27, 71] (bootstrap) | 0% in all 12 plays | one-newcomer rule 0%, shortcut 8%, two newcomers 84% |
 +| The declared worlds at the earlier pack's cohort odds (diagnostic) | 20 worlds, one play each | 59% [19, 100], median 83%; one play deferred and bought nothing | 0% in all 20 plays | one-newcomer rule 58%, shortcut 62%, two newcomers 90% |
 +| A brief corrected for four wording defects (diagnostic) | the 20 declared worlds, two plays each | no change shown: +7.8 points [−5.6, +21.2] | touched no newcomer in 40 plays | as Table 5.3 |
-+| What one newcomer's quote or sample says about another of its kind, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; an earlier attempt, whose schema asked for the model's working, was refused in full | |
++| How likely a newcomer is to be sound once another of its kind has passed or failed a sample, with and without a clean quote of its own first, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; an earlier attempt, whose schema asked for the model's working, was refused in full | |
 +
 +The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 +alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
@@ -1882,7 +2050,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| **Total shortfall** | **32.5** | **51.2** | **51.2** | **58.1** |
  
 -All four subjects, 24 worlds each. Sol uses Codex; Opus uses Claude Code. Decision loss independently re-derived from sealed events (Appendix F.4).
-+All four subjects, each world the mean of its two plays. Sol uses Codex; Opus uses Claude Code; Gemini and Luna use OpenRouter. Decision loss re-derived from every play's replayed trace, and every world matched against the read-outs.
++All four subjects, each world the mean of its two plays. Sol uses Codex; Opus uses Claude Code; Gemini and Luna use OpenRouter. Decision loss re-derived from every play's replayed trace, and every world matched against the read-outs. The declared rules file an award's whole loss under information not acquired when the award came before a worthwhile newcomer test, including the part from a worse quantity. For Luna, which ordered 50 units where 55 was best in 15 of 40 plays, that is $6.33 a world; split into its timing and terms parts, Luna's worse terms would be $6.85, its whole loss beyond paying the premium. The other three subjects have no such awards.
  
  **(c) Data center**
  
@@ -1969,7 +2137,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 16:17:50
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 16:31:33
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -2000,7 +2168,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,132 +30,274 @@
+@@ -29,132 +30,278 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -2193,15 +2361,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +**Figure 5.1. Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
 +one world, the mean of its two plays; diamonds are means and bars are 95% t intervals. Paying the premium, and a rule
 +that plans one newcomer's test exactly, sit at 0% in every world. Opus and Gemini close none of the gap in any world;
-+Luna's award checks and later awards leave it below paying the premium. The gray rows are exact rules: the shortcut that
++Luna's orders of 50 units where 55 was best leave it below paying the premium. The gray rows are exact rules: the shortcut that
 +ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.
  
 +Sol 6.1 closed 35% of the gap (95% t interval 18–52%, p = 0.0003), where a rule that plans one newcomer's
 +test exactly closes none. This was the one test we declared before any play, and the claim holds; it concerns
 +Sol alone. Its play splits by world (Figure 5.1): it closes most of the gap in some worlds and none in others.
 +The other three models never touched a newcomer. Opus 5.5 and Gemini 3.8 Flash paid the premium in every play;
-+GPT-6 Luna did too, and lost more than paying the premium does, through award checks that cost actions and
-+awards that came later. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest
++GPT-6 Luna did too, but ordered 50 units where 55 was best in 15 of its 40 plays, which leaves it below paying
++the premium. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest
 +first closes 33%, about Sol's share, but Sol does not play it: it opens with the shortcut's move in 2 of 40
 +plays, and its tests follow price. The moves the case is built around are rare in its play: a second newcomer
 +in 7 of 40 plays, a source lookup in 4. A rule allowed to test two newcomers closes 82%, so the headroom lies in
@@ -2209,8 +2377,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +Further runs on this pack are in Appendix E.4 (Table E.15): a development pilot, the declared worlds at the
 +earlier pack's more favourable odds, and a brief corrected for four wording defects. None changes this picture.
-+One bears on why Opus never tests: in a check with no play, it answered all 18 questions about what one
-+newcomer's sample or quote says about another of its kind within 0.05 of the exact value, as Sol did. Opus reads
++One bears on why Opus never tests: in a check with no play, it was asked how likely a newcomer is to be
++sound once another newcomer of its kind has passed or failed a sample, with and without a clean quote of its
++own first, and answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads
 +the sharing rule and does not plan with it. These runs used the case's environment from a development branch
 +whose registration with the runtime still awaits review (Appendix F.1). An earlier pack, in which quotes always
 +arrive and newcomers never share a source, is saturated: a rule that looks one test ahead comes within 0.01% of
@@ -2304,7 +2473,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
 +and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v1's joint loss
  against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
- are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+-are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
++are separate (Table 5.4). In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
++worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
++there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
  
 -Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
 -mostly worse lease terms. Luna's largest Housing class is signing at a rent above a lemon's value
@@ -2320,8 +2492,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -may need to incur. Opus also signs harmful agreements in worlds without positive available surplus.
 +**Procurement: three models never test, and Sol secures the recorded supplier first.** Opus, Gemini and
 +Luna asked no newcomer for anything in any of their 120 plays: they quoted, sampled and awarded the
-+recorded supplier, so all their loss is information not acquired, plus Luna's award checks, each of
-+which spends an action. Sol's loss splits. Where it never tested a newcomer that the best policy would
++recorded supplier, so nearly all their loss is information not acquired. Luna's loss beyond paying the
++premium comes from ordering 50 units where 55 was best in 15 plays; the declared classes file most of it under
++information not acquired (Table E.10). Sol's loss splits. Where it never tested a newcomer that the best policy would
 +have tested, it lost $17.5 a world. Where it did test, it often first quoted and sampled the recorded
 +supplier, spending days and actions before the newcomer test the stated odds and clock made best ($8.9 a
 +world), or awarded while a newcomer test it had begun was still worth finishing ($3.2).
@@ -2363,7 +2536,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,34 +311,88 @@
+@@ -168,34 +315,88 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  

@@ -156,15 +156,15 @@ best informed policy at that point.
 **Figure 5.1. Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
 one world, the mean of its two plays; diamonds are means and bars are 95% t intervals. Paying the premium, and a rule
 that plans one newcomer's test exactly, sit at 0% in every world. Opus and Gemini close none of the gap in any world;
-Luna's award checks and later awards leave it below paying the premium. The gray rows are exact rules: the shortcut that
+Luna's orders of 50 units where 55 was best leave it below paying the premium. The gray rows are exact rules: the shortcut that
 ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.
 
 Sol 6.1 closed 35% of the gap (95% t interval 18–52%, p = 0.0003), where a rule that plans one newcomer's
 test exactly closes none. This was the one test we declared before any play, and the claim holds; it concerns
 Sol alone. Its play splits by world (Figure 5.1): it closes most of the gap in some worlds and none in others.
 The other three models never touched a newcomer. Opus 5.5 and Gemini 3.8 Flash paid the premium in every play;
-GPT-6 Luna did too, and lost more than paying the premium does, through award checks that cost actions and
-awards that came later. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest
+GPT-6 Luna did too, but ordered 50 units where 55 was best in 15 of its 40 plays, which leaves it below paying
+the premium. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest
 first closes 33%, about Sol's share, but Sol does not play it: it opens with the shortcut's move in 2 of 40
 plays, and its tests follow price. The moves the case is built around are rare in its play: a second newcomer
 in 7 of 40 plays, a source lookup in 4. A rule allowed to test two newcomers closes 82%, so the headroom lies in
@@ -172,8 +172,9 @@ planning one test beyond the one in hand.
 
 Further runs on this pack are in Appendix E.4 (Table E.15): a development pilot, the declared worlds at the
 earlier pack's more favourable odds, and a brief corrected for four wording defects. None changes this picture.
-One bears on why Opus never tests: in a check with no play, it answered all 18 questions about what one
-newcomer's sample or quote says about another of its kind within 0.05 of the exact value, as Sol did. Opus reads
+One bears on why Opus never tests: in a check with no play, it was asked how likely a newcomer is to be
+sound once another newcomer of its kind has passed or failed a sample, with and without a clean quote of its
+own first, and answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads
 the sharing rule and does not plan with it. These runs used the case's environment from a development branch
 whose registration with the runtime still awaits review (Appendix F.1). An earlier pack, in which quotes always
 arrive and newcomers never share a source, is saturated: a rule that looks one test ahead comes within 0.01% of
@@ -252,14 +253,17 @@ labels give mean totals (lower is better within a panel). Units and scales diffe
 v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
 and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v1's joint loss
 against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
-are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+are separate (Table 5.4). In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
+worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
+there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 
 The labels name what happened; the mechanism behind each large segment is as follows.
 
 **Procurement: three models never test, and Sol secures the recorded supplier first.** Opus, Gemini and
 Luna asked no newcomer for anything in any of their 120 plays: they quoted, sampled and awarded the
-recorded supplier, so all their loss is information not acquired, plus Luna's award checks, each of
-which spends an action. Sol's loss splits. Where it never tested a newcomer that the best policy would
+recorded supplier, so nearly all their loss is information not acquired. Luna's loss beyond paying the
+premium comes from ordering 50 units where 55 was best in 15 plays; the declared classes file most of it under
+information not acquired (Table E.10). Sol's loss splits. Where it never tested a newcomer that the best policy would
 have tested, it lost $17.5 a world. Where it did test, it often first quoted and sampled the recorded
 supplier, spending days and actions before the newcomer test the stated odds and clock made best ($8.9 a
 world), or awarded while a newcomer test it had begun was still worth finishing ($3.2).

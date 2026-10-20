@@ -18,6 +18,11 @@ prior and counterpart policies are fixed across evaluated agents; head-to-head r
 the opponent as well, so they compare pairings. Agent configurations also differ in the settings
 recorded in Appendix H. The reference policies of Appendix C are computed in the same Γ.
 
+**Notation used across cases.** 𝟙[·] (or 𝟙(·)) is 1 when the condition inside holds and 0 otherwise. U(a, b) is a
+uniform draw between a and b. 𝔼 is an expectation over the outcomes the case lists, and ⌊x⌋ rounds x down. D is each
+case's loss symbol: the lemon loss ($1,000) in Housing, the value of supplying nothing (−$600) in Procurement.
+Each case's table defines its other symbols, and Appendices C and D point back to it when they reuse one.
+
 ### A.1 Housing: lemons with outside demand (identities v14 and v15)
 
 v15 plays the same rules. Its brief states the landlords' pricing rule, its worlds come from a screened pack (Appendix E.2), and its holdout's outside demand leaves at 0.3 a round.
@@ -28,7 +33,9 @@ never acts. Exactly m = 2 listings are lemons, Λ ⊂ {0, …, 3}, drawn uniform
 stream separate from the one that sets values, asks and costs. Seat 0 signs at most one lease
 (ℓ, rent), or none. Its payoff after signing ℓ with k inspections is
 
-u_A = v_ℓ − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u_A = −c·k if it signs nothing.
+u_A = v_ℓ − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u_A = −c·k if it signs nothing,
+
+where D is the lemon loss and c the inspection fee (Table A.1).
 
 Seat 0 privately knows v_ℓ, its value for each listing if sound. Each landlord privately knows
 its listing's quality and cost. The prior is uniform over the six possible lemon pairs. The
@@ -43,11 +50,11 @@ landlord kind is not drawn: both kinds are played on every world.
 | D | lemon loss (cuts the tenant's value and the landlord's cost alike) | $1,000 |
 | c | inspection fee | $25 |
 | a_ℓ | ask | ⌊U(1500, 3200)⌋ |
-| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6κ_ℓ + 0.4ι_ℓ) − 30 and κ, ι ~ U(0, 1) |
+| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6κ_ℓ + 0.4ι_ℓ) − 30 and κ, ι ~ U(0, 1); κ_ℓ and ι_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality |
 | c^S_ℓ | a sound listing's cost | max(0, a_ℓ − U(20, 80)) |
 | c^L_ℓ | a lemon's cost | max(0, c^S_ℓ − 1000) |
-| μ | landlord margin | $25 |
-| β | outside-demand rate per round | ½ |
+| μ | landlord margin: a landlord's target is its reservation plus μ, capped at the ask (B.1) | $25 |
+| β | outside-demand rate per round | ½ (v15's holdout: 0.3) |
 
 On the main pack asks run from $1,501 to $3,198, and seat 0's gain v − a from −$275 to +$676.
 
@@ -82,7 +89,7 @@ lemon, and signing there pays +$225.
 
 ### A.2 Procurement: pay or test (`pay_or_test_v1`, the earlier pack)
 
-**Environment.** One buyer and one component. The suppliers are one recorded supplier E and
+**Environment.** One buyer and one component. The suppliers are one recorded supplier E (established: it has a sales record) and
 three newcomers N₁–N₃. Each supplier has a type θ ∈ {G, L, P} = {(on-time 0.97, yield 0.97),
 (0.55, 0.97), (0.97, 0.55)}; E is always G. Newcomer types are independent with prior
 πᵢ = (γᵢ, λᵢ, ρᵢ) = ((40 − aᵢ − bᵢ)/40, aᵢ/40, bᵢ/40), read from the cohort record of Nᵢ's seller
@@ -99,7 +106,7 @@ type profiles, each with positive weight; γ ranges from 0.2 to 0.7.
 | Cash budget | $2,500 (never binds) |
 | Deadline T | 10–12 days (clock "none"), 13–14 (tight), 17–18 (loose) |
 | Action budget | 10 |
-| Order sizes | 50, 55 or 60 units (MOQ 50, step 5, capacity 60); shipping $0.60 a unit |
+| Order sizes | 50, 55 or 60 units (minimum order quantity, MOQ, 50; step 5; capacity 60); shipping $0.60 a unit |
 | E | price U[24, 28] rounded to $0.05; lead 6 days; sample $30 and 2 days; a record of 48–96 orders, 3% late, 3% defective |
 | Newcomer i | price p_E(1 − δᵢ), δ drawn without replacement from {3, 5, 7, 9, 12, 15, 18, 21}%; lead 6–8 days; sample $30–80 in $10 steps and 3 days |
 | Cohort record | aᵢ ∈ {4, 8}, bᵢ ∈ {8, 14, 20, 24} of 40 |
@@ -107,9 +114,12 @@ type profiles, each with positive weight; γ ranges from 0.2 to 0.7.
 **Payoff.** For an award line of q units at price p, yield y, on-time rate r and lead ℓ, made on
 day t with information spend I: units = q·y·r if t + ℓ ≤ T and 0 otherwise; kits k = min(⌊units⌋,
 50); recovery R = 0.9·q(1 − y)·p; cost C = qp + 0.6q + qp·0.12·15/365 − R + R·0.12·10/365 + I; and
-the margin is M = 37k − 12(50 − k) − C if k ≥ 40 and the line is valid, otherwise D − I. For a good
-supplier q = 55 is optimal at every pack price and gives A(p) = 1817 − 53.79p before information
-cost.
+the margin is M = 37k − 12(50 − k) − C if k ≥ 40 and the line is valid, otherwise D − I. In C, 0.6 is the
+shipping fee per unit; the order is financed at 12% a year for 15 days (the 45-day working-capital horizon less
+the 30-day payment terms); and a defect refund arrives 10 days after the claim, financed at the same rate. For a
+good supplier q = 55 is optimal at every pack price and gives A(p) = 1817 − 53.79p before information cost:
+55 units at y = r = 0.97 complete all 50 kits, so 1817 = 37·50 − 0.6·55 and
+53.79 = 55(1 + 0.12·15/365) − 1.485(1 − 0.12·10/365), where 1.485p = 0.9·55·0.03·p is the recovery.
 
 **Protocol.** One action at a time until a terminal action, the action budget, or an invalid
 action; the last three are worth D − I.
@@ -123,7 +133,7 @@ action; the last three are worth D − I.
 | inquire | $1, 1 day | verbal claims; every seller claims 0.97 and 0.97 |
 | counter-offer | $1, 1 day | nothing in this pack (B.2) |
 | check an award | $0, 0 days, one action | a dry run of the award; nothing beyond what quotes and samples showed |
-| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant |
+| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires) |
 | defer | terminal | worth D − I |
 
 Every listing shows a claimed yield of 0.97 whatever the supplier's type. The two briefs differ
@@ -188,14 +198,14 @@ term, clock and sharing chance and redraw only the cohort records.
 
 Positions without effect are normalised away, leaving |C| = 5·3·2·2·5·2 = 600 distinct
 agreements, all reachable by redlining. The document opens on the integrator's standard draft
-c⁰, set by its playbook (coordination, managed or turnkey).
+c⁰, set by its playbook (coordination, managed or turnkey), a default its private type fixes (below).
 
 **Private types.** The integrator θ_I = (t, ρ_I) has a pre-staging cost t ∈ {40, 120, 200} and a
 risk charge ρ_I ∈ {0.3, 1.2}, six types equally likely; the type fixes the playbook (ρ_I ≥ 1 gives
 coordination, otherwise t ≤ 40 gives turnkey, otherwise managed), so the draft narrows the
-client's prior and in 22 of 58 worlds reveals the type. The client has a risk charge
+client's prior and in 22 of the 58 development worlds (Appendix E.2) reveals the type. The client has a risk charge
 ρ_C ∈ {0.15, 0.75, 1.55}, declared prior one third each; in the packs ρ_C is fixed by the world's
-cell rather than drawn.
+cell (one of eleven outside-option situations, Appendix E.2) rather than drawn.
 
 **Table A.5. Data-center symbols.** Money in $ thousands; ranges are the generator's uniform draws
 on the base pack (some cells widen them), public to both sides unless marked private.
@@ -243,6 +253,11 @@ its best response (a\*, s\*) minimises C_I, and IC(c) = C_I(a\*, s\*). The clien
 price, is
 
 CC(c) = (1 + ρ_C)·𝔼[L − Y | a\*, s\*] + 𝟙(deposit)·r_C·δH·13/52 + 10·𝟙(escrow) + v·𝟙(burn-in).
+
+In these, B is 1 when the contract includes burn-in (Table A.4), whose crew costs the integrator 40; 1.5 is the
+integrator's surcharge on expected standby it cannot control, paid when it carries site readiness; 0.14 is its
+capital rate per year on a deposit it holds without escrow; 13/52 is the thirteen weeks between signing and
+delivery, as a share of a year; and 10 is the client's escrow fee.
 
 **Outside options and payoffs.** The client's outside option is O_C = min(T, M), the cheaper of a
 rival turnkey offer T and managing the deployment itself, M = H + team + (1 + ρ_C)[q₀(F + w_def·v) +
@@ -372,10 +387,10 @@ listing that is sound before lemon and has the largest v − a; sign iff the lis
 and its known value (v, or v − D for a lemon) covers the rent. It never signs blind and never
 weighs the fee. It earns $291.67 a world on the main pack.
 
-**Ceiling.** C(w, kind) = max(0, max_ℓ [v_ℓ − D·𝟙[ℓ ∈ Λ] − τ_ℓ^kind]): known quality, no fee,
+**Ceiling.** C(w, kind) = max(0, max_ℓ [v_ℓ − D·𝟙[ℓ ∈ Λ] − τ_ℓ^kind]), with τ_ℓ^kind the landlord's target under that kind (B.1): known quality, no fee,
 reachable in round 0. $447.82 (leaky), $292.40 (pooled), mean $370.11.
 
-**Scripted baselines.** `inspect_then_sign` inspects when (1 − p)(v − a) > c, offers min(v, a + 1) on
+**Scripted baselines.** `inspect_then_sign` inspects when (1 − p_d)(v − a) > c, where p_d = (2 − lemons found)/(4 − listings inspected) is the stated chance that a listing not yet inspected is a lemon (D.1), offers min(v, a + 1) on
 the best verified-sound listing and signs it ($144.70). `sign_anything` never inspects,
 offers the ask on its favourite listing if sound, and signs any hold covered by its value if
 sound: −$79.53 under either decision-value measure, but −$348.76 in realised net. `pass`
@@ -405,7 +420,7 @@ rounds in five functions that follow one round's phases:
 | h = (θ, Λ) | hypothesis | the landlord kind and the lemon pair; the belief is uniform over those consistent with q and z, and z_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ) |
 | λ_ℓ | probability | P(ℓ ∈ Λ) under the belief |
 | ψ_ℓ | probability | P(θ = leaky ∧ ℓ ∈ Λ), the chance that ℓ's reply will be low |
-| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L |
+| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L. A sound landlord's cost is on average $50 under the ask and a lemon's $1,000 lower still, and +25 is the margin μ, so these are the average lowest rents |
 | B, G | sets | listings protected this round (bid on); listings taken by outside demand |
 
 The `pricing` tenant puts ½ on each landlord kind; the `stated` tenant assumes the pooled kind, so
@@ -453,7 +468,7 @@ environment's average over the 27 type profiles to within 3·10⁻¹³; its mean
 
 | Rule | Definition | Expected loss per world |
 |---|---|---:|
-| one step ahead | finish any newcomer test begun; otherwise quote the untouched newcomer with the largest gain γ(Aᵢ − A_E + c_E) − 2 − (1 − λ)fᵢ if positive and if a failure would still leave the recorded supplier time to deliver; otherwise qualify and award E | 0.06 |
+| one step ahead | finish any newcomer test begun; otherwise quote the untouched newcomer with the largest gain γ(Aᵢ − A_E + c_E) − 2 − (1 − λ)fᵢ (fᵢ newcomer i's sample fee, c_E the recorded supplier's, which a qualified newcomer saves) if positive and if a failure would still leave the recorded supplier time to deliver; otherwise qualify and award E | 0.06 |
 | test the best odds once | quote then sample the newcomer with the highest γ; award it if qualified, else go to E | 45.72 |
 | always pay | quote, sample and award E only | 75.19 |
 | test the cheapest once | as above, for the cheapest newcomer | 81.38 |
@@ -502,7 +517,7 @@ the tenant could expect from it rather than at the quality that happened to be d
 *blind* if the listing was not inspected when seat 0 committed; its
 stated lemon probability is p_d = (2 − lemons found)/(4 − listings inspected). A blind signing is
 valued at v − D when the landlord is leaky and the rent is below the listing's sound floor, and at
-v − D·p_d otherwise. Per cell, N = (v_true − rent) for an informed signing or (value − rent) for a
+v − D·p_d otherwise. Per cell, N = (v_true − rent) for an informed signing (v_true is v − D for a lemon and v for a sound listing) or (value − rent) for a
 blind one, less c·k; per world, Y_w = ½(N_leaky + N_pooled), a world missing either kind being
 dropped. Reported: the mean of Y_w over the main pack with a 95% Student-t interval; model pairs
 paired by world, Holm-adjusted over three; each model minus the reachable reference; $50 as the
@@ -510,16 +525,16 @@ smallest meaningful difference. A counter at the sound floor proves a listing so
 valued at p_d, and a lemon revealed on one listing does not update p_d on another. The
 *corrected measure* (`price_reply_posterior`) values every blind signing at v − D·P(ℓ ∈ Λ | the
 inspections and every informative reply); in the v14 cells it moves 57 signings and no declared
-verdict, and the second gap has no effect on these data. Table 5.2 reports both.
+verdict, and the second gap (a lemon revealed on one listing) has no effect on these data. Table 5.2 reports both.
 
 **D.2 Procurement.** *Where in the episode was value lost, and how much?* Each action is charged
 what it gave up against the best action available at that point, given what the buyer had
 learned; the charges add up to the play's shortfall in expected value, so the measure says both
 how much was lost and at which step. For each action taken, ℓₜ = V(sₜ) − Q(sₜ, aₜ), and a play's decision loss is
 DL = Σₜ ℓₜ. For inquire, counter and check, Q = −c + V(σ, n − 1, t + d); for defer or an invalid
-action Q = D; for an award, Q is its margin at I = 0, or D if infeasible. Because every Q is an
-expectation, E[DL(π)] = V\*(s₀) − V^π(s₀). DL is reported in five parts: requests, strays, walking
-away, award timing (V less the best award available) and award terms (the best award available less
+action Q = D, the value of supplying nothing (−$600, Table A.2); for an award, Q is its margin at I = 0, or D if infeasible. Because every Q is an
+expectation, E[DL(π)] = V\*(s₀) − V^π(s₀). DL is reported in five parts: requests, strays (inquiries, counters and award checks), walking
+away (defer or an invalid action), award timing (V less the best award available) and award terms (the best award available less
 the award taken).
 
 **D.3 Data center.** *How much of what the best agreement makes available did the pair fail to
@@ -528,7 +543,7 @@ redlines; how the remainder is split between the sides is reported separately, a
 surplus. Joint value lost = A − (U_I + U_C), the sum of three parts: allocation
 J(c) − min(J(c\*), O_C − m) if signed; no deal, A, if nothing is signed (an invalid move counts as no
 deal); and delay, 25·(n_I + n_C). Each side's surplus is U_I or U_C. A side signs below its walk-away
-point if its surplus before fees is negative.
+point if its surplus before redline fees (its U plus 25 times its own redlines) is negative.
 
 ---
 
