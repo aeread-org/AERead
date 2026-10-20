@@ -20,7 +20,11 @@ sample first, then look one test ahead) closes 33.4% of the gap per world on the
 Sol's 35.3% and $32.51. The admission screen only required it to lose at least $10 to the best policy. So Sol's share is
 no more than that habit reaches: the declared claim, a positive share, holds, but it does not show Sol reasoning about
 shared sources. On the 6 pilot worlds the same shortcut closes 7.6%. No comparison with it was declared (incident row
-P-J-06).
+P-J-06). Sol does not play that habit, though. It opens with the shortcut's move in 2 of 40 plays, and its per-world
+shares correlate with the shortcut's at 0.21 (10 worlds more than 0.1 above it, 10 below), so the equal means are a
+coincidence of averages. Its tests are price-led: the first newcomer it touches is the cheapest-priced in 19 of 26
+plays. The moves the case is built around are rare: a second newcomer in 7 of 40 plays, a lookup in 4, a kind's
+sharing settled in 3.
 
 **Arm B: the odds alone do not explain why Opus never tests.** Under version 1's cohort odds every twin's best first
 move goes to a newcomer, testing beats paying by 10% to 102%, and the one-step rule tests in 18 of 20. Opus still
