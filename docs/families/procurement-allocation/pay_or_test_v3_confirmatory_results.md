@@ -15,6 +15,13 @@ interval's lower end, 18.4%, is above zero. No world is missing. Sol touched a n
 information request went to a newcomer in 10. It met 25 unanswered quotes and asked again after 12 of them. It looked a
 source up in 4 plays, settling a kind's sharing in 3.
 
+**What arm A does not show.** The kind-blind shortcut that admission screens (sample the newcomer with the cheapest
+sample first, then look one test ahead) closes 33.4% of the gap per world on these 20 worlds and loses $33.46, against
+Sol's 35.3% and $32.51. The admission screen only required it to lose at least $10 to the best policy. So Sol's share is
+no more than that habit reaches: the declared claim, a positive share, holds, but it does not show Sol reasoning about
+shared sources. On the 6 pilot worlds the same shortcut closes 7.6%. No comparison with it was declared (incident row
+P-J-06).
+
 **Arm B: the odds alone do not explain why Opus never tests.** Under version 1's cohort odds every twin's best first
 move goes to a newcomer, testing beats paying by 10% to 102%, and the one-step rule tests in 18 of 20. Opus still
 paid the premium in all 20. Across version 3, Opus has now paid the premium without touching a newcomer in 84 of 84
