@@ -1,0 +1,38 @@
+{
+ "datacenter_agreement_v2_integrator_firm": {
+  "script_seat": "client",
+  "episodes": 320,
+  "script_moves": 598,
+  "rebuilt_moves_not_matching_the_record": 0,
+  "moves_changed_by_a_frozen_belief": 1,
+  "moves_with_narrowed_belief": 4,
+  "by_opponent_model": {
+   "claude": {
+    "script_moves": 227,
+    "changed": 1
+   },
+   "codex": {
+    "script_moves": 371,
+    "changed": 0
+   }
+  }
+ },
+ "datacenter_agreement_v2_client_firm": {
+  "script_seat": "integrator",
+  "episodes": 160,
+  "script_moves": 398,
+  "rebuilt_moves_not_matching_the_record": 0,
+  "moves_changed_by_a_frozen_belief": 31,
+  "moves_with_narrowed_belief": 109,
+  "by_opponent_model": {
+   "claude": {
+    "script_moves": 166,
+    "changed": 12
+   },
+   "codex": {
+    "script_moves": 232,
+    "changed": 19
+   }
+  }
+ }
+}

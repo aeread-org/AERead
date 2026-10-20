@@ -76,3 +76,8 @@ not inference (the plan's standing limit: the firm script's first reply reveals 
 Codex extracts more than the rule and Opus does not; Codex's extra earnings come with more joint loss. Every
 Codex-versus-Opus contrast now runs on isolated subjects; v1's did not (CLI-D-01 to CLI-D-03), so v1 and v2 differ in
 subject context as well as in brief, seat and pack, and are not pooled.
+
+**See also.** [The counterpart's belief update](agreement_belief_ablation.md) (2026-10-19, no model call). Freezing the
+integrator script's belief changes 7.8% of its moves against the models' recorded client offers, and 15% against
+scripted clients, where it costs the client 3% to 12% of the available surplus, mostly in lost deals. The client
+script's update is inert.
