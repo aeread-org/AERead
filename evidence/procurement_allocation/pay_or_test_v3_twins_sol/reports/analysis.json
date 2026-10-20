@@ -1,0 +1,46 @@
+{
+ "plays": 20,
+ "failed": [],
+ "worlds": 20,
+ "plays_touching_a_newcomer": 20,
+ "first_information_request_to_a_newcomer": 18,
+ "gap_closed_mean": 0.5928,
+ "t_ci95": [
+  0.1878,
+  0.9977
+ ],
+ "decision_loss_mean_usd": 53.26,
+ "pay_premium_loss_mean_usd": 144.98,
+ "rules_gap_closed_on_twins": {
+  "one_step_value": 0.5757,
+  "cheapest_sample_first": 0.6164,
+  "two_step_value": 0.8956
+ },
+ "paired_twin_minus_original": {
+  "worlds": 20,
+  "mean": 0.2394,
+  "sd": 1.0257
+ },
+ "per_world": {
+  "myopic_pays__1": 1.0,
+  "myopic_pays__10": -2.8805,
+  "myopic_pays__11": 0.8551,
+  "myopic_pays__12": 1.0,
+  "myopic_pays__13": 0.1688,
+  "myopic_pays__14": 1.0,
+  "myopic_pays__15": 0.6427,
+  "myopic_pays__16": 0.96,
+  "myopic_pays__17": 0.992,
+  "myopic_pays__18": -0.09,
+  "myopic_pays__19": 0.7414,
+  "myopic_pays__2": 0.7746,
+  "myopic_pays__20": 0.9926,
+  "myopic_pays__3": 0.7924,
+  "myopic_pays__4": 0.9541,
+  "myopic_pays__5": 0.569,
+  "myopic_pays__6": 0.7947,
+  "myopic_pays__7": 0.7977,
+  "myopic_pays__8": 0.8734,
+  "myopic_pays__9": 0.9171
+ }
+}
