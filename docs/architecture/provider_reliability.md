@@ -1,7 +1,9 @@
 # Provider-call reliability: decision record
 
-**Status:** accepted for implementation, slice by slice. Each slice is a separate kernel PR with its own review. Started 2026-10-04.
+**Status:** reviewed slice by slice. #246 covers S1 diagnostics only. Retry eligibility and stopping-policy revisions remain under discussion on #248; accepting S1 does not approve them or change a frozen contract. Started 2026-10-04.
 **Tracking:** #226 items 1, 3 and 4. Decisions are posted on #226 (comment 5958753497, update of 2026-10-04).
+
+**Revision note, 2026-10-19:** the earlier handling table grouped all 5xx under a pre-output premise. A status code or missing usage does not prove that generation never started or that the provider charged nothing. The [case-based policy discussion on #248](https://github.com/aeread-org/AERead/pull/248#issuecomment-6280660328) must resolve that boundary before implementation changes. The framework comparison below is a dated source snapshot, not a measurement-validity ruling.
 
 This record explains why the kernel handles failed provider calls the way it does, which alternatives were weighed, and what other evaluation frameworks taught us. Read it before changing retry, timeout, rate-limit, halt or campaign-runner behaviour.
 
@@ -64,7 +66,7 @@ AERead's typed failure conditions and append-only evidence were already stricter
 
 ## 3. Principles
 
-1. **Recovery is a declared treatment.** A re-sent call yields a survivor weighted by the chance that a draw completes. For independent actions, retrying a call and dropping the cell select the same distribution; what retrying changes is the denominator and the cost.
+1. **Recovery is a declared treatment.** When completion depends on a generated draw, retries can select survivors. Neither retrying a call nor dropping a missing cell is assumed to preserve the outcome distribution; recovery also changes the denominator and the cost.
    - A retry is close to neutral only when the provider never began generating. Examples: a connect failure, or a 429 before any output.
    - Seeds do not make retries deterministic. The SDK documents "determinism is not guaranteed".
 2. **Deadlines are operational guards.** An expired deadline means progress unknown, unless the transport shows the provider had not started. Deadlines are calibrated, and each expiry is reported as censoring.
@@ -74,13 +76,13 @@ AERead's typed failure conditions and append-only evidence were already stricter
 6. **One owner per concern.** The kernel retries, limits, schedules and halts; families declare. SDK retries stay at 0.
 7. **Every limit is in the contract, through opt-in versioned policies.** A sealed contract never gains new behaviour.
 
-## 4. Handling decisions
+## 4. Handling proposals and review boundaries
 
-Each rule is derived from an existing convention, so no new convention is invented. Each applies only to contracts that opt in, through `harness.config["transport_policy"]` and new `execution` keys.
+This is the design context for later slices, not an implementation or approval claim for S1. Recovery must remain explicitly declared and versioned. The unknown-progress eligibility and stopping rules are pending the #248 discussion; other rows retain their own slice's review requirements. No table entry silently changes an existing profile or frozen campaign.
 
 | When this happens | Handling | Derived from |
 |---|---|---|
-| The call fails before the model produced output: connect, DNS or TLS failure, 408, 429, 5xx | Re-send the identical request with backoff, only for conditions the contract declares. A 429 `Retry-After` pauses the route or key. | "Every limit that can terminate a run belongs in the contract"; design §4.1 (transport retries are `ProviderCall`s inside one attempt) |
+| HTTP 429 or 5xx, including gateway failures with unknown generation progress | Same-attempt resend eligibility and time-denial fallback require agreement on #248. Missing usage is not a no-execution or zero-charge guarantee. Other failures retain their existing client classification and profile gate until a reviewed change is accepted. | Recovery is a declared treatment; every limit that can terminate a run belongs in the contract. S1 only records diagnostics. |
 | A streamed call gets no token within its first-progress deadline | Retried if declared; the transport phase is recorded | Design §4.2 (`timeout` is `retryable_infrastructure`); new opt-in knob beside `provider_stream` |
 | The call breaks after output started, or returns `finish_reason: error` | Retried only if declared; counted as exposure; never a default | Principle 1 |
 | 402, 401 or 403, or a 429 that states the quota is exhausted | Stop the campaign | `OperationalHaltGuard` already stops on `account_fault` |
