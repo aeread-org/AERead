@@ -1132,6 +1132,12 @@ def finalize_family_failure(
         )
         if isinstance(condition, str) and condition:
             failure_conditions.append(condition)
+    condition = (
+        failure_conditions[-1] if failure_conditions else "family_execution_failure"
+    )
+    if not all(character.isalnum() or character in "_-" for character in condition):
+        condition = "family_execution_failure"
+
     retryable_conditions = {
         "length",
         "rate_limit",
@@ -1140,7 +1146,9 @@ def finalize_family_failure(
         "timeout",
         "transport",
     }
-    if any(condition in retryable_conditions for condition in failure_conditions):
+    if condition == "cost_budget_exceeded":
+        failure_class = "environment_failure"
+    elif any(condition in retryable_conditions for condition in failure_conditions):
         failure_class = "retryable_infrastructure"
     elif any(
         condition in {"provider_contract", ACCOUNT_FAULT}
@@ -1149,11 +1157,6 @@ def finalize_family_failure(
         failure_class = "integration_or_configuration"
     else:
         failure_class = "environment_failure"
-    condition = (
-        failure_conditions[-1] if failure_conditions else "family_execution_failure"
-    )
-    if not all(character.isalnum() or character in "_-" for character in condition):
-        condition = "family_execution_failure"
 
     evidence_seal = evidence.seal()
     case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
