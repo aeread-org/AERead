@@ -217,3 +217,10 @@ current one saturated"):
   from aeread-15.
 - Figure 5.1 gains the kind-blind shortcut (cheapest sample first, exact) as a gray row on the 20 declared worlds
   (33% per world, beside Sol's 35%), matching Table 5.3's column; caption updated. Script rerun; checks refreshed.
+- Section 5.1 Procurement (2026-10-20, owner's go "yes add" via aeread-c0): "why Opus never tests is untested" is
+  replaced by the v3.1 diagnostic, labelled as not a declared test: under a brief corrected for the four wording
+  defects of P-D-29 (none says whom to test) Opus tested no newcomer in 40 plays of the declared worlds; in a no-play
+  check (a newcomer's chance of being sound after a kind-mate passes or fails a sample, with and without its own
+  clean quote first; myopic_pays__3 and two other worlds, each asked twice) Opus and Sol each answered 18 of 18
+  within 0.05; Sol shows no change (+7.8 [-5.6, +21.2]). Sources row added (plan e7b94f91, amendments 5abf28f3 and
+  16421dce, results acd0c706, branch codex/procurement-v3-brief-v31, same registry-row caveat).

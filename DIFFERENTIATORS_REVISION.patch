@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 19:12:38
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 00:32:59
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1740,7 +1740,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 19:12:09
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 00:32:01
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1771,7 +1771,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,132 +30,271 @@
+@@ -29,132 +30,278 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1969,7 +1969,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +most of the gap in some worlds and none in others. Opus 5.5 played the same worlds as a control and
 +paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
 +copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
-+newcomer first is best in every world; why Opus never tests is untested. A rule allowed to test two
++newcomer first is best in every world. A diagnostic, which was not a declared test, points to why.
++Under a brief corrected for four wording defects found on audit, none of which says whom to test,
++Opus again tested no newcomer in 40 plays of the declared worlds. In a check with no play, Opus was asked
++how likely a newcomer is to be sound once another newcomer of its kind has passed or failed a
++sample, with and without a clean quote of its own first, in the worked example's world and two
++others. It answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads the
++sharing rule and does not plan with it. Under the corrected brief, Sol showed no change (+7.8 points
++[−5.6, +21.2]). A rule allowed to test two
 +newcomers closes 82% of the gap, so the headroom left lies in planning one test beyond the one in
 +hand. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest first
 +closes 33% on the declared worlds, about Sol's 35%: the declared test shows that Sol takes tests that
@@ -2130,7 +2137,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,34 +308,85 @@
+@@ -168,34 +315,86 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -2224,6 +2231,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 +| TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
 +| Procurement harder version: pilot and confirmatory (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
++| Procurement corrected brief and comprehension check (§5.1) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
 +| Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md
