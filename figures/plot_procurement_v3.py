@@ -1,4 +1,4 @@
-"""Plot the Procurement v3 results as Figure 5.1: the share of the pay-to-best gap each play closes, world by world.
+"""Plot Figure 5.1: on the 20 declared worlds, the share of the pay-to-best gap each subject closes, world by world.
 
 Run from the draft directory: uv run --with matplotlib python figures/plot_procurement_v3.py
 Inputs are the sealed read-outs and packs in analysis_evidence/procurement_v3/ (SOURCES.json names the commits and
@@ -27,7 +27,8 @@ plt.rcParams.update({
     'text.color':'#172A3A', 'axes.labelcolor':'#405366',
     'xtick.color':'#405366', 'ytick.color':'#172A3A',
 })
-SOL, OPUS, RULE, INK, MUTED = '#367DAD', '#CC6946', '#7B899B', '#172A3A', '#5B6B7A'
+SOL, OPUS, GEMINI, LUNA = '#367DAD', '#CC6946', '#8E5BA6', '#A8841A'
+RULE, INK, MUTED = '#7B899B', '#172A3A', '#5B6B7A'
 
 
 def load(name):
@@ -42,53 +43,56 @@ def world_means(readout, kind='myopic_pays'):
     return {slug: statistics.fmean(v) for slug, v in sorted(by.items())}
 
 
-def rows():
-    analysis = load('confirmatory_analysis.json')
-    a, b = analysis['arm_a'], analysis['arm_b']
-    confirm = {w['slug']: w for w in load('confirm_pack.json')['worlds']}
-    pilot_sol = load('pilot_sol61.json')[0]
-    pilot_opus = load('pilot_opus55.json')[0]
+#: Student t 0.975 quantile at 19 degrees of freedom (20 worlds), as scipy.stats.t.ppf(0.975, 19) gives.
+T19 = 2.0930240544
 
-    sol_confirm = list(a['per_world'].values())
-    assert len(sol_confirm) == 20 and abs(statistics.fmean(sol_confirm) - a['gap_closed_mean']) < 5e-4
-    sol_pilot = list(world_means(pilot_sol).values())
-    assert abs(statistics.fmean(sol_pilot) - pilot_sol['by_kind']['myopic_pays']['gap_closed_mean']) < 5e-4
-    opus_control = [r['control_gap_closed'] for r in b['rows']]
-    opus_twins = [r['twin_gap_closed'] for r in b['rows']]
-    opus_pilot = list(world_means(pilot_opus).values())
-    for w in confirm.values():  # the one-step rule pays the premium in every option-value world
+
+def interval(values):
+    mean = statistics.fmean(values)
+    half = T19 * statistics.stdev(values) / len(values) ** 0.5
+    return mean, [mean - half, mean + half]
+
+
+def rows():
+    """The 20 declared worlds only: four subjects (each world the mean of its two plays) and two exact rules."""
+    analysis = load('confirmatory_analysis.json')
+    confirm = {w['slug']: w for w in load('confirm_pack.json')['worlds']}
+    out = []
+    for label, name, color in (('Sol 6.1 (Codex)', 'readout_sol61.json', SOL),
+                               ('Opus 5.5 (Claude Code)', 'readout_opus55.json', OPUS),
+                               ('Gemini 3.8 Flash', 'readout_gemini38_flash.json', GEMINI),
+                               ('GPT-6 Luna', 'readout_gpt6_luna.json', LUNA)):
+        readout = load(name)
+        readout = readout[0] if isinstance(readout, list) else readout
+        values = list(world_means(readout).values())
+        assert len(values) == 20 and readout['failed'] == []
+        mean, ci = interval(values)
+        varies = max(values) - min(values) > 1e-3
+        out.append(dict(label=label, values=values, color=color, mean=mean, ci=ci if varies else None,
+                        interval='95% t interval' if varies else None))
+    sol = out[0]
+    assert abs(sol['mean'] - analysis['arm_a']['gap_closed_mean']) < 5e-4
+    assert all(abs(x - y) < 5e-4 for x, y in zip(sol['ci'], analysis['arm_a']['t_ci95']))
+    for w in confirm.values():  # the one-step rule pays the premium in every declared world
         assert abs(w['rule_loss_usd']['one_step_value'] - w['rule_loss_usd']['pay_premium']) < 0.01
-    two_step = [1 - w['rule_loss_usd']['two_step_value'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
-    # The kind-blind shortcut admission screens: sample the newcomer whose sample is cheapest first (Table 5.3's column).
-    shortcut = [1 - w['rule_loss_usd']['cheapest_sample_first'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
+    share = lambda rule: [1 - w['rule_loss_usd'][rule] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]  # noqa: E731
+    shortcut, two_step = share('cheapest_sample_first'), share('two_step_value')
     assert abs(statistics.fmean(shortcut) - 0.334) < 1e-3
-    return [
-        dict(label='Sol 6.1 (Codex)\ndeclared test, 20 fresh worlds', values=sol_confirm, color=SOL,
-             mean=a['gap_closed_mean'], ci=a['t_ci95'], interval='95% t interval'),
-        dict(label='Sol 6.1 (Codex)\npilot, 6 worlds', values=sol_pilot, color=SOL,
-             mean=pilot_sol['by_kind']['myopic_pays']['gap_closed_mean'],
-             ci=pilot_sol['by_kind']['myopic_pays']['gap_closed_ci95'], interval='95% bootstrap interval'),
-        dict(label='Opus 5.5 (Claude Code)\nthe same 20 worlds', values=opus_control, color=OPUS,
-             mean=statistics.fmean(opus_control), ci=None, interval=None),
-        dict(label="Opus 5.5 (Claude Code)\nthe same, earlier pack's odds", values=opus_twins, color=OPUS,
-             mean=statistics.fmean(opus_twins), ci=None, interval=None),
-        dict(label='Opus 5.5 (Claude Code)\npilot, 6 worlds', values=opus_pilot, color=OPUS,
-             mean=statistics.fmean(opus_pilot), ci=None, interval=None),
-        dict(label='Shortcut: cheapest\nsample first (exact)', values=shortcut, color=RULE,
-             mean=statistics.fmean(shortcut), ci=None, interval=None),
-        dict(label='A rule that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
-             mean=statistics.fmean(two_step), ci=None, interval=None),
-    ]
+    out += [dict(label='Shortcut: cheapest\nsample first (exact)', values=shortcut, color=RULE,
+                 mean=statistics.fmean(shortcut), ci=None, interval=None),
+            dict(label='A rule that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
+                 mean=statistics.fmean(two_step), ci=None, interval=None)]
+    return out
 
 
 def main():
     data = rows()
-    fig, ax = plt.subplots(figsize=(7.6, 4.0), facecolor='white')
-    fig.subplots_adjust(left=.265, right=.975, top=.875, bottom=.135)
+    fig, ax = plt.subplots(figsize=(7.6, 3.55), facecolor='white')
+    fig.subplots_adjust(left=.265, right=.975, top=.86, bottom=.15)
     n = len(data)
     for i, row in enumerate(data):
         y = n - 1 - i
-        vals = [100 * max(v, -1e-9) for v in row['values']]
+        vals = [0.0 if abs(v) < 1e-3 else 100 * v for v in row['values']]  # rounding noise only; real negatives stay
         offsets = [((k % 5) - 2) * .055 for k in range(len(vals))]
         ax.scatter(vals, [y + o for o in offsets], s=22, color=row['color'], alpha=.55, linewidths=0, zorder=3)
         m = 100 * row['mean']
@@ -96,7 +100,7 @@ def main():
             lo, hi = (100 * c for c in row['ci'])
             ax.plot([lo, hi], [y, y], color=INK, lw=1.6, zorder=4, solid_capstyle='round')
             ax.plot([m], [y], marker='D', ms=6.5, color=INK, zorder=5)
-            ax.text(m, y + .3, f'{m:.0f}% [{lo:.0f}, {hi:.0f}]', va='center', ha='center', fontsize=8.5, color=INK)
+            ax.text(m, y + .3, f'{m:.0f}% [{lo:.0f}, {hi:.0f}]'.replace('-', '\u2212'), va='center', ha='center', fontsize=8.5, color=INK)
         else:
             ax.plot([m], [y], marker='D', ms=6.5, color=INK, zorder=5)
             if max(abs(v) for v in row['values']) < 1e-3:
@@ -105,10 +109,12 @@ def main():
                 ax.text(m, y + .3, f'{m:.0f}% on average', va='center', ha='center', fontsize=8.5, color=MUTED)
     ax.set_yticks(range(n))
     ax.set_yticklabels([r['label'] for r in reversed(data)], fontsize=8.5)
-    ax.set_xlim(-6, 112)
+    low = min(100 * min(v for r in data for v in r['values']), 0)
+    ax.set_xlim(min(-6, low - 6), 112)
     ax.set_ylim(-.7, n - .4)
-    ax.set_xticks([0, 25, 50, 75, 100])
-    ax.set_xticklabels(['0%', '25%', '50%', '75%', '100%'])
+    ticks = [t for t in (-50, -25, 0, 25, 50, 75, 100) if t >= min(-6, low - 6)]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([f'{t}%'.replace('-', '\u2212') for t in ticks])
     ax.set_xlabel('Share of the gap between paying the premium and the best policy closed, per world', fontsize=8.5)
     for x, text, align in ((0, 'paying the premium\n= the one-step rule', 'left'),
                            (100, 'the best policy, given\nwhat the buyer knows', 'right')):

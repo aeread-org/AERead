@@ -138,52 +138,46 @@ quote comes back clean, it samples the dear one, looks both up, and only then pa
 It earns 11.8% more than paying the premium. Every action is charged what it gave up against the exact
 best informed policy at that point.
 
-**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap; the shortcut, a screened control, samples the newcomer whose sample is cheapest before anything else, ignoring seller kinds, then plans one test. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
+**Table 5.3. Procurement, the 20 worlds of the declared test, two plays each: the share of the gap between paying the premium and the best policy each subject closes (a mean over worlds, each world the mean of its plays, with 95% t intervals), the loss per world below the best policy, and how many plays touched a newcomer. The worlds were drawn, and the test on Sol declared, before any play. In every one of them a rule that plans one newcomer's test exactly pays the premium and closes none of the gap.**
 
-| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Shortcut: cheapest sample first (exact) | A rule that may test two newcomers (exact) |
-|---|---:|---:|---:|---:|
-| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 33% | 82% |
-| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 8% | 84% |
-| The same 20 worlds at the earlier pack's odds, one play each (a rule that plans one newcomer's test closes 58% here) | 59% [19, 100]; median 83% | 0% in all 20 plays | 62% | 90% |
-| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $33.46 | $8.38 |
+| | Share of the gap closed | Loss per world | Plays touching a newcomer |
+|---|---:|---:|---:|
+| Sol 6.1 (Codex) | 35% [18, 52], p = 0.0003 | $32.51 | 26 of 40 |
+| Opus 5.5 (Claude Code) | 0% in every world | $51.25 | 0 of 40 |
+| Gemini 3.8 Flash | 0% in every world | $51.25 | 0 of 40 |
+| GPT-6 Luna | −14% [−21, −7] | $58.10 | 0 of 40 |
+| *Exact rules on the same worlds* | | | |
+| Paying the premium; a rule that plans one newcomer's test | 0% | $51.25 | |
+| Shortcut: sample the newcomer with the cheapest sample first, ignoring seller kinds | 33% | $33.46 | |
+| A rule that may test two newcomers | 82% | $8.38 | |
 
-![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
+![On the 20 declared worlds, the share of the gap between paying the premium and the best policy that each of four models and two exact rules closes, world by world.](figures/procurement_v3_gap_closed.svg)
 
-**Figure 5.1. Procurement: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
-one world, the mean of its plays; diamonds are means, and the bars are the declared test's 95% t interval
-and the pilot's 95% bootstrap interval. The rule that plans one newcomer's test exactly sits at 0% in every
-world, with paying the premium. Opus closes none of the gap in any world, at either pack's odds. The gray
-rows are exact rules on the 20 declared worlds: the shortcut that ignores seller kinds and samples the newcomer
-whose sample is cheapest first, and a rule allowed to test two newcomers.
+**Figure 5.1. Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
+one world, the mean of its two plays; diamonds are means and bars are 95% t intervals. Paying the premium, and a rule
+that plans one newcomer's test exactly, sit at 0% in every world. Opus and Gemini close none of the gap in any world;
+Luna's award checks and later awards leave it below paying the premium. The gray rows are exact rules: the shortcut that
+ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.
 
-Sol 6.1 closed 35% of the gap on 20 fresh worlds (95% t interval 18–52%, p = 0.0003), where a rule
-that plans one newcomer's test exactly closes none. This was the one test we declared before any
-play, and the claim holds; it concerns Sol alone. Sol's play splits by world (Figure 5.1): it closes
-most of the gap in some worlds and none in others. Opus 5.5 played the same worlds as a control and
-paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
-copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
-newcomer first is best in every world. On those copies, in a diagnostic declared before its plays, Sol
-tested a newcomer in all 20 plays and closed 59% of the gap (95% t interval 19–100%; median 83%; one
-play deferred and bought nothing), about the 58% that a rule planning one newcomer's test closes there.
-A second declared diagnostic points to why Opus never tests; neither is a test of a claim. Under a brief corrected for four wording defects found on audit, none of which says whom to test,
-Opus again tested no newcomer in 40 plays of the declared worlds. In a check with no play, Opus was asked
-how likely a newcomer is to be sound once another newcomer of its kind has passed or failed a
-sample, with and without a clean quote of its own first, in the worked example's world and two
-others. It answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads the
-sharing rule and does not plan with it. Under the corrected brief, Sol showed no change (+7.8 points
-[−5.6, +21.2]). A rule allowed to test two
-newcomers closes 82% of the gap, so the headroom left lies in planning one test beyond the one in
-hand. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest first
-closes 33% on the declared worlds, about Sol's 35%: the declared test shows that Sol takes tests that
-pay only through what they reveal, not that it reasons about shared sources. In the pilot worlds the
-same shortcut closes 8% to Sol's 50%; no comparison with it was declared. These runs used the case's environment from a development branch whose registration with the
-runtime still awaits review (Appendix F.1).
+Sol 6.1 closed 35% of the gap (95% t interval 18–52%, p = 0.0003), where a rule that plans one newcomer's
+test exactly closes none. This was the one test we declared before any play, and the claim holds; it concerns
+Sol alone. Its play splits by world (Figure 5.1): it closes most of the gap in some worlds and none in others.
+The other three models never touched a newcomer. Opus 5.5 and Gemini 3.8 Flash paid the premium in every play;
+GPT-6 Luna did too, and lost more than paying the premium does, through award checks that cost actions and
+awards that came later. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest
+first closes 33%, about Sol's share, but Sol does not play it: it opens with the shortcut's move in 2 of 40
+plays, and its tests follow price. The moves the case is built around are rare in its play: a second newcomer
+in 7 of 40 plays, a source lookup in 4. A rule allowed to test two newcomers closes 82%, so the headroom lies in
+planning one test beyond the one in hand.
 
-An earlier pack, in which quotes always arrive and newcomers never share a source, is saturated: a
-rule that looks one test ahead comes within 0.01% of the best policy, Sol and Opus close 98.6% and
-92.8% of the pay-to-best gap, and Gemini 3.8 Flash and GPT-6 Luna close none (Appendix E.4,
-Table E.14). Figure 5.2 and the failure classes of Section 5.2 use that pack, which is the one all four
-subjects played.
+Further runs on this pack are in Appendix E.4 (Table E.15): a development pilot, the declared worlds at the
+earlier pack's more favourable odds, and a brief corrected for four wording defects. None changes this picture.
+One bears on why Opus never tests: in a check with no play, it answered all 18 questions about what one
+newcomer's sample or quote says about another of its kind within 0.05 of the exact value, as Sol did. Opus reads
+the sharing rule and does not plan with it. These runs used the case's environment from a development branch
+whose registration with the runtime still awaits review (Appendix F.1). An earlier pack, in which quotes always
+arrive and newcomers never share a source, is saturated: a rule that looks one test ahead comes within 0.01% of
+the best policy (Appendix E.4, Table E.14).
 
 **Data center.** The structure follows a real AI-infrastructure engagement in which a system
 integrator bundles hardware, data-center space, staffing and software into a working system for a
@@ -256,19 +250,19 @@ the current Data-center breakdown and uncertainty. Table E.10 retains the exact 
 **Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
 v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
-and is not drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports v1's joint loss
+and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v1's joint loss
 against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
 are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 
 The labels name what happened; the mechanism behind each large segment is as follows.
 
-**Procurement, Gemini: it never tests a newcomer.** In all 24 worlds Gemini quoted, sampled and
-awarded the recorded supplier and asked no newcomer for anything. In the 8 worlds where paying the
-premium is best, that cost nothing. In the other 16 the best policy tests a cheaper newcomer first,
-because what a good newcomer saves exceeds what the test costs in money and days. There, going
-straight to the recorded supplier cost $22 to $212 a world, $113 on average: all of the 16.7% of
-the best policy's value that Gemini gives up. Its 83.3% is exactly what always paying the premium
-keeps, so it closes none of the gap the case measures.
+**Procurement: three models never test, and Sol secures the recorded supplier first.** Opus, Gemini and
+Luna asked no newcomer for anything in any of their 120 plays: they quoted, sampled and awarded the
+recorded supplier, so all their loss is information not acquired, plus Luna's award checks, each of
+which spends an action. Sol's loss splits. Where it never tested a newcomer that the best policy would
+have tested, it lost $17.5 a world. Where it did test, it often first quoted and sampled the recorded
+supplier, spending days and actions before the newcomer test the stated odds and clock made best ($8.9 a
+world), or awarded while a newcomer test it had begun was still worth finishing ($3.2).
 
 **Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
 against the reachable rule comes from leases whose quality it had settled, by inspecting or because
@@ -382,7 +376,7 @@ support for a scripted seat that this family uses is still in development.
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
 | Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
 | Pay-or-test, earlier pack (Appendix E.4, Table E.14) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
-| Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
+| Procurement flash panels, earlier pack (Table E.14) | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
 | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
 | Data center confirmatory (Tables 5.4, E.8; Figure 5.2c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
@@ -396,8 +390,9 @@ support for a scripted seat that this family uses is still in development.
 | TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 | Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
-| Procurement harder version: pilot and confirmatory (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
-| Procurement harder version: Sol on the odds twins (§5.1, Table 5.3) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
-| Procurement corrected brief and comprehension check (§5.1) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
+| Procurement harder version: pilot (Table E.15) and declared test (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
+| Procurement harder version: Gemini 3.8 Flash and GPT-6 Luna (Table 5.3, Figures 5.1 and 5.2, Tables E.5, E.9, E.10) | plan `docs/families/procurement-allocation/pay_or_test_v3_flash_plan.md` declared in f3daae61 before any play; results 47594ab8 (`evidence/procurement_allocation/pay_or_test_v3_flash/`, 80 of 80 plays, OpenRouter charged $0.43); failure classes for all four subjects from `tools/paper/failure_taxonomy/procurement_pay_or_test_v3.py` (rules fixed in 51e9bfd3 before the flash plays; output ea9dcfdc), copied with `derive_panels.py` checking every world against the replayed read-outs | declared, descriptive |
+| Procurement harder version: Sol on the odds twins (Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
+| Procurement corrected brief and comprehension check (§5.1, Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
 | Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

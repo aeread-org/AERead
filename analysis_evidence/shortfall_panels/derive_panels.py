@@ -53,7 +53,7 @@ def summarize(units):
 
 
 def main():
-    result = dict(analysis_id='paper_shortfall_panels_v9_20261018',
+    result = dict(analysis_id='paper_shortfall_panels_v10_20261020',
                   status='post-run descriptive accounting',
                   interval_method='95% Student t interval across worlds; Refund across six fixed cases, descriptive only',
                   housing={}, procurement={}, datacenter={}, refund={})
@@ -102,25 +102,27 @@ def main():
             panel='completed with the declared fill' if name in completed else 'declared bundle',
             missingness=old['operational'], cell_corrections_matched=matched)
 
-    proc = read(ROOT/'procurement_pay_or_test_taxonomy.json')
-    headline = read(EVIDENCE/'procurement_reanalysis/reports/headline.json')
+    # Procurement: the 20 declared worlds of the harder pack (Section 5.1), each world the mean of its two plays.
+    proc = read(ROOT/'procurement_pay_or_test_v3_taxonomy.json')
+    readouts = {'Sol 6.1 (Codex)': 'readout_sol61.json', 'Opus 5.5 (Claude Code)': 'readout_opus55.json',
+                'Gemini 3.8 Flash': 'readout_gemini38_flash.json', 'GPT-6 Luna': 'readout_gpt6_luna.json'}
     for name, subject in proc['subjects'].items():
-        # Match each retained campaign by all 24 world values, not display name.
-        units = {r['slug']: dict(r['per_class'], total=r['decision_loss_usd'])
-                 for r in subject['worlds_detail']}
-        assert len(units) == subject['worlds'] == 24 and not subject['missing_cells']
-        matches = []
-        for key, panel in headline['panels'].items():
-            pv = {k.rsplit('.', 1)[-1]: v for k,v in panel['per_world_decision_loss_usd'].items()}
-            if set(pv) == set(units) and all(abs(pv[k]-v['total']) < .00011 for k,v in units.items()):
-                matches.append(key)
-        assert len(matches) == 1, (name, matches)
+        units = {r['slug']: dict(r['per_class'], total=r['decision_loss_usd']) for r in subject['worlds_detail']}
+        assert len(units) == subject['worlds'] == 20 and not subject['missing_cells']
+        readout = read(EVIDENCE/'procurement_v3'/readouts[name])
+        readout = readout[0] if isinstance(readout, list) else readout
+        plays = defaultdict(list)
+        for play in readout['plays_detail']:
+            plays[play['slug']].append(play['decision_loss_usd'])
+        assert set(plays) == set(units), name
+        for slug, row in units.items():  # every world's total matches the replayed read-out
+            close(st.fmean(plays[slug]), row['total'], tol=1e-3)
         summary = summarize(units)
         for k in CLASSES:
             close(summary[k]['mean'], subject['per_world'][k])
         close(summary['total']['mean'], subject['total_shortfall_per_world'])
         result['procurement'][name] = dict(summary=summary, units=units,
-            source_panel=matches[0], missing_cells=0)
+            source_panel=subject['campaign_id'], missing_cells=0)
 
     dc_report = read(EVIDENCE/'campaign_refresh/datacenter/analysis/reports/analysis.json')
     dc_pairings = {}

@@ -3,7 +3,7 @@
  "table": "Table 5.3",
  "sources": {
   "branch": "codex/procurement-pay-or-test",
-  "commit": "bd9b9ba9",
+  "commit": "47594ab8",
   "files": {
    "confirm_pack.json": {
     "from": "cases/procurement_allocation_v1/pay_or_test_v3_confirm/pack.json",
@@ -28,34 +28,44 @@
    "pilot_sol61.json": {
     "from": "evidence/procurement_allocation/pay_or_test_v3_pilot/reports/pilot_codex_sol61.json",
     "sha256": "9990c918939ecb71ff0662ca5d1598a3fb5e19574fe5e972831cb72c552bba4d"
+   },
+   "readout_gemini38_flash.json": {
+    "from": "evidence/procurement_allocation/pay_or_test_v3_flash/reports/readout_gemini38_flash.json",
+    "sha256": "efd84081f5ba37cd8c6d9291d13c7677aceb46188d1189797957985a807a53a4"
+   },
+   "readout_gpt6_luna.json": {
+    "from": "evidence/procurement_allocation/pay_or_test_v3_flash/reports/readout_gpt6_luna.json",
+    "sha256": "c760cf34931d541945fabc242445077d63ec5fb86bfe9998179f00895f833253"
+   },
+   "readout_opus55.json": {
+    "from": "evidence/procurement_allocation/pay_or_test_v3_confirmatory/reports/readout_arm_b_control_opus55.json",
+    "sha256": "7c5b755e298c8e1c07a03c6a03d10b87cf28c88c062b1301f5d7771922f86d0b"
+   },
+   "readout_sol61.json": {
+    "from": "evidence/procurement_allocation/pay_or_test_v3_confirmatory/reports/readout_arm_a_sol61.json",
+    "sha256": "858a652fe7b0d565649ca39f09a7549fb31c69e8dff8e712e15a215dbbbc1a67"
    }
   },
+  "flash_plan": "f3daae61",
+  "flash_results": "47594ab8",
   "plan": "e67df11d",
   "results": "ff65a230"
  },
- "script_sha256": "6b5284c44044c7c357baca5be67e78794e9ee0af42b8f1d1b621c05bc999dc5a",
- "svg_sha256": "f2248196bf10e7afcfd7cc5453bffe3ef5acc2281180faffdb28bfc6fde3cf8f",
- "png_sha256": "ba9ea11019607184c9b1cbbe73dbd1c4deb13aa2a63bd94273cc6bf12a0b1922",
+ "script_sha256": "81ef2d02e5b6054a585ef3a7ec874a872a34e4fd3e6ca350dbcdff2d1b9887e6",
+ "svg_sha256": "877fde4795519b38d1c15d9602781f1d705f63d60263ee8bf7abfe4f77bbafef",
+ "png_sha256": "3e11d61fb7544333fa9d2ac8cfcb89a5953d23f48475f738da3fef7e8d7e0705",
  "rows": [
   {
-   "label": "Sol 6.1 (Codex) declared test, 20 fresh worlds",
+   "label": "Sol 6.1 (Codex)",
    "worlds": 20,
    "mean": 0.3533,
    "ci": [
-    0.1843,
-    0.5223
+    0.184340526757906,
+    0.5223163783667673
    ],
    "interval": "95% t interval",
    "values": [
     0.9118,
-    -0.0001,
-    0.4198,
-    0.0001,
-    -0.0868,
-    0.3225,
-    0.2544,
-    0.8564,
-    0.8581,
     0.9556,
     0.0,
     0.9082,
@@ -66,29 +76,19 @@
     0.2811,
     0.0,
     0.0455,
-    0.1481
+    -0.0001,
+    0.1481,
+    0.4198,
+    0.0001,
+    -0.0868,
+    0.3225,
+    0.2544,
+    0.8564,
+    0.8581
    ]
   },
   {
-   "label": "Sol 6.1 (Codex) pilot, 6 worlds",
-   "worlds": 6,
-   "mean": 0.5047,
-   "ci": [
-    0.2728,
-    0.7117
-   ],
-   "interval": "95% bootstrap interval",
-   "values": [
-    0.9059,
-    0.6098,
-    0.6193,
-    0.4853,
-    0.4082,
-    -0.0001
-   ]
-  },
-  {
-   "label": "Opus 5.5 (Claude Code) the same 20 worlds",
+   "label": "Opus 5.5 (Claude Code)",
    "worlds": 20,
    "mean": 0.0,
    "ci": null,
@@ -117,47 +117,64 @@
    ]
   },
   {
-   "label": "Opus 5.5 (Claude Code) the same, earlier pack's odds",
+   "label": "Gemini 3.8 Flash",
    "worlds": 20,
    "mean": 0.0,
    "ci": null,
    "interval": null,
    "values": [
-    -0.0,
-    0.0,
-    -0.0,
     -0.0001,
-    0.0,
-    -0.0,
-    -0.0,
-    -0.0,
-    -0.0,
-    -0.0001,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
     0.0001,
     0.0,
+    -0.0002,
+    0.0,
+    -0.0001,
+    0.0,
     0.0,
     -0.0,
+    0.0,
+    0.0002,
+    -0.0001,
+    -0.0,
+    -0.0,
+    0.0001,
+    0.0001,
+    -0.0,
+    0.0001,
+    -0.0001,
     0.0001
    ]
   },
   {
-   "label": "Opus 5.5 (Claude Code) pilot, 6 worlds",
-   "worlds": 6,
-   "mean": 0.0,
-   "ci": null,
-   "interval": null,
+   "label": "GPT-6 Luna",
+   "worlds": 20,
+   "mean": -0.1383,
+   "ci": [
+    -0.20754505833994516,
+    -0.06902620762664316
+   ],
+   "interval": "95% t interval",
    "values": [
-    -0.0,
+    -0.1201,
+    -0.2219,
+    0.0,
+    -0.2188,
+    0.0,
+    -0.1722,
+    0.0,
+    -0.1105,
+    -0.2453,
+    0.0,
+    -0.5104,
     -0.0001,
     -0.0,
+    -0.0,
+    -0.1703,
     0.0001,
-    0.0001,
-    -0.0001
+    -0.1566,
+    -0.4142,
+    -0.2794,
+    -0.1462
    ]
   },
   {

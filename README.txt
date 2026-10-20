@@ -232,3 +232,12 @@ current one saturated"):
   repaired: the Sol twins sentence now names itself a diagnostic declared before its plays, the v3.1 sentence says
   "A second declared diagnostic points to why Opus never tests", and world 10's play, whose trace ends in defer
   (margin -$956), "deferred and bought nothing" instead of "walked away with no supply". Numbers unchanged.
+- Procurement reported on one pack (owner: "multiple version results reported without emphasis is just confusing").
+  Gemini 3.8 Flash and GPT-6 Luna played the 20 declared worlds (declared f3daae61, results 47594ab8): 0% and
+  -14%, neither touching a newcomer. Table 5.3 is now four models plus the exact rules on those worlds; Figure 5.1
+  shows only those worlds (and no longer clamps negative per-world shares to zero, P-T-22). Figure 5.2's
+  Procurement panel, Tables E.5, E.9, E.10 and the Section 5.2 paragraph move to the same worlds through a v3
+  failure taxonomy fixed before the flash plays (51e9bfd3, ea9dcfdc), copied to
+  analysis_evidence/shortfall_panels/ with derive_panels.py checking every world. The pilot, the odds twins, the
+  corrected brief and the comprehension check move to Appendix E.4, Table E.15.
+

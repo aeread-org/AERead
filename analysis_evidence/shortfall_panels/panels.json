@@ -1,5 +1,5 @@
 {
-  "analysis_id": "paper_shortfall_panels_v9_20261018",
+  "analysis_id": "paper_shortfall_panels_v10_20261020",
   "checks": {
     "all_component_sums": true,
     "all_housing_cell_corrections_matched": true,
@@ -12268,9 +12268,12 @@
     "campaign_refresh/datacenter/bundles/datacenter_agreement_confirm_head_to_head_v1/tables/cells.jsonl": "ac30b4b1fd7945eb4d9070999c5583459d29228009112d7319a01005a31df4d9",
     "housing_reply_conditioned/reports/reply_conditioned.json": "2275a8fdd6f9a159ddd47d749be5baa2ad5821cef8ba72dd2a8cb020ae7956ec",
     "housing_reply_conditioned/tables/cells.jsonl": "f9789a03df5425cc01f5a03bd50a96ba479390f5bce24dfebca19b9db39a888b",
-    "procurement_reanalysis/reports/headline.json": "f1fd78573a0485cc51e1675b6c7129f5ba0fcee3de341739b9b079698d778978",
+    "procurement_v3/readout_gemini38_flash.json": "efd84081f5ba37cd8c6d9291d13c7677aceb46188d1189797957985a807a53a4",
+    "procurement_v3/readout_gpt6_luna.json": "c760cf34931d541945fabc242445077d63ec5fb86bfe9998179f00895f833253",
+    "procurement_v3/readout_opus55.json": "7c5b755e298c8e1c07a03c6a03d10b87cf28c88c062b1301f5d7771922f86d0b",
+    "procurement_v3/readout_sol61.json": "858a652fe7b0d565649ca39f09a7549fb31c69e8dff8e712e15a215dbbbc1a67",
     "shortfall_panels/housing_v14_taxonomy.json": "ad6fa43398c4b56b90ea417b9a316aebaf6f48a5b95f0afdd09a7b0ecf0e0de4",
-    "shortfall_panels/procurement_pay_or_test_taxonomy.json": "9613ed554cadbfc62e47349d4d59bcf86908ef11dd0419a3894235db19c57c38",
+    "shortfall_panels/procurement_pay_or_test_v3_taxonomy.json": "52dc2c5dc5c9122aef221a95d4d83484209c153a18fff1d7b10ee73d1f4515ac",
     "shortfall_panels/refund_sources/gap_decomposition_deepseekv4flash.json": "f63d6fcbb71236c952dc126f879bc157261b94070c9c81e840bb778284f7f539",
     "shortfall_panels/refund_sources/gap_decomposition_gemini25flashlite.json": "6c09b7edafc556fc8b1a5b4ef1c44ee58aa0ba059e928de9d4957f7761d977d3",
     "shortfall_panels/refund_sources/gap_decomposition_gpt56luna.json": "6b0a9a8b7dc74b8468c5ab333c8a2cabb761db0e413a307de4a9ef4b81be3f43",
@@ -12281,7 +12284,7 @@
   "procurement": {
     "GPT-6 Luna": {
       "missing_cells": 0,
-      "source_panel": "gpt6_luna",
+      "source_panel": "procurement_allocation_pay_or_test_v3_confirm_v3_openrouter_gpt6_luna_v1",
       "summary": {
         "commitment_error": {
           "ci95": [
@@ -12292,43 +12295,13 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "contrary_to_information_held": {
-          "ci95": [
-            -1.2531837040842568,
-            5.00644154098592
-          ],
-          "max": 35.43909404281999,
-          "mean": 1.8766289184508314,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 22
-        },
-        "information_not_acquired": {
-          "ci95": [
-            41.29358558932188,
-            102.3816021784315
-          ],
-          "max": 232.45400478431998,
-          "mean": 71.83759388387669,
-          "median": 80.96870762199998,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 131.52045281835,
-          "zero_count": 10
-        },
-        "interaction_cost": {
           "ci95": [
             0.0,
             0.0
@@ -12337,11 +12310,41 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
+        },
+        "information_not_acquired": {
+          "ci95": [
+            49.594668204837404,
+            61.23694048676259
+          ],
+          "max": 75.194506469,
+          "mean": 55.4158043458,
+          "median": 55.8365460135,
+          "min": 25.780030272,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 45.63962365325,
+          "q3": 63.70172396525,
+          "zero_count": 0
+        },
+        "interaction_cost": {
+          "ci95": [
+            0.7971062421041017,
+            3.529276120795899
+          ],
+          "max": 8.686700016,
+          "mean": 2.1631911814500002,
+          "median": 0.6863828885000001,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 3.7835788397499996,
+          "zero_count": 9
         },
         "operational": {
           "ci95": [
@@ -12352,11 +12355,11 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "procedure_and_format": {
           "ci95": [
@@ -12367,289 +12370,249 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "total": {
           "ci95": [
-            44.500457198488434,
-            104.2501433036666
+            52.283599905414576,
+            63.91205364908542
           ],
-          "max": 232.45400478431998,
-          "mean": 74.37530025107752,
-          "median": 80.96870762199998,
-          "min": 0,
-          "n": 24,
+          "max": 80.098195283,
+          "mean": 58.09782677725,
+          "median": 57.198918399,
+          "min": 33.538664896,
+          "n": 20,
           "negative_count": 0,
-          "q1": 0.0,
-          "q3": 131.52045281835,
-          "zero_count": 7
+          "q1": 50.35604779725,
+          "q3": 67.0670056965,
+          "zero_count": 0
         },
         "worse_terms": {
           "ci95": [
-            -0.2857680592800146,
-            1.6079229567800137
+            -0.5670950364287306,
+            1.6047575364287308
           ],
-          "max": 8.299686989999998,
-          "mean": 0.6610774487499995,
+          "max": 10.376625,
+          "mean": 0.5188312500000001,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 22
+          "zero_count": 19
         }
       },
       "units": {
-        "pay_money__tight__1": {
+        "myopic_pays__1": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 43.867139376,
+          "interaction_cost": 7.568476468,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 51.435615844,
           "worse_terms": 0.0
         },
-        "pay_money__tight__2": {
+        "myopic_pays__10": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 75.194506469,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 75.194506469,
           "worse_terms": 0.0
         },
-        "pay_money__tight__3": {
+        "myopic_pays__11": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 25.780030272,
+          "interaction_cost": 7.758634624,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 33.538664896,
           "worse_terms": 0.0
         },
-        "pay_money__tight__4": {
+        "myopic_pays__12": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 44.540966783,
+          "interaction_cost": 3.821779603,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 48.362746386,
           "worse_terms": 0.0
         },
-        "pay_time__none__1": {
+        "myopic_pays__13": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 71.411495266,
+          "interaction_cost": 8.686700016,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 80.098195283,
           "worse_terms": 0.0
         },
-        "pay_time__none__2": {
+        "myopic_pays__14": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 60.285598105,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 8.299686989999998,
-          "worse_terms": 8.299686989999998
+          "total": 70.662223105,
+          "worse_terms": 10.376625
         },
-        "pay_time__none__3": {
+        "myopic_pays__15": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 40.918333908,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 40.918333908,
           "worse_terms": 0.0
         },
-        "pay_time__none__4": {
+        "myopic_pays__16": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 64.602002036,
+          "interaction_cost": 0.571284533,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 65.173286569,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__1": {
+        "myopic_pays__17": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 79.8608813678,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 54.345577014,
+          "interaction_cost": 0.808484341,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 79.8608813678,
+          "total": 55.154061354,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__2": {
+        "myopic_pays__18": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 179.30863269210005,
+          "information_not_acquired": 57.327515013,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 179.30863269210005,
+          "total": 57.327515013,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__3": {
+        "myopic_pays__19": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 138.1578903116,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 65.829776992,
+          "interaction_cost": 4.205357759,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 138.1578903116,
+          "total": 70.035134751,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__4": {
+        "myopic_pays__2": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 232.45400478431998,
+          "information_not_acquired": 53.573540394,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 232.45400478431998,
+          "total": 53.573540394,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 9.599999999999966,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 9.599999999999966,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__2": {
+        "myopic_pays__20": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 21.706967258799978,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 48.888422816,
+          "interaction_cost": 2.132058785,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 21.706967258799978,
+          "total": 51.020481601,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__3": {
+        "myopic_pays__3": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 103.44305040000017,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 53.299476534,
+          "interaction_cost": 3.770845252,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 103.44305040000017,
+          "total": 57.070321785,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__4": {
+        "myopic_pays__4": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 129.74519162820002,
+          "information_not_acquired": 57.907911767,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 129.74519162820002,
+          "total": 57.907911767,
           "worse_terms": 0.0
         },
-        "test_other__loose__1": {
+        "myopic_pays__5": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 147.6391069117201,
+          "information_not_acquired": 46.00584261,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 147.6391069117201,
+          "total": 46.00584261,
           "worse_terms": 0.0
         },
-        "test_other__loose__2": {
+        "myopic_pays__6": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 136.84623638879998,
+          "information_not_acquired": 44.298207074,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 136.84623638879998,
+          "total": 44.298207074,
           "worse_terms": 0.0
         },
-        "test_other__loose__3": {
+        "myopic_pays__7": {
           "commitment_error": 0.0,
-          "contrary_to_information_held": 35.43909404281999,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 63.401631275,
+          "interaction_cost": 0.801481244,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 35.43909404281999,
+          "total": 64.203112519,
           "worse_terms": 0.0
         },
-        "test_other__loose__4": {
+        "myopic_pays__8": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 94.52894953639998,
+          "information_not_acquired": 73.899204872,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 94.52894953639998,
+          "total": 73.899204872,
           "worse_terms": 0.0
         },
-        "test_other__tight__1": {
+        "myopic_pays__9": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 146.4219783480001,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 62.93890834,
+          "interaction_cost": 3.138721004,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 153.9881501280001,
-          "worse_terms": 7.566171779999991
-        },
-        "test_other__tight__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 82.07653387619996,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 82.07653387619996,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 118.35418131850008,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 118.35418131850008,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 113.55864839060007,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 113.55864839060007,
+          "total": 66.077629345,
           "worse_terms": 0.0
         }
       }
     },
     "Gemini 3.8 Flash": {
       "missing_cells": 0,
-      "source_panel": "gemini38_flash",
+      "source_panel": "procurement_allocation_pay_or_test_v3_confirm_v3_openrouter_gemini38_flash_v1",
       "summary": {
         "commitment_error": {
           "ci95": [
@@ -12660,11 +12623,11 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "contrary_to_information_held": {
           "ci95": [
@@ -12675,41 +12638,41 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "information_not_acquired": {
           "ci95": [
-            46.88875345874935,
-            103.49304644548072
+            44.465269776954955,
+            54.23564436394504
           ],
-          "max": 211.92906437431998,
-          "mean": 75.19089995211503,
-          "median": 81.76921126796,
-          "min": 0.0,
-          "n": 24,
+          "max": 71.734803216,
+          "mean": 49.35045707045,
+          "median": 49.182854791500006,
+          "min": 27.57026997,
+          "n": 20,
           "negative_count": 0,
-          "q1": 0.0,
-          "q3": 127.37917954364998,
-          "zero_count": 8
+          "q1": 42.01793179925,
+          "q3": 57.43756247775,
+          "zero_count": 0
         },
         "interaction_cost": {
           "ci95": [
-            0.0,
-            0.0
+            0.7441359354060482,
+            3.046528478293952
           ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
+          "max": 8.363392067,
+          "mean": 1.89533220685,
+          "median": 0.6863828885000001,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
+          "q3": 3.7835788397499996,
+          "zero_count": 9
         },
         "operational": {
           "ci95": [
@@ -12720,11 +12683,11 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "procedure_and_format": {
           "ci95": [
@@ -12735,26 +12698,26 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "total": {
           "ci95": [
-            46.88875345874935,
-            103.49304644548072
+            46.299767686245445,
+            56.191810868254564
           ],
-          "max": 211.92906437431998,
-          "mean": 75.19089995211503,
-          "median": 81.76921126796,
-          "min": 0,
-          "n": 24,
+          "max": 80.098195283,
+          "mean": 51.245789277250005,
+          "median": 50.248884184000005,
+          "min": 33.538664896,
+          "n": 20,
           "negative_count": 0,
-          "q1": 0.0,
-          "q3": 127.37917954364998,
-          "zero_count": 8
+          "q1": 45.11963097775,
+          "q3": 57.67717947675,
+          "zero_count": 0
         },
         "worse_terms": {
           "ci95": [
@@ -12765,259 +12728,219 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         }
       },
       "units": {
-        "pay_money__tight__1": {
+        "myopic_pays__1": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 41.599146221,
+          "interaction_cost": 4.324844623,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 45.923990844,
           "worse_terms": 0.0
         },
-        "pay_money__tight__2": {
+        "myopic_pays__10": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 61.534006469,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 61.534006469,
           "worse_terms": 0.0
         },
-        "pay_money__tight__3": {
+        "myopic_pays__11": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 27.57026997,
+          "interaction_cost": 5.968394926,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 33.538664896,
           "worse_terms": 0.0
         },
-        "pay_money__tight__4": {
+        "myopic_pays__12": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 35.867091783,
+          "interaction_cost": 3.821779603,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 39.688871386,
           "worse_terms": 0.0
         },
-        "pay_time__none__1": {
+        "myopic_pays__13": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 71.734803216,
+          "interaction_cost": 8.363392067,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 80.098195283,
           "worse_terms": 0.0
         },
-        "pay_time__none__2": {
+        "myopic_pays__14": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 60.285598105,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 60.285598105,
           "worse_terms": 0.0
         },
-        "pay_time__none__3": {
+        "myopic_pays__15": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 40.918333908,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 40.918333908,
           "worse_terms": 0.0
         },
-        "pay_time__none__4": {
+        "myopic_pays__16": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 58.117377036,
+          "interaction_cost": 0.571284533,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 58.688661569,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__1": {
+        "myopic_pays__17": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 68.3826284978,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 43.482452014,
+          "interaction_cost": 0.808484341,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 68.3826284978,
+          "total": 44.290936354,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__2": {
+        "myopic_pays__18": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 179.30863269210005,
+          "information_not_acquired": 57.327515013,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 179.30863269210005,
+          "total": 57.327515013,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__3": {
+        "myopic_pays__19": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 138.1578903116,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 42.157526992,
+          "interaction_cost": 4.205357759,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 138.1578903116,
+          "total": 46.362884751,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__4": {
+        "myopic_pays__2": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 211.92906437431998,
+          "information_not_acquired": 53.573540394,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 211.92906437431998,
+          "total": 53.573540394,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__1": {
+        "myopic_pays__20": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 41.276377798000055,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 48.888422816,
+          "interaction_cost": 2.132058785,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 41.276377798000055,
+          "total": 51.020481601,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__2": {
+        "myopic_pays__3": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 21.706967258799978,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 53.299476534,
+          "interaction_cost": 3.770845252,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 21.706967258799978,
+          "total": 57.070321785,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__3": {
+        "myopic_pays__4": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 103.44305040000017,
+          "information_not_acquired": 49.477286767,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 103.44305040000017,
+          "total": 49.477286767,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__4": {
+        "myopic_pays__5": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 129.74519162820002,
+          "information_not_acquired": 46.00584261,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 129.74519162820002,
+          "total": 46.00584261,
           "worse_terms": 0.0
         },
-        "test_other__loose__1": {
+        "myopic_pays__6": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 147.6391069117201,
+          "information_not_acquired": 38.300082074,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 147.6391069117201,
+          "total": 38.300082074,
           "worse_terms": 0.0
         },
-        "test_other__loose__2": {
+        "myopic_pays__7": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 126.59050884879997,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 44.594381275,
+          "interaction_cost": 0.801481244,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 126.59050884879997,
+          "total": 45.395862519,
           "worse_terms": 0.0
         },
-        "test_other__loose__3": {
+        "myopic_pays__8": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 81.46188865972005,
+          "information_not_acquired": 57.767704872,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 81.46188865972005,
+          "total": 57.767704872,
           "worse_terms": 0.0
         },
-        "test_other__loose__4": {
+        "myopic_pays__9": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 94.52894953639998,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 54.50828334,
+          "interaction_cost": 3.138721004,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 94.52894953639998,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 146.4219783480001,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 146.4219783480001,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 82.07653387619996,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 82.07653387619996,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 118.35418131850008,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 118.35418131850008,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 113.55864839060007,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 113.55864839060007,
+          "total": 57.647004345,
           "worse_terms": 0.0
         }
       }
     },
-    "Opus 5.5 (Claude Code, brief v2)": {
+    "Opus 5.5 (Claude Code)": {
       "missing_cells": 0,
-      "source_panel": "opus55",
+      "source_panel": "procurement_allocation_pay_or_test_v3_confirm_v3_claude_code_opus55_v1",
       "summary": {
         "commitment_error": {
           "ci95": [
@@ -13028,425 +12951,57 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "contrary_to_information_held": {
           "ci95": [
-            -0.9608603469833934,
-            6.4902390077834236
+            0.0,
+            0.0
           ],
-          "max": 40.68435910960005,
-          "mean": 2.764689330400015,
+          "max": 0.0,
+          "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
-          "q3": 0.22500000000005116,
-          "zero_count": 18
+          "q3": 0.0,
+          "zero_count": 20
         },
         "information_not_acquired": {
           "ci95": [
-            -1.322798827435172,
-            6.571410915501842
+            45.981160035505134,
+            56.04042336199486
           ],
-          "max": 41.276377798000055,
-          "mean": 2.6243060440333346,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
+          "max": 80.098195283,
+          "mean": 51.01079169875,
+          "median": 50.248884184000005,
+          "min": 33.538664896,
+          "n": 20,
           "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 22
+          "q1": 44.283253733500004,
+          "q3": 57.67717947675,
+          "zero_count": 0
         },
         "interaction_cost": {
           "ci95": [
-            0.0,
-            0.0
+            -0.0533153227508964,
+            0.5233104797508963
           ],
-          "max": 0.0,
-          "mean": 0.0,
+          "max": 2.102678879,
+          "mean": 0.23499757849999997,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
-        },
-        "operational": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        },
-        "procedure_and_format": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        },
-        "total": {
-          "ci95": [
-            0.21603648096705452,
-            10.561954267899644
-          ],
-          "max": 41.276377798000055,
-          "mean": 5.38899537443335,
-          "median": 0.0,
-          "min": 0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 1.1250000000000284,
           "zero_count": 16
         },
-        "worse_terms": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        }
-      },
-      "units": {
-        "pay_money__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_money__tight__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_money__tight__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_money__tight__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_time__none__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_time__none__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_time__none__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "pay_time__none__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__loose__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 1.0200000000000387,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 1.0200000000000387,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__loose__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__loose__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 5.416296584000008,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 5.416296584000008,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__loose__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 41.276377798000055,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 41.276377798000055,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 21.706967258799978,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 21.706967258799978,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.9000000000002046,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0.9000000000002046,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 40.68435910960005,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 40.68435910960005,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 16.891888236000057,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 16.891888236000057,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__2": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 1.4399999999999977,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 1.4399999999999977,
-          "worse_terms": 0.0
-        }
-      }
-    },
-    "Sol 6.1 (Codex CLI)": {
-      "missing_cells": 0,
-      "source_panel": "sol61",
-      "summary": {
-        "commitment_error": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        },
-        "contrary_to_information_held": {
-          "ci95": [
-            -0.030756367998115985,
-            2.0759632498419034
-          ],
-          "max": 9.599999999999966,
-          "mean": 1.0226034409218936,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 19
-        },
-        "information_not_acquired": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        },
-        "interaction_cost": {
-          "ci95": [
-            0.0,
-            0.0
-          ],
-          "max": 0.0,
-          "mean": 0.0,
-          "median": 0.0,
-          "min": 0.0,
-          "n": 24,
-          "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 24
-        },
         "operational": {
           "ci95": [
             0.0,
@@ -13456,11 +13011,11 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "procedure_and_format": {
           "ci95": [
@@ -13471,26 +13026,26 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         },
         "total": {
           "ci95": [
-            -0.030756367998115985,
-            2.0759632498419034
+            46.299767686245445,
+            56.191810868254564
           ],
-          "max": 9.599999999999966,
-          "mean": 1.0226034409218936,
-          "median": 0.0,
-          "min": 0,
-          "n": 24,
+          "max": 80.098195283,
+          "mean": 51.245789277250005,
+          "median": 50.248884184000005,
+          "min": 33.538664896,
+          "n": 20,
           "negative_count": 0,
-          "q1": 0.0,
-          "q3": 0.0,
-          "zero_count": 19
+          "q1": 45.11963097775,
+          "q3": 57.67717947675,
+          "zero_count": 0
         },
         "worse_terms": {
           "ci95": [
@@ -13501,252 +13056,540 @@
           "mean": 0.0,
           "median": 0.0,
           "min": 0.0,
-          "n": 24,
+          "n": 20,
           "negative_count": 0,
           "q1": 0.0,
           "q3": 0.0,
-          "zero_count": 24
+          "zero_count": 20
         }
       },
       "units": {
-        "pay_money__tight__1": {
+        "myopic_pays__1": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 45.923990844,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 45.923990844,
           "worse_terms": 0.0
         },
-        "pay_money__tight__2": {
+        "myopic_pays__10": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 61.534006469,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 61.534006469,
           "worse_terms": 0.0
         },
-        "pay_money__tight__3": {
+        "myopic_pays__11": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 33.538664896,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 33.538664896,
           "worse_terms": 0.0
         },
-        "pay_money__tight__4": {
+        "myopic_pays__12": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 37.777981584,
+          "interaction_cost": 1.910889802,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 39.688871386,
           "worse_terms": 0.0
         },
-        "pay_time__none__1": {
+        "myopic_pays__13": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 80.098195283,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 80.098195283,
           "worse_terms": 0.0
         },
-        "pay_time__none__2": {
+        "myopic_pays__14": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 60.285598105,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 60.285598105,
           "worse_terms": 0.0
         },
-        "pay_time__none__3": {
+        "myopic_pays__15": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 40.918333908,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 40.918333908,
           "worse_terms": 0.0
         },
-        "pay_time__none__4": {
+        "myopic_pays__16": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 58.403019302,
+          "interaction_cost": 0.285642267,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 58.688661569,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__1": {
+        "myopic_pays__17": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 44.290936354,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 44.290936354,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__2": {
+        "myopic_pays__18": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 57.327515013,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 57.327515013,
           "worse_terms": 0.0
         },
-        "test_cheapest__loose__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 5.416296584000008,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 5.416296584000008,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__loose__4": {
+        "myopic_pays__19": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 44.260205872,
+          "interaction_cost": 2.102678879,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 46.362884751,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 9.599999999999966,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 9.599999999999966,
-          "worse_terms": 0.0
-        },
-        "test_cheapest__tight__2": {
+        "myopic_pays__2": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 53.573540394,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 53.573540394,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__3": {
+        "myopic_pays__20": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 51.020481601,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 51.020481601,
           "worse_terms": 0.0
         },
-        "test_cheapest__tight__4": {
+        "myopic_pays__3": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 57.070321785,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 57.070321785,
           "worse_terms": 0.0
         },
-        "test_other__loose__1": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 0.9000000000002046,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 0.9000000000002046,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__2": {
+        "myopic_pays__4": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 49.477286767,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 49.477286767,
           "worse_terms": 0.0
         },
-        "test_other__loose__3": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 2.2261859981251746,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 2.2261859981251746,
-          "worse_terms": 0.0
-        },
-        "test_other__loose__4": {
-          "commitment_error": 0.0,
-          "contrary_to_information_held": 6.400000000000091,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
-          "operational": 0.0,
-          "procedure_and_format": 0.0,
-          "total": 6.400000000000091,
-          "worse_terms": 0.0
-        },
-        "test_other__tight__1": {
+        "myopic_pays__5": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 46.00584261,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 46.00584261,
           "worse_terms": 0.0
         },
-        "test_other__tight__2": {
+        "myopic_pays__6": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
+          "information_not_acquired": 38.300082074,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 38.300082074,
           "worse_terms": 0.0
         },
-        "test_other__tight__3": {
+        "myopic_pays__7": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
-          "information_not_acquired": 0.0,
-          "interaction_cost": 0.0,
+          "information_not_acquired": 44.995121897,
+          "interaction_cost": 0.400740622,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 45.395862519,
           "worse_terms": 0.0
         },
-        "test_other__tight__4": {
+        "myopic_pays__8": {
           "commitment_error": 0.0,
           "contrary_to_information_held": 0.0,
+          "information_not_acquired": 57.767704872,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.767704872,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__9": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 57.647004345,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.647004345,
+          "worse_terms": 0.0
+        }
+      }
+    },
+    "Sol 6.1 (Codex)": {
+      "missing_cells": 0,
+      "source_panel": "procurement_allocation_pay_or_test_v3_confirm_v3_codex_cli_sol61_v1",
+      "summary": {
+        "commitment_error": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 20
+        },
+        "contrary_to_information_held": {
+          "ci95": [
+            7.085203433125209,
+            20.788809082874792
+          ],
+          "max": 50.00584261,
+          "mean": 13.937006258,
+          "median": 8.353512386,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 2.04969406125,
+          "q3": 26.16538874775,
+          "zero_count": 5
+        },
+        "information_not_acquired": {
+          "ci95": [
+            7.025765288930357,
+            27.922558107569643
+          ],
+          "max": 58.403019302,
+          "mean": 17.47416169825,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 29.644552879499997,
+          "zero_count": 11
+        },
+        "interaction_cost": {
+          "ci95": [
+            0.21158680777508365,
+            1.9948024575249161
+          ],
+          "max": 5.968394926,
+          "mean": 1.10319463265,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 1.1998276925,
+          "zero_count": 12
+        },
+        "operational": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 20
+        },
+        "procedure_and_format": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 20
+        },
+        "total": {
+          "ci95": [
+            23.765786525205833,
+            41.262938652594165
+          ],
+          "max": 58.688661569,
+          "mean": 32.5143625889,
+          "median": 33.324829665500005,
+          "min": 2.732925415,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 21.53387017575,
+          "q3": 48.71491916725,
+          "zero_count": 0
+        },
+        "worse_terms": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 20,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 20
+        }
+      },
+      "units": {
+        "myopic_pays__1": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 4.050174064,
           "information_not_acquired": 0.0,
           "interaction_cost": 0.0,
           "operational": 0.0,
           "procedure_and_format": 0.0,
-          "total": 0,
+          "total": 4.050174064,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__10": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 2.732925415,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 2.732925415,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__11": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 27.57026997,
+          "interaction_cost": 5.968394926,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.538664896,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__12": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 3.641199219,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 3.641199219,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__13": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 8.411698993,
+          "information_not_acquired": 35.867401608,
+          "interaction_cost": 4.181696033,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 48.460796634,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__14": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 33.02518917,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.02518917,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__15": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 26.821400067,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 26.821400067,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__16": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 58.403019302,
+          "interaction_cost": 0.285642267,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 58.688661569,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__17": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 9.289265148,
+          "information_not_acquired": 21.741226007,
+          "interaction_cost": 0.808484341,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 31.838975496,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__18": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 57.327515013,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.327515013,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__19": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 17.924746754,
+          "information_not_acquired": 21.078763496,
+          "interaction_cost": 5.256695622,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 44.260205872,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__2": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 53.573540394,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.573540394,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__20": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 16.313006687,
+          "information_not_acquired": 24.444211408,
+          "interaction_cost": 2.70626079,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 43.463478885,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__3": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 31.225571809,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 1.885422626,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.110994435,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__4": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 49.477286767,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 49.477286767,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__5": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 50.00584261,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 50.00584261,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__6": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 25.946718308,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 25.946718308,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__7": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 32.877716031,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.971296048,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.849012079,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__8": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 8.295325779,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 8.295325779,
+          "worse_terms": 0.0
+        },
+        "myopic_pays__9": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 8.179345106,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 8.179345106,
           "worse_terms": 0.0
         }
       }

@@ -1,0 +1,1185 @@
+{
+ "case": "procurement_pay_or_test_v3_confirm",
+ "subjects": {
+  "GPT-6 Luna": {
+   "by_rule_count": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 34,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 80,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 25,
+    "worse_terms: awarded a qualified supplier at a worse supplier choice or quantity": 1
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_openrouter_gpt6_luna_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 55.415804,
+    "interaction_cost": 2.163191,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.518831
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_v3_openrouter_gpt6_luna_v1",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.953836,
+    "interaction_cost": 0.037234,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.00893
+   },
+   "total_shortfall_per_world": 58.097827,
+   "worlds": 20,
+   "worlds_detail": [
+    {
+     "decision_loss_usd": 51.435615844,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 43.867139376,
+      "interaction_cost": 7.568476468,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__1"
+    },
+    {
+     "decision_loss_usd": 75.194506469,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 75.194506469,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__10"
+    },
+    {
+     "decision_loss_usd": 33.538664896,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 25.780030272,
+      "interaction_cost": 7.758634624,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__11"
+    },
+    {
+     "decision_loss_usd": 48.362746386,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.540966783,
+      "interaction_cost": 3.821779603,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__12"
+    },
+    {
+     "decision_loss_usd": 80.098195283,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 71.411495266,
+      "interaction_cost": 8.686700016,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__13"
+    },
+    {
+     "decision_loss_usd": 70.662223105,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 60.285598105,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 10.376625
+     },
+     "slug": "myopic_pays__14"
+    },
+    {
+     "decision_loss_usd": 40.918333908,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 40.918333908,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__15"
+    },
+    {
+     "decision_loss_usd": 65.173286569,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 64.602002036,
+      "interaction_cost": 0.571284533,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__16"
+    },
+    {
+     "decision_loss_usd": 55.154061354,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 54.345577014,
+      "interaction_cost": 0.808484341,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__17"
+    },
+    {
+     "decision_loss_usd": 57.327515013,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.327515013,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__18"
+    },
+    {
+     "decision_loss_usd": 70.035134751,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 65.829776992,
+      "interaction_cost": 4.205357759,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__19"
+    },
+    {
+     "decision_loss_usd": 53.573540394,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.573540394,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__2"
+    },
+    {
+     "decision_loss_usd": 51.020481601,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 48.888422816,
+      "interaction_cost": 2.132058785,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__20"
+    },
+    {
+     "decision_loss_usd": 57.070321785,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.299476534,
+      "interaction_cost": 3.770845252,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__3"
+    },
+    {
+     "decision_loss_usd": 57.907911767,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.907911767,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__4"
+    },
+    {
+     "decision_loss_usd": 46.00584261,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 46.00584261,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__5"
+    },
+    {
+     "decision_loss_usd": 44.298207074,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.298207074,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__6"
+    },
+    {
+     "decision_loss_usd": 64.203112519,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 63.401631275,
+      "interaction_cost": 0.801481244,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__7"
+    },
+    {
+     "decision_loss_usd": 73.899204872,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 73.899204872,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__8"
+    },
+    {
+     "decision_loss_usd": 66.077629345,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 62.93890834,
+      "interaction_cost": 3.138721004,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__9"
+    }
+   ]
+  },
+  "Gemini 3.8 Flash": {
+   "by_rule_count": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 34,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 80,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 22
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_openrouter_gemini38_flash_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 49.350457,
+    "interaction_cost": 1.895332,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_v3_openrouter_gemini38_flash_v1",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.963015,
+    "interaction_cost": 0.036985,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 51.245789,
+   "worlds": 20,
+   "worlds_detail": [
+    {
+     "decision_loss_usd": 45.923990844,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 41.599146221,
+      "interaction_cost": 4.324844623,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__1"
+    },
+    {
+     "decision_loss_usd": 61.534006469,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 61.534006469,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__10"
+    },
+    {
+     "decision_loss_usd": 33.538664896,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 27.57026997,
+      "interaction_cost": 5.968394926,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__11"
+    },
+    {
+     "decision_loss_usd": 39.688871386,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 35.867091783,
+      "interaction_cost": 3.821779603,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__12"
+    },
+    {
+     "decision_loss_usd": 80.098195283,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 71.734803216,
+      "interaction_cost": 8.363392067,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__13"
+    },
+    {
+     "decision_loss_usd": 60.285598105,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 60.285598105,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__14"
+    },
+    {
+     "decision_loss_usd": 40.918333908,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 40.918333908,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__15"
+    },
+    {
+     "decision_loss_usd": 58.688661569,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 58.117377036,
+      "interaction_cost": 0.571284533,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__16"
+    },
+    {
+     "decision_loss_usd": 44.290936354,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 43.482452014,
+      "interaction_cost": 0.808484341,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__17"
+    },
+    {
+     "decision_loss_usd": 57.327515013,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.327515013,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__18"
+    },
+    {
+     "decision_loss_usd": 46.362884751,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 42.157526992,
+      "interaction_cost": 4.205357759,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__19"
+    },
+    {
+     "decision_loss_usd": 53.573540394,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.573540394,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__2"
+    },
+    {
+     "decision_loss_usd": 51.020481601,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 48.888422816,
+      "interaction_cost": 2.132058785,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__20"
+    },
+    {
+     "decision_loss_usd": 57.070321785,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.299476534,
+      "interaction_cost": 3.770845252,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__3"
+    },
+    {
+     "decision_loss_usd": 49.477286767,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 49.477286767,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__4"
+    },
+    {
+     "decision_loss_usd": 46.00584261,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 46.00584261,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__5"
+    },
+    {
+     "decision_loss_usd": 38.300082074,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 38.300082074,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__6"
+    },
+    {
+     "decision_loss_usd": 45.395862519,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.594381275,
+      "interaction_cost": 0.801481244,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__7"
+    },
+    {
+     "decision_loss_usd": 57.767704872,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.767704872,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__8"
+    },
+    {
+     "decision_loss_usd": 57.647004345,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 54.50828334,
+      "interaction_cost": 3.138721004,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__9"
+    }
+   ]
+  },
+  "Opus 5.5 (Claude Code)": {
+   "by_rule_count": {
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 34,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 80,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 4
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_claude_code_opus55_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 51.010792,
+    "interaction_cost": 0.234998,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_cli_claude_opus55",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.0,
+    "information_not_acquired": 0.995414,
+    "interaction_cost": 0.004586,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 51.245789,
+   "worlds": 20,
+   "worlds_detail": [
+    {
+     "decision_loss_usd": 45.923990844,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 45.923990844,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__1"
+    },
+    {
+     "decision_loss_usd": 61.534006469,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 61.534006469,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__10"
+    },
+    {
+     "decision_loss_usd": 33.538664896,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 33.538664896,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__11"
+    },
+    {
+     "decision_loss_usd": 39.688871386,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 37.777981584,
+      "interaction_cost": 1.910889802,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__12"
+    },
+    {
+     "decision_loss_usd": 80.098195283,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 80.098195283,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__13"
+    },
+    {
+     "decision_loss_usd": 60.285598105,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 60.285598105,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__14"
+    },
+    {
+     "decision_loss_usd": 40.918333908,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 40.918333908,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__15"
+    },
+    {
+     "decision_loss_usd": 58.688661569,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 58.403019302,
+      "interaction_cost": 0.285642267,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__16"
+    },
+    {
+     "decision_loss_usd": 44.290936354,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.290936354,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__17"
+    },
+    {
+     "decision_loss_usd": 57.327515013,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.327515013,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__18"
+    },
+    {
+     "decision_loss_usd": 46.362884751,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.260205872,
+      "interaction_cost": 2.102678879,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__19"
+    },
+    {
+     "decision_loss_usd": 53.573540394,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.573540394,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__2"
+    },
+    {
+     "decision_loss_usd": 51.020481601,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 51.020481601,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__20"
+    },
+    {
+     "decision_loss_usd": 57.070321785,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.070321785,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__3"
+    },
+    {
+     "decision_loss_usd": 49.477286767,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 49.477286767,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__4"
+    },
+    {
+     "decision_loss_usd": 46.00584261,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 46.00584261,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__5"
+    },
+    {
+     "decision_loss_usd": 38.300082074,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 38.300082074,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__6"
+    },
+    {
+     "decision_loss_usd": 45.395862519,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 44.995121897,
+      "interaction_cost": 0.400740622,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__7"
+    },
+    {
+     "decision_loss_usd": 57.767704872,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.767704872,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__8"
+    },
+    {
+     "decision_loss_usd": 57.647004345,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.647004345,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__9"
+    }
+   ]
+  },
+  "Sol 6.1 (Codex)": {
+   "by_rule_count": {
+    "contrary_to_information_held: awarded while a newcomer test begun was still worth finishing": 5,
+    "contrary_to_information_held: looked a source up where the stated odds made another move better": 3,
+    "contrary_to_information_held: secured the recorded supplier before a newcomer test the odds and clock made best first": 40,
+    "contrary_to_information_held: tested a newcomer the stated odds and prices made the worse test": 7,
+    "contrary_to_information_held: tested a newcomer where the stated odds and clock made paying best": 8,
+    "contrary_to_information_held: worked a newcomer's test in an order its stated fees and days made worse": 8,
+    "information_not_acquired: awarded the recorded supplier where the best policy tested a newcomer first": 12,
+    "information_not_acquired: worked toward the recorded supplier and never tested a newcomer where a test was worth it": 28,
+    "interaction_cost: check_award: spends an action and shows nothing quotes and samples had not": 13
+   },
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_codex_cli_sol61_v1",
+   "missing_cells": [],
+   "per_world": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 13.937006,
+    "information_not_acquired": 17.474162,
+    "interaction_cost": 1.103195,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "plays": 40,
+   "run_root": "pay_or_test_v3_confirm_cli_codex_sol61",
+   "share": {
+    "commitment_error": 0.0,
+    "contrary_to_information_held": 0.428642,
+    "information_not_acquired": 0.537429,
+    "interaction_cost": 0.033929,
+    "operational": 0.0,
+    "procedure_and_format": 0.0,
+    "worse_terms": 0.0
+   },
+   "total_shortfall_per_world": 32.514363,
+   "worlds": 20,
+   "worlds_detail": [
+    {
+     "decision_loss_usd": 4.050174064,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 4.050174064,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__1"
+    },
+    {
+     "decision_loss_usd": 2.732925415,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 2.732925415,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__10"
+    },
+    {
+     "decision_loss_usd": 33.538664896,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 27.57026997,
+      "interaction_cost": 5.968394926,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__11"
+    },
+    {
+     "decision_loss_usd": 3.641199219,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 3.641199219,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__12"
+    },
+    {
+     "decision_loss_usd": 48.460796634,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 8.411698993,
+      "information_not_acquired": 35.867401608,
+      "interaction_cost": 4.181696033,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__13"
+    },
+    {
+     "decision_loss_usd": 33.02518917,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 33.02518917,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__14"
+    },
+    {
+     "decision_loss_usd": 26.821400067,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 26.821400067,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__15"
+    },
+    {
+     "decision_loss_usd": 58.688661569,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 58.403019302,
+      "interaction_cost": 0.285642267,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__16"
+    },
+    {
+     "decision_loss_usd": 31.838975496,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 9.289265148,
+      "information_not_acquired": 21.741226007,
+      "interaction_cost": 0.808484341,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__17"
+    },
+    {
+     "decision_loss_usd": 57.327515013,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 57.327515013,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__18"
+    },
+    {
+     "decision_loss_usd": 44.260205872,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 17.924746754,
+      "information_not_acquired": 21.078763496,
+      "interaction_cost": 5.256695622,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__19"
+    },
+    {
+     "decision_loss_usd": 53.573540394,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 53.573540394,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__2"
+    },
+    {
+     "decision_loss_usd": 43.463478885,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 16.313006687,
+      "information_not_acquired": 24.444211408,
+      "interaction_cost": 2.70626079,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__20"
+    },
+    {
+     "decision_loss_usd": 33.110994435,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 31.225571809,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 1.885422626,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__3"
+    },
+    {
+     "decision_loss_usd": 49.477286767,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 0.0,
+      "information_not_acquired": 49.477286767,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__4"
+    },
+    {
+     "decision_loss_usd": 50.00584261,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 50.00584261,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__5"
+    },
+    {
+     "decision_loss_usd": 25.946718308,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 25.946718308,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__6"
+    },
+    {
+     "decision_loss_usd": 33.849012079,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 32.877716031,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.971296048,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__7"
+    },
+    {
+     "decision_loss_usd": 8.295325779,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 8.295325779,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__8"
+    },
+    {
+     "decision_loss_usd": 8.179345106,
+     "per_class": {
+      "commitment_error": 0.0,
+      "contrary_to_information_held": 8.179345106,
+      "information_not_acquired": 0.0,
+      "interaction_cost": 0.0,
+      "operational": 0.0,
+      "procedure_and_format": 0.0,
+      "worse_terms": 0.0
+     },
+     "slug": "myopic_pays__9"
+    }
+   ]
+  }
+ },
+ "unit": "USD of decision loss per world"
+}

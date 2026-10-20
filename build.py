@@ -278,7 +278,7 @@ def main():
     assert (SOURCE/'figures/procurement_v3_gap_closed.svg').read_bytes() == (ROOT/'figures/procurement_v3_gap_closed.svg').read_bytes()
     for name, meta in v3_checks['sources']['files'].items():
         assert hashlib.sha256((ROOT/'analysis_evidence/procurement_v3'/name).read_bytes()).hexdigest() == meta['sha256']
-    assert [round(r['mean'], 2) for r in v3_checks['rows'][:2]] == [0.35, 0.5]
+    assert [round(r['mean'], 2) for r in v3_checks['rows'][:2]] == [0.35, 0.0]
     # A source-bound figure leads the main results; exact values stay in E.10.
     source_image = soup.find('img', src='figures/shortfall_by_case.svg')
     assert source_image is not None
@@ -332,13 +332,13 @@ def main():
         assert abs(bar['total']-values['total']['mean']) < 1e-9
         for component in bar['components']:
             assert abs(component['value']-values[component['key']]['mean']) < 1e-9
+    PROCUREMENT_KEYS = json.loads((ROOT/'figures/FIGURE_CHECKS.json').read_text())['procurement_table_keys']
     displayed_panels = [
         ('housing', ['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
          ['information_not_acquired','contrary_to_information_held','worse_terms',
           'commitment_error','procedure_and_format','interaction_cost','total']),
-        ('procurement', ['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
-                         'GPT-6 Luna','Gemini 3.8 Flash'],
-         ['information_not_acquired','contrary_to_information_held','worse_terms','total']),
+        ('procurement', ['Sol 6.1 (Codex)','Opus 5.5 (Claude Code)','Gemini 3.8 Flash','GPT-6 Luna'],
+         PROCUREMENT_KEYS),
         ('datacenter', ['Opus 5.5','Sol 6.1'],
          ['inferior_clauses','harmful_agreement','missed_deal','redline_fees','total']),
         ('refund', ['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],

@@ -201,6 +201,22 @@ little newcomer testing and required 326 to 3,464 worlds against a 96-world cap,
 followed (Appendix F.4); the harder pack of Section 5.1 followed instead. The flash models give up what
 always paying the premium gives up: their loss is in the worlds where a newcomer was worth testing.
 
+**Further runs on the harder pack (Table E.15).** Section 5.1 reports the 20 declared worlds. The runs below were a
+development pilot and three diagnostics, each declared before its plays; none tests a claim.
+
+**Table E.15. Procurement's harder pack: runs beyond Table 5.3. Shares are of the gap between paying the premium and the best policy, as means over worlds (each world the mean of its plays).**
+
+| Run | Worlds and plays | Sol 6.1 | Opus 5.5 | Exact rules on the same worlds |
+|---|---|---|---|---|
+| Development pilot | 6 worlds, two plays each | 50% [27, 71] (bootstrap) | 0% in all 12 plays | one-newcomer rule 0%, shortcut 8%, two newcomers 84% |
+| The declared worlds at the earlier pack's cohort odds (diagnostic) | 20 worlds, one play each | 59% [19, 100], median 83%; one play deferred and bought nothing | 0% in all 20 plays | one-newcomer rule 58%, shortcut 62%, two newcomers 90% |
+| A brief corrected for four wording defects (diagnostic) | the 20 declared worlds, two plays each | no change shown: +7.8 points [−5.6, +21.2] | touched no newcomer in 40 plays | as Table 5.3 |
+| What one newcomer's quote or sample says about another of its kind, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; an earlier attempt, whose schema asked for the model's working, was refused in full | |
+
+The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
+alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
+33% against Sol's 35%. No comparison with it was declared.
+
 Fixed rules, scored exactly over the 24 worlds: comparing each untested newcomer with paying, one
 test ahead and keeping the recorded supplier reachable, gives up $0.06 a world; testing the best
 odds once $45.7; always paying $75.2; testing the cheapest once $81.4; working up the price list
@@ -318,17 +334,17 @@ not establish robustness to the chosen $25k fee per additional redline. Appendix
 scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
 adaptation would require new model runs under declared fee settings.
 
-**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed).**
+**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
 
 | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Information not acquired | 3.6 (6.1) | 9.2 (28.1) | 10.1 (32.4) | 0 | 2.6 | 75.2 | 71.8 |
-| Acted contrary to information held | 10.3 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
-| Worse terms | 56.4 (55.9) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.7 |
+| Information not acquired | 3.6 (6.1) | 9.2 (28.1) | 10.1 (32.4) | 17.5 | 51.0 | 49.4 | 55.4 |
+| Acted contrary to information held | 10.3 | 73.6 | 86.4 | 13.9 | 0 | 0 | 0 |
+| Worse terms | 56.4 (55.9) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.5 |
 | Commitment error | 8.2 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
-| Interaction cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
+| Interaction cost | 0.2 | −0.2 | 1.0 | 1.1 | 0.2 | 1.9 | 2.2 |
 | Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
-| Total | 78.9 (80.8) | 142.3 (155.1) | 144.3 (161.6) | 1.0 | 5.4 | 75.2 | 74.4 |
+| Total | 78.9 (80.8) | 142.3 (155.1) | 144.3 (161.6) | 32.5 | 51.2 | 51.2 | 58.1 |
 
 Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: every subject has 260 complete worlds. Gemini's 36 refused cells, 30 of them in the main pack, where they would have removed 20 worlds, come from the declared fill. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
 
@@ -388,8 +404,8 @@ against the firm population, Opus has 1/60 such signings and Sol 0/60; the clien
 |---|---:|---|---|---|
 | Housing: Gemini 3.8 Flash | 260 | 78.9 [63.7, 94.0] | 50.5 [0.0, 155.1] | 34 / 48 |
 | Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
-| Procurement: Opus 5.5 | 24 | 5.4 [0.2, 10.6] | 0.0 [0.0, 1.1] | 16 / 0 |
-| Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
+| Procurement: Sol 6.1 | 20 | 32.5 [23.8, 41.3] | 33.3 [21.5, 48.7] | 0 / 0 |
+| Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 | Data center: Opus 5.5 | 60 | 70.8 [55.3, 86.4] | 53.0 [36.6, 95.1] | 0 / 0 |
 | Data center: Sol 6.1 | 60 | 103.4 [84.2, 122.6] | 87.5 [61.2, 129.4] | 5 / 0 |
 | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
@@ -412,7 +428,7 @@ component-level intervals, distributions, per-world amounts and input digests in
 The figure uses the same estimates below. Components retain each case's native units and
 classification rules; the figure adds no new analysis or cross-case aggregate.
 
-**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack. Procurement and Refund retain their development panels.**
+**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
 
 **(a) Housing**
 
@@ -432,16 +448,17 @@ Two landlord arms averaged within each complete world: 260 worlds for each; Gemi
 
 **(b) Procurement**
 
-$ per world below the best policy given available information; pay-or-test v1, final brief.
+$ per world below the best policy given available information; the 20 declared worlds of Table 5.3, two plays each.
 
-| Component | Sol 6.1 | Opus 5.5 | GPT-6 Luna | Gemini 3.8 Flash |
+| Component | Sol 6.1 | Opus 5.5 | Gemini 3.8 Flash | GPT-6 Luna |
 |---|---:|---:|---:|---:|
-| Information not acquired | 0.0 | 2.6 | 71.8 | 75.2 |
-| Contrary to held information | 1.0 | 2.8 | 1.9 | 0.0 |
-| Worse terms | 0.0 | 0.0 | 0.7 | 0.0 |
-| **Total shortfall** | **1.0** | **5.4** | **74.4** | **75.2** |
+| Information not acquired | 17.5 | 51.0 | 49.4 | 55.4 |
+| Contrary to held information | 13.9 | 0.0 | 0.0 | 0.0 |
+| Worse terms | 0.0 | 0.0 | 0.0 | 0.5 |
+| Award checks | 1.1 | 0.2 | 1.9 | 2.2 |
+| **Total shortfall** | **32.5** | **51.2** | **51.2** | **58.1** |
 
-All four subjects, 24 worlds each. Sol uses Codex; Opus uses Claude Code. Decision loss independently re-derived from sealed events (Appendix F.4).
+All four subjects, each world the mean of its two plays. Sol uses Codex; Opus uses Claude Code; Gemini and Luna use OpenRouter. Decision loss re-derived from every play's replayed trace, and every world matched against the read-outs.
 
 **(c) Data center**
 
