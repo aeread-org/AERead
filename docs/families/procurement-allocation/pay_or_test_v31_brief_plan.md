@@ -94,3 +94,17 @@ A run stops on an isolation violation, at three consecutive failed cells, or at 
 `evidence/procurement_allocation/pay_or_test_v31_brief/` as v3's did (read-outs, analysis, run and isolation records)
 with a results note beside this plan. Whatever the reading, v3's results and the paper's Table 5.3 are not changed by
 this diagnostic.
+
+## Amendment 1 (2026-10-19, after Opus's 40 plays and before any answer was read)
+
+Opus's comprehension check aborted on its first refused ask: Claude Code returned "Opus 5.5's safeguards flagged this
+message" for one question, and the driver kept no record (incident P-O-04). No answer was recorded or seen. From now:
+
+- a provider refusal is typed missingness, recorded with its failure text, and the check goes on; every ask is written
+  as it lands;
+- the reading uses answered asks: a subject reads the rule if at least 14/18 of its answered asks are correct, and does
+  not if at most 9/18 are, and there is no reading if fewer than 14 asks were answered; refused asks are reported per
+  question;
+- Opus's whole check runs once more from the start. Sol's check had not started and runs under this amendment.
+
+The plays, their read-out and their reading rules are unchanged.

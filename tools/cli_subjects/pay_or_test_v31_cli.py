@@ -24,7 +24,7 @@ from pathlib import Path
 import pay_or_test_v3_cli as v3_cli
 from pay_or_test_v3_cli import base, iso, v3
 from aeread.shared_runner.run.resolver import canonical_json_bytes
-from aeread.shared_runner.task.execution import ProviderRequest
+from aeread.shared_runner.task.execution import ProviderFailure, ProviderRequest
 from aeread_families.procurement_allocation import pay_or_test_v3_reference as reference
 from aeread_families.procurement_allocation import pay_or_test_v31_prompt
 from aeread_families.procurement_allocation.pay_or_test_reference import (
@@ -125,13 +125,30 @@ def _observation(slug: str) -> dict:
 
 
 async def comprehension(subject: str, out: Path, repeats: int = 2) -> dict:
-    """Ask each question ``repeats`` times through the run's own isolated client, effort and brief; play nothing."""
+    """Ask each question ``repeats`` times through the run's own isolated client, effort and brief; play nothing.
+
+    A provider refusal is typed missingness with its failure text and the check goes on, and the record is rewritten
+    after every ask (plan amendment 1; incident P-O-04, where one refusal aborted the check and kept nothing).
+    """
     found = await v3_cli.probe(subject)
     if found["violations"]:
         raise SystemExit(f"isolation probe refuses the check: {found['violations']}")
     client = await base.discover(subject)
     spec = base.SUBJECTS[subject]
-    answers = []
+    answers: list[dict] = []
+    record = {"plan": "docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md, Section 5 and amendment 1",
+              "subject": subject, "model": spec["model"], "reasoning_effort": base.CONTROLS["reasoning_effort"],
+              "brief": {"prompt_id": pay_or_test_v31_prompt.PROMPT_ID,
+                        "sha256": hashlib.sha256(pay_or_test_v31_prompt.PAY_OR_TEST_V31_PROMPT.encode()).hexdigest()},
+              "isolation": found, "tolerance": TOLERANCE, "answers": answers}
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    def write() -> None:
+        answered = [a for a in answers if not a["refused"]]
+        record.update(asked=len(answers), answered=len(answered), refused=len(answers) - len(answered),
+                      correct=sum(a["correct"] for a in answered))
+        out.write_text(json.dumps(record, indent=1, default=str) + "\n")
+
     for item in questions():
         text = json.dumps({"observation": _observation(item["world"]), "question": item["question"],
                            "answer": "Give the probability as a number between 0 and 1, and your working."}, sort_keys=True)
@@ -144,20 +161,20 @@ async def comprehension(subject: str, out: Path, repeats: int = 2) -> dict:
                 timeout_seconds=300.0, request_sha256="", max_cost_usd=0.5 if spec["provider"] == "claude_code" else None,
                 output_schema=ANSWER_SCHEMA, provider_metadata=dict(client.runtime_metadata),
             ).with_computed_hash()
-            result = await client.complete(request)
+            try:
+                result = await client.complete(request)
+            except ProviderFailure as failure:
+                answers.append({**item, "repeat": repeat, "request_sha256": request.request_sha256, "refused": True,
+                                "failure": str(failure)[:400], "correct": None})
+                write()
+                continue
             reply = json.loads(result.output_text)
-            answers.append({**item, "repeat": repeat, "request_sha256": request.request_sha256,
+            answers.append({**item, "repeat": repeat, "request_sha256": request.request_sha256, "refused": False,
                             "probability": reply["probability"], "working": reply["working"],
                             "correct": abs(float(reply["probability"]) - item["exact"]) <= TOLERANCE,
                             "cost_usd_list": result.cost_usd})
-    record = {"plan": "docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md, Section 5",
-              "subject": subject, "model": spec["model"], "reasoning_effort": base.CONTROLS["reasoning_effort"],
-              "brief": {"prompt_id": pay_or_test_v31_prompt.PROMPT_ID,
-                        "sha256": hashlib.sha256(pay_or_test_v31_prompt.PAY_OR_TEST_V31_PROMPT.encode()).hexdigest()},
-              "isolation": found, "tolerance": TOLERANCE, "answers": answers,
-              "correct": sum(a["correct"] for a in answers), "asked": len(answers)}
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(record, indent=1, default=str) + "\n")
+            write()
+    write()
     return record
 
 
@@ -172,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.comprehension:
         record = asyncio.run(comprehension(args.subject, args.comprehension))
-        print(json.dumps({k: record[k] for k in ("subject", "correct", "asked")}))
+        print(json.dumps({k: record[k] for k in ("subject", "correct", "answered", "refused", "asked")}))
         return 0
     if not args.execute:
         print(json.dumps(model_plan(args.subject, args.panel, {"runtime_version": "plan-only"}), indent=1, default=str)[:3000])

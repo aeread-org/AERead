@@ -34,6 +34,8 @@ from aeread_families.procurement_allocation import pay_or_test_v3_case_matrix as
 #: A stated reason mentions a shared source when it matches SHARED; it reads the source as information when it also
 #: matches INFORMATION (what one listing's test shows about another), as the plan's Section 4 declares.
 SHARED = re.compile(r"shar|same source|same factory|one source|sibling|correlat", re.I)
+#: The comprehension reading (plan Section 5 and amendment 1): 14 of 18 and 9 of 18 as shares of the answered asks.
+READ_MIN_ANSWERED, READS_AT, FAILS_AT = 14, 14 / 18, 9 / 18
 INFORMATION = re.compile(r"tells?|reveal|inform|learn|signal|indicat|implies|evidence|update|posterior|if .{0,40}sound|"
                          r"if .{0,40}pass|test(ing)? (it|one|the)", re.I)
 
@@ -107,8 +109,20 @@ def comprehension(paths: list[Path]) -> dict:
         record = json.loads(path.read_text())
         by_question: dict[str, list[bool]] = {}
         for answer in record["answers"]:
-            by_question.setdefault(answer["id"], []).append(answer["correct"])
-        out[record["subject"]] = {"correct": record["correct"], "asked": record["asked"],
+            if not answer.get("refused"):
+                by_question.setdefault(answer["id"], []).append(answer["correct"])
+        answered, correct = record.get("answered", record["asked"]), record["correct"]
+        # Plan amendment 1: read on answered asks, and only when at least READ_MIN_ANSWERED were answered.
+        if answered < READ_MIN_ANSWERED:
+            reading = "no reading: too few answered"
+        elif correct / answered >= READS_AT:
+            reading = "reads the rule"
+        elif correct / answered <= FAILS_AT:
+            reading = "does not read the rule"
+        else:
+            reading = "no reading"
+        out[record["subject"]] = {"correct": correct, "answered": answered, "refused": record.get("refused", 0),
+                                  "asked": record["asked"], "reading": reading,
                                   "by_question": {k: f"{sum(v)} of {len(v)}" for k, v in by_question.items()}}
     return out
 
