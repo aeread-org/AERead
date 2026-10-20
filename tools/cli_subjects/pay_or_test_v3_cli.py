@@ -125,9 +125,18 @@ base.runner.finalize_procurement_allocation_failure = v3_runner.finalize_failure
 _model_plan = base.model_plan
 
 
+#: An arm a subject plays on a pack whose ARMS entry describes another subject's arm. Keyed by (pack, subject), so the
+#: plans already sealed under ARMS keep their bytes.
+ARM_OVERRIDES = {
+    (v3.DIAGNOSTIC_PACK_ID, "codex_sol61"): {"replicates": 1, "claim_status": "development_diagnostic", "claim_scope": (
+        "diagnostic declared in pay_or_test_v3_twins_sol_plan.md: Sol on the confirmatory worlds' twins at version 1's "
+        "cohort odds, one play a world, no claim")},
+}
+
+
 def model_plan(subject, panel, runtime, pack=PACK, prompt=PROMPT):
     """The base plan, with the arm's plays a world, claim status and scope."""
-    arm = ARMS[pack]
+    arm = ARM_OVERRIDES.get((pack, subject), ARMS[pack])
     base.CONTROLS["replicates"] = arm["replicates"]
     plan = dict(_model_plan(subject, panel, runtime, pack, prompt))
     plan.pop("plan_sha256")
@@ -185,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     if found["violations"]:
         print(f"isolation probe refuses the run: {found['violations']}", file=sys.stderr)
         return 2
-    base.CONTROLS["replicates"] = ARMS[args.pack]["replicates"]
+    base.CONTROLS["replicates"] = ARM_OVERRIDES.get((args.pack, args.subject), ARMS[args.pack])["replicates"]
     artifact = asyncio.run(base.run(args.subject, args.panel, args.run_root, resume=args.resume, pack=args.pack, prompt=PROMPT))
     print(json.dumps({"halted": artifact["halted"], "summary": {k: artifact["summary"].get(k) for k in
                                                                 ("completed_trajectories", "planned_trajectory_count")}}))
