@@ -203,3 +203,15 @@ current one saturated"):
 - Section 5.1 Housing: GLM addendum A finished (df81e28c, 600/600, replay-verified); the "is running" sentence now
   gives its declared rows in points of the $307.4 best-informed value (53.9% kept; does not beat inspect_then_sign at
   98.3%, +4.5 [-4.4, +13.3]; trails Luna 8.9 and Gemini 24.8, descriptive) and a sources row.
+- Section 5.1 Procurement, checked against the v3 evidence (owner asked about the new addition): (1) the worked
+  example's posterior was 0.96, the figure when the dear newcomer is fully qualified; the exact v3 reference gives
+  0.94 after the cheap newcomer's clean quote and a sound sample of the dear one (0.55 on the sample alone), 0.01
+  after a poor sample, so the text now says 0.94 in the policy's order. (2) Table 5.3 gains the screened shortcut
+  "cheapest sample first, kinds ignored" (pack.json rule_loss): 33% of the gap on the declared 20 worlds (loss
+  $33.46 vs Sol's $32.51), 8% on the 6 pilot worlds; descriptive, no comparison declared. (3) Section 6's
+  reference-exactness sentence described only the earlier pack; it now states the harder pack's check (six pilot
+  worlds, 400 plays within 4 SE; not the 20 confirmatory worlds), per the v3 Gate 2 row (bd9b9ba9).
+  The text now carries the shortcut's consequence (aeread-15's point): the declared test shows Sol takes tests
+  that pay only through what they reveal, not that it reasons about shared sources; "what both subjects miss" is
+  now "the headroom left lies in planning one test beyond the one in hand". Figure 5.1's shortcut row follows
+  from aeread-15.

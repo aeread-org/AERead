@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 18:29:14
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 19:11:20
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -219,7 +219,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      page = OUT.with_suffix('.html'); page.write_text(full)
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-19 17:06:02
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-19 19:10:31
 @@ -2,11 +2,11 @@
    "figure": "Figure 4.1",
    "scope": "Conceptual architecture; applied coverage varies by campaign",
@@ -232,7 +232,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    "source/sec_opening.tex": "aebe7490201fc3288e2286018a9da6416f5667d61f136ae8cb6fae7594fcbe9b",
 +    "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
 +    "source/app_runtime.tex": "b0646fdd7ed29f6f16903bfcb34b6495e4297fad2bda66bf2ec67bd4024fe096",
-+    "source/paper_qc_design.md": "90f0c991205d6920c0c75b275be579fd996c7ef9d16331fce0fc6dad21d7e5e6",
++    "source/paper_qc_design.md": "f2cf684ae52b94ddeb3f3b700e39b85baea3804b1247977b2cb98558f6d65e7a",
 +    "source/tab_case_paths.tex": "7c2d1650ff469cb280abaa5038a5fb1bf69b202bc383b96cf446ff10facee58e"
    },
    "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
@@ -1706,7 +1706,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 18:29:00
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 19:11:13
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1737,7 +1737,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,132 +30,266 @@
+@@ -29,132 +30,270 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1890,17 +1890,24 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +$24.95. A newcomer asks $12.47, but its sample costs $200 and its odds are 0.20 good, 0.15 late and
 +0.65 poor, so testing it on its own loses money. A second newcomer of the same seller kind asks $26.87,
 +more than the recorded supplier, so it is never worth buying; but its sample costs $30, and the two
-+share a source with probability 0.95. A sound sample there raises the first newcomer's odds of being
-+good to 0.96, and a poor one lowers them to 0.01. The best policy quotes the cheap newcomer; if the
++share a source with probability 0.95. Once the cheap newcomer's quote has come back clean, a sound sample
++of the dear one raises the cheap newcomer's odds of being good to 0.94, and a poor one lowers them to 0.01.
++The best policy quotes the cheap newcomer; if the
 +quote comes back clean, it samples the dear one, looks both up, and only then pays for the $200 sample.
 +It earns 11.8% more than paying the premium. Every action is charged what it gave up against the exact
 +best informed policy at that point.
  
 -| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
--|---|---:|---:|---:|---:|
++**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap; the shortcut, a screened control, samples the newcomer whose sample is cheapest before anything else, ignoring seller kinds, then plans one test. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
++
++| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Shortcut: cheapest sample first (exact) | A rule that may test two newcomers (exact) |
+ |---|---:|---:|---:|---:|
 -| Given up per world | 1.0 [0.2, 2.1] | 5.4 [1.2, 10.6] | 75.2 [48.7, 101.4] | 74.4 [46.7, 102.7] |
 -| Share of the best policy's value | 99.8% | 98.8% | 83.3% | 83.5% |
-+**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
++| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 33% | 82% |
++| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 8% | 84% |
++| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | | |
++| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $33.46 | $8.38 |
  
 -The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
 -run came from two rules the brief left unsaid, that a quote is final and that the average is the
@@ -1908,26 +1915,19 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -comes within $0.06 a world of the best policy, so near-perfect play shows that the agents avoid
 -the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
 -the worlds where a newcomer was worth testing.
-+| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | A rule that may test two newcomers (exact) |
-+|---|---:|---:|---:|
-+| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 82% |
-+| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 84% |
-+| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | |
-+| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $8.38 |
++![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
  
 -**Data center.** Client and integrator redline eight risk clauses and a price over six moves,
 -each knowing its own costs. The comparison declared before its runs used 60 admitted worlds:
 -45 with a mutually beneficial deal and 15 without one. Table 5.4 reports its three primary
 -contrasts; development results remain in Tables E.3 and E.7.
-+![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
- 
--**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
 +**Figure 5.1. Procurement: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
 +one world, the mean of its plays; diamonds are means, and the bars are the declared test's 95% t interval
 +and the pilot's 95% bootstrap interval. The rule that plans one newcomer's test exactly sits at 0% in every
 +world, with paying the premium. Opus closes none of the gap in any world, at either pack's odds. The gray
 +row is an exact rule allowed to test two newcomers.
  
+-**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
 +Sol 6.1 closed 35% of the gap on 20 fresh worlds (95% t interval 18–52%, p = 0.0003), where a rule
 +that plans one newcomer's test exactly closes none. This was the one test we declared before any
 +play, and the claim holds; it concerns Sol alone. Sol's play splits by world (Figure 5.1): it closes
@@ -1935,10 +1935,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
 +copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
 +newcomer first is best in every world; why Opus never tests is untested. A rule allowed to test two
-+newcomers closes 82% of the gap, so what both subjects miss is planning one test beyond the one in
-+hand. These runs used the case's environment from a development branch whose registration with the
++newcomers closes 82% of the gap, so the headroom left lies in planning one test beyond the one in
++hand. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest first
++closes 33% on the declared worlds, about Sol's 35%: the declared test shows that Sol takes tests that
++pay only through what they reveal, not that it reasons about shared sources. In the pilot worlds the
++same shortcut closes 8% to Sol's 50%; no comparison with it was declared. These runs used the case's environment from a development branch whose registration with the
 +runtime still awaits review (Appendix F.1).
-+
+ 
 +An earlier pack, in which quotes always arrive and newcomers never share a source, is saturated: a
 +rule that looks one test ahead comes within 0.01% of the best policy, Sol and Opus close 98.6% and
 +92.8% of the pay-to-best gap, and Gemini 3.8 Flash and GPT-6 Luna close none (Appendix E.4,
@@ -2092,7 +2095,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,34 +303,85 @@
+@@ -168,34 +307,85 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -2190,8 +2193,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md
 --- aeread_working_draft_20261018_v14/source/paper_qc_design.md	2026-10-18 13:41:03
-+++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-19 09:51:33
-@@ -27,23 +27,23 @@
++++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-19 19:10:21
+@@ -27,23 +27,25 @@
  and shortcuts lose (3); the result supports the attribution it claims (4); and the comparison was
  sized, frozen and executed without tuning on outcomes (5). Each gate is typed `passed`, `failed`,
  `partial`, `not_run` or `not_applicable`, and only `passed` promotes. The profiles followed the initial
@@ -2204,8 +2207,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  real environment and verifier on every admitted world, with no model, and checks that it reaches
  its declared result: the Housing reference and a full-information tenant reproduce the published
 -values in all 600 v14 cells; Procurement's best policy equals the environment's average over its
-+values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; Procurement's best policy equals the environment's average over its
- 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
+-27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
++values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; on Procurement's harder pack the best policy and the one-step rule equal their averages over 400
++plays through the environment, within four standard errors, on each of the six pilot worlds (the 20
++confirmatory worlds rest on the same reference and generator but were not played this way), and on the
++earlier pack the best policy equals the environment's average over its 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
  both development packs and all 60 of the admitted confirmatory pack; Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
  or the reference is wrong.
  
@@ -2222,7 +2228,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **What it found.** Discovered failures are recorded in an incident log in design,
  operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct entries across
-@@ -65,7 +65,7 @@
+@@ -65,7 +67,7 @@
  | Procurement pay-or-test v2 (Appendix F.4) | `pay_or_test_v2_case_matrix.py`, `tests/test_procurement_pay_or_test_v2.py`, QC profile §8.1 and `pay_or_test_v2_confirmatory_plan.md` on branch `codex/procurement-pay-or-test` (1f281ea4, 699e3943); rows P-D-24, P-D-25, P-T-16 |
  | Data-center admitted pack (Appendix F.2) | `agreement_admitted_pack.py`, `tests/test_datacenter_agreement_admitted_pack.py` and `cases/datacenter_agreement_v1/agreement_admitted_v1/` on branch `codex/datacenter-agreement` (cce96138); rows DC-D-34 to DC-D-36 (ac28de38) |
  | Refund lower controls (Appendix F.4) | `src/aeread_families/refund/v2_5_controls.py`, record `cases/refund_v25/qc/lower_controls.json` and rule `refund_v25_beatability/1` (committed 1ededca5 before the controls ran) on branch `docs/refund-qc-profile` (b73722a5) |

@@ -33,8 +33,10 @@ passes all but Gate 4 (Appendix F.1).
 **The reference is played on every world.** For each case a test plays the reference through the
 real environment and verifier on every admitted world, with no model, and checks that it reaches
 its declared result: the Housing reference and a full-information tenant reproduce the published
-values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; Procurement's best policy equals the environment's average over its
-27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
+values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; on Procurement's harder pack the best policy and the one-step rule equal their averages over 400
+plays through the environment, within four standard errors, on each of the six pilot worlds (the 20
+confirmatory worlds rest on the same reference and generator but were not played this way), and on the
+earlier pack the best policy equals the environment's average over its 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
 both development packs and all 60 of the admitted confirmatory pack; Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
 or the reference is wrong.
 

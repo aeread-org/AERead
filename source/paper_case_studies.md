@@ -131,20 +131,21 @@ newcomer first and beats paying the premium by at least 10%. In one world the re
 $24.95. A newcomer asks $12.47, but its sample costs $200 and its odds are 0.20 good, 0.15 late and
 0.65 poor, so testing it on its own loses money. A second newcomer of the same seller kind asks $26.87,
 more than the recorded supplier, so it is never worth buying; but its sample costs $30, and the two
-share a source with probability 0.95. A sound sample there raises the first newcomer's odds of being
-good to 0.96, and a poor one lowers them to 0.01. The best policy quotes the cheap newcomer; if the
+share a source with probability 0.95. Once the cheap newcomer's quote has come back clean, a sound sample
+of the dear one raises the cheap newcomer's odds of being good to 0.94, and a poor one lowers them to 0.01.
+The best policy quotes the cheap newcomer; if the
 quote comes back clean, it samples the dear one, looks both up, and only then pays for the $200 sample.
 It earns 11.8% more than paying the premium. Every action is charged what it gave up against the exact
 best informed policy at that point.
 
-**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
+**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap; the shortcut, a screened control, samples the newcomer whose sample is cheapest before anything else, ignoring seller kinds, then plans one test. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
 
-| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | A rule that may test two newcomers (exact) |
-|---|---:|---:|---:|
-| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 82% |
-| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 84% |
-| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | |
-| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $8.38 |
+| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Shortcut: cheapest sample first (exact) | A rule that may test two newcomers (exact) |
+|---|---:|---:|---:|---:|
+| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 33% | 82% |
+| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 8% | 84% |
+| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | | |
+| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $33.46 | $8.38 |
 
 ![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
 
@@ -161,8 +162,11 @@ most of the gap in some worlds and none in others. Opus 5.5 played the same worl
 paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
 copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
 newcomer first is best in every world; why Opus never tests is untested. A rule allowed to test two
-newcomers closes 82% of the gap, so what both subjects miss is planning one test beyond the one in
-hand. These runs used the case's environment from a development branch whose registration with the
+newcomers closes 82% of the gap, so the headroom left lies in planning one test beyond the one in
+hand. A shortcut that ignores seller kinds and samples the newcomer whose sample is cheapest first
+closes 33% on the declared worlds, about Sol's 35%: the declared test shows that Sol takes tests that
+pay only through what they reveal, not that it reasons about shared sources. In the pilot worlds the
+same shortcut closes 8% to Sol's 50%; no comparison with it was declared. These runs used the case's environment from a development branch whose registration with the
 runtime still awaits review (Appendix F.1).
 
 An earlier pack, in which quotes always arrive and newcomers never share a source, is saturated: a
