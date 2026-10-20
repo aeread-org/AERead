@@ -1,0 +1,292 @@
+{
+ "plan": "docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md",
+ "sol": {
+  "v3": {
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_codex_cli_sol61_v1",
+   "plays": 40,
+   "failed": [],
+   "gap_closed_mean": 0.3533,
+   "touched_a_new_listing": 26,
+   "touched_two_or_more_new_listings": 7,
+   "plays_with_a_lookup": 4,
+   "plays_settling_a_kind": 3,
+   "first_info_to_newcomer": 10,
+   "reasons": {
+    "plays": 40,
+    "turns": 212,
+    "turns_with_a_reason": 125,
+    "turns_mentioning_a_shared_source": 0,
+    "of_which_as_information": 0,
+    "plays_mentioning_a_shared_source": 0
+   }
+  },
+  "v31": {
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v31_codex_cli_sol61_v1",
+   "plays": 40,
+   "failed": [],
+   "gap_closed_mean": 0.4313,
+   "touched_a_new_listing": 25,
+   "touched_two_or_more_new_listings": 11,
+   "plays_with_a_lookup": 5,
+   "plays_settling_a_kind": 5,
+   "first_info_to_newcomer": 12,
+   "reasons": {
+    "plays": 40,
+    "turns": 200,
+    "turns_with_a_reason": 122,
+    "turns_mentioning_a_shared_source": 0,
+    "of_which_as_information": 0,
+    "plays_mentioning_a_shared_source": 0
+   }
+  },
+  "paired_worlds": 20,
+  "unpaired": [],
+  "change_in_gap_closed": {
+   "mean": 0.078,
+   "t_ci95": [
+    -0.056,
+    0.212
+   ]
+  },
+  "per_world": {
+   "myopic_pays__1": {
+    "v3": 0.9118,
+    "v31": 0.5
+   },
+   "myopic_pays__2": {
+    "v3": -0.0001,
+    "v31": 0.3513
+   },
+   "myopic_pays__3": {
+    "v3": 0.4198,
+    "v31": 0.8085
+   },
+   "myopic_pays__4": {
+    "v3": 0.0001,
+    "v31": 0.6215
+   },
+   "myopic_pays__5": {
+    "v3": -0.0868,
+    "v31": 0.2572
+   },
+   "myopic_pays__6": {
+    "v3": 0.3225,
+    "v31": 0.053
+   },
+   "myopic_pays__7": {
+    "v3": 0.2544,
+    "v31": 0.244
+   },
+   "myopic_pays__8": {
+    "v3": 0.8564,
+    "v31": 0.8564
+   },
+   "myopic_pays__9": {
+    "v3": 0.8581,
+    "v31": 0.9048
+   },
+   "myopic_pays__10": {
+    "v3": 0.9556,
+    "v31": 0.9213
+   },
+   "myopic_pays__11": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__12": {
+    "v3": 0.9082,
+    "v31": 0.6874
+   },
+   "myopic_pays__13": {
+    "v3": 0.395,
+    "v31": 0.48
+   },
+   "myopic_pays__14": {
+    "v3": 0.4521,
+    "v31": 0.545
+   },
+   "myopic_pays__15": {
+    "v3": 0.3445,
+    "v31": 0.9009
+   },
+   "myopic_pays__16": {
+    "v3": 0.0,
+    "v31": 0.4369
+   },
+   "myopic_pays__17": {
+    "v3": 0.2811,
+    "v31": -0.0
+   },
+   "myopic_pays__18": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__19": {
+    "v3": 0.0455,
+    "v31": 0.0002
+   },
+   "myopic_pays__20": {
+    "v3": 0.1481,
+    "v31": 0.0581
+   }
+  }
+ },
+ "opus": {
+  "v3": {
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_claude_code_opus55_v1",
+   "plays": 40,
+   "failed": [],
+   "gap_closed_mean": 0.0,
+   "touched_a_new_listing": 0,
+   "touched_two_or_more_new_listings": 0,
+   "plays_with_a_lookup": 0,
+   "plays_settling_a_kind": 0,
+   "first_info_to_newcomer": 0,
+   "reasons": {
+    "plays": 40,
+    "turns": 126,
+    "turns_with_a_reason": 125,
+    "turns_mentioning_a_shared_source": 4,
+    "of_which_as_information": 0,
+    "plays_mentioning_a_shared_source": 4
+   }
+  },
+  "v31": {
+   "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v31_claude_code_opus55_v1",
+   "plays": 40,
+   "failed": [],
+   "gap_closed_mean": -0.0685,
+   "touched_a_new_listing": 0,
+   "touched_two_or_more_new_listings": 0,
+   "plays_with_a_lookup": 0,
+   "plays_settling_a_kind": 0,
+   "first_info_to_newcomer": 0,
+   "reasons": {
+    "plays": 40,
+    "turns": 127,
+    "turns_with_a_reason": 127,
+    "turns_mentioning_a_shared_source": 0,
+    "of_which_as_information": 0,
+    "plays_mentioning_a_shared_source": 0
+   }
+  },
+  "paired_worlds": 20,
+  "unpaired": [],
+  "change_in_gap_closed": {
+   "mean": -0.0685,
+   "t_ci95": [
+    -0.2118,
+    0.0748
+   ]
+  },
+  "per_world": {
+   "myopic_pays__1": {
+    "v3": -0.0001,
+    "v31": -0.0001
+   },
+   "myopic_pays__2": {
+    "v3": -0.0001,
+    "v31": -0.0001
+   },
+   "myopic_pays__3": {
+    "v3": -0.0,
+    "v31": -0.0
+   },
+   "myopic_pays__4": {
+    "v3": 0.0001,
+    "v31": 0.0001
+   },
+   "myopic_pays__5": {
+    "v3": 0.0001,
+    "v31": -1.3692
+   },
+   "myopic_pays__6": {
+    "v3": -0.0,
+    "v31": -0.0
+   },
+   "myopic_pays__7": {
+    "v3": 0.0001,
+    "v31": 0.0001
+   },
+   "myopic_pays__8": {
+    "v3": -0.0001,
+    "v31": -0.0001
+   },
+   "myopic_pays__9": {
+    "v3": 0.0001,
+    "v31": 0.0001
+   },
+   "myopic_pays__10": {
+    "v3": 0.0001,
+    "v31": 0.0001
+   },
+   "myopic_pays__11": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__12": {
+    "v3": -0.0002,
+    "v31": -0.0002
+   },
+   "myopic_pays__13": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__14": {
+    "v3": -0.0001,
+    "v31": -0.0001
+   },
+   "myopic_pays__15": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__16": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__17": {
+    "v3": -0.0,
+    "v31": -0.0
+   },
+   "myopic_pays__18": {
+    "v3": 0.0,
+    "v31": 0.0
+   },
+   "myopic_pays__19": {
+    "v3": 0.0002,
+    "v31": 0.0002
+   },
+   "myopic_pays__20": {
+    "v3": -0.0,
+    "v31": -0.0
+   }
+  }
+ },
+ "kind_blind_shortcut_gap_closed": 0.334,
+ "comprehension": {
+  "codex_sol61": {
+   "correct": 18,
+   "answered": 18,
+   "refused": 0,
+   "asked": 18,
+   "reading": "reads the rule",
+   "by_question": {
+    "sound_sample_alone": "6 of 6",
+    "clean_quote_then_sound_sample": "6 of 6",
+    "failing_sample": "6 of 6"
+   }
+  },
+  "claude_opus55": {
+   "correct": 18,
+   "answered": 18,
+   "refused": 0,
+   "asked": 18,
+   "reading": "reads the rule",
+   "by_question": {
+    "sound_sample_alone": "6 of 6",
+    "clean_quote_then_sound_sample": "6 of 6",
+    "failing_sample": "6 of 6"
+   }
+  }
+ }
+}
