@@ -245,3 +245,9 @@ current one saturated"):
   D per case); A.2's 0.6, 15/365, 10/365 and A(p)'s 1817 and 53.79 (derived); A.3's B, 40, 1.5, 0.14, 13/52 and 10;
   C.1's p (now p_d) and 1050; C.2's f_i and c_E; D's v_true, second gap, strays, walking away, surplus before fees;
   MOQ, E, playbook, the 58 development worlds and the cell. No number changed.
+- Procurement corrections from the paper session's check of c60e6204: Luna's loss beyond paying the premium is its
+  15 orders of 50 units where 55 was best (not award checks), in Section 5.1, Figure 5.1's caption and Section 5.2;
+  a note in Figure 5.2's caption and Table E.10 (b) that the declared classes file $6.33 a world of that under
+  information not acquired (worse terms would be $6.85 split out); the comprehension questions described as asked
+  (another newcomer's sample, with and without the target's own quote).
+
